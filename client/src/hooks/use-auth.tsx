@@ -4,21 +4,27 @@ import {
   useMutation,
   UseMutationResult,
 } from "@tanstack/react-query";
-import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema";
+import { User as SelectUser, InsertUser } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+
+// Types for OTP authentication
+type RequestOtpData = {
+  email: string;
+};
+
+type VerifyOtpData = {
+  email: string;
+  otp: string;
+};
 
 type AuthContextType = {
   user: SelectUser | null;
   isLoading: boolean;
   error: Error | null;
-  loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
-  registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
 };
-
-type LoginData = Pick<InsertUser, "username" | "password">;
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -35,65 +41,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
 
-  const loginMutation = useMutation({
-    mutationFn: async (credentials: LoginData) => {
-      const res = await apiRequest("POST", "/api/login", credentials);
-      return await res.json();
-    },
-    onSuccess: (user: SelectUser) => {
-      queryClient.setQueryData(["/api/user"], user);
-      toast({
-        title: "Welcome back!",
-        description: "You have successfully logged in.",
-        variant: "default",
-      });
-
-      // Redirect based on user role
-      if (user.role === "admin") {
-        setLocation("/admin/dashboard");
-      } else if (user.role === "seller") {
-        setLocation("/seller/dashboard");
-      } else {
-        setLocation("/");
-      }
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Login failed",
-        description: error.message || "Invalid username or password",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const registerMutation = useMutation({
-    mutationFn: async (credentials: InsertUser) => {
-      const res = await apiRequest("POST", "/api/register", credentials);
-      return await res.json();
-    },
-    onSuccess: (user: SelectUser) => {
-      queryClient.setQueryData(["/api/user"], user);
-      toast({
-        title: "Account created",
-        description: "Your account has been successfully created.",
-        variant: "default",
-      });
-      
-      // Redirect to home page after registration
-      setLocation("/");
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Registration failed",
-        description: error.message || "Failed to create account",
-        variant: "destructive",
-      });
-    },
-  });
-
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", "/api/logout");
+      await apiRequest("POST", "/api/auth/logout");
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
@@ -102,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: "You have been successfully logged out.",
         variant: "default",
       });
-      setLocation("/");
+      setLocation("/auth");
     },
     onError: (error: Error) => {
       toast({
@@ -117,9 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user: user ?? null,
     isLoading,
     error,
-    loginMutation,
     logoutMutation,
-    registerMutation,
   };
 
   return (

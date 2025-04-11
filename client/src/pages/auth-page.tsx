@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -7,6 +7,7 @@ import { insertUserSchema } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { Layout } from "@/components/layout/layout";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import {
   Form,
   FormControl,
@@ -22,31 +23,42 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 
-// Extend the insert schema with validation
-const loginSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-});
-
-const registerSchema = insertUserSchema.extend({
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string(),
+// Validation schemas
+const emailSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
-}).refine(data => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
 });
 
-type LoginFormValues = z.infer<typeof loginSchema>;
+const otpSchema = z.object({
+  email: z.string().email(),
+  otp: z.string().length(6, "OTP must be 6 digits"),
+});
+
+const registerSchema = insertUserSchema
+  .omit({ password: true })
+  .extend({
+    username: z.string().min(3, "Username must be at least 3 characters"),
+    email: z.string().email("Please enter a valid email address"),
+  });
+
+type EmailFormValues = z.infer<typeof emailSchema>;
+type OtpFormValues = z.infer<typeof otpSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
-  const { user, loginMutation, registerMutation } = useAuth();
+  const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  
+  // Auth flow state management
+  const [authState, setAuthState] = useState<'email' | 'otp' | 'register'>('email');
+  const [email, setEmail] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -61,12 +73,20 @@ export default function AuthPage() {
     }
   }, [user, setLocation]);
 
-  // Login form
-  const loginForm = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
+  // Email form
+  const emailForm = useForm<EmailFormValues>({
+    resolver: zodResolver(emailSchema),
     defaultValues: {
-      username: "",
-      password: "",
+      email: "",
+    },
+  });
+
+  // OTP form
+  const otpForm = useForm<OtpFormValues>({
+    resolver: zodResolver(otpSchema),
+    defaultValues: {
+      email: "",
+      otp: "",
     },
   });
 
@@ -75,8 +95,6 @@ export default function AuthPage() {
     resolver: zodResolver(registerSchema),
     defaultValues: {
       username: "",
-      password: "",
-      confirmPassword: "",
       email: "",
       role: "buyer",
       name: "",
@@ -85,14 +103,131 @@ export default function AuthPage() {
     },
   });
 
-  function onLoginSubmit(values: LoginFormValues) {
-    loginMutation.mutate(values);
+  // Request OTP
+  async function onEmailSubmit(values: EmailFormValues) {
+    setIsLoading(true);
+    
+    try {
+      // Save email for later steps
+      setEmail(values.email);
+      
+      // Request OTP
+      const response = await apiRequest("POST", "/api/auth/request-otp", {
+        email: values.email,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to send OTP");
+      }
+      
+      // Move to OTP verification step
+      setAuthState('otp');
+      otpForm.setValue('email', values.email);
+      
+      toast({
+        title: "OTP Sent",
+        description: "Check your email for the OTP code",
+        variant: "default",
+      });
+      
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to send OTP",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }
 
-  function onRegisterSubmit(values: RegisterFormValues) {
-    // Remove confirmPassword as it's not part of the schema
-    const { confirmPassword, ...registrationData } = values;
-    registerMutation.mutate(registrationData);
+  // Verify OTP
+  async function onOtpSubmit(values: OtpFormValues) {
+    setIsLoading(true);
+    
+    try {
+      // Verify OTP
+      const response = await apiRequest("POST", "/api/auth/verify-otp", {
+        email: values.email,
+        otp: values.otp,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Invalid OTP");
+      }
+      
+      const data = await response.json();
+      
+      // If user exists, they're now logged in
+      if (!data.isNewUser) {
+        // Refresh user data
+        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+        
+        toast({
+          title: "Login Successful",
+          description: "Welcome back!",
+          variant: "default",
+        });
+        
+        // Redirect will happen automatically via useEffect when user data loads
+      } else {
+        // User needs to complete registration
+        setAuthState('register');
+        registerForm.setValue('email', values.email);
+        
+        toast({
+          title: "OTP Verified",
+          description: "Please complete your registration",
+          variant: "default",
+        });
+      }
+      
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to verify OTP",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  // Complete registration
+  async function onRegisterSubmit(values: RegisterFormValues) {
+    setIsLoading(true);
+    
+    try {
+      // Register user
+      const response = await apiRequest("POST", "/api/auth/register", values);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Registration failed");
+      }
+      
+      // Refresh user data
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      
+      toast({
+        title: "Registration Successful",
+        description: "Your account has been created",
+        variant: "default",
+      });
+      
+      // Redirect will happen automatically via useEffect when user data loads
+      
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to register",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -100,46 +235,32 @@ export default function AuthPage() {
       <main className="flex-grow py-8 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-8 items-center max-w-6xl mx-auto">
-            {/* Auth Forms */}
+            {/* OTP Auth Forms */}
             <Card className="shadow-md">
-              <Tabs defaultValue="login" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="login">Login</TabsTrigger>
-                  <TabsTrigger value="register">Register</TabsTrigger>
-                </TabsList>
-                
-                {/* Login Form */}
-                <TabsContent value="login">
+              {/* Email Form - Step 1 */}
+              {authState === 'email' && (
+                <>
                   <CardHeader>
-                    <CardTitle>Login</CardTitle>
+                    <CardTitle>Login or Register</CardTitle>
                     <CardDescription>
-                      Welcome back to Flipkart! Please enter your credentials.
+                      Enter your email to continue to Flipkart
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Form {...loginForm}>
-                      <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+                    <Form {...emailForm}>
+                      <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="space-y-4">
                         <FormField
-                          control={loginForm.control}
-                          name="username"
+                          control={emailForm.control}
+                          name="email"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Username</FormLabel>
+                              <FormLabel>Email</FormLabel>
                               <FormControl>
-                                <Input placeholder="Enter your username" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={loginForm.control}
-                          name="password"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Password</FormLabel>
-                              <FormControl>
-                                <Input type="password" placeholder="Enter your password" {...field} />
+                                <Input 
+                                  type="email" 
+                                  placeholder="Enter your email" 
+                                  {...field} 
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -148,28 +269,89 @@ export default function AuthPage() {
                         <Button 
                           type="submit" 
                           className="w-full"
-                          disabled={loginMutation.isPending}
+                          disabled={isLoading}
                         >
-                          {loginMutation.isPending ? (
+                          {isLoading ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Logging in...
+                              Sending OTP...
                             </>
                           ) : (
-                            "Login"
+                            "Get OTP"
                           )}
                         </Button>
                       </form>
                     </Form>
                   </CardContent>
-                </TabsContent>
-                
-                {/* Register Form */}
-                <TabsContent value="register">
+                </>
+              )}
+              
+              {/* OTP Verification - Step 2 */}
+              {authState === 'otp' && (
+                <>
                   <CardHeader>
-                    <CardTitle>Create Account</CardTitle>
+                    <CardTitle>Verify Your Email</CardTitle>
                     <CardDescription>
-                      Join Flipkart to shop from India's largest online marketplace.
+                      Enter the 6-digit OTP sent to {email}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Form {...otpForm}>
+                      <form onSubmit={otpForm.handleSubmit(onOtpSubmit)} className="space-y-4">
+                        <FormField
+                          control={otpForm.control}
+                          name="otp"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>OTP Code</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder="Enter 6-digit OTP" 
+                                  maxLength={6}
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <Button 
+                          type="submit" 
+                          className="w-full"
+                          disabled={isLoading}
+                        >
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Verifying...
+                            </>
+                          ) : (
+                            "Verify OTP"
+                          )}
+                        </Button>
+                      </form>
+                    </Form>
+                  </CardContent>
+                  <CardFooter className="flex flex-col items-center">
+                    <Button 
+                      variant="link" 
+                      className="mt-2"
+                      onClick={() => setAuthState('email')}
+                      disabled={isLoading}
+                    >
+                      Back to email
+                    </Button>
+                  </CardFooter>
+                </>
+              )}
+              
+              {/* Registration - Step 3 (only for new users) */}
+              {authState === 'register' && (
+                <>
+                  <CardHeader>
+                    <CardTitle>Complete Registration</CardTitle>
+                    <CardDescription>
+                      Please provide additional information to complete your account
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -190,53 +372,16 @@ export default function AuthPage() {
                         />
                         <FormField
                           control={registerForm.control}
-                          name="email"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Email</FormLabel>
-                              <FormControl>
-                                <Input type="email" placeholder="Enter your email" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <FormField
-                            control={registerForm.control}
-                            name="password"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Password</FormLabel>
-                                <FormControl>
-                                  <Input type="password" placeholder="Create a password" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={registerForm.control}
-                            name="confirmPassword"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Confirm Password</FormLabel>
-                                <FormControl>
-                                  <Input type="password" placeholder="Confirm your password" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                        <FormField
-                          control={registerForm.control}
                           name="name"
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Full Name</FormLabel>
                               <FormControl>
-                                <Input placeholder="Enter your full name" {...field} />
+                                <Input 
+                                  placeholder="Enter your full name" 
+                                  {...field} 
+                                  value={field.value || ''}
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -250,7 +395,11 @@ export default function AuthPage() {
                               <FormItem>
                                 <FormLabel>Phone Number</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="Enter your phone number" {...field} />
+                                  <Input 
+                                    placeholder="Enter your phone number" 
+                                    {...field} 
+                                    value={field.value || ''}
+                                  />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -283,7 +432,11 @@ export default function AuthPage() {
                             <FormItem>
                               <FormLabel>Address</FormLabel>
                               <FormControl>
-                                <Input placeholder="Enter your address" {...field} />
+                                <Input 
+                                  placeholder="Enter your address" 
+                                  {...field} 
+                                  value={field.value || ''}
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -292,22 +445,32 @@ export default function AuthPage() {
                         <Button 
                           type="submit" 
                           className="w-full"
-                          disabled={registerMutation.isPending}
+                          disabled={isLoading}
                         >
-                          {registerMutation.isPending ? (
+                          {isLoading ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               Creating Account...
                             </>
                           ) : (
-                            "Register"
+                            "Complete Registration"
                           )}
                         </Button>
                       </form>
                     </Form>
                   </CardContent>
-                </TabsContent>
-              </Tabs>
+                  <CardFooter className="flex flex-col items-center">
+                    <Button 
+                      variant="link" 
+                      className="mt-2"
+                      onClick={() => setAuthState('email')}
+                      disabled={isLoading}
+                    >
+                      Start over
+                    </Button>
+                  </CardFooter>
+                </>
+              )}
             </Card>
 
             {/* Hero Section */}
