@@ -8,9 +8,8 @@ import ProductPage from "./pages/product-page";
 import AdminDashboard from "./pages/admin/dashboard";
 import SellerDashboard from "./pages/seller/dashboard";
 import BuyerDashboard from "./pages/buyer/dashboard";
-import { Header } from "@/components/layout/header";
+import { SimpleHeader } from "@/components/layout/simple-header";
 import { Footer } from "@/components/layout/footer";
-import { CartSidebar } from "@/components/cart/cart-sidebar";
 
 function Router() {
   return (
@@ -29,12 +28,11 @@ function Router() {
 function App() {
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
+      <SimpleHeader />
       <main className="flex-grow">
         <Router />
       </main>
       <Footer />
-      <CartSidebar />
       <Toaster />
     </div>
   );

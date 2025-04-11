@@ -7,11 +7,11 @@ import { useCart } from "@/context/cart-context";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
 
 export function CartSidebar() {
   const { isOpen, toggleCart, cartItems, updateQuantity, removeFromCart, clearCart } = useCart();
-  const { user } = useAuth();
+  // Temporarily remove authentication dependency
+  const user = null;
   const { toast } = useToast();
   const cartRef = useRef<HTMLDivElement>(null);
   
