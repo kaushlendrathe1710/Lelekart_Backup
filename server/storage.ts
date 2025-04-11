@@ -117,7 +117,8 @@ export class DatabaseStorage implements IStorage {
       query = query.where(and(...conditions));
     }
     
-    return query;
+    const result = await query;
+    return result;
   }
 
   async getProduct(id: number): Promise<Product | undefined> {

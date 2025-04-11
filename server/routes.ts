@@ -19,7 +19,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const category = req.query.category as string | undefined;
       const sellerId = req.query.sellerId ? Number(req.query.sellerId) : undefined;
-      const approved = req.query.approved === "true";
+      const approved = req.query.approved !== undefined ? req.query.approved === "true" : undefined;
       
       const products = await storage.getProducts(category, sellerId, approved);
       res.json(products);

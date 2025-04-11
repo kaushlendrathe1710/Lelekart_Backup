@@ -3,7 +3,9 @@ import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
-import { useCart } from "@/context/cart-context";
+import { useContext } from "react";
+import { CartContext } from "@/context/cart-context";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProductCardProps {
   product: Product;
@@ -11,12 +13,22 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, featured = false }: ProductCardProps) {
-  const { addToCart } = useCart();
+  const cartContext = useContext(CartContext);
+  const { toast } = useToast();
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    addToCart(product);
+    
+    if (cartContext) {
+      cartContext.addToCart(product);
+    } else {
+      toast({
+        title: "Cart not available",
+        description: "You need to be logged in to add items to cart",
+        variant: "destructive",
+      });
+    }
   };
 
   // Format price in Indian Rupees
