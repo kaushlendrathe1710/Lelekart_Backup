@@ -121,7 +121,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Product not found" });
       }
       
-      const updatedProduct = await storage.updateProduct(id, { isApproved: true });
+      const updatedProduct = await storage.updateProduct(id, { approved: true });
       res.json(updatedProduct);
     } catch (error) {
       res.status(500).json({ error: "Failed to approve product" });

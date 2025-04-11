@@ -1,4 +1,5 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, foreignKey } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -32,9 +33,9 @@ export const products = pgTable("products", {
   price: integer("price").notNull(),
   category: text("category").notNull(),
   imageUrl: text("image_url").notNull(),
-  sellerId: integer("seller_id").notNull(),
+  sellerId: integer("seller_id").notNull().references(() => users.id),
   stock: integer("stock").notNull().default(0),
-  isApproved: boolean("is_approved").notNull().default(false),
+  approved: boolean("approved").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -46,13 +47,14 @@ export const insertProductSchema = createInsertSchema(products).pick({
   imageUrl: true,
   sellerId: true,
   stock: true,
+  approved: true,
 });
 
 // Cart schema
 export const carts = pgTable("carts", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  productId: integer("product_id").notNull(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  productId: integer("product_id").notNull().references(() => products.id),
   quantity: integer("quantity").notNull().default(1),
 });
 
@@ -65,23 +67,24 @@ export const insertCartSchema = createInsertSchema(carts).pick({
 // Order schema
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
+  userId: integer("user_id").notNull().references(() => users.id),
   status: text("status").notNull().default("pending"),
   total: integer("total").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  date: timestamp("date").notNull().defaultNow(),
 });
 
 export const insertOrderSchema = createInsertSchema(orders).pick({
   userId: true,
   status: true,
   total: true,
+  date: true,
 });
 
 // OrderItem schema
 export const orderItems = pgTable("order_items", {
   id: serial("id").primaryKey(),
-  orderId: integer("order_id").notNull(),
-  productId: integer("product_id").notNull(),
+  orderId: integer("order_id").notNull().references(() => orders.id),
+  productId: integer("product_id").notNull().references(() => products.id),
   quantity: integer("quantity").notNull(),
   price: integer("price").notNull(),
 });
@@ -92,6 +95,52 @@ export const insertOrderItemSchema = createInsertSchema(orderItems).pick({
   quantity: true,
   price: true,
 });
+
+// Relations
+export const usersRelations = relations(users, ({ many }) => ({
+  products: many(products),
+  carts: many(carts),
+  orders: many(orders),
+}));
+
+export const productsRelations = relations(products, ({ one, many }) => ({
+  seller: one(users, {
+    fields: [products.sellerId],
+    references: [users.id],
+  }),
+  cartItems: many(carts),
+  orderItems: many(orderItems),
+}));
+
+export const cartsRelations = relations(carts, ({ one }) => ({
+  user: one(users, {
+    fields: [carts.userId],
+    references: [users.id],
+  }),
+  product: one(products, {
+    fields: [carts.productId],
+    references: [products.id],
+  }),
+}));
+
+export const ordersRelations = relations(orders, ({ one, many }) => ({
+  user: one(users, {
+    fields: [orders.userId],
+    references: [users.id],
+  }),
+  items: many(orderItems),
+}));
+
+export const orderItemsRelations = relations(orderItems, ({ one }) => ({
+  order: one(orders, {
+    fields: [orderItems.orderId],
+    references: [orders.id],
+  }),
+  product: one(products, {
+    fields: [orderItems.productId],
+    references: [products.id],
+  }),
+}));
 
 // Type exports
 export type User = typeof users.$inferSelect;
