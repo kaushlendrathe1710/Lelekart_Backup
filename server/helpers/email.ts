@@ -52,12 +52,12 @@ export async function saveOTP(email: string, otp: string): Promise<void> {
       .where(eq(userOtps.email, email));
   } else {
     // Insert a new OTP record
-    await db.insert(userOtps).values({
+    await db.insert(userOtps).values([{
       email,
       otp,
-      expiresAt: expiresAt.toISOString(),
+      expiresAt,
       verified: false,
-    });
+    }]);
   }
 }
 

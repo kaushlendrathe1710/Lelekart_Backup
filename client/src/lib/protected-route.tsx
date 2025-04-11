@@ -1,5 +1,6 @@
 import { Loader2 } from "lucide-react";
 import { Redirect, Route } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 
 interface ProtectedRouteProps {
   path: string;
@@ -12,9 +13,7 @@ export function ProtectedRoute({
   component: Component,
   role
 }: ProtectedRouteProps) {
-  // Temporarily remove authentication dependency
-  const user = { role: "admin" }; // Mock an admin user for all protected routes
-  const isLoading = false;
+  const { user, isLoading } = useAuth();
 
   if (isLoading) {
     return (
