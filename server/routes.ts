@@ -11,7 +11,7 @@ import {
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup authentication routes
+  // Setup authentication routes with OTP-based authentication
   setupAuth(app);
 
   // Product routes

@@ -1,11 +1,16 @@
 import passport from "passport";
-import { Strategy as LocalStrategy } from "passport-local";
-import { Express } from "express";
+import { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
-import { scrypt, randomBytes, timingSafeEqual } from "crypto";
-import { promisify } from "util";
+import { randomBytes } from "crypto";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
+import { 
+  generateOTP, 
+  saveOTP, 
+  verifyOTP, 
+  sendOTPEmail
+} from "./helpers/email";
+import { z } from "zod";
 
 declare global {
   namespace Express {
@@ -13,20 +18,24 @@ declare global {
   }
 }
 
-const scryptAsync = promisify(scrypt);
+// Validation schemas
+const requestOtpSchema = z.object({
+  email: z.string().email(),
+});
 
-async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
-}
+const verifyOtpSchema = z.object({
+  email: z.string().email(),
+  otp: z.string().length(6),
+});
 
-async function comparePasswords(supplied: string, stored: string) {
-  const [hashed, salt] = stored.split(".");
-  const hashedBuf = Buffer.from(hashed, "hex");
-  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-  return timingSafeEqual(hashedBuf, suppliedBuf);
-}
+const registerSchema = z.object({
+  username: z.string().min(3),
+  email: z.string().email(),
+  role: z.enum(["buyer", "seller", "admin"]).default("buyer"),
+  name: z.string().optional(),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+});
 
 export function setupAuth(app: Express) {
   // Generate a secure secret for sessions
@@ -37,27 +46,15 @@ export function setupAuth(app: Express) {
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
+    cookie: {
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    }
   };
 
   app.set("trust proxy", 1);
   app.use(session(sessionSettings));
   app.use(passport.initialize());
   app.use(passport.session());
-
-  passport.use(
-    new LocalStrategy(async (username, password, done) => {
-      try {
-        const user = await storage.getUserByUsername(username);
-        if (!user || !(await comparePasswords(password, user.password))) {
-          return done(null, false);
-        } else {
-          return done(null, user);
-        }
-      } catch (err) {
-        return done(err);
-      }
-    }),
-  );
 
   passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser(async (id: number, done) => {
@@ -69,39 +66,132 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/register", async (req, res, next) => {
+  // Step 1: Request OTP for login or registration
+  app.post("/api/auth/request-otp", async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const existingUser = await storage.getUserByUsername(req.body.username);
-      if (existingUser) {
-        return res.status(400).json({ error: "Username already exists" });
+      // Validate request
+      const validation = requestOtpSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid email address" });
       }
 
-      const user = await storage.createUser({
-        ...req.body,
-        password: await hashPassword(req.body.password),
-      });
+      const { email } = validation.data;
 
-      req.login(user, (err) => {
-        if (err) return next(err);
-        res.status(201).json(user);
+      // Generate OTP
+      const otp = await generateOTP();
+      
+      // Save OTP to database
+      await saveOTP(email, otp);
+      
+      // Send OTP to user's email
+      try {
+        await sendOTPEmail(email, otp);
+      } catch (emailError) {
+        console.error("Failed to send email:", emailError);
+        return res.status(500).json({ error: "Failed to send OTP email. Please try again later." });
+      }
+      
+      res.status(200).json({ 
+        message: "OTP sent successfully", 
+        email, 
+        expiresIn: 10 * 60 // 10 minutes in seconds
       });
     } catch (error) {
       next(error);
     }
   });
 
-  app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    res.status(200).json(req.user);
+  // Step 2: Verify OTP
+  app.post("/api/auth/verify-otp", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      // Validate request
+      const validation = verifyOtpSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid request" });
+      }
+
+      const { email, otp } = validation.data;
+      
+      // Verify OTP
+      const isValid = await verifyOTP(email, otp);
+      
+      if (!isValid) {
+        return res.status(400).json({ error: "Invalid or expired OTP" });
+      }
+      
+      // Check if user exists
+      const existingUser = await storage.getUserByEmail(email);
+      
+      if (existingUser) {
+        // Login existing user
+        req.login(existingUser, (err) => {
+          if (err) return next(err);
+          return res.status(200).json({ 
+            user: existingUser,
+            isNewUser: false,
+            message: "Login successful" 
+          });
+        });
+      } else {
+        // User doesn't exist, ask for registration
+        return res.status(200).json({
+          isNewUser: true,
+          email,
+          message: "OTP verified. Please complete registration."
+        });
+      }
+    } catch (error) {
+      next(error);
+    }
   });
 
-  app.post("/api/logout", (req, res, next) => {
+  // Step 3: Complete registration for new users after OTP verification
+  app.post("/api/auth/register", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      // Validate request
+      const validation = registerSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid registration data" });
+      }
+
+      const userData = validation.data;
+      
+      // Check if username is already taken
+      const existingUser = await storage.getUserByUsername(userData.username);
+      if (existingUser) {
+        return res.status(400).json({ error: "Username already exists" });
+      }
+
+      // Create new user
+      const newUser = await storage.createUser({
+        ...userData,
+        // Use a random password string since we're using OTP
+        password: randomBytes(16).toString('hex'),
+      });
+
+      // Log in the new user
+      req.login(newUser, (err) => {
+        if (err) return next(err);
+        res.status(201).json({
+          user: newUser,
+          message: "Registration successful"
+        });
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Logout
+  app.post("/api/auth/logout", (req: Request, res: Response, next: NextFunction) => {
     req.logout((err) => {
       if (err) return next(err);
-      res.sendStatus(200);
+      res.status(200).json({ message: "Logout successful" });
     });
   });
 
-  app.get("/api/user", (req, res) => {
+  // Get current user
+  app.get("/api/user", (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     res.json(req.user);
   });
