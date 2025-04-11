@@ -142,6 +142,23 @@ export const orderItemsRelations = relations(orderItems, ({ one }) => ({
   }),
 }));
 
+// User OTP table for passwordless authentication
+export const userOtps = pgTable("user_otps", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull(),
+  otp: text("otp").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  verified: boolean("verified").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertUserOtpSchema = createInsertSchema(userOtps).pick({
+  email: true,
+  otp: true,
+  expiresAt: true,
+  verified: true,
+});
+
 // Type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -157,3 +174,6 @@ export type InsertOrder = z.infer<typeof insertOrderSchema>;
 
 export type OrderItem = typeof orderItems.$inferSelect;
 export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
+
+export type UserOtp = typeof userOtps.$inferSelect;
+export type InsertUserOtp = z.infer<typeof insertUserOtpSchema>;
