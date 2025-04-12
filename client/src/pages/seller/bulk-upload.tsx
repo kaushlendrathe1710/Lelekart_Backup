@@ -50,22 +50,36 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 
-// Mock example data
-const EXAMPLE_CSV = `name,description,price,category,imageUrl,stock
-Smartphone X Pro,Flagship smartphone with high-performance processor and excellent camera,49999,Electronics,https://example.com/smartphone-x.jpg,100
-Wireless Earbuds Pro,True wireless earbuds with active noise cancellation,7999,Electronics,https://example.com/earbuds.jpg,200
-Smart Watch Elite,Fitness tracking and notification smart watch,12999,Electronics,https://example.com/smartwatch.jpg,150
-Laptop Ultra,Ultra-thin laptop with powerful specifications,89999,Electronics,https://example.com/laptop.jpg,50
-Gaming Console X,Next-generation gaming console with 4K support,45999,Electronics,https://example.com/console.jpg,75`;
+// Mock example data with all possible product fields
+const EXAMPLE_CSV = `name,description,price,mrp,category,subcategory,brand,imageUrl,images,stock,sku,hsn,weight,length,width,height,warranty,returnPolicy,tax,productType
+Smartphone X Pro,Flagship smartphone with high-performance processor and excellent camera,49999,59999,Electronics,Mobiles,TechBrand,https://example.com/smartphone-x.jpg,https://example.com/smartphone-x2.jpg|https://example.com/smartphone-x3.jpg,100,SM-X-PRO-256-BLK,85171290,0.25,15.5,7.2,0.8,12,15,18,physical
+Wireless Earbuds Pro,True wireless earbuds with active noise cancellation,7999,9999,Electronics,Audio,SoundTech,https://example.com/earbuds.jpg,https://example.com/earbuds2.jpg|https://example.com/earbuds3.jpg,200,EB-PRO-BLK,85183000,0.05,5.2,4.8,2.3,12,7,18,physical
+Smart Watch Elite,Fitness tracking and notification smart watch,12999,14999,Electronics,Wearables,FitTech,https://example.com/smartwatch.jpg,https://example.com/smartwatch2.jpg,150,SW-ELITE-BLK,91029900,0.07,4.5,4.5,1.2,12,7,18,physical
+Laptop Ultra,Ultra-thin laptop with powerful specifications,89999,99999,Electronics,Laptops,TechPro,https://example.com/laptop.jpg,https://example.com/laptop2.jpg|https://example.com/laptop3.jpg|https://example.com/laptop4.jpg,50,LT-ULTRA-i7-512,84713000,1.5,35.2,24.5,1.8,24,15,18,physical
+Gaming Console X,Next-generation gaming console with 4K support,45999,49999,Electronics,Gaming,GameTech,https://example.com/console.jpg,https://example.com/console2.jpg|https://example.com/console3.jpg,75,GC-X-1TB-BLK,95045000,3.2,30.5,25.8,7.5,12,15,18,physical`;
 
-// Sample validation rules
+// Sample validation rules for all fields
 const VALIDATION_RULES = [
   { field: 'name', rule: 'Must be between 3-150 characters' },
   { field: 'description', rule: 'Must be between 20-5000 characters' },
   { field: 'price', rule: 'Must be a positive number' },
+  { field: 'mrp', rule: 'Must be a positive number and >= price' },
   { field: 'category', rule: 'Must be a valid category' },
-  { field: 'imageUrl', rule: 'Must be a valid URL' },
-  { field: 'stock', rule: 'Must be a non-negative integer' }
+  { field: 'subcategory', rule: 'Must be a valid subcategory for the selected category' },
+  { field: 'brand', rule: 'Must be between 2-50 characters' },
+  { field: 'imageUrl', rule: 'Must be a valid URL to the main product image' },
+  { field: 'images', rule: 'Optional. Additional image URLs separated by | character' },
+  { field: 'stock', rule: 'Must be a non-negative integer' },
+  { field: 'sku', rule: 'Optional. Unique identifier for your product' },
+  { field: 'hsn', rule: 'Optional. Valid HSN code for your product category' },
+  { field: 'weight', rule: 'Optional. Weight in kg (decimal allowed)' },
+  { field: 'length', rule: 'Optional. Length in cm (decimal allowed)' },
+  { field: 'width', rule: 'Optional. Width in cm (decimal allowed)' },
+  { field: 'height', rule: 'Optional. Height in cm (decimal allowed)' },
+  { field: 'warranty', rule: 'Optional. Warranty period in months' },
+  { field: 'returnPolicy', rule: 'Optional. Return period in days' },
+  { field: 'tax', rule: 'Optional. GST/Tax percentage (0, 5, 12, 18, or 28)' },
+  { field: 'productType', rule: 'Optional. "physical" or "digital"' }
 ];
 
 // Status enum for product upload results
@@ -183,33 +197,93 @@ export default function BulkUploadPage() {
     const errors: string[] = [];
     
     data.forEach((row, index) => {
+      const rowNum = index + 2; // +2 because row 1 is header, and we're 0-indexed
+      
       // Required fields check
       const requiredFields = ['name', 'description', 'price', 'category', 'stock'];
       
       for (const field of requiredFields) {
         if (!row[field] || row[field].trim() === '') {
-          errors.push(`Row ${index + 2}: Missing required field '${field}'`);
+          errors.push(`Row ${rowNum}: Missing required field '${field}'`);
         }
       }
       
       // Name length check
       if (row.name && (row.name.length < 3 || row.name.length > 150)) {
-        errors.push(`Row ${index + 2}: Product name must be between 3 and 150 characters`);
+        errors.push(`Row ${rowNum}: Product name must be between 3 and 150 characters`);
       }
       
       // Description length check
       if (row.description && (row.description.length < 20 || row.description.length > 5000)) {
-        errors.push(`Row ${index + 2}: Product description must be between 20 and 5000 characters`);
+        errors.push(`Row ${rowNum}: Product description must be between 20 and 5000 characters`);
       }
       
       // Price check
-      if (row.price && (isNaN(parseFloat(row.price)) || parseFloat(row.price) <= 0)) {
-        errors.push(`Row ${index + 2}: Price must be a positive number`);
+      const price = parseFloat(row.price);
+      if (row.price && (isNaN(price) || price <= 0)) {
+        errors.push(`Row ${rowNum}: Price must be a positive number`);
+      }
+      
+      // MRP check
+      const mrp = parseFloat(row.mrp);
+      if (row.mrp) {
+        if (isNaN(mrp) || mrp <= 0) {
+          errors.push(`Row ${rowNum}: MRP must be a positive number`);
+        } else if (price && mrp < price) {
+          errors.push(`Row ${rowNum}: MRP must be greater than or equal to selling price`);
+        }
+      }
+      
+      // Brand check
+      if (row.brand && (row.brand.length < 2 || row.brand.length > 50)) {
+        errors.push(`Row ${rowNum}: Brand name must be between 2 and 50 characters`);
       }
       
       // Stock check
       if (row.stock && (isNaN(parseInt(row.stock)) || parseInt(row.stock) < 0)) {
-        errors.push(`Row ${index + 2}: Stock must be a non-negative integer`);
+        errors.push(`Row ${rowNum}: Stock must be a non-negative integer`);
+      }
+      
+      // Dimension checks
+      ['weight', 'length', 'width', 'height'].forEach(dim => {
+        if (row[dim] && (isNaN(parseFloat(row[dim])) || parseFloat(row[dim]) < 0)) {
+          errors.push(`Row ${rowNum}: ${dim} must be a positive number`);
+        }
+      });
+      
+      // Tax check
+      if (row.tax) {
+        const validTaxRates = ['0', '5', '12', '18', '28'];
+        if (!validTaxRates.includes(row.tax)) {
+          errors.push(`Row ${rowNum}: Tax must be one of ${validTaxRates.join(', ')}`);
+        }
+      }
+      
+      // Product type check
+      if (row.productType && !['physical', 'digital'].includes(row.productType)) {
+        errors.push(`Row ${rowNum}: Product type must be "physical" or "digital"`);
+      }
+      
+      // Warranty and Return Policy checks
+      ['warranty', 'returnPolicy'].forEach(field => {
+        if (row[field] && (isNaN(parseInt(row[field])) || parseInt(row[field]) < 0)) {
+          errors.push(`Row ${rowNum}: ${field} must be a non-negative integer`);
+        }
+      });
+      
+      // Image URL checks
+      if (row.imageUrl && !row.imageUrl.match(/^https?:\/\/.+\..+/)) {
+        errors.push(`Row ${rowNum}: imageUrl must be a valid URL starting with http:// or https://`);
+      }
+      
+      // Additional images check
+      if (row.images) {
+        const imageUrls = row.images.split('|');
+        for (let i = 0; i < imageUrls.length; i++) {
+          if (!imageUrls[i].match(/^https?:\/\/.+\..+/)) {
+            errors.push(`Row ${rowNum}: images contains an invalid URL at position ${i+1}`);
+          }
+        }
       }
     });
     
@@ -531,19 +605,16 @@ export default function BulkUploadPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {validationErrors.map((error, index) => {
-                          // Extract row number and message
-                          const rowMatch = error.match(/Row (\d+):/);
-                          const rowNum = rowMatch ? rowMatch[1] : '';
-                          const message = error.replace(/Row \d+: /, '');
-                          
-                          return (
-                            <TableRow key={index}>
-                              <TableCell className="font-medium">{rowNum}</TableCell>
-                              <TableCell>{message}</TableCell>
-                            </TableRow>
-                          );
-                        })}
+                        {validationErrors.map((error, index) => (
+                          <TableRow key={index}>
+                            <TableCell>
+                              {error.split(':')[0]}
+                            </TableCell>
+                            <TableCell>
+                              {error.split(':').slice(1).join(':')}
+                            </TableCell>
+                          </TableRow>
+                        ))}
                       </TableBody>
                     </Table>
                   </div>
@@ -552,8 +623,13 @@ export default function BulkUploadPage() {
                   <Button variant="outline" onClick={resetUpload}>
                     Cancel
                   </Button>
-                  <Button onClick={resetUpload}>
-                    Upload Another File
+                  <Button 
+                    variant="outline" 
+                    onClick={downloadTemplate}
+                    className="flex items-center gap-2"
+                  >
+                    <DownloadCloud className="h-4 w-4 mr-2" />
+                    Download Template
                   </Button>
                 </CardFooter>
               </Card>
@@ -582,6 +658,19 @@ export default function BulkUploadPage() {
                   </div>
                   
                   <div className="max-h-96 overflow-y-auto border rounded-md">
+                    <div className="flex items-center justify-end mb-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => {
+                          const detailsEls = document.querySelectorAll(".product-details");
+                          detailsEls.forEach(el => el.classList.toggle("hidden"));
+                        }}
+                      >
+                        <Info className="h-4 w-4 mr-2" />
+                        Toggle Full Details
+                      </Button>
+                    </div>
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -590,22 +679,132 @@ export default function BulkUploadPage() {
                           <TableHead>Price</TableHead>
                           <TableHead>Category</TableHead>
                           <TableHead className="text-right">Stock</TableHead>
+                          <TableHead></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {parsedData.map((product, index) => (
-                          <TableRow key={index}>
-                            <TableCell className="font-medium">{index + 1}</TableCell>
-                            <TableCell>
-                              <div className="font-medium truncate max-w-[200px]">{product.name}</div>
-                              <div className="text-xs text-muted-foreground truncate max-w-[200px]">
-                                {product.description?.substring(0, 50)}...
-                              </div>
-                            </TableCell>
-                            <TableCell>₹{parseInt(product.price).toLocaleString()}</TableCell>
-                            <TableCell>{product.category}</TableCell>
-                            <TableCell className="text-right">{product.stock}</TableCell>
-                          </TableRow>
+                          <>
+                            <TableRow key={index}>
+                              <TableCell className="font-medium">{index + 1}</TableCell>
+                              <TableCell>
+                                <div className="font-medium truncate max-w-[200px]">{product.name}</div>
+                                <div className="text-xs text-muted-foreground truncate max-w-[200px]">
+                                  {product.description?.substring(0, 50)}...
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div>₹{parseInt(product.price).toLocaleString()}</div>
+                                {product.mrp && (
+                                  <div className="text-xs text-muted-foreground line-through">
+                                    MRP: ₹{parseInt(product.mrp).toLocaleString()}
+                                  </div>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <div>{product.category}</div>
+                                {product.subcategory && (
+                                  <div className="text-xs text-muted-foreground">
+                                    {product.subcategory}
+                                  </div>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right">{product.stock}</TableCell>
+                              <TableCell>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  onClick={(e) => {
+                                    const row = (e.target as HTMLElement).closest('tr');
+                                    const detailsRow = row?.nextElementSibling;
+                                    detailsRow?.classList.toggle('hidden');
+                                  }}
+                                >
+                                  <ChevronRight className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                            <TableRow key={`details-${index}`} className="product-details hidden">
+                              <TableCell colSpan={6} className="bg-muted/30">
+                                <div className="p-2 grid grid-cols-3 md:grid-cols-4 gap-2 text-sm">
+                                  {product.brand && (
+                                    <div>
+                                      <div className="font-medium">Brand</div>
+                                      <div>{product.brand}</div>
+                                    </div>
+                                  )}
+                                  
+                                  {product.sku && (
+                                    <div>
+                                      <div className="font-medium">SKU</div>
+                                      <div>{product.sku}</div>
+                                    </div>
+                                  )}
+                                  
+                                  {product.hsn && (
+                                    <div>
+                                      <div className="font-medium">HSN Code</div>
+                                      <div>{product.hsn}</div>
+                                    </div>
+                                  )}
+                                  
+                                  {product.tax && (
+                                    <div>
+                                      <div className="font-medium">Tax Rate</div>
+                                      <div>{product.tax}%</div>
+                                    </div>
+                                  )}
+                                  
+                                  {(product.weight || product.length || product.width || product.height) && (
+                                    <div>
+                                      <div className="font-medium">Dimensions</div>
+                                      <div>
+                                        {product.weight ? `${product.weight}kg` : ""}
+                                        {product.weight && (product.length || product.width || product.height) ? " | " : ""}
+                                        {(product.length && product.width && product.height) ? 
+                                          `${product.length} × ${product.width} × ${product.height} cm` : ""}
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {product.warranty && (
+                                    <div>
+                                      <div className="font-medium">Warranty</div>
+                                      <div>{product.warranty} months</div>
+                                    </div>
+                                  )}
+                                  
+                                  {product.returnPolicy && (
+                                    <div>
+                                      <div className="font-medium">Return Period</div>
+                                      <div>{product.returnPolicy} days</div>
+                                    </div>
+                                  )}
+                                  
+                                  {product.productType && (
+                                    <div>
+                                      <div className="font-medium">Product Type</div>
+                                      <div className="capitalize">{product.productType}</div>
+                                    </div>
+                                  )}
+                                  
+                                  {product.imageUrl && (
+                                    <div className="col-span-full">
+                                      <div className="font-medium">Main Image</div>
+                                      <div className="truncate">{product.imageUrl}</div>
+                                    </div>
+                                  )}
+                                  
+                                  {product.images && (
+                                    <div className="col-span-full">
+                                      <div className="font-medium">Additional Images</div>
+                                      <div className="truncate">{product.images}</div>
+                                    </div>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          </>
                         ))}
                       </TableBody>
                     </Table>
@@ -835,7 +1034,7 @@ export default function BulkUploadPage() {
                   </Tabs>
                 </CardContent>
                 <CardFooter className="flex justify-between">
-                  <Button variant="outline" onClick={() => window.location.href = "/seller/products"}>
+                  <Button variant="outline" onClick={() => window.history.back()}>
                     Go to Products
                   </Button>
                   <Button onClick={resetUpload}>
@@ -858,46 +1057,36 @@ export default function BulkUploadPage() {
                     <AccordionTrigger className="text-sm">CSV File Format</AccordionTrigger>
                     <AccordionContent className="text-sm">
                       <p className="mb-2">Your CSV file should include the following columns:</p>
-                      <ul className="space-y-1 list-disc pl-5 text-muted-foreground">
-                        <li>name - Product name (required)</li>
-                        <li>description - Detailed description (required)</li>
-                        <li>price - Selling price in ₹ (required)</li>
-                        <li>category - Product category (required)</li>
-                        <li>imageUrl - URL to product image</li>
-                        <li>stock - Available quantity (required)</li>
-                      </ul>
-                      <div className="mt-3">
-                        <Button variant="link" className="h-auto p-0 text-xs flex items-center" onClick={downloadTemplate}>
-                          <DownloadCloud className="h-3 w-3 mr-1" />
-                          Download CSV template
-                        </Button>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                  
-                  <AccordionItem value="item-2">
-                    <AccordionTrigger className="text-sm">Field Requirements</AccordionTrigger>
-                    <AccordionContent className="text-sm">
-                      <div className="space-y-3">
+                      <ul className="space-y-1 list-disc pl-4">
                         {VALIDATION_RULES.map((rule, index) => (
-                          <div key={index} className="flex gap-2">
-                            <div className="font-medium min-w-[100px]">{rule.field}:</div>
-                            <div className="text-muted-foreground">{rule.rule}</div>
-                          </div>
+                          <li key={index}>
+                            <span className="font-medium">{rule.field}</span> - {rule.rule}
+                          </li>
                         ))}
-                      </div>
+                      </ul>
                     </AccordionContent>
                   </AccordionItem>
-                  
+                  <AccordionItem value="item-2">
+                    <AccordionTrigger className="text-sm">Product Requirements</AccordionTrigger>
+                    <AccordionContent className="text-sm">
+                      <p className="mb-2">Each product must comply with the following requirements:</p>
+                      <ul className="space-y-1 list-disc pl-4">
+                        <li><span className="font-medium">Required Fields:</span> name, description, price, category, stock.</li>
+                        <li><span className="font-medium">Images:</span> Main image URL is required, additional image URLs are optional.</li>
+                        <li><span className="font-medium">Categories:</span> Must match one of the predefined categories.</li>
+                        <li><span className="font-medium">Price:</span> Must be a positive number and less than or equal to MRP.</li>
+                      </ul>
+                    </AccordionContent>
+                  </AccordionItem>
                   <AccordionItem value="item-3">
                     <AccordionTrigger className="text-sm">Tips for Success</AccordionTrigger>
                     <AccordionContent className="text-sm">
-                      <ul className="space-y-2 list-disc pl-5 text-muted-foreground">
-                        <li>Use UTF-8 encoding for your CSV file</li>
-                        <li>Avoid special characters in product names</li>
-                        <li>For image URLs, use publicly accessible links</li>
-                        <li>Make sure your prices are in whole numbers (no currency symbols)</li>
-                        <li>Double-check your data before uploading to avoid validation errors</li>
+                      <ul className="space-y-1 list-disc pl-4">
+                        <li>Start with our template by clicking "Download Template".</li>
+                        <li>Keep product descriptions detailed but concise.</li>
+                        <li>Use high-quality image URLs for better conversions.</li>
+                        <li>Double-check pricing and stock numbers before uploading.</li>
+                        <li>Make sure URLs are accessible and not behind a login.</li>
                       </ul>
                     </AccordionContent>
                   </AccordionItem>
@@ -907,78 +1096,66 @@ export default function BulkUploadPage() {
             
             <Card>
               <CardHeader>
-                <CardTitle>Need Help?</CardTitle>
+                <CardTitle>File Specifications</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <h3 className="text-sm font-medium">Common Issues</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-start gap-2 text-muted-foreground">
-                      <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                      <p>CSV file should use commas as separators and include a header row.</p>
-                    </div>
-                    <div className="flex items-start gap-2 text-muted-foreground">
-                      <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                      <p>All prices should be entered as numbers without currency symbols.</p>
-                    </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">File Format</span>
+                    <span className="text-sm font-medium">CSV</span>
                   </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium">Resources</h3>
-                  <div className="space-y-2">
-                    <Button variant="link" className="h-auto p-0 text-sm flex items-center">
-                      <ExternalLink className="h-3 w-3 mr-1" />
-                      View CSV formatting guide
-                    </Button>
-                    <Button variant="link" className="h-auto p-0 text-sm flex items-center">
-                      <ExternalLink className="h-3 w-3 mr-1" />
-                      Seller Help Center
-                    </Button>
+                  <Separator />
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Maximum File Size</span>
+                    <span className="text-sm font-medium">5MB</span>
+                  </div>
+                  <Separator />
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Maximum Products</span>
+                    <span className="text-sm font-medium">500</span>
+                  </div>
+                  <Separator />
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Encoding</span>
+                    <span className="text-sm font-medium">UTF-8</span>
+                  </div>
+                  <Separator />
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Required Columns</span>
+                    <span className="text-sm font-medium">5</span>
                   </div>
                 </div>
               </CardContent>
             </Card>
             
-            {uploadStage !== UploadStage.SELECT_FILE && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>File Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Filename:</span>
-                      <span className="text-sm font-medium">{file?.name}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Size:</span>
-                      <span className="text-sm">{file ? `${(file.size / 1024).toFixed(2)} KB` : '-'}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Products:</span>
-                      <span className="text-sm">{parsedData.length}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Status:</span>
-                      <Badge variant={
-                        uploadStage === UploadStage.VALIDATION ? "destructive" : 
-                        uploadStage === UploadStage.RESULTS ? 
-                          (getResultSummary().errors > 0 ? "outline" : "default") : 
-                          "default"
-                      }>
-                        {uploadStage === UploadStage.VALIDATION ? "Validation Failed" : 
-                         uploadStage === UploadStage.PREVIEW ? "Ready to Upload" :
-                         uploadStage === UploadStage.UPLOADING ? "Uploading" :
-                         uploadStage === UploadStage.RESULTS ? 
-                          (getResultSummary().errors > 0 ? "Completed with Errors" : "Completed Successfully") : 
-                          "Unknown"}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            <Card>
+              <CardHeader>
+                <CardTitle>Need Help?</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  If you're having trouble with bulk upload, check our documentation or contact support for assistance.
+                </p>
+                <div className="flex flex-col space-y-2">
+                  <Button 
+                    variant="outline" 
+                    className="justify-start" 
+                    onClick={() => window.open('https://example.com/help', '_blank')}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Read Documentation
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="justify-start" 
+                    onClick={() => window.open('https://example.com/videos', '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Watch Tutorial Video
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
