@@ -55,7 +55,7 @@ export function ProtectedRoute({
   if (role && currentUser.role !== role) {
     // If there's a role mismatch, redirect to their own dashboard
     const dashboardPath = 
-      currentUser.role === 'admin' ? '/admin/dashboard' :
+      currentUser.role === 'admin' ? '/admin' : // Changed from /admin/dashboard to /admin
       currentUser.role === 'seller' ? '/seller/dashboard' : 
       currentUser.role === 'buyer' ? '/buyer/dashboard' : '/';
       

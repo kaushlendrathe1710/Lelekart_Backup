@@ -60,7 +60,7 @@ export function Header() {
     
     switch (user.role) {
       case "admin":
-        return "/admin/dashboard";
+        return "/admin"; // Changed from /admin/dashboard to /admin to match our routes
       case "seller":
         return "/seller/dashboard";
       case "buyer":
