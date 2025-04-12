@@ -61,34 +61,58 @@ export default function ProductPage() {
   
   // Get all images from the product
   const getProductImages = (product: Product): string[] => {
-    const images: string[] = [];
+    if (!product) return [];
     
-    // Add main image first
+    const images: string[] = [];
+    console.log('Processing product images for:', product.id, product.name);
+    
+    // Add main image first if it exists
     if (product.imageUrl) {
       images.push(product.imageUrl);
+      console.log('Added main image:', product.imageUrl);
     }
     
     // Try to extract additional images from the images field (could be stored as JSON string)
     if (product.images) {
+      console.log('Images field found:', product.images, 'type:', typeof product.images);
+      
       try {
         // If it's a string, try to parse it
         if (typeof product.images === 'string') {
+          // Safely parse JSON string into array
           const parsedImages = JSON.parse(product.images);
+          console.log('Parsed images result:', parsedImages);
+          
           if (Array.isArray(parsedImages)) {
-            images.push(...parsedImages);
+            // Add each valid image URL from the array
+            parsedImages.forEach(img => {
+              if (typeof img === 'string' && img.trim() !== '') {
+                images.push(img);
+              }
+            });
+            console.log('Added parsed image URLs, total count now:', images.length);
           }
         } 
         // If it's already an array, use it directly
         else if (Array.isArray(product.images)) {
-          images.push(...product.images);
+          product.images.forEach(img => {
+            if (typeof img === 'string' && img.trim() !== '') {
+              images.push(img);
+            }
+          });
+          console.log('Added array image URLs, total count now:', images.length);
         }
       } catch (error) {
         console.error('Failed to parse product images:', error);
       }
+    } else {
+      console.log('No additional images found');
     }
     
     // Return unique images (no duplicates)
-    return [...new Set(images)];
+    const uniqueImages = Array.from(new Set(images));
+    console.log('Final unique images:', uniqueImages);
+    return uniqueImages;
   };
 
   // Create mutations for cart operations

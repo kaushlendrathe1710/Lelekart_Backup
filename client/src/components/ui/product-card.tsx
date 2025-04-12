@@ -90,8 +90,11 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
 
   if (featured) {
     return (
-      <Link to={`/product/${product.id}`}>
-        <Card className="product-card p-3 flex flex-col items-center rounded transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1">
+      <div className="relative">
+        <Card 
+          className="product-card p-3 flex flex-col items-center rounded transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1"
+          onClick={() => setLocation(`/product/${product.id}`)}
+        >
           <CardContent className="p-0 flex flex-col items-center">
             <img 
               src={product.imageUrl} 
@@ -112,13 +115,16 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
             </Button>
           </CardContent>
         </Card>
-      </Link>
+      </div>
     );
   }
 
   return (
-    <Link to={`/product/${product.id}`}>
-      <Card className="product-card flex flex-col items-center p-3 transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1">
+    <div className="relative">
+      <Card 
+        className="product-card flex flex-col items-center p-3 transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1"
+        onClick={() => setLocation(`/product/${product.id}`)}
+      >
         <CardContent className="p-0 flex flex-col items-center">
           <img 
             src={product.imageUrl} 
@@ -138,6 +144,6 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
           </Button>
         </CardContent>
       </Card>
-    </Link>
+    </div>
   );
 }
