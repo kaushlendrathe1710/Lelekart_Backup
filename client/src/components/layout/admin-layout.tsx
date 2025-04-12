@@ -107,7 +107,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                         href={item.href}
                         onClick={() => setMobileMenuOpen(false)}
                       >
-                        <a
+                        <div
                           className={cn(
                             "flex items-center space-x-3 rounded-lg px-3 py-2 text-gray-900 transition-all hover:bg-gray-100",
                             location === item.href && "bg-gray-100 font-medium"
@@ -115,7 +115,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                         >
                           {item.icon}
                           <span>{item.title}</span>
-                        </a>
+                        </div>
                       </Link>
                     ))}
                   </nav>
@@ -125,14 +125,14 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
             {/* Logo */}
             <Link href="/admin">
-              <a className="flex items-center space-x-2 text-xl font-bold">
+              <div className="flex items-center space-x-2 text-xl font-bold">
                 <img 
                   src="https://static-assets-web.flixcart.com/batman-returns/batman-returns/p/images/fk-logo-YIy8BEzxPr-.svg" 
                   alt="Flipkart Logo" 
                   className="h-7 w-auto" 
                 />
                 <span className="hidden md:inline">Admin Panel</span>
-              </a>
+              </div>
             </Link>
 
             {/* Desktop Navigation */}
@@ -237,7 +237,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             <nav className="space-y-1">
               {navItems.map((item) => (
                 <Link key={item.href} href={item.href}>
-                  <a
+                  <div
                     className={cn(
                       "flex items-center space-x-3 rounded-lg px-3 py-2 transition-all hover:bg-gray-100",
                       location === item.href
@@ -247,7 +247,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                   >
                     {item.icon}
                     <span>{item.title}</span>
-                  </a>
+                  </div>
                 </Link>
               ))}
             </nav>

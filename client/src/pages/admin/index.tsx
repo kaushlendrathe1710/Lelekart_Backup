@@ -190,22 +190,22 @@ export default function AdminDashboard() {
           <h2 className="text-xl font-semibold mb-3">Quick Actions</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <Link href="/admin/orders">
-              <div className="flex flex-col items-center p-6 bg-white rounded-lg border border-gray-200 hover:border-primary hover:shadow-md transition-all">
+              <a className="flex flex-col items-center p-6 bg-white rounded-lg border border-gray-200 hover:border-primary hover:shadow-md transition-all">
                 <ShoppingBag className="h-10 w-10 text-primary mb-3" />
                 <h3 className="font-medium">Manage Orders</h3>
-              </div>
+              </a>
             </Link>
             <Link href="/admin/products">
-              <div className="flex flex-col items-center p-6 bg-white rounded-lg border border-gray-200 hover:border-primary hover:shadow-md transition-all">
+              <a className="flex flex-col items-center p-6 bg-white rounded-lg border border-gray-200 hover:border-primary hover:shadow-md transition-all">
                 <Package className="h-10 w-10 text-primary mb-3" />
                 <h3 className="font-medium">Manage Products</h3>
-              </div>
+              </a>
             </Link>
             <Link href="/admin/users">
-              <div className="flex flex-col items-center p-6 bg-white rounded-lg border border-gray-200 hover:border-primary hover:shadow-md transition-all">
+              <a className="flex flex-col items-center p-6 bg-white rounded-lg border border-gray-200 hover:border-primary hover:shadow-md transition-all">
                 <Users className="h-10 w-10 text-primary mb-3" />
                 <h3 className="font-medium">Manage Users</h3>
-              </div>
+              </a>
             </Link>
             <div className="flex flex-col items-center p-6 bg-white rounded-lg border border-gray-200 opacity-60 cursor-not-allowed">
               <BarChart3 className="h-10 w-10 text-gray-400 mb-3" />
@@ -220,9 +220,9 @@ export default function AdminDashboard() {
           <div className="flex justify-between items-center mb-3">
             <h2 className="text-xl font-semibold">Recent Orders</h2>
             <Link href="/admin/orders">
-              <div className="text-sm text-primary hover:underline flex items-center">
+              <a className="text-sm text-primary hover:underline flex items-center">
                 View All <ArrowRight className="h-4 w-4 ml-1" />
-              </div>
+              </a>
             </Link>
           </div>
           
