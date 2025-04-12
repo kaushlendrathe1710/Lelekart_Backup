@@ -141,6 +141,8 @@ export default function EditProductPage() {
       category: "",
       subcategory: "",
       brand: "",
+      color: "",
+      size: "",
       stock: "1",
       weight: "",
       height: "",
@@ -169,6 +171,8 @@ export default function EditProductPage() {
         category: product.category || "",
         subcategory: "",
         brand: "Brand", // Simulating a brand if not available
+        color: product.color || "",
+        size: product.size || "",
         stock: product.stock?.toString() || "1",
         weight: "",
         height: "",
@@ -249,6 +253,8 @@ export default function EditProductPage() {
         specifications: data.specifications,
         price: parseInt(data.price), // Convert to number
         category: data.category,
+        color: data.color,
+        size: data.size,
         imageUrl: imageUrl,
         stock: parseInt(data.stock), // Convert to number
       };
@@ -519,6 +525,162 @@ export default function EditProductPage() {
                                 <FormMessage />
                               </FormItem>
                             )}
+                          />
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <FormField
+                            control={form.control}
+                            name="color"
+                            render={({ field }) => {
+                              const [colorTags, setColorTags] = useState<string[]>(
+                                field.value ? field.value.split(/,\s*/).filter(Boolean) : []
+                              );
+                              
+                              const handleColorKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+                                // Add tag on Enter or comma
+                                if (e.key === 'Enter' || e.key === ',') {
+                                  e.preventDefault();
+                                  const value = (e.target as HTMLInputElement).value.trim();
+                                  if (value) {
+                                    const newTags = [...colorTags, value];
+                                    setColorTags(newTags);
+                                    field.onChange(newTags.join(', '));
+                                    (e.target as HTMLInputElement).value = '';
+                                  }
+                                }
+                              };
+                              
+                              const handleColorBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+                                const value = e.target.value.trim();
+                                if (value) {
+                                  const newTags = [...colorTags, value];
+                                  setColorTags(newTags);
+                                  field.onChange(newTags.join(', '));
+                                  e.target.value = '';
+                                }
+                              };
+                              
+                              const removeColorTag = (index: number) => {
+                                const newTags = [...colorTags];
+                                newTags.splice(index, 1);
+                                setColorTags(newTags);
+                                field.onChange(newTags.join(', '));
+                              };
+                              
+                              return (
+                                <FormItem>
+                                  <FormLabel>
+                                    Color
+                                  </FormLabel>
+                                  <div className="space-y-2">
+                                    <FormControl>
+                                      <Input 
+                                        placeholder="Add color (press Enter or comma after each)" 
+                                        onKeyDown={handleColorKeyDown}
+                                        onBlur={handleColorBlur}
+                                      />
+                                    </FormControl>
+                                    {colorTags.length > 0 && (
+                                      <div className="flex flex-wrap gap-2">
+                                        {colorTags.map((tag, i) => (
+                                          <Badge key={i} className="px-3 py-1 flex items-center gap-1">
+                                            {tag}
+                                            <span 
+                                              className="cursor-pointer hover:text-destructive" 
+                                              onClick={() => removeColorTag(i)}
+                                            >
+                                              ×
+                                            </span>
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <FormDescription>
+                                    Main color or color variants
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )
+                            }}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="size"
+                            render={({ field }) => {
+                              const [sizeTags, setSizeTags] = useState<string[]>(
+                                field.value ? field.value.split(/,\s*/).filter(Boolean) : []
+                              );
+                              
+                              const handleSizeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+                                // Add tag on Enter or comma
+                                if (e.key === 'Enter' || e.key === ',') {
+                                  e.preventDefault();
+                                  const value = (e.target as HTMLInputElement).value.trim();
+                                  if (value) {
+                                    const newTags = [...sizeTags, value];
+                                    setSizeTags(newTags);
+                                    field.onChange(newTags.join(', '));
+                                    (e.target as HTMLInputElement).value = '';
+                                  }
+                                }
+                              };
+                              
+                              const handleSizeBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+                                const value = e.target.value.trim();
+                                if (value) {
+                                  const newTags = [...sizeTags, value];
+                                  setSizeTags(newTags);
+                                  field.onChange(newTags.join(', '));
+                                  e.target.value = '';
+                                }
+                              };
+                              
+                              const removeSizeTag = (index: number) => {
+                                const newTags = [...sizeTags];
+                                newTags.splice(index, 1);
+                                setSizeTags(newTags);
+                                field.onChange(newTags.join(', '));
+                              };
+                              
+                              return (
+                                <FormItem>
+                                  <FormLabel>
+                                    Size
+                                  </FormLabel>
+                                  <div className="space-y-2">
+                                    <FormControl>
+                                      <Input 
+                                        placeholder="Add size (press Enter or comma after each)" 
+                                        onKeyDown={handleSizeKeyDown}
+                                        onBlur={handleSizeBlur}
+                                      />
+                                    </FormControl>
+                                    {sizeTags.length > 0 && (
+                                      <div className="flex flex-wrap gap-2">
+                                        {sizeTags.map((tag, i) => (
+                                          <Badge key={i} className="px-3 py-1 flex items-center gap-1">
+                                            {tag}
+                                            <span 
+                                              className="cursor-pointer hover:text-destructive" 
+                                              onClick={() => removeSizeTag(i)}
+                                            >
+                                              ×
+                                            </span>
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <FormDescription>
+                                    Size, dimensions, or variants
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )
+                            }}
                           />
                         </div>
                         
