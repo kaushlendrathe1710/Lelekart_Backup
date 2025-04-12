@@ -64,6 +64,44 @@ export function setupAuth(app: Express) {
   createAdminUser().catch(err => {
     console.error("Failed to create special admin user:", err);
   });
+  
+  // Special direct login endpoint for admin
+  app.post("/api/auth/admin-login", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { email } = req.body;
+      
+      // Ensure this endpoint only works for the special admin user
+      if (!isSpecialAdmin(email)) {
+        return res.status(403).json({ 
+          error: "This login method is restricted to authorized administrators only" 
+        });
+      }
+      
+      // Find the admin user
+      const adminUser = await storage.getUserByEmail(email);
+      
+      if (!adminUser) {
+        return res.status(404).json({ error: "Admin user not found" });
+      }
+      
+      // Verify that the user has admin role
+      if (adminUser.role !== 'admin') {
+        return res.status(403).json({ error: "Unauthorized access" });
+      }
+      
+      // Log in the admin user directly without OTP
+      req.login(adminUser, (err) => {
+        if (err) return next(err);
+        return res.status(200).json({ 
+          user: adminUser,
+          message: "Admin login successful" 
+        });
+      });
+    } catch (error) {
+      console.error("Error in admin login:", error);
+      next(error);
+    }
+  });
 
   passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser(async (id: number, done) => {
@@ -89,8 +127,18 @@ export function setupAuth(app: Express) {
 
       const { email } = validation.data;
       console.log(`Processing OTP request for email: ${email}`);
+      
+      // Special handling for admin user - send identifier that this is the special admin
+      if (isSpecialAdmin(email)) {
+        console.log("Special admin user detected - bypassing OTP");
+        return res.status(200).json({
+          message: "Admin detected",
+          email,
+          isSpecialAdmin: true
+        });
+      }
 
-      // Generate OTP
+      // Generate OTP for regular users
       const otp = await generateOTP();
       console.log(`Generated OTP for ${email}: ${otp}`);
       
