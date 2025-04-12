@@ -142,7 +142,8 @@ export default function ProductPreviewPage() {
           <Card>
             <CardContent className="pt-6">
               <ProductImageGallery 
-                images={product ? getProductImages(product) : []} 
+                imageUrl={product?.imageUrl || ''}
+                additionalImages={product?.images || null}
                 productName={product?.name || "Product"} 
               />
               <div className="flex justify-between mt-4">
