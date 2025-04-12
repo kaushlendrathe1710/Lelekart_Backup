@@ -3,9 +3,11 @@ import { Link, useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
-import { useCart } from "@/context/cart-context";
+import { CartContext } from "@/context/cart-context"; // Import context directly
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useContext } from "react";
+import { apiRequest } from "@/lib/queryClient";
 
 interface ProductCardProps {
   product: Product;
@@ -13,7 +15,8 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, featured = false }: ProductCardProps) {
-  const { addToCart } = useCart();
+  const cartContext = useContext(CartContext); // Use context directly with optional chaining
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   
@@ -29,7 +32,7 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
     return `₹${price.toLocaleString('en-IN')}`;
   };
   
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -44,8 +47,43 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
       return;
     }
     
-    // Add product to cart
-    addToCart(product);
+    // Only buyers can add to cart
+    if (user.role !== 'buyer') {
+      toast({
+        title: "Action Not Allowed",
+        description: "Only buyers can add items to cart. Please switch to a buyer account.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      // Use direct API call if context is not available
+      if (cartContext) {
+        cartContext.addToCart(product);
+      } else {
+        // Fallback to direct API call
+        await apiRequest("POST", "/api/cart", {
+          productId: product.id,
+          quantity: 1,
+        });
+        
+        // Refresh cart data
+        queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+        
+        toast({
+          title: "Added to cart",
+          description: `${product.name} has been added to your cart`,
+          variant: "default",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Failed to add to cart",
+        description: "There was an error adding the product to your cart",
+        variant: "destructive",
+      });
+    }
   };
 
   if (featured) {
