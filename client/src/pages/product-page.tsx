@@ -1,46 +1,20 @@
 import { useEffect, useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useRoute, useLocation } from "wouter";
-import { Product, User } from "@shared/schema";
+import { useQuery } from "@tanstack/react-query";
+import { useRoute } from "wouter";
+import { Product } from "@shared/schema";
 import { CategoryNav } from "@/components/layout/category-nav";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Minus, Plus, ShoppingCart, Star, Zap } from "lucide-react";
 import { ProductCard } from "@/components/ui/product-card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useCart } from "@/context/cart-context";
 
-// Simple component that doesn't rely on context
 export default function ProductPage() {
   const [, params] = useRoute("/product/:id");
   const productId = params?.id ? parseInt(params.id) : null;
-  const { toast } = useToast();
-  const [, navigate] = useLocation();
   const [quantity, setQuantity] = useState(1);
-  
-  // Fetch user data directly with type
-  const { data: user } = useQuery<User>({
-    queryKey: ['/api/user'],
-    retry: false,
-  });
-  
-  // Add to cart mutation
-  const addToCartMutation = useMutation({
-    mutationFn: async (data: { productId: number; quantity: number }) => {
-      return await apiRequest('POST', '/api/cart', data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/cart'] });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error adding to cart",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+  const { addToCart, buyNow } = useCart();
 
   // Fetch product details
   const { data: product, isLoading: isProductLoading } = useQuery<Product>({
@@ -64,135 +38,16 @@ export default function ProductPage() {
     return `₹${price.toLocaleString('en-IN')}`;
   };
 
-  // Store the product to add after login
-  const [pendingProduct, setPendingProduct] = useState<{id: number, quantity: number} | null>(null);
-  
-  // Check if we have a pending product after login
-  useEffect(() => {
-    if (user && user.role === 'buyer' && pendingProduct) {
-      // User is logged in as buyer and has a pending product
-      addToCartMutation.mutate({ 
-        productId: pendingProduct.id, 
-        quantity: pendingProduct.quantity 
-      }, {
-        onSuccess: () => {
-          toast({
-            title: "Added to cart",
-            description: `Product has been added to your cart`,
-            variant: "default",
-          });
-          // Clear the pending product
-          setPendingProduct(null);
-        }
-      });
-    }
-  }, [user, pendingProduct, addToCartMutation, toast]);
-
+  // Handle add to cart action
   const handleAddToCart = () => {
     if (!product) return;
-    
-    if (!user) {
-      // Store the product details for after login
-      setPendingProduct({
-        id: product.id,
-        quantity: quantity
-      });
-      
-      toast({
-        title: "Please log in",
-        description: "You need to be logged in to add items to your cart",
-        variant: "default",
-      });
-      
-      // Redirect to auth page with a return path
-      navigate("/auth");
-      return;
-    }
-    
-    // Check if user is not a buyer
-    if (user.role !== 'buyer') {
-      toast({
-        title: "Action Not Allowed",
-        description: "Only buyers can add items to cart. Please switch to a buyer account.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    addToCartMutation.mutate({ 
-      productId: product.id, 
-      quantity: quantity 
-    }, {
-      onSuccess: () => {
-        toast({
-          title: "Added to cart",
-          description: `${product.name} has been added to your cart`,
-          variant: "default",
-        });
-      }
-    });
+    addToCart(product, quantity);
   };
   
-  // Store the product to buy after login
-  const [pendingBuyNow, setPendingBuyNow] = useState<{id: number, quantity: number} | null>(null);
-  
-  // Check if we have a pending buy now product after login
-  useEffect(() => {
-    if (user && user.role === 'buyer' && pendingBuyNow) {
-      // User is logged in as buyer and has a pending buy now
-      addToCartMutation.mutate({ 
-        productId: pendingBuyNow.id, 
-        quantity: pendingBuyNow.quantity 
-      }, {
-        onSuccess: () => {
-          // Clear the pending product and navigate to checkout
-          setPendingBuyNow(null);
-          navigate("/checkout");
-        }
-      });
-    }
-  }, [user, pendingBuyNow, addToCartMutation, navigate]);
-
+  // Handle buy now action
   const handleBuyNow = () => {
     if (!product) return;
-    
-    if (!user) {
-      // Store the product details for after login
-      setPendingBuyNow({
-        id: product.id,
-        quantity: quantity
-      });
-      
-      toast({
-        title: "Please log in",
-        description: "You need to be logged in to make a purchase",
-        variant: "default",
-      });
-      
-      // Redirect to auth page
-      navigate("/auth");
-      return;
-    }
-    
-    // Check if user is not a buyer
-    if (user.role !== 'buyer') {
-      toast({
-        title: "Action Not Allowed",
-        description: "Only buyers can make purchases. Please switch to a buyer account.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // First add to cart, then navigate to checkout
-    addToCartMutation.mutate({ 
-      productId: product.id, 
-      quantity: quantity 
-    }, {
-      onSuccess: () => {
-        navigate("/checkout");
-      }
-    });
+    buyNow(product, quantity);
   };
 
   return (

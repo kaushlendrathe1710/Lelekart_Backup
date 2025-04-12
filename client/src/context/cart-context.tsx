@@ -1,12 +1,15 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from "react";
-import { Product } from "@shared/schema";
-import { useMutation } from "@tanstack/react-query";
+import { Product, User } from "@shared/schema";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 interface CartItem {
   product: Product;
   quantity: number;
+  id?: number;
+  userId?: number;
 }
 
 interface CartContextType {
@@ -17,6 +20,7 @@ interface CartContextType {
   clearCart: () => void;
   isOpen: boolean;
   toggleCart: () => void;
+  buyNow: (product: Product, quantity?: number) => void;
 }
 
 export const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -25,8 +29,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
-  // We'll rely on the product page to check for user authentication
-  const user = null;
+  const [, navigate] = useLocation();
+  
+  // Get user data
+  const { data: user } = useQuery<User>({
+    queryKey: ['/api/user'],
+    retry: false,
+  });
 
   // Load cart from localStorage on initial load
   useEffect(() => {
@@ -106,19 +115,46 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Add product to cart
   const addToCart = (product: Product, quantity = 1) => {
-    // The product page will handle authentication checks
+    if (!user) {
+      // Redirect to auth page if not logged in
+      toast({
+        title: "Please log in",
+        description: "You need to be logged in to add items to your cart",
+        variant: "default",
+      });
+      navigate("/auth");
+      return;
+    }
+    
+    // Only buyers can add to cart
+    if (user.role !== 'buyer') {
+      toast({
+        title: "Action Not Allowed",
+        description: "Only buyers can add items to cart. Please switch to a buyer account.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Add to server cart (will be reflected in local cart via cart fetch)
+    addToCartMutation.mutate({
+      productId: product.id,
+      quantity: quantity,
+    }, {
+      onSuccess: () => {
+        toast({
+          title: "Added to cart",
+          description: `${product.name} has been added to your cart`,
+          variant: "default",
+        });
+      }
+    });
+    
+    // Also update local cart for immediate feedback
     setCartItems(prevItems => {
       const existingItem = prevItems.find(
         item => item.product.id === product.id
       );
-
-      // Call the API to add to cart if authenticated
-      if (user) {
-        addToCartMutation.mutate({
-          productId: product.id,
-          quantity: existingItem ? existingItem.quantity + quantity : quantity,
-        });
-      }
 
       if (existingItem) {
         return prevItems.map(item =>
@@ -176,6 +212,41 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const toggleCart = () => {
     setIsOpen(prev => !prev);
   };
+  
+  // Buy now functionality (add to cart and redirect to checkout)
+  const buyNow = (product: Product, quantity = 1) => {
+    if (!user) {
+      // Redirect to auth page if not logged in
+      toast({
+        title: "Please log in",
+        description: "You need to be logged in to make a purchase",
+        variant: "default",
+      });
+      navigate("/auth");
+      return;
+    }
+    
+    // Only buyers can purchase
+    if (user.role !== 'buyer') {
+      toast({
+        title: "Action Not Allowed",
+        description: "Only buyers can make purchases. Please switch to a buyer account.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Add to cart first, then redirect to checkout
+    addToCartMutation.mutate({
+      productId: product.id,
+      quantity: quantity,
+    }, {
+      onSuccess: () => {
+        // Navigate to checkout page
+        navigate("/checkout");
+      }
+    });
+  };
 
   return (
     <CartContext.Provider
@@ -187,6 +258,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         clearCart,
         isOpen,
         toggleCart,
+        buyNow,
       }}
     >
       {children}
