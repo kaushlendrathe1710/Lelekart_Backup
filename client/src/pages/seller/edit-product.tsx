@@ -80,6 +80,8 @@ const productSchema = z.object({
   length: z.string().optional(),
   warranty: z.string().optional(),
   hsn: z.string().optional(),
+  color: z.string().optional(),
+  size: z.string().optional(),
   tax: z.string().min(1, "Please select a tax bracket"),
   productType: z.string().min(1, "Please select a product type"),
   returnPolicy: z.string().min(1, "Please select a return policy"),
