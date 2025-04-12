@@ -101,30 +101,34 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProducts(category?: string, sellerId?: number, approved?: boolean): Promise<Product[]> {
-    let query = db.select().from(products);
+    // Use SQL query for more flexibility with filtering
+    let query = `
+      SELECT * FROM products 
+      WHERE 1=1
+    `;
+    const params: any[] = [];
     
-    // Build the where conditions
-    const conditions = [];
-    
+    // Add category filter (case-insensitive)
     if (category) {
-      conditions.push(eq(products.category, category));
+      query += ` AND LOWER(category) = LOWER($${params.length + 1})`;
+      params.push(category);
     }
     
+    // Add seller filter
     if (sellerId) {
-      conditions.push(eq(products.sellerId, sellerId));
+      query += ` AND "sellerId" = $${params.length + 1}`;
+      params.push(sellerId);
     }
     
+    // Add approved filter
     if (approved !== undefined) {
-      conditions.push(eq(products.approved, approved));
+      query += ` AND approved = $${params.length + 1}`;
+      params.push(approved);
     }
     
-    // Apply the conditions if any exist
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
-    
-    const result = await query;
-    return result;
+    // Execute the query
+    const { rows } = await pool.query(query, params);
+    return rows;
   }
 
   async getProduct(id: number): Promise<Product | undefined> {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { CategoryNav } from "@/components/layout/category-nav";
 import { HeroSlider } from "@/components/ui/hero-slider";
 import { ProductCard } from "@/components/ui/product-card";
@@ -30,11 +30,27 @@ export default function HomePage() {
     }
   });
 
-  // Organize products by category
-  const featuredProducts = products?.slice(0, 5) || [];
-  const electronicsProducts = products?.filter(p => p.category === 'Electronics').slice(0, 6) || [];
-  const fashionProducts = products?.filter(p => p.category === 'Fashion').slice(0, 6) || [];
-  const homeProducts = products?.filter(p => p.category === 'Home').slice(0, 6) || [];
+  // Organize products by category (dynamically)
+  const allCategories = ['Electronics', 'Fashion', 'Home', 'Appliances', 'Mobiles', 'Beauty', 'Toys', 'Grocery'];
+  
+  // Function to get products by category
+  const getProductsByCategory = (categoryName: string) => {
+    return products?.filter(p => 
+      p.category?.toLowerCase() === categoryName.toLowerCase()
+    ).slice(0, 6) || [];
+  };
+  
+  // Featured products (display either filtered or all featured)
+  const featuredProducts = category 
+    ? products?.slice(0, 5) || [] 
+    : products?.filter(p => p.id <= 5).slice(0, 5) || [];
+    
+  // Generate products list for each category
+  const categorizedProducts = allCategories.map(cat => ({
+    name: cat,
+    title: `Top ${cat}`,
+    products: getProductsByCategory(cat)
+  })).filter(catGroup => catGroup.products.length > 0);
 
   // Hero slider images with product links
   const heroImages = [
@@ -104,62 +120,58 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Category-wise Products - Electronics */}
-      <div className="container mx-auto px-4 py-4">
-        <div className="bg-white p-4 rounded shadow-sm">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-medium">Top Electronics</h2>
-            <a href="/?category=electronics" className="text-primary hover:underline">View All</a>
+      {/* Dynamic Category Sections - Show only if not filtered by specific category */}
+      {!category && categorizedProducts.map((categoryGroup, index) => (
+        <div key={categoryGroup.name + index} className="container mx-auto px-4 py-4">
+          <div className="bg-white p-4 rounded shadow-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-medium">{categoryGroup.title}</h2>
+              <Link 
+                href={`/?category=${categoryGroup.name.toLowerCase()}`} 
+                className="text-primary hover:underline"
+              >
+                View All
+              </Link>
+            </div>
+            {isLoading ? (
+              <CategoryProductsLoading />
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                {categoryGroup.products.map(product => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            )}
           </div>
-          {isLoading ? (
-            <CategoryProductsLoading />
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-              {electronicsProducts.map(product => (
+        </div>
+      ))}
+      
+      {/* If filtering by category, show all matching products */}
+      {category && products && products.length > 0 && (
+        <div className="container mx-auto px-4 py-6">
+          <h2 className="text-2xl font-medium mb-4 capitalize">{category} Products</h2>
+          <div className="bg-white p-4 rounded shadow-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
+              {products.map(product => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
-          )}
-        </div>
-      </div>
-
-      {/* Category-wise Products - Fashion */}
-      <div className="container mx-auto px-4 py-4">
-        <div className="bg-white p-4 rounded shadow-sm">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-medium">Fashion Bestsellers</h2>
-            <a href="/?category=fashion" className="text-primary hover:underline">View All</a>
           </div>
-          {isLoading ? (
-            <CategoryProductsLoading />
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-              {fashionProducts.map(product => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          )}
         </div>
-      </div>
-
-      {/* Category-wise Products - Home */}
-      <div className="container mx-auto px-4 py-4">
-        <div className="bg-white p-4 rounded shadow-sm">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-medium">Home Essentials</h2>
-            <a href="/?category=home" className="text-primary hover:underline">View All</a>
+      )}
+      
+      {/* No products found message */}
+      {category && (!products || products.length === 0) && !isLoading && (
+        <div className="container mx-auto px-4 py-6 text-center">
+          <div className="bg-white p-8 rounded shadow-sm">
+            <h2 className="text-2xl font-medium mb-2">No Products Found</h2>
+            <p className="text-gray-600 mb-4">We couldn't find any products in the "{category}" category.</p>
+            <Link href="/" className="text-primary hover:underline">
+              View All Products
+            </Link>
           </div>
-          {isLoading ? (
-            <CategoryProductsLoading />
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-              {homeProducts.map(product => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          )}
         </div>
-      </div>
+      )}
     </>
   );
 }
