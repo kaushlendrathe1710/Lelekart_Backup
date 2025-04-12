@@ -159,7 +159,7 @@ export function Header() {
               </DropdownMenu>
             )}
             
-            {user?.role !== "buyer" && (
+            {!user || (user.role !== "buyer" && user.role !== "seller") && (
               <Link href="/seller/dashboard">
                 <Button variant="link" className="text-white hover:text-gray-200">
                   Become a Seller
@@ -241,7 +241,7 @@ export function Header() {
                   {user ? (user.name || user.username) : "Login / Sign Up"}
                 </Link>
               </li>
-              {user?.role !== "buyer" && (
+              {!user || (user.role !== "buyer" && user.role !== "seller") && (
                 <li>
                   <Link href="/seller/dashboard" className="flex items-center text-white py-1">
                     <Store className="mr-2 h-5 w-5" />
