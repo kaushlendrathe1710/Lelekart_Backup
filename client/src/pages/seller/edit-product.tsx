@@ -20,7 +20,7 @@ import {
   Upload,
   Trash2
 } from "lucide-react";
-import { Link, useLocation, useParams } from "wouter";
+import { Link, useLocation, useRoute } from "wouter";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast, useToast } from "@/hooks/use-toast";
@@ -90,8 +90,8 @@ type ProductFormValues = z.infer<typeof productSchema>;
 
 export default function EditProductPage() {
   const { toast } = useToast();
-  const [params, setParams] = useParams();
   const [location, setLocation] = useLocation();
+  const [, params] = useRoute('/seller/products/edit/:id');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);

@@ -14,7 +14,7 @@ import {
   Check,
   Tag
 } from "lucide-react";
-import { useParams, useLocation } from "wouter";
+import { useLocation, useRoute } from "wouter";
 import { toast, useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
@@ -58,8 +58,8 @@ function ImageGallery({ images }: { images: string[] }) {
 
 export default function ProductPreviewPage() {
   const { toast } = useToast();
-  const [params, setParams] = useParams();
   const [location, setLocation] = useLocation();
+  const [, params] = useRoute('/seller/products/preview/:id');
   const isMobile = useIsMobile();
   const productId = params?.id ? parseInt(params.id) : 0;
 
