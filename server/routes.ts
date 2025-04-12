@@ -388,6 +388,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch order" });
     }
   });
+  
+  // Update order status endpoint
+  app.put("/api/orders/:id/status", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin" && req.user.role !== "seller") {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+    
+    try {
+      const id = parseInt(req.params.id);
+      const { status } = req.body;
+      
+      // Validate status
+      const validStatuses = ["pending", "processing", "shipped", "delivered", "cancelled"];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ error: "Invalid status" });
+      }
+      
+      // Get the order to check permissions
+      const order = await storage.getOrder(id);
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+      
+      // Sellers can only update orders that contain their products
+      if (req.user.role === "seller") {
+        const hasSellerProduct = await storage.orderHasSellerProducts(id, req.user.id);
+        if (!hasSellerProduct) {
+          return res.status(403).json({ error: "Not authorized" });
+        }
+      }
+      
+      // Update the order status
+      const updatedOrder = await storage.updateOrderStatus(id, status);
+      
+      res.json(updatedOrder);
+    } catch (error) {
+      console.error("Error updating order status:", error);
+      res.status(500).json({ error: "Failed to update order status" });
+    }
+  });
 
   // User roles management (admin only)
   app.get("/api/users", async (req, res) => {
@@ -505,6 +546,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Actual processing is done on the client to demonstrate both approaches
     // In a production environment, you'd likely process the CSV server-side
     res.status(200).json({ message: "Upload received" });
+  });
+
+  // Get all orders endpoint (admin only)
+  app.get("/api/orders", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      let orders;
+      
+      if (req.user.role === "admin") {
+        // Admin can see all orders
+        orders = await storage.getOrders();
+      } else if (req.user.role === "seller") {
+        // Sellers can only see orders for their products
+        orders = await storage.getOrders(undefined, req.user.id);
+      } else {
+        // Buyers can only see their own orders
+        orders = await storage.getOrders(req.user.id);
+      }
+      
+      res.json(orders);
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      res.status(500).json({ error: "Failed to fetch orders" });
+    }
   });
 
   // Categories endpoint
