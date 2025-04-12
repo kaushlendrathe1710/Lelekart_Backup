@@ -14,10 +14,25 @@ export default function BuyerDashboard() {
           <div className="flex justify-between items-center">
             <div className="text-2xl font-bold">Buyer Dashboard</div>
             <Button 
-              variant="outline" 
-              className="text-white border-white hover:bg-white hover:text-primary"
+              variant="secondary" 
+              className="bg-white text-primary hover:bg-gray-100 border-2 border-white font-medium flex items-center gap-2 shadow-sm"
               onClick={() => logoutMutation.mutate()}
             >
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="18" 
+                height="18" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
               Logout
             </Button>
           </div>
@@ -42,9 +57,25 @@ export default function BuyerDashboard() {
               
               <div className="flex gap-2">
                 <Button 
-                  variant="outline" 
+                  variant="default"
+                  className="bg-primary hover:bg-primary/90 text-white font-medium flex items-center gap-2"
                   onClick={() => setLocation('/')}
                 >
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="18" 
+                    height="18" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="8" cy="21" r="1"></circle>
+                    <circle cx="19" cy="21" r="1"></circle>
+                    <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path>
+                  </svg>
                   Go Shopping
                 </Button>
               </div>
