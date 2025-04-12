@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   DownloadCloud,
   CheckCircle,
+  FileText,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
