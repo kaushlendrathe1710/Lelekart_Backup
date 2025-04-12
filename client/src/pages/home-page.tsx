@@ -52,22 +52,22 @@ export default function HomePage() {
     products: getProductsByCategory(cat)
   })).filter(catGroup => catGroup.products.length > 0);
 
-  // Hero slider images with product links - using more reliable image URLs
+  // Hero slider images with category links - using more reliable image URLs
   const heroImages = [
     { 
       url: "https://rukminim1.flixcart.com/fk-p-flap/1600/270/image/8a89ee09acc1a9e5.jpg?q=20", 
       alt: "Electronics Sale",
-      productId: 1 // Link to Smartphone X
+      category: "Electronics" // Link to Electronics category
     },
     { 
       url: "https://rukminim1.flixcart.com/fk-p-flap/1600/270/image/33c7360d512a1741.jpg?q=20", 
       alt: "Fashion Sale",
-      productId: 11 // Link to Padded Panty 1 
+      category: "Fashion" // Link to Fashion category
     },
     { 
       url: "https://rukminim1.flixcart.com/fk-p-flap/1600/270/image/4b0a5abab30de6f3.jpg?q=20", 
       alt: "Festival Sale",
-      productId: 8 // Link to Coffee Maker
+      category: "Home" // Link to Home category
     }
   ];
 
