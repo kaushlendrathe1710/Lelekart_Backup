@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 import { 
   SidebarProvider, 
   Sidebar, 
@@ -38,27 +39,8 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [location, setLocation] = useLocation();
   
-  // Use React Query to fetch user data
-  const { data: user } = useQuery({
-    queryKey: ['/api/user'],
-    queryFn: async () => {
-      const res = await fetch('/api/user', {
-        credentials: 'include',
-      });
-      
-      if (!res.ok) {
-        if (res.status === 401) {
-          setLocation('/auth');
-          return null;
-        }
-        throw new Error('Failed to fetch user');
-      }
-      
-      return res.json();
-    },
-    staleTime: 60000, // 1 minute
-    refetchOnWindowFocus: false,
-  });
+  // Use the auth hook to get user data
+  const { user } = useAuth();
   
   // Use React Query to fetch cart data
   const { data: cartItems = [] } = useQuery({
@@ -83,7 +65,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   
   // Calculate cart item count
   const cartItemCount = cartItems.length > 0 
-    ? cartItems.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0)
+    ? cartItems.reduce((sum: number, item: { quantity: number }) => sum + (item.quantity || 0), 0)
     : 0;
   
   if (!user) {
