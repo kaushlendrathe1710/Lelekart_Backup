@@ -111,7 +111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin product approval
   app.put("/api/products/:id/approve", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    if (req.user.role !== "admin") return res.status(403).send("Not authorized");
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
     
     try {
       const id = parseInt(req.params.id);
@@ -390,7 +390,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User roles management (admin only)
   app.get("/api/users", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    if (req.user.role !== "admin") return res.status(403).send("Not authorized");
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
     
     try {
       const users = await storage.getUsers();
@@ -402,7 +402,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/users/:id/role", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    if (req.user.role !== "admin") return res.status(403).send("Not authorized");
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
     
     try {
       const id = parseInt(req.params.id);
