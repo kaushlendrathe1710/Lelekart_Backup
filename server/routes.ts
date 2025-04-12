@@ -9,6 +9,8 @@ import {
   insertOrderItemSchema 
 } from "@shared/schema";
 import { z } from "zod";
+import multer from "multer";
+import { uploadFile } from "./helpers/s3";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes with OTP-based authentication
@@ -416,6 +418,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(user);
     } catch (error) {
       res.status(500).json({ error: "Failed to update user role" });
+    }
+  });
+
+  // File Upload endpoint
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB file size limit
+    },
+  });
+
+  app.post("/api/upload", upload.single("file"), async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+      
+      const fileBuffer = req.file.buffer;
+      const fileName = req.file.originalname;
+      const fileType = req.file.mimetype;
+      
+      // Upload file to S3 and get URL
+      const fileUrl = await uploadFile(fileBuffer, fileName, fileType);
+      
+      res.json({ url: fileUrl });
+    } catch (error) {
+      console.error("File upload error:", error);
+      res.status(500).json({ error: "Failed to upload file" });
     }
   });
 
