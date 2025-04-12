@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { 
   Search, 
@@ -19,67 +19,60 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { queryClient } from "@/lib/queryClient";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export function SimpleHeader() {
-  // Use regular state for handling auth
-  const [user, setUser] = useState<any>(null);
-  const [cartItems, setCartItems] = useState<any[]>([]);
-  const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [, setLocation] = useLocation();
   
-  // Fetch user data on mount
-  useEffect(() => {
-    // Check if user is already cached
-    const cachedUser = queryClient.getQueryData<any>(['/api/user']);
-    if (cachedUser) {
-      setUser(cachedUser);
-    }
-    
-    // Fetch fresh user data
-    fetch('/api/user', {
-      credentials: 'include',
-      headers: {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      }
-    })
-    .then(res => {
-      if (res.ok) return res.json();
-      return null;
-    })
-    .then(userData => {
-      if (userData) {
-        setUser(userData);
-        queryClient.setQueryData(['/api/user'], userData);
-      }
-    })
-    .catch(err => console.error("Error fetching user:", err));
-  }, []);
-  
-  // Fetch cart data separately
-  useEffect(() => {
-    if (user) {
-      fetch('/api/cart', {
+  // Use React Query to fetch user data
+  const { data: user } = useQuery({
+    queryKey: ['/api/user'],
+    queryFn: async () => {
+      const res = await fetch('/api/user', {
         credentials: 'include',
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      })
-      .then(res => res.json())
-      .then(data => setCartItems(data))
-      .catch(err => console.error("Error fetching cart:", err));
-    }
-  }, [user]);
+      });
+      
+      if (!res.ok) {
+        if (res.status === 401) return null;
+        throw new Error('Failed to fetch user');
+      }
+      
+      return res.json();
+    },
+    staleTime: 60000, // 1 minute
+    refetchOnWindowFocus: false,
+  });
+  
+  // Use React Query to fetch cart data
+  const { data: cartItems = [] } = useQuery({
+    queryKey: ['/api/cart'],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      const res = await fetch('/api/cart', {
+        credentials: 'include',
+      });
+      
+      if (!res.ok) {
+        throw new Error('Failed to fetch cart');
+      }
+      
+      return res.json();
+    },
+    enabled: !!user,
+    staleTime: 60000, // 1 minute
+    refetchOnWindowFocus: false,
+  });
   
   const cartItemCount = cartItems.length > 0 
     ? cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0)
     : 0;
   
   const toggleCart = () => {
-    // For now, just navigate to cart page or auth
+    // Navigate to cart page or auth
     setLocation(user ? '/cart' : '/auth');
   };
   
@@ -91,7 +84,7 @@ export function SimpleHeader() {
         credentials: 'include'
       });
       queryClient.setQueryData(['/api/user'], null);
-      setUser(null);
+      queryClient.setQueryData(['/api/cart'], []);
       setLocation('/');
     } catch (error) {
       console.error('Logout failed:', error);
@@ -111,12 +104,12 @@ export function SimpleHeader() {
 
   return (
     <header className="bg-primary text-white fixed top-0 left-0 right-0 z-40">
-      {/* Desktop Header - with consistent height of 56px (h-14) like the dashboard */}
-      <div className="container mx-auto px-4 h-14 flex items-center hidden md:block">
-        <div className="flex items-center justify-between">
+      {/* Desktop Header - with improved padding and spacing */}
+      <div className="container mx-auto px-4 h-14 hidden md:flex md:items-center">
+        <div className="flex items-center justify-between w-full py-2">
           <div className="flex items-center space-x-8">
             <Link href="/">
-              <div className="text-2xl font-bold">Flipkart</div>
+              <div className="text-2xl font-bold pt-0.5">Flipkart</div>
             </Link>
 
             <form onSubmit={handleSearch} className="flex-grow max-w-xl">
@@ -124,7 +117,7 @@ export function SimpleHeader() {
                 <Input
                   type="text"
                   placeholder="Search for products, brands and more"
-                  className="w-full bg-white text-black pr-12"
+                  className="w-full bg-white text-black pr-12 h-10"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -138,12 +131,12 @@ export function SimpleHeader() {
             </form>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-5">
             {!user ? (
               // Show login button for non-authenticated users
               <Button 
                 variant="ghost" 
-                className="text-white hover:text-white hover:bg-primary-foreground/10"
+                className="text-white hover:text-white hover:bg-primary-foreground/10 h-10"
                 onClick={() => setLocation('/auth')}
               >
                 Login
@@ -152,7 +145,10 @@ export function SimpleHeader() {
               // Show user dropdown for authenticated users
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="text-white flex items-center hover:bg-primary-foreground/10">
+                  <Button 
+                    variant="ghost" 
+                    className="text-white flex items-center hover:bg-primary-foreground/10 h-10 px-4"
+                  >
                     <User className="mr-2 h-4 w-4" />
                     <span>{user.name || user.username}</span>
                     <ChevronDown className="ml-1 h-4 w-4" />
@@ -178,7 +174,7 @@ export function SimpleHeader() {
             {!user || user.role === "buyer" ? (
               <Button 
                 variant="outline" 
-                className="text-white border-white hover:bg-white/10"
+                className="text-white border-white hover:bg-white/10 h-10"
                 onClick={() => setLocation(user ? '/seller/dashboard' : '/auth')}
               >
                 Become a Seller
@@ -187,7 +183,7 @@ export function SimpleHeader() {
             
             <Button 
               variant="outline" 
-              className="text-white border-white hover:bg-white/10 relative"
+              className="text-white border-white hover:bg-white/10 relative h-10"
               onClick={toggleCart}
             >
               <ShoppingCart className="h-5 w-5" />
@@ -201,13 +197,13 @@ export function SimpleHeader() {
         </div>
       </div>
 
-      {/* Mobile Header with fixed height */}
+      {/* Mobile Header with improved spacing */}
       <div className="md:hidden px-4">
         <div className="h-14 flex items-center justify-between">
           <div className="flex items-center">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="text-white hover:text-gray-200 mr-3"
+              className="text-white hover:text-gray-200 mr-3 p-1"
             >
               <Menu size={24} />
             </button>
@@ -219,7 +215,7 @@ export function SimpleHeader() {
           
           <button
             onClick={toggleCart}
-            className="text-white hover:text-gray-200 relative"
+            className="text-white hover:text-gray-200 relative p-1"
           >
             <ShoppingCart className="h-5 w-5" />
             {cartItemCount > 0 && (
@@ -232,13 +228,13 @@ export function SimpleHeader() {
       </div>
       
       {/* Mobile Search - in a separate fixed position below the header */}
-      <div className="md:hidden fixed top-14 left-0 right-0 bg-primary px-4 pb-2 z-40">
+      <div className="md:hidden fixed top-14 left-0 right-0 bg-primary px-4 pb-3 pt-1 z-40 shadow-md">
         <form onSubmit={handleSearch}>
           <div className="relative flex items-center">
             <Input
               type="text"
               placeholder="Search products..."
-              className="w-full bg-white text-black pr-12"
+              className="w-full bg-white text-black pr-12 h-10"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -260,7 +256,7 @@ export function SimpleHeader() {
               <h2 className="text-xl font-bold">Menu</h2>
               <button
                 onClick={() => setMobileMenuOpen(false)}
-                className="text-white hover:text-gray-200"
+                className="text-white hover:text-gray-200 p-1"
               >
                 <X size={24} />
               </button>
@@ -269,7 +265,7 @@ export function SimpleHeader() {
             <nav className="space-y-4">
               <button
                 onClick={() => navigateTo('/')}
-                className="block w-full text-left py-2 border-b border-primary-foreground/20"
+                className="block w-full text-left py-3 border-b border-primary-foreground/20"
               >
                 Home
               </button>
@@ -277,7 +273,7 @@ export function SimpleHeader() {
               {!user ? (
                 <button
                   onClick={() => navigateTo('/auth')}
-                  className="block w-full text-left py-2 border-b border-primary-foreground/20"
+                  className="block w-full text-left py-3 border-b border-primary-foreground/20"
                 >
                   Login
                 </button>
@@ -289,13 +285,13 @@ export function SimpleHeader() {
                       user.role === "seller" ? "/seller/dashboard" : 
                       "/buyer/dashboard"
                     )}
-                    className="block w-full text-left py-2 border-b border-primary-foreground/20"
+                    className="block w-full text-left py-3 border-b border-primary-foreground/20"
                   >
                     Dashboard
                   </button>
                   <button
                     onClick={handleLogout}
-                    className="block w-full text-left py-2 border-b border-primary-foreground/20"
+                    className="block w-full text-left py-3 border-b border-primary-foreground/20"
                   >
                     Logout
                   </button>
@@ -305,7 +301,7 @@ export function SimpleHeader() {
               {(!user || user.role === "buyer") && (
                 <button
                   onClick={() => navigateTo(user ? '/seller/dashboard' : '/auth')}
-                  className="block w-full text-left py-2 border-b border-primary-foreground/20"
+                  className="block w-full text-left py-3 border-b border-primary-foreground/20"
                 >
                   Become a Seller
                 </button>
@@ -313,7 +309,7 @@ export function SimpleHeader() {
               
               <button
                 onClick={toggleCart}
-                className="block w-full text-left py-2 border-b border-primary-foreground/20"
+                className="block w-full text-left py-3 border-b border-primary-foreground/20"
               >
                 Cart {cartItemCount > 0 && `(${cartItemCount})`}
               </button>
