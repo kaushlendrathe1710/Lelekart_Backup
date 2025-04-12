@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import { Layout } from "@/components/layout/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -234,18 +234,18 @@ export default function CheckoutPage() {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <Layout>
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           </div>
         </div>
-      </DashboardLayout>
+      </Layout>
     );
   }
 
   return (
-    <DashboardLayout>
+    <Layout>
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold mb-8">Checkout</h1>
         
@@ -458,6 +458,6 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </Layout>
   );
 }
