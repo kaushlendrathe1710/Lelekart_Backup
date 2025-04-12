@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
+import { FileUpload } from "@/components/ui/file-upload";
 import { 
   Loader2, 
   ArrowLeft, 
@@ -121,46 +122,11 @@ export default function AddProductPage() {
     },
   });
 
-  // Image upload handler
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    // Simulate upload process
-    setIsUploading(true);
-    setUploadProgress(0);
-
-    // Fake progress updates
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 300);
-
-    // After "upload" completes
-    setTimeout(() => {
-      setIsUploading(false);
-      setUploadProgress(100);
-      
-      // Add placeholder URL for uploaded images
-      const newImages = Array.from(files).map((_, index) => 
-        `https://placehold.co/600x400?text=Product+Image+${uploadedImages.length + index + 1}`
-      );
-      
-      setUploadedImages([...uploadedImages, ...newImages]);
-      
-      toast({
-        title: "Images uploaded",
-        description: `${files.length} image${files.length > 1 ? 's' : ''} uploaded successfully.`,
-      });
-      
-      // Reset the input
-      e.target.value = '';
-    }, 3000);
+  // Handle adding a new image to our collection
+  const handleAddImage = (url: string) => {
+    if (url && !uploadedImages.includes(url)) {
+      setUploadedImages([...uploadedImages, url]);
+    }
   };
 
   // Remove image handler
@@ -657,50 +623,12 @@ export default function AddProductPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
-                    <div className="border-2 border-dashed rounded-md p-6 text-center">
-                      <input
-                        type="file"
-                        id="image-upload"
-                        className="hidden"
-                        multiple
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        disabled={isUploading}
-                      />
-                      <label 
-                        htmlFor="image-upload" 
-                        className="flex flex-col items-center justify-center gap-2 cursor-pointer"
-                      >
-                        <div className="p-4 bg-primary/10 rounded-full">
-                          <ImagePlus className="h-8 w-8 text-primary" />
-                        </div>
-                        <h3 className="text-lg font-medium">Upload Images</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Drag and drop files here, or click to browse
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          PNG, JPG or JPEG (max 5MB per image)
-                        </p>
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          className="mt-2"
-                          disabled={isUploading}
-                        >
-                          <Upload className="h-4 w-4 mr-2" />
-                          {isUploading ? "Uploading..." : "Select Files"}
-                        </Button>
-                      </label>
-                      
-                      {isUploading && (
-                        <div className="mt-4">
-                          <Progress value={uploadProgress} className="h-2 w-full" />
-                          <p className="text-xs text-muted-foreground mt-2">
-                            Uploading: {uploadProgress}%
-                          </p>
-                        </div>
-                      )}
-                    </div>
+                    <FileUpload
+                      onChange={handleAddImage}
+                      label="Main Product Image"
+                      accept="image/*"
+                      maxSizeMB={5}
+                    />
                     
                     {uploadedImages.length > 0 && (
                       <>
