@@ -452,19 +452,28 @@ export default function AdminProducts() {
                         <div className="flex items-center gap-3">
                           <div className="h-12 w-12 rounded bg-gray-100 relative overflow-hidden border">
                             {(() => {
-                              console.log("Product image data:", { 
-                                id: product.id, 
-                                name: product.name,
-                                imageUrl: product.imageUrl
-                              });
+                              // Log the entire product to see what image fields are available
+                              console.log("Full product data:", product);
+                              
+                              // Determine which image source to use
+                              let imageSrc = "https://placehold.co/100?text=No+Image";
+                              
+                              if (product.imageUrl) {
+                                imageSrc = product.imageUrl;
+                              } else if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+                                imageSrc = product.images[0];
+                              } else if (typeof product.images === 'string' && product.images) {
+                                imageSrc = product.images;
+                              }
+                              
                               return (
                                 <img
-                                  src={product.imageUrl || "https://placehold.co/100?text=No+Image"}
+                                  src={imageSrc}
                                   alt={product.name}
                                   className="object-contain h-full w-full"
                                   loading="eager"
                                   onError={(e) => {
-                                    console.error("Failed to load image:", product.imageUrl);
+                                    console.error("Failed to load image:", imageSrc);
                                     (e.target as HTMLImageElement).src =
                                       "https://placehold.co/100?text=No+Image";
                                   }}
