@@ -128,6 +128,19 @@ function App() {
                   />
                 )}
               </Route>
+              {/* Redirect for old dashboard URL to new URL */}
+              <Route path="/admin/dashboard">
+                {() => (
+                  <ProtectedRoute 
+                    path="/admin/dashboard" 
+                    role="admin" 
+                    component={() => {
+                      window.location.href = "/admin";
+                      return null;
+                    }} 
+                  />
+                )}
+              </Route>
               <Route path="/admin/products">
                 {() => (
                   <ProtectedRoute 
