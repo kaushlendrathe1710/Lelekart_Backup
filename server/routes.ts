@@ -577,10 +577,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Categories endpoints
   app.get("/api/categories", async (_req, res) => {
     try {
+      console.log("Fetching categories...");
       const categories = await storage.getCategories();
       
       // If no categories exist yet, return default categories
       if (categories.length === 0) {
+        console.log("No categories found, returning default categories");
         const defaultCategories = [
           { id: 1, name: "Electronics", image: "https://cdn-icons-png.flaticon.com/512/3659/3659898.png", displayOrder: 1 },
           { id: 2, name: "Fashion", image: "https://cdn-icons-png.flaticon.com/512/2589/2589625.png", displayOrder: 2 },
@@ -593,9 +595,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ];
         res.json(defaultCategories);
       } else {
+        console.log(`Found ${categories.length} categories`);
         res.json(categories);
       }
     } catch (error) {
+      console.error("Error fetching categories:", error);
       res.status(500).json({ error: "Failed to fetch categories" });
     }
   });

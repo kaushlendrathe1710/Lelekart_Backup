@@ -39,6 +39,7 @@ import {
   Bell,
   ShoppingCart,
   Search,
+  Grid,
 } from "lucide-react";
 
 interface AdminLayoutProps {
