@@ -731,160 +731,67 @@ export default function AddProductPage() {
                   </CardHeader>
                   <CardContent className="space-y-6">
                     <div className="space-y-4">
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-2">
-                        <div className="space-y-2">
-                          <h3 className="text-lg font-medium mb-2">Upload Image</h3>
-                          <div>
-                            <h4 className="text-sm font-medium mb-2">Main Product Image</h4>
-                            <FileUpload
-                              onChange={handleAddImage}
-                              accept="image/*"
-                              maxSizeMB={5}
-                              label="Drag & drop or click to upload"
-                            />
-                            <p className="text-xs text-muted-foreground mt-1">Upload a file (max 5MB)</p>
-                          </div>
-                          
-                          {uploadedImages.length > 0 && uploadedImages.length < 8 && (
-                            <div className="mt-4">
-                              <h4 className="text-sm font-medium mb-2">Add More Images</h4>
-                              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-primary/20 rounded-md cursor-pointer bg-primary/5 hover:bg-primary/10 transition-colors">
-                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                  <ImagePlus className="w-8 h-8 mb-2 text-primary/60" />
-                                  <p className="text-sm text-muted-foreground">Upload additional images</p>
-                                  <p className="mt-1 text-xs text-muted-foreground">SVG, PNG, JPG or GIF (max. 5MB)</p>
-                                </div>
-                                <input 
-                                  id="multiple-file-upload" 
-                                  type="file" 
-                                  multiple 
-                                  className="hidden" 
-                                  accept="image/*"
-                                  onChange={(e) => {
-                                    if (e.target.files) {
-                                      const filesArray = Array.from(e.target.files);
-                                      if (uploadedImages.length + filesArray.length > 8) {
-                                        toast({
-                                          title: "Too many images",
-                                          description: `You can only upload a maximum of 8 images (${8 - uploadedImages.length} more allowed)`,
-                                          variant: "destructive",
-                                        });
-                                        return;
-                                      }
-                                      
-                                      // Process each file
-                                      filesArray.forEach(file => {
-                                        handleAddImage(file);
-                                      });
-                                    }
-                                  }}
-                                />
-                              </label>
-                            </div>
-                          )}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+                        <div>
+                          <h3 className="text-sm font-medium mb-2">Upload Image</h3>
+                          <FileUpload
+                            onChange={handleAddImage}
+                            label="Main Product Image"
+                            accept="image/*"
+                            maxSizeMB={5}
+                          />
                         </div>
                         
-                        <div className="space-y-4">
-                          <h3 className="text-lg font-medium mb-2">Or Add Image URL</h3>
-                          <div className="space-y-4">
-                            <div>
-                              <div className="flex space-x-2">
-                                <Input 
-                                  id="image-url-input"
-                                  placeholder="https://example.com/product-image.jpg"
-                                  className="flex-1"
-                                />
-                                <Button 
-                                  type="button"
-                                  onClick={() => {
-                                    const input = document.getElementById("image-url-input") as HTMLInputElement;
-                                    if (input && input.value) {
-                                      handleAddImage(input.value);
-                                      input.value = "";
-                                    } else {
-                                      toast({
-                                        title: "URL required",
-                                        description: "Please enter an image URL",
-                                        variant: "destructive",
-                                      });
-                                    }
-                                  }}
-                                >
-                                  Add URL
-                                </Button>
-                              </div>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Enter a direct link to an image (JPG, PNG, GIF)
-                              </p>
-                            </div>
-                            
-                            <div className="relative">
-                              <div className="absolute inset-0 flex items-center">
-                                <span className="w-full border-t"></span>
-                              </div>
-                              <div className="relative flex justify-center text-xs">
-                                <span className="bg-background px-2 text-muted-foreground">Add multiple URLs at once</span>
-                              </div>
-                            </div>
-                            
-                            <div>
-                              <label htmlFor="multiple-urls" className="text-sm font-medium">Multiple Image URLs</label>
-                              <Textarea 
-                                id="multiple-urls"
-                                placeholder="Enter one URL per line&#10;https://example.com/image1.jpg&#10;https://example.com/image2.jpg&#10;https://example.com/image3.jpg"
-                                className="h-24 mt-1"
-                              />
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="mt-2"
-                                onClick={() => {
-                                  const textarea = document.getElementById("multiple-urls") as HTMLTextAreaElement;
-                                  if (textarea && textarea.value) {
-                                    const urls = textarea.value.split('\n').filter(url => url.trim() !== '');
-                                    
-                                    if (uploadedImages.length + urls.length > 8) {
-                                      toast({
-                                        title: "Too many images",
-                                        description: `You can only upload a maximum of 8 images (${8 - uploadedImages.length} more allowed)`,
-                                        variant: "destructive",
-                                      });
-                                      return;
-                                    }
-                                    
-                                    let validUrlsCount = 0;
-                                    
-                                    // Process each URL
-                                    urls.forEach(url => {
-                                      try {
-                                        new URL(url); // Validate URL
-                                        handleAddImage(url);
-                                        validUrlsCount++;
-                                      } catch (e) {
-                                        console.error("Invalid URL:", url);
-                                      }
-                                    });
-                                    
-                                    textarea.value = "";
-                                    
-                                    if (validUrlsCount > 0) {
-                                      toast({
-                                        title: "URLs added",
-                                        description: `Added ${validUrlsCount} image URL${validUrlsCount > 1 ? 's' : ''}`,
-                                      });
-                                    }
-                                  }
-                                }}
-                              >
-                                Add Multiple URLs
-                              </Button>
-                            </div>
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-medium mb-2">Or Add Image URL</h3>
+                          <div className="flex space-x-2">
+                            <Input 
+                              id="image-url-input"
+                              placeholder="https://example.com/product-image.jpg"
+                              className="flex-1"
+                            />
+                            <Button 
+                              type="button"
+                              onClick={() => {
+                                const input = document.getElementById("image-url-input") as HTMLInputElement;
+                                if (input && input.value) {
+                                  handleAddImage(input.value);
+                                  input.value = "";
+                                } else {
+                                  toast({
+                                    title: "URL required",
+                                    description: "Please enter an image URL",
+                                    variant: "destructive",
+                                  });
+                                }
+                              }}
+                            >
+                              Add URL
+                            </Button>
                           </div>
+                          <p className="text-xs text-muted-foreground">
+                            Enter a direct link to an image (JPG, PNG, GIF)
+                          </p>
                         </div>
                       </div>
                       
-                      {/* Removed redundant Add Another Image button since we have multiple file uploads */}
+                      {uploadedImages.length > 0 && uploadedImages.length < 8 && (
+                        <Button 
+                          variant="outline" 
+                          className="w-full flex items-center justify-center gap-2"
+                          onClick={() => document.getElementById("add-another-image")?.click()}
+                        >
+                          <ImagePlus className="h-4 w-4" />
+                          Add Another Image
+                          <FileUpload
+                            id="add-another-image"
+                            onChange={handleAddImage}
+                            className="hidden"
+                            accept="image/*"
+                            maxSizeMB={5}
+                          />
+                        </Button>
+                      )}
                     </div>
                     
                     {uploadedImages.length > 0 && (
