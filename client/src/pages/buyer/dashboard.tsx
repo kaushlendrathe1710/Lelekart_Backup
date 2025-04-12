@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { AuthContext } from "@/hooks/use-auth";
 import { useContext } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -63,8 +63,8 @@ export default function BuyerDashboardPage() {
   
   // If no user (not authenticated) or wrong role, redirect to auth page
   if (!user || user.role !== 'buyer') {
-    // Use window.location for immediate redirect to avoid any route protection issues
-    window.location.href = '/auth';
+    // Use wouter for navigation
+    setLocation('/auth');
     return null;
   }
   

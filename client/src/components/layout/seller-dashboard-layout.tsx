@@ -100,8 +100,8 @@ export function SellerDashboardLayout({ children }: SellerDashboardLayoutProps) 
         credentials: 'include'
       });
       queryClient.setQueryData(['/api/user'], null);
-      // Use window.location for more reliable redirection
-      window.location.href = '/';
+      // Use wouter for navigation
+      setLocation('/');
     } catch (error) {
       console.error('Logout failed:', error);
     }

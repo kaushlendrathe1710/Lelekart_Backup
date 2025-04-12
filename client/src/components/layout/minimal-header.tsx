@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Search, Menu, X, ChevronDown, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ export function Header() {
   const [user, setUser] = useState<any>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [location, setLocation] = useLocation();
   
   // Simple functions that don't require the actual auth context
   const handleSearch = (e: React.FormEvent) => {
@@ -23,7 +24,7 @@ export function Header() {
   
   const handleLogout = () => {
     // Simple redirect for now
-    window.location.href = "/";
+    setLocation("/");
   };
   
   const getDashboardLink = () => {
