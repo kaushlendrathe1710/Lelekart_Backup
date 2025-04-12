@@ -1,6 +1,7 @@
 import { Loader2 } from "lucide-react";
 import { Redirect, Route } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { Layout } from "@/components/layout/layout";
 
 interface ProtectedRouteProps {
   path: string;
@@ -41,7 +42,21 @@ export function ProtectedRoute({
           return <Redirect to={dashboardPath} />;
         }
 
-        return <Component />;
+        // Dashboard routes don't need Layout wrapper, only regular pages
+        const isDashboardRoute = 
+          path.startsWith('/admin/dashboard') || 
+          path.startsWith('/seller/dashboard') || 
+          path.startsWith('/buyer/dashboard');
+
+        if (isDashboardRoute) {
+          return <Component />;
+        }
+
+        return (
+          <Layout>
+            <Component />
+          </Layout>
+        );
       }}
     </Route>
   );

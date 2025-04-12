@@ -102,7 +102,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     className="relative h-8 w-8 rounded-full"
                   >
                     <Avatar className="h-8 w-8 border-2 border-white">
-                      <AvatarImage src={user.image} alt={user.username} />
                       <AvatarFallback>{getInitials(user.username)}</AvatarFallback>
                     </Avatar>
                   </Button>
@@ -134,7 +133,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <SidebarHeader>
               <div className="flex items-center gap-2 px-1">
                 <Avatar className="h-9 w-9">
-                  <AvatarImage src={user.image} alt={user.username} />
                   <AvatarFallback>{getInitials(user.username)}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col">
