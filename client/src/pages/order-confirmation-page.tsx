@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, useRoute } from "wouter";
-import { Layout } from "@/components/layout/layout";
+import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Check, Home, Package, ShoppingBag } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
@@ -111,19 +111,19 @@ export default function OrderConfirmationPage() {
 
   if (loading) {
     return (
-      <Layout>
+      <DashboardLayout>
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           </div>
         </div>
-      </Layout>
+      </DashboardLayout>
     );
   }
 
   if (!orderDetails) {
     return (
-      <Layout>
+      <DashboardLayout>
         <div className="container mx-auto px-4 py-8">
           <div className="text-center py-12">
             <h2 className="text-2xl font-semibold mb-4">Order Not Found</h2>
@@ -136,12 +136,12 @@ export default function OrderConfirmationPage() {
             </Button>
           </div>
         </div>
-      </Layout>
+      </DashboardLayout>
     );
   }
 
   return (
-    <Layout>
+    <DashboardLayout>
       <div className="container mx-auto px-4 py-8">
         <div className="bg-white shadow-md rounded-lg p-6 mb-8">
           <div className="text-center mb-6">
@@ -290,6 +290,6 @@ export default function OrderConfirmationPage() {
           </div>
         </div>
       </div>
-    </Layout>
+    </DashboardLayout>
   );
 }

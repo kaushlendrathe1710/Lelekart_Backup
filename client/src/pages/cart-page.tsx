@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Minus, Plus, Trash2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Layout } from "@/components/layout/layout";
+import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { queryClient } from "@/lib/queryClient";
 
 interface CartItem {
@@ -132,11 +132,6 @@ export default function CartPage() {
     setLocation('/checkout');
   };
 
-  const buyNow = async () => {
-    // Redirect to checkout page
-    setLocation('/checkout');
-  };
-
   // Calculate totals
   const subtotal = cartItems.reduce((total, item) => 
     total + (item.product.price * item.quantity), 0);
@@ -145,19 +140,19 @@ export default function CartPage() {
 
   if (loading) {
     return (
-      <Layout>
+      <DashboardLayout>
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           </div>
         </div>
-      </Layout>
+      </DashboardLayout>
     );
   }
 
   if (cartItems.length === 0) {
     return (
-      <Layout>
+      <DashboardLayout>
         <div className="container mx-auto px-4 py-8">
           <div className="text-center py-12">
             <h2 className="text-2xl font-semibold mb-4">Your cart is empty</h2>
@@ -170,12 +165,12 @@ export default function CartPage() {
             </Button>
           </div>
         </div>
-      </Layout>
+      </DashboardLayout>
     );
   }
 
   return (
-    <Layout>
+    <DashboardLayout>
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold mb-8">Shopping Cart</h1>
         
@@ -273,6 +268,6 @@ export default function CartPage() {
           </div>
         </div>
       </div>
-    </Layout>
+    </DashboardLayout>
   );
 }
