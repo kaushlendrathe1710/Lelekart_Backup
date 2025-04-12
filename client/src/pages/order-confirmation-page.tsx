@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation, useRoute } from "wouter";
 import { Layout } from "@/components/layout/layout";
 import { Button } from "@/components/ui/button";
-import { Check, Home, Package } from "lucide-react";
+import { Check, Home, Package, ShoppingBag } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 
 export default function OrderConfirmationPage() {
