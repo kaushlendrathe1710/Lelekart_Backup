@@ -21,6 +21,16 @@ import AdminDashboardPage from "./pages/admin/dashboard";
 import SellerDashboardPage from "./pages/seller/dashboard";
 import BuyerDashboardPage from "./pages/buyer/dashboard";
 
+// Create wrapper components to fix the auth provider context issue
+const BuyerDashboardWrapper = () => <BuyerDashboardPage />;
+const SellerDashboardWrapper = () => <SellerDashboardPage />;
+const AdminDashboardWrapper = () => <AdminDashboardPage />;
+const CartPageWrapper = () => <CartPage />;
+const CheckoutPageWrapper = () => <CheckoutPage />;
+const OrderConfirmationPageWrapper = (props: any) => <OrderConfirmationPage {...props} />;
+const OrdersPageWrapper = () => <OrdersPage />;
+const OrderDetailsPageWrapper = (props: any) => <OrderDetailsPage {...props} />;
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -45,16 +55,16 @@ function App() {
               </Route>
               
               {/* Cart, Checkout, and Order routes - restricted to buyers */}
-              <ProtectedRoute path="/cart" role="buyer" component={CartPage} />
-              <ProtectedRoute path="/checkout" role="buyer" component={CheckoutPage} />
-              <ProtectedRoute path="/order-confirmation/:id" role="buyer" component={OrderConfirmationPage} />
-              <ProtectedRoute path="/orders" role="buyer" component={OrdersPage} />
-              <ProtectedRoute path="/order/:id" role="buyer" component={OrderDetailsPage} />
+              <ProtectedRoute path="/cart" role="buyer" component={CartPageWrapper} />
+              <ProtectedRoute path="/checkout" role="buyer" component={CheckoutPageWrapper} />
+              <ProtectedRoute path="/order-confirmation/:id" role="buyer" component={OrderConfirmationPageWrapper} />
+              <ProtectedRoute path="/orders" role="buyer" component={OrdersPageWrapper} />
+              <ProtectedRoute path="/order/:id" role="buyer" component={OrderDetailsPageWrapper} />
               
               {/* Protected dashboard routes */}
-              <ProtectedRoute path="/admin/dashboard" role="admin" component={AdminDashboardPage} />
-              <ProtectedRoute path="/seller/dashboard" role="seller" component={SellerDashboardPage} />
-              <ProtectedRoute path="/buyer/dashboard" role="buyer" component={BuyerDashboardPage} />
+              <ProtectedRoute path="/admin/dashboard" role="admin" component={AdminDashboardWrapper} />
+              <ProtectedRoute path="/seller/dashboard" role="seller" component={SellerDashboardWrapper} />
+              <ProtectedRoute path="/buyer/dashboard" role="buyer" component={BuyerDashboardWrapper} />
               
               <Route>
                 <Layout>

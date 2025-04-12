@@ -14,9 +14,12 @@ export function ProtectedRoute({
   component: Component,
   role
 }: ProtectedRouteProps) {
+  // Don't use hooks outside of the Route's render function
   return (
     <Route path={path}>
       {() => {
+        // Move the useAuth call inside the Route render function
+        // This ensures it's used within the AuthProvider context
         const { user, isLoading } = useAuth();
         
         if (isLoading) {
