@@ -673,6 +673,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API route to get featured products for hero section
+  app.get('/api/featured-hero-products', async (_req, res) => {
+    try {
+      // Get one product from each category for the hero carousel
+      const categories = await storage.getCategories();
+      const heroProducts = [];
+      
+      for (const category of categories) {
+        const products = await storage.getProducts(category.name, undefined, true);
+        if (products.length > 0) {
+          // Take the first product from each category
+          const product = products[0];
+          heroProducts.push({
+            title: `${category.name} Sale`,
+            subtitle: `Up to 30% off on all ${category.name.toLowerCase()} items`,
+            url: product.image_url || (product.images ? JSON.parse(product.images as string)[0] : ''),
+            alt: product.name,
+            buttonText: 'Shop Now',
+            category: category.name,
+            badgeText: 'HOT DEAL',
+            productId: product.id
+          });
+        }
+      }
+      
+      res.json(heroProducts);
+    } catch (error) {
+      console.error("Error fetching hero products:", error);
+      res.status(500).json({ error: "Failed to fetch hero products" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -7,6 +7,7 @@ import { Product } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { HeroSection } from "@/components/ui/hero-section";
 import { ShopByCategory } from "@/components/ui/shop-by-category";
+import { Loader2 } from "lucide-react";
 
 export default function HomePage() {
   const [location] = useLocation();
@@ -27,6 +28,16 @@ export default function HomePage() {
       const url = `/api/products${params.category ? `?category=${params.category}` : ''}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error('Failed to fetch products');
+      return res.json();
+    }
+  });
+
+  // Fetch featured hero products
+  const { data: heroProducts, isLoading: isLoadingHero } = useQuery({
+    queryKey: ["/api/featured-hero-products"],
+    queryFn: async () => {
+      const res = await fetch('/api/featured-hero-products');
+      if (!res.ok) throw new Error('Failed to fetch hero products');
       return res.json();
     }
   });
@@ -103,17 +114,39 @@ export default function HomePage() {
       <CategoryNav />
       
       {/* Hero Section with enhanced slider and deal of the day */}
-      <HeroSection sliderImages={heroImages} dealOfTheDay={{
-        title: "Deal of the Day: Wireless Headphones",
-        subtitle: "Limited time offer on premium audio experience",
-        image: "https://rukminim1.flixcart.com/image/416/416/l31x2fk0/headphone/a/s/h/-original-image9ehehz8amg2.jpeg",
-        originalPrice: 129.99,
-        discountPrice: 99.99,
-        discountPercentage: 23,
-        hours: 47,
-        minutes: 53,
-        seconds: 41
-      }} />
+      {isLoadingHero ? (
+        <div className="h-64 bg-gradient-to-r from-blue-500 to-indigo-700 flex items-center justify-center">
+          <Loader2 className="w-10 h-10 text-white animate-spin" />
+        </div>
+      ) : heroProducts && heroProducts.length > 0 ? (
+        <HeroSection 
+          sliderImages={heroProducts} 
+          dealOfTheDay={{
+            title: "Deal of the Day: Wireless Headphones",
+            subtitle: "Limited time offer on premium audio experience",
+            image: "https://rukminim1.flixcart.com/image/416/416/l31x2fk0/headphone/a/s/h/-original-image9ehehz8amg2.jpeg",
+            originalPrice: 129.99,
+            discountPrice: 99.99,
+            discountPercentage: 23,
+            hours: 47,
+            minutes: 53,
+            seconds: 41
+          }} 
+        />
+      ) : (
+        // Fallback to static images if API fails
+        <HeroSection sliderImages={heroImages} dealOfTheDay={{
+          title: "Deal of the Day: Wireless Headphones",
+          subtitle: "Limited time offer on premium audio experience",
+          image: "https://rukminim1.flixcart.com/image/416/416/l31x2fk0/headphone/a/s/h/-original-image9ehehz8amg2.jpeg",
+          originalPrice: 129.99,
+          discountPrice: 99.99,
+          discountPercentage: 23,
+          hours: 47,
+          minutes: 53,
+          seconds: 41
+        }} />
+      )}
 
       {/* Shop by Category */}
       <ShopByCategory />
