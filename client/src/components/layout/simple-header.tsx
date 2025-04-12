@@ -162,7 +162,7 @@ export function SimpleHeader() {
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href={user.role === "admin" ? "/admin/dashboard" : 
+                    <Link href={user.role === "admin" ? "/admin" : 
                               user.role === "seller" ? "/seller/dashboard" : 
                               "/buyer/dashboard"} className="cursor-pointer">
                       Dashboard
@@ -276,7 +276,7 @@ export function SimpleHeader() {
                 <>
                   <button
                     onClick={() => navigateTo(
-                      user.role === "admin" ? "/admin/dashboard" : 
+                      user.role === "admin" ? "/admin" : 
                       user.role === "seller" ? "/seller/dashboard" : 
                       "/buyer/dashboard"
                     )}

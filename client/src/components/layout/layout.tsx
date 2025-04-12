@@ -12,7 +12,7 @@ export function Layout({ children }: LayoutProps) {
   
   // Check if we're on a dashboard or orders route (these use DashboardLayout)
   const skipHeaderFooter = 
-    location.startsWith('/admin/dashboard') || 
+    location.startsWith('/admin') || 
     location.startsWith('/seller/dashboard') || 
     location.startsWith('/buyer/dashboard') ||
     location.startsWith('/orders') ||
