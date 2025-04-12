@@ -35,19 +35,14 @@ type OtpVerifyResponse = {
   message: string;
 };
 
-type AdminLoginData = {
-  email: string;
-};
-
 type AuthContextType = {
   user: SelectUser | null;
   isLoading: boolean;
   error: Error | null;
-  requestOtpMutation: UseMutationResult<{ message: string; email: string; expiresIn: number; isSpecialAdmin?: boolean }, Error, RequestOtpData>;
+  requestOtpMutation: UseMutationResult<{ message: string; email: string; expiresIn: number }, Error, RequestOtpData>;
   verifyOtpMutation: UseMutationResult<OtpVerifyResponse, Error, VerifyOtpData>;
   registerMutation: UseMutationResult<{ user: SelectUser; message: string }, Error, RegisterData>;
   logoutMutation: UseMutationResult<void, Error, void>;
-  adminLoginMutation: UseMutationResult<{ user: SelectUser; message: string }, Error, AdminLoginData>;
 };
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -146,36 +141,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
   
-  // Special Admin Login Mutation
-  const adminLoginMutation = useMutation({
-    mutationFn: async (data: AdminLoginData) => {
-      const response = await apiRequest("POST", "/api/auth/admin-login", data);
-      return await response.json();
-    },
-    onSuccess: (data) => {
-      if (data.user) {
-        queryClient.setQueryData(["/api/user"], data.user);
-        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-        
-        toast({
-          title: "Admin Login Successful",
-          description: "Welcome back, administrator!",
-          variant: "default",
-        });
-        
-        // Redirect to admin dashboard
-        setLocation("/admin/dashboard");
-      }
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Admin Login Failed",
-        description: error.message || "Unauthorized admin access",
-        variant: "destructive",
-      });
-    },
-  });
-
   const contextValue = {
     user: user ?? null,
     isLoading,
@@ -184,7 +149,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     verifyOtpMutation,
     registerMutation,
     logoutMutation,
-    adminLoginMutation,
   };
 
   return (

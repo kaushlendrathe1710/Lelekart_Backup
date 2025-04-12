@@ -128,15 +128,8 @@ export function setupAuth(app: Express) {
       const { email } = validation.data;
       console.log(`Processing OTP request for email: ${email}`);
       
-      // Special handling for admin user - send identifier that this is the special admin
-      if (isSpecialAdmin(email)) {
-        console.log("Special admin user detected - bypassing OTP");
-        return res.status(200).json({
-          message: "Admin detected",
-          email,
-          isSpecialAdmin: true
-        });
-      }
+      // We'll remove the special admin bypass - all admins must verify OTP
+      // Special admins are still non-deletable but must go through OTP process
 
       // Generate OTP for regular users
       const otp = await generateOTP();

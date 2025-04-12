@@ -107,7 +107,7 @@ export default function AuthPage() {
   });
 
   // Get auth mutations from useAuth hook
-  const { requestOtpMutation, verifyOtpMutation, registerMutation, adminLoginMutation } = useAuth();
+  const { requestOtpMutation, verifyOtpMutation, registerMutation } = useAuth();
 
   // Request OTP or handle special admin login
   async function onEmailSubmit(values: EmailFormValues) {
@@ -116,27 +116,15 @@ export default function AuthPage() {
     // Use the requestOTP mutation from useAuth
     requestOtpMutation.mutate({ email: values.email }, {
       onSuccess: (data) => {
-        // Check if this is the special admin user
-        if (data.isSpecialAdmin) {
-          toast({
-            title: "Admin Detected",
-            description: "Logging in as administrator...",
-            variant: "default",
-          });
-          
-          // Use admin login instead of OTP
-          adminLoginMutation.mutate({ email: values.email });
-        } else {
-          // Regular flow - move to OTP verification step
-          setAuthState('otp');
-          otpForm.setValue('email', values.email);
-          
-          toast({
-            title: "OTP Sent",
-            description: "Check your email for the OTP code",
-            variant: "default",
-          });
-        }
+        // Regular flow - move to OTP verification step
+        setAuthState('otp');
+        otpForm.setValue('email', values.email);
+        
+        toast({
+          title: "OTP Sent",
+          description: "Check your email for the OTP code",
+          variant: "default",
+        });
       }
     });
   }
@@ -199,10 +187,6 @@ export default function AuthPage() {
                     <CardTitle>Login or Register</CardTitle>
                     <CardDescription>
                       Enter your email to continue to Flipkart
-                      {/* Subtle hint for admin users */}
-                      <span className="block text-xs text-muted-foreground mt-1">
-                        *For admin access, use your authorized admin email
-                      </span>
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
