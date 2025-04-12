@@ -73,7 +73,8 @@ export default function AdminDashboardPage() {
   
   // If no user (not authenticated) or wrong role, redirect to auth page
   if (!user || user.role !== 'admin') {
-    setLocation('/auth');
+    // Use window.location for immediate redirect to avoid any route protection issues
+    window.location.href = '/auth';
     return null;
   }
   

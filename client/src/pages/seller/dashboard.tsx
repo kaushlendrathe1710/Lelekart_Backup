@@ -73,7 +73,8 @@ export default function SellerDashboardPage() {
   
   // If no user (not authenticated) or wrong role, redirect to auth page
   if (!user || user.role !== 'seller') {
-    setLocation('/auth');
+    // Use window.location for immediate redirect to avoid any route protection issues
+    window.location.href = '/auth';
     return null;
   }
   
@@ -98,7 +99,7 @@ export default function SellerDashboardPage() {
               <Button 
                 variant="secondary" 
                 className="bg-white text-primary hover:bg-gray-100 border-2 border-white font-medium flex items-center gap-2 shadow-sm"
-                onClick={() => logoutMutation.mutate()}
+                onClick={handleLogout}
               >
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 

@@ -101,7 +101,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     ? cartItems.reduce((sum: number, item: { quantity: number }) => sum + (item.quantity || 0), 0)
     : 0;
   
+  // If no user, redirect to auth page
   if (!user) {
+    window.location.href = '/auth';
     return null;
   }
 
@@ -115,7 +117,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       });
       queryClient.setQueryData(['/api/user'], null);
       queryClient.setQueryData(['/api/cart'], []);
-      setLocation('/');
+      // Use window.location for more reliable redirection
+      window.location.href = '/';
     } catch (error) {
       console.error('Logout failed:', error);
     }
