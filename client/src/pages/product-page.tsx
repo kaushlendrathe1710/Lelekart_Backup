@@ -49,16 +49,30 @@ export default function ProductPage() {
     staleTime: 60000,
   });
   
-  // Fetch product details
+  // Fetch product details with stable identity
   const { data: product, isLoading: isProductLoading } = useQuery<Product>({
     queryKey: ['/api/products', productId],
     queryFn: async () => {
+      console.log("Fetching product data for ID:", productId);
       if (!productId) throw new Error('Product ID is required');
-      const res = await fetch(`/api/products/${productId}`);
-      if (!res.ok) throw new Error('Failed to fetch product details');
-      return res.json();
+      
+      try {
+        const res = await fetch(`/api/products/${productId}`);
+        if (!res.ok) {
+          console.error(`Failed to fetch product details for ID ${productId}:`, res.status);
+          throw new Error('Failed to fetch product details');
+        }
+        const data = await res.json();
+        console.log("Successfully fetched product data:", data);
+        return data;
+      } catch (error) {
+        console.error("Error fetching product:", error);
+        throw error;
+      }
     },
     enabled: !!productId,
+    staleTime: 60000, // Keep data fresh for 1 minute
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
   });
 
   // Fetch related products
