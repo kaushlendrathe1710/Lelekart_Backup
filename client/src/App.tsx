@@ -7,6 +7,8 @@ import ProductPage from "./pages/product-page";
 import CartPage from "./pages/cart-page";
 import CheckoutPage from "./pages/checkout-page";
 import OrderConfirmationPage from "./pages/order-confirmation-page";
+import OrdersPage from "./pages/orders-page";
+import OrderDetailsPage from "./pages/order-details-page";
 import { Layout } from "@/components/layout/layout";
 import { AuthProvider } from "@/hooks/use-auth";
 import { CartProvider } from "@/context/cart-context";
@@ -42,10 +44,12 @@ function App() {
                 </Layout>
               </Route>
               
-              {/* Cart and Checkout routes - restricted to buyers */}
+              {/* Cart, Checkout, and Order routes - restricted to buyers */}
               <ProtectedRoute path="/cart" role="buyer" component={CartPage} />
               <ProtectedRoute path="/checkout" role="buyer" component={CheckoutPage} />
               <ProtectedRoute path="/order-confirmation/:id" role="buyer" component={OrderConfirmationPage} />
+              <ProtectedRoute path="/orders" role="buyer" component={OrdersPage} />
+              <ProtectedRoute path="/order/:id" role="buyer" component={OrderDetailsPage} />
               
               {/* Protected dashboard routes */}
               <ProtectedRoute path="/admin/dashboard" role="admin" component={AdminDashboardPage} />

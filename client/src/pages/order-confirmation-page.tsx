@@ -275,10 +275,17 @@ export default function OrderConfirmationPage() {
               <Home className="mr-2 h-4 w-4" /> Continue Shopping
             </Button>
             <Button 
-              onClick={() => setLocation('/buyer/dashboard')} 
+              onClick={() => setLocation(`/order/${orderId}`)} 
               className="bg-primary text-white flex items-center justify-center"
             >
-              <Package className="mr-2 h-4 w-4" /> View Orders
+              <Package className="mr-2 h-4 w-4" /> View Order Details
+            </Button>
+            <Button 
+              onClick={() => setLocation('/orders')} 
+              variant="outline"
+              className="flex items-center justify-center"
+            >
+              <ShoppingBag className="mr-2 h-4 w-4" /> View All Orders
             </Button>
           </div>
         </div>
