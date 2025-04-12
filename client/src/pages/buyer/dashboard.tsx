@@ -27,6 +27,7 @@ import { Badge } from "@/components/ui/badge";
 export default function BuyerDashboardPage() {
   // Try to use context first if available
   const authContext = useContext(AuthContext);
+  const [location, setLocation] = useLocation();
   
   // Get user data from direct API if context is not available
   const { data: apiUser, isLoading: apiLoading } = useQuery<User | null>({

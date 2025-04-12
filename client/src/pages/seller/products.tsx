@@ -19,6 +19,7 @@ import {
 import { useContext, useState } from "react";
 import { AuthContext } from "@/hooks/use-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Product } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { 
   AlertDialog,
@@ -243,7 +244,7 @@ export default function SellerProductsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {products.map((product) => (
+                  {products.map((product: Product) => (
                     <TableRow key={product.id}>
                       <TableCell>
                         <img 
