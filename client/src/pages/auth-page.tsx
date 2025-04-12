@@ -60,7 +60,6 @@ export default function AuthPage() {
   // Auth flow state management
   const [authState, setAuthState] = useState<'email' | 'otp' | 'register'>('email');
   const [email, setEmail] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -105,131 +104,71 @@ export default function AuthPage() {
     },
   });
 
+  // Get auth mutations from useAuth hook
+  const { requestOtpMutation, verifyOtpMutation, registerMutation } = useAuth();
+
   // Request OTP
   async function onEmailSubmit(values: EmailFormValues) {
-    setIsLoading(true);
+    setEmail(values.email);
     
-    try {
-      // Save email for later steps
-      setEmail(values.email);
-      
-      // Request OTP
-      const response = await apiRequest("POST", "/api/auth/request-otp", {
-        email: values.email,
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to send OTP");
+    // Use the requestOTPMutation from useAuth
+    requestOtpMutation.mutate({ email: values.email }, {
+      onSuccess: (data) => {
+        // Move to OTP verification step
+        setAuthState('otp');
+        otpForm.setValue('email', values.email);
+        
+        toast({
+          title: "OTP Sent",
+          description: "Check your email for the OTP code",
+          variant: "default",
+        });
       }
-      
-      // Move to OTP verification step
-      setAuthState('otp');
-      otpForm.setValue('email', values.email);
-      
-      toast({
-        title: "OTP Sent",
-        description: "Check your email for the OTP code",
-        variant: "default",
-      });
-      
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to send OTP",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    });
   }
 
   // Verify OTP
   async function onOtpSubmit(values: OtpFormValues) {
-    setIsLoading(true);
-    
-    try {
-      // Verify OTP
-      const response = await apiRequest("POST", "/api/auth/verify-otp", {
-        email: values.email,
-        otp: values.otp,
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Invalid OTP");
+    // Use the verifyOtpMutation from useAuth
+    verifyOtpMutation.mutate({ email: values.email, otp: values.otp }, {
+      onSuccess: (data) => {
+        // If user exists, they're now logged in
+        if (!data.isNewUser) {
+          toast({
+            title: "Login Successful",
+            description: "Welcome back!",
+            variant: "default",
+          });
+          
+          // Redirect will happen automatically via useEffect when user data loads
+        } else {
+          // User needs to complete registration
+          setAuthState('register');
+          registerForm.setValue('email', values.email);
+          
+          toast({
+            title: "OTP Verified",
+            description: "Please complete your registration",
+            variant: "default",
+          });
+        }
       }
-      
-      const data = await response.json();
-      
-      // If user exists, they're now logged in
-      if (!data.isNewUser) {
-        // Refresh user data
-        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-        
-        toast({
-          title: "Login Successful",
-          description: "Welcome back!",
-          variant: "default",
-        });
-        
-        // Redirect will happen automatically via useEffect when user data loads
-      } else {
-        // User needs to complete registration
-        setAuthState('register');
-        registerForm.setValue('email', values.email);
-        
-        toast({
-          title: "OTP Verified",
-          description: "Please complete your registration",
-          variant: "default",
-        });
-      }
-      
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to verify OTP",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    });
   }
 
   // Complete registration
   async function onRegisterSubmit(values: RegisterFormValues) {
-    setIsLoading(true);
-    
-    try {
-      // Register user
-      const response = await apiRequest("POST", "/api/auth/register", values);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Registration failed");
+    // Use the registerMutation from useAuth
+    registerMutation.mutate(values, {
+      onSuccess: (data) => {
+        toast({
+          title: "Registration Successful",
+          description: "Your account has been created",
+          variant: "default",
+        });
+        // Redirect will happen automatically via useEffect when user data loads
       }
-      
-      // Refresh user data
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      
-      toast({
-        title: "Registration Successful",
-        description: "Your account has been created",
-        variant: "default",
-      });
-      
-      // Redirect will happen automatically via useEffect when user data loads
-      
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to register",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    });
   }
 
   return (
@@ -271,9 +210,9 @@ export default function AuthPage() {
                         <Button 
                           type="submit" 
                           className="w-full"
-                          disabled={isLoading}
+                          disabled={requestOtpMutation.isPending}
                         >
-                          {isLoading ? (
+                          {requestOtpMutation.isPending ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               Sending OTP...
