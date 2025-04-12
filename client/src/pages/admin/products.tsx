@@ -3,8 +3,6 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Product } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { AuthProvider } from "@/hooks/use-auth";
-import { CartProvider } from "@/context/cart-context";
 import { AdminLayout } from "@/components/layout/admin-layout";
 import {
   Table,
@@ -61,13 +59,7 @@ import {
 import { ProductImageGallery } from "@/components/ui/product-image-gallery";
 
 export default function AdminProducts() {
-  return (
-    <AuthProvider>
-      <CartProvider>
-        <AdminProductsContent />
-      </CartProvider>
-    </AuthProvider>
-  );
+  return <AdminProductsContent />;
 }
 
 function AdminProductsContent() {
