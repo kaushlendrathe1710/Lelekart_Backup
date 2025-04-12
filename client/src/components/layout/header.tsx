@@ -24,20 +24,29 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCart } from "@/context/cart-context";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 
 export function Header() {
-  // Temporarily remove authentication dependency
-  const user = null;
+  const { user, logoutMutation } = useAuth();
+  const { toast } = useToast();
   const { toggleCart, cartItems } = useCart();
-  const [location] = useLocation();
+  const [, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleLogout = () => {
-    // Temporarily disable logout
-    console.log("Logout called");
+    logoutMutation.mutate(undefined, {
+      onSuccess: () => {
+        toast({
+          title: "Logged out",
+          description: "You have been successfully logged out",
+          variant: "default",
+        });
+      }
+    });
   };
 
   const handleSearch = (e: React.FormEvent) => {
