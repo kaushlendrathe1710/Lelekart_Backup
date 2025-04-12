@@ -19,6 +19,7 @@ import { ProtectedRoute } from "./lib/protected-route";
 // Import dashboard components
 import AdminDashboardPage from "./pages/admin/dashboard";
 import SellerDashboardPage from "./pages/seller/dashboard";
+import SellerProductsPage from "./pages/seller/products";
 import BuyerDashboardPage from "./pages/buyer/dashboard";
 
 function App() {
@@ -117,12 +118,132 @@ function App() {
                   />
                 )}
               </Route>
+              {/* Seller route with nested paths to use the same layout */}
               <Route path="/seller/dashboard">
                 {() => (
                   <ProtectedRoute 
                     path="/seller/dashboard" 
                     role="seller" 
                     component={SellerDashboardPage} 
+                  />
+                )}
+              </Route>
+              <Route path="/seller/products">
+                {() => (
+                  <ProtectedRoute 
+                    path="/seller/products" 
+                    role="seller" 
+                    component={SellerProductsPage} 
+                  />
+                )}
+              </Route>
+              <Route path="/seller/products/add">
+                {() => (
+                  <ProtectedRoute 
+                    path="/seller/products/add" 
+                    role="seller" 
+                    component={() => (
+                      <SellerDashboardPage />
+                    )} 
+                  />
+                )}
+              </Route>
+              <Route path="/seller/inventory">
+                {() => (
+                  <ProtectedRoute 
+                    path="/seller/inventory" 
+                    role="seller" 
+                    component={() => (
+                      <SellerDashboardPage />
+                    )} 
+                  />
+                )}
+              </Route>
+              <Route path="/seller/orders">
+                {() => (
+                  <ProtectedRoute 
+                    path="/seller/orders" 
+                    role="seller" 
+                    component={() => (
+                      <SellerDashboardPage />
+                    )} 
+                  />
+                )}
+              </Route>
+              <Route path="/seller/shipping">
+                {() => (
+                  <ProtectedRoute 
+                    path="/seller/shipping" 
+                    role="seller" 
+                    component={() => (
+                      <SellerDashboardPage />
+                    )} 
+                  />
+                )}
+              </Route>
+              <Route path="/seller/returns">
+                {() => (
+                  <ProtectedRoute 
+                    path="/seller/returns" 
+                    role="seller" 
+                    component={() => (
+                      <SellerDashboardPage />
+                    )} 
+                  />
+                )}
+              </Route>
+              <Route path="/seller/analytics">
+                {() => (
+                  <ProtectedRoute 
+                    path="/seller/analytics" 
+                    role="seller" 
+                    component={() => (
+                      <SellerDashboardPage />
+                    )} 
+                  />
+                )}
+              </Route>
+              <Route path="/seller/payments">
+                {() => (
+                  <ProtectedRoute 
+                    path="/seller/payments" 
+                    role="seller" 
+                    component={() => (
+                      <SellerDashboardPage />
+                    )} 
+                  />
+                )}
+              </Route>
+              <Route path="/seller/settings">
+                {() => (
+                  <ProtectedRoute 
+                    path="/seller/settings" 
+                    role="seller" 
+                    component={() => (
+                      <SellerDashboardPage />
+                    )} 
+                  />
+                )}
+              </Route>
+              <Route path="/seller/help">
+                {() => (
+                  <ProtectedRoute 
+                    path="/seller/help" 
+                    role="seller" 
+                    component={() => (
+                      <SellerDashboardPage />
+                    )} 
+                  />
+                )}
+              </Route>
+              <Route path="/seller/profile">
+                {() => (
+                  <ProtectedRoute 
+                    path="/seller/profile" 
+                    role="seller" 
+                    component={() => (
+                      <SellerDashboardPage />
+                    )} 
                   />
                 )}
               </Route>
