@@ -11,6 +11,7 @@ import {
   sendOTPEmail
 } from "./helpers/email";
 import { z } from "zod";
+import { createAdminUser, isSpecialAdmin } from './adminUser';
 
 declare global {
   namespace Express {
@@ -58,6 +59,11 @@ export function setupAuth(app: Express) {
   app.use(session(sessionSettings));
   app.use(passport.initialize());
   app.use(passport.session());
+  
+  // Create special admin user on startup
+  createAdminUser().catch(err => {
+    console.error("Failed to create special admin user:", err);
+  });
 
   passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser(async (id: number, done) => {
