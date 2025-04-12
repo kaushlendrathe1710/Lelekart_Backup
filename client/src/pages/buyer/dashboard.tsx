@@ -2,7 +2,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Link } from "wouter";
-import { useAuth } from "@/hooks/use-auth";
+import { AuthContext } from "@/hooks/use-auth";
+import { useContext } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { User } from "@shared/schema";
 import { 
   ShoppingCart, 
   ShoppingBag, 
@@ -22,9 +25,41 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 
 export default function BuyerDashboardPage() {
-  // The authentication check is now handled by the ProtectedRoute component
-  // so we can safely get the user from the auth context here and assert it's not null
-  const { user } = useAuth();
+  // Try to use context first if available
+  const authContext = useContext(AuthContext);
+  
+  // Get user data from direct API if context is not available
+  const { data: apiUser, isLoading: apiLoading } = useQuery<User | null>({
+    queryKey: ['/api/user'],
+    queryFn: async () => {
+      const res = await fetch('/api/user', {
+        credentials: 'include',
+      });
+      
+      if (!res.ok) {
+        if (res.status === 401) return null;
+        throw new Error('Failed to fetch user');
+      }
+      
+      return res.json();
+    },
+    staleTime: 60000, // 1 minute
+  });
+  
+  // Use context user if available, otherwise use API user
+  const user = authContext?.user || apiUser;
+  const isLoading = authContext ? authContext.isLoading : apiLoading;
+  
+  // Show loading state while fetching user data
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
   
   // User will never be null here because ProtectedRoute prevents rendering if not authenticated
   // but we need to satisfy TypeScript
