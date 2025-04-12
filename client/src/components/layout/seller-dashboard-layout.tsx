@@ -21,7 +21,8 @@ import {
   File,
   Truck,
   HelpCircle,
-  PackageOpen
+  PackageOpen,
+  Upload
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -248,6 +249,18 @@ export function SellerDashboardLayout({ children }: SellerDashboardLayoutProps) 
                     <Link href="/seller/products/add">
                       <Bookmark className="mr-2 h-4 w-4" />
                       <span>Add New Product</span>
+                    </Link>
+                  </Button>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <Button
+                    variant="ghost"
+                    asChild
+                    className={`w-full justify-start ${isActive('/seller/products/bulk-upload') ? 'bg-primary/10 text-primary font-medium' : ''}`}
+                  >
+                    <Link href="/seller/products/bulk-upload">
+                      <Upload className="mr-2 h-4 w-4" />
+                      <span>Bulk Upload</span>
                     </Link>
                   </Button>
                 </SidebarMenuItem>
