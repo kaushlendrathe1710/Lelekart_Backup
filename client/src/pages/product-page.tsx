@@ -1,21 +1,35 @@
-import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useRoute } from "wouter";
-import { Product } from "@shared/schema";
+import { useEffect, useState, useContext } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRoute, useLocation } from "wouter";
+import { Product, User } from "@shared/schema";
 import { CategoryNav } from "@/components/layout/category-nav";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Minus, Plus, ShoppingCart, Star, Zap } from "lucide-react";
 import { ProductCard } from "@/components/ui/product-card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useCart } from "@/context/cart-context";
+import { CartContext } from "@/context/cart-context";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function ProductPage() {
   const [, params] = useRoute("/product/:id");
   const productId = params?.id ? parseInt(params.id) : null;
   const [quantity, setQuantity] = useState(1);
-  const { addToCart, buyNow } = useCart();
-
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  // Try to use context first if available
+  const cartContext = useContext(CartContext);
+  
+  // Get user data to check if logged in
+  const { data: user } = useQuery<User | null>({
+    queryKey: ['/api/user'],
+    retry: false,
+    staleTime: 60000,
+  });
+  
   // Fetch product details
   const { data: product, isLoading: isProductLoading } = useQuery<Product>({
     queryKey: [`/api/products/${productId}`],
@@ -38,16 +52,113 @@ export default function ProductPage() {
     return `₹${price.toLocaleString('en-IN')}`;
   };
 
+  // Create mutations for cart operations
+  const addToCartMutation = useMutation({
+    mutationFn: async (data: { productId: number, quantity: number }) => {
+      return apiRequest("POST", "/api/cart", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+      toast({
+        title: "Added to cart",
+        description: `${product?.name} has been added to your cart`,
+        variant: "default",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to add to cart",
+        description: error.message || "There was an error adding the product to your cart",
+        variant: "destructive",
+      });
+    }
+  });
+  
   // Handle add to cart action
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!product) return;
-    addToCart(product, quantity);
+    
+    // If user is not logged in, redirect to auth
+    if (!user) {
+      toast({
+        title: "Please log in",
+        description: "You need to be logged in to add items to cart",
+        variant: "default",
+      });
+      setLocation("/auth");
+      return;
+    }
+    
+    // Only buyers can add to cart
+    const userRole = user?.role as string; 
+    if (userRole && userRole !== 'buyer') {
+      toast({
+        title: "Action Not Allowed",
+        description: "Only buyers can add items to cart. Please switch to a buyer account.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      // Try to use context if available
+      if (cartContext) {
+        cartContext.addToCart(product, quantity);
+      } else {
+        // Fallback to direct API call
+        await addToCartMutation.mutateAsync({
+          productId: product.id,
+          quantity: quantity
+        });
+      }
+    } catch (error) {
+      console.error("Failed to add to cart:", error);
+    }
   };
   
   // Handle buy now action
-  const handleBuyNow = () => {
+  const handleBuyNow = async () => {
     if (!product) return;
-    buyNow(product, quantity);
+    
+    // If user is not logged in, redirect to auth
+    if (!user) {
+      toast({
+        title: "Please log in",
+        description: "You need to be logged in to purchase items",
+        variant: "default",
+      });
+      setLocation("/auth");
+      return;
+    }
+    
+    // Only buyers can buy
+    const userRole = user?.role as string; 
+    if (userRole && userRole !== 'buyer') {
+      toast({
+        title: "Action Not Allowed",
+        description: "Only buyers can purchase items. Please switch to a buyer account.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      // Try to use context if available
+      if (cartContext) {
+        cartContext.buyNow(product, quantity);
+      } else {
+        // Fallback to direct API approach
+        await addToCartMutation.mutateAsync({
+          productId: product.id,
+          quantity: quantity
+        });
+        
+        // Redirect to checkout
+        setLocation("/checkout");
+      }
+    } catch (error) {
+      console.error("Failed to buy now:", error);
+    }
   };
 
   return (
