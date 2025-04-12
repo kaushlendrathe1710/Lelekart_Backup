@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SellerDashboardLayout } from "@/components/layout/seller-dashboard-layout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -173,12 +173,40 @@ export default function AddProductPage() {
   // Submit handler
   const submitMutation = useMutation({
     mutationFn: async (data: ProductFormValues) => {
-      // Simulate API call
-      return new Promise<{id: number}>((resolve, reject) => {
-        setTimeout(() => {
-          resolve({ id: Math.floor(Math.random() * 1000) + 1 });
-        }, 1500);
+      // First, we'd upload the images to storage (simulated here)
+      let imageUrl = "https://placehold.co/600x400?text=Product+Image";
+      
+      if (uploadedImages.length > 0) {
+        imageUrl = uploadedImages[0]; // Use the first image as the primary image
+      }
+      
+      // Prepare the data for the API
+      const productData = {
+        name: data.name,
+        description: data.description,
+        price: parseInt(data.price), // Convert to number
+        category: data.category,
+        imageUrl: imageUrl,
+        stock: parseInt(data.stock), // Convert to number
+        approved: false, // New products require approval
+      };
+      
+      // Send the data to the API
+      const response = await fetch('/api/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(productData),
+        credentials: 'include'
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create product');
+      }
+      
+      return await response.json();
     },
     onSuccess: (data) => {
       toast({
@@ -193,6 +221,9 @@ export default function AddProductPage() {
       setTimeout(() => {
         window.location.href = '/seller/products';
       }, 1500);
+      
+      // Invalidate the products query to refresh the products list
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
     },
     onError: (error: Error) => {
       toast({
@@ -213,15 +244,8 @@ export default function AddProductPage() {
       return;
     }
     
-    // Construct complete data with images
-    const productData = {
-      ...data,
-      images: uploadedImages,
-      price: parseFloat(data.price),
-      mrp: parseFloat(data.mrp),
-      stock: parseInt(data.stock),
-    };
-    
+    // We only need to pass the form data to the mutation
+    // The mutation will extract what it needs to match our database schema
     submitMutation.mutate(data);
   };
 
