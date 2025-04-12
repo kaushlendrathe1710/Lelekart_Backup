@@ -60,6 +60,7 @@ import {
 const productSchema = z.object({
   name: z.string().min(3, "Product name must be at least 3 characters").max(150, "Name too long"),
   description: z.string().min(20, "Description must be at least 20 characters").max(5000, "Description too long"),
+  specifications: z.string().optional(),
   price: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
     message: "Price must be a positive number",
   }),
@@ -131,6 +132,7 @@ export default function EditProductPage() {
     defaultValues: {
       name: "",
       description: "",
+      specifications: "",
       price: "",
       mrp: "",
       sku: "",
@@ -158,6 +160,7 @@ export default function EditProductPage() {
       form.reset({
         name: product.name || "",
         description: product.description || "",
+        specifications: product.specifications || "",
         price: product.price?.toString() || "",
         mrp: (product.price * 1.2)?.toString() || "", // Simulating an MRP if not available
         sku: product.id?.toString() || "",
@@ -241,6 +244,7 @@ export default function EditProductPage() {
       const productData = {
         name: data.name,
         description: data.description,
+        specifications: data.specifications,
         price: parseInt(data.price), // Convert to number
         category: data.category,
         imageUrl: imageUrl,
@@ -648,13 +652,38 @@ export default function EditProductPage() {
                             </FormLabel>
                             <FormControl>
                               <Textarea 
-                                placeholder="Describe your product in detail. Include features, specifications, usage instructions, etc." 
+                                placeholder="Describe your product in detail. Include features, benefits, materials, and usage instructions." 
                                 className="min-h-[300px]"
                                 {...field}
                               />
                             </FormControl>
                             <FormDescription>
                               Minimum 20 characters. Use paragraphs and bullet points for better readability.
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <div className="h-6"></div>
+                      
+                      <FormField
+                        control={form.control}
+                        name="specifications"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              Product Specifications
+                            </FormLabel>
+                            <FormControl>
+                              <Textarea 
+                                placeholder="Enter technical specifications of your product. Include dimensions, materials, technical details, and compatibility information."
+                                className="min-h-[200px]"
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Add detailed technical specifications in structured format. Good for SEO and helps customers make informed decisions.
                             </FormDescription>
                             <FormMessage />
                           </FormItem>

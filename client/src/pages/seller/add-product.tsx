@@ -257,6 +257,7 @@ export default function AddProductPage() {
       const productData = {
         name: data.name,
         description: data.description,
+        specifications: data.specifications, // Add specifications field
         price: parseInt(data.price), // Convert to number
         category: data.category,
         imageUrl: imageUrl, // Main image (first in the array)
