@@ -46,6 +46,7 @@ export const insertProductSchema = createInsertSchema(products).pick({
   price: true,
   category: true,
   imageUrl: true,
+  images: true,
   sellerId: true,
   stock: true,
   approved: true,
