@@ -34,6 +34,8 @@ export const products = pgTable("products", {
   purchasePrice: integer("purchase_price"), // Purchase Price (cost price)
   price: integer("price").notNull(),
   category: text("category").notNull(),
+  color: text("color"), // Product color
+  size: text("size"), // Product size
   imageUrl: text("image_url").notNull(),
   images: text("images"), // Additional images as JSON string
   sellerId: integer("seller_id").notNull().references(() => users.id),
@@ -49,6 +51,8 @@ export const insertProductSchema = createInsertSchema(products).pick({
   purchasePrice: true,
   price: true,
   category: true,
+  color: true,
+  size: true,
   imageUrl: true,
   images: true,
   sellerId: true,
