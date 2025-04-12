@@ -12,16 +12,36 @@ import {
   Upload,
   Download,
   CheckCircle,
-  XCircle
+  XCircle,
+  Eye,
+  Loader2
 } from "lucide-react";
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { AuthContext } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 
 export default function SellerProductsPage() {
+  // State for deletion dialog
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
   // Try to use context first if available
   const authContext = useContext(AuthContext);
   
@@ -34,8 +54,71 @@ export default function SellerProductsPage() {
   // Use context user if available, otherwise use API user
   const user = authContext?.user || apiUser;
   
-  // Mock product data for the UI
-  const products = [
+  // Fetch products for the logged-in seller
+  const { data: fetchedProducts = [], isLoading } = useQuery({
+    queryKey: ['/api/products'],
+    queryFn: async () => {
+      const res = await fetch('/api/products?sellerId=' + (user?.id || '')); 
+      if (!res.ok) {
+        throw new Error('Failed to fetch products');
+      }
+      return res.json();
+    },
+    enabled: !!user?.id,
+  });
+  
+  // Delete product mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (productId: number) => {
+      const response = await fetch(`/api/products/${productId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete product');
+      }
+      
+      return true;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Product deleted",
+        description: "The product has been removed from your inventory.",
+      });
+      
+      // Invalidate products query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+      setIsDeleteDialogOpen(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to delete product",
+        description: error.message || "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Handle delete confirmation
+  const handleDeleteProduct = () => {
+    if (selectedProductId) {
+      deleteMutation.mutate(selectedProductId);
+    }
+  };
+  
+  // Open delete confirmation dialog
+  const confirmDelete = (productId: number) => {
+    setSelectedProductId(productId);
+    setIsDeleteDialogOpen(true);
+  };
+  
+  // Use fetched products if available, otherwise fallback to mock data
+  const products = fetchedProducts.length > 0 ? fetchedProducts : [
     {
       id: 1,
       name: "Smartphone X",
@@ -193,11 +276,35 @@ export default function SellerProductsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end items-center gap-2">
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <Edit className="h-4 w-4" />
-                            <span className="sr-only">Edit</span>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8"
+                            asChild
+                          >
+                            <Link href={`/seller/products/preview/${product.id}`}>
+                              <Eye className="h-4 w-4" />
+                              <span className="sr-only">Preview</span>
+                            </Link>
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8"
+                            asChild
+                          >
+                            <Link href={`/seller/products/edit/${product.id}`}>
+                              <Edit className="h-4 w-4" />
+                              <span className="sr-only">Edit</span>
+                            </Link>
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-red-500 hover:text-red-600"
+                            onClick={() => confirmDelete(product.id)}
+                            disabled={deleteMutation.isPending}
+                          >
                             <Trash className="h-4 w-4" />
                             <span className="sr-only">Delete</span>
                           </Button>
@@ -224,6 +331,35 @@ export default function SellerProductsPage() {
           </CardFooter>
         </Card>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the product and remove it from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteProduct} 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </SellerDashboardLayout>
   );
 }
