@@ -64,15 +64,47 @@ export default function ProductPage() {
     return `₹${price.toLocaleString('en-IN')}`;
   };
 
+  // Store the product to add after login
+  const [pendingProduct, setPendingProduct] = useState<{id: number, quantity: number} | null>(null);
+  
+  // Check if we have a pending product after login
+  useEffect(() => {
+    if (user && user.role === 'buyer' && pendingProduct) {
+      // User is logged in as buyer and has a pending product
+      addToCartMutation.mutate({ 
+        productId: pendingProduct.id, 
+        quantity: pendingProduct.quantity 
+      }, {
+        onSuccess: () => {
+          toast({
+            title: "Added to cart",
+            description: `Product has been added to your cart`,
+            variant: "default",
+          });
+          // Clear the pending product
+          setPendingProduct(null);
+        }
+      });
+    }
+  }, [user, pendingProduct, addToCartMutation, toast]);
+
   const handleAddToCart = () => {
     if (!product) return;
     
     if (!user) {
+      // Store the product details for after login
+      setPendingProduct({
+        id: product.id,
+        quantity: quantity
+      });
+      
       toast({
         title: "Please log in",
         description: "You need to be logged in to add items to your cart",
-        variant: "destructive",
+        variant: "default",
       });
+      
+      // Redirect to auth page with a return path
       navigate("/auth");
       return;
     }
@@ -101,15 +133,43 @@ export default function ProductPage() {
     });
   };
   
+  // Store the product to buy after login
+  const [pendingBuyNow, setPendingBuyNow] = useState<{id: number, quantity: number} | null>(null);
+  
+  // Check if we have a pending buy now product after login
+  useEffect(() => {
+    if (user && user.role === 'buyer' && pendingBuyNow) {
+      // User is logged in as buyer and has a pending buy now
+      addToCartMutation.mutate({ 
+        productId: pendingBuyNow.id, 
+        quantity: pendingBuyNow.quantity 
+      }, {
+        onSuccess: () => {
+          // Clear the pending product and navigate to checkout
+          setPendingBuyNow(null);
+          navigate("/checkout");
+        }
+      });
+    }
+  }, [user, pendingBuyNow, addToCartMutation, navigate]);
+
   const handleBuyNow = () => {
     if (!product) return;
     
     if (!user) {
+      // Store the product details for after login
+      setPendingBuyNow({
+        id: product.id,
+        quantity: quantity
+      });
+      
       toast({
         title: "Please log in",
         description: "You need to be logged in to make a purchase",
-        variant: "destructive",
+        variant: "default",
       });
+      
+      // Redirect to auth page
       navigate("/auth");
       return;
     }
