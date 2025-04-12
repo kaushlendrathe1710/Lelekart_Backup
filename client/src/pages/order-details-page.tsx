@@ -180,39 +180,31 @@ export default function OrderDetailsPage() {
     fetchOrderDetails();
   }, [id, navigate, toast]);
   
-  if (loading) {
-    return (
-      <Layout>
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          </div>
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
-      </Layout>
-    );
-  }
-  
-  if (!order) {
-    return (
-      <Layout>
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-700">Order Not Found</h2>
-            <p className="text-gray-500 mt-2">The order you're looking for doesn't exist or you don't have permission to view it.</p>
-            <Button onClick={() => navigate("/")} className="mt-4">Return to Home</Button>
-          </div>
+      );
+    }
+    
+    if (!order) {
+      return (
+        <div className="text-center">
+          <h2 className="text-2xl font-bold">Order Not Found</h2>
+          <p className="text-muted-foreground mt-2">The order you're looking for doesn't exist or you don't have permission to view it.</p>
+          <Button onClick={() => navigate("/")} className="mt-4">Return to Home</Button>
         </div>
-      </Layout>
-    );
-  }
-  
-  return (
-    <Layout>
-      <div className="container mx-auto px-4 py-8">
+      );
+    }
+    
+    return (
+      <div>
         <div className="flex flex-col md:flex-row justify-between items-start mb-6">
           <div>
             <h1 className="text-2xl font-bold">Order Details</h1>
-            <p className="text-gray-600">Order #{order.id}</p>
+            <p className="text-muted-foreground">Order #{order.id}</p>
           </div>
           <div className="mt-4 md:mt-0">
             <Button 
@@ -226,13 +218,13 @@ export default function OrderDetailsPage() {
         </div>
         
         {/* Order Summary Card */}
-        <Card className="p-6 mb-6 bg-white">
+        <Card className="p-6 mb-6">
           <div className="flex flex-col md:flex-row justify-between">
             <div>
               <h2 className="text-lg font-semibold mb-2">Order Summary</h2>
               <div className="flex items-center space-x-2 mb-1">
-                <Clock className="h-4 w-4 text-gray-500" />
-                <span>Placed on {formatDate(order.date)}</span>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Placed on {formatDate(order.date)}</span>
               </div>
               <div className="flex items-center space-x-2">
                 <StatusIcon status={order.status} />
@@ -244,17 +236,17 @@ export default function OrderDetailsPage() {
             
             <div className="mt-4 md:mt-0">
               <h2 className="text-lg font-semibold mb-2">Payment Info</h2>
-              <p className="text-gray-700">
+              <p className="text-muted-foreground">
                 <span className="font-medium">Method:</span> {order.paymentMethod === 'cod' ? 'Cash on Delivery' : order.paymentMethod}
               </p>
-              <p className="text-gray-700">
+              <p className="text-muted-foreground">
                 <span className="font-medium">Total:</span> ₹{order.total.toFixed(2)}
               </p>
             </div>
             
             <div className="mt-4 md:mt-0">
               <h2 className="text-lg font-semibold mb-2">Delivery</h2>
-              <p className="text-gray-700">
+              <p className="text-muted-foreground">
                 <span className="font-medium">Expected by:</span> {getExpectedDeliveryDate(order.date)}
               </p>
             </div>
@@ -262,7 +254,7 @@ export default function OrderDetailsPage() {
         </Card>
         
         {/* Order Items */}
-        <Card className="p-6 mb-6 bg-white">
+        <Card className="p-6 mb-6">
           <h2 className="text-lg font-semibold mb-4">Order Items</h2>
           
           <div className="space-y-4">
@@ -281,15 +273,15 @@ export default function OrderDetailsPage() {
                 <div className="md:w-5/6 md:pl-4">
                   <div className="flex flex-col md:flex-row justify-between">
                     <div>
-                      <h3 className="font-medium text-gray-800">{item.product.name}</h3>
-                      <p className="text-sm text-gray-500">{item.product.description.substring(0, 100)}...</p>
+                      <h3 className="font-medium">{item.product.name}</h3>
+                      <p className="text-sm text-muted-foreground">{item.product.description.substring(0, 100)}...</p>
                       <div className="mt-2">
-                        <span className="text-sm text-gray-600">Quantity: {item.quantity}</span>
+                        <span className="text-sm text-muted-foreground">Quantity: {item.quantity}</span>
                       </div>
                     </div>
                     
                     <div className="mt-2 md:mt-0 text-right">
-                      <p className="font-semibold text-gray-800">₹{item.price.toFixed(2)}</p>
+                      <p className="font-semibold">₹{item.price.toFixed(2)}</p>
                     </div>
                   </div>
                 </div>
@@ -301,20 +293,20 @@ export default function OrderDetailsPage() {
         {/* Shipping and Billing Information */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Shipping Address */}
-          <Card className="p-6 bg-white">
+          <Card className="p-6">
             <h2 className="text-lg font-semibold mb-4 flex items-center">
-              <MapPin className="h-5 w-5 mr-2 text-gray-600" />
+              <MapPin className="h-5 w-5 mr-2 text-muted-foreground" />
               Shipping Address
             </h2>
             
             {order.shippingDetails && typeof order.shippingDetails === 'object' && (
               <div className="space-y-2">
                 <div className="flex items-start">
-                  <User className="h-5 w-5 mr-2 text-gray-500 mt-0.5" />
+                  <User className="h-5 w-5 mr-2 text-muted-foreground mt-0.5" />
                   <div>
                     <p className="font-medium">{order.shippingDetails.name}</p>
-                    <p className="text-gray-600">{order.shippingDetails.address}</p>
-                    <p className="text-gray-600">
+                    <p className="text-muted-foreground">{order.shippingDetails.address}</p>
+                    <p className="text-muted-foreground">
                       {order.shippingDetails.city}, {order.shippingDetails.state} {order.shippingDetails.zipCode}
                     </p>
                   </div>
@@ -323,18 +315,18 @@ export default function OrderDetailsPage() {
                 <Separator />
                 
                 <div className="flex items-center">
-                  <Phone className="h-5 w-5 mr-2 text-gray-500" />
-                  <p>{order.shippingDetails.phone}</p>
+                  <Phone className="h-5 w-5 mr-2 text-muted-foreground" />
+                  <p className="text-muted-foreground">{order.shippingDetails.phone}</p>
                 </div>
                 
                 <div className="flex items-center">
-                  <Mail className="h-5 w-5 mr-2 text-gray-500" />
-                  <p>{order.shippingDetails.email}</p>
+                  <Mail className="h-5 w-5 mr-2 text-muted-foreground" />
+                  <p className="text-muted-foreground">{order.shippingDetails.email}</p>
                 </div>
                 
                 {order.shippingDetails.notes && (
                   <div className="mt-2">
-                    <p className="text-sm text-gray-500">Notes: {order.shippingDetails.notes}</p>
+                    <p className="text-sm text-muted-foreground">Notes: {order.shippingDetails.notes}</p>
                   </div>
                 )}
               </div>
@@ -342,7 +334,7 @@ export default function OrderDetailsPage() {
           </Card>
           
           {/* Order Timeline */}
-          <Card className="p-6 bg-white">
+          <Card className="p-6">
             <h2 className="text-lg font-semibold mb-4">Order Timeline</h2>
             
             <div className="relative">
@@ -354,37 +346,37 @@ export default function OrderDetailsPage() {
                 </div>
                 <div>
                   <p className="font-medium">Order Placed</p>
-                  <p className="text-sm text-gray-500">{formatDate(order.date)}</p>
+                  <p className="text-sm text-muted-foreground">{formatDate(order.date)}</p>
                 </div>
               </div>
               
               <div className="relative pl-10 pb-8">
                 <div className="absolute left-0 top-1 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                  <Package2 className="h-4 w-4 text-gray-500" />
+                  <Package2 className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <div>
                   <p className="font-medium">Processing</p>
-                  <p className="text-sm text-gray-500">Your order is being processed</p>
+                  <p className="text-sm text-muted-foreground">Your order is being processed</p>
                 </div>
               </div>
               
               <div className="relative pl-10 pb-8">
                 <div className="absolute left-0 top-1 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                  <Truck className="h-4 w-4 text-gray-500" />
+                  <Truck className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <div>
                   <p className="font-medium">Shipping</p>
-                  <p className="text-sm text-gray-500">Estimated ship date: {formatDate(new Date(order.date).toISOString())}</p>
+                  <p className="text-sm text-muted-foreground">Estimated ship date: {formatDate(new Date(order.date).toISOString())}</p>
                 </div>
               </div>
               
               <div className="relative pl-10">
                 <div className="absolute left-0 top-1 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                  <ClipboardCheck className="h-4 w-4 text-gray-500" />
+                  <ClipboardCheck className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <div>
                   <p className="font-medium">Delivery</p>
-                  <p className="text-sm text-gray-500">Expected by: {getExpectedDeliveryDate(order.date)}</p>
+                  <p className="text-sm text-muted-foreground">Expected by: {getExpectedDeliveryDate(order.date)}</p>
                 </div>
               </div>
             </div>
@@ -392,7 +384,7 @@ export default function OrderDetailsPage() {
         </div>
         
         {/* Need Help Section */}
-        <div className="mt-8 p-6 bg-gray-50 rounded-lg">
+        <div className="mt-8 p-6 bg-muted rounded-lg">
           <h2 className="text-lg font-semibold mb-4">Need Help?</h2>
           <div className="flex flex-col md:flex-row gap-4">
             <Button variant="outline">Track Order</Button>
@@ -402,6 +394,12 @@ export default function OrderDetailsPage() {
           </div>
         </div>
       </div>
-    </Layout>
+    );
+  };
+  
+  return (
+    <DashboardLayout>
+      {renderContent()}
+    </DashboardLayout>
   );
 }
