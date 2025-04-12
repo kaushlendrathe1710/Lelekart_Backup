@@ -173,6 +173,22 @@ export const insertUserOtpSchema = createInsertSchema(userOtps).pick({
   verified: true,
 });
 
+// Categories table
+export const categories = pgTable("categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  image: text("image").notNull(),
+  displayOrder: integer("display_order").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertCategorySchema = createInsertSchema(categories).pick({
+  name: true,
+  image: true,
+  displayOrder: true,
+});
+
 // Type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -191,3 +207,6 @@ export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
 
 export type UserOtp = typeof userOtps.$inferSelect;
 export type InsertUserOtp = z.infer<typeof insertUserOtpSchema>;
+
+export type Category = typeof categories.$inferSelect;
+export type InsertCategory = z.infer<typeof insertCategorySchema>;
