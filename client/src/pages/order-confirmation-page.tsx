@@ -57,25 +57,7 @@ export default function OrderConfirmationPage() {
     items?: OrderItemWithProduct[];
   }
 
-  // Special case for order confirmation - create default order if none exists
-  useEffect(() => {
-    // This is an order confirmation page, so if we have no order details
-    // but we have an ID, we can generate minimal placeholder data
-    const urlParams = new URLSearchParams(window.location.search);
-    const successParam = urlParams.get('success');
-    const totalParam = urlParams.get('total');
-    
-    if (successParam === 'true' && !orderDetails && !loading) {
-      const orderSuccess = {
-        id: parseInt(orderId || '0'),
-        status: "confirmed",
-        total: totalParam ? parseFloat(totalParam) : 0,
-        date: new Date().toISOString(),
-        paymentMethod: "cod"
-      };
-      setOrderDetails(orderSuccess);
-    }
-  }, [orderDetails, loading, orderId]);
+  // We've moved this logic to the main useEffect below
 
   useEffect(() => {
     if (!orderId) {
@@ -83,13 +65,26 @@ export default function OrderConfirmationPage() {
       return;
     }
 
-    // Check if user is already cached
-    const cachedUser = queryClient.getQueryData<any>(['/api/user']);
-    if (!cachedUser) {
-      setLocation('/auth');
+    // Check query parameters for success state
+    const urlParams = new URLSearchParams(window.location.search);
+    const successParam = urlParams.get('success');
+    const totalParam = urlParams.get('total');
+    
+    if (successParam === 'true' && totalParam) {
+      // We have success parameters - we can create a minimal success state
+      const orderSuccess = {
+        id: parseInt(orderId || '0'),
+        status: "confirmed",
+        total: parseFloat(totalParam),
+        date: new Date().toISOString(),
+        paymentMethod: "cod"
+      };
+      setOrderDetails(orderSuccess);
+      setLoading(false);
       return;
     }
 
+    // Try authenticated API request if possible
     // Fetch order details with retries
     const fetchOrderWithRetry = (retries = 3, delay = 1000) => {
       fetch(`/api/orders/${orderId}`, {
