@@ -123,37 +123,109 @@ export default function AddProductPage() {
   });
 
   // Handle adding a new image to our collection
-  const handleAddImage = (url: string) => {
-    if (!url) return;
-    
-    // Check if we already have 8 images
-    if (uploadedImages.length >= 8) {
+  const handleAddImage = async (fileOrUrl: File | string) => {
+    // If it's a file, we need to upload it first
+    if (fileOrUrl instanceof File) {
+      try {
+        // Check if we already have 8 images
+        if (uploadedImages.length >= 8) {
+          toast({
+            title: "Maximum images reached",
+            description: "You can upload a maximum of 8 images for a product.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Upload to server
+        const formData = new FormData();
+        formData.append("file", fileOrUrl);
+        
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to upload image");
+        }
+        
+        const data = await response.json();
+        const url = data.url;
+        
+        // Check for duplicate images
+        if (uploadedImages.includes(url)) {
+          toast({
+            title: "Duplicate image",
+            description: "This image is already in your collection.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        // Add the new image
+        setUploadedImages([...uploadedImages, url]);
+        
+        toast({
+          title: "Image uploaded",
+          description: "Your image has been successfully uploaded.",
+        });
+      } catch (error) {
+        console.error("Error uploading image:", error);
+        toast({
+          title: "Upload failed",
+          description: error instanceof Error ? error.message : "Failed to upload image",
+          variant: "destructive",
+        });
+      }
+    } 
+    // If it's a URL string
+    else {
+      if (!fileOrUrl) return;
+      
+      // Check if we already have 8 images
+      if (uploadedImages.length >= 8) {
+        toast({
+          title: "Maximum images reached",
+          description: "You can upload a maximum of 8 images for a product.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Basic URL validation
+      try {
+        new URL(fileOrUrl);
+      } catch (e) {
+        toast({
+          title: "Invalid URL",
+          description: "Please enter a valid image URL",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Check for duplicate images
+      if (uploadedImages.includes(fileOrUrl)) {
+        toast({
+          title: "Duplicate image",
+          description: "This image is already in your collection.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Add the new image
+      setUploadedImages([...uploadedImages, fileOrUrl]);
+      
       toast({
-        title: "Maximum images reached",
-        description: "You can upload a maximum of 8 images for a product.",
-        variant: "destructive",
+        title: "Image added",
+        description: "Your image URL has been added.",
       });
-      return;
     }
     
-    // Check for duplicate images
-    if (uploadedImages.includes(url)) {
-      toast({
-        title: "Duplicate image",
-        description: "This image is already in your collection.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Add the new image
-    setUploadedImages([...uploadedImages, url]);
-    
-    // Show success toast
-    toast({
-      title: "Image added",
-      description: `Image ${uploadedImages.length + 1} added successfully.`,
-    });
+    // We already show success toasts in both branches, no need for another one here
   };
 
   // Remove image handler
@@ -659,12 +731,49 @@ export default function AddProductPage() {
                   </CardHeader>
                   <CardContent className="space-y-6">
                     <div className="space-y-4">
-                      <FileUpload
-                        onChange={handleAddImage}
-                        label="Main Product Image"
-                        accept="image/*"
-                        maxSizeMB={5}
-                      />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+                        <div>
+                          <h3 className="text-sm font-medium mb-2">Upload Image</h3>
+                          <FileUpload
+                            onChange={handleAddImage}
+                            label="Main Product Image"
+                            accept="image/*"
+                            maxSizeMB={5}
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-medium mb-2">Or Add Image URL</h3>
+                          <div className="flex space-x-2">
+                            <Input 
+                              id="image-url-input"
+                              placeholder="https://example.com/product-image.jpg"
+                              className="flex-1"
+                            />
+                            <Button 
+                              type="button"
+                              onClick={() => {
+                                const input = document.getElementById("image-url-input") as HTMLInputElement;
+                                if (input && input.value) {
+                                  handleAddImage(input.value);
+                                  input.value = "";
+                                } else {
+                                  toast({
+                                    title: "URL required",
+                                    description: "Please enter an image URL",
+                                    variant: "destructive",
+                                  });
+                                }
+                              }}
+                            >
+                              Add URL
+                            </Button>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Enter a direct link to an image (JPG, PNG, GIF)
+                          </p>
+                        </div>
+                      </div>
                       
                       {uploadedImages.length > 0 && uploadedImages.length < 8 && (
                         <Button 
