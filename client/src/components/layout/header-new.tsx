@@ -31,7 +31,6 @@ export function Header() {
   const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
   const { toggleCart, cartItems } = useCart();
-  const [, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -51,10 +50,6 @@ export function Header() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Search for:", searchQuery);
-  };
-
-  const handleLoginClick = () => {
-    setLocation("/auth");
   };
 
   const getDashboardLink = () => {
@@ -113,14 +108,15 @@ export function Header() {
           <nav className="hidden md:flex items-center justify-between md:ml-auto space-x-4 md:space-x-6">
             {/* Login Button or User Menu */}
             {!user ? (
-              <Button 
-                variant="secondary" 
-                className="flex items-center py-1 px-2 md:px-4 bg-white text-primary font-medium rounded-sm hover:bg-gray-100"
-                onClick={handleLoginClick}
-              >
-                <User className="mr-2 h-4 w-4" />
-                <span>Login</span>
-              </Button>
+              <Link href="/auth">
+                <Button 
+                  variant="secondary" 
+                  className="flex items-center py-1 px-2 md:px-4 bg-white text-primary font-medium rounded-sm hover:bg-gray-100"
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Login</span>
+                </Button>
+              </Link>
             ) : (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
