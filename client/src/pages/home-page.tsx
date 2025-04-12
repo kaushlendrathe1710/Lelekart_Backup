@@ -41,6 +41,16 @@ export default function HomePage() {
       return res.json();
     }
   });
+  
+  // Fetch deal of the day
+  const { data: dealOfTheDay, isLoading: isLoadingDeal } = useQuery({
+    queryKey: ["/api/deal-of-the-day"],
+    queryFn: async () => {
+      const res = await fetch('/api/deal-of-the-day');
+      if (!res.ok) throw new Error('Failed to fetch deal of the day');
+      return res.json();
+    }
+  });
 
   // Organize products by category (dynamically)
   const allCategories = ['Electronics', 'Fashion', 'Home', 'Appliances', 'Mobiles', 'Beauty', 'Toys', 'Grocery'];
@@ -114,24 +124,14 @@ export default function HomePage() {
       <CategoryNav />
       
       {/* Hero Section with enhanced slider and deal of the day */}
-      {isLoadingHero ? (
+      {isLoadingHero || isLoadingDeal ? (
         <div className="h-64 bg-gradient-to-r from-blue-500 to-indigo-700 flex items-center justify-center">
           <Loader2 className="w-10 h-10 text-white animate-spin" />
         </div>
-      ) : heroProducts && heroProducts.length > 0 ? (
+      ) : heroProducts && heroProducts.length > 0 && dealOfTheDay ? (
         <HeroSection 
           sliderImages={heroProducts} 
-          dealOfTheDay={{
-            title: "Deal of the Day: Wireless Headphones",
-            subtitle: "Limited time offer on premium audio experience",
-            image: "https://rukminim1.flixcart.com/image/416/416/l31x2fk0/headphone/a/s/h/-original-image9ehehz8amg2.jpeg",
-            originalPrice: 129.99,
-            discountPrice: 99.99,
-            discountPercentage: 23,
-            hours: 47,
-            minutes: 53,
-            seconds: 41
-          }} 
+          dealOfTheDay={dealOfTheDay}
         />
       ) : (
         // Fallback to static images if API fails

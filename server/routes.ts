@@ -685,10 +685,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (products.length > 0) {
           // Take the first product from each category
           const product = products[0];
+          // Get image URL properly - handle different field naming (imageUrl vs image_url)
+          let imageUrl = '';
+          if ('imageUrl' in product && product.imageUrl) {
+            imageUrl = product.imageUrl;
+          } else if ('image_url' in product && product.image_url) {
+            imageUrl = product.image_url as string;
+          } else if (product.images) {
+            // Parse the JSON string into an array if needed
+            const imagesArray = typeof product.images === 'string' 
+              ? JSON.parse(product.images) 
+              : product.images;
+            imageUrl = imagesArray[0] || '';
+          }
+          
           heroProducts.push({
             title: `${category.name} Sale`,
             subtitle: `Up to 30% off on all ${category.name.toLowerCase()} items`,
-            url: product.image_url || (product.images ? JSON.parse(product.images as string)[0] : ''),
+            url: imageUrl,
             alt: product.name,
             buttonText: 'Shop Now',
             category: category.name,
@@ -702,6 +716,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching hero products:", error);
       res.status(500).json({ error: "Failed to fetch hero products" });
+    }
+  });
+
+  // Get deal of the day product
+  app.get('/api/deal-of-the-day', async (_req, res) => {
+    try {
+      // Get all electronics products (or another category that typically has good deals)
+      const products = await storage.getProducts("Electronics", undefined, true);
+      
+      // If no products, try a different category
+      let dealProduct = null;
+      if (products.length === 0) {
+        // Try Mobiles category as fallback
+        const mobileProducts = await storage.getProducts("Mobiles", undefined, true);
+        if (mobileProducts.length > 0) {
+          dealProduct = mobileProducts[0];
+        }
+      } else {
+        dealProduct = products[0];
+      }
+      
+      if (!dealProduct) {
+        return res.status(404).json({ error: "No products found for deal of the day" });
+      }
+      
+      // Get product image
+      let imageUrl = '';
+      if ('imageUrl' in dealProduct && dealProduct.imageUrl) {
+        imageUrl = dealProduct.imageUrl;
+      } else if ('image_url' in dealProduct && dealProduct.image_url) {
+        imageUrl = dealProduct.image_url as string;
+      } else if (dealProduct.images) {
+        const imagesArray = typeof dealProduct.images === 'string' 
+          ? JSON.parse(dealProduct.images as string) 
+          : dealProduct.images;
+        imageUrl = imagesArray[0] || '';
+      }
+      
+      // Calculate discount (for display purposes)
+      const originalPrice = dealProduct.price;
+      const discountPercentage = 15; // 15% off
+      const discountPrice = originalPrice * (1 - discountPercentage/100);
+      
+      res.json({
+        title: `Deal of the Day: ${dealProduct.name}`,
+        subtitle: `Limited time offer on premium ${dealProduct.category}`,
+        image: imageUrl,
+        originalPrice: originalPrice,
+        discountPrice: discountPrice,
+        discountPercentage: discountPercentage,
+        productId: dealProduct.id,
+        hours: 47,
+        minutes: 53,
+        seconds: 41
+      });
+    } catch (error) {
+      console.error("Error fetching deal of the day:", error);
+      res.status(500).json({ error: "Failed to fetch deal of the day" });
     }
   });
 

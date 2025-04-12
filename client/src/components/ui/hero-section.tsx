@@ -27,6 +27,7 @@ interface HeroSectionProps {
     hours: number;
     minutes: number;
     seconds: number;
+    productId?: number;  // Added product ID for linking
   };
 }
 
@@ -265,6 +266,11 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
                   
                   <Button 
                     className="bg-blue-600 hover:bg-blue-700"
+                    onClick={() => {
+                      if (dealOfTheDay.productId) {
+                        navigate(`/product/${dealOfTheDay.productId}`);
+                      }
+                    }}
                   >
                     Shop Now
                   </Button>
@@ -272,11 +278,20 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
                 
                 {/* Right side - Product image */}
                 <div className="md:w-1/2 mt-6 md:mt-0">
-                  <img 
-                    src={dealOfTheDay.image} 
-                    alt={dealOfTheDay.title}
-                    className="w-full max-h-48 object-contain"
-                  />
+                  <div 
+                    className="cursor-pointer" 
+                    onClick={() => {
+                      if (dealOfTheDay.productId) {
+                        navigate(`/product/${dealOfTheDay.productId}`);
+                      }
+                    }}
+                  >
+                    <img 
+                      src={dealOfTheDay.image} 
+                      alt={dealOfTheDay.title}
+                      className="w-full max-h-48 object-contain"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
