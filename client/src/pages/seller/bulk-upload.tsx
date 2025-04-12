@@ -705,6 +705,11 @@ export default function BulkUploadPage() {
                               </TableCell>
                               <TableCell>
                                 <div>₹{parseInt(product.price).toLocaleString()}</div>
+                                {product.purchasePrice && (
+                                  <div className="text-xs text-muted-foreground">
+                                    Cost: ₹{parseInt(product.purchasePrice).toLocaleString()}
+                                  </div>
+                                )}
                                 {product.mrp && (
                                   <div className="text-xs text-muted-foreground line-through">
                                     MRP: ₹{parseInt(product.mrp).toLocaleString()}
