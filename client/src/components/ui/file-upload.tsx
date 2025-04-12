@@ -12,6 +12,7 @@ interface FileUploadProps {
   accept?: string;
   maxSizeMB?: number;
   className?: string;
+  id?: string;
 }
 
 export function FileUpload({
@@ -21,6 +22,7 @@ export function FileUpload({
   accept = "image/*",
   maxSizeMB = 5,
   className,
+  id = "file-upload",
 }: FileUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -136,7 +138,7 @@ export function FileUpload({
           )}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
-          onClick={() => document.getElementById("file-upload")?.click()}
+          onClick={() => document.getElementById(id)?.click()}
         >
           {isUploading ? (
             <>
@@ -159,7 +161,7 @@ export function FileUpload({
             </>
           )}
           <Input
-            id="file-upload"
+            id={id}
             type="file"
             accept={accept}
             onChange={handleChange}
@@ -178,6 +180,7 @@ export function FileUploadRow({
   accept = "image/*",
   maxSizeMB = 5,
   className,
+  id = "file-upload-row",
 }: FileUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -279,7 +282,7 @@ export function FileUploadRow({
               size="sm"
               className="gap-1"
               disabled={isUploading}
-              onClick={() => document.getElementById("file-upload-row")?.click()}
+              onClick={() => document.getElementById(id)?.click()}
             >
               {isUploading ? (
                 <>
@@ -296,7 +299,7 @@ export function FileUploadRow({
               )}
             </Button>
             <Input
-              id="file-upload-row"
+              id={id}
               type="file"
               accept={accept}
               onChange={handleChange}

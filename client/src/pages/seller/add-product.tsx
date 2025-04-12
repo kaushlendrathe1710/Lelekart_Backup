@@ -623,12 +623,32 @@ export default function AddProductPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
-                    <FileUpload
-                      onChange={handleAddImage}
-                      label="Main Product Image"
-                      accept="image/*"
-                      maxSizeMB={5}
-                    />
+                    <div className="space-y-4">
+                      <FileUpload
+                        onChange={handleAddImage}
+                        label="Main Product Image"
+                        accept="image/*"
+                        maxSizeMB={5}
+                      />
+                      
+                      {uploadedImages.length > 0 && uploadedImages.length < 8 && (
+                        <Button 
+                          variant="outline" 
+                          className="w-full flex items-center justify-center gap-2"
+                          onClick={() => document.getElementById("add-another-image")?.click()}
+                        >
+                          <ImagePlus className="h-4 w-4" />
+                          Add Another Image
+                          <FileUpload
+                            id="add-another-image"
+                            onChange={handleAddImage}
+                            className="hidden"
+                            accept="image/*"
+                            maxSizeMB={5}
+                          />
+                        </Button>
+                      )}
+                    </div>
                     
                     {uploadedImages.length > 0 && (
                       <>
