@@ -1,9 +1,11 @@
-import { useState, ReactNode } from "react";
+import { useState, ReactNode, useContext } from "react";
 import { Link, useLocation } from "wouter";
-import { useAuth } from "@/hooks/use-auth";
-import { useCart } from "@/context/cart-context";
+import { AuthContext } from "@/hooks/use-auth";
+import { CartContext } from "@/context/cart-context";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { User as UserType } from "@shared/schema";
 import {
   NavigationMenu,
   NavigationMenuList,
@@ -35,7 +37,7 @@ import {
   LogOut,
   ChevronDown,
   Menu,
-  User,
+  User as UserIcon,
   Bell,
   ShoppingCart,
   Search,
@@ -47,9 +49,53 @@ interface AdminLayoutProps {
 
 export function AdminLayout({ children }: AdminLayoutProps) {
   const [location] = useLocation();
-  const { user, logoutMutation } = useAuth();
-  const { cartItems, toggleCart } = useCart();
+  // Try to use context first if available
+  const authContext = useContext(AuthContext);
+  const cartContext = useContext(CartContext);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
+  
+  // Get user data from direct API if context is not available
+  const { data: apiUser, isLoading: apiLoading } = useQuery<User | null>({
+    queryKey: ['/api/user'],
+    queryFn: async () => {
+      const res = await fetch('/api/user', {
+        credentials: 'include',
+      });
+      
+      if (!res.ok) {
+        if (res.status === 401) return null;
+        throw new Error('Failed to fetch user');
+      }
+      
+      return res.json();
+    },
+    staleTime: 60000, // 1 minute
+  });
+  
+  // Use context values if available, otherwise use API values
+  const user = authContext?.user || apiUser;
+  const cartItems = cartContext?.cartItems || [];
+  const toggleCart = cartContext?.toggleCart || (() => {});
+  
+  // Logout mutation if no context available
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      
+      if (!res.ok) {
+        throw new Error('Logout failed');
+      }
+    },
+    onSuccess: () => {
+      queryClient.setQueryData(['/api/user'], null);
+      setLocation('/');
+    }
+  });
 
   const navItems = [
     {
@@ -79,9 +125,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
-      {/* Top Navigation - Header */}
-      <header className="sticky top-0 z-30 bg-primary text-white shadow-md">
+    <div className="flex flex-col min-h-screen bg-gray-50 pt-16">
+      {/* Top Navigation - Header (Fixed) */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-primary text-white shadow-md">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <div className="flex items-center space-x-4">
             {/* Mobile Menu Trigger */}
@@ -228,10 +274,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         </div>
       </header>
 
-      {/* Main Content with Sidebar and Content Area */}
+      {/* Main Content with Persistent Sidebar and Content Area */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar - Desktop Only */}
-        <aside className="hidden lg:block bg-white w-64 border-r h-[calc(100vh-4rem)] sticky top-16 overflow-y-auto">
+        {/* Persistent Sidebar - Always Visible */}
+        <aside className="bg-white w-64 border-r h-[calc(100vh-4rem)] sticky top-16 overflow-y-auto shadow-sm z-20">
           <div className="p-4">
             <div className="font-medium text-lg mb-4">Admin Menu</div>
             <nav className="space-y-1">
