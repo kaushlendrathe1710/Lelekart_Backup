@@ -165,7 +165,7 @@ export default function BulkUploadPage() {
             price: 0,
             category: "",
             imageUrl: "",
-            stock: 10  // Default value if not provided in CSV
+            stock: 0
           };
           
           // Map CSV values to product schema fields
@@ -175,20 +175,7 @@ export default function BulkUploadPage() {
             
             // Handle numeric fields
             if (['price', 'purchasePrice', 'stock', 'mrp', 'weight', 'length', 'width', 'height', 'warranty', 'returnPolicy', 'tax'].includes(header)) {
-              // If value is empty or not parseable, use default values for required fields
-              const parsedValue = parseInt(value, 10);
-              
-              if (isNaN(parsedValue)) {
-                if (header === 'stock') {
-                  // Keep default stock value
-                  console.log(`Using default stock value for row ${i}`);
-                } else if (header === 'price') {
-                  productData[header] = 0;
-                }
-                // Skip other non-critical numeric fields if they're not parseable
-              } else {
-                productData[header] = parsedValue;
-              }
+              productData[header] = parseInt(value, 10);
             } 
             // Handle boolean fields
             else if (header === 'approved') {
@@ -413,21 +400,9 @@ export default function BulkUploadPage() {
                 <p className="text-muted-foreground text-center mb-6 max-w-md">
                   Your products have been successfully uploaded. They may require approval before appearing in the store.
                 </p>
-                <div className="mb-4 text-sm text-muted-foreground">
-                  <p>All products include complete details with:</p>
-                  <ul className="list-disc ml-5 mt-2">
-                    <li>Basic information (name, description, price)</li>
-                    <li>Product metadata (category, brand, specifications)</li>
-                    <li>Inventory data (stock, dimensions, SKU)</li>
-                    <li>Images and product assets</li>
-                  </ul>
-                </div>
                 <div className="flex gap-4">
                   <Button onClick={resetUpload} variant="outline">
                     Upload More Products
-                  </Button>
-                  <Button onClick={() => window.location.href = '/seller/products'}>
-                    View Your Products
                   </Button>
                 </div>
               </div>
