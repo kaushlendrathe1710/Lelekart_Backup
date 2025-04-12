@@ -1,53 +1,92 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { AdminLayout } from "@/components/layout/admin-layout";
-import { User, Package, ShoppingBag, Truck, TrendingUp, Users, AlertCircle } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Progress } from "@/components/ui/progress";
+import {
+  Users,
+  Package,
+  ShoppingBag,
+  ArrowRight,
+  TrendingUp,
+  DollarSign,
+  BarChart3,
+  Activity,
+} from "lucide-react";
+import { Order, Product } from "@shared/schema";
 
 export default function AdminDashboard() {
-  // Fetch orders data
-  const { data: orders, isLoading: isLoadingOrders } = useQuery({
+  const [timeRange, setTimeRange] = useState("week");
+
+  // Fetch data for dashboard
+  const { data: orders, isLoading: ordersLoading } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
-    staleTime: 60000, // 1 minute
   });
 
-  // Fetch products data
-  const { data: products, isLoading: isLoadingProducts } = useQuery({
+  const { data: products, isLoading: productsLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
-    staleTime: 60000, // 1 minute
   });
 
-  // Fetch users data
-  const { data: users, isLoading: isLoadingUsers } = useQuery({
+  const { data: users, isLoading: usersLoading } = useQuery<any[]>({
     queryKey: ["/api/users"],
-    staleTime: 60000, // 1 minute
   });
 
-  // Stats calculations (simplified)
+  // Calculate dashboard statistics
   const totalOrders = orders?.length || 0;
-  const totalProducts = products?.length || 0;
-  const totalUsers = users?.length || 0;
-  const totalRevenue = orders?.reduce((sum, order) => sum + (order.total || 0), 0) || 0;
-  
-  // Calculate pending orders
   const pendingOrders = orders?.filter(order => order.status === "pending").length || 0;
-  const pendingOrdersPercentage = orders?.length ? Math.round((pendingOrders / orders.length) * 100) : 0;
+  const deliveredOrders = orders?.filter(order => order.status === "delivered").length || 0;
+  const totalRevenue = orders?.reduce((sum, order) => sum + order.total, 0) || 0;
   
-  // Find popular categories if products exist
-  const categoryCount = products?.reduce((acc, product) => {
-    const category = product.category || "Uncategorized";
-    acc[category] = (acc[category] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>) || {};
+  // Calculate today's orders
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayOrders = orders?.filter(order => {
+    const orderDate = new Date(order.date);
+    orderDate.setHours(0, 0, 0, 0);
+    return orderDate.getTime() === today.getTime();
+  }).length || 0;
   
-  // Sort categories by count
-  const popularCategories = Object.entries(categoryCount)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
+  // Calculate product statistics
+  const totalProducts = products?.length || 0;
+  const totalCategories = [...new Set(products?.map(p => p.category) || [])].length;
+  const lowStockProducts = products?.filter(p => (p.stock || 0) < 10).length || 0;
+  
+  // Calculate average order value
+  const averageOrderValue = totalOrders ? (totalRevenue / totalOrders).toFixed(2) : "0.00";
 
-  // Loading states
-  const isLoading = isLoadingOrders || isLoadingProducts || isLoadingUsers;
+  // Recent orders for quick view
+  const recentOrders = orders?.slice(0, 5).map(order => ({
+    id: order.id,
+    date: new Date(order.date).toLocaleDateString(),
+    status: order.status,
+    total: order.total,
+    customer: `User #${order.userId}`,
+  }));
+
+  // Format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  // Loading skeleton for dashboard cards
+  const CardSkeleton = () => (
+    <Card>
+      <CardHeader className="pb-2">
+        <Skeleton className="h-4 w-28" />
+      </CardHeader>
+      <CardContent>
+        <Skeleton className="h-10 w-20 mb-2" />
+        <Skeleton className="h-4 w-full" />
+      </CardContent>
+    </Card>
+  );
 
   return (
     <AdminLayout>
@@ -55,213 +94,311 @@ export default function AdminDashboard() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">
-            Overview of your store's performance and stats
+            Overview of your store's performance and recent activity
           </p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {/* Total Orders */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-              <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Skeleton className="h-7 w-20" />
-              ) : (
-                <>
-                  <div className="text-2xl font-bold">{totalOrders}</div>
-                  <p className="text-xs text-muted-foreground">
-                    {pendingOrders} order{pendingOrders !== 1 ? 's' : ''} pending
-                  </p>
-                  <Progress className="mt-2" value={pendingOrdersPercentage} />
-                </>
-              )}
-            </CardContent>
-          </Card>
+        {/* Time Range Selector */}
+        <Tabs
+          defaultValue={timeRange}
+          className="w-full"
+          onValueChange={setTimeRange}
+        >
+          <div className="flex justify-between items-center">
+            <TabsList>
+              <TabsTrigger value="day">Day</TabsTrigger>
+              <TabsTrigger value="week">Week</TabsTrigger>
+              <TabsTrigger value="month">Month</TabsTrigger>
+              <TabsTrigger value="year">Year</TabsTrigger>
+            </TabsList>
+            <div className="text-xs text-muted-foreground">
+              Last updated: {new Date().toLocaleString()}
+            </div>
+          </div>
 
-          {/* Total Revenue */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Skeleton className="h-7 w-20" />
-              ) : (
-                <>
-                  <div className="text-2xl font-bold">₹{totalRevenue.toFixed(2)}</div>
-                  <p className="text-xs text-muted-foreground">
-                    From {totalOrders} order{totalOrders !== 1 ? 's' : ''}
-                  </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
+          <TabsContent value="day" className="space-y-6 mt-4">
+            <StatCards 
+              isLoading={ordersLoading || productsLoading || usersLoading}
+              stats={{
+                totalOrders,
+                pendingOrders,
+                deliveredOrders,
+                totalRevenue,
+                todayOrders,
+                totalProducts,
+                totalCategories,
+                lowStockProducts,
+              }}
+              formatCurrency={formatCurrency}
+            />
+          </TabsContent>
+          
+          <TabsContent value="week" className="space-y-6 mt-4">
+            <StatCards 
+              isLoading={ordersLoading || productsLoading || usersLoading}
+              stats={{
+                totalOrders,
+                pendingOrders,
+                deliveredOrders,
+                totalRevenue,
+                todayOrders,
+                totalProducts,
+                totalCategories,
+                lowStockProducts,
+              }}
+              formatCurrency={formatCurrency}
+            />
+          </TabsContent>
+          
+          <TabsContent value="month" className="space-y-6 mt-4">
+            <StatCards 
+              isLoading={ordersLoading || productsLoading || usersLoading}
+              stats={{
+                totalOrders,
+                pendingOrders,
+                deliveredOrders,
+                totalRevenue,
+                todayOrders,
+                totalProducts,
+                totalCategories,
+                lowStockProducts,
+              }}
+              formatCurrency={formatCurrency}
+            />
+          </TabsContent>
+          
+          <TabsContent value="year" className="space-y-6 mt-4">
+            <StatCards 
+              isLoading={ordersLoading || productsLoading || usersLoading}
+              stats={{
+                totalOrders,
+                pendingOrders,
+                deliveredOrders,
+                totalRevenue,
+                todayOrders,
+                totalProducts,
+                totalCategories,
+                lowStockProducts,
+              }}
+              formatCurrency={formatCurrency}
+            />
+          </TabsContent>
+        </Tabs>
 
-          {/* Total Products */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Products</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Skeleton className="h-7 w-20" />
-              ) : (
-                <>
-                  <div className="text-2xl font-bold">{totalProducts}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Across {Object.keys(categoryCount).length} categories
-                  </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Total Users */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Skeleton className="h-7 w-20" />
-              ) : (
-                <>
-                  <div className="text-2xl font-bold">{totalUsers}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Active customers in your store
-                  </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
+        {/* Quick Actions */}
+        <div>
+          <h2 className="text-xl font-semibold mb-3">Quick Actions</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <Link href="/admin/orders">
+              <div className="flex flex-col items-center p-6 bg-white rounded-lg border border-gray-200 hover:border-primary hover:shadow-md transition-all">
+                <ShoppingBag className="h-10 w-10 text-primary mb-3" />
+                <h3 className="font-medium">Manage Orders</h3>
+              </div>
+            </Link>
+            <Link href="/admin/products">
+              <div className="flex flex-col items-center p-6 bg-white rounded-lg border border-gray-200 hover:border-primary hover:shadow-md transition-all">
+                <Package className="h-10 w-10 text-primary mb-3" />
+                <h3 className="font-medium">Manage Products</h3>
+              </div>
+            </Link>
+            <Link href="/admin/users">
+              <div className="flex flex-col items-center p-6 bg-white rounded-lg border border-gray-200 hover:border-primary hover:shadow-md transition-all">
+                <Users className="h-10 w-10 text-primary mb-3" />
+                <h3 className="font-medium">Manage Users</h3>
+              </div>
+            </Link>
+            <div className="flex flex-col items-center p-6 bg-white rounded-lg border border-gray-200 opacity-60 cursor-not-allowed">
+              <BarChart3 className="h-10 w-10 text-gray-400 mb-3" />
+              <h3 className="font-medium text-gray-500">View Reports</h3>
+              <span className="text-xs mt-1 text-gray-400">Coming Soon</span>
+            </div>
+          </div>
         </div>
 
-        {/* Analytics Rows */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-          {/* Recent Orders - Wider Card */}
-          <Card className="col-span-4">
-            <CardHeader>
-              <CardTitle>Recent Orders</CardTitle>
-              <CardDescription>
-                Last {Math.min(5, totalOrders)} orders from your store
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="space-y-3">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="flex items-center space-x-4">
-                      <Skeleton className="h-12 w-12 rounded-full" />
+        {/* Recent Orders */}
+        <div>
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="text-xl font-semibold">Recent Orders</h2>
+            <Link href="/admin/orders">
+              <div className="text-sm text-primary hover:underline flex items-center">
+                View All <ArrowRight className="h-4 w-4 ml-1" />
+              </div>
+            </Link>
+          </div>
+          
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            {ordersLoading ? (
+              <div className="p-4 space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="flex justify-between items-center py-2">
+                    <div className="flex items-center space-x-4">
+                      <Skeleton className="h-10 w-10 rounded-full" />
                       <div className="space-y-2">
-                        <Skeleton className="h-4 w-40" />
-                        <Skeleton className="h-4 w-24" />
-                      </div>
-                      <Skeleton className="ml-auto h-4 w-20" />
-                    </div>
-                  ))}
-                </div>
-              ) : orders && orders.length > 0 ? (
-                <div className="space-y-4">
-                  {orders.slice(0, 5).map((order) => (
-                    <div key={order.id} className="flex items-center">
-                      <div className="mr-4 rounded-md bg-primary/10 p-2">
-                        <ShoppingBag className="h-5 w-5 text-primary" />
-                      </div>
-                      <div className="flex-1 space-y-1">
-                        <p className="text-sm font-medium leading-none">
-                          Order #{order.id}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(order.date).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="font-medium">₹{order.total.toFixed(2)}</div>
-                      <div className={`ml-4 rounded-full px-2 py-0.5 text-xs font-semibold 
-                        ${order.status === 'completed' 
-                          ? 'bg-green-100 text-green-800' 
-                          : order.status === 'pending' 
-                            ? 'bg-yellow-100 text-yellow-800' 
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
-                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-24" />
                       </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex h-[200px] items-center justify-center">
-                  <div className="flex flex-col items-center text-center">
-                    <AlertCircle className="mb-2 h-6 w-6 text-muted-foreground" />
-                    <h3 className="text-lg font-semibold">No orders yet</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Orders will appear here when customers make purchases.
-                    </p>
+                    <Skeleton className="h-8 w-20" />
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Popular Categories */}
-          <Card className="col-span-3">
-            <CardHeader>
-              <CardTitle>Popular Categories</CardTitle>
-              <CardDescription>
-                Top selling product categories
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="space-y-3">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="space-y-2">
-                      <Skeleton className="h-4 w-40" />
-                      <Skeleton className="h-2 w-full" />
+                ))}
+              </div>
+            ) : recentOrders && recentOrders.length > 0 ? (
+              <div className="divide-y">
+                {recentOrders.map((order) => (
+                  <div key={order.id} className="flex justify-between items-center p-4 hover:bg-gray-50">
+                    <div>
+                      <div className="font-medium">Order #{order.id}</div>
+                      <div className="text-sm text-gray-500">{order.customer} • {order.date}</div>
                     </div>
-                  ))}
-                </div>
-              ) : popularCategories.length > 0 ? (
-                <div className="space-y-4">
-                  {popularCategories.map(([category, count], index) => {
-                    const percentage = Math.round((count / totalProducts) * 100);
-                    return (
-                      <div key={category} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <p className="text-sm font-medium">{category}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {count} product{count !== 1 ? 's' : ''}
-                            </p>
-                          </div>
-                          <p className="text-sm font-medium">{percentage}%</p>
-                        </div>
-                        <Progress value={percentage} />
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="flex h-[200px] items-center justify-center">
-                  <div className="flex flex-col items-center text-center">
-                    <AlertCircle className="mb-2 h-6 w-6 text-muted-foreground" />
-                    <h3 className="text-lg font-semibold">No products yet</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Add products to see category statistics.
-                    </p>
+                    <div className="flex items-center">
+                      <div className="mr-4 font-medium">{formatCurrency(order.total)}</div>
+                      <StatusBadge status={order.status} />
+                    </div>
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center">
+                <ShoppingBag className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <h3 className="text-lg font-medium mb-1">No Orders Yet</h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  Orders will appear here once customers make purchases
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </AdminLayout>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  let color = "";
+  let text = status;
+  
+  switch(status) {
+    case "pending":
+      color = "bg-yellow-100 text-yellow-800";
+      text = "Pending";
+      break;
+    case "processing":
+      color = "bg-blue-100 text-blue-800";
+      text = "Processing";
+      break;
+    case "shipped":
+      color = "bg-purple-100 text-purple-800";
+      text = "Shipped";
+      break;
+    case "delivered":
+      color = "bg-green-100 text-green-800";
+      text = "Delivered";
+      break;
+    case "cancelled":
+      color = "bg-red-100 text-red-800";
+      text = "Cancelled";
+      break;
+    default:
+      color = "bg-gray-100 text-gray-800";
+  }
+  
+  return (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${color}`}>
+      {text}
+    </span>
+  );
+}
+
+function StatCards({ isLoading, stats, formatCurrency }: any) {
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <CardSkeleton />
+        <CardSkeleton />
+        <CardSkeleton />
+        <CardSkeleton />
+      </div>
+    );
+  }
+  
+  const {
+    totalOrders,
+    pendingOrders,
+    deliveredOrders,
+    totalRevenue,
+    todayOrders,
+    totalProducts,
+    totalCategories,
+    lowStockProducts,
+  } = stats;
+  
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+          <DollarSign className="h-4 w-4 text-gray-500" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
+          <p className="text-xs text-muted-foreground">
+            {totalOrders} orders total
+          </p>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-sm font-medium">Orders</CardTitle>
+          <ShoppingBag className="h-4 w-4 text-gray-500" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{totalOrders}</div>
+          <p className="text-xs text-muted-foreground">
+            {pendingOrders} pending, {deliveredOrders} delivered
+          </p>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-sm font-medium">Products</CardTitle>
+          <Package className="h-4 w-4 text-gray-500" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{totalProducts}</div>
+          <p className="text-xs text-muted-foreground">
+            Across {totalCategories} categories
+          </p>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-sm font-medium">Sales Today</CardTitle>
+          <Activity className="h-4 w-4 text-gray-500" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{todayOrders}</div>
+          <p className="text-xs text-muted-foreground">
+            {lowStockProducts} products low in stock
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function CardSkeleton() {
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <Skeleton className="h-4 w-28" />
+      </CardHeader>
+      <CardContent>
+        <Skeleton className="h-10 w-20 mb-2" />
+        <Skeleton className="h-4 w-full" />
+      </CardContent>
+    </Card>
   );
 }
