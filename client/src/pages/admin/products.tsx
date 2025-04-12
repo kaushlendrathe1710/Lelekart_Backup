@@ -597,7 +597,8 @@ export default function AdminProducts() {
               <div>
                 <ProductImageGallery 
                   imageUrl={viewProduct.imageUrl}
-                  additionalImages={viewProduct.additionalImages}
+                  additionalImages={viewProduct.images}
+                  productName={viewProduct.name}
                 />
               </div>
               

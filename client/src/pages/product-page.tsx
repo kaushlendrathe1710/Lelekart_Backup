@@ -315,7 +315,8 @@ export default function ProductPage() {
               {/* Product Image Gallery */}
               <div className="flex justify-center items-start">
                 <ProductImageGallery 
-                  images={getProductImages(product)}
+                  imageUrl={product.imageUrl}
+                  additionalImages={product.images}
                   productName={product.name}
                 />
               </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -14,11 +14,38 @@ import 'swiper/css/navigation';
 import 'swiper/css/thumbs';
 
 interface ProductImageGalleryProps {
-  images: string[];
-  productName: string;
+  imageUrl?: string;
+  additionalImages?: string | null;
+  productName?: string;
 }
 
-export function ProductImageGallery({ images, productName }: ProductImageGalleryProps) {
+export function ProductImageGallery({ imageUrl, additionalImages, productName = "Product" }: ProductImageGalleryProps) {
+  // Combine main image and additional images
+  const images = useMemo(() => {
+    const allImages = [];
+    
+    // Add main image if it exists
+    if (imageUrl) {
+      allImages.push(imageUrl);
+    }
+    
+    // Add additional images if they exist
+    if (additionalImages) {
+      try {
+        // Parse if it's a JSON string
+        if (typeof additionalImages === 'string') {
+          const parsedImages = JSON.parse(additionalImages);
+          if (Array.isArray(parsedImages)) {
+            allImages.push(...parsedImages.filter(Boolean));
+          }
+        }
+      } catch (error) {
+        console.error('Error parsing additional images:', error);
+      }
+    }
+    
+    return allImages;
+  }, [imageUrl, additionalImages]);
   // References to Swiper instances
   const mainSwiperRef = useRef<SwiperType | null>(null);
   const thumbsSwiperRef = useRef<SwiperType | null>(null);
