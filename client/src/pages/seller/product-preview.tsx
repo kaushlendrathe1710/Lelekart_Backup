@@ -21,39 +21,39 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Product } from "@shared/schema";
+import { ProductImageGallery } from "@/components/ui/product-image-gallery";
 
-// Image gallery component
-function ImageGallery({ images }: { images: string[] }) {
-  const [selectedImage, setSelectedImage] = useState(0);
+// Extract all images from product
+const getProductImages = (product: Product): string[] => {
+  const images: string[] = [];
   
-  return (
-    <div className="grid grid-cols-1 gap-4">
-      <div className="overflow-hidden rounded-md border aspect-square bg-background">
-        <img
-          src={images[selectedImage] || "https://placehold.co/600x400?text=No+Image"}
-          alt="Product preview"
-          className="h-full w-full object-contain"
-        />
-      </div>
-      {images.length > 1 && (
-        <div className="flex space-x-2 overflow-x-auto pb-2">
-          {images.map((image, i) => (
-            <div 
-              key={i} 
-              className={`overflow-hidden rounded-md border cursor-pointer w-16 h-16 ${selectedImage === i ? 'ring-2 ring-primary' : ''}`}
-              onClick={() => setSelectedImage(i)}
-            >
-              <img
-                src={image}
-                alt={`Thumbnail ${i + 1}`}
-                className="h-full w-full object-cover"
-              />
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+  // Add main image first
+  if (product.imageUrl) {
+    images.push(product.imageUrl);
+  }
+  
+  // Try to extract additional images from the images field (could be stored as JSON string)
+  if (product.images) {
+    try {
+      // If it's a string, try to parse it
+      if (typeof product.images === 'string') {
+        const parsedImages = JSON.parse(product.images);
+        if (Array.isArray(parsedImages)) {
+          images.push(...parsedImages);
+        }
+      } 
+      // If it's already an array, use it directly
+      else if (Array.isArray(product.images)) {
+        images.push(...product.images);
+      }
+    } catch (error) {
+      console.error('Failed to parse product images:', error);
+    }
+  }
+  
+  // Return unique images (no duplicates)
+  return Array.from(new Set(images));
 }
 
 export default function ProductPreviewPage() {
@@ -91,10 +91,8 @@ export default function ProductPreviewPage() {
   const discountPercentage = product?.mrp ? 
     Math.round(((product.mrp - product.price) / product.mrp) * 100) : 0;
 
-  // Convert product images to array, or use a placeholder
-  const productImages = product?.imageUrl ? 
-    [product.imageUrl] : 
-    ["https://placehold.co/600x400?text=No+Image"];
+  // We'll use our helper function to get all images including additional ones
+  // This is already defined above
 
   return (
     <SellerDashboardLayout>
@@ -129,7 +127,10 @@ export default function ProductPreviewPage() {
         <div className="md:col-span-5 lg:col-span-4">
           <Card>
             <CardContent className="pt-6">
-              <ImageGallery images={productImages} />
+              <ProductImageGallery 
+                images={product ? getProductImages(product) : []} 
+                productName={product?.name || "Product"} 
+              />
               <div className="flex justify-between mt-4">
                 <Button variant="outline" className="w-[48%]">
                   <Heart className="h-4 w-4 mr-2" />
