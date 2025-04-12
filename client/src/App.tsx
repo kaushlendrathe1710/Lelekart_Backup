@@ -20,6 +20,7 @@ import { ProtectedRoute } from "./lib/protected-route";
 import AdminDashboardPage from "./pages/admin/dashboard";
 import SellerDashboardPage from "./pages/seller/dashboard";
 import SellerProductsPage from "./pages/seller/products";
+import AddProductPage from "./pages/seller/add-product";
 import BuyerDashboardPage from "./pages/buyer/dashboard";
 
 function App() {
@@ -142,9 +143,7 @@ function App() {
                   <ProtectedRoute 
                     path="/seller/products/add" 
                     role="seller" 
-                    component={() => (
-                      <SellerDashboardPage />
-                    )} 
+                    component={AddProductPage} 
                   />
                 )}
               </Route>
