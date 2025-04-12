@@ -171,24 +171,15 @@ export function SimpleHeader() {
               </DropdownMenu>
             )}
             
-            {!user || user.role === "buyer" ? (
-              <Button 
-                variant="outline" 
-                className="text-white border-white hover:bg-white/10 h-10"
-                onClick={() => setLocation(user ? '/seller/dashboard' : '/auth')}
-              >
-                Become a Seller
-              </Button>
-            ) : null}
-            
             <Button 
-              variant="outline" 
-              className="text-white border-white hover:bg-white/10 relative h-10"
+              variant="ghost" 
+              size="icon"
+              className="text-white hover:bg-primary-foreground/10 relative h-10 w-10 flex items-center justify-center"
               onClick={toggleCart}
             >
               <ShoppingCart className="h-5 w-5" />
               {cartItemCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-yellow-400 text-primary text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-yellow-400 text-primary text-xs rounded-full h-5 w-5 flex items-center justify-center">
                   {cartItemCount}
                 </span>
               )}
@@ -296,15 +287,6 @@ export function SimpleHeader() {
                     Logout
                   </button>
                 </>
-              )}
-              
-              {(!user || user.role === "buyer") && (
-                <button
-                  onClick={() => navigateTo(user ? '/seller/dashboard' : '/auth')}
-                  className="block w-full text-left py-3 border-b border-primary-foreground/20"
-                >
-                  Become a Seller
-                </button>
               )}
               
               <button
