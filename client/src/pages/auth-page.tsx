@@ -68,6 +68,8 @@ export default function AuthPage() {
         setLocation("/admin/dashboard");
       } else if (user.role === "seller") {
         setLocation("/seller/dashboard");
+      } else if (user.role === "buyer") {
+        setLocation("/buyer/dashboard");
       } else {
         setLocation("/");
       }
