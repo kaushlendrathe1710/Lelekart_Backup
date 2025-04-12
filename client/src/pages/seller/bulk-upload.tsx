@@ -1,22 +1,26 @@
 import { useState, useRef } from "react";
 import { SellerDashboardLayout } from "@/components/layout/seller-dashboard-layout";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
-  X, 
   Upload,
   Download,
-  CheckCircle
+  CheckCircle, 
+  AlertCircle,
+  X,
+  ArrowLeft,
+  DownloadCloud,
+  FileText
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Progress } from "@/components/ui/progress";
 import {
   Tabs,
   TabsContent,
   TabsList,
-  TabsTrigger,
+  TabsTrigger
 } from "@/components/ui/tabs";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 
 // Mock example data with all possible product fields - using known good data
 const EXAMPLE_CSV = `name,description,price,purchasePrice,mrp,category,subcategory,brand,imageUrl,imageUrl1,imageUrl2,imageUrl3,stock,sku,hsn,weight,length,width,height,warranty,returnPolicy,tax,productType
@@ -83,15 +87,15 @@ enum UploadStage {
 
 export default function BulkUploadPage() {
   const { toast } = useToast();
-  const [location, setLocation] = useLocation();
   const [file, setFile] = useState<File | null>(null);
-  const [uploadStage, setUploadStage] = useState<UploadStage>(UploadStage.SELECT_FILE);
-  const [parsedData, setParsedData] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState("upload");
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadResults, setUploadResults] = useState<UploadResult[]>([]);
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [successCount, setSuccessCount] = useState(5);
+  const [failedCount, setFailedCount] = useState(0);
+  const [totalCount, setTotalCount] = useState(5);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadCompleted, setUploadCompleted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const queryClient = useQueryClient();
 
   // Function to handle file selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
