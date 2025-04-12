@@ -15,6 +15,7 @@ import {
   DollarSign,
   BarChart3,
   Activity,
+  Grid,
 } from "lucide-react";
 import { Order, Product } from "@shared/schema";
 
@@ -207,11 +208,12 @@ export default function AdminDashboard() {
                 <h3 className="font-medium">Manage Users</h3>
               </div>
             </Link>
-            <div className="flex flex-col items-center p-6 bg-white rounded-lg border border-gray-200 opacity-60 cursor-not-allowed">
-              <BarChart3 className="h-10 w-10 text-gray-400 mb-3" />
-              <h3 className="font-medium text-gray-500">View Reports</h3>
-              <span className="text-xs mt-1 text-gray-400">Coming Soon</span>
-            </div>
+            <Link href="/admin/categories">
+              <div className="flex flex-col items-center p-6 bg-white rounded-lg border border-gray-200 hover:border-primary hover:shadow-md transition-all">
+                <Grid className="h-10 w-10 text-primary mb-3" />
+                <h3 className="font-medium">Manage Categories</h3>
+              </div>
+            </Link>
           </div>
         </div>
 
