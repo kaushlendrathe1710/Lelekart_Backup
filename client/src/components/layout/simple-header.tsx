@@ -69,14 +69,16 @@ export function SimpleHeader() {
     refetchInterval: 2000, // Refresh every 2 seconds
   });
   
+  // Handle cart navigation
+  const toggleCart = () => {
+    // Navigate to cart page or auth page if not logged in
+    setLocation(user ? '/cart' : '/auth');
+  };
+  
+  // Get cart item count for notification badge
   const cartItemCount = cartItems.length > 0 
     ? cartItems.reduce((sum: number, item: { quantity: number }) => sum + (item.quantity || 0), 0)
     : 0;
-  
-  const toggleCart = () => {
-    // Navigate to cart page or auth
-    setLocation(user ? '/cart' : '/auth');
-  };
   
   // Handle logout
   const handleLogout = async () => {

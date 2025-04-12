@@ -44,6 +44,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     staleTime: 0, // Always fetch fresh data
     refetchOnWindowFocus: true,
     refetchOnMount: true,
+    refetchInterval: 2000, // Poll every 2 seconds
     refetchIntervalInBackground: false
   });
 
@@ -138,6 +139,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       quantity: quantity,
     }, {
       onSuccess: () => {
+        // Force refresh cart data immediately
+        queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
         toast({
           title: "Added to cart",
           description: `${product.name} has been added to your cart`,
