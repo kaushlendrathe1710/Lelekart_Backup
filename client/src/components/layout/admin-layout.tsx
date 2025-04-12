@@ -1,11 +1,9 @@
-import { useState, ReactNode, useContext } from "react";
+import { useState, ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { AuthContext } from "@/hooks/use-auth";
-import { CartContext } from "@/context/cart-context";
+import { useAuth } from "@/hooks/use-auth";
+import { useCart } from "@/context/cart-context";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { User as UserType } from "@shared/schema";
 import {
   NavigationMenu,
   NavigationMenuList,
@@ -49,53 +47,9 @@ interface AdminLayoutProps {
 
 export function AdminLayout({ children }: AdminLayoutProps) {
   const [location] = useLocation();
-  // Try to use context first if available
-  const authContext = useContext(AuthContext);
-  const cartContext = useContext(CartContext);
+  const { user, logoutMutation } = useAuth();
+  const { cartItems, toggleCart } = useCart();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [, setLocation] = useLocation();
-  const queryClient = useQueryClient();
-  
-  // Get user data from direct API if context is not available
-  const { data: apiUser, isLoading: apiLoading } = useQuery<User | null>({
-    queryKey: ['/api/user'],
-    queryFn: async () => {
-      const res = await fetch('/api/user', {
-        credentials: 'include',
-      });
-      
-      if (!res.ok) {
-        if (res.status === 401) return null;
-        throw new Error('Failed to fetch user');
-      }
-      
-      return res.json();
-    },
-    staleTime: 60000, // 1 minute
-  });
-  
-  // Use context values if available, otherwise use API values
-  const user = authContext?.user || apiUser;
-  const cartItems = cartContext?.cartItems || [];
-  const toggleCart = cartContext?.toggleCart || (() => {});
-  
-  // Logout mutation if no context available
-  const logoutMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include'
-      });
-      
-      if (!res.ok) {
-        throw new Error('Logout failed');
-      }
-    },
-    onSuccess: () => {
-      queryClient.setQueryData(['/api/user'], null);
-      setLocation('/');
-    }
-  });
 
   const navItems = [
     {
@@ -242,7 +196,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="text-white">
-                  <User className="h-5 w-5 mr-1" />
+                  <UserIcon className="h-5 w-5 mr-1" />
                   <span className="hidden sm:inline-block">
                     {user?.name || user?.username || "Admin"}
                   </span>
@@ -253,7 +207,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
-                  <User className="mr-2 h-4 w-4" />
+                  <UserIcon className="mr-2 h-4 w-4" />
                   <span>Profile</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
