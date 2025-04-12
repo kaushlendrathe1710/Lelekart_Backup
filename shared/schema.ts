@@ -72,6 +72,7 @@ export const orders = pgTable("orders", {
   total: integer("total").notNull(),
   date: timestamp("date").notNull().defaultNow(),
   shippingDetails: text("shipping_details"), // Stored as JSON string
+  paymentMethod: text("payment_method").notNull().default("cod"),
 });
 
 export const insertOrderSchema = createInsertSchema(orders).pick({
@@ -80,6 +81,7 @@ export const insertOrderSchema = createInsertSchema(orders).pick({
   total: true,
   date: true,
   shippingDetails: true,
+  paymentMethod: true,
 });
 
 // OrderItem schema
