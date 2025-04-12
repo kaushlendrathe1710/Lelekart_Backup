@@ -14,7 +14,6 @@ export function ProtectedRoute({
   component: Component,
   role
 }: ProtectedRouteProps) {
-  // Don't use hooks outside of the Route's render function
   return (
     <Route path={path}>
       {() => {
@@ -45,16 +44,20 @@ export function ProtectedRoute({
           return <Redirect to={dashboardPath} />;
         }
 
-        // Dashboard routes don't need Layout wrapper, only regular pages
-        const isDashboardRoute = 
+        // Special case for orders and order detail pages - don't add Layout as they use DashboardLayout
+        const isDashboardOrOrdersRoute = 
           path.startsWith('/admin/dashboard') || 
           path.startsWith('/seller/dashboard') || 
-          path.startsWith('/buyer/dashboard');
+          path.startsWith('/buyer/dashboard') ||
+          path.startsWith('/orders') ||
+          path.startsWith('/order/');
 
-        if (isDashboardRoute) {
+        // Return component directly for dashboard and order routes
+        if (isDashboardOrOrdersRoute) {
           return <Component />;
         }
 
+        // Wrap other protected routes with Layout
         return (
           <Layout>
             <Component />
