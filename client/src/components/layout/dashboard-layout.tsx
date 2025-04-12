@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { 
   ShoppingCart, 
@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useAuth } from "@/hooks/use-auth";
+import { queryClient } from "@/lib/queryClient";
 import { 
   SidebarProvider, 
   Sidebar, 
@@ -36,16 +36,80 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { user, logoutMutation } = useAuth();
+  const [user, setUser] = useState<any>(null);
   const [location, setLocation] = useLocation();
+  const [cartItemCount, setCartItemCount] = useState(0);
   
+  // Fetch user data on mount
+  useEffect(() => {
+    // Check if user is already cached
+    const cachedUser = queryClient.getQueryData<any>(['/api/user']);
+    if (cachedUser) {
+      setUser(cachedUser);
+    }
+    
+    // Fetch fresh user data
+    fetch('/api/user', {
+      credentials: 'include',
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    })
+    .then(res => {
+      if (res.ok) return res.json();
+      return null;
+    })
+    .then(userData => {
+      if (userData) {
+        setUser(userData);
+        queryClient.setQueryData(['/api/user'], userData);
+      } else {
+        setLocation('/auth');
+      }
+    })
+    .catch(err => {
+      console.error("Error fetching user:", err);
+      setLocation('/auth');
+    });
+  }, [setLocation]);
+  
+  // Fetch cart items to display count
+  useEffect(() => {
+    if (user) {
+      fetch('/api/cart', {
+        credentials: 'include',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+        // Calculate total items in cart
+        const totalItems = data.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
+        setCartItemCount(totalItems);
+      })
+      .catch(err => console.error("Error fetching cart:", err));
+    }
+  }, [user]);
+
   if (!user) {
-    setLocation('/auth');
     return null;
   }
 
-  const handleLogout = () => {
-    logoutMutation.mutate();
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      queryClient.setQueryData(['/api/user'], null);
+      setUser(null);
+      setLocation('/');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
   // Function to check if a route is active
@@ -94,6 +158,22 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               >
                 <Bell className="h-5 w-5" />
                 <span className="sr-only">Notifications</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-white hover:bg-primary-foreground/10 relative"
+                asChild
+              >
+                <Link href="/cart">
+                  <ShoppingCart className="h-5 w-5" />
+                  <span className="sr-only">Cart</span>
+                  {cartItemCount > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-yellow-400 text-primary text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {cartItemCount}
+                    </span>
+                  )}
+                </Link>
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
