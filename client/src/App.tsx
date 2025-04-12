@@ -21,6 +21,9 @@ import AdminDashboardPage from "./pages/admin/dashboard";
 import SellerDashboardPage from "./pages/seller/dashboard";
 import SellerProductsPage from "./pages/seller/products";
 import AddProductPage from "./pages/seller/add-product";
+import EditProductPage from "./pages/seller/edit-product";
+import ProductPreviewPage from "./pages/seller/product-preview";
+import BulkUploadPage from "./pages/seller/bulk-upload";
 import BuyerDashboardPage from "./pages/buyer/dashboard";
 
 function App() {
@@ -144,6 +147,33 @@ function App() {
                     path="/seller/products/add" 
                     role="seller" 
                     component={AddProductPage} 
+                  />
+                )}
+              </Route>
+              <Route path="/seller/products/edit/:id">
+                {() => (
+                  <ProtectedRoute 
+                    path="/seller/products/edit/:id" 
+                    role="seller" 
+                    component={EditProductPage} 
+                  />
+                )}
+              </Route>
+              <Route path="/seller/products/preview/:id">
+                {() => (
+                  <ProtectedRoute 
+                    path="/seller/products/preview/:id" 
+                    role="seller" 
+                    component={ProductPreviewPage} 
+                  />
+                )}
+              </Route>
+              <Route path="/seller/products/bulk-upload">
+                {() => (
+                  <ProtectedRoute 
+                    path="/seller/products/bulk-upload" 
+                    role="seller" 
+                    component={BulkUploadPage} 
                   />
                 )}
               </Route>

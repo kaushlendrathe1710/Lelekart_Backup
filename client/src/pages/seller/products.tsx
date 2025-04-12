@@ -102,9 +102,9 @@ export default function SellerProductsPage() {
               className="flex items-center gap-2"
               asChild
             >
-              <Link href="/seller/products/import">
+              <Link href="/seller/products/bulk-upload">
                 <Upload className="h-4 w-4" />
-                Import
+                Bulk Upload
               </Link>
             </Button>
             <Button 
