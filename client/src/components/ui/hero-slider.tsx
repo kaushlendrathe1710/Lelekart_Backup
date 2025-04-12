@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useLocation } from "wouter";
 
 interface SliderImage {
   url: string;
   alt: string;
+  productId?: number; // Add optional productId for navigation
 }
 
 interface HeroSliderProps {
@@ -16,6 +18,7 @@ export function HeroSlider({ images, autoplayInterval = 5000 }: HeroSliderProps)
   const [currentSlide, setCurrentSlide] = useState(0);
   const sliderRef = useRef<HTMLDivElement>(null);
   const intervalRef = useRef<number | null>(null);
+  const [, navigate] = useLocation();
 
   const goToSlide = (slideIndex: number) => {
     let newIndex = slideIndex;
@@ -29,12 +32,21 @@ export function HeroSlider({ images, autoplayInterval = 5000 }: HeroSliderProps)
     }
   };
 
-  const prevSlide = () => {
+  const prevSlide = (e: React.MouseEvent) => {
+    e.stopPropagation();
     goToSlide(currentSlide - 1);
   };
 
-  const nextSlide = () => {
+  const nextSlide = (e: React.MouseEvent) => {
+    e.stopPropagation();
     goToSlide(currentSlide + 1);
+  };
+
+  const handleSlideClick = (image: SliderImage) => {
+    if (image.productId) {
+      console.log("Navigating to product page:", image.productId);
+      navigate(`/product/${image.productId}`);
+    }
   };
 
   // Set up autoplay
@@ -83,7 +95,11 @@ export function HeroSlider({ images, autoplayInterval = 5000 }: HeroSliderProps)
         style={{ transform: `translateX(-${currentSlide * 100}%)` }}
       >
         {images.map((image, index) => (
-          <div key={index} className="w-full flex-shrink-0">
+          <div 
+            key={index} 
+            className="w-full flex-shrink-0 cursor-pointer"
+            onClick={() => handleSlideClick(image)}
+          >
             <img 
               src={image.url} 
               alt={image.alt} 
@@ -120,7 +136,10 @@ export function HeroSlider({ images, autoplayInterval = 5000 }: HeroSliderProps)
             className={`w-2 h-2 rounded-full ${
               index === currentSlide ? 'bg-white opacity-100' : 'bg-white opacity-50'
             }`}
-            onClick={() => goToSlide(index)}
+            onClick={(e) => {
+              e.stopPropagation();
+              goToSlide(index);
+            }}
           />
         ))}
       </div>

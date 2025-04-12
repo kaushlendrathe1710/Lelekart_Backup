@@ -93,7 +93,10 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
       <div className="relative">
         <Card 
           className="product-card p-3 flex flex-col items-center rounded transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1"
-          onClick={() => setLocation(`/product/${product.id}`)}
+          onClick={() => {
+            console.log(`Navigating to product page: /product/${product.id}`);
+            window.location.href = `/product/${product.id}`;
+          }}
         >
           <CardContent className="p-0 flex flex-col items-center">
             <img 
@@ -123,7 +126,10 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
     <div className="relative">
       <Card 
         className="product-card flex flex-col items-center p-3 transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1"
-        onClick={() => setLocation(`/product/${product.id}`)}
+        onClick={() => {
+          console.log(`Navigating to product page: /product/${product.id}`);
+          window.location.href = `/product/${product.id}`;
+        }}
       >
         <CardContent className="p-0 flex flex-col items-center">
           <img 

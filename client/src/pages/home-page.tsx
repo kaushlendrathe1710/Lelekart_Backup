@@ -36,19 +36,22 @@ export default function HomePage() {
   const fashionProducts = products?.filter(p => p.category === 'Fashion').slice(0, 6) || [];
   const homeProducts = products?.filter(p => p.category === 'Home').slice(0, 6) || [];
 
-  // Hero slider images
+  // Hero slider images with product links
   const heroImages = [
     { 
       url: "https://images.unsplash.com/photo-1607082349566-187342175e2f?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80", 
-      alt: "Electronics Sale" 
+      alt: "Electronics Sale",
+      productId: 1 // Link to Smartphone X
     },
     { 
       url: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80", 
-      alt: "Fashion Sale" 
+      alt: "Fashion Sale",
+      productId: 11 // Link to Padded Panty 1 
     },
     { 
       url: "https://images.unsplash.com/photo-1573164713988-8665fc963095?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80", 
-      alt: "Festival Sale" 
+      alt: "Festival Sale",
+      productId: 8 // Link to Coffee Maker
     }
   ];
 
