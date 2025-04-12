@@ -427,15 +427,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     limits: {
       fileSize: 5 * 1024 * 1024, // 5MB file size limit
     },
+    fileFilter: (req, file, cb) => {
+      // Accept images only
+      if (file.mimetype.startsWith('image/')) {
+        cb(null, true);
+      } else {
+        cb(null, false);
+        return new Error(`Unsupported file type: ${file.mimetype}. Only images are allowed.`);
+      }
+    }
   });
 
-  app.post("/api/upload", upload.single("file"), async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.post("/api/upload", (req, res, next) => {
+    // Custom error handler to catch multer errors
+    upload.single("file")(req, res, function (err) {
+      if (err instanceof multer.MulterError) {
+        // A Multer error occurred when uploading
+        console.error("Multer error:", err);
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({
+            error: `File too large. Maximum file size is 5MB.`
+          });
+        }
+        return res.status(400).json({
+          error: `Upload error: ${err.message}`
+        });
+      } else if (err) {
+        // An unknown error occurred
+        console.error("Upload error:", err);
+        return res.status(400).json({
+          error: err.message || "File upload failed"
+        });
+      }
+      // Everything went fine, proceed
+      next();
+    });
+  }, async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
     
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
       }
+      
+      console.log(`Processing upload: ${req.file.originalname}, size: ${req.file.size}, mimetype: ${req.file.mimetype}`);
       
       const fileBuffer = req.file.buffer;
       const fileName = req.file.originalname;
@@ -443,11 +480,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Upload file to S3 and get URL
       const fileUrl = await uploadFile(fileBuffer, fileName, fileType);
+      console.log(`File uploaded successfully to S3: ${fileUrl}`);
       
       res.json({ url: fileUrl });
     } catch (error) {
       console.error("File upload error:", error);
-      res.status(500).json({ error: "Failed to upload file" });
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : "Failed to upload file to storage" 
+      });
     }
   });
 

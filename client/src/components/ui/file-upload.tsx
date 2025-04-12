@@ -48,6 +48,8 @@ export function FileUpload({
       try {
         const formData = new FormData();
         formData.append("file", file);
+        
+        console.log(`Uploading file: ${file.name}, size: ${file.size}, type: ${file.type}`);
 
         const response = await fetch("/api/upload", {
           method: "POST",
@@ -56,23 +58,26 @@ export function FileUpload({
         });
 
         if (!response.ok) {
-          throw new Error("Failed to upload file");
+          const errorText = await response.text();
+          console.error(`Upload failed with status ${response.status}: ${errorText}`);
+          throw new Error(`Failed to upload file: ${errorText}`);
         }
 
         const data = await response.json();
+        console.log(`Upload success, received URL: ${data.url}`);
         onChange(data.url);
         
         toast({
           title: "File uploaded",
-          description: "Your file has been uploaded successfully.",
+          description: `File "${file.name}" uploaded successfully.`,
         });
       } catch (err) {
         console.error("Error uploading file:", err);
-        setError("Failed to upload file. Please try again.");
+        setError(`Upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
         toast({
           variant: "destructive",
           title: "Upload failed",
-          description: "There was an error uploading your file. Please try again.",
+          description: err instanceof Error ? err.message : "There was an error uploading your file. Please try again.",
         });
       } finally {
         setIsUploading(false);
@@ -205,6 +210,8 @@ export function FileUploadRow({
       try {
         const formData = new FormData();
         formData.append("file", file);
+        
+        console.log(`FileUploadRow: Uploading file: ${file.name}, size: ${file.size}, type: ${file.type}`);
 
         const response = await fetch("/api/upload", {
           method: "POST",
@@ -213,23 +220,26 @@ export function FileUploadRow({
         });
 
         if (!response.ok) {
-          throw new Error("Failed to upload file");
+          const errorText = await response.text();
+          console.error(`FileUploadRow: Upload failed with status ${response.status}: ${errorText}`);
+          throw new Error(`Failed to upload file: ${errorText}`);
         }
 
         const data = await response.json();
+        console.log(`FileUploadRow: Upload success, received URL: ${data.url}`);
         onChange(data.url);
         setIsSuccess(true);
         
         toast({
           title: "File uploaded",
-          description: "Your file has been uploaded successfully.",
+          description: `File "${file.name}" uploaded successfully.`,
         });
       } catch (err) {
-        console.error("Error uploading file:", err);
+        console.error("FileUploadRow: Error uploading file:", err);
         toast({
           variant: "destructive",
           title: "Upload failed",
-          description: "There was an error uploading your file. Please try again.",
+          description: err instanceof Error ? err.message : "There was an error uploading your file. Please try again.",
         });
       } finally {
         setIsUploading(false);
