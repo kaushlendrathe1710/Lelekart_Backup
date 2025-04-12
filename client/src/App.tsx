@@ -21,6 +21,7 @@ import AdminDashboard from "./pages/admin/index";
 import AdminProducts from "./pages/admin/products";
 import AdminUsers from "./pages/admin/users";
 import AdminOrders from "./pages/admin/orders";
+import AdminCategories from "./pages/admin/categories";
 import SellerDashboardPage from "./pages/seller/dashboard";
 import SellerProductsPage from "./pages/seller/products";
 import AddProductPage from "./pages/seller/add-product";
@@ -165,6 +166,15 @@ function App() {
                     path="/admin/orders" 
                     role="admin" 
                     component={AdminOrders} 
+                  />
+                )}
+              </Route>
+              <Route path="/admin/categories">
+                {() => (
+                  <ProtectedRoute 
+                    path="/admin/categories" 
+                    role="admin" 
+                    component={AdminCategories} 
                   />
                 )}
               </Route>
