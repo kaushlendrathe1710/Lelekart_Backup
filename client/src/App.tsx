@@ -85,15 +85,15 @@ function App() {
                 {() => <ProtectedRoute path="/order/:id" role="buyer" component={OrderDetailsPageWrapper} />}
               </Route>
               
-              {/* Dashboard routes with direct layout - will handle auth inside */}
+              {/* Protected dashboard routes */}
               <Route path="/admin/dashboard">
-                {() => <AdminDashboardPage />}
+                {() => <ProtectedRoute path="/admin/dashboard" role="admin" component={AdminDashboardWrapper} />}
               </Route>
               <Route path="/seller/dashboard">
-                {() => <SellerDashboardPage />}
+                {() => <ProtectedRoute path="/seller/dashboard" role="seller" component={SellerDashboardWrapper} />}
               </Route>
               <Route path="/buyer/dashboard">
-                {() => <BuyerDashboardPage />}
+                {() => <ProtectedRoute path="/buyer/dashboard" role="buyer" component={BuyerDashboardWrapper} />}
               </Route>
               
               <Route>

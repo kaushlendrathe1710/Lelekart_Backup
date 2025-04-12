@@ -22,9 +22,9 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 
 export default function BuyerDashboardPage() {
+  // The authentication check is now handled by the ProtectedRoute component
+  // so we can safely get the user from the auth context here
   const { user } = useAuth();
-  
-  if (!user) return null;
   
   return (
     <DashboardLayout>

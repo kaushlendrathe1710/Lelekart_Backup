@@ -5,30 +5,9 @@ import { useAuth } from "@/hooks/use-auth";
 import { Box, Layers, PackageOpen, Tag, BarChart4 } from "lucide-react";
 
 export default function SellerDashboardPage() {
+  // Authentication and role check are now handled by the ProtectedRoute component
   const { user, logoutMutation } = useAuth();
   const [, setLocation] = useLocation();
-  
-  // Check if user exists and has seller role
-  if (!user) return <div className="flex items-center justify-center h-screen">
-    <div className="text-center">
-      <h2 className="text-2xl font-bold mb-4">Authentication Required</h2>
-      <p className="mb-4">Please log in to access your seller dashboard.</p>
-      <Link href="/auth">
-        <Button>Go to Login</Button>
-      </Link>
-    </div>
-  </div>;
-  
-  // Role check
-  if (user.role !== 'seller') return <div className="flex items-center justify-center h-screen">
-    <div className="text-center">
-      <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-      <p className="mb-4">You don't have permission to access the seller dashboard.</p>
-      <Link href="/">
-        <Button>Go to Home</Button>
-      </Link>
-    </div>
-  </div>;
   
   return (
     <div className="min-h-screen bg-gray-50">
