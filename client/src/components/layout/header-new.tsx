@@ -131,6 +131,43 @@ export function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
             
+            {/* User Account Dropdown */}
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="link" className="text-white flex items-center hover:text-gray-200">
+                    <User className="mr-2 h-5 w-5" />
+                    <span>{user.name || user.username}</span>
+                    <ChevronDown className="ml-1 h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-60">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuItem asChild className="cursor-pointer">
+                    <Link href={getDashboardLink()}>
+                      <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="cursor-pointer">
+                    <Link href="/orders">
+                      <ShoppingBag className="mr-2 h-4 w-4" /> My Orders
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                    <LogOut className="mr-2 h-4 w-4" /> Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link href="/auth">
+                <Button variant="link" className="text-white flex items-center hover:text-gray-200">
+                  <User className="mr-2 h-5 w-5" />
+                  <span>Login / Sign Up</span>
+                </Button>
+              </Link>
+            )}
+            
             {/* Cart Button */}
             <Button
               variant="link"
@@ -195,6 +232,14 @@ export function Header() {
                   <Link href="/seller/dashboard" className="flex items-center text-white py-1">
                     <Store className="mr-2 h-5 w-5" />
                     Become a Seller
+                  </Link>
+                </li>
+              )}
+              {user && (
+                <li>
+                  <Link href="/orders" className="flex items-center text-white py-1">
+                    <ShoppingBag className="mr-2 h-5 w-5" />
+                    My Orders
                   </Link>
                 </li>
               )}
