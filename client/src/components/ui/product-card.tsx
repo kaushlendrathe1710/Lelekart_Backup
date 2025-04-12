@@ -1,4 +1,4 @@
-import { Product } from "@shared/schema";
+import { Product, User } from "@shared/schema";
 import { Link, useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
   const [, setLocation] = useLocation();
   
   // Get user data to check if logged in
-  const { data: user } = useQuery({
+  const { data: user } = useQuery<User | null>({
     queryKey: ['/api/user'],
     retry: false,
     staleTime: 60000,
@@ -48,7 +48,9 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
     }
     
     // Only buyers can add to cart
-    if (user.role !== 'buyer') {
+    // After null check, the user is definitely a User type with a role property
+    const userRole = user?.role as string; 
+    if (userRole && userRole !== 'buyer') {
       toast({
         title: "Action Not Allowed",
         description: "Only buyers can add items to cart. Please switch to a buyer account.",

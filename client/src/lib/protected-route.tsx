@@ -1,9 +1,8 @@
 import { Loader2 } from "lucide-react";
-import { Redirect } from "wouter";
-import { useAuth } from "@/hooks/use-auth";
-import { Layout } from "@/components/layout/layout";
-import { useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { Redirect, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { AuthContext } from "@/hooks/use-auth";
+import { useContext } from "react";
 
 interface ProtectedRouteProps {
   path: string;
@@ -15,9 +14,32 @@ export function ProtectedRoute({
   component: Component,
   role
 }: ProtectedRouteProps) {
-  const { user, isLoading } = useAuth();
+  // Try to use AuthContext first
+  const authContext = useContext(AuthContext);
   
-  if (isLoading) {
+  // Fallback to direct API call if context is not available
+  const { data: user, isLoading } = useQuery({
+    queryKey: ['/api/user'],
+    queryFn: async () => {
+      const res = await fetch('/api/user', {
+        credentials: 'include',
+      });
+      
+      if (!res.ok) {
+        if (res.status === 401) return null;
+        throw new Error('Failed to fetch user');
+      }
+      
+      return res.json();
+    },
+    staleTime: 60000, // 1 minute
+  });
+  
+  // Use context user if available, otherwise use query user
+  const currentUser = authContext?.user || user;
+  const isCurrentlyLoading = authContext ? authContext.isLoading : isLoading;
+  
+  if (isCurrentlyLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -25,17 +47,17 @@ export function ProtectedRoute({
     );
   }
 
-  if (!user) {
+  if (!currentUser) {
     return <Redirect to="/auth" />;
   }
 
   // Check if user has the required role
-  if (role && user.role !== role) {
+  if (role && currentUser.role !== role) {
     // If there's a role mismatch, redirect to their own dashboard
     const dashboardPath = 
-      user.role === 'admin' ? '/admin/dashboard' :
-      user.role === 'seller' ? '/seller/dashboard' : 
-      user.role === 'buyer' ? '/buyer/dashboard' : '/';
+      currentUser.role === 'admin' ? '/admin/dashboard' :
+      currentUser.role === 'seller' ? '/seller/dashboard' : 
+      currentUser.role === 'buyer' ? '/buyer/dashboard' : '/';
       
     return <Redirect to={dashboardPath} />;
   }

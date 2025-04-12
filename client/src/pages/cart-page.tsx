@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { useAuth } from "@/hooks/use-auth";
+import { useContext } from "react";
+import { AuthContext } from "@/hooks/use-auth";
+import { User } from "@shared/schema";
 
 interface CartItem {
   id: number;
@@ -26,7 +28,31 @@ interface CartItem {
 export default function CartPage() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  
+  // Try to use context first if available
+  const authContext = useContext(AuthContext);
+  
+  // Get user data from direct API if context is not available
+  const { data: apiUser, isLoading: apiLoading } = useQuery<User | null>({
+    queryKey: ['/api/user'],
+    queryFn: async () => {
+      const res = await fetch('/api/user', {
+        credentials: 'include',
+      });
+      
+      if (!res.ok) {
+        if (res.status === 401) return null;
+        throw new Error('Failed to fetch user');
+      }
+      
+      return res.json();
+    },
+    staleTime: 60000, // 1 minute
+  });
+  
+  // Use context user if available, otherwise use API user
+  const user = authContext?.user || apiUser;
+  const isAuthLoading = authContext ? authContext.isLoading : apiLoading;
 
   // Fetch cart data using React Query for real-time updates
   const { data: cartItems = [], isLoading } = useQuery<CartItem[]>({
