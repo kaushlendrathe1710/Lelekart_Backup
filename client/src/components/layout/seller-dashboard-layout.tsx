@@ -87,7 +87,7 @@ export function SellerDashboardLayout({ children }: SellerDashboardLayoutProps) 
   
   // If no user (not authenticated) or wrong role, redirect to auth page
   if (!user || user.role !== 'seller') {
-    window.location.href = '/auth';
+    setLocation('/auth');
     return null;
   }
 

@@ -103,7 +103,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   
   // If no user, redirect to auth page
   if (!user) {
-    window.location.href = '/auth';
+    setLocation('/auth');
     return null;
   }
 
@@ -117,8 +117,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       });
       queryClient.setQueryData(['/api/user'], null);
       queryClient.setQueryData(['/api/cart'], []);
-      // Use window.location for more reliable redirection
-      window.location.href = '/';
+      // Use wouter for navigation
+      setLocation('/');
     } catch (error) {
       console.error('Logout failed:', error);
     }

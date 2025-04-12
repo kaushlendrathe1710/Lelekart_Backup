@@ -131,7 +131,7 @@ export default function CartPage() {
           <h2 className="text-2xl font-semibold mb-4">Your cart is empty</h2>
           <p className="text-gray-600 mb-8">Looks like you haven't added any items to your cart yet.</p>
           <Button 
-            onClick={() => window.location.href = '/'} 
+            onClick={() => setLocation('/')} 
             className="bg-primary text-white"
           >
             Continue Shopping
