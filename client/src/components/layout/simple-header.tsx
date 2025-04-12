@@ -1,13 +1,30 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Search, Menu, X } from "lucide-react";
+import { Search, Menu, X, ShoppingCart, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/hooks/use-auth";
+import { useCart } from "@/context/cart-context";
 
 export function SimpleHeader() {
   const [, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const { user } = useAuth();
+  const { cartItems, toggleCart } = useCart();
+  
+  // Count total items in cart
+  const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
+  
+  // Check if user is already a seller
+  const isSeller = user?.role === 'seller';
+  const isLoggedIn = !!user;
+  
+  // Get dashboard path based on user role
+  const getDashboardPath = () => {
+    if (!user) return '/auth';
+    return `/${user.role}/dashboard`;
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,12 +67,50 @@ export function SimpleHeader() {
           </div>
 
           <div className="flex items-center space-x-4">
+            {!isLoggedIn ? (
+              // Show login button if not logged in
+              <Button 
+                variant="ghost" 
+                className="text-white hover:text-white hover:bg-primary-foreground/10"
+                onClick={() => setLocation('/auth')}
+              >
+                Login
+              </Button>
+            ) : (
+              // Show dashboard button if logged in
+              <Button 
+                variant="ghost" 
+                className="text-white hover:text-white hover:bg-primary-foreground/10"
+                onClick={() => setLocation(getDashboardPath())}
+              >
+                <User className="mr-2 h-4 w-4" />
+                Dashboard
+              </Button>
+            )}
+            
+            {/* Only show Become a Seller button if user is not already a seller */}
+            {!isSeller && (
+              <Button 
+                variant="outline" 
+                className="text-white border-white hover:bg-white/10"
+                onClick={() => setLocation('/auth')}
+              >
+                Become a Seller
+              </Button>
+            )}
+            
+            {/* Cart button */}
             <Button 
-              variant="ghost" 
-              className="text-white hover:text-white hover:bg-primary-foreground/10"
-              onClick={() => setLocation('/auth')}
+              variant="outline" 
+              className="text-white border-white hover:bg-white/10 relative"
+              onClick={toggleCart}
             >
-              Login
+              <ShoppingCart className="h-5 w-5" />
+              {totalItems > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {totalItems}
+                </span>
+              )}
             </Button>
           </div>
         </div>
@@ -118,11 +173,41 @@ export function SimpleHeader() {
                 >
                   Home
                 </button>
+                
+                {!isLoggedIn ? (
+                  // Show login button if not logged in
+                  <button
+                    onClick={() => navigateTo('/auth')}
+                    className="block w-full text-left py-2 border-b border-primary-foreground/20"
+                  >
+                    Login
+                  </button>
+                ) : (
+                  // Show dashboard button if logged in
+                  <button
+                    onClick={() => navigateTo(getDashboardPath())}
+                    className="block w-full text-left py-2 border-b border-primary-foreground/20"
+                  >
+                    Dashboard
+                  </button>
+                )}
+                
+                {/* Only show Become a Seller button if user is not already a seller */}
+                {!isSeller && (
+                  <button
+                    onClick={() => navigateTo('/auth')}
+                    className="block w-full text-left py-2 border-b border-primary-foreground/20"
+                  >
+                    Become a Seller
+                  </button>
+                )}
+                
+                {/* Show cart button */}
                 <button
-                  onClick={() => navigateTo('/auth')}
+                  onClick={toggleCart}
                   className="block w-full text-left py-2 border-b border-primary-foreground/20"
                 >
-                  Login
+                  Cart {totalItems > 0 && `(${totalItems})`}
                 </button>
               </nav>
             </div>

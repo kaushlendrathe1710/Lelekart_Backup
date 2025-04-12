@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { ShoppingCart } from "lucide-react";
+import { Box, Layers, PackageOpen, Tag, BarChart4 } from "lucide-react";
 
 export default function SellerDashboardPage() {
   const { user, logoutMutation } = useAuth();
@@ -24,8 +24,8 @@ export default function SellerDashboardPage() {
                 asChild
               >
                 <Link to="/">
-                  <ShoppingCart className="h-4 w-4" />
-                  Go Shopping
+                  <Box className="h-4 w-4" />
+                  View Store
                 </Link>
               </Button>
               <Button 
@@ -57,32 +57,80 @@ export default function SellerDashboardPage() {
       
       {/* Dashboard Content */}
       <div className="container mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          {/* Stats Cards */}
+          <Card className="shadow-md">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Products</p>
+                  <p className="text-2xl font-bold">0</p>
+                </div>
+                <div className="p-2 bg-blue-100 rounded-full">
+                  <Layers className="h-6 w-6 text-blue-700" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="shadow-md">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Orders</p>
+                  <p className="text-2xl font-bold">0</p>
+                </div>
+                <div className="p-2 bg-green-100 rounded-full">
+                  <PackageOpen className="h-6 w-6 text-green-700" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="shadow-md">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Revenue</p>
+                  <p className="text-2xl font-bold">₹0</p>
+                </div>
+                <div className="p-2 bg-purple-100 rounded-full">
+                  <BarChart4 className="h-6 w-6 text-purple-700" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="shadow-md">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Avg. Price</p>
+                  <p className="text-2xl font-bold">₹0</p>
+                </div>
+                <div className="p-2 bg-orange-100 rounded-full">
+                  <Tag className="h-6 w-6 text-orange-700" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Business Overview Card */}
+          {/* Seller Info Card */}
           <Card className="shadow-md">
             <CardHeader>
-              <CardTitle>Business Overview</CardTitle>
+              <CardTitle>Seller Information</CardTitle>
               <CardDescription>
-                Your store performance at a glance
+                Your seller account details
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="mb-4">
-                <p><strong>Store Name:</strong> {user.username}'s Store</p>
+                <p><strong>Name:</strong> {user.username}</p>
                 <p><strong>Email:</strong> {user.email}</p>
                 <p><strong>Account ID:</strong> {user.id}</p>
-                <p><strong>Store Status:</strong> <span className="text-green-600 font-medium">Active</span></p>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-2 text-center">
-                <div className="border rounded p-2">
-                  <p className="text-lg font-bold">0</p>
-                  <p className="text-sm text-muted-foreground">Products</p>
-                </div>
-                <div className="border rounded p-2">
-                  <p className="text-lg font-bold">0</p>
-                  <p className="text-sm text-muted-foreground">Orders</p>
-                </div>
+                <p><strong>Role:</strong> <span className="text-orange-600 font-medium">Seller</span></p>
               </div>
             </CardContent>
           </Card>
@@ -92,7 +140,7 @@ export default function SellerDashboardPage() {
             <CardHeader>
               <CardTitle>Quick Actions</CardTitle>
               <CardDescription>
-                Manage your store efficiently
+                Manage your seller account
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -100,20 +148,7 @@ export default function SellerDashboardPage() {
                 variant="default"
                 className="w-full flex items-center justify-center gap-2"
               >
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  width="18" 
-                  height="18" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  strokeWidth="2" 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round"
-                >
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                </svg>
+                <Layers className="h-4 w-4" />
                 Add New Product
               </Button>
               
@@ -121,20 +156,7 @@ export default function SellerDashboardPage() {
                 variant="outline"
                 className="w-full flex items-center justify-center gap-2"
               >
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  width="18" 
-                  height="18" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  strokeWidth="2" 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round"
-                >
-                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
-                </svg>
+                <PackageOpen className="h-4 w-4" />
                 View Orders
               </Button>
               
@@ -144,8 +166,8 @@ export default function SellerDashboardPage() {
               >
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
-                  width="18" 
-                  height="18" 
+                  width="16" 
+                  height="16" 
                   viewBox="0 0 24 24" 
                   fill="none" 
                   stroke="currentColor" 
@@ -153,51 +175,34 @@ export default function SellerDashboardPage() {
                   strokeLinecap="round" 
                   strokeLinejoin="round"
                 >
-                  <line x1="12" y1="20" x2="12" y2="10"></line>
-                  <line x1="18" y1="20" x2="18" y2="4"></line>
-                  <line x1="6" y1="20" x2="6" y2="16"></line>
+                  <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
                 </svg>
-                View Analytics
+                Edit Store Profile
               </Button>
             </CardContent>
           </Card>
           
-          {/* Recent Activity Card */}
+          {/* Recent Orders Card */}
           <Card className="shadow-md">
             <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
+              <CardTitle>Recent Orders</CardTitle>
               <CardDescription>
-                Latest updates from your store
+                Latest customer orders for your products
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col items-center justify-center py-6 text-center">
                 <div className="rounded-full bg-gray-100 p-3 mb-4">
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    width="24" 
-                    height="24" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="2" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round"
-                    className="text-muted-foreground"
-                  >
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="8" x2="12" y2="12"></line>
-                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                  </svg>
+                  <PackageOpen className="h-6 w-6 text-muted-foreground" />
                 </div>
-                <h3 className="text-lg font-medium">No recent activity</h3>
-                <p className="text-sm text-muted-foreground mt-1">Your recent activity will appear here</p>
+                <h3 className="text-lg font-medium">No orders yet</h3>
+                <p className="text-sm text-muted-foreground mt-1">Customer orders will appear here</p>
                 <Button 
                   variant="link" 
                   className="mt-2"
-                  onClick={() => setLocation('/')}
                 >
-                  Return to Homepage
+                  Add a product to start selling
                 </Button>
               </div>
             </CardContent>
