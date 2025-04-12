@@ -312,15 +312,18 @@ export class DatabaseStorage implements IStorage {
       orderToInsert.shippingDetails = JSON.stringify(orderToInsert.shippingDetails);
     }
     
-    // Create a properly typed order object
-    const orderData = {
+    // Add console logging for debugging
+    console.log("Creating order with data:", orderToInsert);
+    
+    // Create a properly typed order object as an array with a single item
+    const orderData = [{
       userId: orderToInsert.userId,
       status: orderToInsert.status,
       total: orderToInsert.total,
-      date: orderToInsert.date,
+      date: typeof orderToInsert.date === 'string' ? new Date(orderToInsert.date) : orderToInsert.date,
       shippingDetails: orderToInsert.shippingDetails,
       paymentMethod: orderToInsert.paymentMethod || 'cod'
-    };
+    }];
     
     const [order] = await db
       .insert(orders)
@@ -355,10 +358,18 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
-  async createOrderItem(insertOrderItem: InsertOrderItem): Promise<OrderItem> {
+  async createOrderItem(insertOrderItem: any): Promise<OrderItem> {
+    console.log("Creating order item:", insertOrderItem);
+    
+    // Insert as an array with a single element to fix typing issues
     const [orderItem] = await db
       .insert(orderItems)
-      .values(insertOrderItem)
+      .values([{
+        orderId: insertOrderItem.orderId,
+        productId: insertOrderItem.productId,
+        quantity: insertOrderItem.quantity,
+        price: insertOrderItem.price
+      }])
       .returning();
     
     return orderItem;
