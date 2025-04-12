@@ -250,11 +250,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getOrders(userId?: number, sellerId?: number): Promise<Order[]> {
-    if (userId) {
-      return db.select().from(orders).where(eq(orders.userId, userId));
-    }
+    let orderResults: Order[];
     
-    if (sellerId) {
+    if (userId) {
+      orderResults = await db.select().from(orders).where(eq(orders.userId, userId));
+    } else if (sellerId) {
       // This is more complex as we need to join with orderItems and products
       const sellerOrders = await db
         .select({ order: orders })
@@ -264,28 +264,76 @@ export class DatabaseStorage implements IStorage {
         .where(eq(products.sellerId, sellerId))
         .groupBy(orders.id);
       
-      return sellerOrders.map(item => item.order);
+      orderResults = sellerOrders.map(item => item.order);
+    } else {
+      orderResults = await db.select().from(orders);
     }
     
-    return db.select().from(orders);
+    // Parse shipping details for each order
+    return orderResults.map(order => {
+      if (order.shippingDetails && typeof order.shippingDetails === 'string') {
+        try {
+          order.shippingDetails = JSON.parse(order.shippingDetails);
+        } catch (error) {
+          console.error('Error parsing shippingDetails:', error);
+        }
+      }
+      return order;
+    });
   }
 
   async getOrder(id: number): Promise<Order | undefined> {
     const [order] = await db.select().from(orders).where(eq(orders.id, id));
+    
+    if (!order) return undefined;
+    
+    // Parse shippingDetails from string to object if it exists
+    if (order.shippingDetails && typeof order.shippingDetails === 'string') {
+      try {
+        order.shippingDetails = JSON.parse(order.shippingDetails);
+      } catch (error) {
+        console.error('Error parsing shippingDetails:', error);
+      }
+    }
+    
     return order;
   }
 
   async createOrder(insertOrder: InsertOrder): Promise<Order> {
+    // Handle shippingDetails - convert to string if provided as an object
     const orderToInsert = {
       ...insertOrder,
       status: insertOrder.status || "pending",
       date: insertOrder.date || new Date().toISOString()
     };
     
+    // Convert shippingDetails to JSON string if it exists
+    if (orderToInsert.shippingDetails && typeof orderToInsert.shippingDetails === 'object') {
+      orderToInsert.shippingDetails = JSON.stringify(orderToInsert.shippingDetails);
+    }
+    
+    // Create a properly typed order object
+    const orderData = {
+      userId: orderToInsert.userId,
+      status: orderToInsert.status,
+      total: orderToInsert.total,
+      date: orderToInsert.date,
+      shippingDetails: orderToInsert.shippingDetails
+    };
+    
     const [order] = await db
       .insert(orders)
-      .values(orderToInsert)
+      .values(orderData)
       .returning();
+    
+    // Parse shippingDetails from string to object if it exists
+    if (order.shippingDetails && typeof order.shippingDetails === 'string') {
+      try {
+        order.shippingDetails = JSON.parse(order.shippingDetails);
+      } catch (error) {
+        console.error('Error parsing shippingDetails:', error);
+      }
+    }
     
     return order;
   }
