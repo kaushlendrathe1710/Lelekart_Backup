@@ -48,6 +48,12 @@ export function CategoryNav() {
                     src={category.image} 
                     alt={category.name} 
                     className="h-10 w-10 object-contain"
+                    onError={(e) => {
+                      // Use a fallback image on error
+                      const target = e.target as HTMLImageElement;
+                      target.onerror = null; // Prevent infinite loop
+                      target.src = "https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg";
+                    }}
                   />
                 ) : (
                   <div className="h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-500">

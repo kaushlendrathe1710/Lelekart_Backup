@@ -103,7 +103,13 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
             <img 
               src={product.imageUrl} 
               alt={product.name} 
-              className="w-32 h-40 object-contain mb-3" 
+              className="w-32 h-40 object-contain mb-3"
+              onError={(e) => {
+                // Use a fallback image on error
+                const target = e.target as HTMLImageElement;
+                target.onerror = null; // Prevent infinite loop
+                target.src = "https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg";
+              }}
             />
             <h3 className="font-medium text-center text-sm">{product.name}</h3>
             <div className="text-green-600 font-medium mt-1">{formatPrice(product.price)}</div>
@@ -137,7 +143,13 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
           <img 
             src={product.imageUrl} 
             alt={product.name} 
-            className="w-28 h-32 object-contain mb-2" 
+            className="w-28 h-32 object-contain mb-2"
+            onError={(e) => {
+              // Use a fallback image on error
+              const target = e.target as HTMLImageElement;
+              target.onerror = null; // Prevent infinite loop
+              target.src = "https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg";
+            }}
           />
           <h3 className="font-medium text-center text-sm">{product.name}</h3>
           <div className="text-green-600 text-sm mt-1">From {formatPrice(product.price)}</div>

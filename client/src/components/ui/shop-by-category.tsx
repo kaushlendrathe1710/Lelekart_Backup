@@ -52,6 +52,12 @@ export function ShopByCategory() {
                       src={category.image} 
                       alt={category.name} 
                       className="h-28 w-28 object-contain"
+                      onError={(e) => {
+                        // Use a fallback image on error
+                        const target = e.target as HTMLImageElement;
+                        target.onerror = null; // Prevent infinite loop
+                        target.src = "https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg";
+                      }}
                     />
                   ) : (
                     <div className="h-28 w-28 bg-gray-100 rounded-lg flex items-center justify-center text-gray-500 text-4xl">
