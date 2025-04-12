@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Minus, Plus, Trash2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { queryClient } from "@/lib/queryClient";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
 
 interface CartItem {
   id: number;
@@ -22,109 +24,54 @@ interface CartItem {
 }
 
 export default function CartPage() {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
 
-  // Fetch user and cart data
-  useEffect(() => {
-    // Check if user is already cached
-    const cachedUser = queryClient.getQueryData<any>(['/api/user']);
-    if (cachedUser) {
-      setUser(cachedUser);
-    }
-    
-    // Fetch fresh user data
-    fetch('/api/user', {
-      credentials: 'include',
-      headers: {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      }
-    })
-    .then(res => {
-      if (res.ok) return res.json();
-      return null;
-    })
-    .then(userData => {
-      if (userData) {
-        setUser(userData);
-        queryClient.setQueryData(['/api/user'], userData);
-        // Fetch cart data
-        fetchCartItems();
-      } else {
-        setLoading(false);
-        setLocation('/auth');
-      }
-    })
-    .catch(err => {
-      console.error("Error fetching user:", err);
-      setLoading(false);
-    });
-  }, []);
+  // Fetch cart data using React Query for real-time updates
+  const { data: cartItems = [], isLoading } = useQuery<CartItem[]>({
+    queryKey: ['/api/cart'],
+    enabled: !!user,
+    staleTime: 0, // Always fetch fresh data
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchInterval: 2000, // Poll every 2 seconds for real-time updates
+  });
 
-  const fetchCartItems = () => {
-    fetch('/api/cart', {
-      credentials: 'include',
-      headers: {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      }
-    })
-    .then(res => res.json())
-    .then(data => {
-      setCartItems(data);
-      setLoading(false);
-    })
-    .catch(err => {
-      console.error("Error fetching cart:", err);
-      setLoading(false);
-    });
-  }
+  // Update quantity mutation
+  const updateQuantityMutation = useMutation({
+    mutationFn: async ({ id, quantity }: { id: number; quantity: number }) => {
+      if (quantity < 1) return null;
+      const res = await apiRequest('PUT', `/api/cart/${id}`, { quantity });
+      return res.json();
+    },
+    onSuccess: () => {
+      // Immediately refetch cart data
+      queryClient.invalidateQueries({ queryKey: ['/api/cart'] });
+    },
+  });
 
-  const updateQuantity = async (cartItemId: number, newQuantity: number) => {
+  // Remove item mutation
+  const removeItemMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest('DELETE', `/api/cart/${id}`);
+      return res;
+    },
+    onSuccess: () => {
+      // Immediately refetch cart data
+      queryClient.invalidateQueries({ queryKey: ['/api/cart'] });
+    },
+  });
+
+  // Update quantity handler
+  const handleUpdateQuantity = (cartItemId: number, newQuantity: number) => {
     if (newQuantity < 1) return;
-    
-    try {
-      const res = await fetch(`/api/cart/${cartItemId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        },
-        credentials: 'include',
-        body: JSON.stringify({ quantity: newQuantity })
-      });
-      
-      if (res.ok) {
-        // Update local state
-        setCartItems(prev => 
-          prev.map(item => 
-            item.id === cartItemId ? { ...item, quantity: newQuantity } : item
-          )
-        );
-      }
-    } catch (error) {
-      console.error("Error updating cart item:", error);
-    }
+    updateQuantityMutation.mutate({ id: cartItemId, quantity: newQuantity });
   };
 
-  const removeItem = async (cartItemId: number) => {
-    try {
-      const res = await fetch(`/api/cart/${cartItemId}`, {
-        method: 'DELETE',
-        credentials: 'include'
-      });
-      
-      if (res.ok) {
-        // Remove item from local state
-        setCartItems(prev => prev.filter(item => item.id !== cartItemId));
-      }
-    } catch (error) {
-      console.error("Error removing cart item:", error);
-    }
+  // Remove item handler
+  const handleRemoveItem = (cartItemId: number) => {
+    removeItemMutation.mutate(cartItemId);
   };
 
   const proceedToCheckout = () => {
@@ -137,7 +84,7 @@ export default function CartPage() {
   const shipping = subtotal > 0 ? 40 : 0; // Free shipping over a certain amount
   const total = subtotal + shipping;
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-center h-64">
@@ -199,7 +146,7 @@ export default function CartPage() {
                       <div className="flex-1 flex items-end justify-between text-sm">
                         <div className="flex items-center border rounded-md">
                           <button
-                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
                             className="px-3 py-1 text-gray-600 hover:text-primary"
                             disabled={item.quantity <= 1}
                           >
@@ -207,7 +154,7 @@ export default function CartPage() {
                           </button>
                           <span className="px-3 py-1">{item.quantity}</span>
                           <button
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
                             className="px-3 py-1 text-gray-600 hover:text-primary"
                           >
                             <Plus size={16} />
@@ -217,7 +164,7 @@ export default function CartPage() {
                         <div className="flex">
                           <button
                             type="button"
-                            onClick={() => removeItem(item.id)}
+                            onClick={() => handleRemoveItem(item.id)}
                             className="font-medium text-red-600 hover:text-red-500 flex items-center"
                           >
                             <Trash2 size={16} className="mr-1" /> Remove
