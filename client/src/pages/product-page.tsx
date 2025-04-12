@@ -315,9 +315,10 @@ export default function ProductPage() {
               {/* Product Image Gallery */}
               <div className="flex justify-center items-start">
                 <ProductImageGallery 
-                  imageUrl={product.imageUrl}
+                  imageUrl={product.imageUrl || (product as any).image_url}
                   additionalImages={product.images}
                   productName={product.name}
+                  category={product.category}
                 />
               </div>
               

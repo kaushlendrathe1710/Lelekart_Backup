@@ -17,9 +17,10 @@ interface ProductImageGalleryProps {
   imageUrl?: string | null;
   additionalImages?: string | string[] | null;
   productName?: string;
+  category?: string;
 }
 
-export function ProductImageGallery({ imageUrl, additionalImages, productName = "Product" }: ProductImageGalleryProps) {
+export function ProductImageGallery({ imageUrl, additionalImages, productName = "Product", category }: ProductImageGalleryProps) {
   // Process and extract images from different possible formats
   const processImages = useMemo(() => {
     const allImages: string[] = [];
@@ -131,8 +132,17 @@ export function ProductImageGallery({ imageUrl, additionalImages, productName = 
     setActiveIndex(index);
   };
 
+  // Get placeholder image based on category
+  const getPlaceholderImage = () => {
+    if (category) {
+      const categoryLower = category.toLowerCase();
+      return `/images/${categoryLower}-placeholder.svg`;
+    }
+    return '/images/placeholder.svg';
+  };
+
   // Placeholder image for errors
-  const placeholderImage = 'https://placehold.co/600x400?text=No+Image';
+  const placeholderImage = getPlaceholderImage();
 
   return (
     <div className="product-gallery">
@@ -238,7 +248,7 @@ export function ProductImageGallery({ imageUrl, additionalImages, productName = 
                     className="w-full h-full object-cover"
                     loading="eager"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'https://placehold.co/100x100?text=Error';
+                      (e.target as HTMLImageElement).src = placeholderImage;
                     }}
                   />
                 </div>
