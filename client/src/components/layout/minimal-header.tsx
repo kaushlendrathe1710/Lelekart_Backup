@@ -1,12 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { 
-  Search, 
-  Menu, 
-  X, 
-  ShoppingCart, 
-  ChevronDown 
-} from "lucide-react";
+import { Search, Menu, X, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {

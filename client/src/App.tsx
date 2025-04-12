@@ -8,8 +8,11 @@ import ProductPage from "./pages/product-page";
 import AdminDashboard from "./pages/admin/dashboard";
 import SellerDashboard from "./pages/seller/dashboard";
 import BuyerDashboard from "./pages/buyer/dashboard";
-import { SimpleHeader } from "@/components/layout/simple-header";
-import { Footer } from "@/components/layout/footer";
+import { Layout } from "@/components/layout/layout";
+import { AuthProvider } from "@/hooks/use-auth";
+import { CartProvider } from "@/context/cart-context";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 
 function Router() {
   return (
@@ -27,14 +30,18 @@ function Router() {
 
 function App() {
   return (
-    <div className="min-h-screen flex flex-col">
-      <SimpleHeader />
-      <main className="flex-grow">
-        <Router />
-      </main>
-      <Footer />
-      <Toaster />
-    </div>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <CartProvider>
+          <div className="min-h-screen flex flex-col">
+            <Layout>
+              <Router />
+            </Layout>
+            <Toaster />
+          </div>
+        </CartProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
 
