@@ -108,15 +108,10 @@ export function Header() {
           <nav className="hidden md:flex items-center justify-between md:ml-auto space-x-4 md:space-x-6">
             {/* Login Button or User Menu */}
             {!user ? (
-              <Link href="/auth">
-                <Button 
-                  variant="secondary" 
-                  className="flex items-center py-1 px-2 md:px-4 bg-white text-primary font-medium rounded-sm hover:bg-gray-100"
-                >
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Login</span>
-                </Button>
-              </Link>
+              <a href="/auth" className="flex items-center py-1 px-2 md:px-4 bg-white text-primary font-medium rounded-sm hover:bg-gray-100">
+                <User className="mr-2 h-4 w-4" />
+                <span>Login</span>
+              </a>
             ) : (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -240,10 +235,17 @@ export function Header() {
           <div className="md:hidden py-3 border-t border-primary-foreground/20">
             <ul className="space-y-3">
               <li>
-                <Link href={user ? getDashboardLink() : "/auth"} className="flex items-center text-white py-1">
-                  <User className="mr-2 h-5 w-5" />
-                  {user ? (user.name || user.username) : "Login / Sign Up"}
-                </Link>
+                {user ? (
+                  <Link href={getDashboardLink()} className="flex items-center text-white py-1">
+                    <User className="mr-2 h-5 w-5" />
+                    {user.name || user.username}
+                  </Link>
+                ) : (
+                  <a href="/auth" className="flex items-center text-white py-1">
+                    <User className="mr-2 h-5 w-5" />
+                    Login / Sign Up
+                  </a>
+                )}
               </li>
               {user?.role !== "buyer" && (
                 <li>
