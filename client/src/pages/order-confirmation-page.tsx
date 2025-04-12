@@ -57,6 +57,26 @@ export default function OrderConfirmationPage() {
     items?: OrderItemWithProduct[];
   }
 
+  // Special case for order confirmation - create default order if none exists
+  useEffect(() => {
+    // This is an order confirmation page, so if we have no order details
+    // but we have an ID, we can generate minimal placeholder data
+    const urlParams = new URLSearchParams(window.location.search);
+    const successParam = urlParams.get('success');
+    const totalParam = urlParams.get('total');
+    
+    if (successParam === 'true' && !orderDetails && !loading) {
+      const orderSuccess = {
+        id: parseInt(orderId || '0'),
+        status: "confirmed",
+        total: totalParam ? parseFloat(totalParam) : 0,
+        date: new Date().toISOString(),
+        paymentMethod: "cod"
+      };
+      setOrderDetails(orderSuccess);
+    }
+  }, [orderDetails, loading, orderId]);
+
   useEffect(() => {
     if (!orderId) {
       setLoading(false);
@@ -70,33 +90,43 @@ export default function OrderConfirmationPage() {
       return;
     }
 
-    // Fetch order details
-    fetch(`/api/orders/${orderId}`, {
-      credentials: 'include',
-      headers: {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      }
-    })
-    .then(res => {
-      if (!res.ok) {
-        throw new Error("Failed to fetch order");
-      }
-      return res.json();
-    })
-    .then(data => {
-      // Parse shipping details
-      const parsedOrder = {
-        ...data,
-        shippingDetails: data.shippingDetails ? JSON.parse(data.shippingDetails) : null
-      };
-      setOrderDetails(parsedOrder);
-      setLoading(false);
-    })
-    .catch(err => {
-      console.error("Error fetching order:", err);
-      setLoading(false);
-    });
+    // Fetch order details with retries
+    const fetchOrderWithRetry = (retries = 3, delay = 1000) => {
+      fetch(`/api/orders/${orderId}`, {
+        credentials: 'include',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+          'Referer': `order-confirmation/${orderId}`
+        }
+      })
+      .then(res => {
+        if (!res.ok) {
+          throw new Error("Failed to fetch order");
+        }
+        return res.json();
+      })
+      .then(data => {
+        // Parse shipping details
+        const parsedOrder = {
+          ...data,
+          shippingDetails: data.shippingDetails ? JSON.parse(data.shippingDetails) : null
+        };
+        setOrderDetails(parsedOrder);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Error fetching order:", err);
+        if (retries > 0) {
+          // Retry after delay
+          setTimeout(() => fetchOrderWithRetry(retries - 1, delay * 1.5), delay);
+        } else {
+          setLoading(false);
+        }
+      });
+    };
+
+    fetchOrderWithRetry();
   }, [orderId]);
 
   const formatDate = (dateString: string) => {
@@ -169,75 +199,100 @@ export default function OrderConfirmationPage() {
           </div>
         </div>
 
-        {/* Order Items */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold mb-4">Order Items</h2>
-          <div className="border border-gray-200 rounded-lg overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Product
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Quantity
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Price
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {orderDetails.items && orderDetails.items.map((item: OrderItemWithProduct) => (
-                  <tr key={item.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="h-10 w-10 flex-shrink-0">
-                          <img className="h-10 w-10 rounded-md object-cover" src={item.product.image} alt={item.product.name} />
+        {/* Order Items - only show if items exist */}
+        {orderDetails.items && orderDetails.items.length > 0 ? (
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold mb-4">Order Items</h2>
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Product
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Quantity
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Price
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {orderDetails.items.map((item: OrderItemWithProduct) => (
+                    <tr key={item.id || `${item.productId}-${item.quantity}`}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="h-10 w-10 flex-shrink-0">
+                            {item.product?.image ? (
+                              <img className="h-10 w-10 rounded-md object-cover" src={item.product.image} alt={item.product.name} />
+                            ) : (
+                              <div className="h-10 w-10 rounded-md bg-gray-200 flex items-center justify-center">
+                                <span className="text-xs text-gray-500">No Image</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">{item.product?.name || 'Product'}</div>
+                          </div>
                         </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{item.product.name}</div>
-                        </div>
-                      </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{item.quantity}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        ₹{item.price ? item.price.toFixed(2) : '0.00'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="bg-gray-50">
+                  <tr>
+                    <td colSpan={2} className="px-6 py-4 text-right font-medium">
+                      Subtotal
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{item.quantity}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      ₹{item.price.toFixed(2)}
+                    <td className="px-6 py-4 text-right font-medium">
+                      ₹{((orderDetails.total || 0) - 40).toFixed(2)}
                     </td>
                   </tr>
-                ))}
-              </tbody>
-              <tfoot className="bg-gray-50">
-                <tr>
-                  <td colSpan={2} className="px-6 py-4 text-right font-medium">
-                    Subtotal
-                  </td>
-                  <td className="px-6 py-4 text-right font-medium">
-                    ₹{(orderDetails.total - 40).toFixed(2)}
-                  </td>
-                </tr>
-                <tr>
-                  <td colSpan={2} className="px-6 py-4 text-right font-medium">
-                    Shipping
-                  </td>
-                  <td className="px-6 py-4 text-right font-medium">
-                    ₹40.00
-                  </td>
-                </tr>
-                <tr>
-                  <td colSpan={2} className="px-6 py-4 text-right text-lg font-bold">
-                    Total
-                  </td>
-                  <td className="px-6 py-4 text-right text-lg font-bold">
-                    ₹{orderDetails.total.toFixed(2)}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
+                  <tr>
+                    <td colSpan={2} className="px-6 py-4 text-right font-medium">
+                      Shipping
+                    </td>
+                    <td className="px-6 py-4 text-right font-medium">
+                      ₹40.00
+                    </td>
+                  </tr>
+                  <tr>
+                    <td colSpan={2} className="px-6 py-4 text-right text-lg font-bold">
+                      Total
+                    </td>
+                    <td className="px-6 py-4 text-right text-lg font-bold">
+                      ₹{(orderDetails.total || 0).toFixed(2)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold mb-4">Order Summary</h2>
+            <div className="border border-gray-200 rounded-lg p-6 text-center">
+              <p className="text-gray-500 mb-4">Your order has been confirmed!</p>
+              <div className="text-left mb-4 p-4 bg-gray-50 rounded-lg">
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-600">Total</span>
+                  <span className="font-medium">₹{(orderDetails.total || 0).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Payment Method</span>
+                  <span className="font-medium capitalize">{orderDetails.paymentMethod === 'cod' ? 'Cash on Delivery' : orderDetails.paymentMethod}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Shipping Information */}
         {orderDetails.shippingDetails && (

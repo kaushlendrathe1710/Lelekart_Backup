@@ -218,8 +218,8 @@ export default function CheckoutPage() {
         description: "Your order has been placed successfully. Thank you for shopping with us!",
       });
       
-      // Redirect to order confirmation page
-      setLocation(`/order-confirmation/${order.id}`);
+      // Redirect to order confirmation page with success parameter and total
+      setLocation(`/order-confirmation/${order.id}?success=true&total=${total}`);
     } catch (error) {
       console.error("Error placing order:", error);
       toast({

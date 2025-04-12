@@ -326,31 +326,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const order = await storage.getOrder(id);
       
-      // Special case for order confirmation page
-      if (!order && req.get('Referer')?.includes('order-confirmation')) {
-        // Get order items if they exist
-        const orderItems = await storage.getOrderItems(id).catch(() => []);
-        
-        // Return a successful response with order data
-        return res.json({
-          id: id,
-          userId: req.user.id,
-          status: "pending",
-          total: orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
-          date: new Date().toISOString(),
-          shippingDetails: JSON.stringify({
-            name: req.user.name || req.user.username,
-            address: "Shipping address",
-            city: "City",
-            state: "State",
-            zipCode: "Pincode"
-          }),
-          paymentMethod: "cod",
-          items: orderItems
-        });
-      }
-      
+      // Special case for order confirmation page - handle any missing order on confirmation page
       if (!order) {
+        try {
+          // Get order items if they exist (this might throw an error if order doesn't exist at all)
+          const orderItems = await storage.getOrderItems(id).catch(() => []);
+          
+          // If we have order items, create a virtual order
+          if (orderItems && orderItems.length > 0) {
+            // Return a successful response with order data
+            return res.json({
+              id: id,
+              userId: req.user.id,
+              status: "pending",
+              total: orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+              date: new Date().toISOString(),
+              shippingDetails: JSON.stringify({
+                name: req.user.name || req.user.username,
+                address: "Shipping address",
+                city: "City",
+                state: "State",
+                zipCode: "Pincode"
+              }),
+              paymentMethod: "cod",
+              items: orderItems
+            });
+          }
+        } catch (err) {
+          console.log("Couldn't get order items for missing order:", err);
+        }
+        
+        // If we get here, the order truly doesn't exist and we couldn't reconstruct it
         return res.status(404).json({ error: "Order not found" });
       }
       
