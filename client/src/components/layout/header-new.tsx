@@ -43,7 +43,6 @@ export function Header() {
         toast({
           title: "Logged out",
           description: "You have been successfully logged out",
-          variant: "default",
         });
       }
     });
@@ -51,8 +50,11 @@ export function Header() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // Implement search functionality
     console.log("Search for:", searchQuery);
+  };
+
+  const handleLoginClick = () => {
+    setLocation("/auth");
   };
 
   const getDashboardLink = () => {
@@ -109,17 +111,17 @@ export function Header() {
           
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center justify-between md:ml-auto space-x-4 md:space-x-6">
-            {/* User Controls */}
+            {/* Login Button or User Menu */}
             {!user ? (
-              // If not logged in, show a direct login button
-              <Link href="/auth">
-                <Button variant="secondary" className="flex items-center py-1 px-2 md:px-4 bg-white text-primary font-medium rounded-sm hover:bg-gray-100">
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Login</span>
-                </Button>
-              </Link>
+              <Button 
+                variant="secondary" 
+                className="flex items-center py-1 px-2 md:px-4 bg-white text-primary font-medium rounded-sm hover:bg-gray-100"
+                onClick={handleLoginClick}
+              >
+                <User className="mr-2 h-4 w-4" />
+                <span>Login</span>
+              </Button>
             ) : (
-              // If logged in, show user menu dropdown
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="secondary" className="flex items-center py-1 px-2 md:px-4 bg-white text-primary font-medium rounded-sm hover:bg-gray-100">
@@ -130,14 +132,15 @@ export function Header() {
                 <DropdownMenuContent align="end" className="w-60">
                   <DropdownMenuLabel>Hello, {user.name || user.username}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  
                   <DropdownMenuItem asChild>
                     <Link href={getDashboardLink()} className="cursor-pointer">
                       <LayoutDashboard className="mr-2 h-4 w-4" /> 
                       {user.role === "admin" ? "Admin Dashboard" : 
-                       user.role === "seller" ? "Seller Dashboard" :
-                       "My Profile"}
+                       user.role === "seller" ? "Seller Dashboard" : "My Profile"}
                     </Link>
                   </DropdownMenuItem>
+                  
                   {user.role === "buyer" && (
                     <DropdownMenuItem asChild>
                       <Link href="/buyer/orders" className="cursor-pointer">
@@ -145,6 +148,7 @@ export function Header() {
                       </Link>
                     </DropdownMenuItem>
                   )}
+                  
                   {user.role === "buyer" && (
                     <DropdownMenuItem asChild>
                       <Link href="/buyer/wishlist" className="cursor-pointer">
@@ -152,6 +156,7 @@ export function Header() {
                       </Link>
                     </DropdownMenuItem>
                   )}
+                  
                   <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
                     <LogOut className="mr-2 h-4 w-4" /> Logout
                   </DropdownMenuItem>
@@ -159,6 +164,7 @@ export function Header() {
               </DropdownMenu>
             )}
             
+            {/* Become a Seller */}
             {user?.role !== "buyer" && (
               <Link href="/seller/dashboard">
                 <Button variant="link" className="text-white hover:text-gray-200">
@@ -167,6 +173,7 @@ export function Header() {
               </Link>
             )}
             
+            {/* More Options */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="link" className="text-white flex items-center hover:text-gray-200">
@@ -190,6 +197,7 @@ export function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
             
+            {/* Cart Button */}
             <Button
               variant="link"
               className="text-white flex items-center hover:text-gray-200 relative"

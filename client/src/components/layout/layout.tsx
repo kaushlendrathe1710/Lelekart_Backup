@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Header } from "./header";
+import { Header } from "./header-new";
 import { Footer } from "./footer";
 import { CartSidebar } from "../cart/cart-sidebar";
 
