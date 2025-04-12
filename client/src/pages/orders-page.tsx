@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { Layout } from "@/components/layout/layout";
+import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -134,25 +134,21 @@ export default function OrdersPage() {
     }
   }, [searchQuery, orders]);
   
-  if (loading) {
-    return (
-      <Layout>
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          </div>
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
-      </Layout>
-    );
-  }
-  
-  return (
-    <Layout>
-      <div className="container mx-auto px-4 py-8">
+      );
+    }
+    
+    return (
+      <div>
         <div className="flex flex-col md:flex-row justify-between items-center mb-6">
           <div>
             <h1 className="text-2xl font-bold">My Orders</h1>
-            <p className="text-gray-600">Track, return, or buy again</p>
+            <p className="text-muted-foreground">Track, return, or buy again</p>
           </div>
           
           <div className="mt-4 md:mt-0 w-full md:w-auto">
@@ -164,16 +160,16 @@ export default function OrdersPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             </div>
           </div>
         </div>
         
         {filteredOrders.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-            <ShoppingBag className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+          <div className="bg-background rounded-lg shadow-sm p-8 text-center">
+            <ShoppingBag className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
             <h2 className="text-xl font-semibold mb-2">No Orders Found</h2>
-            <p className="text-gray-500 mb-4">
+            <p className="text-muted-foreground mb-4">
               {searchQuery ? "No orders match your search criteria." : "You haven't placed any orders yet."}
             </p>
             <Button onClick={() => navigate("/")}>
@@ -185,7 +181,7 @@ export default function OrdersPage() {
             {filteredOrders.map((order) => (
               <Card 
                 key={order.id} 
-                className="p-6 bg-white hover:shadow-md transition-shadow cursor-pointer"
+                className="p-6 hover:shadow-md transition-shadow cursor-pointer"
                 onClick={() => navigate(`/order/${order.id}`)}
               >
                 <div className="flex flex-col md:flex-row justify-between">
@@ -197,11 +193,11 @@ export default function OrdersPage() {
                       </Badge>
                     </div>
                     
-                    <h3 className="font-medium text-gray-900">Order #{order.id}</h3>
-                    <p className="text-sm text-gray-500">Placed on {formatDate(order.date)}</p>
+                    <h3 className="font-medium">Order #{order.id}</h3>
+                    <p className="text-sm text-muted-foreground">Placed on {formatDate(order.date)}</p>
                     
                     <div className="mt-3">
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-muted-foreground">
                         <span className="font-medium">Payment Method:</span> {order.paymentMethod === 'cod' ? 'Cash on Delivery' : order.paymentMethod}
                       </p>
                     </div>
@@ -227,6 +223,12 @@ export default function OrdersPage() {
           </div>
         )}
       </div>
-    </Layout>
+    );
+  };
+  
+  return (
+    <DashboardLayout>
+      {renderContent()}
+    </DashboardLayout>
   );
 }
