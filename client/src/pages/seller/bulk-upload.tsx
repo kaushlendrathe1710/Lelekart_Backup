@@ -52,11 +52,11 @@ import {
 
 // Mock example data with all possible product fields
 const EXAMPLE_CSV = `name,description,price,purchasePrice,mrp,category,subcategory,brand,imageUrl,imageUrl1,imageUrl2,imageUrl3,stock,sku,hsn,weight,length,width,height,warranty,returnPolicy,tax,productType
-Smartphone X Pro,Flagship smartphone with high-performance processor and excellent camera,49999.99,42999.99,59999.99,Electronics,Mobiles,TechBrand,https://example.com/smartphone-x.jpg,https://example.com/smartphone-x2.jpg,https://example.com/smartphone-x3.jpg,,100,SM-X-PRO-256-BLK,85171290,0.25,15.5,7.2,0.8,12,15,18,physical
-Wireless Earbuds Pro,True wireless earbuds with active noise cancellation,7999.99,5999.99,9999.99,Electronics,Audio,SoundTech,https://example.com/earbuds.jpg,https://example.com/earbuds2.jpg,https://example.com/earbuds3.jpg,,200,EB-PRO-BLK,85183000,0.05,5.2,4.8,2.3,12,7,18,physical
-Smart Watch Elite,Fitness tracking and notification smart watch,12999.99,10999.99,14999.99,Electronics,Wearables,FitTech,https://example.com/smartwatch.jpg,https://example.com/smartwatch2.jpg,,,150,SW-ELITE-BLK,91029900,0.07,4.5,4.5,1.2,12,7,18,physical
-Laptop Ultra,Ultra-thin laptop with powerful specifications,89999.99,83999.99,99999.99,Electronics,Laptops,TechPro,https://example.com/laptop.jpg,https://example.com/laptop2.jpg,https://example.com/laptop3.jpg,https://example.com/laptop4.jpg,50,LT-ULTRA-i7-512,84713000,1.5,35.2,24.5,1.8,24,15,18,physical
-Gaming Console X,Next-generation gaming console with 4K support,45999.99,40999.99,49999.99,Electronics,Gaming,GameTech,https://example.com/console.jpg,https://example.com/console2.jpg,https://example.com/console3.jpg,,75,GC-X-1TB-BLK,95045000,3.2,30.5,25.8,7.5,12,15,18,physical`;
+Smartphone X Pro,Flagship smartphone with high-performance processor and excellent camera,49999.99,42999.99,59999.99,Electronics,Mobiles,Sony Electronics,https://example.com/smartphone-x.jpg,https://example.com/smartphone-x2.jpg,https://example.com/smartphone-x3.jpg,,100,SM-X-PRO-256-BLK,85171290,0.5,15.5,7.2,0.8,12,15,18,physical
+Wireless Earbuds Pro,True wireless earbuds with active noise cancellation,7999.99,5999.99,9999.99,Electronics,Audio,Apple Audio,https://example.com/earbuds.jpg,https://example.com/earbuds2.jpg,https://example.com/earbuds3.jpg,,200,EB-PRO-BLK,85183000,0.5,5.2,4.8,2.3,12,7,18,physical
+Smart Watch Elite,Fitness tracking and notification smart watch,12999.99,10999.99,14999.99,Electronics,Wearables,Samsung Gear,https://example.com/smartwatch.jpg,https://example.com/smartwatch2.jpg,,,150,SW-ELITE-BLK,91029900,0.7,4.5,4.5,1.2,12,7,18,physical
+Laptop Ultra,Ultra-thin laptop with powerful specifications,89999.99,83999.99,99999.99,Electronics,Laptops,HP Computers,https://example.com/laptop.jpg,https://example.com/laptop2.jpg,https://example.com/laptop3.jpg,https://example.com/laptop4.jpg,50,LT-ULTRA-i7-512,84713000,1.5,35.2,24.5,1.8,24,15,18,physical
+Gaming Console X,Next-generation gaming console with 4K support,45999.99,40999.99,49999.99,Electronics,Gaming,Microsoft Xbox,https://example.com/console.jpg,https://example.com/console2.jpg,https://example.com/console3.jpg,,75,GC-X-1TB-BLK,95045000,3.2,30.5,25.8,7.5,12,15,18,physical`;
 
 // Sample validation rules for all fields
 const VALIDATION_RULES = [
@@ -166,7 +166,22 @@ export default function BulkUploadPage() {
           // Create an object with headers as keys and values
           const rowData: Record<string, string> = {};
           headers.forEach((header, index) => {
-            rowData[header] = values[index] || '';
+            // Handle numeric fields appropriately
+            let value = values[index] || '';
+            
+            // If this is a numeric field, ensure it's valid
+            if (['price', 'purchasePrice', 'mrp', 'weight', 'length', 'width', 'height'].includes(header)) {
+              // Ensure numeric values are properly formatted
+              if (value && !isNaN(parseFloat(value))) {
+                // Ensure it has at least one decimal place for validation
+                const numVal = parseFloat(value);
+                if (Number.isInteger(numVal)) {
+                  value = numVal.toFixed(1); // Add .0 to integers
+                }
+              }
+            }
+            
+            rowData[header] = value;
           });
           
           data.push(rowData);
