@@ -1,4 +1,4 @@
-import { ReactNode, useState, useEffect } from "react";
+import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { 
   ShoppingCart, 
@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { queryClient } from "@/lib/queryClient";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
   SidebarProvider, 
   Sidebar, 
@@ -36,68 +36,62 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
-  const [user, setUser] = useState<any>(null);
   const [location, setLocation] = useLocation();
-  const [cartItemCount, setCartItemCount] = useState(0);
   
-  // Fetch user data on mount
-  useEffect(() => {
-    // Check if user is already cached
-    const cachedUser = queryClient.getQueryData<any>(['/api/user']);
-    if (cachedUser) {
-      setUser(cachedUser);
-    }
-    
-    // Fetch fresh user data
-    fetch('/api/user', {
-      credentials: 'include',
-      headers: {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      }
-    })
-    .then(res => {
-      if (res.ok) return res.json();
-      return null;
-    })
-    .then(userData => {
-      if (userData) {
-        setUser(userData);
-        queryClient.setQueryData(['/api/user'], userData);
-      } else {
-        setLocation('/auth');
-      }
-    })
-    .catch(err => {
-      console.error("Error fetching user:", err);
-      setLocation('/auth');
-    });
-  }, [setLocation]);
-  
-  // Fetch cart items to display count
-  useEffect(() => {
-    if (user) {
-      fetch('/api/cart', {
+  // Use React Query to fetch user data
+  const { data: user } = useQuery({
+    queryKey: ['/api/user'],
+    queryFn: async () => {
+      const res = await fetch('/api/user', {
         credentials: 'include',
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
+      });
+      
+      if (!res.ok) {
+        if (res.status === 401) {
+          setLocation('/auth');
+          return null;
         }
-      })
-      .then(res => res.json())
-      .then(data => {
-        // Calculate total items in cart
-        const totalItems = data.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
-        setCartItemCount(totalItems);
-      })
-      .catch(err => console.error("Error fetching cart:", err));
-    }
-  }, [user]);
-
+        throw new Error('Failed to fetch user');
+      }
+      
+      return res.json();
+    },
+    staleTime: 60000, // 1 minute
+    refetchOnWindowFocus: false,
+  });
+  
+  // Use React Query to fetch cart data
+  const { data: cartItems = [] } = useQuery({
+    queryKey: ['/api/cart'],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      const res = await fetch('/api/cart', {
+        credentials: 'include',
+      });
+      
+      if (!res.ok) {
+        throw new Error('Failed to fetch cart');
+      }
+      
+      return res.json();
+    },
+    enabled: !!user,
+    staleTime: 60000, // 1 minute
+    refetchOnWindowFocus: false,
+  });
+  
+  // Calculate cart item count
+  const cartItemCount = cartItems.length > 0 
+    ? cartItems.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0)
+    : 0;
+  
   if (!user) {
     return null;
   }
 
+  const queryClient = useQueryClient();
+  
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', {
@@ -105,7 +99,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         credentials: 'include'
       });
       queryClient.setQueryData(['/api/user'], null);
-      setUser(null);
+      queryClient.setQueryData(['/api/cart'], []);
       setLocation('/');
     } catch (error) {
       console.error('Logout failed:', error);

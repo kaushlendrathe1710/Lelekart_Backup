@@ -21,16 +21,6 @@ import AdminDashboardPage from "./pages/admin/dashboard";
 import SellerDashboardPage from "./pages/seller/dashboard";
 import BuyerDashboardPage from "./pages/buyer/dashboard";
 
-// Create wrapper components to fix the auth provider context issue
-const BuyerDashboardWrapper = () => <BuyerDashboardPage />;
-const SellerDashboardWrapper = () => <SellerDashboardPage />;
-const AdminDashboardWrapper = () => <AdminDashboardPage />;
-const CartPageWrapper = () => <CartPage />;
-const CheckoutPageWrapper = () => <CheckoutPage />;
-const OrderConfirmationPageWrapper = (props: any) => <OrderConfirmationPage {...props} />;
-const OrdersPageWrapper = () => <OrdersPage />;
-const OrderDetailsPageWrapper = (props: any) => <OrderDetailsPage {...props} />;
-
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -64,12 +54,24 @@ function App() {
               <Route path="/cart">
                 {() => (
                   <Layout>
-                    <ProtectedRoute path="/cart" role="buyer" component={CartPageWrapper} />
+                    <ProtectedRoute 
+                      path="/cart" 
+                      role="buyer" 
+                      component={() => <CartPage />} 
+                    />
                   </Layout>
                 )}
               </Route>
               <Route path="/checkout">
-                {() => <ProtectedRoute path="/checkout" role="buyer" component={CheckoutPageWrapper} />}
+                {() => (
+                  <Layout>
+                    <ProtectedRoute 
+                      path="/checkout" 
+                      role="buyer" 
+                      component={() => <CheckoutPage />} 
+                    />
+                  </Layout>
+                )}
               </Route>
               <Route path="/order-confirmation/:id">
                 {(params) => (
@@ -79,21 +81,55 @@ function App() {
                 )}
               </Route>
               <Route path="/orders">
-                {() => <ProtectedRoute path="/orders" role="buyer" component={OrdersPageWrapper} />}
+                {() => (
+                  <Layout>
+                    <ProtectedRoute 
+                      path="/orders" 
+                      role="buyer" 
+                      component={() => <OrdersPage />} 
+                    />
+                  </Layout>
+                )}
               </Route>
               <Route path="/order/:id">
-                {() => <ProtectedRoute path="/order/:id" role="buyer" component={OrderDetailsPageWrapper} />}
+                {(params) => (
+                  <Layout>
+                    <ProtectedRoute 
+                      path="/order/:id" 
+                      role="buyer" 
+                      component={() => <OrderDetailsPage />} 
+                    />
+                  </Layout>
+                )}
               </Route>
               
               {/* Protected dashboard routes */}
               <Route path="/admin/dashboard">
-                {() => <ProtectedRoute path="/admin/dashboard" role="admin" component={AdminDashboardWrapper} />}
+                {() => (
+                  <ProtectedRoute 
+                    path="/admin/dashboard" 
+                    role="admin" 
+                    component={AdminDashboardPage} 
+                  />
+                )}
               </Route>
               <Route path="/seller/dashboard">
-                {() => <ProtectedRoute path="/seller/dashboard" role="seller" component={SellerDashboardWrapper} />}
+                {() => (
+                  <ProtectedRoute 
+                    path="/seller/dashboard" 
+                    role="seller" 
+                    component={SellerDashboardPage} 
+                  />
+                )}
               </Route>
               <Route path="/buyer/dashboard">
-                {() => <ProtectedRoute path="/buyer/dashboard" role="buyer" component={BuyerDashboardWrapper} />}
+                {() => (
+                  <ProtectedRoute 
+                    path="/buyer/dashboard" 
+                    role="buyer" 
+                    component={BuyerDashboardPage} 
+                  />
+                )}
               </Route>
               
               <Route>

@@ -68,7 +68,7 @@ export function SimpleHeader() {
   });
   
   const cartItemCount = cartItems.length > 0 
-    ? cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0)
+    ? cartItems.reduce((sum: number, item: { quantity: number }) => sum + (item.quantity || 0), 0)
     : 0;
   
   const toggleCart = () => {
