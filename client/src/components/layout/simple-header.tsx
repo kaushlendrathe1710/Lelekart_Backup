@@ -1,14 +1,35 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Search, Menu, X, ShoppingCart, User } from "lucide-react";
+import { 
+  Search, 
+  Menu, 
+  X, 
+  ShoppingCart, 
+  User,
+  LogOut,
+  ChevronDown
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/hooks/use-auth";
+import { useCart } from "@/context/cart-context";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-// Components without direct auth/cart dependencies for safer rendering
 export function SimpleHeader() {
+  const { user, logoutMutation } = useAuth();
+  const { toggleCart, cartItems } = useCart();
   const [, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  
+  const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,27 +72,63 @@ export function SimpleHeader() {
           </div>
 
           <div className="flex items-center space-x-4">
-            <Button 
-              variant="ghost" 
-              className="text-white hover:text-white hover:bg-primary-foreground/10"
-              onClick={() => setLocation('/auth')}
-            >
-              Login
-            </Button>
+            {!user ? (
+              // Show login button for non-authenticated users
+              <Button 
+                variant="ghost" 
+                className="text-white hover:text-white hover:bg-primary-foreground/10"
+                onClick={() => setLocation('/auth')}
+              >
+                Login
+              </Button>
+            ) : (
+              // Show user dropdown for authenticated users
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="text-white flex items-center hover:bg-primary-foreground/10">
+                    <User className="mr-2 h-4 w-4" />
+                    <span>{user.name || user.username}</span>
+                    <ChevronDown className="ml-1 h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-60">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href={user.role === "admin" ? "/admin/dashboard" : 
+                              user.role === "seller" ? "/seller/dashboard" : 
+                              "/buyer/dashboard"} className="cursor-pointer">
+                      Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => logoutMutation.mutate()} className="cursor-pointer">
+                    <LogOut className="mr-2 h-4 w-4" /> Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
             
-            <Button 
-              variant="outline" 
-              className="text-white border-white hover:bg-white/10"
-              onClick={() => setLocation('/auth')}
-            >
-              Become a Seller
-            </Button>
+            {!user || user.role === "buyer" ? (
+              <Button 
+                variant="outline" 
+                className="text-white border-white hover:bg-white/10"
+                onClick={() => setLocation(user ? '/seller/dashboard' : '/auth')}
+              >
+                Become a Seller
+              </Button>
+            ) : null}
             
             <Button 
               variant="outline" 
               className="text-white border-white hover:bg-white/10 relative"
+              onClick={toggleCart}
             >
               <ShoppingCart className="h-5 w-5" />
+              {cartItemCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-yellow-400 text-primary text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {cartItemCount}
+                </span>
+              )}
             </Button>
           </div>
         </div>
@@ -135,24 +192,48 @@ export function SimpleHeader() {
                   Home
                 </button>
                 
-                <button
-                  onClick={() => navigateTo('/auth')}
-                  className="block w-full text-left py-2 border-b border-primary-foreground/20"
-                >
-                  Login
-                </button>
+                {!user ? (
+                  <button
+                    onClick={() => navigateTo('/auth')}
+                    className="block w-full text-left py-2 border-b border-primary-foreground/20"
+                  >
+                    Login
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => navigateTo(
+                        user.role === "admin" ? "/admin/dashboard" : 
+                        user.role === "seller" ? "/seller/dashboard" : 
+                        "/buyer/dashboard"
+                      )}
+                      className="block w-full text-left py-2 border-b border-primary-foreground/20"
+                    >
+                      Dashboard
+                    </button>
+                    <button
+                      onClick={() => logoutMutation.mutate()}
+                      className="block w-full text-left py-2 border-b border-primary-foreground/20"
+                    >
+                      Logout
+                    </button>
+                  </>
+                )}
+                
+                {(!user || user.role === "buyer") && (
+                  <button
+                    onClick={() => navigateTo(user ? '/seller/dashboard' : '/auth')}
+                    className="block w-full text-left py-2 border-b border-primary-foreground/20"
+                  >
+                    Become a Seller
+                  </button>
+                )}
                 
                 <button
-                  onClick={() => navigateTo('/auth')}
+                  onClick={toggleCart}
                   className="block w-full text-left py-2 border-b border-primary-foreground/20"
                 >
-                  Become a Seller
-                </button>
-                
-                <button
-                  className="block w-full text-left py-2 border-b border-primary-foreground/20"
-                >
-                  Cart
+                  Cart {cartItemCount > 0 && `(${cartItemCount})`}
                 </button>
               </nav>
             </div>

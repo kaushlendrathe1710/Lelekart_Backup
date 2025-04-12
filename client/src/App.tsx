@@ -23,11 +23,23 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <CartProvider>
-          <Layout>
+          <div className="app">
             <Switch>
-              <Route path="/" component={HomePage} />
-              <Route path="/auth" component={AuthPage} />
-              <Route path="/product/:id" component={ProductPage} />
+              <Route path="/">
+                <Layout>
+                  <HomePage />
+                </Layout>
+              </Route>
+              <Route path="/auth">
+                <Layout>
+                  <AuthPage />
+                </Layout>
+              </Route>
+              <Route path="/product/:id">
+                <Layout>
+                  <ProductPage />
+                </Layout>
+              </Route>
               
               {/* Checkout routes - restricted to buyers */}
               <ProtectedRoute path="/checkout" role="buyer" component={CheckoutPage} />
@@ -38,10 +50,14 @@ function App() {
               <ProtectedRoute path="/seller/dashboard" role="seller" component={SellerDashboardPage} />
               <ProtectedRoute path="/buyer/dashboard" role="buyer" component={BuyerDashboardPage} />
               
-              <Route component={NotFound} />
+              <Route>
+                <Layout>
+                  <NotFound />
+                </Layout>
+              </Route>
             </Switch>
-          </Layout>
-          <Toaster />
+            <Toaster />
+          </div>
         </CartProvider>
       </AuthProvider>
     </QueryClientProvider>
