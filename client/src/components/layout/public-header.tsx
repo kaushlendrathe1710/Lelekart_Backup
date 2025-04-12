@@ -1,13 +1,22 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Search, Menu, X } from "lucide-react";
+import { 
+  Search, 
+  Menu, 
+  X, 
+  ShoppingCart
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useCart } from "@/context/cart-context";
 
-export function SimpleHeader() {
+export function PublicHeader() {
+  const { toggleCart, cartItems } = useCart();
   const [, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +66,20 @@ export function SimpleHeader() {
             >
               Login
             </Button>
+
+            <Button
+              variant="outline"
+              className="text-white border-white hover:bg-white hover:text-primary"
+              onClick={() => toggleCart()}
+            >
+              <ShoppingCart className="h-5 w-5 mr-1" />
+              <span>Cart</span>
+              {cartItemCount > 0 && (
+                <span className="ml-1 bg-white text-primary rounded-full h-5 w-5 flex items-center justify-center text-xs">
+                  {cartItemCount}
+                </span>
+              )}
+            </Button>
           </div>
         </div>
       </div>
@@ -74,6 +97,20 @@ export function SimpleHeader() {
           <Link href="/">
             <div className="text-2xl font-bold">Flipkart</div>
           </Link>
+
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => toggleCart()}
+              className="relative text-white hover:text-gray-200"
+            >
+              <ShoppingCart size={24} />
+              {cartItemCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-white text-primary rounded-full h-5 w-5 flex items-center justify-center text-xs">
+                  {cartItemCount}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Search */}

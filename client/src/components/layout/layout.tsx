@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Header } from "./header";
+import { SimpleHeader } from "./simple-header";
 import { Footer } from "./footer";
 import { useLocation } from "wouter";
 
@@ -19,7 +19,7 @@ export function Layout({ children }: LayoutProps) {
   // If we're on a dashboard route, don't show the standard header
   return (
     <div className="min-h-screen flex flex-col">
-      {!isDashboardRoute && <Header />}
+      {!isDashboardRoute && <SimpleHeader />}
       <main className="flex-grow">
         {children}
       </main>
