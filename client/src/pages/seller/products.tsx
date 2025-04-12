@@ -125,59 +125,8 @@ export default function SellerProductsPage() {
     setIsDeleteDialogOpen(true);
   };
   
-  // Use fetched products if available, otherwise fallback to mock data
-  const products = fetchedProducts.length > 0 ? fetchedProducts : [
-    {
-      id: 1,
-      name: "Smartphone X",
-      sku: "SP-001",
-      price: 15999,
-      stock: 24,
-      category: "Electronics",
-      approved: true,
-      image: "https://placehold.co/100x100"
-    },
-    {
-      id: 2,
-      name: "Wireless Headphones",
-      sku: "WH-002",
-      price: 2499,
-      stock: 45,
-      category: "Electronics",
-      approved: true,
-      image: "https://placehold.co/100x100"
-    },
-    {
-      id: 3,
-      name: "Smart Watch Pro",
-      sku: "SW-003",
-      price: 4999,
-      stock: 18,
-      category: "Electronics",
-      approved: false,
-      image: "https://placehold.co/100x100"
-    },
-    {
-      id: 4,
-      name: "Laptop Sleeve 15.6",
-      sku: "LS-004",
-      price: 899,
-      stock: 60,
-      category: "Accessories",
-      approved: true,
-      image: "https://placehold.co/100x100"
-    },
-    {
-      id: 5,
-      name: "Wireless Mouse",
-      sku: "WM-005",
-      price: 799,
-      stock: 32,
-      category: "Accessories",
-      approved: true, 
-      image: "https://placehold.co/100x100"
-    }
-  ];
+  // Always use real fetched products
+  const products = fetchedProducts;
   
   return (
     <SellerDashboardLayout>

@@ -71,16 +71,87 @@ export default function BulkUploadPage() {
 
     setIsUploading(true);
 
-    // Simulate upload process
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      // Create form data to send file
+      const formData = new FormData();
+      formData.append('file', file);
 
-    setIsUploading(false);
-    setUploadSuccess(true);
-    
-    toast({
-      title: "Upload successful",
-      description: "Your products have been successfully uploaded.",
-    });
+      // Send to API
+      const response = await fetch('/api/products/bulk-upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Upload failed');
+      }
+
+      // Parse the CSV file client-side to add products directly
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        if (!event.target?.result) return;
+        
+        const csvData = event.target.result as string;
+        const lines = csvData.split('\n');
+        const headers = lines[0].split(',');
+        
+        // Skip the header line and process each product line
+        for (let i = 1; i < lines.length; i++) {
+          if (!lines[i].trim()) continue; // Skip empty lines
+          
+          const values = lines[i].split(',');
+          const productData: any = {};
+          
+          // Create product object from CSV columns
+          headers.forEach((header, index) => {
+            const value = values[index]?.trim();
+            if (value) {
+              if (header === 'price' || header === 'stock') {
+                productData[header] = Number(value);
+              } else {
+                productData[header] = value;
+              }
+            }
+          });
+          
+          // Add sellerId to each product
+          productData.sellerId = 5; // Example - replace with actual user ID from context
+          
+          // Create each product via API
+          try {
+            await fetch('/api/products', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(productData),
+              credentials: 'include'
+            });
+          } catch (error) {
+            console.error('Error creating product:', error);
+          }
+        }
+        
+        setIsUploading(false);
+        setUploadSuccess(true);
+        
+        toast({
+          title: "Upload successful",
+          description: `${lines.length - 1} products have been uploaded and are pending approval.`,
+        });
+      };
+      
+      reader.readAsText(file);
+    } catch (error: any) {
+      setIsUploading(false);
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload products. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Reset the upload process

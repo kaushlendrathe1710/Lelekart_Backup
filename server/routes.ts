@@ -491,6 +491,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bulk upload endpoint
+  app.post("/api/products/bulk-upload", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+    
+    if (req.user.role !== "seller" && req.user.role !== "admin") {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+    
+    // This endpoint just confirms receipt of the upload
+    // Actual processing is done on the client to demonstrate both approaches
+    // In a production environment, you'd likely process the CSV server-side
+    res.status(200).json({ message: "Upload received" });
+  });
+
   // Categories endpoint
   app.get("/api/categories", async (_req, res) => {
     try {
