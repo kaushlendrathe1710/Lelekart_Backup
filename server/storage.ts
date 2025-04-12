@@ -318,7 +318,8 @@ export class DatabaseStorage implements IStorage {
       status: orderToInsert.status,
       total: orderToInsert.total,
       date: orderToInsert.date,
-      shippingDetails: orderToInsert.shippingDetails
+      shippingDetails: orderToInsert.shippingDetails,
+      paymentMethod: orderToInsert.paymentMethod || 'cod'
     };
     
     const [order] = await db

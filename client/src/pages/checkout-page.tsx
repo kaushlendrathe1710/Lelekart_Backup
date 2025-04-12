@@ -184,6 +184,9 @@ export default function CheckoutPage() {
         }),
       };
       
+      // Log order data before submission
+      console.log("Submitting order with data:", orderData);
+      
       // Create order
       const orderResponse = await fetch('/api/orders', {
         method: 'POST',
@@ -197,6 +200,8 @@ export default function CheckoutPage() {
       });
       
       if (!orderResponse.ok) {
+        const errorData = await orderResponse.json().catch(() => ({}));
+        console.error("Error placing order:", errorData);
         throw new Error("Failed to create order");
       }
       

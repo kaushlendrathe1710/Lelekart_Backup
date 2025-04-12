@@ -234,26 +234,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create order with shipping details from request body
       const { shippingDetails, paymentMethod } = req.body;
       
-      const orderData = insertOrderSchema.parse({
+      const orderData = {
         userId: req.user.id,
         status: "pending",
         total,
-        date: new Date().toISOString(),
-        shippingDetails: shippingDetails || null,
+        date: new Date(),
+        shippingDetails: typeof shippingDetails === 'string' ? shippingDetails : JSON.stringify(shippingDetails || {}),
         paymentMethod: paymentMethod || "cod",
-      });
+      };
+      
+      // Log the order data for debugging
+      console.log("Creating order with data:", orderData);
       
       const order = await storage.createOrder(orderData);
       
       // Create order items
       for (const item of cartItems) {
-        const orderItemData = insertOrderItemSchema.parse({
+        const orderItemData = {
           orderId: order.id,
           productId: item.product.id,
           quantity: item.quantity,
           price: item.product.price
-        });
+        };
         
+        console.log("Creating order item:", orderItemData);
         await storage.createOrderItem(orderItemData);
       }
       
