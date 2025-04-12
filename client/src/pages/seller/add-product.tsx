@@ -62,6 +62,8 @@ const productSchema = z.object({
   category: z.string().min(1, "Please select a category"),
   subcategory: z.string().optional(),
   brand: z.string().min(2, "Brand name is required"),
+  color: z.string().optional(),
+  size: z.string().optional(),
   stock: z.string().refine((val) => !isNaN(parseInt(val)) && parseInt(val) >= 0, {
     message: "Stock must be a non-negative number",
   }),
@@ -115,6 +117,8 @@ export default function AddProductPage() {
       category: "",
       subcategory: "",
       brand: "",
+      color: "",
+      size: "",
       stock: "1",
       weight: "",
       height: "",
@@ -265,6 +269,8 @@ export default function AddProductPage() {
         purchasePrice: parseInt(data.purchasePrice), // Purchase Price (cost price)
         price: parseInt(data.price), // Selling Price (convert to number)
         category: data.category,
+        color: data.color, // Add color field
+        size: data.size, // Add size field
         imageUrl: imageUrl, // Main image (first in the array)
         image: imageUrl, // For compatibility with schema
         images: uploadedImages.length > 1 ? JSON.stringify(uploadedImages) : undefined, // Additional images as JSON string
@@ -493,6 +499,46 @@ export default function AddProductPage() {
                             </FormItem>
                           )}
                         />
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <FormField
+                            control={form.control}
+                            name="color"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>
+                                  Color
+                                </FormLabel>
+                                <FormControl>
+                                  <Input placeholder="e.g. Black, Blue, Red" {...field} />
+                                </FormControl>
+                                <FormDescription>
+                                  Main color or color variants
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="size"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>
+                                  Size
+                                </FormLabel>
+                                <FormControl>
+                                  <Input placeholder="e.g. Small, Medium, Large, 42mm" {...field} />
+                                </FormControl>
+                                <FormDescription>
+                                  Size, dimensions, or variants
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                           <FormField
