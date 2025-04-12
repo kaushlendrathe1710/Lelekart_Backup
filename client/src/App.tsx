@@ -39,37 +39,77 @@ function App() {
           <div className="app">
             <Switch>
               <Route path="/">
-                <Layout>
-                  <HomePage />
-                </Layout>
+                {() => (
+                  <Layout>
+                    <HomePage />
+                  </Layout>
+                )}
               </Route>
               <Route path="/auth">
-                <Layout>
-                  <AuthPage />
-                </Layout>
+                {() => (
+                  <Layout>
+                    <AuthPage />
+                  </Layout>
+                )}
               </Route>
               <Route path="/product/:id">
-                <Layout>
-                  <ProductPage />
-                </Layout>
+                {() => (
+                  <Layout>
+                    <ProductPage />
+                  </Layout>
+                )}
               </Route>
               
               {/* Cart, Checkout, and Order routes - restricted to buyers */}
-              <ProtectedRoute path="/cart" role="buyer" component={CartPageWrapper} />
-              <ProtectedRoute path="/checkout" role="buyer" component={CheckoutPageWrapper} />
-              <ProtectedRoute path="/order-confirmation/:id" role="buyer" component={OrderConfirmationPageWrapper} />
-              <ProtectedRoute path="/orders" role="buyer" component={OrdersPageWrapper} />
-              <ProtectedRoute path="/order/:id" role="buyer" component={OrderDetailsPageWrapper} />
+              <Route path="/cart">
+                {() => (
+                  <ProtectedRoute path="/cart" role="buyer" component={CartPageWrapper} />
+                )}
+              </Route>
+              <Route path="/checkout">
+                {() => (
+                  <ProtectedRoute path="/checkout" role="buyer" component={CheckoutPageWrapper} />
+                )}
+              </Route>
+              <Route path="/order-confirmation/:id">
+                {() => (
+                  <ProtectedRoute path="/order-confirmation/:id" role="buyer" component={OrderConfirmationPageWrapper} />
+                )}
+              </Route>
+              <Route path="/orders">
+                {() => (
+                  <ProtectedRoute path="/orders" role="buyer" component={OrdersPageWrapper} />
+                )}
+              </Route>
+              <Route path="/order/:id">
+                {() => (
+                  <ProtectedRoute path="/order/:id" role="buyer" component={OrderDetailsPageWrapper} />
+                )}
+              </Route>
               
               {/* Protected dashboard routes */}
-              <ProtectedRoute path="/admin/dashboard" role="admin" component={AdminDashboardWrapper} />
-              <ProtectedRoute path="/seller/dashboard" role="seller" component={SellerDashboardWrapper} />
-              <ProtectedRoute path="/buyer/dashboard" role="buyer" component={BuyerDashboardWrapper} />
+              <Route path="/admin/dashboard">
+                {() => (
+                  <ProtectedRoute path="/admin/dashboard" role="admin" component={AdminDashboardWrapper} />
+                )}
+              </Route>
+              <Route path="/seller/dashboard">
+                {() => (
+                  <ProtectedRoute path="/seller/dashboard" role="seller" component={SellerDashboardWrapper} />
+                )}
+              </Route>
+              <Route path="/buyer/dashboard">
+                {() => (
+                  <ProtectedRoute path="/buyer/dashboard" role="buyer" component={BuyerDashboardWrapper} />
+                )}
+              </Route>
               
               <Route>
-                <Layout>
-                  <NotFound />
-                </Layout>
+                {() => (
+                  <Layout>
+                    <NotFound />
+                  </Layout>
+                )}
               </Route>
             </Switch>
             <Toaster />

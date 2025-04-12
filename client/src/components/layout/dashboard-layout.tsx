@@ -61,9 +61,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="flex min-h-screen flex-col">
-        {/* Top Navigation Bar */}
-        <header className="sticky top-0 z-40 w-full border-b bg-primary px-4 shadow-sm">
-          <div className="flex h-14 items-center justify-between">
+        {/* Top Navigation Bar - fixed height of 56px (h-14) */}
+        <header className="fixed top-0 left-0 right-0 z-50 h-14 border-b bg-primary px-4 shadow-sm">
+          <div className="flex h-full items-center justify-between">
             <div className="flex items-center gap-4">
               <SidebarTrigger className="text-white hover:bg-primary-foreground/10 hover:text-white" />
               <Link href="/" className="flex items-center">
@@ -127,6 +127,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
           </div>
         </header>
+
+        {/* Add a spacer to push content below the fixed header */}
+        <div className="h-14"></div>
 
         <div className="flex flex-1">
           <Sidebar>
@@ -248,7 +251,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </div>
             </SidebarFooter>
           </Sidebar>
-          <SidebarInset className="p-4 md:p-6">
+          <SidebarInset className="w-full p-4 md:p-6">
             {children}
           </SidebarInset>
         </div>
