@@ -34,46 +34,51 @@ export function ProductImageGallery({ imageUrl, additionalImages, productName = 
       }
     };
 
-    // Add the main image if it exists
-    if (imageUrl && typeof imageUrl === 'string' && imageUrl.trim() !== '') {
-      // Check if it's a proper URL or a JSON string
-      if (imageUrl.startsWith('http')) {
-        allImages.push(imageUrl);
-      } else if (imageUrl.includes('[') && imageUrl.includes(']')) {
-        // May be a JSON array as a string
-        const parsed = safeJsonParse(imageUrl);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          allImages.push(...parsed.filter(Boolean));
-        }
-      }
-    }
-
-    // Add additional images based on their type
-    if (additionalImages) {
-      // Case 1: additionalImages is a string array
-      if (Array.isArray(additionalImages)) {
-        allImages.push(...additionalImages.filter(img => 
-          typeof img === 'string' && img.trim() !== ''
-        ));
-      } 
-      // Case 2: additionalImages is a single string
-      else if (typeof additionalImages === 'string') {
-        // Check if it's a JSON string containing an array
-        if (additionalImages.includes('[') && additionalImages.includes(']')) {
-          const parsed = safeJsonParse(additionalImages);
-          if (Array.isArray(parsed)) {
+    try {
+      // Add the main image if it exists
+      if (imageUrl && typeof imageUrl === 'string' && imageUrl.trim() !== '') {
+        // Check if it's a proper URL or a JSON string
+        if (imageUrl.startsWith('http')) {
+          allImages.push(imageUrl);
+        } else if (imageUrl.includes('[') && imageUrl.includes(']')) {
+          // May be a JSON array as a string
+          const parsed = safeJsonParse(imageUrl);
+          if (Array.isArray(parsed) && parsed.length > 0) {
             allImages.push(...parsed.filter(Boolean));
           }
         }
-        // Case 3: It's a single URL string
-        else if (additionalImages.trim() !== '') {
-          allImages.push(additionalImages);
+      }
+  
+      // Add additional images based on their type
+      if (additionalImages) {
+        // Case 1: additionalImages is a string array
+        if (Array.isArray(additionalImages)) {
+          allImages.push(...additionalImages.filter(img => 
+            typeof img === 'string' && img.trim() !== ''
+          ));
+        } 
+        // Case 2: additionalImages is a single string
+        else if (typeof additionalImages === 'string') {
+          // Check if it's a JSON string containing an array
+          if (additionalImages.includes('[') && additionalImages.includes(']')) {
+            const parsed = safeJsonParse(additionalImages);
+            if (Array.isArray(parsed)) {
+              // Filter out any null or empty strings
+              allImages.push(...parsed.filter(item => Boolean(item)));
+            }
+          }
+          // Case 3: It's a single URL string
+          else if (additionalImages.trim() !== '') {
+            allImages.push(additionalImages);
+          }
         }
       }
+    } catch (err) {
+      console.error("Error processing images:", err);
     }
 
-    // Return the unique images (remove duplicates)
-    return [...new Set(allImages)];
+    // Return the unique images as an array to avoid TypeScript issues
+    return Array.from(new Set(allImages));
   }, [imageUrl, additionalImages]);
 
   // References to Swiper instances

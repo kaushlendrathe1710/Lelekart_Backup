@@ -462,12 +462,34 @@ function AdminProductsContent() {
                               // Determine which image source to use
                               let imageSrc = "https://placehold.co/100?text=No+Image";
                               
-                              if (product.imageUrl) {
-                                imageSrc = product.imageUrl;
-                              } else if (product.images && Array.isArray(product.images) && product.images.length > 0) {
-                                imageSrc = product.images[0];
-                              } else if (typeof product.images === 'string' && product.images) {
-                                imageSrc = product.images;
+                              try {
+                                if (product.imageUrl) {
+                                  imageSrc = product.imageUrl;
+                                } else if (product.images) {
+                                  // Handle array of images
+                                  if (Array.isArray(product.images) && product.images.length > 0) {
+                                    imageSrc = product.images[0];
+                                  } 
+                                  // Handle string (single image URL)
+                                  else if (typeof product.images === 'string') {
+                                    // Check if it's a JSON string
+                                    if (product.images.startsWith('[') && product.images.includes(']')) {
+                                      try {
+                                        const parsedImages = JSON.parse(product.images);
+                                        if (Array.isArray(parsedImages) && parsedImages.length > 0) {
+                                          imageSrc = parsedImages[0];
+                                        }
+                                      } catch (e) {
+                                        console.error('Failed to parse image JSON:', e);
+                                      }
+                                    } else {
+                                      // It's a single URL
+                                      imageSrc = product.images;
+                                    }
+                                  }
+                                }
+                              } catch (err) {
+                                console.error("Error processing image:", err);
                               }
                               
                               return (
@@ -665,24 +687,20 @@ function AdminProductsContent() {
                   </div>
                 )}
                 
-                {(viewProduct.colors && Array.isArray(viewProduct.colors) && viewProduct.colors.length > 0) && (
+                {viewProduct.color && (
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500">Colors</h3>
+                    <h3 className="text-sm font-medium text-gray-500">Color</h3>
                     <div className="flex flex-wrap gap-1 mt-1">
-                      {viewProduct.colors.map((color, index) => (
-                        <Badge key={index} variant="outline">{color}</Badge>
-                      ))}
+                      <Badge variant="outline">{viewProduct.color}</Badge>
                     </div>
                   </div>
                 )}
                 
-                {(viewProduct.sizes && Array.isArray(viewProduct.sizes) && viewProduct.sizes.length > 0) && (
+                {viewProduct.size && (
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500">Sizes</h3>
+                    <h3 className="text-sm font-medium text-gray-500">Size</h3>
                     <div className="flex flex-wrap gap-1 mt-1">
-                      {viewProduct.sizes.map((size, index) => (
-                        <Badge key={index} variant="outline">{size}</Badge>
-                      ))}
+                      <Badge variant="outline">{viewProduct.size}</Badge>
                     </div>
                   </div>
                 )}
