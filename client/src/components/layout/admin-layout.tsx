@@ -1,15 +1,9 @@
-import { useState, ReactNode } from "react";
+import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useCart } from "@/context/cart-context";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-  NavigationMenu,
-  NavigationMenuList,
-  NavigationMenuItem,
-  NavigationMenuLink,
-} from "@/components/ui/navigation-menu";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,14 +13,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import {
   LayoutDashboard,
   Package,
   Users,
@@ -34,7 +20,6 @@ import {
   Settings,
   LogOut,
   ChevronDown,
-  Menu,
   User as UserIcon,
   Bell,
   ShoppingCart,
@@ -50,7 +35,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const [location] = useLocation();
   const { user, logoutMutation } = useAuth();
   const { cartItems, toggleCart } = useCart();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems = [
     {
@@ -90,45 +74,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#2874f0] text-white shadow-md h-16">
         <div className="container mx-auto flex h-full items-center justify-between px-4">
           <div className="flex items-center space-x-4">
-            {/* Mobile Menu Trigger */}
-            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <SheetTrigger asChild className="lg:hidden">
-                <Button variant="ghost" size="icon" className="text-white">
-                  <Menu className="h-6 w-6" />
-                  <span className="sr-only">Toggle menu</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-[300px] sm:w-[400px]">
-                <SheetHeader>
-                  <SheetTitle>Admin Menu</SheetTitle>
-                  <SheetDescription>
-                    Navigate through admin dashboard
-                  </SheetDescription>
-                </SheetHeader>
-                <div className="py-6">
-                  <nav className="space-y-2">
-                    {navItems.map((item) => (
-                      <Button 
-                        key={item.href}
-                        variant="ghost"
-                        className={cn(
-                          "w-full flex items-center justify-start space-x-3 rounded-lg px-3 py-2 text-gray-900 transition-all hover:bg-gray-100",
-                          location === item.href && "bg-gray-100 font-medium"
-                        )}
-                        onClick={() => {
-                          setMobileMenuOpen(false);
-                          window.location.href = item.href;
-                        }}
-                      >
-                        {item.icon}
-                        <span>{item.title}</span>
-                      </Button>
-                    ))}
-                  </nav>
-                </div>
-              </SheetContent>
-            </Sheet>
-
             {/* Logo */}
             <Button 
               variant="ghost" 
