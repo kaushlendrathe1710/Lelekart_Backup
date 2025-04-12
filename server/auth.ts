@@ -69,26 +69,38 @@ export function setupAuth(app: Express) {
   // Step 1: Request OTP for login or registration
   app.post("/api/auth/request-otp", async (req: Request, res: Response, next: NextFunction) => {
     try {
+      console.log("Received OTP request", req.body);
+      
       // Validate request
       const validation = requestOtpSchema.safeParse(req.body);
       if (!validation.success) {
+        console.error("Invalid email validation:", validation.error);
         return res.status(400).json({ error: "Invalid email address" });
       }
 
       const { email } = validation.data;
+      console.log(`Processing OTP request for email: ${email}`);
 
       // Generate OTP
       const otp = await generateOTP();
+      console.log(`Generated OTP for ${email}: ${otp}`);
       
       // Save OTP to database
-      await saveOTP(email, otp);
+      try {
+        await saveOTP(email, otp);
+        console.log(`OTP saved to database for ${email}`);
+      } catch (dbError) {
+        console.error("Failed to save OTP to database:", dbError);
+        return res.status(500).json({ error: "Database error. Please try again later." });
+      }
       
       // Send OTP to user's email
       try {
         await sendOTPEmail(email, otp);
+        console.log(`OTP email sent successfully to ${email}`);
       } catch (emailError) {
         console.error("Failed to send email:", emailError);
-        return res.status(500).json({ error: "Failed to send OTP email. Please try again later." });
+        return res.status(500).json({ error: "Failed to send OTP email. Please check your email configuration." });
       }
       
       res.status(200).json({ 
@@ -97,6 +109,7 @@ export function setupAuth(app: Express) {
         expiresIn: 10 * 60 // 10 minutes in seconds
       });
     } catch (error) {
+      console.error("Unexpected error in /api/auth/request-otp:", error);
       next(error);
     }
   });
