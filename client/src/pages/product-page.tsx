@@ -14,8 +14,26 @@ import { apiRequest } from "@/lib/queryClient";
 import { ProductImageGallery } from "@/components/ui/product-image-gallery";
 
 export default function ProductPage() {
-  const [, params] = useRoute("/product/:id");
-  const productId = params?.id ? parseInt(params.id) : null;
+  const [matched, params] = useRoute("/product/:id");
+  console.log("Product route params:", matched, params);
+  // Get productId from URL, with fallback to search params if route doesn't match
+  let productId: number | null = null;
+  
+  if (params?.id) {
+    productId = parseInt(params.id);
+    console.log("Using route param for product ID:", productId);
+  } else {
+    // As a fallback, try to get from pathname
+    const pathParts = window.location.pathname.split('/');
+    if (pathParts.length > 2 && pathParts[1] === 'product') {
+      productId = parseInt(pathParts[2]);
+      console.log("Using pathname for product ID:", productId);
+    }
+  }
+  
+  if (!productId || isNaN(productId)) {
+    console.error("Invalid product ID:", productId);
+  }
   const [quantity, setQuantity] = useState(1);
   const [, setLocation] = useLocation();
   const { toast } = useToast();

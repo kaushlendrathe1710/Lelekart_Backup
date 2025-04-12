@@ -48,11 +48,14 @@ function App() {
                 )}
               </Route>
               <Route path="/product/:id">
-                {() => (
-                  <Layout>
-                    <ProductPage />
-                  </Layout>
-                )}
+                {(params) => {
+                  console.log("App router matched product page with params:", params);
+                  return (
+                    <Layout>
+                      <ProductPage />
+                    </Layout>
+                  );
+                }}
               </Route>
               
               {/* Cart, Checkout, and Order routes - restricted to buyers */}
