@@ -1,168 +1,295 @@
-import { useEffect, useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useCart } from "@/context/cart-context";
-import { useAuth } from "@/hooks/use-auth";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Check, ShoppingCart } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { Layout } from "@/components/layout/layout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { 
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 
-// Form schema
+// Define form schema with Zod
 const checkoutSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
-  phone: z.string().min(10, { message: "Please enter a valid phone number" }),
+  email: z.string().email({ message: "Please enter a valid email address" }),
+  phone: z.string().min(10, { message: "Phone number must be at least 10 digits" }),
   address: z.string().min(5, { message: "Address must be at least 5 characters" }),
   city: z.string().min(2, { message: "City must be at least 2 characters" }),
   state: z.string().min(2, { message: "State must be at least 2 characters" }),
-  pincode: z.string().regex(/^\d{6}$/, { message: "Please enter a valid 6-digit pincode" })
+  zipCode: z.string().min(5, { message: "ZIP code must be at least 5 characters" }),
+  paymentMethod: z.enum(["cod"], {
+    required_error: "Please select a payment method",
+  }),
+  notes: z.string().optional(),
 });
 
 type CheckoutFormValues = z.infer<typeof checkoutSchema>;
 
+interface CartItem {
+  id: number;
+  quantity: number;
+  userId: number;
+  product: {
+    id: number;
+    name: string;
+    description: string;
+    price: number;
+    image: string;
+    category: string;
+    sellerId: number;
+    approved: boolean;
+    createdAt: string;
+  };
+}
+
 export default function CheckoutPage() {
-  const { user } = useAuth();
-  const { cartItems } = useCart();
-  const [, navigate] = useLocation();
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [processingOrder, setProcessingOrder] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [isOrderPlaced, setIsOrderPlaced] = useState(false);
 
-  // Check if user is authenticated and has buyer role
-  useEffect(() => {
-    if (!user) {
-      toast({
-        title: "Please log in",
-        description: "You need to be logged in to access the checkout page",
-        variant: "destructive",
-      });
-      navigate("/auth");
-      return;
-    }
-    
-    if (user.role !== 'buyer') {
-      toast({
-        title: "Access Denied",
-        description: "Only buyers can access the checkout page. Please switch to a buyer account.",
-        variant: "destructive",
-      });
-      navigate("/");
-    }
-  }, [user, navigate, toast]);
-
-  // Check if cart is empty and redirect if it is
-  useEffect(() => {
-    if (cartItems.length === 0 && !isOrderPlaced) {
-      toast({
-        title: "Your cart is empty",
-        description: "Please add items to your cart before checkout",
-        variant: "destructive",
-      });
-      navigate("/");
-    }
-  }, [cartItems, navigate, toast, isOrderPlaced]);
-
-  // Form setup
+  // Initialize form with default values
   const form = useForm<CheckoutFormValues>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
-      name: user?.name || "",
-      phone: user?.phone || "",
-      address: user?.address || "",
+      name: "",
+      email: "",
+      phone: "",
+      address: "",
       city: "",
       state: "",
-      pincode: ""
-    }
+      zipCode: "",
+      paymentMethod: "cod",
+      notes: "",
+    },
   });
+
+  // Fetch user and cart data
+  useEffect(() => {
+    // Check if user is already cached
+    const cachedUser = queryClient.getQueryData<any>(['/api/user']);
+    if (cachedUser) {
+      setUser(cachedUser);
+      // Pre-fill form with user data if available
+      form.setValue("name", cachedUser.name || "");
+      form.setValue("email", cachedUser.email || "");
+      form.setValue("phone", cachedUser.phone || "");
+      form.setValue("address", cachedUser.address || "");
+    }
+    
+    // Fetch fresh user data
+    fetch('/api/user', {
+      credentials: 'include',
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    })
+    .then(res => {
+      if (res.ok) return res.json();
+      return null;
+    })
+    .then(userData => {
+      if (userData) {
+        setUser(userData);
+        queryClient.setQueryData(['/api/user'], userData);
+        // Pre-fill form with user data if available
+        form.setValue("name", userData.name || "");
+        form.setValue("email", userData.email || "");
+        form.setValue("phone", userData.phone || "");
+        form.setValue("address", userData.address || "");
+        
+        // Fetch cart data
+        fetchCartItems();
+      } else {
+        setLoading(false);
+        setLocation('/auth');
+      }
+    })
+    .catch(err => {
+      console.error("Error fetching user:", err);
+      setLoading(false);
+    });
+  }, [form]);
+
+  const fetchCartItems = () => {
+    fetch('/api/cart', {
+      credentials: 'include',
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    })
+    .then(res => res.json())
+    .then(data => {
+      setCartItems(data);
+      setLoading(false);
+      
+      // If cart is empty, redirect to cart page
+      if (data.length === 0) {
+        toast({
+          title: "Empty Cart",
+          description: "Your cart is empty. Please add some items before proceeding to checkout.",
+          variant: "destructive",
+        });
+        setLocation('/cart');
+      }
+    })
+    .catch(err => {
+      console.error("Error fetching cart:", err);
+      setLoading(false);
+    });
+  }
 
   // Calculate totals
-  const subtotal = cartItems.reduce((total, item) => total + (item.product.price * item.quantity), 0);
-  const discount = Math.round(subtotal * 0.05); // 5% discount
-  const shipping = subtotal > 1000 ? 0 : 40; // Free shipping over ₹1000
-  const total = subtotal - discount + shipping;
+  const subtotal = cartItems.reduce((total, item) => 
+    total + (item.product.price * item.quantity), 0);
+  const shipping = subtotal > 0 ? 40 : 0;
+  const total = subtotal + shipping;
 
-  // Format price in Indian Rupees
-  const formatPrice = (price: number) => {
-    return `₹${price.toLocaleString('en-IN')}`;
-  };
-
-  // Checkout mutation
-  const checkoutMutation = useMutation({
-    mutationFn: async (shippingDetails: CheckoutFormValues) => {
-      const res = await apiRequest("POST", "/api/orders", { shippingDetails });
-      return await res.json();
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
-      setIsOrderPlaced(true);
-      toast({
-        title: "Order placed successfully!",
-        description: "Thank you for your purchase.",
-        variant: "default",
+  // Handle form submission
+  const onSubmit = async (values: CheckoutFormValues) => {
+    setProcessingOrder(true);
+    
+    try {
+      // Prepare order data
+      const orderData = {
+        userId: user.id,
+        total,
+        status: "pending",
+        paymentMethod: values.paymentMethod,
+        shippingDetails: JSON.stringify({
+          name: values.name,
+          email: values.email,
+          phone: values.phone,
+          address: values.address,
+          city: values.city,
+          state: values.state,
+          zipCode: values.zipCode,
+          notes: values.notes,
+        }),
+      };
+      
+      // Create order
+      const orderResponse = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+        credentials: 'include',
+        body: JSON.stringify(orderData),
       });
-      // Navigate to order confirmation page (to be created)
-      navigate(`/order-confirmation/${data.id}`);
-    },
-    onError: (error: Error) => {
+      
+      if (!orderResponse.ok) {
+        throw new Error("Failed to create order");
+      }
+      
+      const order = await orderResponse.json();
+      
+      // Clear cart
+      await fetch('/api/cart/clear', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      
+      // Show success message
       toast({
-        title: "Checkout failed",
-        description: error.message || "Failed to place order. Please try again.",
+        title: "Order Placed Successfully",
+        description: "Your order has been placed successfully. Thank you for shopping with us!",
+      });
+      
+      // Redirect to order confirmation page
+      setLocation(`/order-confirmation/${order.id}`);
+    } catch (error) {
+      console.error("Error placing order:", error);
+      toast({
+        title: "Order Failed",
+        description: "There was an error placing your order. Please try again.",
         variant: "destructive",
       });
-    },
-  });
-
-  // Submit handler
-  const onSubmit = (values: CheckoutFormValues) => {
-    checkoutMutation.mutate(values);
+      setProcessingOrder(false);
+    }
   };
 
-  if (!user) {
-    return null; // Will redirect via useEffect
+  if (loading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          </div>
+        </div>
+      </Layout>
+    );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Checkout</h1>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Shipping Information */}
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Shipping Information</CardTitle>
-            </CardHeader>
-            <CardContent>
+    <Layout>
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-2xl font-bold mb-8">Checkout</h1>
+        
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Shipping Form */}
+          <div className="w-full md:w-2/3">
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-lg font-semibold mb-6">Shipping Information</h2>
+              
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Full Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter your full name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Full Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="John Doe" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="john@example.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                   
                   <FormField
                     control={form.control}
                     name="phone"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Phone Number</FormLabel>
+                        <FormLabel>Phone</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter your phone number" {...field} />
+                          <Input placeholder="1234567890" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -176,14 +303,14 @@ export default function CheckoutPage() {
                       <FormItem>
                         <FormLabel>Address</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter your address" {...field} />
+                          <Textarea placeholder="123 Main St, Apt 4B" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <FormField
                       control={form.control}
                       name="city"
@@ -191,7 +318,7 @@ export default function CheckoutPage() {
                         <FormItem>
                           <FormLabel>City</FormLabel>
                           <FormControl>
-                            <Input placeholder="City" {...field} />
+                            <Input placeholder="New York" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -205,7 +332,7 @@ export default function CheckoutPage() {
                         <FormItem>
                           <FormLabel>State</FormLabel>
                           <FormControl>
-                            <Input placeholder="State" {...field} />
+                            <Input placeholder="NY" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -214,12 +341,12 @@ export default function CheckoutPage() {
                     
                     <FormField
                       control={form.control}
-                      name="pincode"
+                      name="zipCode"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Pincode</FormLabel>
+                          <FormLabel>ZIP Code</FormLabel>
                           <FormControl>
-                            <Input placeholder="6-digit pincode" {...field} />
+                            <Input placeholder="10001" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -227,105 +354,105 @@ export default function CheckoutPage() {
                     />
                   </div>
                   
+                  <FormField
+                    control={form.control}
+                    name="notes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Order Notes (Optional)</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="Special instructions for delivery" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="paymentMethod"
+                    render={({ field }) => (
+                      <FormItem className="space-y-3">
+                        <FormLabel>Payment Method</FormLabel>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            className="flex flex-col space-y-1"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="cod" id="cod" />
+                              <Label htmlFor="cod">Cash on Delivery (COD)</Label>
+                            </div>
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
                   <div className="pt-4">
                     <Button 
                       type="submit" 
-                      className="w-full bg-orange-500 hover:bg-orange-600 text-white"
-                      disabled={checkoutMutation.isPending}
+                      className="w-full bg-primary text-white"
+                      disabled={processingOrder}
                     >
-                      {checkoutMutation.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Processing Order...
-                        </>
-                      ) : (
-                        "Place Order"
-                      )}
+                      {processingOrder ? "Processing..." : "Place Order"}
                     </Button>
                   </div>
                 </form>
               </Form>
-            </CardContent>
-          </Card>
-        </div>
-        
-        {/* Order Summary */}
-        <div>
-          <Card>
-            <CardHeader>
-              <CardTitle>Order Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Cart Items */}
-              <div className="space-y-3">
+            </div>
+          </div>
+          
+          {/* Order Summary */}
+          <div className="w-full md:w-1/3">
+            <div className="bg-white rounded-lg shadow-md p-6 sticky top-4">
+              <h2 className="text-lg font-semibold mb-6">Order Summary</h2>
+              
+              <div className="space-y-4 mb-4">
                 {cartItems.map((item) => (
-                  <div key={item.product.id} className="flex justify-between items-center">
-                    <div className="flex items-center space-x-3">
-                      <img 
-                        src={item.product.imageUrl} 
-                        alt={item.product.name} 
-                        className="w-12 h-12 object-contain"
-                      />
+                  <div key={item.id} className="flex justify-between items-center border-b pb-2">
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 rounded-md overflow-hidden mr-2">
+                        <img 
+                          src={item.product.image} 
+                          alt={item.product.name} 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
                       <div>
-                        <p className="font-medium">{item.product.name}</p>
-                        <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                        <p className="text-sm font-medium">{item.product.name}</p>
+                        <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
                       </div>
                     </div>
-                    <div className="font-medium">{formatPrice(item.product.price * item.quantity)}</div>
+                    <p className="font-medium">₹{(item.product.price * item.quantity).toFixed(2)}</p>
                   </div>
                 ))}
               </div>
               
-              <Separator />
+              <div className="flex justify-between mb-2">
+                <span className="text-gray-600">Subtotal</span>
+                <span className="font-medium">₹{subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between mb-2">
+                <span className="text-gray-600">Shipping</span>
+                <span className="font-medium">₹{shipping.toFixed(2)}</span>
+              </div>
+              <hr className="my-4" />
+              <div className="flex justify-between mb-6">
+                <span className="text-lg font-semibold">Total</span>
+                <span className="text-lg font-semibold">₹{total.toFixed(2)}</span>
+              </div>
               
-              {/* Price Details */}
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Subtotal</span>
-                  <span>{formatPrice(subtotal)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Discount</span>
-                  <span className="text-green-600">- {formatPrice(discount)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Shipping</span>
-                  <span>{shipping === 0 ? "Free" : formatPrice(shipping)}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between font-bold">
-                  <span>Total</span>
-                  <span>{formatPrice(total)}</span>
-                </div>
-                
-                {/* Shipping info */}
-                <div className="mt-4 text-sm text-gray-500">
-                  <p>Free shipping on orders over ₹1,000</p>
-                  <p>Estimated delivery: 3-5 business days</p>
-                </div>
+              <div className="bg-gray-50 p-4 rounded-md">
+                <h3 className="font-medium text-sm mb-2">Payment Method</h3>
+                <p className="text-sm text-gray-600">Cash on Delivery (COD)</p>
               </div>
-            </CardContent>
-            <CardFooter className="bg-gray-50 rounded-b-lg">
-              <div className="w-full">
-                <div className="flex items-center text-green-600 mb-2">
-                  <Check className="h-4 w-4 mr-2" />
-                  <span className="text-sm">Secure checkout</span>
-                </div>
-                <div className="flex items-center text-blue-600">
-                  <ShoppingCart className="h-4 w-4 mr-2" />
-                  <Button 
-                    variant="link" 
-                    className="p-0 h-auto text-blue-600"
-                    onClick={() => navigate("/")}
-                  >
-                    Continue Shopping
-                  </Button>
-                </div>
-              </div>
-            </CardFooter>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </Layout>
   );
 }

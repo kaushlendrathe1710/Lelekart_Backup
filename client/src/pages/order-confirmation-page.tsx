@@ -1,45 +1,17 @@
-import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useRoute, Link, useLocation } from "wouter";
-import { useAuth } from "@/hooks/use-auth";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { useLocation, useRoute } from "wouter";
+import { Layout } from "@/components/layout/layout";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle, Loader2, Clock, Package, ArrowRight } from "lucide-react";
-import { Order, OrderItem, Product } from "@shared/schema";
-import { useToast } from "@/hooks/use-toast";
+import { Check, Home, Package } from "lucide-react";
+import { queryClient } from "@/lib/queryClient";
 
 export default function OrderConfirmationPage() {
-  const [, params] = useRoute("/order-confirmation/:id");
-  const orderId = params?.id ? parseInt(params.id) : null;
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [, navigate] = useLocation();
-  
-  // Check if user is authenticated and has buyer role
-  useEffect(() => {
-    if (!user) {
-      toast({
-        title: "Please log in",
-        description: "You need to be logged in to view order confirmation",
-        variant: "destructive",
-      });
-      navigate("/auth");
-      return;
-    }
-    
-    if (user.role !== 'buyer') {
-      toast({
-        title: "Access Denied",
-        description: "Only buyers can view order confirmations. Please switch to a buyer account.",
-        variant: "destructive",
-      });
-      navigate("/");
-    }
-  }, [user, navigate, toast]);
-  
-  // Define type for order with shipping details
+  const [, params] = useRoute('/order-confirmation/:id');
+  const orderId = params?.id;
+  const [loading, setLoading] = useState(true);
+  const [orderDetails, setOrderDetails] = useState<any>(null);
+  const [, setLocation] = useLocation();
+
   type OrderWithShipping = Order & {
     shippingDetails?: {
       name: string;
@@ -51,197 +23,266 @@ export default function OrderConfirmationPage() {
     }
   };
 
-  // Define type for order item with product
   type OrderItemWithProduct = OrderItem & {
     product: Product;
   };
 
-  // Fetch order details
-  const { data: order, isLoading: isOrderLoading } = useQuery<OrderWithShipping>({
-    queryKey: [`/api/orders/${orderId}`],
-    enabled: !!orderId && !!user,
-  });
-  
-  // Fetch order items
-  const { data: orderItems, isLoading: isItemsLoading } = useQuery<OrderItemWithProduct[]>({
-    queryKey: [`/api/orders/${orderId}/items`],
-    enabled: !!orderId && !!user,
-  });
-  
-  // Format price in Indian Rupees
-  const formatPrice = (price: number) => {
-    return `₹${price.toLocaleString('en-IN')}`;
-  };
-  
-  // Format date
-  const formatDate = (dateString: string | Date) => {
-    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
-    return new Intl.DateTimeFormat('en-IN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    }).format(date);
-  };
-  
-  // Get estimated delivery date (5 days from order date)
-  const getEstimatedDelivery = (dateString: string | Date) => {
-    const date = typeof dateString === 'string' ? new Date(dateString) : new Date(dateString);
-    date.setDate(date.getDate() + 5);
-    return new Intl.DateTimeFormat('en-IN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    }).format(date);
+  interface Product {
+    id: number;
+    name: string;
+    price: number;
+    image: string;
+    description: string;
+    category: string;
+    sellerId: number;
+    approved: boolean;
+    createdAt: string;
+  }
+
+  interface OrderItem {
+    id: number;
+    orderId: number;
+    productId: number;
+    quantity: number;
+    price: number;
+  }
+
+  interface Order {
+    id: number;
+    userId: number;
+    status: string;
+    total: number;
+    date: string;
+    shippingDetails: string;
+    paymentMethod: string;
+    items?: OrderItemWithProduct[];
+  }
+
+  useEffect(() => {
+    if (!orderId) {
+      setLoading(false);
+      return;
+    }
+
+    // Check if user is already cached
+    const cachedUser = queryClient.getQueryData<any>(['/api/user']);
+    if (!cachedUser) {
+      setLocation('/auth');
+      return;
+    }
+
+    // Fetch order details
+    fetch(`/api/orders/${orderId}`, {
+      credentials: 'include',
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    })
+    .then(res => {
+      if (!res.ok) {
+        throw new Error("Failed to fetch order");
+      }
+      return res.json();
+    })
+    .then(data => {
+      // Parse shipping details
+      const parsedOrder = {
+        ...data,
+        shippingDetails: data.shippingDetails ? JSON.parse(data.shippingDetails) : null
+      };
+      setOrderDetails(parsedOrder);
+      setLoading(false);
+    })
+    .catch(err => {
+      console.error("Error fetching order:", err);
+      setLoading(false);
+    });
+  }, [orderId]);
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-IN", {
+      year: "numeric",
+      month: "long",
+      day: "numeric"
+    });
   };
 
+  if (loading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!orderDetails) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-semibold mb-4">Order Not Found</h2>
+            <p className="text-gray-600 mb-8">We couldn't find the order you're looking for.</p>
+            <Button 
+              onClick={() => setLocation('/')} 
+              className="bg-primary text-white"
+            >
+              Back to Home
+            </Button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto">
-        {isOrderLoading || isItemsLoading ? (
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-8 w-64" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Skeleton className="h-20 w-full" />
-              <Separator />
-              <div className="space-y-3">
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-16 w-full" />
+    <Layout>
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-white shadow-md rounded-lg p-6 mb-8">
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center justify-center p-4 bg-green-100 rounded-full mb-4">
+              <Check className="h-12 w-12 text-green-600" />
+            </div>
+            <h1 className="text-2xl font-bold">Order Confirmed!</h1>
+            <p className="text-gray-600 mt-2">
+              Thank you for your purchase. Your order has been received.
+            </p>
+          </div>
+
+          <div className="border border-gray-200 rounded-lg p-4 mb-6">
+            <div className="flex flex-col md:flex-row justify-between mb-4">
+              <div className="mb-4 md:mb-0">
+                <p className="text-sm text-gray-500">Order Number</p>
+                <p className="font-medium">#{orderDetails.id}</p>
               </div>
-              <Separator />
-              <Skeleton className="h-24 w-full" />
-            </CardContent>
-          </Card>
-        ) : order ? (
-          <Card>
-            <CardHeader className="bg-green-50 border-b">
-              <div className="flex items-center">
-                <CheckCircle className="h-8 w-8 text-green-500 mr-3" />
-                <div>
-                  <CardTitle className="text-2xl">Order Confirmed!</CardTitle>
-                  <p className="text-gray-600">Order #{order.id}</p>
-                </div>
+              <div className="mb-4 md:mb-0">
+                <p className="text-sm text-gray-500">Date</p>
+                <p className="font-medium">{formatDate(orderDetails.date)}</p>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-6 py-6">
-              {/* Order Status */}
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="font-medium flex items-center text-blue-700">
-                  <Clock className="h-5 w-5 mr-2" />
-                  Order Status: {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                </h3>
-                <p className="mt-2 text-gray-600">
-                  Your order has been placed successfully and is being processed.
-                </p>
-                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Order Date</p>
-                    <p className="font-medium">{formatDate(order.date)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Expected Delivery</p>
-                    <p className="font-medium">{getEstimatedDelivery(order.date)}</p>
-                  </div>
-                </div>
+              <div className="mb-4 md:mb-0">
+                <p className="text-sm text-gray-500">Payment Method</p>
+                <p className="font-medium">{orderDetails.paymentMethod === 'cod' ? 'Cash on Delivery' : orderDetails.paymentMethod}</p>
               </div>
-              
-              {/* Order Items */}
               <div>
-                <h3 className="font-medium text-lg mb-3">Order Items</h3>
-                <div className="space-y-3">
-                  {orderItems?.map((item) => (
-                    <div key={item.id} className="flex justify-between items-center border-b pb-3">
-                      <div className="flex items-center space-x-3">
-                        <img 
-                          src={item.product.imageUrl} 
-                          alt={item.product.name} 
-                          className="w-16 h-16 object-contain"
-                        />
-                        <div>
-                          <p className="font-medium">{item.product.name}</p>
-                          <p className="text-sm text-gray-500">
-                            {formatPrice(item.price)} x {item.quantity}
-                          </p>
+                <p className="text-sm text-gray-500">Order Status</p>
+                <p className="font-medium capitalize">{orderDetails.status}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Order Items */}
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold mb-4">Order Items</h2>
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Product
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Quantity
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Price
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {orderDetails.items && orderDetails.items.map((item: OrderItemWithProduct) => (
+                    <tr key={item.id}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="h-10 w-10 flex-shrink-0">
+                            <img className="h-10 w-10 rounded-md object-cover" src={item.product.image} alt={item.product.name} />
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">{item.product.name}</div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="font-medium">
-                        {formatPrice(item.price * item.quantity)}
-                      </div>
-                    </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{item.quantity}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        ₹{item.price.toFixed(2)}
+                      </td>
+                    </tr>
                   ))}
-                </div>
-              </div>
-              
-              <Separator />
-              
-              {/* Payment Summary */}
-              <div>
-                <h3 className="font-medium text-lg mb-3">Payment Summary</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Items Total</span>
-                    <span>{formatPrice(order.total)}</span>
+                </tbody>
+                <tfoot className="bg-gray-50">
+                  <tr>
+                    <td colSpan={2} className="px-6 py-4 text-right font-medium">
+                      Subtotal
+                    </td>
+                    <td className="px-6 py-4 text-right font-medium">
+                      ₹{(orderDetails.total - 40).toFixed(2)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td colSpan={2} className="px-6 py-4 text-right font-medium">
+                      Shipping
+                    </td>
+                    <td className="px-6 py-4 text-right font-medium">
+                      ₹40.00
+                    </td>
+                  </tr>
+                  <tr>
+                    <td colSpan={2} className="px-6 py-4 text-right text-lg font-bold">
+                      Total
+                    </td>
+                    <td className="px-6 py-4 text-right text-lg font-bold">
+                      ₹{orderDetails.total.toFixed(2)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          {/* Shipping Information */}
+          {orderDetails.shippingDetails && (
+            <div className="mb-8">
+              <h2 className="text-lg font-semibold mb-4">Shipping Information</h2>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="font-medium">{orderDetails.shippingDetails.name}</p>
+                <p className="text-gray-600">{orderDetails.shippingDetails.address}</p>
+                <p className="text-gray-600">
+                  {orderDetails.shippingDetails.city}, {orderDetails.shippingDetails.state} {orderDetails.shippingDetails.zipCode}
+                </p>
+                <p className="text-gray-600">Phone: {orderDetails.shippingDetails.phone}</p>
+                {orderDetails.shippingDetails.notes && (
+                  <div className="mt-2 border-t pt-2">
+                    <p className="text-sm text-gray-500">Notes:</p>
+                    <p className="text-gray-600">{orderDetails.shippingDetails.notes}</p>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Delivery Charges</span>
-                    <span>Free</span>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between font-bold">
-                    <span>Total</span>
-                    <span>{formatPrice(order.total)}</span>
-                  </div>
-                </div>
+                )}
               </div>
-              
-              {/* Delivery Information */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="font-medium flex items-center">
-                  <Package className="h-5 w-5 mr-2" />
-                  Delivery Information
-                </h3>
-                <div className="mt-2">
-                  {order.shippingDetails ? (
-                    <>
-                      <p className="font-medium">{order.shippingDetails.name}</p>
-                      <p>{order.shippingDetails.address}</p>
-                      <p>{order.shippingDetails.city}, {order.shippingDetails.state} - {order.shippingDetails.pincode}</p>
-                      <p>Phone: {order.shippingDetails.phone}</p>
-                    </>
-                  ) : (
-                    <p className="text-gray-600">Shipping details not available</p>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="border-t bg-gray-50 flex justify-between">
-              <p className="text-gray-600">Thank you for shopping with Flipkart!</p>
-              <Link href="/buyer/dashboard">
-                <Button className="bg-primary hover:bg-primary/90">
-                  View All Orders <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </CardFooter>
-          </Card>
-        ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle>Order Not Found</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>Sorry, we couldn't find the order you're looking for.</p>
-            </CardContent>
-            <CardFooter>
-              <Link href="/">
-                <Button>
-                  Continue Shopping
-                </Button>
-              </Link>
-            </CardFooter>
-          </Card>
-        )}
+            </div>
+          )}
+
+          <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
+            <Button 
+              onClick={() => setLocation('/')} 
+              variant="outline" 
+              className="flex items-center justify-center"
+            >
+              <Home className="mr-2 h-4 w-4" /> Continue Shopping
+            </Button>
+            <Button 
+              onClick={() => setLocation('/buyer/dashboard')} 
+              className="bg-primary text-white flex items-center justify-center"
+            >
+              <Package className="mr-2 h-4 w-4" /> View Orders
+            </Button>
+          </div>
+        </div>
       </div>
-    </div>
+    </Layout>
   );
 }

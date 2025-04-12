@@ -202,6 +202,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to remove from cart" });
     }
   });
+  
+  // Clear cart endpoint
+  app.post("/api/cart/clear", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      await storage.clearCart(req.user.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error clearing cart:", error);
+      res.status(500).json({ error: "Failed to clear cart" });
+    }
+  });
 
   // Order routes
   app.post("/api/orders", async (req, res) => {
@@ -219,7 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const total = cartItems.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
       
       // Create order with shipping details from request body
-      const { shippingDetails } = req.body;
+      const { shippingDetails, paymentMethod } = req.body;
       
       const orderData = insertOrderSchema.parse({
         userId: req.user.id,
@@ -227,6 +240,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         total,
         date: new Date().toISOString(),
         shippingDetails: shippingDetails || null,
+        paymentMethod: paymentMethod || "cod",
       });
       
       const order = await storage.createOrder(orderData);

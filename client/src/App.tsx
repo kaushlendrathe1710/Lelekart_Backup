@@ -4,6 +4,7 @@ import NotFound from "@/pages/not-found";
 import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
 import ProductPage from "./pages/product-page";
+import CartPage from "./pages/cart-page";
 import CheckoutPage from "./pages/checkout-page";
 import OrderConfirmationPage from "./pages/order-confirmation-page";
 import { Layout } from "@/components/layout/layout";
@@ -41,7 +42,8 @@ function App() {
                 </Layout>
               </Route>
               
-              {/* Checkout routes - restricted to buyers */}
+              {/* Cart and Checkout routes - restricted to buyers */}
+              <ProtectedRoute path="/cart" role="buyer" component={CartPage} />
               <ProtectedRoute path="/checkout" role="buyer" component={CheckoutPage} />
               <ProtectedRoute path="/order-confirmation/:id" role="buyer" component={OrderConfirmationPage} />
               
