@@ -110,9 +110,9 @@ export function SimpleHeader() {
   };
 
   return (
-    <header className="bg-primary text-white">
-      {/* Desktop Header */}
-      <div className="container mx-auto px-4 py-4 hidden md:block">
+    <header className="bg-primary text-white fixed top-0 left-0 right-0 z-40">
+      {/* Desktop Header - with consistent height of 56px (h-14) like the dashboard */}
+      <div className="container mx-auto px-4 h-14 flex items-center hidden md:block">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-8">
             <Link href="/">
@@ -201,112 +201,126 @@ export function SimpleHeader() {
         </div>
       </div>
 
-      {/* Mobile Header */}
-      <div className="md:hidden px-4 py-3">
-        <div className="flex items-center justify-between">
+      {/* Mobile Header with fixed height */}
+      <div className="md:hidden px-4">
+        <div className="h-14 flex items-center justify-between">
+          <div className="flex items-center">
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="text-white hover:text-gray-200 mr-3"
+            >
+              <Menu size={24} />
+            </button>
+
+            <Link href="/">
+              <div className="text-2xl font-bold">Flipkart</div>
+            </Link>
+          </div>
+          
           <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="text-white hover:text-gray-200"
+            onClick={toggleCart}
+            className="text-white hover:text-gray-200 relative"
           >
-            <Menu size={24} />
+            <ShoppingCart className="h-5 w-5" />
+            {cartItemCount > 0 && (
+              <span className="absolute -top-2 -right-2 bg-yellow-400 text-primary text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                {cartItemCount}
+              </span>
+            )}
           </button>
-
-          <Link href="/">
-            <div className="text-2xl font-bold">Flipkart</div>
-          </Link>
         </div>
+      </div>
+      
+      {/* Mobile Search - in a separate fixed position below the header */}
+      <div className="md:hidden fixed top-14 left-0 right-0 bg-primary px-4 pb-2 z-40">
+        <form onSubmit={handleSearch}>
+          <div className="relative flex items-center">
+            <Input
+              type="text"
+              placeholder="Search products..."
+              className="w-full bg-white text-black pr-12"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button
+              type="submit"
+              className="absolute right-0 h-full px-3 bg-transparent text-gray-500 hover:text-gray-700"
+            >
+              <Search size={20} />
+            </button>
+          </div>
+        </form>
+      </div>
 
-        {/* Mobile Search */}
-        <div className="mt-3">
-          <form onSubmit={handleSearch}>
-            <div className="relative flex items-center">
-              <Input
-                type="text"
-                placeholder="Search products..."
-                className="w-full bg-white text-black pr-12"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-50">
+          <div className="bg-primary h-full w-3/4 max-w-xs p-5">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold">Menu</h2>
               <button
-                type="submit"
-                className="absolute right-0 h-full px-3 bg-transparent text-gray-500 hover:text-gray-700"
+                onClick={() => setMobileMenuOpen(false)}
+                className="text-white hover:text-gray-200"
               >
-                <Search size={20} />
+                <X size={24} />
               </button>
             </div>
-          </form>
-        </div>
 
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="fixed inset-0 z-50 bg-black bg-opacity-50">
-            <div className="bg-primary h-full w-3/4 max-w-xs p-5">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold">Menu</h2>
+            <nav className="space-y-4">
+              <button
+                onClick={() => navigateTo('/')}
+                className="block w-full text-left py-2 border-b border-primary-foreground/20"
+              >
+                Home
+              </button>
+              
+              {!user ? (
                 <button
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="text-white hover:text-gray-200"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-
-              <nav className="space-y-4">
-                <button
-                  onClick={() => navigateTo('/')}
+                  onClick={() => navigateTo('/auth')}
                   className="block w-full text-left py-2 border-b border-primary-foreground/20"
                 >
-                  Home
+                  Login
                 </button>
-                
-                {!user ? (
+              ) : (
+                <>
                   <button
-                    onClick={() => navigateTo('/auth')}
+                    onClick={() => navigateTo(
+                      user.role === "admin" ? "/admin/dashboard" : 
+                      user.role === "seller" ? "/seller/dashboard" : 
+                      "/buyer/dashboard"
+                    )}
                     className="block w-full text-left py-2 border-b border-primary-foreground/20"
                   >
-                    Login
+                    Dashboard
                   </button>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => navigateTo(
-                        user.role === "admin" ? "/admin/dashboard" : 
-                        user.role === "seller" ? "/seller/dashboard" : 
-                        "/buyer/dashboard"
-                      )}
-                      className="block w-full text-left py-2 border-b border-primary-foreground/20"
-                    >
-                      Dashboard
-                    </button>
-                    <button
-                      onClick={handleLogout}
-                      className="block w-full text-left py-2 border-b border-primary-foreground/20"
-                    >
-                      Logout
-                    </button>
-                  </>
-                )}
-                
-                {(!user || user.role === "buyer") && (
                   <button
-                    onClick={() => navigateTo(user ? '/seller/dashboard' : '/auth')}
+                    onClick={handleLogout}
                     className="block w-full text-left py-2 border-b border-primary-foreground/20"
                   >
-                    Become a Seller
+                    Logout
                   </button>
-                )}
-                
+                </>
+              )}
+              
+              {(!user || user.role === "buyer") && (
                 <button
-                  onClick={toggleCart}
+                  onClick={() => navigateTo(user ? '/seller/dashboard' : '/auth')}
                   className="block w-full text-left py-2 border-b border-primary-foreground/20"
                 >
-                  Cart {cartItemCount > 0 && `(${cartItemCount})`}
+                  Become a Seller
                 </button>
-              </nav>
-            </div>
+              )}
+              
+              <button
+                onClick={toggleCart}
+                className="block w-full text-left py-2 border-b border-primary-foreground/20"
+              >
+                Cart {cartItemCount > 0 && `(${cartItemCount})`}
+              </button>
+            </nav>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </header>
   );
 }
