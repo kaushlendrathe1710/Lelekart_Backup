@@ -23,8 +23,12 @@ import { Badge } from "@/components/ui/badge";
 
 export default function BuyerDashboardPage() {
   // The authentication check is now handled by the ProtectedRoute component
-  // so we can safely get the user from the auth context here
+  // so we can safely get the user from the auth context here and assert it's not null
   const { user } = useAuth();
+  
+  // User will never be null here because ProtectedRoute prevents rendering if not authenticated
+  // but we need to satisfy TypeScript
+  if (!user) return null;
   
   return (
     <DashboardLayout>

@@ -9,6 +9,10 @@ export default function SellerDashboardPage() {
   const { user, logoutMutation } = useAuth();
   const [, setLocation] = useLocation();
   
+  // User will never be null here because ProtectedRoute prevents rendering if not authenticated
+  // but we need to satisfy TypeScript
+  if (!user) return null;
+  
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Dashboard Header */}
