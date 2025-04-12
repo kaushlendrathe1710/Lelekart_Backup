@@ -7,12 +7,23 @@ import {
   DownloadCloud,
   CheckCircle,
   FileText,
-  Loader2
+  Loader2,
+  AlertCircle,
+  Check,
+  ChevronDown,
+  HelpCircle,
+  Info as InfoIcon,
+  X
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { AuthContext } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 // Complete template with all possible product fields - matches the exact schema requirements
 const EXAMPLE_CSV = `name,description,price,purchasePrice,mrp,category,subcategory,brand,color,size,imageUrl1,imageUrl2,imageUrl3,imageUrl4,stock,sku,hsn,weight,length,width,height,warranty,returnPolicy,tax,specifications,productType
@@ -79,14 +90,23 @@ export default function BulkUploadPage() {
     if (e.target.files && e.target.files.length > 0) {
       const selectedFile = e.target.files[0];
       
-      // Check if it's a CSV file
-      if (!selectedFile.name.endsWith('.csv')) {
+      // Check if it's a CSV or Excel file
+      if (!selectedFile.name.endsWith('.csv') && 
+          !selectedFile.name.endsWith('.xlsx') && 
+          !selectedFile.name.endsWith('.xls')) {
         toast({
           title: "Invalid file format",
-          description: "Please upload a CSV file.",
+          description: "Please upload a CSV or Excel file.",
           variant: "destructive",
         });
         return;
+      }
+      
+      // Update file format based on extension
+      if (selectedFile.name.endsWith('.csv')) {
+        setFileFormat('CSV');
+      } else {
+        setFileFormat('Excel');
       }
       
       setFile(selectedFile);
@@ -261,6 +281,14 @@ export default function BulkUploadPage() {
         setIsUploading(false);
         setUploadSuccess(true);
         
+        // Update the upload stats for displaying results
+        setUploadStats({
+          total: successCount + errorCount,
+          success: successCount,
+          failed: errorCount,
+          showResults: true
+        });
+        
         if (errorCount > 0) {
           toast({
             title: "Upload partially successful",
@@ -290,6 +318,12 @@ export default function BulkUploadPage() {
   const resetUpload = () => {
     setFile(null);
     setUploadSuccess(false);
+    setUploadStats({
+      total: 0,
+      success: 0,
+      failed: 0,
+      showResults: false
+    });
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -323,61 +357,109 @@ export default function BulkUploadPage() {
     );
   }
 
+  // State for UI tabs
+  const [activeTab, setActiveTab] = useState<'upload' | 'help'>('upload');
+  
+  // Format support state
+  const [fileFormat, setFileFormat] = useState<'CSV' | 'Excel'>('CSV');
+  
+  // Dummy state for upload results tracking
+  const [uploadStats, setUploadStats] = useState<{
+    total: number;
+    success: number;
+    failed: number;
+    showResults: boolean;
+  }>({
+    total: 0,
+    success: 0,
+    failed: 0,
+    showResults: false
+  });
+  
   return (
     <SellerDashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button 
-              variant="outline" 
-              size="icon"
-              onClick={() => window.history.back()}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold">Bulk Product Upload</h1>
-              <p className="text-muted-foreground">Upload multiple products at once using a CSV file</p>
-            </div>
+        <div>
+          <h1 className="text-2xl font-bold">Bulk Product Upload</h1>
+          <p className="text-muted-foreground">Import multiple products at once via CSV or Excel</p>
+        </div>
+        
+        {/* Tab Navigation */}
+        <div className="flex border-b">
+          <div 
+            className={`px-6 py-3 cursor-pointer ${activeTab === 'upload' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
+            onClick={() => setActiveTab('upload')}
+          >
+            Upload Products
           </div>
-          
-          <div className="flex items-center gap-3">
-            {(file || uploadSuccess) && (
-              <Button 
-                variant="outline" 
-                onClick={resetUpload}
-              >
-                Reset
-              </Button>
-            )}
-            
-            <Button 
-              variant="outline" 
-              onClick={downloadTemplate}
-              className="flex items-center gap-2"
-            >
-              <DownloadCloud className="h-4 w-4" />
-              Download Template
-            </Button>
+          <div 
+            className={`px-6 py-3 cursor-pointer ${activeTab === 'help' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
+            onClick={() => setActiveTab('help')}
+          >
+            Help & Guidelines
           </div>
         </div>
         
-        <Card>
-          <CardContent className="pt-6">
-            {!file && !uploadSuccess ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <div className="bg-muted rounded-full p-4 mb-4">
-                  <Upload className="h-6 w-6" />
-                </div>
-                <h3 className="text-lg font-medium mb-2">Upload CSV File</h3>
-                <p className="text-muted-foreground text-center mb-6 max-w-md">
-                  Select a CSV file containing your product data. Make sure it follows the template format.
-                </p>
-                <div className="flex flex-col gap-4 w-full max-w-sm">
+        {activeTab === 'upload' ? (
+          <div className="bg-white rounded-md border p-6">
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-2">
+                <Upload className="h-5 w-5" />
+                <h2 className="text-xl font-semibold">Upload Your Product Data</h2>
+              </div>
+              <p className="text-muted-foreground">Import multiple products at once using a CSV or Excel file.</p>
+            </div>
+            
+            {/* File Upload Area with Drag & Drop */}
+            <div 
+              className={`border-2 border-dashed rounded-md p-10 ${file ? 'bg-blue-50' : ''} ${uploadSuccess ? 'bg-green-50' : ''}`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                  const droppedFile = e.dataTransfer.files[0];
+                  
+                  // Check if it's a CSV or Excel file
+                  if (!droppedFile.name.endsWith('.csv') && 
+                      !droppedFile.name.endsWith('.xlsx') && 
+                      !droppedFile.name.endsWith('.xls')) {
+                    toast({
+                      title: "Invalid file format",
+                      description: "Please upload a CSV or Excel file.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  
+                  // Update file format based on extension
+                  if (droppedFile.name.endsWith('.csv')) {
+                    setFileFormat('CSV');
+                  } else {
+                    setFileFormat('Excel');
+                  }
+                  
+                  setFile(droppedFile);
+                }
+              }}
+            >
+              {!file && !uploadSuccess ? (
+                <div className="flex flex-col items-center justify-center">
+                  <div className="text-gray-400 mb-4">
+                    <FileText className="h-16 w-16" />
+                  </div>
+                  <h3 className="text-lg font-medium mb-3">Drag & drop your file here or click to browse</h3>
+                  <p className="text-muted-foreground text-center mb-6">
+                    Supports CSV and Excel formats only (max 10MB)
+                  </p>
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".csv"
+                    accept=".csv,.xlsx,.xls"
                     onChange={handleFileSelect}
                     className="hidden"
                     id="csv-upload"
@@ -387,57 +469,214 @@ export default function BulkUploadPage() {
                     className="flex items-center gap-2"
                   >
                     <Upload className="h-4 w-4" />
-                    Select CSV File
+                    Select File
                   </Button>
                 </div>
-              </div>
-            ) : uploadSuccess ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <div className="bg-green-100 text-green-800 rounded-full p-4 mb-4">
-                  <CheckCircle className="h-6 w-6" />
+              ) : uploadSuccess && uploadStats.showResults ? (
+                // Show results after upload
+                <div className="flex flex-col items-center">
+                  <div className="text-green-500 mb-4">
+                    <CheckCircle className="h-16 w-16" />
+                  </div>
+                  <div className="text-center">
+                    <h3 className="text-lg font-medium mb-2">File selected: {file?.name}</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {file ? `${(file.size / 1024).toFixed(2)} KB` : ""}
+                    </p>
+                    <div className="flex gap-3 mb-6">
+                      <Button 
+                        variant="outline" 
+                        onClick={resetUpload}
+                        className="flex items-center gap-1"
+                      >
+                        <X className="h-4 w-4" />
+                        Remove
+                      </Button>
+                      <Button
+                        onClick={resetUpload}
+                        variant="outline"
+                      >
+                        Upload Another File
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-lg font-medium mb-2">Upload Successful!</h3>
-                <p className="text-muted-foreground text-center mb-6 max-w-md">
-                  Your products have been successfully uploaded. They may require approval before appearing in the store.
-                </p>
-                <div className="flex gap-4">
-                  <Button onClick={resetUpload} variant="outline">
-                    Upload More Products
-                  </Button>
+              ) : (
+                // Show file selected before processing upload
+                <div className="flex flex-col items-center">
+                  <div className="text-green-500 mb-4">
+                    <CheckCircle className="h-16 w-16" />
+                  </div>
+                  <div className="text-center">
+                    <h3 className="text-lg font-medium mb-2">File selected: {file?.name}</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {file ? `${(file.size / 1024).toFixed(2)} KB` : ""}
+                    </p>
+                    <div className="flex gap-3 mb-6">
+                      <Button 
+                        variant="outline" 
+                        onClick={resetUpload}
+                        disabled={isUploading}
+                        className="flex items-center gap-1"
+                      >
+                        <X className="h-4 w-4" />
+                        Remove
+                      </Button>
+                      <Button
+                        onClick={handleUpload}
+                        disabled={isUploading}
+                        className="bg-blue-500 hover:bg-blue-600 text-white"
+                      >
+                        {isUploading ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="h-4 w-4 mr-2" />
+                            Process Upload
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-12">
-                <div className="bg-muted rounded-full p-4 mb-4">
-                  <FileText className="h-6 w-6" />
+              )}
+            </div>
+            
+            {/* Upload Progress and Stats (when applicable) */}
+            {uploadSuccess && uploadStats.showResults && (
+              <div className="mt-6">
+                <div className="mb-2 flex justify-between items-center">
+                  <div>Upload Progress</div>
+                  <div>{uploadStats.total} of {uploadStats.total} products</div>
                 </div>
-                <h3 className="text-lg font-medium mb-2">File Selected</h3>
-                <p className="text-muted-foreground text-center mb-2">
-                  {file?.name}
-                </p>
-                <p className="text-muted-foreground text-center mb-6 text-sm">
-                  {file ? `${(file.size / 1024).toFixed(2)} KB` : ""}
-                </p>
-                <div className="flex gap-4">
-                  <Button
-                    onClick={handleUpload}
-                    disabled={isUploading}
-                    className="min-w-[120px]"
-                  >
-                    {isUploading ? "Uploading..." : "Upload Products"}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={resetUpload}
-                    disabled={isUploading}
-                  >
-                    Cancel
-                  </Button>
+                <div className="w-full bg-blue-100 rounded-full h-2.5 mb-4">
+                  <div className="bg-blue-500 h-2.5 rounded-full" style={{ width: '100%' }}></div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-green-50 border border-green-100 rounded-md p-4 flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                    <div>
+                      <div className="text-green-600 font-medium">Successfully Processed</div>
+                      <div className="text-xl font-bold text-green-700">{uploadStats.success}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-red-50 border border-red-100 rounded-md p-4 flex items-center">
+                    <AlertCircle className="h-5 w-5 text-red-500 mr-3" />
+                    <div>
+                      <div className="text-red-600 font-medium">Failed Records</div>
+                      <div className="text-xl font-bold text-red-700">{uploadStats.failed}</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+            
+            {/* Template Download Section */}
+            <div className="flex justify-between items-center mt-6">
+              <Button 
+                variant="outline" 
+                onClick={downloadTemplate}
+                className="flex items-center gap-2"
+              >
+                <DownloadCloud className="h-4 w-4" />
+                Download Template
+              </Button>
+              
+              <div className="relative">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="flex items-center gap-2">
+                      {fileFormat}
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <div className="p-0">
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-start rounded-none px-4 py-2"
+                        onClick={() => setFileFormat('CSV')}
+                      >
+                        {fileFormat === 'CSV' && <Check className="h-4 w-4 mr-2" />}
+                        CSV
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-start rounded-none px-4 py-2"
+                        onClick={() => setFileFormat('Excel')}
+                      >
+                        {fileFormat === 'Excel' && <Check className="h-4 w-4 mr-2" />}
+                        Excel
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-md border p-6">
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <HelpCircle className="h-5 w-5" />
+                <h2 className="text-xl font-semibold">How to Use Bulk Upload</h2>
+              </div>
+              <p className="text-muted-foreground mb-6">Step-by-step instructions to prepare and upload your product data.</p>
+            </div>
+            
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-medium mb-3">Step 1: Prepare Your Data</h3>
+                <ul className="list-disc pl-5 space-y-2">
+                  <li>Download our product template using the "Download Template" button</li>
+                  <li>Fill in your product details in the spreadsheet</li>
+                  <li>Required fields: name, description, price, category</li>
+                  <li>Save your file as CSV or Excel format</li>
+                </ul>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-medium mb-3">Step 2: Upload Your File</h3>
+                <ul className="list-disc pl-5 space-y-2">
+                  <li>Click on the upload area to select your file</li>
+                  <li>Verify that your file appears with a green checkmark</li>
+                  <li>Click "Process Upload" to begin importing</li>
+                  <li>Wait for the upload to complete</li>
+                </ul>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-medium mb-3">Step 3: Review Results</h3>
+                <ul className="list-disc pl-5 space-y-2">
+                  <li>Check the number of successfully imported products</li>
+                  <li>Review any errors that occurred during import</li>
+                  <li>Go to your Products page to see the newly added items</li>
+                </ul>
+              </div>
+              
+              <div className="bg-muted/30 border rounded-md p-4">
+                <h4 className="flex items-center gap-2 font-medium mb-3">
+                  <InfoIcon className="h-5 w-5" />
+                  Tips for Success
+                </h4>
+                <ul className="list-disc pl-5 space-y-2">
+                  <li>Ensure your category values match existing categories in your store</li>
+                  <li>For image URLs, use publicly accessible links</li>
+                  <li>Use the <span className="font-semibold">imageUrl1</span>, <span className="font-semibold">imageUrl2</span>, and <span className="font-semibold">imageUrl3</span> fields to add additional product images</li>
+                  <li>Each image URL should be placed in its own column - do not use commas to separate them</li>
+                  <li>Format <span className="font-semibold">colors</span> and <span className="font-semibold">sizes</span> as comma-separated values (Example: Red,Blue,Green)</li>
+                  <li>Use consistent formatting for prices (numbers only, no currency symbols)</li>
+                  <li>Maximum file size is 10MB</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </SellerDashboardLayout>
   );
