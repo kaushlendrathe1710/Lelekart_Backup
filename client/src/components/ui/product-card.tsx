@@ -94,7 +94,7 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
             onClick={handleAddToCart}
           >
             <ShoppingCart className="h-3 w-3 mr-1" />
-            Add
+            Add to Cart
           </Button>
         </CardContent>
       </Card>
