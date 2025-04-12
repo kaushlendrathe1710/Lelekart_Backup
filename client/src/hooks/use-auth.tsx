@@ -58,6 +58,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   } = useQuery<SelectUser | null, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    retry: 1,
   });
 
   // Request OTP Mutation
