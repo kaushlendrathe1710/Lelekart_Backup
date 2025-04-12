@@ -104,7 +104,8 @@ export default function CartPage() {
   };
 
   const proceedToCheckout = () => {
-    setLocation('/checkout');
+    // Use window.location for more reliable redirection
+    window.location.href = '/checkout';
   };
 
   // Calculate totals
@@ -130,7 +131,7 @@ export default function CartPage() {
           <h2 className="text-2xl font-semibold mb-4">Your cart is empty</h2>
           <p className="text-gray-600 mb-8">Looks like you haven't added any items to your cart yet.</p>
           <Button 
-            onClick={() => setLocation('/')} 
+            onClick={() => window.location.href = '/'} 
             className="bg-primary text-white"
           >
             Continue Shopping

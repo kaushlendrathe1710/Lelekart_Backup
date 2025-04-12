@@ -116,7 +116,7 @@ export default function CheckoutPage() {
         fetchCartItems();
       } else {
         setLoading(false);
-        setLocation('/auth');
+        window.location.href = '/auth';
       }
     })
     .catch(err => {
@@ -145,7 +145,7 @@ export default function CheckoutPage() {
           description: "Your cart is empty. Please add some items before proceeding to checkout.",
           variant: "destructive",
         });
-        setLocation('/cart');
+        window.location.href = '/cart';
       }
     })
     .catch(err => {
@@ -219,7 +219,7 @@ export default function CheckoutPage() {
       });
       
       // Redirect to order confirmation page with success parameter and total
-      setLocation(`/order-confirmation/${order.id}?success=true&total=${total}`);
+      window.location.href = `/order-confirmation/${order.id}?success=true&total=${total}`;
     } catch (error) {
       console.error("Error placing order:", error);
       toast({
