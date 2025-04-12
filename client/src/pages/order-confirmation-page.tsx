@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useRoute, Link } from "wouter";
+import { useRoute, Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,11 +8,36 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CheckCircle, Loader2, Clock, Package, ArrowRight } from "lucide-react";
 import { Order, OrderItem, Product } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
 
 export default function OrderConfirmationPage() {
   const [, params] = useRoute("/order-confirmation/:id");
   const orderId = params?.id ? parseInt(params.id) : null;
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [, navigate] = useLocation();
+  
+  // Check if user is authenticated and has buyer role
+  useEffect(() => {
+    if (!user) {
+      toast({
+        title: "Please log in",
+        description: "You need to be logged in to view order confirmation",
+        variant: "destructive",
+      });
+      navigate("/auth");
+      return;
+    }
+    
+    if (user.role !== 'buyer') {
+      toast({
+        title: "Access Denied",
+        description: "Only buyers can view order confirmations. Please switch to a buyer account.",
+        variant: "destructive",
+      });
+      navigate("/");
+    }
+  }, [user, navigate, toast]);
   
   // Define type for order with shipping details
   type OrderWithShipping = Order & {

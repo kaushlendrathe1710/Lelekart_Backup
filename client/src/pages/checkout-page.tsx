@@ -34,7 +34,7 @@ export default function CheckoutPage() {
   const { toast } = useToast();
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
 
-  // Check if user is authenticated and redirect if not
+  // Check if user is authenticated and has buyer role
   useEffect(() => {
     if (!user) {
       toast({
@@ -43,6 +43,16 @@ export default function CheckoutPage() {
         variant: "destructive",
       });
       navigate("/auth");
+      return;
+    }
+    
+    if (user.role !== 'buyer') {
+      toast({
+        title: "Access Denied",
+        description: "Only buyers can access the checkout page. Please switch to a buyer account.",
+        variant: "destructive",
+      });
+      navigate("/");
     }
   }, [user, navigate, toast]);
 

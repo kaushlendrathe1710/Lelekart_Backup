@@ -29,9 +29,9 @@ function App() {
               <Route path="/auth" component={AuthPage} />
               <Route path="/product/:id" component={ProductPage} />
               
-              {/* Checkout routes */}
-              <ProtectedRoute path="/checkout" component={CheckoutPage} />
-              <ProtectedRoute path="/order-confirmation/:id" component={OrderConfirmationPage} />
+              {/* Checkout routes - restricted to buyers */}
+              <ProtectedRoute path="/checkout" role="buyer" component={CheckoutPage} />
+              <ProtectedRoute path="/order-confirmation/:id" role="buyer" component={OrderConfirmationPage} />
               
               {/* Protected dashboard routes */}
               <ProtectedRoute path="/admin/dashboard" role="admin" component={AdminDashboardPage} />
