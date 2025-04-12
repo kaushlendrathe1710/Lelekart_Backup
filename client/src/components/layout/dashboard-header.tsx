@@ -1,66 +1,59 @@
+import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ChevronDown, LogOut, ShoppingBag, User } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 
-export function DashboardHeader() {
-  const { user, logoutMutation } = useAuth();
+interface DashboardHeaderProps {
+  userRole: string;
+}
+
+export function DashboardHeader({ userRole }: DashboardHeaderProps) {
+  const { logoutMutation } = useAuth();
+  
+  // Different title based on user role
+  const dashboardTitle = 
+    userRole === 'admin' ? "Admin Dashboard" :
+    userRole === 'seller' ? "Seller Dashboard" : 
+    "Buyer Dashboard";
   
   return (
-    <header className="bg-primary text-white py-3 px-4 md:px-8">
-      <div className="container mx-auto">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <a href="/" className="text-2xl font-bold">
-              Flipkart
-            </a>
-            <span className="text-xs ml-1 opacity-80 flex items-center">
-              Dashboard
-            </span>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="text-white flex items-center gap-2 hover:bg-primary/20">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-primary-foreground text-primary">
-                      {user?.username?.substring(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span>{user?.username}</span>
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer">
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Profile</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
-                  <ShoppingBag className="mr-2 h-4 w-4" />
-                  <span>My Orders</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  className="cursor-pointer text-red-600" 
-                  onClick={() => logoutMutation.mutate()}
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Logout</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+    <header className="bg-primary text-white py-4">
+      <div className="container mx-auto px-4">
+        <div className="flex justify-between items-center">
+          <div className="text-2xl font-bold">{dashboardTitle}</div>
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="outline" 
+              className="bg-transparent text-white hover:bg-primary-foreground/10 border-2 border-white font-medium flex items-center gap-2"
+              asChild
+            >
+              <Link to="/">
+                <ShoppingCart className="h-4 w-4" />
+                Go Shopping
+              </Link>
+            </Button>
+            <Button 
+              variant="secondary" 
+              className="bg-white text-primary hover:bg-gray-100 border-2 border-white font-medium flex items-center gap-2 shadow-sm"
+              onClick={() => logoutMutation.mutate()}
+            >
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="18" 
+                height="18" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+              Logout
+            </Button>
           </div>
         </div>
       </div>
