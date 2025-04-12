@@ -698,20 +698,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Get image URL properly - handle different field naming (imageUrl vs image_url)
           let imageUrl = '';
           
-          // For simplicity, use a safe category-based placeholder image from a trusted source
-          // rather than relying on potentially CORS-blocked third-party images
-          const categoryPlaceholders: Record<string, string> = {
-            'Electronics': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
-            'Fashion': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
-            'Home': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
-            'Appliances': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
-            'Mobiles': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
-            'Beauty': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
-            'Toys': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
-            'Grocery': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
-          };
+          // Use actual product images with fallback to category placeholders if needed
+          if (product.imageUrl) {
+            imageUrl = product.imageUrl;
+          } else if (product.image_url) {
+            imageUrl = product.image_url;
+          } else if (product.images && typeof product.images === 'string') {
+            try {
+              const parsedImages = JSON.parse(product.images);
+              if (Array.isArray(parsedImages) && parsedImages.length > 0) {
+                imageUrl = parsedImages[0];
+              }
+            } catch (e) {
+              console.log('Error parsing images JSON for hero:', e);
+            }
+          }
           
-          imageUrl = categoryPlaceholders[product.category] || 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg';
+          // Fallback to category placeholders if no product image
+          if (!imageUrl) {
+            const categoryPlaceholders: Record<string, string> = {
+              'Electronics': '/images/categories/electronics.svg',
+              'Fashion': '/images/categories/fashion.svg',
+              'Home': '/images/categories/home.svg', 
+              'Appliances': '/images/categories/appliances.svg',
+              'Mobiles': '/images/categories/mobiles.svg',
+              'Beauty': '/images/categories/beauty.svg',
+              'Toys': '/images/categories/toys.svg',
+              'Grocery': '/images/categories/grocery.svg',
+            };
+            
+            imageUrl = categoryPlaceholders[product.category] || '/images/placeholder.svg';
+          }
           
           heroProducts.push({
             title: `${category.name} Sale`,
@@ -755,20 +772,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "No products found for deal of the day" });
       }
       
-      // Get product image
-      // Use reliable placeholder images instead of potentially CORS-blocked external images
-      const categoryPlaceholders: Record<string, string> = {
-        'Electronics': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
-        'Fashion': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
-        'Home': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
-        'Appliances': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
-        'Mobiles': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
-        'Beauty': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
-        'Toys': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
-        'Grocery': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
-      };
+      // Get product image - use actual product images with fallback
+      let imageUrl = '';
       
-      const imageUrl = categoryPlaceholders[dealProduct.category] || 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg';
+      // Try to get image URL from product data
+      if (dealProduct.imageUrl) {
+        imageUrl = dealProduct.imageUrl;
+      } else if (dealProduct.image_url) {
+        imageUrl = dealProduct.image_url;
+      } else if (dealProduct.images && typeof dealProduct.images === 'string') {
+        try {
+          const parsedImages = JSON.parse(dealProduct.images);
+          if (Array.isArray(parsedImages) && parsedImages.length > 0) {
+            imageUrl = parsedImages[0];
+          }
+        } catch (e) {
+          console.log('Error parsing images JSON for deal of the day:', e);
+        }
+      }
+      
+      // If no image found, use category placeholder
+      if (!imageUrl) {
+        const categoryPlaceholders: Record<string, string> = {
+          'Electronics': '/images/categories/electronics.svg',
+          'Fashion': '/images/categories/fashion.svg',
+          'Home': '/images/categories/home.svg',
+          'Appliances': '/images/categories/appliances.svg',
+          'Mobiles': '/images/categories/mobiles.svg',
+          'Beauty': '/images/categories/beauty.svg',
+          'Toys': '/images/categories/toys.svg',
+          'Grocery': '/images/categories/grocery.svg',
+        };
+        
+        imageUrl = categoryPlaceholders[dealProduct.category] || '/images/placeholder.svg';
+      }
       
       // Calculate discount (for display purposes)
       const originalPrice = dealProduct.price;
