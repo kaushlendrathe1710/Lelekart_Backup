@@ -10,20 +10,22 @@ interface LayoutProps {
 export function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
   
-  // Check if we're on a dashboard route
-  const isDashboardRoute = 
+  // Check if we're on a dashboard or orders route (these use DashboardLayout)
+  const skipHeaderFooter = 
     location.startsWith('/admin/dashboard') || 
     location.startsWith('/seller/dashboard') || 
-    location.startsWith('/buyer/dashboard');
+    location.startsWith('/buyer/dashboard') ||
+    location.startsWith('/orders') ||
+    location.startsWith('/order/');
   
-  // Standard layout - Show header and footer except for dashboard routes
+  // Standard layout - Show header and footer except for dashboard and orders routes
   return (
     <div className="min-h-screen flex flex-col">
-      {!isDashboardRoute && <SimpleHeader />}
+      {!skipHeaderFooter && <SimpleHeader />}
       <main className="flex-grow">
         {children}
       </main>
-      {!isDashboardRoute && <Footer />}
+      {!skipHeaderFooter && <Footer />}
     </div>
   );
 }
