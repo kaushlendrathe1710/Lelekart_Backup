@@ -19,8 +19,15 @@ import {
 import { useContext, useState } from "react";
 import { AuthContext } from "@/hooks/use-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Product } from "@shared/schema";
+import { Product as SchemaProduct } from "@shared/schema";
+
 import { useToast } from "@/hooks/use-toast";
+
+// Define a ProductWithSKU interface that extends the base Product type
+interface Product extends SchemaProduct {
+  sku?: string;
+  image?: string;
+}
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -248,7 +255,7 @@ export default function SellerProductsPage() {
                     <TableRow key={product.id}>
                       <TableCell>
                         <img 
-                          src={product.image} 
+                          src={product.image || product.imageUrl} 
                           alt={product.name} 
                           className="w-10 h-10 rounded-md object-cover" 
                         />
