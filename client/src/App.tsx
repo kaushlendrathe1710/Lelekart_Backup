@@ -2,7 +2,7 @@ import { Switch, Route } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import HomePage from "@/pages/home-page";
-import AuthPage from "@/pages/auth-page";
+import AuthPage from "@/pages/auth-page-new";
 import ProductPage from "./pages/product-page";
 import CheckoutPage from "./pages/checkout-page";
 import OrderConfirmationPage from "./pages/order-confirmation-page";

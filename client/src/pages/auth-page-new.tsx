@@ -25,7 +25,6 @@ import {
   CardTitle,
   CardFooter,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
 
 // Validation schemas
@@ -51,14 +50,38 @@ type EmailFormValues = z.infer<typeof emailSchema>;
 type OtpFormValues = z.infer<typeof otpSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
+// Types for response data
+type OtpResponse = {
+  message: string;
+  email: string;
+  expiresIn: number;
+};
+
+type OtpVerifyResponse = {
+  user?: User;
+  isNewUser: boolean;
+  email?: string;
+  message: string;
+};
+
+type RegisterResponse = {
+  user: User;
+  message: string;
+};
+
 export default function AuthPage() {
-  const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   
   // Auth flow state management
   const [authState, setAuthState] = useState<'email' | 'otp' | 'register'>('email');
   const [email, setEmail] = useState<string>('');
+
+  // Fetch current user
+  const { data: user } = useQuery<User>({
+    queryKey: ['/api/user'],
+    retry: false,
+  });
 
   // Redirect if already logged in
   useEffect(() => {
@@ -105,14 +128,71 @@ export default function AuthPage() {
     },
   });
 
-  // Get auth mutations from useAuth hook
-  const { requestOtpMutation, verifyOtpMutation, registerMutation } = useAuth();
+  // Request OTP mutation
+  const requestOtpMutation = useMutation<OtpResponse, Error, { email: string }>({
+    mutationFn: async (data) => {
+      const res = await apiRequest('POST', '/api/auth/request-otp', data);
+      return res.json();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Verify OTP mutation
+  const verifyOtpMutation = useMutation<
+    OtpVerifyResponse,
+    Error,
+    { email: string; otp: string }
+  >({
+    mutationFn: async (data) => {
+      const res = await apiRequest('POST', '/api/auth/verify-otp', data);
+      return res.json();
+    },
+    onSuccess: () => {
+      // When OTP is verified, refresh the user query to update UI
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Register mutation
+  const registerMutation = useMutation<
+    RegisterResponse,
+    Error,
+    RegisterFormValues
+  >({
+    mutationFn: async (data) => {
+      const res = await apiRequest('POST', '/api/auth/register', data);
+      return res.json();
+    },
+    onSuccess: () => {
+      // When registration is successful, refresh the user query
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
 
   // Request OTP for login or registration
   async function onEmailSubmit(values: EmailFormValues) {
     setEmail(values.email);
     
-    // Use the requestOTP mutation from useAuth
     requestOtpMutation.mutate({ email: values.email }, {
       onSuccess: (data) => {
         // Regular flow - move to OTP verification step
@@ -130,7 +210,6 @@ export default function AuthPage() {
 
   // Verify OTP
   async function onOtpSubmit(values: OtpFormValues) {
-    // Use the verifyOtpMutation from useAuth
     verifyOtpMutation.mutate({ email: values.email, otp: values.otp }, {
       onSuccess: (data) => {
         // If user exists, they're now logged in
@@ -159,7 +238,6 @@ export default function AuthPage() {
 
   // Complete registration
   async function onRegisterSubmit(values: RegisterFormValues) {
-    // Use the registerMutation from useAuth
     registerMutation.mutate(values, {
       onSuccess: (data) => {
         toast({
@@ -423,51 +501,41 @@ export default function AuthPage() {
                 
                 <div className="space-y-4">
                   <div className="flex items-start">
-                    <div className="bg-white/20 p-2 rounded-full mr-3">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42z"></path>
+                    <div className="bg-white/20 p-2 rounded mr-3">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg">Wide Selection</h3>
-                      <p className="text-sm text-white/80">Millions of products across electronics, fashion, home goods, and more.</p>
+                      <h3 className="font-medium text-lg">Huge Selection</h3>
+                      <p className="text-white/80">Millions of products across categories.</p>
                     </div>
                   </div>
                   
                   <div className="flex items-start">
-                    <div className="bg-white/20 p-2 rounded-full mr-3">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"></path>
-                        <path d="M16.5 9.4 7.55 4.24"></path>
-                        <polyline points="3.29 7 12 12 20.71 7"></polyline>
-                        <line x1="12" y1="22" x2="12" y2="12"></line>
-                        <circle cx="18.5" cy="15.5" r="2.5"></circle>
-                        <path d="M20.27 17.27 22 19"></path>
+                    <div className="bg-white/20 p-2 rounded mr-3">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg">Fast Delivery</h3>
-                      <p className="text-sm text-white/80">Quick delivery options to get your products delivered at your doorstep.</p>
+                      <h3 className="font-medium text-lg">Best Prices</h3>
+                      <p className="text-white/80">Get the most competitive prices in India.</p>
                     </div>
                   </div>
                   
                   <div className="flex items-start">
-                    <div className="bg-white/20 p-2 rounded-full mr-3">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    <div className="bg-white/20 p-2 rounded mr-3">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
                       </svg>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg">Secure Shopping</h3>
-                      <p className="text-sm text-white/80">Multiple payment options with secure checkout process.</p>
+                      <h3 className="font-medium text-lg">Fast Delivery</h3>
+                      <p className="text-white/80">Quick delivery to your doorstep.</p>
                     </div>
                   </div>
-                </div>
-                
-                <div className="mt-8 text-center bg-white/10 rounded-lg p-4">
-                  <p className="text-sm font-medium">"Best online shopping experience. Great prices and excellent customer service!"</p>
-                  <p className="text-xs mt-2">— Satisfied Flipkart Customer</p>
                 </div>
               </div>
             </div>
