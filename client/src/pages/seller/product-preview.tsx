@@ -28,32 +28,46 @@ import { ProductImageGallery } from "@/components/ui/product-image-gallery";
 const getProductImages = (product: Product): string[] => {
   const images: string[] = [];
   
-  // Add main image first
+  console.log('Product data:', product);
+  
+  // Add main image first if it exists
   if (product.imageUrl) {
     images.push(product.imageUrl);
+    console.log('Added main image:', product.imageUrl);
   }
   
   // Try to extract additional images from the images field (could be stored as JSON string)
   if (product.images) {
+    console.log('Images field found:', product.images, 'type:', typeof product.images);
+    
     try {
       // If it's a string, try to parse it
       if (typeof product.images === 'string') {
+        console.log('Trying to parse JSON string:', product.images);
         const parsedImages = JSON.parse(product.images);
+        console.log('Parsed result:', parsedImages, 'is array:', Array.isArray(parsedImages));
+        
         if (Array.isArray(parsedImages)) {
           images.push(...parsedImages);
+          console.log('Added parsed images, total count now:', images.length);
         }
       } 
       // If it's already an array, use it directly
       else if (Array.isArray(product.images)) {
         images.push(...product.images);
+        console.log('Added array images, total count now:', images.length);
       }
     } catch (error) {
       console.error('Failed to parse product images:', error);
     }
+  } else {
+    console.log('No additional images found');
   }
   
   // Return unique images (no duplicates)
-  return Array.from(new Set(images));
+  const uniqueImages = Array.from(new Set(images));
+  console.log('Final unique images:', uniqueImages);
+  return uniqueImages;
 }
 
 export default function ProductPreviewPage() {

@@ -18,6 +18,9 @@ interface ProductImageGalleryProps {
 }
 
 export function ProductImageGallery({ images, productName }: ProductImageGalleryProps) {
+  // Debugging to see incoming images
+  console.log('ProductImageGallery received images:', images);
+  
   // Ensure we always have at least one image
   const imageUrls = images.length > 0 ? images : ['https://placehold.co/600x400?text=No+Image'];
   const [thumbsSwiper, setThumbsSwiper] = useState<any>(null);
@@ -25,6 +28,7 @@ export function ProductImageGallery({ images, productName }: ProductImageGallery
   
   // Handle case where initially loaded with only one image, but then updates with more
   useEffect(() => {
+    console.log('Images changed, count:', images.length, 'content:', images);
     if (images.length > 0) {
       setActiveIndex(0);
     }
