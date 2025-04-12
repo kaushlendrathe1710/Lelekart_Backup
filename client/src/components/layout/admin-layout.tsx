@@ -63,6 +63,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       icon: <Package className="h-5 w-5" />,
     },
     {
+      title: "Categories",
+      href: "/admin/categories",
+      icon: <Grid className="h-5 w-5" />,
+    },
+    {
       title: "Users",
       href: "/admin/users",
       icon: <Users className="h-5 w-5" />,

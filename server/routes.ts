@@ -6,7 +6,8 @@ import {
   insertProductSchema, 
   insertCartSchema, 
   insertOrderSchema, 
-  insertOrderItemSchema 
+  insertOrderItemSchema,
+  insertCategorySchema
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
@@ -573,22 +574,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Categories endpoint
+  // Categories endpoints
   app.get("/api/categories", async (_req, res) => {
     try {
-      const categories = [
-        { id: 1, name: "Electronics", image: "https://cdn-icons-png.flaticon.com/512/3659/3659898.png" },
-        { id: 2, name: "Fashion", image: "https://cdn-icons-png.flaticon.com/512/2589/2589625.png" },
-        { id: 3, name: "Home", image: "https://cdn-icons-png.flaticon.com/512/2257/2257295.png" },
-        { id: 4, name: "Appliances", image: "https://cdn-icons-png.flaticon.com/512/3659/3659899.png" },
-        { id: 5, name: "Mobiles", image: "https://cdn-icons-png.flaticon.com/512/545/545245.png" },
-        { id: 6, name: "Beauty", image: "https://cdn-icons-png.flaticon.com/512/3685/3685331.png" },
-        { id: 7, name: "Toys", image: "https://cdn-icons-png.flaticon.com/512/3314/3314078.png" },
-        { id: 8, name: "Grocery", image: "https://cdn-icons-png.flaticon.com/512/3724/3724763.png" }
-      ];
-      res.json(categories);
+      const categories = await storage.getCategories();
+      
+      // If no categories exist yet, return default categories
+      if (categories.length === 0) {
+        const defaultCategories = [
+          { id: 1, name: "Electronics", image: "https://cdn-icons-png.flaticon.com/512/3659/3659898.png", displayOrder: 1 },
+          { id: 2, name: "Fashion", image: "https://cdn-icons-png.flaticon.com/512/2589/2589625.png", displayOrder: 2 },
+          { id: 3, name: "Home", image: "https://cdn-icons-png.flaticon.com/512/2257/2257295.png", displayOrder: 3 },
+          { id: 4, name: "Appliances", image: "https://cdn-icons-png.flaticon.com/512/3659/3659899.png", displayOrder: 4 },
+          { id: 5, name: "Mobiles", image: "https://cdn-icons-png.flaticon.com/512/545/545245.png", displayOrder: 5 },
+          { id: 6, name: "Beauty", image: "https://cdn-icons-png.flaticon.com/512/3685/3685331.png", displayOrder: 6 },
+          { id: 7, name: "Toys", image: "https://cdn-icons-png.flaticon.com/512/3314/3314078.png", displayOrder: 7 },
+          { id: 8, name: "Grocery", image: "https://cdn-icons-png.flaticon.com/512/3724/3724763.png", displayOrder: 8 }
+        ];
+        res.json(defaultCategories);
+      } else {
+        res.json(categories);
+      }
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch categories" });
+    }
+  });
+  
+  app.get("/api/categories/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const category = await storage.getCategory(id);
+      
+      if (!category) {
+        return res.status(404).json({ error: "Category not found" });
+      }
+      
+      res.json(category);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch category" });
+    }
+  });
+  
+  app.post("/api/categories", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const categoryData = insertCategorySchema.parse(req.body);
+      const category = await storage.createCategory(categoryData);
+      res.status(201).json(category);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create category" });
+    }
+  });
+  
+  app.put("/api/categories/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const id = parseInt(req.params.id);
+      const category = await storage.getCategory(id);
+      
+      if (!category) {
+        return res.status(404).json({ error: "Category not found" });
+      }
+      
+      const updatedCategory = await storage.updateCategory(id, req.body);
+      res.json(updatedCategory);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update category" });
+    }
+  });
+  
+  app.delete("/api/categories/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const id = parseInt(req.params.id);
+      const category = await storage.getCategory(id);
+      
+      if (!category) {
+        return res.status(404).json({ error: "Category not found" });
+      }
+      
+      await storage.deleteCategory(id);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete category" });
     }
   });
 

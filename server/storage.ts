@@ -3,7 +3,8 @@ import {
   products, Product, InsertProduct,
   carts, Cart, InsertCart,
   orders, Order, InsertOrder,
-  orderItems, OrderItem, InsertOrderItem
+  orderItems, OrderItem, InsertOrderItem,
+  categories, Category, InsertCategory
 } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
@@ -42,6 +43,13 @@ export interface IStorage {
   getOrderItems(orderId: number): Promise<(OrderItem & { product: Product })[]>;
   createOrderItem(orderItem: InsertOrderItem): Promise<OrderItem>;
   orderHasSellerProducts(orderId: number, sellerId: number): Promise<boolean>;
+  
+  // Category operations
+  getCategories(): Promise<Category[]>;
+  getCategory(id: number): Promise<Category | undefined>;
+  createCategory(category: InsertCategory): Promise<Category>;
+  updateCategory(id: number, category: Partial<Category>): Promise<Category>;
+  deleteCategory(id: number): Promise<void>;
 
   // Session store
   sessionStore: session.SessionStore;
@@ -416,6 +424,52 @@ export class DatabaseStorage implements IStorage {
     }
     
     return updatedOrder;
+  }
+
+  // Category operations
+  async getCategories(): Promise<Category[]> {
+    return db.select().from(categories).orderBy(categories.displayOrder);
+  }
+
+  async getCategory(id: number): Promise<Category | undefined> {
+    const [category] = await db.select().from(categories).where(eq(categories.id, id));
+    return category;
+  }
+
+  async createCategory(insertCategory: InsertCategory): Promise<Category> {
+    const [category] = await db
+      .insert(categories)
+      .values(insertCategory)
+      .returning();
+    return category;
+  }
+
+  async updateCategory(id: number, categoryData: Partial<Category>): Promise<Category> {
+    // Always update the updatedAt timestamp
+    const dataToUpdate = {
+      ...categoryData,
+      updatedAt: new Date()
+    };
+
+    const [updatedCategory] = await db
+      .update(categories)
+      .set(dataToUpdate)
+      .where(eq(categories.id, id))
+      .returning();
+    
+    if (!updatedCategory) {
+      throw new Error(`Category with ID ${id} not found`);
+    }
+    
+    return updatedCategory;
+  }
+
+  async deleteCategory(id: number): Promise<void> {
+    const result = await db.delete(categories).where(eq(categories.id, id));
+    
+    if (!result) {
+      throw new Error(`Category with ID ${id} not found`);
+    }
   }
 }
 
