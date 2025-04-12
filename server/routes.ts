@@ -218,11 +218,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Calculate total
       const total = cartItems.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
       
-      // Create order
+      // Create order with shipping details from request body
+      const { shippingDetails } = req.body;
+      
       const orderData = insertOrderSchema.parse({
         userId: req.user.id,
         status: "pending",
-        total
+        total,
+        date: new Date().toISOString(),
+        shippingDetails: shippingDetails || null,
       });
       
       const order = await storage.createOrder(orderData);
@@ -247,7 +251,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: error.errors });
       }
+      console.error("Order creation error:", error);
       res.status(500).json({ error: "Failed to create order" });
+    }
+  });
+  
+
+  
+  // Get order items for an order
+  app.get("/api/orders/:id/items", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const orderId = parseInt(req.params.id);
+      const order = await storage.getOrder(orderId);
+      
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+      
+      // Check if user is authorized to view this order
+      if (req.user.role !== 'admin' && 
+          order.userId !== req.user.id && 
+          !(req.user.role === 'seller' && await storage.orderHasSellerProducts(orderId, req.user.id))) {
+        return res.status(403).json({ error: "Not authorized to view this order" });
+      }
+      
+      const orderItems = await storage.getOrderItems(orderId);
+      res.json(orderItems);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch order items" });
     }
   });
 

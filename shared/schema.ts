@@ -71,6 +71,7 @@ export const orders = pgTable("orders", {
   status: text("status").notNull().default("pending"),
   total: integer("total").notNull(),
   date: timestamp("date").notNull().defaultNow(),
+  shippingDetails: text("shipping_details"), // Stored as JSON string
 });
 
 export const insertOrderSchema = createInsertSchema(orders).pick({
@@ -78,6 +79,7 @@ export const insertOrderSchema = createInsertSchema(orders).pick({
   status: true,
   total: true,
   date: true,
+  shippingDetails: true,
 });
 
 // OrderItem schema
