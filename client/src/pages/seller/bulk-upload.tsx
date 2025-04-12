@@ -11,10 +11,10 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 
-// Mock example data with all possible product fields
-const EXAMPLE_CSV = `name,description,price,purchasePrice,mrp,category,subcategory,brand,imageUrl,stock,sku
-Test Smartphone,Smartphone with high-performance features,999.99,899.99,1099.99,Electronics,Mobiles,Samsung,https://example.com/smartphone.jpg,100,PHONE-123
-Test Earbuds,Wireless earbuds with noise cancellation,399.99,299.99,499.99,Electronics,Audio,Apple,https://example.com/earbuds.jpg,200,EARBUDS-456`;
+// Complete template with all possible product fields
+const EXAMPLE_CSV = `name,description,price,purchasePrice,mrp,category,subcategory,brand,color,size,imageUrl,imageUrl1,imageUrl2,imageUrl3,stock,sku,hsn,weight,length,width,height,warranty,returnPolicy,tax,specifications,productType
+Test Smartphone,Smartphone with high-performance features,999.99,899.99,1099.99,Electronics,Mobiles,Samsung,Black,6.5 inch,https://example.com/smartphone.jpg,https://example.com/smartphone-back.jpg,https://example.com/smartphone-side.jpg,https://example.com/smartphone-box.jpg,100,PHONE-123,85171290,0.5,15.5,7.2,0.8,12,15,18,"Display: AMOLED|RAM: 8GB|Storage: 128GB|Battery: 5000mAh",physical
+Test Earbuds,Wireless earbuds with noise cancellation,399.99,299.99,499.99,Electronics,Audio,Apple,White,One Size,https://example.com/earbuds.jpg,https://example.com/earbuds-case.jpg,https://example.com/earbuds-open.jpg,https://example.com/earbuds-charging.jpg,200,EARBUDS-456,85183000,0.5,5.2,4.8,2.3,12,7,18,"Battery Life: 6 hours|Water Resistant: Yes|ANC: Yes|Wireless Charging: Yes",physical`;
 
 export default function BulkUploadPage() {
   const { toast } = useToast();
