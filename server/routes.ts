@@ -45,7 +45,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/products", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    if (req.user.role !== "seller" && req.user.role !== "admin") return res.status(403).send("Not authorized");
+    if (req.user.role !== "seller" && req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
 
     try {
       const productData = insertProductSchema.parse({
@@ -75,7 +75,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Only seller who created the product or admin can update
       if (product.sellerId !== req.user.id && req.user.role !== "admin") {
-        return res.status(403).send("Not authorized");
+        return res.status(403).json({ error: "Not authorized" });
       }
 
       const updatedProduct = await storage.updateProduct(id, req.body);
@@ -98,7 +98,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Only seller who created the product or admin can delete
       if (product.sellerId !== req.user.id && req.user.role !== "admin") {
-        return res.status(403).send("Not authorized");
+        return res.status(403).json({ error: "Not authorized" });
       }
 
       await storage.deleteProduct(id);
@@ -171,7 +171,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       if (cartItem.userId !== req.user.id) {
-        return res.status(403).send("Not authorized");
+        return res.status(403).json({ error: "Not authorized" });
       }
 
       const updatedCartItem = await storage.updateCartItem(id, req.body.quantity);
@@ -193,7 +193,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       if (cartItem.userId !== req.user.id) {
-        return res.status(403).send("Not authorized");
+        return res.status(403).json({ error: "Not authorized" });
       }
 
       await storage.removeFromCart(id);
@@ -362,7 +362,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check permissions
       if (req.user.role === "buyer" && order.userId !== req.user.id) {
-        return res.status(403).send("Not authorized");
+        return res.status(403).json({ error: "Not authorized" });
       }
       
       if (req.user.role === "seller") {
@@ -370,7 +370,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const hasSellerProduct = await storage.orderHasSellerProducts(id, req.user.id);
         
         if (!hasSellerProduct) {
-          return res.status(403).send("Not authorized");
+          return res.status(403).json({ error: "Not authorized" });
         }
       }
       
