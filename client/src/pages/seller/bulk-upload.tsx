@@ -51,18 +51,19 @@ import {
 } from "@/components/ui/tabs";
 
 // Mock example data with all possible product fields
-const EXAMPLE_CSV = `name,description,price,mrp,category,subcategory,brand,imageUrl,imageUrl1,imageUrl2,imageUrl3,stock,sku,hsn,weight,length,width,height,warranty,returnPolicy,tax,productType
-Smartphone X Pro,Flagship smartphone with high-performance processor and excellent camera,49999,59999,Electronics,Mobiles,TechBrand,https://example.com/smartphone-x.jpg,https://example.com/smartphone-x2.jpg,https://example.com/smartphone-x3.jpg,,100,SM-X-PRO-256-BLK,85171290,0.25,15.5,7.2,0.8,12,15,18,physical
-Wireless Earbuds Pro,True wireless earbuds with active noise cancellation,7999,9999,Electronics,Audio,SoundTech,https://example.com/earbuds.jpg,https://example.com/earbuds2.jpg,https://example.com/earbuds3.jpg,,200,EB-PRO-BLK,85183000,0.05,5.2,4.8,2.3,12,7,18,physical
-Smart Watch Elite,Fitness tracking and notification smart watch,12999,14999,Electronics,Wearables,FitTech,https://example.com/smartwatch.jpg,https://example.com/smartwatch2.jpg,,,150,SW-ELITE-BLK,91029900,0.07,4.5,4.5,1.2,12,7,18,physical
-Laptop Ultra,Ultra-thin laptop with powerful specifications,89999,99999,Electronics,Laptops,TechPro,https://example.com/laptop.jpg,https://example.com/laptop2.jpg,https://example.com/laptop3.jpg,https://example.com/laptop4.jpg,50,LT-ULTRA-i7-512,84713000,1.5,35.2,24.5,1.8,24,15,18,physical
-Gaming Console X,Next-generation gaming console with 4K support,45999,49999,Electronics,Gaming,GameTech,https://example.com/console.jpg,https://example.com/console2.jpg,https://example.com/console3.jpg,,75,GC-X-1TB-BLK,95045000,3.2,30.5,25.8,7.5,12,15,18,physical`;
+const EXAMPLE_CSV = `name,description,price,purchasePrice,mrp,category,subcategory,brand,imageUrl,imageUrl1,imageUrl2,imageUrl3,stock,sku,hsn,weight,length,width,height,warranty,returnPolicy,tax,productType
+Smartphone X Pro,Flagship smartphone with high-performance processor and excellent camera,49999,42999,59999,Electronics,Mobiles,TechBrand,https://example.com/smartphone-x.jpg,https://example.com/smartphone-x2.jpg,https://example.com/smartphone-x3.jpg,,100,SM-X-PRO-256-BLK,85171290,0.25,15.5,7.2,0.8,12,15,18,physical
+Wireless Earbuds Pro,True wireless earbuds with active noise cancellation,7999,5999,9999,Electronics,Audio,SoundTech,https://example.com/earbuds.jpg,https://example.com/earbuds2.jpg,https://example.com/earbuds3.jpg,,200,EB-PRO-BLK,85183000,0.05,5.2,4.8,2.3,12,7,18,physical
+Smart Watch Elite,Fitness tracking and notification smart watch,12999,10999,14999,Electronics,Wearables,FitTech,https://example.com/smartwatch.jpg,https://example.com/smartwatch2.jpg,,,150,SW-ELITE-BLK,91029900,0.07,4.5,4.5,1.2,12,7,18,physical
+Laptop Ultra,Ultra-thin laptop with powerful specifications,89999,83999,99999,Electronics,Laptops,TechPro,https://example.com/laptop.jpg,https://example.com/laptop2.jpg,https://example.com/laptop3.jpg,https://example.com/laptop4.jpg,50,LT-ULTRA-i7-512,84713000,1.5,35.2,24.5,1.8,24,15,18,physical
+Gaming Console X,Next-generation gaming console with 4K support,45999,40999,49999,Electronics,Gaming,GameTech,https://example.com/console.jpg,https://example.com/console2.jpg,https://example.com/console3.jpg,,75,GC-X-1TB-BLK,95045000,3.2,30.5,25.8,7.5,12,15,18,physical`;
 
 // Sample validation rules for all fields
 const VALIDATION_RULES = [
   { field: 'name', rule: 'Must be between 3-150 characters' },
   { field: 'description', rule: 'Must be between 20-5000 characters' },
   { field: 'price', rule: 'Must be a positive number' },
+  { field: 'purchasePrice', rule: 'Optional. Your purchase/cost price' },
   { field: 'mrp', rule: 'Must be a positive number and >= price' },
   { field: 'category', rule: 'Must be a valid category' },
   { field: 'subcategory', rule: 'Must be a valid subcategory for the selected category' },
@@ -224,6 +225,14 @@ export default function BulkUploadPage() {
       const price = parseFloat(row.price);
       if (row.price && (isNaN(price) || price <= 0)) {
         errors.push(`Row ${rowNum}: Price must be a positive number`);
+      }
+      
+      // Purchase Price check
+      if (row.purchasePrice) {
+        const purchasePrice = parseFloat(row.purchasePrice);
+        if (isNaN(purchasePrice) || purchasePrice <= 0) {
+          errors.push(`Row ${rowNum}: Purchase Price must be a positive number`);
+        }
       }
       
       // MRP check
