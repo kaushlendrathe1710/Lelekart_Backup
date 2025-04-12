@@ -219,7 +219,7 @@ export default function AddProductPage() {
       
       // Redirect to products page after a brief delay
       setTimeout(() => {
-        window.location.href = '/seller/products';
+        setLocation('/seller/products');
       }, 1500);
       
       // Invalidate the products query to refresh the products list
@@ -257,7 +257,7 @@ export default function AddProductPage() {
             <Button 
               variant="outline" 
               size="icon"
-              onClick={() => window.history.back()}
+              onClick={() => setLocation('/seller/products')}
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>

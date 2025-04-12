@@ -104,8 +104,8 @@ export default function CartPage() {
   };
 
   const proceedToCheckout = () => {
-    // Use window.location for more reliable redirection
-    window.location.href = '/checkout';
+    // Use wouter for navigation
+    setLocation('/checkout');
   };
 
   // Calculate totals

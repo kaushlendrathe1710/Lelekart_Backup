@@ -104,7 +104,7 @@ export default function ProductPreviewPage() {
             <Button 
               variant="outline" 
               size="icon"
-              onClick={() => window.history.back()}
+              onClick={() => setLocation('/seller/products')}
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
@@ -378,10 +378,10 @@ export default function ProductPreviewPage() {
       {/* Fixed checkout buttons on mobile */}
       {isMobile && (
         <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-3 flex justify-between gap-2 z-10">
-          <Button variant="outline" className="w-1/2" onClick={() => window.history.back()}>
+          <Button variant="outline" className="w-1/2" onClick={() => setLocation(`/seller/products/edit/${productId}`)}>
             Edit
           </Button>
-          <Button className="w-1/2" onClick={() => window.history.back()}>
+          <Button className="w-1/2" onClick={() => setLocation('/seller/products')}>
             Back to Products
           </Button>
         </div>
@@ -391,11 +391,11 @@ export default function ProductPreviewPage() {
       {!isMobile && (
         <div className="fixed bottom-8 right-8 z-10">
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => window.history.back()}>
+            <Button variant="outline" onClick={() => setLocation('/seller/products')}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
             </Button>
-            <Button onClick={() => window.location.href = `/seller/products/edit/${productId}`}>
+            <Button onClick={() => setLocation(`/seller/products/edit/${productId}`)}>
               Edit Product
             </Button>
           </div>
