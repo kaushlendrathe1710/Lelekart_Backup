@@ -17,7 +17,10 @@ import { queryClient } from "@/lib/queryClient";
 import { ProtectedRoute } from "./lib/protected-route";
 
 // Import dashboard components
-import AdminDashboardPage from "./pages/admin/dashboard";
+import AdminDashboard from "./pages/admin/index";
+import AdminProducts from "./pages/admin/products";
+import AdminUsers from "./pages/admin/users";
+import AdminOrders from "./pages/admin/orders";
 import SellerDashboardPage from "./pages/seller/dashboard";
 import SellerProductsPage from "./pages/seller/products";
 import AddProductPage from "./pages/seller/add-product";
@@ -115,13 +118,40 @@ function App() {
                 )}
               </Route>
               
-              {/* Protected dashboard routes */}
-              <Route path="/admin/dashboard">
+              {/* Admin Routes */}
+              <Route path="/admin">
                 {() => (
                   <ProtectedRoute 
-                    path="/admin/dashboard" 
+                    path="/admin" 
                     role="admin" 
-                    component={AdminDashboardPage} 
+                    component={AdminDashboard} 
+                  />
+                )}
+              </Route>
+              <Route path="/admin/products">
+                {() => (
+                  <ProtectedRoute 
+                    path="/admin/products" 
+                    role="admin" 
+                    component={AdminProducts} 
+                  />
+                )}
+              </Route>
+              <Route path="/admin/users">
+                {() => (
+                  <ProtectedRoute 
+                    path="/admin/users" 
+                    role="admin" 
+                    component={AdminUsers} 
+                  />
+                )}
+              </Route>
+              <Route path="/admin/orders">
+                {() => (
+                  <ProtectedRoute 
+                    path="/admin/orders" 
+                    role="admin" 
+                    component={AdminOrders} 
                   />
                 )}
               </Route>

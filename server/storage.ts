@@ -394,6 +394,29 @@ export class DatabaseStorage implements IStorage {
     
     return result.length > 0;
   }
+  
+  async updateOrderStatus(id: number, status: string): Promise<Order> {
+    const [updatedOrder] = await db
+      .update(orders)
+      .set({ status })
+      .where(eq(orders.id, id))
+      .returning();
+    
+    if (!updatedOrder) {
+      throw new Error(`Order with ID ${id} not found`);
+    }
+    
+    // Parse shippingDetails if it's a string
+    if (updatedOrder.shippingDetails && typeof updatedOrder.shippingDetails === 'string') {
+      try {
+        updatedOrder.shippingDetails = JSON.parse(updatedOrder.shippingDetails);
+      } catch (error) {
+        console.error('Error parsing shippingDetails:', error);
+      }
+    }
+    
+    return updatedOrder;
+  }
 }
 
 export const storage = new DatabaseStorage();
