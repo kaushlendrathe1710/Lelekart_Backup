@@ -3,7 +3,6 @@ import { useLocation } from "wouter";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Layout } from "@/components/layout/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -234,67 +233,35 @@ export default function CheckoutPage() {
 
   if (loading) {
     return (
-      <Layout>
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
-      </Layout>
+      </div>
     );
   }
 
   return (
-    <Layout>
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-8">Checkout</h1>
-        
-        <div className="flex flex-col md:flex-row gap-8">
-          {/* Shipping Form */}
-          <div className="w-full md:w-2/3">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-lg font-semibold mb-6">Shipping Information</h2>
-              
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Full Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="John Doe" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input type="email" placeholder="john@example.com" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-2xl font-bold mb-8">Checkout</h1>
+      
+      <div className="flex flex-col md:flex-row gap-8">
+        {/* Shipping Form */}
+        <div className="w-full md:w-2/3">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-lg font-semibold mb-6">Shipping Information</h2>
+            
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}
-                    name="phone"
+                    name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Phone</FormLabel>
+                        <FormLabel>Full Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="1234567890" {...field} />
+                          <Input placeholder="John Doe" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -303,70 +270,56 @@ export default function CheckoutPage() {
                   
                   <FormField
                     control={form.control}
-                    name="address"
+                    name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Address</FormLabel>
+                        <FormLabel>Email</FormLabel>
                         <FormControl>
-                          <Textarea placeholder="123 Main St, Apt 4B" {...field} />
+                          <Input type="email" placeholder="john@example.com" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="city"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>City</FormLabel>
-                          <FormControl>
-                            <Input placeholder="New York" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="state"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>State</FormLabel>
-                          <FormControl>
-                            <Input placeholder="NY" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="zipCode"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>ZIP Code</FormLabel>
-                          <FormControl>
-                            <Input placeholder="10001" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
+                </div>
+                
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone</FormLabel>
+                      <FormControl>
+                        <Input placeholder="1234567890" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Address</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="123 Main St, Apt 4B" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <FormField
                     control={form.control}
-                    name="notes"
+                    name="city"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Order Notes (Optional)</FormLabel>
+                        <FormLabel>City</FormLabel>
                         <FormControl>
-                          <Textarea placeholder="Special instructions for delivery" {...field} />
+                          <Input placeholder="New York" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -375,89 +328,131 @@ export default function CheckoutPage() {
                   
                   <FormField
                     control={form.control}
-                    name="paymentMethod"
+                    name="state"
                     render={({ field }) => (
-                      <FormItem className="space-y-3">
-                        <FormLabel>Payment Method</FormLabel>
+                      <FormItem>
+                        <FormLabel>State</FormLabel>
                         <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            className="flex flex-col space-y-1"
-                          >
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="cod" id="cod" />
-                              <Label htmlFor="cod">Cash on Delivery (COD)</Label>
-                            </div>
-                          </RadioGroup>
+                          <Input placeholder="NY" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                   
-                  <div className="pt-4">
-                    <Button 
-                      type="submit" 
-                      className="w-full bg-primary text-white"
-                      disabled={processingOrder}
-                    >
-                      {processingOrder ? "Processing..." : "Place Order"}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </div>
+                  <FormField
+                    control={form.control}
+                    name="zipCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>ZIP Code</FormLabel>
+                        <FormControl>
+                          <Input placeholder="10001" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Order Notes (Optional)</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Special instructions for delivery" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="paymentMethod"
+                  render={({ field }) => (
+                    <FormItem className="space-y-3">
+                      <FormLabel>Payment Method</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          className="flex flex-col space-y-1"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="cod" id="cod" />
+                            <Label htmlFor="cod">Cash on Delivery (COD)</Label>
+                          </div>
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="pt-4">
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-primary text-white"
+                    disabled={processingOrder}
+                  >
+                    {processingOrder ? "Processing..." : "Place Order"}
+                  </Button>
+                </div>
+              </form>
+            </Form>
           </div>
-          
-          {/* Order Summary */}
-          <div className="w-full md:w-1/3">
-            <div className="bg-white rounded-lg shadow-md p-6 sticky top-4">
-              <h2 className="text-lg font-semibold mb-6">Order Summary</h2>
-              
-              <div className="space-y-4 mb-4">
-                {cartItems.map((item) => (
-                  <div key={item.id} className="flex justify-between items-center border-b pb-2">
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 rounded-md overflow-hidden mr-2">
-                        <img 
-                          src={item.product.image} 
-                          alt={item.product.name} 
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{item.product.name}</p>
-                        <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
-                      </div>
+        </div>
+        
+        {/* Order Summary */}
+        <div className="w-full md:w-1/3">
+          <div className="bg-white rounded-lg shadow-md p-6 sticky top-4">
+            <h2 className="text-lg font-semibold mb-6">Order Summary</h2>
+            
+            <div className="space-y-4 mb-4">
+              {cartItems.map((item) => (
+                <div key={item.id} className="flex justify-between items-center border-b pb-2">
+                  <div className="flex items-center">
+                    <div className="w-10 h-10 rounded-md overflow-hidden mr-2">
+                      <img 
+                        src={item.product.image} 
+                        alt={item.product.name} 
+                        className="w-full h-full object-cover"
+                      />
                     </div>
-                    <p className="font-medium">₹{(item.product.price * item.quantity).toFixed(2)}</p>
+                    <div>
+                      <p className="text-sm font-medium">{item.product.name}</p>
+                      <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                    </div>
                   </div>
-                ))}
-              </div>
-              
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-600">Subtotal</span>
-                <span className="font-medium">₹{subtotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-600">Shipping</span>
-                <span className="font-medium">₹{shipping.toFixed(2)}</span>
-              </div>
-              <hr className="my-4" />
-              <div className="flex justify-between mb-6">
-                <span className="text-lg font-semibold">Total</span>
-                <span className="text-lg font-semibold">₹{total.toFixed(2)}</span>
-              </div>
-              
-              <div className="bg-gray-50 p-4 rounded-md">
-                <h3 className="font-medium text-sm mb-2">Payment Method</h3>
-                <p className="text-sm text-gray-600">Cash on Delivery (COD)</p>
-              </div>
+                  <p className="font-medium">₹{(item.product.price * item.quantity).toFixed(2)}</p>
+                </div>
+              ))}
+            </div>
+            
+            <div className="flex justify-between mb-2">
+              <span className="text-gray-600">Subtotal</span>
+              <span className="font-medium">₹{subtotal.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between mb-2">
+              <span className="text-gray-600">Shipping</span>
+              <span className="font-medium">₹{shipping.toFixed(2)}</span>
+            </div>
+            <hr className="my-4" />
+            <div className="flex justify-between mb-6">
+              <span className="text-lg font-semibold">Total</span>
+              <span className="text-lg font-semibold">₹{total.toFixed(2)}</span>
+            </div>
+            
+            <div className="bg-gray-50 p-4 rounded-md">
+              <h3 className="font-medium text-sm mb-2">Payment Method</h3>
+              <p className="text-sm text-gray-600">Cash on Delivery (COD)</p>
             </div>
           </div>
         </div>
       </div>
-    </Layout>
+    </div>
   );
 }

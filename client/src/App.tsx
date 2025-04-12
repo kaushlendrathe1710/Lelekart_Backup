@@ -69,11 +69,7 @@ function App() {
                 )}
               </Route>
               <Route path="/checkout">
-                {() => (
-                  <Layout>
-                    <ProtectedRoute path="/checkout" role="buyer" component={CheckoutPageWrapper} />
-                  </Layout>
-                )}
+                {() => <ProtectedRoute path="/checkout" role="buyer" component={CheckoutPageWrapper} />}
               </Route>
               <Route path="/order-confirmation/:id">
                 {() => <ProtectedRoute path="/order-confirmation/:id" role="buyer" component={OrderConfirmationPageWrapper} />}
