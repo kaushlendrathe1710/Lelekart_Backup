@@ -25,7 +25,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
-  // We'll not use authentication for cart functionality in local state for now
+  // We'll rely on the product page to check for user authentication
   const user = null;
 
   // Load cart from localStorage on initial load
@@ -106,12 +106,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Add product to cart
   const addToCart = (product: Product, quantity = 1) => {
+    // The product page will handle authentication checks
     setCartItems(prevItems => {
       const existingItem = prevItems.find(
         item => item.product.id === product.id
       );
 
-      // If user is logged in, call the API
+      // Call the API to add to cart if authenticated
       if (user) {
         addToCartMutation.mutate({
           productId: product.id,

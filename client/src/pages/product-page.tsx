@@ -44,17 +44,38 @@ export default function ProductPage() {
   };
 
   const handleAddToCart = () => {
-    if (product) {
-      addToCart(product, quantity);
+    if (!product) return;
+    
+    if (!user) {
       toast({
-        title: "Added to cart",
-        description: `${product.name} has been added to your cart`,
-        variant: "default",
+        title: "Please log in",
+        description: "You need to be logged in to add items to your cart",
+        variant: "destructive",
       });
+      navigate("/auth");
+      return;
     }
+    
+    if (user.role !== 'buyer') {
+      toast({
+        title: "Action Not Allowed",
+        description: "Only buyers can add items to cart. Please switch to a buyer account.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    addToCart(product, quantity);
+    toast({
+      title: "Added to cart",
+      description: `${product.name} has been added to your cart`,
+      variant: "default",
+    });
   };
   
   const handleBuyNow = () => {
+    if (!product) return;
+    
     if (!user) {
       toast({
         title: "Please log in",
@@ -65,12 +86,19 @@ export default function ProductPage() {
       return;
     }
     
-    if (product) {
-      // First add to cart
-      addToCart(product, quantity);
-      // Then navigate to checkout
-      navigate("/checkout");
+    if (user.role !== 'buyer') {
+      toast({
+        title: "Action Not Allowed",
+        description: "Only buyers can make purchases. Please switch to a buyer account.",
+        variant: "destructive",
+      });
+      return;
     }
+    
+    // First add to cart
+    addToCart(product, quantity);
+    // Then navigate to checkout
+    navigate("/checkout");
   };
 
   return (
