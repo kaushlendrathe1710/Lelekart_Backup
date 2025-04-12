@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useContext } from "react";
 import { SellerDashboardLayout } from "@/components/layout/seller-dashboard-layout";
 import { Button } from "@/components/ui/button";
 import {
@@ -7,14 +7,18 @@ import {
   DownloadCloud,
   CheckCircle,
   FileText,
+  Loader2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
+import { AuthContext } from "@/hooks/use-auth";
+import { useQuery } from "@tanstack/react-query";
 
-// Complete template with all possible product fields
-const EXAMPLE_CSV = `name,description,price,purchasePrice,mrp,category,subcategory,brand,color,size,imageUrl,imageUrl1,imageUrl2,imageUrl3,stock,sku,hsn,weight,length,width,height,warranty,returnPolicy,tax,specifications,productType
-Test Smartphone,Smartphone with high-performance features,999.99,899.99,1099.99,Electronics,Mobiles,Samsung,Black,6.5 inch,https://example.com/smartphone.jpg,https://example.com/smartphone-back.jpg,https://example.com/smartphone-side.jpg,https://example.com/smartphone-box.jpg,100,PHONE-123,85171290,0.5,15.5,7.2,0.8,12,15,18,"Display: AMOLED|RAM: 8GB|Storage: 128GB|Battery: 5000mAh",physical
-Test Earbuds,Wireless earbuds with noise cancellation,399.99,299.99,499.99,Electronics,Audio,Apple,White,One Size,https://example.com/earbuds.jpg,https://example.com/earbuds-case.jpg,https://example.com/earbuds-open.jpg,https://example.com/earbuds-charging.jpg,200,EARBUDS-456,85183000,0.5,5.2,4.8,2.3,12,7,18,"Battery Life: 6 hours|Water Resistant: Yes|ANC: Yes|Wireless Charging: Yes",physical`;
+// Complete template with all possible product fields - matches the exact schema requirements
+const EXAMPLE_CSV = `name,description,price,purchasePrice,category,color,size,imageUrl,imageUrl1,imageUrl2,imageUrl3,stock,specifications
+Samsung Galaxy S21,Latest flagship smartphone with high-performance features,99999,89999,Electronics,Black,6.5 inch,https://example.com/smartphone.jpg,https://example.com/smartphone-back.jpg,https://example.com/smartphone-side.jpg,https://example.com/smartphone-box.jpg,100,"Display: AMOLED|RAM: 8GB|Storage: 128GB|Battery: 5000mAh"
+Apple AirPods Pro,Wireless earbuds with active noise cancellation,29999,19999,Electronics,White,One Size,https://example.com/earbuds.jpg,https://example.com/earbuds-case.jpg,https://example.com/earbuds-open.jpg,https://example.com/earbuds-charging.jpg,200,"Battery Life: 6 hours|Water Resistant: Yes|ANC: Yes|Wireless Charging: Yes"
+Nike Running Shoes,Comfortable sports shoes for daily runners,4999,3999,Fashion,Blue,"UK 9, US 10",https://example.com/shoes.jpg,https://example.com/shoes-side.jpg,https://example.com/shoes-sole.jpg,https://example.com/shoes-box.jpg,50,"Material: Mesh|Sole: Rubber|Weight: 290g|Cushioning: React Foam"`;
 
 export default function BulkUploadPage() {
   const { toast } = useToast();
@@ -22,6 +26,18 @@ export default function BulkUploadPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Try to use context first if available
+  const authContext = useContext(AuthContext);
+  
+  // Get user data from direct API if context is not available
+  const { data: apiUser, isLoading: isUserLoading } = useQuery<any>({
+    queryKey: ['/api/user'],
+    enabled: !authContext?.user,
+  });
+  
+  // Use context user if available, otherwise use API user
+  const user = authContext?.user || apiUser;
 
   // Function to handle file selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,33 +111,79 @@ export default function BulkUploadPage() {
         
         const csvData = event.target.result as string;
         const lines = csvData.split('\n');
-        const headers = lines[0].split(',');
+        const headers = lines[0].split(',').map(h => h.trim());
+        
+        // Track successful uploads and errors
+        let successCount = 0;
+        let errorCount = 0;
         
         // Skip the header line and process each product line
         for (let i = 1; i < lines.length; i++) {
           if (!lines[i].trim()) continue; // Skip empty lines
           
           const values = lines[i].split(',');
-          const productData: any = {};
           
-          // Create product object from CSV columns
+          // Prepare the base product data with required fields
+          const productData: Record<string, any> = {
+            name: "",
+            description: "",
+            price: 0,
+            category: "",
+            imageUrl: "",
+            stock: 0
+          };
+          
+          // Map CSV values to product schema fields
           headers.forEach((header, index) => {
             const value = values[index]?.trim();
-            if (value) {
-              if (header === 'price' || header === 'stock') {
-                productData[header] = Number(value);
-              } else {
-                productData[header] = value;
+            if (!value) return; // Skip empty values
+            
+            // Handle numeric fields
+            if (header === 'price' || header === 'purchasePrice' || header === 'stock') {
+              productData[header] = parseInt(value, 10);
+            } 
+            // Handle boolean fields
+            else if (header === 'approved') {
+              productData[header] = value.toLowerCase() === 'true';
+            }
+            // Handle special image fields mapping
+            else if (header === 'imageUrl1' || header === 'imageUrl2' || header === 'imageUrl3') {
+              if (!productData.images) {
+                productData.images = [];
               }
+              productData.images.push(value);
+            }
+            // Handle main image URL
+            else if (header === 'imageUrl') {
+              productData.imageUrl = value;
+            }
+            // All other fields
+            else {
+              productData[header] = value;
             }
           });
           
-          // Add sellerId to each product
-          productData.sellerId = 5; // Example - replace with actual user ID from context
+          // Convert images array to JSON string
+          if (productData.images && Array.isArray(productData.images)) {
+            productData.images = JSON.stringify(productData.images);
+          }
           
-          // Create each product via API
+          // Ensure we have all required fields
+          if (!productData.name || !productData.description || !productData.price || 
+              !productData.category || !productData.imageUrl) {
+            console.error(`Row ${i} is missing required fields`);
+            errorCount++;
+            continue;
+          }
+          
+          // Create each product via API - use the current user's ID
           try {
-            await fetch('/api/products', {
+            // Add the current user's ID to each product
+            if (user?.id) {
+              productData.sellerId = user.id;
+            }
+            
+            const createResponse = await fetch('/api/products', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -129,18 +191,35 @@ export default function BulkUploadPage() {
               body: JSON.stringify(productData),
               credentials: 'include'
             });
+            
+            if (createResponse.ok) {
+              successCount++;
+            } else {
+              const errorData = await createResponse.json();
+              console.error(`Error creating product (row ${i}):`, errorData);
+              errorCount++;
+            }
           } catch (error) {
-            console.error('Error creating product:', error);
+            console.error(`Error creating product (row ${i}):`, error);
+            errorCount++;
           }
         }
         
         setIsUploading(false);
         setUploadSuccess(true);
         
-        toast({
-          title: "Upload successful",
-          description: `${lines.length - 1} products have been uploaded and are pending approval.`,
-        });
+        if (errorCount > 0) {
+          toast({
+            title: "Upload partially successful",
+            description: `${successCount} products uploaded successfully. ${errorCount} products failed. Check console for details.`,
+            variant: "default",
+          });
+        } else {
+          toast({
+            title: "Upload successful",
+            description: `${successCount} products have been uploaded and are pending approval.`,
+          });
+        }
       };
       
       reader.readAsText(file);
@@ -162,6 +241,34 @@ export default function BulkUploadPage() {
       fileInputRef.current.value = '';
     }
   };
+
+  // Show loading state while fetching user data
+  if (authContext?.isLoading || isUserLoading) {
+    return (
+      <SellerDashboardLayout>
+        <div className="h-screen flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-2">Loading user data...</span>
+        </div>
+      </SellerDashboardLayout>
+    );
+  }
+  
+  // If no user is found, show error
+  if (!user) {
+    return (
+      <SellerDashboardLayout>
+        <div className="flex flex-col items-center justify-center h-[50vh]">
+          <div className="text-destructive mb-4">
+            <span className="text-lg font-medium">Authentication required</span>
+          </div>
+          <p className="text-muted-foreground text-center max-w-md mb-4">
+            You need to be logged in to upload products.
+          </p>
+        </div>
+      </SellerDashboardLayout>
+    );
+  }
 
   return (
     <SellerDashboardLayout>
