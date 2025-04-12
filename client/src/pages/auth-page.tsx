@@ -109,7 +109,7 @@ export default function AuthPage() {
   // Get auth mutations from useAuth hook
   const { requestOtpMutation, verifyOtpMutation, registerMutation } = useAuth();
 
-  // Request OTP or handle special admin login
+  // Request OTP for login or registration
   async function onEmailSubmit(values: EmailFormValues) {
     setEmail(values.email);
     
