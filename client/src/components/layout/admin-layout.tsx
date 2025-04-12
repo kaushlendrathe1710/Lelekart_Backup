@@ -1,7 +1,5 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { useAuth } from "@/hooks/use-auth";
-import { useCart } from "@/context/cart-context";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,8 +31,6 @@ interface AdminLayoutProps {
 
 export function AdminLayout({ children }: AdminLayoutProps) {
   const [location] = useLocation();
-  const { user, logoutMutation } = useAuth();
-  const { cartItems, toggleCart } = useCart();
 
   const navItems = [
     {
@@ -65,7 +61,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   ];
 
   const handleLogout = () => {
-    logoutMutation.mutate();
+    // Navigate to auth page to logout
+    window.location.href = '/auth';
   };
 
   return (
@@ -108,7 +105,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               variant="ghost"
               size="icon"
               className="relative text-white hover:bg-[#2874f0]/90"
-              onClick={toggleCart}
+              onClick={() => window.location.href = '/cart'}
             >
               <ShoppingCart className="h-5 w-5" />
             </Button>

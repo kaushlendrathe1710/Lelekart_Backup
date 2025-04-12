@@ -63,12 +63,6 @@ export function ProtectedRoute({
     return <Redirect to={dashboardPath} />;
   }
 
-  // Wrap component with necessary providers
-  return (
-    <AuthProvider>
-      <CartProvider>
-        <Component />
-      </CartProvider>
-    </AuthProvider>
-  );
+  // Return the component directly as each layout now handles its own providers
+  return <Component />;
 }
