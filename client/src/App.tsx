@@ -16,15 +16,22 @@ import { queryClient } from "@/lib/queryClient";
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={HomePage} />
-      <Route path="/auth" component={AuthPage} />
-      <Route path="/product/:id" component={ProductPage} />
-      <ProtectedRoute path="/admin/dashboard" role="admin" component={AdminDashboard} />
-      <ProtectedRoute path="/seller/dashboard" role="seller" component={SellerDashboard} />
-      <ProtectedRoute path="/buyer/dashboard" role="buyer" component={BuyerDashboard} />
-      <Route component={NotFound} />
-    </Switch>
+    <Layout>
+      <Switch>
+        {/* Regular routes */}
+        <Route path="/" component={HomePage} />
+        <Route path="/auth" component={AuthPage} />
+        <Route path="/product/:id" component={ProductPage} />
+        
+        {/* Dashboard routes */}
+        <ProtectedRoute path="/admin/dashboard" role="admin" component={AdminDashboard} />
+        <ProtectedRoute path="/seller/dashboard" role="seller" component={SellerDashboard} />
+        <ProtectedRoute path="/buyer/dashboard" role="buyer" component={BuyerDashboard} />
+        
+        {/* 404 page */}
+        <Route component={NotFound} />
+      </Switch>
+    </Layout>
   );
 }
 
@@ -33,12 +40,8 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <CartProvider>
-          <div className="min-h-screen flex flex-col">
-            <Layout>
-              <Router />
-            </Layout>
-            <Toaster />
-          </div>
+          <Router />
+          <Toaster />
         </CartProvider>
       </AuthProvider>
     </QueryClientProvider>
