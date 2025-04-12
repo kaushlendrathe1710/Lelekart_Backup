@@ -259,9 +259,9 @@ export default function AuthPage() {
                         <Button 
                           type="submit" 
                           className="w-full"
-                          disabled={isLoading}
+                          disabled={verifyOtpMutation.isPending}
                         >
-                          {isLoading ? (
+                          {verifyOtpMutation.isPending ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               Verifying...
@@ -278,7 +278,7 @@ export default function AuthPage() {
                       variant="link" 
                       className="mt-2"
                       onClick={() => setAuthState('email')}
-                      disabled={isLoading}
+                      disabled={verifyOtpMutation.isPending}
                     >
                       Back to email
                     </Button>
@@ -386,9 +386,9 @@ export default function AuthPage() {
                         <Button 
                           type="submit" 
                           className="w-full"
-                          disabled={isLoading}
+                          disabled={registerMutation.isPending}
                         >
-                          {isLoading ? (
+                          {registerMutation.isPending ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               Creating Account...
@@ -405,7 +405,7 @@ export default function AuthPage() {
                       variant="link" 
                       className="mt-2"
                       onClick={() => setAuthState('email')}
-                      disabled={isLoading}
+                      disabled={registerMutation.isPending}
                     >
                       Start over
                     </Button>
