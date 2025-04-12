@@ -63,45 +63,37 @@ function App() {
               {/* Cart, Checkout, and Order routes - restricted to buyers */}
               <Route path="/cart">
                 {() => (
-                  <ProtectedRoute path="/cart" role="buyer" component={CartPageWrapper} />
+                  <Layout>
+                    <ProtectedRoute path="/cart" role="buyer" component={CartPageWrapper} />
+                  </Layout>
                 )}
               </Route>
               <Route path="/checkout">
                 {() => (
-                  <ProtectedRoute path="/checkout" role="buyer" component={CheckoutPageWrapper} />
+                  <Layout>
+                    <ProtectedRoute path="/checkout" role="buyer" component={CheckoutPageWrapper} />
+                  </Layout>
                 )}
               </Route>
               <Route path="/order-confirmation/:id">
-                {() => (
-                  <ProtectedRoute path="/order-confirmation/:id" role="buyer" component={OrderConfirmationPageWrapper} />
-                )}
+                {() => <ProtectedRoute path="/order-confirmation/:id" role="buyer" component={OrderConfirmationPageWrapper} />}
               </Route>
               <Route path="/orders">
-                {() => (
-                  <ProtectedRoute path="/orders" role="buyer" component={OrdersPageWrapper} />
-                )}
+                {() => <ProtectedRoute path="/orders" role="buyer" component={OrdersPageWrapper} />}
               </Route>
               <Route path="/order/:id">
-                {() => (
-                  <ProtectedRoute path="/order/:id" role="buyer" component={OrderDetailsPageWrapper} />
-                )}
+                {() => <ProtectedRoute path="/order/:id" role="buyer" component={OrderDetailsPageWrapper} />}
               </Route>
               
               {/* Protected dashboard routes */}
               <Route path="/admin/dashboard">
-                {() => (
-                  <ProtectedRoute path="/admin/dashboard" role="admin" component={AdminDashboardWrapper} />
-                )}
+                {() => <ProtectedRoute path="/admin/dashboard" role="admin" component={AdminDashboardWrapper} />}
               </Route>
               <Route path="/seller/dashboard">
-                {() => (
-                  <ProtectedRoute path="/seller/dashboard" role="seller" component={SellerDashboardWrapper} />
-                )}
+                {() => <ProtectedRoute path="/seller/dashboard" role="seller" component={SellerDashboardWrapper} />}
               </Route>
               <Route path="/buyer/dashboard">
-                {() => (
-                  <ProtectedRoute path="/buyer/dashboard" role="buyer" component={BuyerDashboardWrapper} />
-                )}
+                {() => <ProtectedRoute path="/buyer/dashboard" role="buyer" component={BuyerDashboardWrapper} />}
               </Route>
               
               <Route>
