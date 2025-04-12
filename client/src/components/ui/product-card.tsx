@@ -81,7 +81,7 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
       <Card className="product-card flex flex-col items-center p-3 transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1">
         <CardContent className="p-0 flex flex-col items-center">
           <img 
-            src={product.image || product.imageUrl} 
+            src={product.imageUrl} 
             alt={product.name} 
             className="w-28 h-32 object-contain mb-2" 
           />
