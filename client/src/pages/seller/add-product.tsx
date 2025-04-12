@@ -52,6 +52,9 @@ const productSchema = z.object({
   price: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
     message: "Price must be a positive number",
   }),
+  purchasePrice: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+    message: "Purchase price must be a positive number",
+  }),
   mrp: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
     message: "MRP must be a positive number",
   }),
@@ -106,6 +109,7 @@ export default function AddProductPage() {
       description: "",
       specifications: "",
       price: "",
+      purchasePrice: "",
       mrp: "",
       sku: "",
       category: "",
@@ -258,7 +262,8 @@ export default function AddProductPage() {
         name: data.name,
         description: data.description,
         specifications: data.specifications, // Add specifications field
-        price: parseInt(data.price), // Convert to number
+        purchasePrice: parseInt(data.purchasePrice), // Purchase Price (cost price)
+        price: parseInt(data.price), // Selling Price (convert to number)
         category: data.category,
         imageUrl: imageUrl, // Main image (first in the array)
         image: imageUrl, // For compatibility with schema
@@ -490,6 +495,25 @@ export default function AddProductPage() {
                         />
                         
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          <FormField
+                            control={form.control}
+                            name="purchasePrice"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>
+                                  Purchase Price (₹) <span className="text-red-500">*</span>
+                                </FormLabel>
+                                <FormControl>
+                                  <Input type="number" min="0" step="0.01" placeholder="e.g. 19999" {...field} />
+                                </FormControl>
+                                <FormDescription>
+                                  Your cost price
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
                           <FormField
                             control={form.control}
                             name="price"
