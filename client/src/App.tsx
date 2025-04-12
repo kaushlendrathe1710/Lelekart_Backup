@@ -4,6 +4,8 @@ import NotFound from "@/pages/not-found";
 import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
 import ProductPage from "./pages/product-page";
+import CheckoutPage from "./pages/checkout-page";
+import OrderConfirmationPage from "./pages/order-confirmation-page";
 import { Layout } from "@/components/layout/layout";
 import { AuthProvider } from "@/hooks/use-auth";
 import { CartProvider } from "@/context/cart-context";
@@ -26,6 +28,10 @@ function App() {
               <Route path="/" component={HomePage} />
               <Route path="/auth" component={AuthPage} />
               <Route path="/product/:id" component={ProductPage} />
+              
+              {/* Checkout routes */}
+              <ProtectedRoute path="/checkout" component={CheckoutPage} />
+              <ProtectedRoute path="/order-confirmation/:id" component={OrderConfirmationPage} />
               
               {/* Protected dashboard routes */}
               <ProtectedRoute path="/admin/dashboard" role="admin" component={AdminDashboardPage} />

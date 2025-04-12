@@ -1,21 +1,24 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useRoute } from "wouter";
+import { useRoute, useLocation } from "wouter";
 import { Product } from "@shared/schema";
 import { CategoryNav } from "@/components/layout/category-nav";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Minus, Plus, ShoppingCart, Star } from "lucide-react";
+import { Minus, Plus, ShoppingCart, Star, Zap } from "lucide-react";
 import { useCart } from "@/context/cart-context";
 import { ProductCard } from "@/components/ui/product-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function ProductPage() {
   const [, params] = useRoute("/product/:id");
   const productId = params?.id ? parseInt(params.id) : null;
   const { addToCart } = useCart();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [, navigate] = useLocation();
   const [quantity, setQuantity] = useState(1);
 
   // Fetch product details
@@ -48,6 +51,25 @@ export default function ProductPage() {
         description: `${product.name} has been added to your cart`,
         variant: "default",
       });
+    }
+  };
+  
+  const handleBuyNow = () => {
+    if (!user) {
+      toast({
+        title: "Please log in",
+        description: "You need to be logged in to make a purchase",
+        variant: "destructive",
+      });
+      navigate("/auth");
+      return;
+    }
+    
+    if (product) {
+      // First add to cart
+      addToCart(product, quantity);
+      // Then navigate to checkout
+      navigate("/checkout");
     }
   };
 
@@ -150,7 +172,11 @@ export default function ProductPage() {
                     <ShoppingCart className="h-4 w-4 mr-2" />
                     ADD TO CART
                   </Button>
-                  <Button className="bg-primary hover:bg-primary/90 text-white px-8">
+                  <Button 
+                    className="bg-primary hover:bg-primary/90 text-white px-8"
+                    onClick={handleBuyNow}
+                  >
+                    <Zap className="h-4 w-4 mr-2" />
                     BUY NOW
                   </Button>
                 </div>

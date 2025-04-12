@@ -7,20 +7,38 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CheckCircle, Loader2, Clock, Package, ArrowRight } from "lucide-react";
+import { Order, OrderItem, Product } from "@shared/schema";
 
 export default function OrderConfirmationPage() {
   const [, params] = useRoute("/order-confirmation/:id");
   const orderId = params?.id ? parseInt(params.id) : null;
   const { user } = useAuth();
   
+  // Define type for order with shipping details
+  type OrderWithShipping = Order & {
+    shippingDetails?: {
+      name: string;
+      address: string;
+      city: string;
+      state: string;
+      pincode: string;
+      phone: string;
+    }
+  };
+
+  // Define type for order item with product
+  type OrderItemWithProduct = OrderItem & {
+    product: Product;
+  };
+
   // Fetch order details
-  const { data: order, isLoading: isOrderLoading } = useQuery({
+  const { data: order, isLoading: isOrderLoading } = useQuery<OrderWithShipping>({
     queryKey: [`/api/orders/${orderId}`],
     enabled: !!orderId && !!user,
   });
   
   // Fetch order items
-  const { data: orderItems, isLoading: isItemsLoading } = useQuery({
+  const { data: orderItems, isLoading: isItemsLoading } = useQuery<OrderItemWithProduct[]>({
     queryKey: [`/api/orders/${orderId}/items`],
     enabled: !!orderId && !!user,
   });
@@ -31,8 +49,8 @@ export default function OrderConfirmationPage() {
   };
   
   // Format date
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+  const formatDate = (dateString: string | Date) => {
+    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
     return new Intl.DateTimeFormat('en-IN', {
       year: 'numeric',
       month: 'long',
@@ -41,8 +59,8 @@ export default function OrderConfirmationPage() {
   };
   
   // Get estimated delivery date (5 days from order date)
-  const getEstimatedDelivery = (dateString: string) => {
-    const date = new Date(dateString);
+  const getEstimatedDelivery = (dateString: string | Date) => {
+    const date = typeof dateString === 'string' ? new Date(dateString) : new Date(dateString);
     date.setDate(date.getDate() + 5);
     return new Intl.DateTimeFormat('en-IN', {
       year: 'numeric',
