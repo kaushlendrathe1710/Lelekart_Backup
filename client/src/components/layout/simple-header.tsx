@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { 
   Search, 
@@ -11,8 +11,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useAuth } from "@/hooks/use-auth";
-import { useCart } from "@/context/cart-context";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,15 +19,84 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { queryClient } from "@/lib/queryClient";
 
 export function SimpleHeader() {
-  const { user, logoutMutation } = useAuth();
-  const { toggleCart, cartItems } = useCart();
+  // Use regular state for handling auth
+  const [user, setUser] = useState<any>(null);
+  const [cartItems, setCartItems] = useState<any[]>([]);
   const [, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   
-  const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  // Fetch user data on mount
+  useEffect(() => {
+    // Check if user is already cached
+    const cachedUser = queryClient.getQueryData<any>(['/api/user']);
+    if (cachedUser) {
+      setUser(cachedUser);
+    }
+    
+    // Fetch fresh user data
+    fetch('/api/user', {
+      credentials: 'include',
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    })
+    .then(res => {
+      if (res.ok) return res.json();
+      return null;
+    })
+    .then(userData => {
+      if (userData) {
+        setUser(userData);
+        queryClient.setQueryData(['/api/user'], userData);
+      }
+    })
+    .catch(err => console.error("Error fetching user:", err));
+  }, []);
+  
+  // Fetch cart data separately
+  useEffect(() => {
+    if (user) {
+      fetch('/api/cart', {
+        credentials: 'include',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      })
+      .then(res => res.json())
+      .then(data => setCartItems(data))
+      .catch(err => console.error("Error fetching cart:", err));
+    }
+  }, [user]);
+  
+  const cartItemCount = cartItems.length > 0 
+    ? cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0)
+    : 0;
+  
+  const toggleCart = () => {
+    // For now, just navigate to cart page or auth
+    setLocation(user ? '/cart' : '/auth');
+  };
+  
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      queryClient.setQueryData(['/api/user'], null);
+      setUser(null);
+      setLocation('/');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,7 +168,7 @@ export function SimpleHeader() {
                       Dashboard
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => logoutMutation.mutate()} className="cursor-pointer">
+                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
                     <LogOut className="mr-2 h-4 w-4" /> Logout
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -212,7 +279,7 @@ export function SimpleHeader() {
                       Dashboard
                     </button>
                     <button
-                      onClick={() => logoutMutation.mutate()}
+                      onClick={handleLogout}
                       className="block w-full text-left py-2 border-b border-primary-foreground/20"
                     >
                       Logout
