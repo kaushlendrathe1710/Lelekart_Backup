@@ -18,7 +18,8 @@ import {
   Info,
   CheckCircle,
   Upload,
-  Trash2
+  Trash2,
+  Eye
 } from "lucide-react";
 import { Link, useLocation, useRoute } from "wouter";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -269,9 +270,9 @@ export default function EditProductPage() {
         description: `Your product has been updated and is pending review.`,
       });
       
-      // Redirect to products page after a brief delay
+      // Redirect to products page after a brief delay using wouter
       setTimeout(() => {
-        window.location.href = '/seller/products';
+        setLocation('/seller/products');
       }, 1500);
       
       // Invalidate the products query to refresh the products list
@@ -310,9 +311,9 @@ export default function EditProductPage() {
         description: "Your product has been removed from the marketplace.",
       });
       
-      // Redirect to products page after a brief delay
+      // Redirect to products page after a brief delay using wouter
       setTimeout(() => {
-        window.location.href = '/seller/products';
+        setLocation('/seller/products');
       }, 1500);
       
       // Invalidate the products query to refresh the products list
@@ -366,7 +367,7 @@ export default function EditProductPage() {
             <Button 
               variant="outline" 
               size="icon"
-              onClick={() => window.history.back()}
+              onClick={() => setLocation('/seller/products')}
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
@@ -415,7 +416,7 @@ export default function EditProductPage() {
             
             <Button 
               variant="outline" 
-              onClick={() => window.location.href = `/seller/products/preview/${productId}`}
+              onClick={() => setLocation(`/seller/products/preview/${productId}`)}
               className="gap-2"
             >
               <Eye className="h-4 w-4" />
@@ -468,12 +469,92 @@ export default function EditProductPage() {
                                 <Input placeholder="e.g. Samsung Galaxy S22 Ultra (Phantom Black, 256 GB)" {...field} />
                               </FormControl>
                               <FormDescription>
-                                Include brand, model, color, and key features
+                                Include key features, color, and model in the title
                               </FormDescription>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <FormField
+                            control={form.control}
+                            name="sku"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>
+                                  SKU <span className="text-red-500">*</span>
+                                </FormLabel>
+                                <FormControl>
+                                  <Input placeholder="e.g. SM-S22U-BLK-256" {...field} />
+                                </FormControl>
+                                <FormDescription>
+                                  Unique identifier for your product
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="brand"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>
+                                  Brand <span className="text-red-500">*</span>
+                                </FormLabel>
+                                <FormControl>
+                                  <Input placeholder="e.g. Samsung" {...field} />
+                                </FormControl>
+                                <FormDescription>
+                                  Brand or manufacturer name
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <FormField
+                            control={form.control}
+                            name="price"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>
+                                  Selling Price <span className="text-red-500">*</span>
+                                </FormLabel>
+                                <FormControl>
+                                  <Input type="number" min="0" placeholder="e.g. 999" {...field} />
+                                </FormControl>
+                                <FormDescription>
+                                  Your selling price (before taxes)
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="mrp"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>
+                                  MRP <span className="text-red-500">*</span>
+                                </FormLabel>
+                                <FormControl>
+                                  <Input type="number" min="0" placeholder="e.g. 1299" {...field} />
+                                </FormControl>
+                                <FormDescription>
+                                  Maximum retail price (must be ≥ selling price)
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <FormField
@@ -487,7 +568,6 @@ export default function EditProductPage() {
                                 <Select 
                                   onValueChange={field.onChange} 
                                   defaultValue={field.value}
-                                  value={field.value}
                                 >
                                   <FormControl>
                                     <SelectTrigger>
@@ -502,90 +582,8 @@ export default function EditProductPage() {
                                     ))}
                                   </SelectContent>
                                 </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={form.control}
-                            name="subcategory"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>
-                                  Subcategory
-                                </FormLabel>
-                                <Select 
-                                  onValueChange={field.onChange} 
-                                  defaultValue={field.value}
-                                  value={field.value}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select a subcategory" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    <SelectItem value="Mobiles">Mobiles</SelectItem>
-                                    <SelectItem value="Laptops">Laptops</SelectItem>
-                                    <SelectItem value="Audio">Audio</SelectItem>
-                                    <SelectItem value="Cameras">Cameras</SelectItem>
-                                    <SelectItem value="Accessories">Accessories</SelectItem>
-                                    <SelectItem value="Wearables">Wearables</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                        
-                        <FormField
-                          control={form.control}
-                          name="brand"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>
-                                Brand <span className="text-red-500">*</span>
-                              </FormLabel>
-                              <FormControl>
-                                <Input placeholder="e.g. Samsung, Apple, Sony" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                          <FormField
-                            control={form.control}
-                            name="price"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>
-                                  Selling Price (₹) <span className="text-red-500">*</span>
-                                </FormLabel>
-                                <FormControl>
-                                  <Input type="number" min="0" step="0.01" placeholder="e.g. 24999" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={form.control}
-                            name="mrp"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>
-                                  MRP (₹) <span className="text-red-500">*</span>
-                                </FormLabel>
-                                <FormControl>
-                                  <Input type="number" min="0" step="0.01" placeholder="e.g. 29999" {...field} />
-                                </FormControl>
                                 <FormDescription>
-                                  Maximum retail price
+                                  Choose the most appropriate category
                                 </FormDescription>
                                 <FormMessage />
                               </FormItem>
@@ -598,12 +596,11 @@ export default function EditProductPage() {
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>
-                                  GST/Tax (%) <span className="text-red-500">*</span>
+                                  Tax Rate <span className="text-red-500">*</span>
                                 </FormLabel>
                                 <Select 
                                   onValueChange={field.onChange} 
                                   defaultValue={field.value}
-                                  value={field.value}
                                 >
                                   <FormControl>
                                     <SelectTrigger>
@@ -611,13 +608,367 @@ export default function EditProductPage() {
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    <SelectItem value="0">GST 0%</SelectItem>
-                                    <SelectItem value="5">GST 5%</SelectItem>
-                                    <SelectItem value="12">GST 12%</SelectItem>
-                                    <SelectItem value="18">GST 18%</SelectItem>
-                                    <SelectItem value="28">GST 28%</SelectItem>
+                                    <SelectItem value="0">0% GST</SelectItem>
+                                    <SelectItem value="5">5% GST</SelectItem>
+                                    <SelectItem value="12">12% GST</SelectItem>
+                                    <SelectItem value="18">18% GST</SelectItem>
+                                    <SelectItem value="28">28% GST</SelectItem>
                                   </SelectContent>
                                 </Select>
+                                <FormDescription>
+                                  Select applicable tax rate
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </Form>
+              </TabsContent>
+              
+              {/* Description Tab */}
+              <TabsContent value="description" className="space-y-4 mt-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Product Description</CardTitle>
+                    <CardDescription>Provide detailed information about your product</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Form {...form}>
+                      <FormField
+                        control={form.control}
+                        name="description"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              Description <span className="text-red-500">*</span>
+                            </FormLabel>
+                            <FormControl>
+                              <Textarea 
+                                placeholder="Describe your product in detail. Include features, specifications, usage instructions, etc." 
+                                className="min-h-[300px]"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Minimum 20 characters. Use paragraphs and bullet points for better readability.
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </Form>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              {/* Images Tab */}
+              <TabsContent value="images" className="space-y-4 mt-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Product Images</CardTitle>
+                    <CardDescription>Upload high-quality images of your product (min 1, max 8)</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                      <Label htmlFor="upload-image" className="cursor-pointer">
+                        <div className="flex flex-col items-center justify-center space-y-2">
+                          <ImagePlus className="h-10 w-10 text-gray-400" />
+                          <h3 className="text-lg font-medium">Upload Images</h3>
+                          <p className="text-sm text-gray-500">
+                            Drag and drop or click to upload (max 5MB each)
+                          </p>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            className="mt-2"
+                            disabled={isUploading}
+                          >
+                            {isUploading ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                Uploading...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="h-4 w-4 mr-2" />
+                                Select Files
+                              </>
+                            )}
+                          </Button>
+                          {isUploading && (
+                            <div className="w-full mt-2">
+                              <Progress value={uploadProgress} className="h-2 w-full" />
+                              <p className="text-xs text-right mt-1">{uploadProgress}%</p>
+                            </div>
+                          )}
+                        </div>
+                        <Input
+                          id="upload-image"
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={handleImageUpload}
+                          disabled={isUploading || uploadedImages.length >= 8}
+                        />
+                      </Label>
+                    </div>
+                    
+                    {uploadedImages.length > 0 && (
+                      <div>
+                        <h3 className="text-md font-medium mb-3">Uploaded Images</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          {uploadedImages.map((image, index) => (
+                            <div key={index} className="relative group">
+                              <img
+                                src={image}
+                                alt={`Product image ${index + 1}`}
+                                className="w-full h-32 object-cover rounded-md border"
+                              />
+                              <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-md">
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => handleRemoveImage(index)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              {index === 0 && (
+                                <Badge variant="secondary" className="absolute top-2 left-2">
+                                  Primary
+                                </Badge>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                      <div className="flex">
+                        <Info className="h-5 w-5 text-yellow-500 mr-2" />
+                        <div>
+                          <h4 className="text-sm font-medium text-yellow-800">Image Guidelines</h4>
+                          <ul className="text-xs text-yellow-700 mt-1 ml-4 list-disc">
+                            <li>Minimum 1 image is required</li>
+                            <li>Images should be on white background</li>
+                            <li>Each image should be less than 5MB</li>
+                            <li>Recommended size: 2000 x 2000 pixels</li>
+                            <li>Supported formats: JPG, PNG, WEBP</li>
+                            <li>First image will be displayed as the primary image</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              {/* Inventory Tab */}
+              <TabsContent value="inventory" className="space-y-4 mt-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Inventory & Shipping</CardTitle>
+                    <CardDescription>Manage stock and shipping details</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <Form {...form}>
+                      <div className="space-y-6">
+                        <FormField
+                          control={form.control}
+                          name="stock"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>
+                                Stock Quantity <span className="text-red-500">*</span>
+                              </FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="number" 
+                                  min="0" 
+                                  placeholder="e.g. 100" 
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                Current available quantity
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <FormField
+                            control={form.control}
+                            name="weight"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>
+                                  Weight (g)
+                                </FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    type="number" 
+                                    min="0" 
+                                    placeholder="e.g. 250" 
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormDescription>
+                                  Product weight in grams
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="hsn"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>
+                                  HSN Code
+                                </FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="e.g. 85171290" 
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormDescription>
+                                  Harmonized System of Nomenclature code
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          <FormField
+                            control={form.control}
+                            name="length"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>
+                                  Length (cm)
+                                </FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    type="number" 
+                                    min="0" 
+                                    placeholder="e.g. 15" 
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="width"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>
+                                  Width (cm)
+                                </FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    type="number" 
+                                    min="0" 
+                                    placeholder="e.g. 10" 
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="height"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>
+                                  Height (cm)
+                                </FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    type="number" 
+                                    min="0" 
+                                    placeholder="e.g. 5" 
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <FormField
+                            control={form.control}
+                            name="returnPolicy"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>
+                                  Return Policy <span className="text-red-500">*</span>
+                                </FormLabel>
+                                <Select 
+                                  onValueChange={field.onChange} 
+                                  defaultValue={field.value}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select return policy" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="0">No Returns</SelectItem>
+                                    <SelectItem value="7">7 Days</SelectItem>
+                                    <SelectItem value="10">10 Days</SelectItem>
+                                    <SelectItem value="15">15 Days</SelectItem>
+                                    <SelectItem value="30">30 Days</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormDescription>
+                                  Select return period
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="warranty"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>
+                                  Warranty
+                                </FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="e.g. 1 Year Manufacturer Warranty" 
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormDescription>
+                                  Warranty period and details
+                                </FormDescription>
                                 <FormMessage />
                               </FormItem>
                             )}
@@ -626,36 +977,9 @@ export default function EditProductPage() {
                         
                         <FormField
                           control={form.control}
-                          name="hsn"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>
-                                HSN Code
-                              </FormLabel>
-                              <FormControl>
-                                <Input placeholder="e.g. 85171290" {...field} />
-                              </FormControl>
-                              <FormDescription>
-                                Harmonized System Nomenclature code for your product
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </CardContent>
-                    </Card>
-                    
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Product Type & Policies</CardTitle>
-                        <CardDescription>Specify important policy details</CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-6">
-                        <FormField
-                          control={form.control}
                           name="productType"
                           render={({ field }) => (
-                            <FormItem className="space-y-3">
+                            <FormItem>
                               <FormLabel>
                                 Product Type <span className="text-red-500">*</span>
                               </FormLabel>
@@ -663,7 +987,6 @@ export default function EditProductPage() {
                                 <RadioGroup
                                   onValueChange={field.onChange}
                                   defaultValue={field.value}
-                                  value={field.value}
                                   className="flex flex-col space-y-1"
                                 >
                                   <FormItem className="flex items-center space-x-3 space-y-0">
@@ -682,324 +1005,22 @@ export default function EditProductPage() {
                                       Digital Product
                                     </FormLabel>
                                   </FormItem>
+                                  <FormItem className="flex items-center space-x-3 space-y-0">
+                                    <FormControl>
+                                      <RadioGroupItem value="service" />
+                                    </FormControl>
+                                    <FormLabel className="font-normal">
+                                      Service
+                                    </FormLabel>
+                                  </FormItem>
                                 </RadioGroup>
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-                        
-                        <FormField
-                          control={form.control}
-                          name="returnPolicy"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>
-                                Return Policy <span className="text-red-500">*</span>
-                              </FormLabel>
-                              <Select 
-                                onValueChange={field.onChange} 
-                                defaultValue={field.value}
-                                value={field.value}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select return policy" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="0">No Returns</SelectItem>
-                                  <SelectItem value="7">7 Days</SelectItem>
-                                  <SelectItem value="10">10 Days</SelectItem>
-                                  <SelectItem value="15">15 Days</SelectItem>
-                                  <SelectItem value="30">30 Days</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name="warranty"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>
-                                Warranty Period
-                              </FormLabel>
-                              <Select 
-                                onValueChange={field.onChange} 
-                                defaultValue={field.value}
-                                value={field.value}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select warranty period" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="0">No Warranty</SelectItem>
-                                  <SelectItem value="3">3 Months</SelectItem>
-                                  <SelectItem value="6">6 Months</SelectItem>
-                                  <SelectItem value="12">1 Year</SelectItem>
-                                  <SelectItem value="24">2 Years</SelectItem>
-                                  <SelectItem value="36">3 Years</SelectItem>
-                                  <SelectItem value="60">5 Years</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </CardContent>
-                    </Card>
-                  </div>
-                </Form>
-              </TabsContent>
-              
-              {/* Description Tab */}
-              <TabsContent value="description" className="space-y-4 mt-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Product Description</CardTitle>
-                    <CardDescription>Detailed description of your product</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <FormField
-                      control={form.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Description <span className="text-red-500">*</span></FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Write a detailed description of your product, including features, benefits, and specifications..." 
-                              className="min-h-[200px] resize-y"
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Minimum 20 characters. Include key features and benefits to help customers make an informed decision.
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <div className="bg-muted/50 p-4 rounded-md border border-dashed">
-                      <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
-                        <Info className="h-4 w-4" />
-                        Tips for writing a good description:
-                      </h3>
-                      <ul className="text-sm space-y-1 text-muted-foreground ml-6 list-disc">
-                        <li>Include product dimensions, materials, and specifications</li>
-                        <li>Highlight key features and benefits</li>
-                        <li>Mention any unique selling points</li>
-                        <li>Avoid excessive use of keywords or promotional language</li>
-                        <li>Ensure information is accurate and honest</li>
-                      </ul>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              {/* Images Tab */}
-              <TabsContent value="images" className="space-y-4 mt-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Product Images</CardTitle>
-                    <CardDescription>Upload high-quality images of your product</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-md p-6 text-center hover:bg-muted/25 transition-colors">
-                      <div className="mb-4 flex justify-center">
-                        <ImagePlus className="h-12 w-12 text-muted-foreground" />
                       </div>
-                      <h3 className="text-lg font-semibold mb-2">Drag images here or click to browse</h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Upload up to 8 high-quality product images. First image will be used as the main product image.
-                      </p>
-                      <div className="relative">
-                        <Input 
-                          type="file" 
-                          id="image-upload" 
-                          accept="image/*" 
-                          multiple
-                          onChange={handleImageUpload}
-                          className="absolute inset-0 opacity-0 z-10 cursor-pointer h-full w-full"
-                          disabled={isUploading}
-                        />
-                        <Button 
-                          variant="outline" 
-                          className="relative pointer-events-none"
-                          disabled={isUploading}
-                        >
-                          {isUploading ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                              Uploading... {uploadProgress}%
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="h-4 w-4 mr-2" />
-                              Upload Images
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                      {isUploading && (
-                        <div className="mt-4">
-                          <Progress value={uploadProgress} className="h-2 w-full" />
-                        </div>
-                      )}
-                    </div>
-                    
-                    {uploadedImages.length > 0 && (
-                      <div className="space-y-4">
-                        <h3 className="text-sm font-medium">Uploaded Images ({uploadedImages.length}/8)</h3>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                          {uploadedImages.map((img, index) => (
-                            <div key={index} className="relative group">
-                              <div className="overflow-hidden rounded-md border aspect-square bg-muted">
-                                <img
-                                  src={img}
-                                  alt={`Product image ${index + 1}`}
-                                  className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                                />
-                              </div>
-                              <div className="absolute inset-0 flex items-center justify-center opacity-0 bg-black/50 group-hover:opacity-100 transition-opacity rounded-md">
-                                <div className="flex gap-2">
-                                  {index === 0 && (
-                                    <Badge className="absolute top-2 left-2 bg-primary">Main Image</Badge>
-                                  )}
-                                  <Button 
-                                    size="sm"
-                                    variant="destructive" 
-                                    onClick={() => handleRemoveImage(index)}
-                                    className="z-10"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              {/* Inventory Tab */}
-              <TabsContent value="inventory" className="space-y-4 mt-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Inventory Management</CardTitle>
-                    <CardDescription>Manage stock and logistics details</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <FormField
-                        control={form.control}
-                        name="sku"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>
-                              SKU (Stock Keeping Unit) <span className="text-red-500">*</span>
-                            </FormLabel>
-                            <FormControl>
-                              <Input placeholder="e.g. SMSG22U-256-BLK" {...field} />
-                            </FormControl>
-                            <FormDescription>
-                              Unique identifier for your product
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="stock"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>
-                              Stock Quantity <span className="text-red-500">*</span>
-                            </FormLabel>
-                            <FormControl>
-                              <Input type="number" min="0" placeholder="e.g. 100" {...field} />
-                            </FormControl>
-                            <FormDescription>
-                              Available quantity in inventory
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    
-                    <div className="pt-4">
-                      <h3 className="text-sm font-medium mb-3">Dimensions & Weight</h3>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="weight"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Weight (g)</FormLabel>
-                              <FormControl>
-                                <Input type="number" min="0" placeholder="e.g. 200" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name="length"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Length (cm)</FormLabel>
-                              <FormControl>
-                                <Input type="number" min="0" placeholder="e.g. 15" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name="width"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Width (cm)</FormLabel>
-                              <FormControl>
-                                <Input type="number" min="0" placeholder="e.g. 7" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name="height"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Height (cm)</FormLabel>
-                              <FormControl>
-                                <Input type="number" min="0" placeholder="e.g. 1" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </div>
+                    </Form>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -1014,51 +1035,44 @@ export default function EditProductPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">Approval Status:</span>
-                  <Badge variant={product?.approved ? "default" : "outline"} className="capitalize">
-                    {product?.approved ? "Approved" : "Pending Review"}
+                  <span className="text-sm font-medium">Approval Status:</span>
+                  <Badge variant={product?.approved ? "default" : "secondary"} className={product?.approved ? "bg-green-100 text-green-800" : ""}>
+                    {product?.approved ? "Approved" : "Pending Approval"}
                   </Badge>
                 </div>
+                
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">Inventory:</span>
-                  <Badge variant={parseInt(form.watch("stock")) > 0 ? "default" : "destructive"} className="capitalize">
-                    {parseInt(form.watch("stock")) > 0 ? "In Stock" : "Out of Stock"}
+                  <span className="text-sm font-medium">Listing Status:</span>
+                  <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-100">
+                    Active
                   </Badge>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Last Updated:</span>
-                  <span className="text-sm">{new Date().toLocaleDateString()}</span>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Preview</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="overflow-hidden rounded-md border aspect-square bg-muted">
-                  <img
-                    src={uploadedImages[0] || "https://placehold.co/600x400?text=No+Image"}
-                    alt="Product preview"
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="font-medium truncate">{form.watch("name") || "Product Name"}</h3>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-lg">₹{form.watch("price") || "0"}</span>
-                    {form.watch("mrp") && parseInt(form.watch("mrp")) > parseInt(form.watch("price")) && (
-                      <>
-                        <span className="text-sm text-muted-foreground line-through">₹{form.watch("mrp")}</span>
-                        <span className="text-sm text-green-500">
-                          {Math.round((1 - parseInt(form.watch("price")) / parseInt(form.watch("mrp"))) * 100)}% off
-                        </span>
-                      </>
-                    )}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {form.watch("description")?.slice(0, 100)}...
+                
+                <Separator />
+                
+                <div className="pt-2">
+                  <h4 className="text-sm font-medium mb-3">Checklist</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-start">
+                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 mr-2" />
+                      <span className="text-sm">Basic information provided</span>
+                    </div>
+                    <div className="flex items-start">
+                      {uploadedImages.length > 0 ? (
+                        <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 mr-2" />
+                      ) : (
+                        <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 mr-2" />
+                      )}
+                      <span className="text-sm">Product images uploaded</span>
+                    </div>
+                    <div className="flex items-start">
+                      {form.getValues().description.length >= 20 ? (
+                        <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 mr-2" />
+                      ) : (
+                        <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 mr-2" />
+                      )}
+                      <span className="text-sm">Detailed description added</span>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -1066,44 +1080,74 @@ export default function EditProductPage() {
             
             <Card>
               <CardHeader>
-                <CardTitle>Tips & Resources</CardTitle>
+                <CardTitle>Help & Tips</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Accordion type="single" collapsible className="w-full">
                   <AccordionItem value="item-1">
-                    <AccordionTrigger className="text-sm">Improve your product visibility</AccordionTrigger>
-                    <AccordionContent className="text-xs text-muted-foreground">
-                      <ul className="space-y-1 list-disc pl-4">
-                        <li>Use high-quality images from multiple angles</li>
-                        <li>Include detailed specifications and features</li>
-                        <li>Choose the most accurate category</li>
-                        <li>Use relevant keywords in your title and description</li>
+                    <AccordionTrigger className="text-sm">
+                      <div className="flex items-center">
+                        <HelpCircle className="h-4 w-4 mr-2" />
+                        Product Image Tips
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="text-xs">
+                      <ul className="list-disc pl-5 space-y-1">
+                        <li>Use high-resolution images on white background</li>
+                        <li>Show product from multiple angles</li>
+                        <li>Include size reference when applicable</li>
+                        <li>Avoid text overlays on images</li>
                       </ul>
                     </AccordionContent>
                   </AccordionItem>
+                  
                   <AccordionItem value="item-2">
-                    <AccordionTrigger className="text-sm">Pricing strategy</AccordionTrigger>
-                    <AccordionContent className="text-xs text-muted-foreground">
-                      <ul className="space-y-1 list-disc pl-4">
-                        <li>Research competitive pricing in your category</li>
-                        <li>Consider offering discounts on the MRP</li>
-                        <li>Factor in shipping and platform fees</li>
-                        <li>Set a price that allows for occasional promotions</li>
+                    <AccordionTrigger className="text-sm">
+                      <div className="flex items-center">
+                        <HelpCircle className="h-4 w-4 mr-2" />
+                        Description Writing Guide
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="text-xs">
+                      <ul className="list-disc pl-5 space-y-1">
+                        <li>Start with a compelling product summary</li>
+                        <li>List all key features and specifications</li>
+                        <li>Include dimensions, materials, and care instructions</li>
+                        <li>Mention warranty information if applicable</li>
+                        <li>Use bullet points for easy scanning</li>
                       </ul>
                     </AccordionContent>
                   </AccordionItem>
+                  
                   <AccordionItem value="item-3">
-                    <AccordionTrigger className="text-sm">Inventory management</AccordionTrigger>
-                    <AccordionContent className="text-xs text-muted-foreground">
-                      <ul className="space-y-1 list-disc pl-4">
-                        <li>Keep your stock levels updated to avoid overselling</li>
-                        <li>Set low stock alerts when inventory falls below threshold</li>
-                        <li>Consider offering pre-orders for popular items</li>
-                        <li>Regularly audit your physical inventory against online records</li>
+                    <AccordionTrigger className="text-sm">
+                      <div className="flex items-center">
+                        <HelpCircle className="h-4 w-4 mr-2" />
+                        Pricing Strategy
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="text-xs">
+                      <ul className="list-disc pl-5 space-y-1">
+                        <li>Research competitor pricing</li>
+                        <li>Consider offering promotional discounts</li>
+                        <li>Set MRP slightly higher than your selling price</li>
+                        <li>Factor in all costs including shipping and taxes</li>
                       </ul>
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
+                
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                  <div className="flex">
+                    <Info className="h-4 w-4 text-blue-500 mr-2 mt-0.5" />
+                    <div>
+                      <h4 className="text-sm font-medium text-blue-800">Need Help?</h4>
+                      <p className="text-xs text-blue-700 mt-1">
+                        Contact our seller support team at <span className="font-medium">seller-support@example.com</span> for assistance with your product listings.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -1113,22 +1157,4 @@ export default function EditProductPage() {
   );
 }
 
-export function Eye(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
+// Eye component is imported from lucide-react at the top of the file
