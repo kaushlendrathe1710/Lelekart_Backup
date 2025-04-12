@@ -1,4 +1,4 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
 import { Product, User } from "@shared/schema";
@@ -14,8 +14,13 @@ import { apiRequest } from "@/lib/queryClient";
 import { ProductImageGallery } from "@/components/ui/product-image-gallery";
 
 export default function ProductPage() {
+  // Keep a stable reference to the component
+  const componentMounted = useRef(true);
+  const cachedImages = useRef<Record<number, string[]>>({});
+  
   const [matched, params] = useRoute("/product/:id");
   console.log("Product route params:", matched, params);
+  
   // Get productId from URL, with fallback to search params if route doesn't match
   let productId: number | null = null;
   
@@ -34,10 +39,21 @@ export default function ProductPage() {
   if (!productId || isNaN(productId)) {
     console.error("Invalid product ID:", productId);
   }
+  
+  // Keep track if this is the first render
+  const isFirstRender = useRef(true);
+  
   const [quantity, setQuantity] = useState(1);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Clean up effect
+  useEffect(() => {
+    return () => {
+      componentMounted.current = false;
+    };
+  }, []);
   
   // Try to use context first if available
   const cartContext = useContext(CartContext);
@@ -95,6 +111,12 @@ export default function ProductPage() {
   const getProductImages = (product: Product): string[] => {
     if (!product) return [];
     
+    // Check if we already processed this product's images
+    if (productId && cachedImages.current[productId]) {
+      console.log('Using cached images for product:', productId);
+      return cachedImages.current[productId];
+    }
+    
     const images: string[] = [];
     console.log('Processing product images for:', product.id, product.name);
     
@@ -117,9 +139,9 @@ export default function ProductPage() {
           
           if (Array.isArray(parsedImages)) {
             // Add each valid image URL from the array
-            parsedImages.forEach(img => {
+            parsedImages.forEach((img: any) => {
               if (typeof img === 'string' && img.trim() !== '') {
-                images.push(img);
+                images.push(img.trim());
               }
             });
             console.log('Added parsed image URLs, total count now:', images.length);
@@ -127,9 +149,9 @@ export default function ProductPage() {
         } 
         // If it's already an array, use it directly
         else if (Array.isArray(product.images)) {
-          product.images.forEach(img => {
+          product.images.forEach((img: any) => {
             if (typeof img === 'string' && img.trim() !== '') {
-              images.push(img);
+              images.push(img.trim());
             }
           });
           console.log('Added array image URLs, total count now:', images.length);
@@ -142,8 +164,16 @@ export default function ProductPage() {
     }
     
     // Return unique images (no duplicates)
-    const uniqueImages = Array.from(new Set(images));
+    const uniqueImages = Array.from(new Set(images))
+      .filter(url => url.startsWith('http')); // Ensure URLs start with http
+    
     console.log('Final unique images:', uniqueImages);
+    
+    // Cache the images for this product
+    if (productId) {
+      cachedImages.current[productId] = uniqueImages;
+    }
+    
     return uniqueImages;
   };
 
