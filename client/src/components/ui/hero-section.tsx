@@ -184,6 +184,12 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
                     src={image.url} 
                     alt={image.alt} 
                     className="w-full h-64 md:h-80 object-cover rounded-lg shadow-lg" 
+                    onError={(e) => {
+                      // Use a fallback image on error
+                      const target = e.target as HTMLImageElement;
+                      target.onerror = null; // Prevent infinite loop
+                      target.src = "https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg";
+                    }}
                   />
                 </div>
               </div>
@@ -290,6 +296,12 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
                       src={dealOfTheDay.image} 
                       alt={dealOfTheDay.title}
                       className="w-full max-h-48 object-contain"
+                      onError={(e) => {
+                        // Use a fallback image on error
+                        const target = e.target as HTMLImageElement;
+                        target.onerror = null; // Prevent infinite loop
+                        target.src = "https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg";
+                      }}
                     />
                   </div>
                 </div>

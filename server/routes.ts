@@ -687,17 +687,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const product = products[0];
           // Get image URL properly - handle different field naming (imageUrl vs image_url)
           let imageUrl = '';
-          if ('imageUrl' in product && product.imageUrl) {
-            imageUrl = product.imageUrl;
-          } else if ('image_url' in product && product.image_url) {
-            imageUrl = product.image_url as string;
-          } else if (product.images) {
-            // Parse the JSON string into an array if needed
-            const imagesArray = typeof product.images === 'string' 
-              ? JSON.parse(product.images) 
-              : product.images;
-            imageUrl = imagesArray[0] || '';
-          }
+          
+          // For simplicity, use a safe category-based placeholder image from a trusted source
+          // rather than relying on potentially CORS-blocked third-party images
+          const categoryPlaceholders: Record<string, string> = {
+            'Electronics': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
+            'Fashion': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
+            'Home': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
+            'Appliances': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
+            'Mobiles': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
+            'Beauty': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
+            'Toys': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
+            'Grocery': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
+          };
+          
+          imageUrl = categoryPlaceholders[product.category] || 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg';
           
           heroProducts.push({
             title: `${category.name} Sale`,
@@ -742,17 +746,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Get product image
-      let imageUrl = '';
-      if ('imageUrl' in dealProduct && dealProduct.imageUrl) {
-        imageUrl = dealProduct.imageUrl;
-      } else if ('image_url' in dealProduct && dealProduct.image_url) {
-        imageUrl = dealProduct.image_url as string;
-      } else if (dealProduct.images) {
-        const imagesArray = typeof dealProduct.images === 'string' 
-          ? JSON.parse(dealProduct.images as string) 
-          : dealProduct.images;
-        imageUrl = imagesArray[0] || '';
-      }
+      // Use reliable placeholder images instead of potentially CORS-blocked external images
+      const categoryPlaceholders: Record<string, string> = {
+        'Electronics': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
+        'Fashion': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
+        'Home': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
+        'Appliances': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
+        'Mobiles': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
+        'Beauty': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
+        'Toys': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
+        'Grocery': 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg',
+      };
+      
+      const imageUrl = categoryPlaceholders[dealProduct.category] || 'https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg';
       
       // Calculate discount (for display purposes)
       const originalPrice = dealProduct.price;
