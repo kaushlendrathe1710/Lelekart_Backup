@@ -1,14 +1,81 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocation, Link } from "wouter";
-import { useAuth } from "@/hooks/use-auth";
-import { Users, ShoppingBag, ShoppingCart, LineChart } from "lucide-react";
+import { AuthContext } from "@/hooks/use-auth";
+import { useContext } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { User } from "@shared/schema";
+import { Users, ShoppingBag, ShoppingCart, LineChart, Loader2 } from "lucide-react";
 
 export default function AdminDashboardPage() {
-  const { user, logoutMutation } = useAuth();
+  // Try to use context first if available
+  const authContext = useContext(AuthContext);
+  const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   
-  if (!user) return null;
+  // Get user data from direct API if context is not available
+  const { data: apiUser, isLoading: apiLoading } = useQuery<User | null>({
+    queryKey: ['/api/user'],
+    queryFn: async () => {
+      const res = await fetch('/api/user', {
+        credentials: 'include',
+      });
+      
+      if (!res.ok) {
+        if (res.status === 401) return null;
+        throw new Error('Failed to fetch user');
+      }
+      
+      return res.json();
+    },
+    staleTime: 60000, // 1 minute
+  });
+  
+  // Use context user if available, otherwise use API user
+  const user = authContext?.user || apiUser;
+  const isLoading = authContext ? authContext.isLoading : apiLoading;
+  
+  // Logout mutation if no context available
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      
+      if (!res.ok) {
+        throw new Error('Logout failed');
+      }
+    },
+    onSuccess: () => {
+      queryClient.setQueryData(['/api/user'], null);
+      setLocation('/');
+    }
+  });
+  
+  // Handle logout with either context or direct API
+  const handleLogout = () => {
+    if (authContext) {
+      authContext.logoutMutation.mutate();
+    } else {
+      logoutMutation.mutate();
+    }
+  };
+  
+  // Show loading state while fetching user data
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  // If no user (not authenticated) or wrong role, redirect to auth page
+  if (!user || user.role !== 'admin') {
+    setLocation('/auth');
+    return null;
+  }
   
   return (
     <div className="min-h-screen bg-gray-50">
@@ -31,7 +98,7 @@ export default function AdminDashboardPage() {
               <Button 
                 variant="secondary" 
                 className="bg-white text-primary hover:bg-gray-100 border-2 border-white font-medium flex items-center gap-2 shadow-sm"
-                onClick={() => logoutMutation.mutate()}
+                onClick={handleLogout}
               >
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 

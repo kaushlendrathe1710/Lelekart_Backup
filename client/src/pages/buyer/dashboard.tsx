@@ -61,9 +61,12 @@ export default function BuyerDashboardPage() {
     );
   }
   
-  // User will never be null here because ProtectedRoute prevents rendering if not authenticated
-  // but we need to satisfy TypeScript
-  if (!user) return null;
+  // If no user (not authenticated) or wrong role, redirect to auth page
+  if (!user || user.role !== 'buyer') {
+    // Use window.location for immediate redirect to avoid any route protection issues
+    window.location.href = '/auth';
+    return null;
+  }
   
   return (
     <DashboardLayout>
