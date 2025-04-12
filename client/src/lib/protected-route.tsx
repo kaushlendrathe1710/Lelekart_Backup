@@ -1,7 +1,8 @@
 import { Loader2 } from "lucide-react";
 import { Redirect, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { AuthContext } from "@/hooks/use-auth";
+import { AuthContext, AuthProvider } from "@/hooks/use-auth";
+import { CartProvider } from "@/context/cart-context";
 import { useContext } from "react";
 
 interface ProtectedRouteProps {

@@ -61,8 +61,6 @@ import {
 import { ProductImageGallery } from "@/components/ui/product-image-gallery";
 
 export default function AdminProducts() {
-  // Admin pages need to be wrapped with AuthProvider and CartProvider
-  // because the AdminLayout component uses hooks from these contexts
   return (
     <AuthProvider>
       <CartProvider>
