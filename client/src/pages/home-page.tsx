@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
-import { CategoryNav } from "@/components/layout/category-nav";
-import { HeroSlider } from "@/components/ui/hero-slider";
+import { CategoryNav } from "@/components/ui/category-nav";
 import { ProductCard } from "@/components/ui/product-card";
 import { Product } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
+import { HeroSection } from "@/components/ui/hero-section";
+import { ShopByCategory } from "@/components/ui/shop-by-category";
 
 export default function HomePage() {
   const [location] = useLocation();
@@ -101,9 +102,22 @@ export default function HomePage() {
     <>
       <CategoryNav />
       
-      {/* Hero Slider */}
-      <HeroSlider images={heroImages} />
+      {/* Hero Section with enhanced slider and deal of the day */}
+      <HeroSection sliderImages={heroImages} dealOfTheDay={{
+        title: "Deal of the Day: Wireless Headphones",
+        subtitle: "Limited time offer on premium audio experience",
+        image: "https://rukminim1.flixcart.com/image/416/416/l31x2fk0/headphone/a/s/h/-original-image9ehehz8amg2.jpeg",
+        originalPrice: 129.99,
+        discountPrice: 99.99,
+        discountPercentage: 23,
+        hours: 47,
+        minutes: 53,
+        seconds: 41
+      }} />
 
+      {/* Shop by Category */}
+      <ShopByCategory />
+      
       {/* Featured Deals */}
       <div className="container mx-auto px-4 py-6">
         <h2 className="text-2xl font-medium mb-4">Featured Deals</h2>
