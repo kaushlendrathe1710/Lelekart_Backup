@@ -15,10 +15,45 @@ import { AuthContext } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 
 // Complete template with all possible product fields - matches the exact schema requirements
-const EXAMPLE_CSV = `name,description,price,purchasePrice,category,color,size,imageUrl,imageUrl1,imageUrl2,imageUrl3,stock,specifications
-Samsung Galaxy S21,Latest flagship smartphone with high-performance features,99999,89999,Electronics,Black,6.5 inch,https://example.com/smartphone.jpg,https://example.com/smartphone-back.jpg,https://example.com/smartphone-side.jpg,https://example.com/smartphone-box.jpg,100,"Display: AMOLED|RAM: 8GB|Storage: 128GB|Battery: 5000mAh"
-Apple AirPods Pro,Wireless earbuds with active noise cancellation,29999,19999,Electronics,White,One Size,https://example.com/earbuds.jpg,https://example.com/earbuds-case.jpg,https://example.com/earbuds-open.jpg,https://example.com/earbuds-charging.jpg,200,"Battery Life: 6 hours|Water Resistant: Yes|ANC: Yes|Wireless Charging: Yes"
-Nike Running Shoes,Comfortable sports shoes for daily runners,4999,3999,Fashion,Blue,"UK 9, US 10",https://example.com/shoes.jpg,https://example.com/shoes-side.jpg,https://example.com/shoes-sole.jpg,https://example.com/shoes-box.jpg,50,"Material: Mesh|Sole: Rubber|Weight: 290g|Cushioning: React Foam"`;
+const EXAMPLE_CSV = `name,description,price,purchasePrice,mrp,category,subcategory,brand,color,size,imageUrl1,imageUrl2,imageUrl3,imageUrl4,stock,sku,hsn,weight,length,width,height,warranty,returnPolicy,tax,specifications,productType
+Samsung Galaxy S21,Latest flagship smartphone with high-performance features,99999,89999,109999,Electronics,Mobiles,Samsung,Black,6.5 inch,https://example.com/smartphone.jpg,https://example.com/smartphone-back.jpg,https://example.com/smartphone-side.jpg,https://example.com/smartphone-box.jpg,100,SM-G991,85171290,180,150,72,8,12,15,18,"Display: AMOLED|RAM: 8GB|Storage: 128GB|Battery: 5000mAh",physical
+Apple AirPods Pro,Wireless earbuds with active noise cancellation,29999,19999,34999,Electronics,Audio,Apple,White,One Size,https://example.com/earbuds.jpg,https://example.com/earbuds-case.jpg,https://example.com/earbuds-open.jpg,https://example.com/earbuds-charging.jpg,200,APP-123,85183000,50,52,48,23,12,7,18,"Battery Life: 6 hours|Water Resistant: Yes|ANC: Yes|Wireless Charging: Yes",physical
+Nike Air Zoom,Comfortable sports shoes for daily runners,4999,3999,5999,Fashion,Footwear,Nike,Blue,"UK 9, US 10",https://example.com/shoes.jpg,https://example.com/shoes-side.jpg,https://example.com/shoes-sole.jpg,https://example.com/shoes-box.jpg,50,NK-AZ-10,64021990,290,285,105,110,6,30,12,"Material: Mesh|Sole: Rubber|Weight: 290g|Cushioning: React Foam",physical`;
+
+// Helper function to parse CSV lines, properly handling quoted fields
+// This handles fields with commas inside quoted strings
+function parseCsvLine(line: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    
+    if (char === '"') {
+      // Toggle the in-quotes flag when we see a quote
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      // If we're not in quotes and see a comma, end the current field
+      result.push(current);
+      current = '';
+    } else {
+      // Otherwise add the character to the current field
+      current += char;
+    }
+  }
+  
+  // Add the last field
+  result.push(current);
+  
+  // Remove quotes from fields that were quoted
+  return result.map(field => {
+    if (field.startsWith('"') && field.endsWith('"')) {
+      return field.substring(1, field.length - 1);
+    }
+    return field;
+  });
+}
 
 export default function BulkUploadPage() {
   const { toast } = useToast();
@@ -111,7 +146,7 @@ export default function BulkUploadPage() {
         
         const csvData = event.target.result as string;
         const lines = csvData.split('\n');
-        const headers = lines[0].split(',').map(h => h.trim());
+        const headers = parseCsvLine(lines[0]).map(h => h.trim());
         
         // Track successful uploads and errors
         let successCount = 0;
@@ -121,7 +156,7 @@ export default function BulkUploadPage() {
         for (let i = 1; i < lines.length; i++) {
           if (!lines[i].trim()) continue; // Skip empty lines
           
-          const values = lines[i].split(',');
+          const values = parseCsvLine(lines[i]);
           
           // Prepare the base product data with required fields
           const productData: Record<string, any> = {
@@ -139,23 +174,36 @@ export default function BulkUploadPage() {
             if (!value) return; // Skip empty values
             
             // Handle numeric fields
-            if (header === 'price' || header === 'purchasePrice' || header === 'stock') {
+            if (['price', 'purchasePrice', 'stock', 'mrp', 'weight', 'length', 'width', 'height', 'warranty', 'returnPolicy', 'tax'].includes(header)) {
               productData[header] = parseInt(value, 10);
             } 
             // Handle boolean fields
             else if (header === 'approved') {
               productData[header] = value.toLowerCase() === 'true';
             }
-            // Handle special image fields mapping
-            else if (header === 'imageUrl1' || header === 'imageUrl2' || header === 'imageUrl3') {
+            // Handle image fields mapping - use the first one as the main image
+            else if (header === 'imageUrl1') {
+              // First image becomes the main imageUrl
+              productData.imageUrl = value;
+              
+              // Start the additional images array
+              if (!productData.images) {
+                productData.images = [];
+              }
+            }
+            // Handle additional image fields
+            else if (['imageUrl2', 'imageUrl3', 'imageUrl4'].includes(header) && value) {
               if (!productData.images) {
                 productData.images = [];
               }
               productData.images.push(value);
             }
-            // Handle main image URL
-            else if (header === 'imageUrl') {
-              productData.imageUrl = value;
+            // Handle product metadata fields that should be combined into a metadata object
+            else if (['subcategory', 'brand', 'sku', 'hsn', 'productType'].includes(header)) {
+              if (!productData.metadata) {
+                productData.metadata = {};
+              }
+              productData.metadata[header] = value;
             }
             // All other fields
             else {
@@ -166,6 +214,11 @@ export default function BulkUploadPage() {
           // Convert images array to JSON string
           if (productData.images && Array.isArray(productData.images)) {
             productData.images = JSON.stringify(productData.images);
+          }
+          
+          // Convert metadata object to JSON string if it exists
+          if (productData.metadata) {
+            productData.metadata = JSON.stringify(productData.metadata);
           }
           
           // Ensure we have all required fields
