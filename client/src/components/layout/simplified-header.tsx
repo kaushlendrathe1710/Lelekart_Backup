@@ -1,17 +1,11 @@
 import { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { 
   Search, 
   Menu, 
   X, 
   ShoppingCart, 
-  ChevronDown, 
-  User, 
-  LogOut,
-  LayoutDashboard,
-  Store,
-  ShoppingBag,
-  Heart
+  ChevronDown 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,52 +13,20 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCart } from "@/context/cart-context";
-import { useAuth } from "@/hooks/use-auth";
-import { useToast } from "@/hooks/use-toast";
 
 export function Header() {
-  const { user, logoutMutation } = useAuth();
-  const { toast } = useToast();
   const { toggleCart, cartItems } = useCart();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
-  const handleLogout = () => {
-    logoutMutation.mutate(undefined, {
-      onSuccess: () => {
-        toast({
-          title: "Logged out",
-          description: "You have been successfully logged out",
-        });
-      }
-    });
-  };
-
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Search for:", searchQuery);
-  };
-
-  const getDashboardLink = () => {
-    if (!user) return "/auth";
-    
-    switch (user.role) {
-      case "admin":
-        return "/admin/dashboard";
-      case "seller":
-        return "/seller/dashboard";
-      case "buyer":
-        return "/buyer/dashboard";
-      default:
-        return "/";
-    }
   };
 
   return (
@@ -106,7 +68,6 @@ export function Header() {
           
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center justify-between md:ml-auto space-x-4 md:space-x-6">
-            
             {/* More Options */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -178,38 +139,17 @@ export function Header() {
           <div className="md:hidden py-3 border-t border-primary-foreground/20">
             <ul className="space-y-3">
               <li>
-                {user ? (
-                  <Link href={getDashboardLink()} className="flex items-center text-white py-1">
-                    <User className="mr-2 h-5 w-5" />
-                    {user.name || user.username}
-                  </Link>
-                ) : (
-                  <a href="/auth" className="flex items-center text-white py-1">
-                    <User className="mr-2 h-5 w-5" />
-                    Login / Sign Up
-                  </a>
-                )}
+                <Link href="/help" className="flex items-center text-white py-1">
+                  <span className="mr-2 text-white">📱</span>
+                  Download App
+                </Link>
               </li>
-              {user?.role !== "buyer" && (
-                <li>
-                  <Link href="/seller/dashboard" className="flex items-center text-white py-1">
-                    <Store className="mr-2 h-5 w-5" />
-                    Become a Seller
-                  </Link>
-                </li>
-              )}
-              {user && (
-                <li>
-                  <Button 
-                    variant="ghost" 
-                    className="flex items-center text-white py-1 w-full justify-start px-0 hover:bg-transparent"
-                    onClick={handleLogout}
-                  >
-                    <LogOut className="mr-2 h-5 w-5" />
-                    Logout
-                  </Button>
-                </li>
-              )}
+              <li>
+                <Link href="/help" className="flex items-center text-white py-1">
+                  <span className="mr-2 text-white">🎧</span>
+                  24x7 Customer Care
+                </Link>
+              </li>
             </ul>
           </div>
         )}
