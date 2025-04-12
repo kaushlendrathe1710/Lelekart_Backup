@@ -55,7 +55,7 @@ export default function CartPage() {
   const isAuthLoading = authContext ? authContext.isLoading : apiLoading;
 
   // Fetch cart data using React Query for real-time updates
-  const { data: cartItems = [], isLoading } = useQuery<CartItem[]>({
+  const { data: cartItems = [], isLoading: cartLoading } = useQuery<CartItem[]>({
     queryKey: ['/api/cart'],
     enabled: !!user,
     staleTime: 0, // Always fetch fresh data
@@ -63,6 +63,9 @@ export default function CartPage() {
     refetchOnMount: true,
     refetchInterval: 2000, // Poll every 2 seconds for real-time updates
   });
+  
+  // Combine loading states
+  const isLoading = cartLoading || isAuthLoading;
 
   // Update quantity mutation
   const updateQuantityMutation = useMutation({
