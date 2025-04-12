@@ -6,7 +6,8 @@ import { useLocation } from "wouter";
 interface SliderImage {
   url: string;
   alt: string;
-  productId?: number; // Add optional productId for navigation
+  productId?: number; // For navigation to a specific product
+  category?: string;  // For navigation to a category page
 }
 
 interface HeroSliderProps {
@@ -46,6 +47,9 @@ export function HeroSlider({ images, autoplayInterval = 5000 }: HeroSliderProps)
     if (image.productId) {
       console.log("Navigating to product page:", image.productId);
       navigate(`/product/${image.productId}`);
+    } else if (image.category) {
+      console.log("Navigating to category:", image.category);
+      navigate(`/?category=${image.category.toLowerCase()}`);
     }
   };
 
