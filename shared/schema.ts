@@ -33,6 +33,7 @@ export const products = pgTable("products", {
   price: integer("price").notNull(),
   category: text("category").notNull(),
   imageUrl: text("image_url").notNull(),
+  images: text("images"), // Additional images as JSON string
   sellerId: integer("seller_id").notNull().references(() => users.id),
   stock: integer("stock").notNull().default(0),
   approved: boolean("approved").notNull().default(false),

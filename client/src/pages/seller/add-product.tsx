@@ -124,16 +124,49 @@ export default function AddProductPage() {
 
   // Handle adding a new image to our collection
   const handleAddImage = (url: string) => {
-    if (url && !uploadedImages.includes(url)) {
-      setUploadedImages([...uploadedImages, url]);
+    if (!url) return;
+    
+    // Check if we already have 8 images
+    if (uploadedImages.length >= 8) {
+      toast({
+        title: "Maximum images reached",
+        description: "You can upload a maximum of 8 images for a product.",
+        variant: "destructive",
+      });
+      return;
     }
+    
+    // Check for duplicate images
+    if (uploadedImages.includes(url)) {
+      toast({
+        title: "Duplicate image",
+        description: "This image is already in your collection.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Add the new image
+    setUploadedImages([...uploadedImages, url]);
+    
+    // Show success toast
+    toast({
+      title: "Image added",
+      description: `Image ${uploadedImages.length + 1} added successfully.`,
+    });
   };
 
   // Remove image handler
   const handleRemoveImage = (index: number) => {
     const newImages = [...uploadedImages];
-    newImages.splice(index, 1);
+    const removedImage = newImages.splice(index, 1);
     setUploadedImages(newImages);
+    
+    // Show notification
+    toast({
+      title: "Image removed",
+      description: index === 0 ? "Cover image has been removed. The next image will become the cover." : `Image ${index + 1} has been removed.`,
+    });
   };
 
   // Submit handler
@@ -152,7 +185,9 @@ export default function AddProductPage() {
         description: data.description,
         price: parseInt(data.price), // Convert to number
         category: data.category,
-        imageUrl: imageUrl,
+        imageUrl: imageUrl, // Main image (first in the array)
+        image: imageUrl, // For compatibility with schema
+        images: uploadedImages.length > 1 ? JSON.stringify(uploadedImages) : undefined, // Additional images as JSON string
         stock: parseInt(data.stock), // Convert to number
         approved: false, // New products require approval
       };
