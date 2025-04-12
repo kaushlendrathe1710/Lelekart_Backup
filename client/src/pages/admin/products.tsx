@@ -451,17 +451,26 @@ export default function AdminProducts() {
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <div className="h-12 w-12 rounded bg-gray-100 relative overflow-hidden border">
-                            <img
-                              src={product.imageUrl}
-                              alt={product.name}
-                              className="object-contain h-full w-full"
-                              loading="eager"
-                              onError={(e) => {
-                                console.error("Failed to load image:", product.imageUrl);
-                                (e.target as HTMLImageElement).src =
-                                  "https://placehold.co/100?text=No+Image";
-                              }}
-                            />
+                            {(() => {
+                              console.log("Product image data:", { 
+                                id: product.id, 
+                                name: product.name,
+                                imageUrl: product.imageUrl
+                              });
+                              return (
+                                <img
+                                  src={product.imageUrl || "https://placehold.co/100?text=No+Image"}
+                                  alt={product.name}
+                                  className="object-contain h-full w-full"
+                                  loading="eager"
+                                  onError={(e) => {
+                                    console.error("Failed to load image:", product.imageUrl);
+                                    (e.target as HTMLImageElement).src =
+                                      "https://placehold.co/100?text=No+Image";
+                                  }}
+                                />
+                              );
+                            })()}
                           </div>
                           <div className="font-medium hover:text-primary cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap max-w-xs"
                                onClick={() => setViewProduct(product)}>
