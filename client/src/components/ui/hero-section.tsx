@@ -185,10 +185,43 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
                     alt={image.alt} 
                     className="w-full h-64 md:h-80 object-cover rounded-lg shadow-lg" 
                     onError={(e) => {
-                      // Use a fallback image on error
+                      // Use a category-specific fallback image on error
                       const target = e.target as HTMLImageElement;
                       target.onerror = null; // Prevent infinite loop
-                      target.src = "/images/placeholder.svg";
+                      
+                      // Use category-specific placeholders
+                      if (image.category) {
+                        switch(image.category) {
+                          case 'Electronics':
+                            target.src = "/images/categories/electronics.svg";
+                            break;
+                          case 'Fashion':
+                            target.src = "/images/categories/fashion.svg";
+                            break;
+                          case 'Home':
+                            target.src = "/images/categories/home.svg";
+                            break;
+                          case 'Appliances':
+                            target.src = "/images/categories/appliances.svg";
+                            break;
+                          case 'Mobiles':
+                            target.src = "/images/categories/mobiles.svg";
+                            break;
+                          case 'Beauty':
+                            target.src = "/images/categories/beauty.svg";
+                            break;
+                          case 'Toys':
+                            target.src = "/images/categories/toys.svg";
+                            break;
+                          case 'Grocery':
+                            target.src = "/images/categories/grocery.svg";
+                            break;
+                          default:
+                            target.src = "/images/placeholder.svg";
+                        }
+                      } else {
+                        target.src = "/images/placeholder.svg";
+                      }
                     }}
                   />
                 </div>
@@ -297,10 +330,40 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
                       alt={dealOfTheDay.title}
                       className="w-full max-h-48 object-contain"
                       onError={(e) => {
-                        // Use a fallback image on error
+                        // Use a category-specific fallback image for deal of the day
                         const target = e.target as HTMLImageElement;
                         target.onerror = null; // Prevent infinite loop
-                        target.src = "/images/placeholder.svg";
+                        
+                        // Extract category from subtitle if available
+                        const category = dealOfTheDay.subtitle.includes('Electronics') ? 'Electronics' :
+                                        dealOfTheDay.subtitle.includes('Fashion') ? 'Fashion' :
+                                        dealOfTheDay.subtitle.includes('Home') ? 'Home' :
+                                        dealOfTheDay.subtitle.includes('Appliances') ? 'Appliances' :
+                                        dealOfTheDay.subtitle.includes('Mobiles') ? 'Mobiles' :
+                                        dealOfTheDay.subtitle.includes('Beauty') ? 'Beauty' :
+                                        dealOfTheDay.subtitle.includes('Toys') ? 'Toys' :
+                                        dealOfTheDay.subtitle.includes('Grocery') ? 'Grocery' : '';
+                        
+                        // Use appropriate placeholder based on category
+                        if (category === 'Electronics') {
+                          target.src = "/images/categories/electronics.svg";
+                        } else if (category === 'Fashion') {
+                          target.src = "/images/categories/fashion.svg";
+                        } else if (category === 'Home') {
+                          target.src = "/images/categories/home.svg";
+                        } else if (category === 'Appliances') {
+                          target.src = "/images/categories/appliances.svg";
+                        } else if (category === 'Mobiles') {
+                          target.src = "/images/categories/mobiles.svg";
+                        } else if (category === 'Beauty') {
+                          target.src = "/images/categories/beauty.svg";
+                        } else if (category === 'Toys') {
+                          target.src = "/images/categories/toys.svg";
+                        } else if (category === 'Grocery') {
+                          target.src = "/images/categories/grocery.svg";
+                        } else {
+                          target.src = "/images/placeholder.svg";
+                        }
                       }}
                     />
                   </div>
