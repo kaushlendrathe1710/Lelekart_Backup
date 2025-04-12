@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { Search, Menu, X, ChevronDown } from "lucide-react";
+import { Search, Menu, X, ChevronDown, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,12 +11,23 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function Header() {
+  const [user, setUser] = useState<any>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-
+  
+  // Simple functions that don't require the actual auth context
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Search for:", searchQuery);
+  };
+  
+  const handleLogout = () => {
+    // Simple redirect for now
+    window.location.href = "/";
+  };
+  
+  const getDashboardLink = () => {
+    return "/auth";
   };
 
   return (
@@ -58,6 +69,35 @@ export function Header() {
           
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center justify-between md:ml-auto space-x-4 md:space-x-6">
+            {/* Login Button or User Menu */}
+            {!user ? (
+              <a href="/auth" className="flex items-center py-1 px-4 bg-white text-primary font-medium rounded hover:bg-gray-100">
+                <User className="mr-2 h-4 w-4" />
+                <span>Login</span>
+              </a>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="secondary" className="flex items-center py-1 px-4 bg-white text-primary font-medium rounded hover:bg-gray-100">
+                    <span>{user.name || user.username}</span>
+                    <ChevronDown className="ml-1 h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-60">
+                  <DropdownMenuItem asChild>
+                    <Link href={getDashboardLink()} className="cursor-pointer">
+                      <User className="mr-2 h-4 w-4" /> 
+                      Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                    <span className="mr-2">🚪</span> Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            
             {/* More Options */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -100,6 +140,12 @@ export function Header() {
         {mobileMenuOpen && (
           <div className="md:hidden py-3 border-t border-primary-foreground/20">
             <ul className="space-y-3">
+              <li>
+                <a href="/auth" className="flex items-center text-white py-1">
+                  <User className="mr-2 h-5 w-5" />
+                  Login
+                </a>
+              </li>
               <li>
                 <Link href="/help" className="flex items-center text-white py-1">
                   <span className="mr-2 text-white">📱</span>
