@@ -46,7 +46,7 @@ export function SimpleHeader() {
     refetchOnWindowFocus: false,
   });
   
-  // Use React Query to fetch cart data
+  // Use React Query to fetch cart data with real-time updates
   const { data: cartItems = [] } = useQuery({
     queryKey: ['/api/cart'],
     queryFn: async () => {
@@ -63,8 +63,10 @@ export function SimpleHeader() {
       return res.json();
     },
     enabled: !!user,
-    staleTime: 60000, // 1 minute
-    refetchOnWindowFocus: false,
+    staleTime: 0, // Always fetch fresh data
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchInterval: 2000, // Refresh every 2 seconds
   });
   
   const cartItemCount = cartItems.length > 0 

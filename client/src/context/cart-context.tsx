@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from "react";
 import { Product, User } from "@shared/schema";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 
@@ -26,10 +26,10 @@ interface CartContextType {
 export const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const queryClient = useQueryClient();
   
   // Get user data
   const { data: user } = useQuery<User>({
@@ -37,22 +37,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
     retry: false,
   });
 
-  // Load cart from localStorage on initial load
-  useEffect(() => {
-    const savedCart = localStorage.getItem("cart");
-    if (savedCart) {
-      try {
-        setCartItems(JSON.parse(savedCart));
-      } catch (error) {
-        console.error("Failed to parse cart from localStorage:", error);
-      }
-    }
-  }, []);
-
-  // Save cart to localStorage when it changes
-  useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(cartItems));
-  }, [cartItems]);
+  // Fetch cart items using React Query for real-time updates
+  const { data: cartItems = [] } = useQuery<CartItem[]>({
+    queryKey: ['/api/cart'],
+    enabled: !!user,
+    staleTime: 0, // Always fetch fresh data
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchIntervalInBackground: false
+  });
 
   // Add to cart API mutation
   const addToCartMutation = useMutation({
@@ -64,6 +57,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return res.json();
     },
     onSuccess: () => {
+      // Force refresh cart data immediately
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
     },
     onError: (error: Error) => {
@@ -84,6 +78,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return res.json();
     },
     onSuccess: () => {
+      // Force refresh cart data immediately
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
     },
     onError: (error: Error) => {
@@ -102,6 +97,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return res;
     },
     onSuccess: () => {
+      // Force refresh cart data immediately
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
     },
     onError: (error: Error) => {
@@ -136,7 +132,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return;
     }
     
-    // Add to server cart (will be reflected in local cart via cart fetch)
+    // Add to server cart and immediately refresh the cart data
     addToCartMutation.mutate({
       productId: product.id,
       quantity: quantity,
@@ -149,63 +145,41 @@ export function CartProvider({ children }: { children: ReactNode }) {
         });
       }
     });
-    
-    // Also update local cart for immediate feedback
-    setCartItems(prevItems => {
-      const existingItem = prevItems.find(
-        item => item.product.id === product.id
-      );
-
-      if (existingItem) {
-        return prevItems.map(item =>
-          item.product.id === product.id
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
-        );
-      } else {
-        return [...prevItems, { product, quantity }];
-      }
-    });
   };
 
   // Remove product from cart
   const removeFromCart = (productId: number) => {
-    setCartItems(prevItems => {
-      const cartItem = prevItems.find(item => item.product.id === productId);
+    const cartItem = cartItems.find(item => item.product.id === productId);
       
-      // If user is logged in, call the API
-      if (user && cartItem) {
-        removeFromCartMutation.mutate(cartItem.product.id);
-      }
-      
-      return prevItems.filter(item => item.product.id !== productId);
-    });
+    // If user is logged in, call the API 
+    if (user && cartItem && cartItem.id) {
+      removeFromCartMutation.mutate(cartItem.id);
+    }
   };
 
   // Update product quantity
   const updateQuantity = (productId: number, newQuantity: number) => {
-    setCartItems(prevItems => {
-      const cartItem = prevItems.find(item => item.product.id === productId);
+    const cartItem = cartItems.find(item => item.product.id === productId);
       
-      // If user is logged in, call the API
-      if (user && cartItem) {
-        updateCartMutation.mutate({
-          cartItemId: cartItem.product.id,
-          quantity: newQuantity,
-        });
-      }
-      
-      return prevItems.map(item =>
-        item.product.id === productId
-          ? { ...item, quantity: newQuantity }
-          : item
-      );
-    });
+    // If user is logged in, call the API
+    if (user && cartItem && cartItem.id) {
+      updateCartMutation.mutate({
+        cartItemId: cartItem.id,
+        quantity: newQuantity,
+      });
+    }
   };
 
   // Clear the cart
   const clearCart = () => {
-    setCartItems([]);
+    if (user) {
+      // Clear each item individually
+      cartItems.forEach(item => {
+        if (item.id) {
+          removeFromCartMutation.mutate(item.id);
+        }
+      });
+    }
   };
 
   // Toggle cart sidebar visibility
