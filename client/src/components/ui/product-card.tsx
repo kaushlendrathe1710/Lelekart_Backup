@@ -108,7 +108,14 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
                 // Use a fallback image on error
                 const target = e.target as HTMLImageElement;
                 target.onerror = null; // Prevent infinite loop
-                target.src = "https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg";
+                
+                // Use category-specific placeholder or default placeholder
+                if (product.category) {
+                  const categoryLower = product.category.toLowerCase();
+                  target.src = `/images/${categoryLower}-placeholder.svg`;
+                } else {
+                  target.src = "/images/placeholder.svg";
+                }
               }}
             />
             <h3 className="font-medium text-center text-sm">{product.name}</h3>
@@ -148,7 +155,14 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
               // Use a fallback image on error
               const target = e.target as HTMLImageElement;
               target.onerror = null; // Prevent infinite loop
-              target.src = "https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg";
+              
+              // Use category-specific placeholder or default placeholder
+              if (product.category) {
+                const categoryLower = product.category.toLowerCase();
+                target.src = `/images/${categoryLower}-placeholder.svg`;
+              } else {
+                target.src = "/images/placeholder.svg";
+              }
             }}
           />
           <h3 className="font-medium text-center text-sm">{product.name}</h3>
