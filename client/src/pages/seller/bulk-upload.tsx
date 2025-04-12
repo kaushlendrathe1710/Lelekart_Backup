@@ -1136,12 +1136,12 @@ export default function BulkUploadPage() {
                   <Separator />
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Maximum File Size</span>
-                    <span className="text-sm font-medium">5MB</span>
+                    <span className="text-sm font-medium">100MB</span>
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Maximum Products</span>
-                    <span className="text-sm font-medium">500</span>
+                    <span className="text-sm font-medium">10000</span>
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">

@@ -425,7 +425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const upload = multer({
     storage: multer.memoryStorage(),
     limits: {
-      fileSize: 5 * 1024 * 1024, // 5MB file size limit
+      fileSize: 100 * 1024 * 1024, // 100MB file size limit
     },
     fileFilter: (req, file, cb) => {
       // Accept images only
@@ -446,7 +446,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Multer error:", err);
         if (err.code === 'LIMIT_FILE_SIZE') {
           return res.status(400).json({
-            error: `File too large. Maximum file size is 5MB.`
+            error: `File too large. Maximum file size is 100MB.`
           });
         }
         return res.status(400).json({
