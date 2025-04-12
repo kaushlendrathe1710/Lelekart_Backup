@@ -1,11 +1,11 @@
 import { Product } from "@shared/schema";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
-import { useContext } from "react";
-import { CartContext } from "@/context/cart-context";
+import { useCart } from "@/context/cart-context";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 
 interface ProductCardProps {
   product: Product;
@@ -13,27 +13,39 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, featured = false }: ProductCardProps) {
-  const cartContext = useContext(CartContext);
+  const { addToCart } = useCart();
   const { toast } = useToast();
-
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (cartContext) {
-      cartContext.addToCart(product);
-    } else {
-      toast({
-        title: "Cart not available",
-        description: "You need to be logged in to add items to cart",
-        variant: "destructive",
-      });
-    }
-  };
+  const [, setLocation] = useLocation();
+  
+  // Get user data to check if logged in
+  const { data: user } = useQuery({
+    queryKey: ['/api/user'],
+    retry: false,
+    staleTime: 60000,
+  });
 
   // Format price in Indian Rupees
   const formatPrice = (price: number) => {
     return `₹${price.toLocaleString('en-IN')}`;
+  };
+  
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // If user is not logged in, redirect to auth
+    if (!user) {
+      toast({
+        title: "Please log in",
+        description: "You need to be logged in to add items to cart",
+        variant: "default",
+      });
+      setLocation("/auth");
+      return;
+    }
+    
+    // Add product to cart
+    addToCart(product);
   };
 
   if (featured) {
@@ -69,7 +81,7 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
       <Card className="product-card flex flex-col items-center p-3 transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1">
         <CardContent className="p-0 flex flex-col items-center">
           <img 
-            src={product.imageUrl} 
+            src={product.image || product.imageUrl} 
             alt={product.name} 
             className="w-28 h-32 object-contain mb-2" 
           />
