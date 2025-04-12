@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CartContext } from "@/context/cart-context";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { ProductImageGallery } from "@/components/ui/product-image-gallery";
 
 export default function ProductPage() {
   const [, params] = useRoute("/product/:id");
@@ -50,6 +51,38 @@ export default function ProductPage() {
   // Format price in Indian Rupees
   const formatPrice = (price: number) => {
     return `₹${price.toLocaleString('en-IN')}`;
+  };
+  
+  // Get all images from the product
+  const getProductImages = (product: Product): string[] => {
+    const images: string[] = [];
+    
+    // Add main image first
+    if (product.imageUrl) {
+      images.push(product.imageUrl);
+    }
+    
+    // Try to extract additional images from the images field (could be stored as JSON string)
+    if (product.images) {
+      try {
+        // If it's a string, try to parse it
+        if (typeof product.images === 'string') {
+          const parsedImages = JSON.parse(product.images);
+          if (Array.isArray(parsedImages)) {
+            images.push(...parsedImages);
+          }
+        } 
+        // If it's already an array, use it directly
+        else if (Array.isArray(product.images)) {
+          images.push(...product.images);
+        }
+      } catch (error) {
+        console.error('Failed to parse product images:', error);
+      }
+    }
+    
+    // Return unique images (no duplicates)
+    return [...new Set(images)];
   };
 
   // Create mutations for cart operations
@@ -187,12 +220,11 @@ export default function ProductPage() {
         ) : product ? (
           <div className="bg-white p-6 rounded shadow-sm">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Product Image */}
+              {/* Product Image Gallery */}
               <div className="flex justify-center items-start">
-                <img 
-                  src={product.imageUrl} 
-                  alt={product.name} 
-                  className="max-h-96 object-contain"
+                <ProductImageGallery 
+                  images={getProductImages(product)}
+                  productName={product.name}
                 />
               </div>
               
