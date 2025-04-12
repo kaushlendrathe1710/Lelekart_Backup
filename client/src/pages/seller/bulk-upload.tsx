@@ -155,38 +155,43 @@ export default function BulkUploadPage() {
         const rows = text.split('\n');
         const headers = rows[0].split(',').map(header => header.trim());
         
-        // For testing, let's use a hardcoded data row that will pass validation
-        const data = [
-          {
-            name: "Test Smartphone Pro",
-            description: "This is a sample smartphone with high-performance features for testing purposes",
-            price: "999.99",
-            purchasePrice: "899.99",
-            mrp: "1099.99",
-            category: "Electronics",
-            subcategory: "Mobiles",
-            brand: "Samsung Electronics",
-            imageUrl: "https://example.com/smartphone.jpg",
-            imageUrl1: "https://example.com/smartphone2.jpg",
-            imageUrl2: "https://example.com/smartphone3.jpg",
-            imageUrl3: "",
-            stock: "100",
-            sku: "TEST-PRO-123",
-            hsn: "85171290",
-            weight: "0.5",
-            length: "15.5",
-            width: "7.2",
-            height: "0.8",
-            warranty: "12",
-            returnPolicy: "15",
-            tax: "18",
-            productType: "physical"
+        const data = [];
+        
+        // Skip the header row and process each data row
+        for (let i = 1; i < rows.length; i++) {
+          if (rows[i].trim() === '') continue; // Skip empty rows
+          
+          const values = rows[i].split(',').map(value => value.trim());
+          if (values.length < 3) continue; // Skip incomplete rows
+          
+          // Create an object with headers as keys and values
+          const rowData: Record<string, string> = {};
+          for (let j = 0; j < headers.length; j++) {
+            const header = headers[j];
+            const value = j < values.length ? values[j] : '';
+            
+            // Special handling for numeric fields to ensure they're properly formatted
+            if (['price', 'purchasePrice', 'mrp', 'weight', 'length', 'width', 'height'].includes(header)) {
+              if (value && !isNaN(parseFloat(value))) {
+                rowData[header] = parseFloat(value).toString();
+              } else {
+                rowData[header] = value;
+              }
+            } else {
+              rowData[header] = value;
+            }
           }
-        ];
+          
+          data.push(rowData);
+        }
+        
+        console.log("Parsed data:", data);
         
         // Basic validation
         const errors = validateData(data);
         setValidationErrors(errors);
+        
+        console.log("Parsed data from CSV:", data);
         
         if (errors.length === 0) {
           setParsedData(data);
