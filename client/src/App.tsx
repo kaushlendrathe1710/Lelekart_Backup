@@ -119,63 +119,87 @@ function App() {
                 )}
               </Route>
               
-              {/* Admin Routes */}
+              {/* Admin Routes - Now properly wrapped with Layout components */}
               <Route path="/admin">
                 {() => (
-                  <ProtectedRoute 
-                    path="/admin" 
-                    role="admin" 
-                    component={AdminDashboard} 
-                  />
+                  <AuthProvider>
+                    <CartProvider>
+                      <ProtectedRoute 
+                        path="/admin" 
+                        role="admin" 
+                        component={AdminDashboard} 
+                      />
+                    </CartProvider>
+                  </AuthProvider>
                 )}
               </Route>
               {/* Redirect for old dashboard URL to new URL */}
               <Route path="/admin/dashboard">
                 {() => (
-                  <ProtectedRoute 
-                    path="/admin/dashboard" 
-                    role="admin" 
-                    component={() => {
-                      window.location.href = "/admin";
-                      return null;
-                    }} 
-                  />
+                  <AuthProvider>
+                    <CartProvider>
+                      <ProtectedRoute 
+                        path="/admin/dashboard" 
+                        role="admin" 
+                        component={() => {
+                          window.location.href = "/admin";
+                          return null;
+                        }} 
+                      />
+                    </CartProvider>
+                  </AuthProvider>
                 )}
               </Route>
               <Route path="/admin/products">
                 {() => (
-                  <ProtectedRoute 
-                    path="/admin/products" 
-                    role="admin" 
-                    component={AdminProducts} 
-                  />
+                  <AuthProvider>
+                    <CartProvider>
+                      <ProtectedRoute 
+                        path="/admin/products" 
+                        role="admin" 
+                        component={AdminProducts} 
+                      />
+                    </CartProvider>
+                  </AuthProvider>
                 )}
               </Route>
               <Route path="/admin/users">
                 {() => (
-                  <ProtectedRoute 
-                    path="/admin/users" 
-                    role="admin" 
-                    component={AdminUsers} 
-                  />
+                  <AuthProvider>
+                    <CartProvider>
+                      <ProtectedRoute 
+                        path="/admin/users" 
+                        role="admin" 
+                        component={AdminUsers} 
+                      />
+                    </CartProvider>
+                  </AuthProvider>
                 )}
               </Route>
               <Route path="/admin/orders">
                 {() => (
-                  <ProtectedRoute 
-                    path="/admin/orders" 
-                    role="admin" 
-                    component={AdminOrders} 
-                  />
+                  <AuthProvider>
+                    <CartProvider>
+                      <ProtectedRoute 
+                        path="/admin/orders" 
+                        role="admin" 
+                        component={AdminOrders} 
+                      />
+                    </CartProvider>
+                  </AuthProvider>
                 )}
               </Route>
               <Route path="/admin/categories">
                 {() => (
-                  <ProtectedRoute 
-                    path="/admin/categories" 
-                    role="admin" 
-                    component={AdminCategories} 
-                  />
+                  <AuthProvider>
+                    <CartProvider>
+                      <ProtectedRoute 
+                        path="/admin/categories" 
+                        role="admin" 
+                        component={AdminCategories} 
+                      />
+                    </CartProvider>
+                  </AuthProvider>
                 )}
               </Route>
               {/* Seller route with nested paths to use the same layout */}

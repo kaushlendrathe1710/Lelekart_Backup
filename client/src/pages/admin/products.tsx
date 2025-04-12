@@ -3,6 +3,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Product } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { AuthProvider } from "@/hooks/use-auth";
+import { CartProvider } from "@/context/cart-context";
 import { AdminLayout } from "@/components/layout/admin-layout";
 import {
   Table,
@@ -59,6 +61,18 @@ import {
 import { ProductImageGallery } from "@/components/ui/product-image-gallery";
 
 export default function AdminProducts() {
+  // Admin pages need to be wrapped with AuthProvider and CartProvider
+  // because the AdminLayout component uses hooks from these contexts
+  return (
+    <AuthProvider>
+      <CartProvider>
+        <AdminProductsContent />
+      </CartProvider>
+    </AuthProvider>
+  );
+}
+
+function AdminProductsContent() {
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
