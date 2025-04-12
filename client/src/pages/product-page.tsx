@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
-import { Product } from "@shared/schema";
+import { Product, User } from "@shared/schema";
 import { CategoryNav } from "@/components/layout/category-nav";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -9,19 +9,23 @@ import { Minus, Plus, ShoppingCart, Star, Zap } from "lucide-react";
 import { ProductCard } from "@/components/ui/product-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
-// Implementation that directly uses API requests for cart operations
+// Simple component that doesn't rely on context
 export default function ProductPage() {
   const [, params] = useRoute("/product/:id");
   const productId = params?.id ? parseInt(params.id) : null;
   const { toast } = useToast();
-  const { user } = useAuth();
   const [, navigate] = useLocation();
   const [quantity, setQuantity] = useState(1);
   
-  // Cart mutation
+  // Fetch user data directly with type
+  const { data: user } = useQuery<User>({
+    queryKey: ['/api/user'],
+    retry: false,
+  });
+  
+  // Add to cart mutation
   const addToCartMutation = useMutation({
     mutationFn: async (data: { productId: number; quantity: number }) => {
       return await apiRequest('POST', '/api/cart', data);
@@ -73,6 +77,7 @@ export default function ProductPage() {
       return;
     }
     
+    // Check if user is not a buyer
     if (user.role !== 'buyer') {
       toast({
         title: "Action Not Allowed",
@@ -82,11 +87,17 @@ export default function ProductPage() {
       return;
     }
     
-    addToCartFn(product, quantity);
-    toast({
-      title: "Added to cart",
-      description: `${product.name} has been added to your cart`,
-      variant: "default",
+    addToCartMutation.mutate({ 
+      productId: product.id, 
+      quantity: quantity 
+    }, {
+      onSuccess: () => {
+        toast({
+          title: "Added to cart",
+          description: `${product.name} has been added to your cart`,
+          variant: "default",
+        });
+      }
     });
   };
   
@@ -103,6 +114,7 @@ export default function ProductPage() {
       return;
     }
     
+    // Check if user is not a buyer
     if (user.role !== 'buyer') {
       toast({
         title: "Action Not Allowed",
@@ -112,10 +124,15 @@ export default function ProductPage() {
       return;
     }
     
-    // First add to cart
-    addToCartFn(product, quantity);
-    // Then navigate to checkout
-    navigate("/checkout");
+    // First add to cart, then navigate to checkout
+    addToCartMutation.mutate({ 
+      productId: product.id, 
+      quantity: quantity 
+    }, {
+      onSuccess: () => {
+        navigate("/checkout");
+      }
+    });
   };
 
   return (
