@@ -1,25 +1,42 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
 import { Product } from "@shared/schema";
 import { CategoryNav } from "@/components/layout/category-nav";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Minus, Plus, ShoppingCart, Star, Zap } from "lucide-react";
-import { useCart } from "@/context/cart-context";
 import { ProductCard } from "@/components/ui/product-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
+// Implementation that directly uses API requests for cart operations
 export default function ProductPage() {
   const [, params] = useRoute("/product/:id");
   const productId = params?.id ? parseInt(params.id) : null;
-  const { addToCart } = useCart();
   const { toast } = useToast();
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const [quantity, setQuantity] = useState(1);
+  
+  // Cart mutation
+  const addToCartMutation = useMutation({
+    mutationFn: async (data: { productId: number; quantity: number }) => {
+      return await apiRequest('POST', '/api/cart', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/cart'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error adding to cart",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   // Fetch product details
   const { data: product, isLoading: isProductLoading } = useQuery<Product>({
@@ -65,7 +82,7 @@ export default function ProductPage() {
       return;
     }
     
-    addToCart(product, quantity);
+    addToCartFn(product, quantity);
     toast({
       title: "Added to cart",
       description: `${product.name} has been added to your cart`,
@@ -96,7 +113,7 @@ export default function ProductPage() {
     }
     
     // First add to cart
-    addToCart(product, quantity);
+    addToCartFn(product, quantity);
     // Then navigate to checkout
     navigate("/checkout");
   };
