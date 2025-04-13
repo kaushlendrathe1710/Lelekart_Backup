@@ -45,9 +45,14 @@ export function SearchBar() {
 
   // Close on navigation
   const handleSelectProduct = (productId: number) => {
-    navigate(`/product/${productId}`);
+    console.log(`Navigating to product ${productId}`);
+    
+    // Close the search dialog and reset search term
     setOpen(false);
     setSearchTerm('');
+    
+    // Use direct window location instead of wouter navigate to ensure page refresh
+    window.location.href = `/product/${productId}`;
   };
 
   // Use state for all products and search results
