@@ -48,7 +48,7 @@ export default function SmartInventory() {
   };
 
   return (
-    <DashboardLayout>
+    <SellerDashboardLayout>
       <div className="container mx-auto py-6">
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Smart Inventory & Price Management</h1>
@@ -166,7 +166,7 @@ export default function SmartInventory() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </SellerDashboardLayout>
   );
 }
 
