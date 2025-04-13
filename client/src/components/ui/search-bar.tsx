@@ -50,65 +50,106 @@ export function SearchBar() {
     setSearchTerm('');
   };
 
-  // Use state for search results to avoid routing issues
+  // Use state for all products and search results
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
-  // Use effect to fetch search results
+  // Fetch all products on component mount (only once)
   useEffect(() => {
-    // Define the search function
-    const searchProducts = async () => {
-      if (!debouncedSearchTerm || debouncedSearchTerm.length < 2) {
-        setSearchResults([]);
-        return;
-      }
-      
+    const fetchAllProducts = async () => {
       setIsLoading(true);
-      console.log('Searching for:', debouncedSearchTerm);
-      
       try {
-        // Make a direct request to retrieve products
+        // Make a direct request to retrieve all products
         const response = await fetch('/api/products');
         if (!response.ok) {
-          throw new Error('Search failed');
+          throw new Error('Failed to fetch products');
         }
         
-        const allProducts = await response.json();
-        
-        // Filter products on the client side
-        const filteredResults = allProducts.filter((product: Product) => 
-          product.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-          (product.description && product.description.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
-          (product.category && product.category.toLowerCase().includes(debouncedSearchTerm.toLowerCase()))
-        );
-        
-        console.log(`Found ${filteredResults.length} results for "${debouncedSearchTerm}"`);
-        setSearchResults(filteredResults);
+        const products = await response.json();
+        console.log(`Loaded ${products.length} products for search`);
+        setAllProducts(products);
       } catch (error) {
-        console.error('Search error:', error);
-        setSearchResults([]);
+        console.error('Error fetching products:', error);
       } finally {
         setIsLoading(false);
       }
     };
     
-    // Execute search when debounced term changes
-    if (debouncedSearchTerm.length >= 2) {
-      searchProducts();
-    } else {
-      setSearchResults([]);
+    fetchAllProducts();
+  }, []);
+  
+  // Filter products immediately when search term changes
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      // When searchTerm is empty, show a few suggestions or nothing
+      setSearchResults(allProducts.slice(0, 5));
+      return;
     }
-  }, [debouncedSearchTerm]);
+    
+    // Filter products based on the current search term (not debounced)
+    const term = searchTerm.toLowerCase();
+    
+    // Create a more intelligent filter that prioritizes matches at the start of words
+    const filtered = allProducts.filter((product: Product) => {
+      // Check if product name starts with search term (highest priority)
+      if (product.name.toLowerCase().startsWith(term)) {
+        return true;
+      }
+      
+      // Check if any word in product name starts with search term (high priority)
+      const nameWords = product.name.toLowerCase().split(/\s+/);
+      if (nameWords.some(word => word.startsWith(term))) {
+        return true;
+      }
+      
+      // Check if product name contains search term (medium priority)
+      if (product.name.toLowerCase().includes(term)) {
+        return true;
+      }
+      
+      // Check if category matches (lower priority)
+      if (product.category && product.category.toLowerCase().includes(term)) {
+        return true;
+      }
+      
+      // Check if description contains search term (lowest priority)
+      if (product.description && product.description.toLowerCase().includes(term)) {
+        return true;
+      }
+      
+      return false;
+    });
+    
+    console.log(`Found ${filtered.length} instant results for "${term}"`);
+    setSearchResults(filtered);
+  }, [searchTerm, allProducts]);
 
+  // Function to highlight the matched text in product names
+  const highlightMatch = (text: string, query: string) => {
+    if (!query.trim()) return text;
+    
+    const parts = text.split(new RegExp(`(${query})`, 'gi'));
+    return (
+      <>
+        {parts.map((part, i) => 
+          part.toLowerCase() === query.toLowerCase() 
+            ? <span key={i} className="bg-primary/20 text-primary font-medium">{part}</span>
+            : part
+        )}
+      </>
+    );
+  };
+  
   return (
     <>
       <div className="relative w-full max-w-md">
         <Button 
           variant="outline" 
-          className="relative h-9 w-full justify-start rounded-md px-3 text-sm text-muted-foreground sm:pr-12 md:w-64 lg:w-80"
+          className="relative h-10 w-full justify-start rounded-md px-3 text-sm text-muted-foreground sm:pr-12 md:w-64 lg:w-80 border-primary/30 hover:border-primary hover:bg-primary/5 transition-colors"
           onClick={() => setOpen(true)}
         >
-          <Search className="h-4 w-4 mr-2" />
+          <Search className="h-4 w-4 mr-2 text-primary" />
           <span className="hidden sm:inline-flex">Search products...</span>
           <kbd className="pointer-events-none absolute right-1.5 top-[0.35rem] hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-xs font-medium sm:flex">
             <span className="text-xs">⌘</span>K
@@ -125,8 +166,27 @@ export function SearchBar() {
         />
         <CommandList>
           <CommandEmpty>
-            {isLoading ? 'Searching...' : 'No results found.'}
+            {isLoading ? 'Loading suggestions...' : searchTerm.trim() ? 'No results found.' : 'Type to search...'}
           </CommandEmpty>
+          
+          {/* Show popular searches when search is empty */}
+          {!searchTerm.trim() && !isLoading && allProducts.length > 0 && (
+            <CommandGroup heading="Popular Categories">
+              <CommandItem value="electronics" onSelect={() => setSearchTerm("electronics")}>
+                Electronics
+              </CommandItem>
+              <CommandItem value="fashion" onSelect={() => setSearchTerm("fashion")}>
+                Fashion
+              </CommandItem>
+              <CommandItem value="mobile" onSelect={() => setSearchTerm("mobile")}>
+                Mobiles
+              </CommandItem>
+              <CommandItem value="padded" onSelect={() => setSearchTerm("padded")}>
+                Padded Products
+              </CommandItem>
+            </CommandGroup>
+          )}
+          
           {searchResults.length > 0 && (
             <CommandGroup heading="Products">
               {searchResults.map((product) => {
@@ -167,11 +227,19 @@ export function SearchBar() {
                       )}
                     </div>
                     <div className="flex flex-col">
-                      <span className="font-medium">{product.name}</span>
+                      <span className="font-medium">
+                        {highlightMatch(product.name, searchTerm)}
+                      </span>
                       <div className="flex items-center">
                         <span className="text-sm text-muted-foreground truncate max-w-[15rem]">
-                          {product.category && <span className="mr-2 px-1.5 py-0.5 text-xs rounded bg-secondary">{product.category}</span>}
-                          ₹{product.price}
+                          {product.category && (
+                            <span className="mr-2 px-1.5 py-0.5 text-xs rounded bg-secondary">
+                              {product.category.toLowerCase().includes(searchTerm.toLowerCase()) 
+                                ? highlightMatch(product.category, searchTerm)
+                                : product.category}
+                            </span>
+                          )}
+                          <span className="font-medium">₹{product.price.toLocaleString()}</span>
                         </span>
                       </div>
                     </div>
