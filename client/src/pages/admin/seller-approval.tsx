@@ -59,7 +59,7 @@ export default function SellerApprovalPage() {
 
   const approveMutation = useMutation({
     mutationFn: async (sellerId: number) => {
-      const res = await apiRequest('POST', `/api/admin/sellers/${sellerId}/approve`);
+      const res = await apiRequest('PUT', `/api/sellers/${sellerId}/approve`);
       return res.json();
     },
     onSuccess: () => {
@@ -85,7 +85,7 @@ export default function SellerApprovalPage() {
 
   const rejectMutation = useMutation({
     mutationFn: async (sellerId: number) => {
-      const res = await apiRequest('POST', `/api/admin/sellers/${sellerId}/reject`);
+      const res = await apiRequest('PUT', `/api/sellers/${sellerId}/reject`);
       return res.json();
     },
     onSuccess: () => {
