@@ -41,17 +41,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Product routes
+  // Product routes with pagination
   app.get("/api/products", async (req, res) => {
     try {
       const category = req.query.category as string | undefined;
       const sellerId = req.query.sellerId ? Number(req.query.sellerId) : undefined;
       const approved = req.query.approved !== undefined ? req.query.approved === "true" : undefined;
       
-      console.log('Fetching products with filters:', { category, sellerId, approved });
+      // Pagination parameters
+      const page = req.query.page ? parseInt(req.query.page as string) : 1;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 12;
+      const offset = (page - 1) * limit;
       
-      let products = await storage.getProducts(category, sellerId, approved);
-      console.log(`Found ${products?.length || 0} products`);
+      console.log('Fetching products with filters:', { category, sellerId, approved, page, limit });
+      
+      // Get total count for pagination
+      const totalCount = await storage.getProductsCount(category, sellerId, approved);
+      const totalPages = Math.ceil(totalCount / limit);
+      
+      // Get paginated products
+      let products = await storage.getProductsPaginated(category, sellerId, approved, offset, limit);
+      console.log(`Found ${products?.length || 0} products (page ${page}/${totalPages})`);
       
       if (!products || !Array.isArray(products)) {
         console.error('Invalid products data returned:', products);
@@ -67,7 +77,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return product;
       });
       
-      res.json(products);
+      // Return both products and pagination data
+      res.json({
+        products,
+        pagination: {
+          total: totalCount,
+          totalPages,
+          currentPage: page,
+          limit
+        }
+      });
     } catch (error) {
       console.error('Error fetching products:', error);
       res.status(500).json({ error: "Failed to fetch products", details: error instanceof Error ? error.message : 'Unknown error' });

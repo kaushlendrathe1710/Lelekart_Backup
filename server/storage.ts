@@ -26,6 +26,8 @@ export interface IStorage {
 
   // Product operations
   getProducts(category?: string, sellerId?: number, approved?: boolean): Promise<Product[]>;
+  getProductsCount(category?: string, sellerId?: number, approved?: boolean): Promise<number>;
+  getProductsPaginated(category?: string, sellerId?: number, approved?: boolean, offset?: number, limit?: number): Promise<Product[]>;
   searchProducts(query: string, limit?: number): Promise<Product[]>;
   getProduct(id: number): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
@@ -176,6 +178,91 @@ export class DatabaseStorage implements IStorage {
       return rows;
     } catch (error) {
       console.error("Error in getProducts:", error);
+      return [];
+    }
+  }
+  
+  async getProductsCount(category?: string, sellerId?: number, approved?: boolean): Promise<number> {
+    try {
+      // Use SQL query for counting with filters
+      let query = `
+        SELECT COUNT(*) as count FROM products 
+        WHERE 1=1
+      `;
+      const params: any[] = [];
+      
+      // Add category filter (case-insensitive)
+      if (category) {
+        query += ` AND LOWER(category) = LOWER($${params.length + 1})`;
+        params.push(category);
+      }
+      
+      // Add seller filter - NOTE: Use snake_case for database column names
+      if (sellerId !== undefined) {
+        query += ` AND seller_id = $${params.length + 1}`;
+        params.push(sellerId);
+      }
+      
+      // Add approved filter
+      if (approved !== undefined) {
+        query += ` AND approved = $${params.length + 1}`;
+        params.push(approved);
+      }
+      
+      // Execute the query
+      const { rows } = await pool.query(query, params);
+      return parseInt(rows[0].count || '0');
+    } catch (error) {
+      console.error("Error in getProductsCount:", error);
+      return 0;
+    }
+  }
+  
+  async getProductsPaginated(
+    category?: string, 
+    sellerId?: number, 
+    approved?: boolean, 
+    offset: number = 0, 
+    limit: number = 12
+  ): Promise<Product[]> {
+    try {
+      // Use SQL query for pagination with filters
+      let query = `
+        SELECT * FROM products 
+        WHERE 1=1
+      `;
+      const params: any[] = [];
+      
+      // Add category filter (case-insensitive)
+      if (category) {
+        query += ` AND LOWER(category) = LOWER($${params.length + 1})`;
+        params.push(category);
+      }
+      
+      // Add seller filter - NOTE: Use snake_case for database column names
+      if (sellerId !== undefined) {
+        query += ` AND seller_id = $${params.length + 1}`;
+        params.push(sellerId);
+      }
+      
+      // Add approved filter
+      if (approved !== undefined) {
+        query += ` AND approved = $${params.length + 1}`;
+        params.push(approved);
+      }
+      
+      // Add pagination
+      query += ` ORDER BY id DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+      params.push(limit, offset);
+      
+      console.log('Executing paginated SQL query:', query, 'with params:', params);
+      
+      // Execute the query
+      const { rows } = await pool.query(query, params);
+      console.log(`Found ${rows.length} products (paginated)`);
+      return rows;
+    } catch (error) {
+      console.error("Error in getProductsPaginated:", error);
       return [];
     }
   }

@@ -27,6 +27,7 @@ import { Separator } from "@/components/ui/separator";
 import { Product } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { Pagination } from "@/components/ui/pagination";
 
 export default function CategoryPage() {
   const [location, setLocation] = useLocation();
@@ -36,23 +37,47 @@ export default function CategoryPage() {
   const urlParts = location.split('/');
   const categoryName = decodeURIComponent(urlParts[urlParts.length - 1]);
   
-  // State for sorting and filtering
+  // State for sorting, filtering, and pagination
   const [sortOrder, setSortOrder] = useState<string>("featured");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [availableBrands, setAvailableBrands] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(16); // Number of products per page
 
-  // Fetch products for the specific category
-  const { data: products = [], isLoading, error } = useQuery({
-    queryKey: ['/api/products', categoryName],
+  // Get search params from URL if any
+  const searchParams = new URLSearchParams(location.split('?')[1] || '');
+  const pageParam = searchParams.get('page');
+  
+  // Set current page from URL params if available
+  useEffect(() => {
+    if (pageParam) {
+      const page = parseInt(pageParam);
+      if (!isNaN(page) && page > 0) {
+        setCurrentPage(page);
+      }
+    } else {
+      setCurrentPage(1); // Reset to page 1 when category changes
+    }
+  }, [categoryName, pageParam]);
+
+  // Fetch products for the specific category with pagination
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['/api/products', categoryName, currentPage, itemsPerPage],
     queryFn: async () => {
-      const response = await fetch(`/api/products?category=${encodeURIComponent(categoryName)}`);
+      const response = await fetch(
+        `/api/products?category=${encodeURIComponent(categoryName)}&page=${currentPage}&limit=${itemsPerPage}`
+      );
       if (!response.ok) {
         throw new Error('Failed to fetch products');
       }
       return response.json();
     },
   });
+  
+  // Extract products and pagination from response
+  const products = data?.products || [];
+  const pagination = data?.pagination || { currentPage: 1, totalPages: 1, total: 0 };
 
   // Extract available distinct values from the products to act as "brands"
   useEffect(() => {
@@ -272,11 +297,38 @@ export default function CategoryPage() {
             ))}
           </div>
         ) : filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-            {filteredProducts.map((product: Product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+              {filteredProducts.map((product: Product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+            
+            {/* Pagination component */}
+            {pagination && pagination.totalPages > 1 && (
+              <Pagination 
+                currentPage={pagination.currentPage} 
+                totalPages={pagination.totalPages} 
+                onPageChange={(page) => {
+                  // Update URL to include page number
+                  const params = new URLSearchParams(location.split('?')[1] || '');
+                  params.set('page', page.toString());
+                  
+                  // Build new URL with category and page
+                  const newUrl = `/category/${categoryName}?${params.toString()}`;
+                  setLocation(newUrl);
+                  
+                  // Scroll to top when page changes
+                  window.scrollTo(0, 0);
+                }} 
+              />
+            )}
+            
+            {/* Results count */}
+            <div className="text-sm text-gray-500 text-center mt-2">
+              Showing {((pagination.currentPage - 1) * itemsPerPage) + 1} to {Math.min(pagination.currentPage * itemsPerPage, pagination.total)} of {pagination.total} products
+            </div>
+          </>
         ) : (
           <div className="text-center py-12">
             <h2 className="text-2xl font-semibold">No Products Found</h2>
