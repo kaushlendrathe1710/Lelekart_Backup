@@ -51,7 +51,16 @@ export const AIAssistantProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [isLoading, setIsLoading] = useState(false);
   const [personalizedRecommendations, setPersonalizedRecommendations] = useState<Product[]>([]);
   const [complementaryProducts, setComplementaryProducts] = useState<Product[]>([]);
-  const { user } = useAuth();
+  // Safely get user from auth context
+  let user;
+  try {
+    const authContext = useAuth();
+    user = authContext.user;
+  } catch (error) {
+    console.warn("Auth context not available yet, user will be undefined");
+    user = null;
+  }
+  
   const { toast } = useToast();
 
   // Fetch personalized recommendations when the component mounts
