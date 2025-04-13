@@ -177,8 +177,16 @@ export default function SellerProductsPage() {
           <CardContent>
             <div className="flex flex-col md:flex-row gap-4 mb-6">
               <div className="relative flex-1">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search products..." className="pl-8" />
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+                <Input 
+                  placeholder="Search products..." 
+                  className="pl-8 pr-24" 
+                  disabled
+                  onClick={() => alert('Search functionality is being improved. Please check back later!')}
+                />
+                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400">
+                  Coming soon
+                </span>
               </div>
               <Button variant="outline" className="flex items-center gap-2">
                 <Filter className="h-4 w-4" />

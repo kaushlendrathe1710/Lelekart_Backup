@@ -238,14 +238,17 @@ export default function AdminUsers() {
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="relative w-full sm:w-64">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
                 <Input
                   type="search"
                   placeholder="Search users..."
-                  className="pl-8 w-full"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-8 pr-24 w-full"
+                  disabled
+                  onClick={() => alert('Search functionality is being improved. Please check back later!')}
                 />
+                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400">
+                  Coming soon
+                </span>
               </div>
               <div className="flex items-center space-x-2">
                 <Button
