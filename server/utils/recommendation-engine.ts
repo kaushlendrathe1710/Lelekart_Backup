@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { products, users, cart, orderItems } from "@shared/schema";
+import { products } from "@shared/schema";
 import { sql, desc, eq, and, or, inArray } from "drizzle-orm";
 
 /**
@@ -148,7 +148,7 @@ export class RecommendationEngine {
    */
   private static async getCartProductIds(userId: number): Promise<number[]> {
     const cartItems = await db.execute(sql`
-      SELECT product_id FROM cart
+      SELECT product_id FROM carts
       WHERE user_id = ${userId}
     `);
     
@@ -166,7 +166,7 @@ export class RecommendationEngine {
       FROM products p
       LEFT JOIN order_items oi ON p.id = oi.product_id
       LEFT JOIN orders o ON oi.order_id = o.id
-      LEFT JOIN cart c ON p.id = c.product_id
+      LEFT JOIN carts c ON p.id = c.product_id
       WHERE (o.user_id = ${userId} OR c.user_id = ${userId})
         AND p.category IS NOT NULL
     `);
