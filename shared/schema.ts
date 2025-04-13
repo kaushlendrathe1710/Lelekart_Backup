@@ -83,6 +83,8 @@ export const orders = pgTable("orders", {
   date: timestamp("date").notNull().defaultNow(),
   shippingDetails: text("shipping_details"), // Stored as JSON string
   paymentMethod: text("payment_method").notNull().default("cod"),
+  paymentId: text("payment_id"), // For Razorpay paymentId
+  orderId: text("order_id"), // For Razorpay orderId
 });
 
 export const insertOrderSchema = createInsertSchema(orders).pick({
@@ -92,6 +94,8 @@ export const insertOrderSchema = createInsertSchema(orders).pick({
   date: true,
   shippingDetails: true,
   paymentMethod: true,
+  paymentId: true,
+  orderId: true,
 });
 
 // OrderItem schema

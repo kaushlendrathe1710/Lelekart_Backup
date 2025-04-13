@@ -283,6 +283,140 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Razorpay payment routes
+  app.get("/api/razorpay/key", (req, res) => {
+    try {
+      const keyId = getRazorpayKeyId();
+      res.json({ keyId });
+    } catch (error) {
+      console.error('Error fetching Razorpay key:', error);
+      res.status(500).json({ error: "Failed to fetch Razorpay key" });
+    }
+  });
+
+  app.post("/api/razorpay/create-order", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      // Get cart items to calculate total
+      const cartItems = await storage.getCartItems(req.user.id);
+      
+      if (cartItems.length === 0) {
+        return res.status(400).json({ error: "Cart is empty" });
+      }
+      
+      // Calculate total in lowest currency unit (paise for INR)
+      const totalInPaise = Math.round(cartItems.reduce(
+        (acc, item) => acc + (item.product.price * item.quantity), 0
+      ) * 100);
+      
+      // Create a unique receipt ID
+      const receiptId = `receipt_${Date.now()}_${req.user.id}`;
+      
+      // Notes for the order
+      const notes = {
+        userId: req.user.id.toString(),
+        email: req.user.email,
+        items: JSON.stringify(cartItems.map(item => ({
+          productId: item.product.id,
+          name: item.product.name,
+          quantity: item.quantity,
+          price: item.product.price
+        })))
+      };
+      
+      // Create Razorpay order
+      const order = await createOrder(totalInPaise, receiptId, notes);
+      
+      res.json({
+        orderId: order.id,
+        amount: order.amount,
+        currency: order.currency,
+        receipt: order.receipt
+      });
+    } catch (error) {
+      console.error('Error creating Razorpay order:', error);
+      res.status(500).json({ error: "Failed to create Razorpay order" });
+    }
+  });
+
+  app.post("/api/razorpay/verify-payment", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { razorpayOrderId, razorpayPaymentId, razorpaySignature, shippingDetails } = req.body;
+      
+      if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+        return res.status(400).json({ error: "Missing payment verification details" });
+      }
+      
+      // Verify the payment signature
+      const result = await processPayment({
+        orderId: razorpayOrderId,
+        paymentId: razorpayPaymentId,
+        signature: razorpaySignature
+      });
+      
+      if (!result.success) {
+        return res.status(400).json({ error: "Payment verification failed" });
+      }
+      
+      // Get cart items
+      const cartItems = await storage.getCartItems(req.user.id);
+      
+      if (cartItems.length === 0) {
+        return res.status(400).json({ error: "Cart is empty" });
+      }
+      
+      // Calculate total
+      const total = cartItems.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
+      
+      // Create order in our system
+      const orderData = {
+        userId: req.user.id,
+        status: "paid", // Payment successful, so mark as paid
+        total,
+        date: new Date(),
+        shippingDetails: typeof shippingDetails === 'string' ? shippingDetails : JSON.stringify(shippingDetails || {}),
+        paymentMethod: "razorpay",
+        paymentId: razorpayPaymentId,
+        orderId: razorpayOrderId
+      };
+      
+      console.log("Creating order after successful Razorpay payment:", orderData);
+      
+      const order = await storage.createOrder(orderData);
+      
+      // Create order items
+      for (const item of cartItems) {
+        const orderItemData = {
+          orderId: order.id,
+          productId: item.product.id,
+          quantity: item.quantity,
+          price: item.product.price
+        };
+        
+        console.log("Creating order item:", orderItemData);
+        await storage.createOrderItem(orderItemData);
+      }
+      
+      // Clear cart
+      await storage.clearCart(req.user.id);
+      
+      res.status(201).json({
+        success: true,
+        order: {
+          ...order,
+          razorpayPaymentId,
+          razorpayOrderId
+        }
+      });
+    } catch (error) {
+      console.error('Error verifying Razorpay payment:', error);
+      res.status(500).json({ error: "Payment verification failed" });
+    }
+  });
+
   // Order routes
   app.post("/api/orders", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
