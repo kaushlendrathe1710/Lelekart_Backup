@@ -1,3 +1,4 @@
+
 import crypto from 'crypto';
 
 // Constants
@@ -8,13 +9,15 @@ const isRazorpayConfigured = KEY_ID && KEY_SECRET;
 if (!isRazorpayConfigured) {
   console.warn("Warning: Razorpay credentials missing. Payment features will be disabled.");
 }
-const KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || '';
 
 /**
  * Get Razorpay Key ID for client-side usage
  * @returns Razorpay Key ID
  */
 export function getRazorpayKeyId(): string {
+  if (!KEY_ID) {
+    throw new Error("Razorpay Key ID not configured");
+  }
   return KEY_ID;
 }
 
@@ -32,6 +35,10 @@ export function generateReceiptId(): string {
  * @param notes Optional notes for the order
  */
 export async function createRazorpayOrder(amount: number, receipt: string, notes?: Record<string, string>): Promise<any> {
+  if (!isRazorpayConfigured) {
+    throw new Error("Razorpay is not configured. Please add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to your secrets.");
+  }
+
   try {
     const requestOptions = {
       method: 'POST',
@@ -69,6 +76,10 @@ export async function createRazorpayOrder(amount: number, receipt: string, notes
  * @param signature Razorpay signature
  */
 export function verifyPaymentSignature(orderId: string, paymentId: string, signature: string): boolean {
+  if (!KEY_SECRET) {
+    throw new Error("Razorpay Key Secret not configured");
+  }
+
   try {
     const expectedSignature = crypto
       .createHmac('sha256', KEY_SECRET)
@@ -87,6 +98,10 @@ export function verifyPaymentSignature(orderId: string, paymentId: string, signa
  * @param paymentId Razorpay payment ID
  */
 export async function getPaymentDetails(paymentId: string): Promise<any> {
+  if (!isRazorpayConfigured) {
+    throw new Error("Razorpay is not configured");
+  }
+
   try {
     const requestOptions = {
       method: 'GET',
@@ -116,6 +131,10 @@ export async function getPaymentDetails(paymentId: string): Promise<any> {
  * @param amount Amount to capture in paisa
  */
 export async function capturePayment(paymentId: string, amount: number): Promise<any> {
+  if (!isRazorpayConfigured) {
+    throw new Error("Razorpay is not configured");
+  }
+
   try {
     const requestOptions = {
       method: 'POST',
@@ -148,6 +167,13 @@ export async function capturePayment(paymentId: string, amount: number): Promise
  */
 export async function handleSuccessfulPayment(paymentId: string, orderId: string, signature: string): Promise<{success: boolean, payment?: any, error?: string}> {
   try {
+    if (!isRazorpayConfigured) {
+      return {
+        success: false,
+        error: "Razorpay is not configured"
+      };
+    }
+
     // Verify the payment signature
     const isValid = verifyPaymentSignature(orderId, paymentId, signature);
     
