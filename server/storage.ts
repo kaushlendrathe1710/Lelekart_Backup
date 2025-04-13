@@ -26,6 +26,7 @@ export interface IStorage {
 
   // Product operations
   getProducts(category?: string, sellerId?: number, approved?: boolean): Promise<Product[]>;
+  searchProducts(query: string, limit?: number): Promise<Product[]>;
   getProduct(id: number): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: number, product: Partial<Product>): Promise<Product>;
@@ -213,6 +214,34 @@ export class DatabaseStorage implements IStorage {
     }
     
     return updatedProduct;
+  }
+
+  async searchProducts(query: string, limit: number = 10): Promise<Product[]> {
+    try {
+      console.log('Searching products with query:', query);
+      
+      // Use SQL for flexible full-text search with ILIKE for case-insensitive search
+      const searchQuery = `
+        SELECT * FROM products 
+        WHERE 
+          name ILIKE $1 OR 
+          description ILIKE $1 OR 
+          category ILIKE $1 
+        LIMIT $2
+      `;
+      
+      const params = [`%${query}%`, limit];
+      console.log('Executing search query:', searchQuery, 'with params:', params);
+      
+      // Execute the query
+      const { rows } = await pool.query(searchQuery, params);
+      console.log(`Found ${rows.length} products in search`);
+      
+      return rows;
+    } catch (error) {
+      console.error("Error in searchProducts:", error);
+      return [];
+    }
   }
 
   async deleteProduct(id: number): Promise<void> {
