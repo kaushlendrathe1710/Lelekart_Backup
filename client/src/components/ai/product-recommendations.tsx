@@ -12,7 +12,8 @@ interface ProductRecommendationCardProps {
     name: string;
     description: string;
     price: number;
-    imageUrl: string;
+    imageUrl?: string;
+    image_url?: string;  // API returns image_url with underscore
     category: string;
   };
   className?: string;
@@ -38,7 +39,7 @@ export const ProductRecommendationCard: React.FC<ProductRecommendationCardProps>
         <CardContent className="p-3">
           <div className="relative aspect-square w-full overflow-hidden rounded-md mb-2">
             <img
-              src={product.imageUrl}
+              src={product.imageUrl || product.image_url}
               alt={product.name}
               className="h-full w-full object-cover"
             />
