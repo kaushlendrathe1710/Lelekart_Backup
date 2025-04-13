@@ -101,7 +101,9 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
         >
           <CardContent className="p-0 flex flex-col items-center">
             <img 
-              src={product.imageUrl} 
+              src={product.imageUrl && (product.imageUrl.includes('flixcart.com') || product.imageUrl.includes('flipkart.com'))
+                ? `/api/image-proxy?url=${encodeURIComponent(product.imageUrl)}`
+                : product.imageUrl}
               alt={product.name} 
               className="w-32 h-40 object-contain mb-3"
               onError={(e) => {
@@ -149,7 +151,9 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
       >
         <CardContent className="p-0 flex flex-col items-center">
           <img 
-            src={product.imageUrl} 
+            src={product.imageUrl && (product.imageUrl.includes('flixcart.com') || product.imageUrl.includes('flipkart.com'))
+              ? `/api/image-proxy?url=${encodeURIComponent(product.imageUrl)}`
+              : product.imageUrl}
             alt={product.name} 
             className="w-28 h-32 object-contain mb-2"
             onError={(e) => {
