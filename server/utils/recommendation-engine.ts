@@ -98,10 +98,10 @@ export class RecommendationEngine {
             eq(products.approved, true),
             // Exclude products the user already purchased or has in cart
             purchasedProductIds.length > 0 ? 
-              sql`${products.id} NOT IN (${purchasedProductIds.join(', ')})` : 
+              sql`${products.id} NOT IN (${sql.join(purchasedProductIds, sql`, `)})` : 
               undefined,
             cartProductIds.length > 0 ? 
-              sql`${products.id} NOT IN (${cartProductIds.join(', ')})` : 
+              sql`${products.id} NOT IN (${sql.join(cartProductIds, sql`, `)})` : 
               undefined
           )
         )
@@ -188,7 +188,7 @@ export class RecommendationEngine {
   ): Promise<any[]> {
     // If we have products to exclude
     const excludeCondition = excludeIds.length > 0
-      ? sql`AND p.id NOT IN (${excludeIds.join(', ')})`
+      ? sql`AND p.id NOT IN (${sql.join(excludeIds, sql`, `)})`
       : sql``;
       
     // Get products ordered by popularity (order count)
@@ -212,7 +212,7 @@ export class RecommendationEngine {
       const allExcludeIds = [...excludeIds, ...existingIds];
       
       const excludeLatestCondition = allExcludeIds.length > 0
-        ? sql`AND id NOT IN (${allExcludeIds.join(', ')})`
+        ? sql`AND id NOT IN (${sql.join(allExcludeIds, sql`, `)})`
         : sql``;
         
       const latestQuery = sql`
