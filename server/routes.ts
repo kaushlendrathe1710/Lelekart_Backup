@@ -155,36 +155,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get products filtered by approval status
       console.log("Fetching products for approval...");
       
-      const pendingProducts = await db.query.products.findMany({
-        where: (products, { eq, or, isNull }) => or(
-          eq(products.approvalStatus, "pending"),
-          isNull(products.approvalStatus)
-        ),
-        with: {
-          seller: true,
-        },
-      });
+      // Using raw SQL queries to avoid column issues
+      const pendingProducts = await db.$executeRaw`
+        SELECT p.*, u.username as seller_username, u.name as seller_name 
+        FROM products p
+        LEFT JOIN users u ON p.seller_id = u.id
+        WHERE p.approval_status = 'pending' OR p.approval_status IS NULL
+      `;
       
-      const approvedProducts = await db.query.products.findMany({
-        where: (products, { eq }) => eq(products.approvalStatus, "approved"),
-        with: {
-          seller: true,
-        },
-      });
+      const approvedProducts = await db.$executeRaw`
+        SELECT p.*, u.username as seller_username, u.name as seller_name 
+        FROM products p
+        LEFT JOIN users u ON p.seller_id = u.id
+        WHERE p.approval_status = 'approved'
+      `;
       
-      const rejectedProducts = await db.query.products.findMany({
-        where: (products, { eq }) => eq(products.approvalStatus, "rejected"),
-        with: {
-          seller: true,
-        },
-      });
+      const rejectedProducts = await db.$executeRaw`
+        SELECT p.*, u.username as seller_username, u.name as seller_name 
+        FROM products p
+        LEFT JOIN users u ON p.seller_id = u.id
+        WHERE p.approval_status = 'rejected'
+      `;
+      
+      // Format the results to match expected structure
+      const formatProducts = (products: any[]) => {
+        return products.map(product => {
+          // Convert snake_case to camelCase for frontend
+          return {
+            id: product.id,
+            name: product.name,
+            description: product.description,
+            specifications: product.specifications,
+            purchasePrice: product.purchase_price,
+            price: product.price,
+            category: product.category,
+            color: product.color,
+            size: product.size,
+            imageUrl: product.image_url,
+            images: product.images,
+            sellerId: product.seller_id,
+            stock: product.stock,
+            approved: product.approved,
+            approvalStatus: product.approval_status,
+            approvedAt: product.approved_at,
+            rejectedAt: product.rejected_at,
+            approvedBy: product.approved_by,
+            rejectionReason: product.rejection_reason,
+            createdAt: product.created_at,
+            // Add seller information
+            seller: {
+              id: product.seller_id,
+              username: product.seller_username,
+              name: product.seller_name
+            }
+          };
+        });
+      };
       
       console.log(`Found ${pendingProducts.length} pending, ${approvedProducts.length} approved, and ${rejectedProducts.length} rejected products`);
       
       res.json({
-        pending: pendingProducts,
-        approved: approvedProducts,
-        rejected: rejectedProducts
+        pending: formatProducts(pendingProducts as any[]),
+        approved: formatProducts(approvedProducts as any[]),
+        rejected: formatProducts(rejectedProducts as any[])
       });
     } catch (error) {
       console.error("Error fetching products:", error);
@@ -199,31 +232,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid product ID" });
       }
 
-      // Update the product status to approved
-      const [updatedProduct] = await db
-        .update(products)
-        .set({ 
-          approved: true,
-          approvalStatus: "approved",
-          approvedAt: new Date(),
-          approvedBy: req.user?.id
-        })
-        .where(eq(products.id, productId))
-        .returning();
+      // Update the product status to approved using raw SQL
+      await db.$executeRaw`
+        UPDATE products
+        SET approved = true,
+            approval_status = 'approved',
+            approved_at = NOW(),
+            approved_by = ${req.user?.id}
+        WHERE id = ${productId}
+      `;
 
-      if (!updatedProduct) {
-        return res.status(404).json({ error: "Product not found" });
+      // Fetch the updated product with seller info using raw SQL
+      const result = await db.$executeRaw`
+        SELECT p.*, u.username as seller_username, u.name as seller_name 
+        FROM products p
+        LEFT JOIN users u ON p.seller_id = u.id
+        WHERE p.id = ${productId}
+      `;
+
+      if (!result || !Array.isArray(result) || result.length === 0) {
+        return res.status(404).json({ error: "Product not found after update" });
       }
 
-      // Fetch the product with seller info
-      const productWithSeller = await db.query.products.findFirst({
-        where: eq(products.id, productId),
-        with: {
-          seller: true,
-        },
-      });
+      // Format the result to match the expected structure
+      const updatedProduct = result[0];
+      const formattedProduct = {
+        id: updatedProduct.id,
+        name: updatedProduct.name,
+        description: updatedProduct.description,
+        specifications: updatedProduct.specifications,
+        purchasePrice: updatedProduct.purchase_price,
+        price: updatedProduct.price,
+        category: updatedProduct.category,
+        color: updatedProduct.color,
+        size: updatedProduct.size,
+        imageUrl: updatedProduct.image_url,
+        images: updatedProduct.images,
+        sellerId: updatedProduct.seller_id,
+        stock: updatedProduct.stock,
+        approved: updatedProduct.approved,
+        approvalStatus: updatedProduct.approval_status,
+        approvedAt: updatedProduct.approved_at,
+        rejectedAt: updatedProduct.rejected_at,
+        approvedBy: updatedProduct.approved_by,
+        rejectionReason: updatedProduct.rejection_reason,
+        createdAt: updatedProduct.created_at,
+        // Add seller information
+        seller: {
+          id: updatedProduct.seller_id,
+          username: updatedProduct.seller_username,
+          name: updatedProduct.seller_name
+        }
+      };
 
-      res.json(productWithSeller);
+      res.json(formattedProduct);
     } catch (error) {
       console.error("Error approving product:", error);
       res.status(500).json({ error: "Failed to approve product" });
@@ -239,32 +301,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid product ID" });
       }
 
-      // Update the product status to rejected
-      const [updatedProduct] = await db
-        .update(products)
-        .set({ 
-          approved: false,
-          approvalStatus: "rejected",
-          rejectedAt: new Date(),
-          approvedBy: req.user?.id,
-          rejectionReason: reason || "Does not meet store requirements"
-        })
-        .where(eq(products.id, productId))
-        .returning();
+      // Update the product status to rejected using raw SQL
+      await db.$executeRaw`
+        UPDATE products
+        SET approved = false,
+            approval_status = 'rejected',
+            rejected_at = NOW(),
+            approved_by = ${req.user?.id},
+            rejection_reason = ${reason || "Does not meet store requirements"}
+        WHERE id = ${productId}
+      `;
 
-      if (!updatedProduct) {
-        return res.status(404).json({ error: "Product not found" });
+      // Fetch the updated product with seller info using raw SQL
+      const result = await db.$executeRaw`
+        SELECT p.*, u.username as seller_username, u.name as seller_name 
+        FROM products p
+        LEFT JOIN users u ON p.seller_id = u.id
+        WHERE p.id = ${productId}
+      `;
+
+      if (!result || !Array.isArray(result) || result.length === 0) {
+        return res.status(404).json({ error: "Product not found after update" });
       }
 
-      // Fetch the product with seller info
-      const productWithSeller = await db.query.products.findFirst({
-        where: eq(products.id, productId),
-        with: {
-          seller: true,
-        },
-      });
+      // Format the result to match the expected structure
+      const updatedProduct = result[0];
+      const formattedProduct = {
+        id: updatedProduct.id,
+        name: updatedProduct.name,
+        description: updatedProduct.description,
+        specifications: updatedProduct.specifications,
+        purchasePrice: updatedProduct.purchase_price,
+        price: updatedProduct.price,
+        category: updatedProduct.category,
+        color: updatedProduct.color,
+        size: updatedProduct.size,
+        imageUrl: updatedProduct.image_url,
+        images: updatedProduct.images,
+        sellerId: updatedProduct.seller_id,
+        stock: updatedProduct.stock,
+        approved: updatedProduct.approved,
+        approvalStatus: updatedProduct.approval_status,
+        approvedAt: updatedProduct.approved_at,
+        rejectedAt: updatedProduct.rejected_at,
+        approvedBy: updatedProduct.approved_by,
+        rejectionReason: updatedProduct.rejection_reason,
+        createdAt: updatedProduct.created_at,
+        // Add seller information
+        seller: {
+          id: updatedProduct.seller_id,
+          username: updatedProduct.seller_username,
+          name: updatedProduct.seller_name
+        }
+      };
 
-      res.json(productWithSeller);
+      res.json(formattedProduct);
     } catch (error) {
       console.error("Error rejecting product:", error);
       res.status(500).json({ error: "Failed to reject product" });
