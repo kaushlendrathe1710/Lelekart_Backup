@@ -1,12 +1,13 @@
 import crypto from 'crypto';
 
-// Check for required environment variables
-if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-  console.warn("Warning: RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET environment variables are missing. Razorpay payment functionality will not work correctly.");
-}
-
 // Constants
-const KEY_ID = process.env.RAZORPAY_KEY_ID || '';
+const KEY_ID = process.env.RAZORPAY_KEY_ID || null;
+const KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || null;
+
+const isRazorpayConfigured = KEY_ID && KEY_SECRET;
+if (!isRazorpayConfigured) {
+  console.warn("Warning: Razorpay credentials missing. Payment features will be disabled.");
+}
 const KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || '';
 
 /**

@@ -1,11 +1,13 @@
 import { GoogleGenerativeAI, GenerativeModel } from "@google/generative-ai";
 
-if (!process.env.GEMINI_API_KEY) {
-  throw new Error("GEMINI_API_KEY environment variable must be set");
-}
+// Initialize the Gemini API if key is available
+const genAI = process.env.GEMINI_API_KEY ? 
+  new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : 
+  null;
 
-// Initialize the Gemini API
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+if (!genAI) {
+  console.warn("Warning: GEMINI_API_KEY environment variable is missing. AI features will be disabled.");
+}
 // Use the most advanced model - Gemini 1.5 Pro
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
 
