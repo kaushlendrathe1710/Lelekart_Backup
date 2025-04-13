@@ -95,15 +95,27 @@ export function SellerDashboardLayout({ children }: SellerDashboardLayoutProps) 
   
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', {
+      const response = await fetch('/api/auth/logout', {
         method: 'POST',
-        credentials: 'include'
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
+      
+      if (!response.ok) {
+        console.error('Logout failed:', response.statusText);
+      }
+      
+      // Clear the user data from query cache
       queryClient.setQueryData(['/api/user'], null);
-      // Use wouter for navigation
-      setLocation('/');
+      
+      // Redirect to auth page - using window.location for full page refresh
+      window.location.href = '/auth';
     } catch (error) {
       console.error('Logout failed:', error);
+      // Redirect anyway as fallback
+      window.location.href = '/auth';
     }
   };
 

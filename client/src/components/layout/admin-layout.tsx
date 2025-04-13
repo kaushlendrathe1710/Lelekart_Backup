@@ -60,9 +60,28 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     },
   ];
 
-  const handleLogout = () => {
-    // Using wouter navigation for client-side routing to maintain smooth UX
-    window.location.href = '/auth';  // For logout, we need a full page refresh to clear session
+  const handleLogout = async () => {
+    try {
+      // Call the server-side logout endpoint
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        console.error('Logout failed:', response.statusText);
+      }
+      
+      // Redirect to auth page after successful logout
+      window.location.href = '/auth';
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Redirect anyway as fallback
+      window.location.href = '/auth';
+    }
   };
 
   return (
