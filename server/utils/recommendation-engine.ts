@@ -105,7 +105,7 @@ export class RecommendationEngine {
               undefined
           )
         )
-        .orderBy(desc(products.rating))
+        .orderBy(desc(products.id)) /* Sort by newest (highest ID) instead of rating */
         .limit(limit);
     }
     
@@ -199,7 +199,7 @@ export class RecommendationEngine {
       WHERE p.approved = true
       ${excludeCondition}
       GROUP BY p.id
-      ORDER BY order_count DESC, p.rating DESC
+      ORDER BY order_count DESC, p.id DESC /* Sort by newest (highest ID) as secondary criteria */
       LIMIT ${limit}
     `;
     

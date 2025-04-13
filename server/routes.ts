@@ -1162,7 +1162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get similar products for a specific product
-  app.get("/api/products/:id/similar", async (req, res) => {
+  app.get("/api/recommendations/similar/:id", async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 6;
