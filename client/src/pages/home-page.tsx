@@ -11,6 +11,8 @@ import { Loader2 } from "lucide-react";
 import TestNavigation from "@/components/test-navigation";
 import { Pagination } from "@/components/ui/pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ProductRecommendationCarousel from "@/components/ui/product-recommendation-carousel";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function HomePage() {
   const [location] = useLocation();
@@ -200,6 +202,20 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* Personalized Recommendations - Only shown for logged in users */}
+      {!category && (
+        <div className="container mx-auto px-4 py-4">
+          <div className="bg-white p-4 rounded shadow-sm">
+            <ProductRecommendationCarousel 
+              title="Recommended for You"
+              description="Products picked just for you based on your browsing history"
+              endpoint="/api/recommendations"
+              limit={10}
+            />
+          </div>
+        </div>
+      )}
+      
       {/* Dynamic Category Sections - Show only if not filtered by specific category */}
       {!category && categorizedProducts.map((categoryGroup, index) => (
         <div key={categoryGroup.name + index} className="container mx-auto px-4 py-4">

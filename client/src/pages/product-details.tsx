@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProductReviews from "@/components/product/product-reviews";
+import ProductRecommendationCarousel from "@/components/ui/product-recommendation-carousel";
 
 // Custom image slider component with Flipkart-like thumbnails on the left
 function ProductImageSlider({ images, name }: { images: string[], name: string }) {
@@ -553,20 +554,28 @@ export default function ProductDetailsPage() {
             </div>
           </div>
           
-          {/* Similar Products Section */}
-          {!isRelatedLoading && relatedProducts && relatedProducts.length > 0 && (
-            <div className="bg-white rounded shadow-sm mb-3 p-4">
-              <h2 className="font-medium text-xl mb-4">Similar Products</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {relatedProducts
-                  .filter(p => p.id !== product?.id)
-                  .slice(0, 6)
-                  .map(relatedProduct => (
-                    <ProductCard key={relatedProduct.id} product={relatedProduct} />
-                  ))}
-              </div>
-            </div>
-          )}
+          {/* Similar Products Recommendation Carousel */}
+          <div className="bg-white rounded shadow-sm mb-3 p-4">
+            {product && (
+              <ProductRecommendationCarousel 
+                title="Similar Products You May Like"
+                description="Based on product characteristics and purchase patterns"
+                endpoint={`/api/recommendations/similar/${product.id}`}
+                productId={product.id}
+                limit={10}
+              />
+            )}
+          </div>
+          
+          {/* Personalized Recommendations */}
+          <div className="bg-white rounded shadow-sm mb-3 p-4">
+            <ProductRecommendationCarousel 
+              title="Recommended For You"
+              description="Personalized picks based on your shopping preferences"
+              endpoint="/api/recommendations"
+              limit={10}
+            />
+          </div>
           
           {/* Frequently Bought Together */}
           <div className="bg-white rounded shadow-sm mb-3 p-4">

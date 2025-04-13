@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Product } from "@shared/schema";
 import { FC, useRef, useState } from "react";
-import ProductCard from "./product-card";
+import { ProductCard } from "./product-card";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "./button";
 import { Skeleton } from "./skeleton";
