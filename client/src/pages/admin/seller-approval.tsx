@@ -40,12 +40,47 @@ export default function AdminSellerApproval() {
   useEffect(() => {
     const fetchSellers = async () => {
       try {
-        const response = await apiRequest("GET", "/api/admin/sellers");
+        // Fetch the sellers for approval directly - authorization is handled by middleware
+        const response = await fetch("/api/admin/sellers", {
+          credentials: "include",
+          headers: {
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache",
+          },
+          cache: "no-store",
+        });
+
+        if (response.status === 401) {
+          toast({
+            title: "Authentication Required",
+            description: "Please log in as an admin to access this page.",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        if (response.status === 403) {
+          toast({
+            title: "Access Denied",
+            description: "You don't have permission to access this page.",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+
         if (!response.ok) {
-          throw new Error("Failed to fetch sellers");
+          throw new Error("Failed to fetch seller data");
         }
         
         const data = await response.json();
+        console.log("Fetched sellers data:", data);
+        
+        if (!Array.isArray(data)) {
+          console.error("Expected array of sellers but got:", data);
+          throw new Error("Invalid data format received from server");
+        }
         
         // Separate sellers by approval status
         setPendingSellers(data.filter((seller: User) => 
@@ -65,7 +100,7 @@ export default function AdminSellerApproval() {
         console.error("Error fetching sellers:", error);
         toast({
           title: "Error fetching sellers",
-          description: "There was a problem loading the seller data.",
+          description: "There was a problem loading the seller data. Please make sure you're logged in as an admin.",
           variant: "destructive",
         });
         setIsLoading(false);

@@ -44,12 +44,47 @@ export default function AdminProductApproval() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await apiRequest("GET", "/api/admin/products/approval");
+        // Fetch the products for approval directly - authorization is handled by middleware
+        const response = await fetch("/api/admin/products/approval", {
+          credentials: "include",
+          headers: {
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache",
+          },
+          cache: "no-store",
+        });
+
+        if (response.status === 401) {
+          toast({
+            title: "Authentication Required",
+            description: "Please log in as an admin to access this page.",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        if (response.status === 403) {
+          toast({
+            title: "Access Denied",
+            description: "You don't have permission to access this page.",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+
         if (!response.ok) {
-          throw new Error("Failed to fetch products");
+          throw new Error("Failed to fetch product data");
         }
         
         const data = await response.json();
+        console.log("Fetched products data:", data);
+        
+        if (!Array.isArray(data)) {
+          console.error("Expected array of products but got:", data);
+          throw new Error("Invalid data format received from server");
+        }
         
         // Separate products by approval status
         setPendingProducts(data.filter((product: ProductWithSeller) => 
@@ -69,7 +104,7 @@ export default function AdminProductApproval() {
         console.error("Error fetching products:", error);
         toast({
           title: "Error fetching products",
-          description: "There was a problem loading the product data.",
+          description: "There was a problem loading the product data. Please make sure you're logged in as an admin.",
           variant: "destructive",
         });
         setIsLoading(false);
