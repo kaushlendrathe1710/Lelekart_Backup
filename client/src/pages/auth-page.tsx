@@ -263,7 +263,7 @@ export default function AuthPage() {
                   <CardHeader>
                     <CardTitle>Login or Register</CardTitle>
                     <CardDescription>
-                      Enter your email to continue to Flipkart
+                      Enter your email to continue to Lelekart
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -496,7 +496,7 @@ export default function AuthPage() {
             {/* Hero Section */}
             <div className="bg-primary rounded-lg shadow-md overflow-hidden hidden md:block">
               <div className="p-8 text-white">
-                <h2 className="text-3xl font-bold mb-4">Welcome to Flipkart</h2>
+                <h2 className="text-3xl font-bold mb-4">Welcome to Lelekart</h2>
                 <p className="mb-6">India's largest online marketplace for all your shopping needs.</p>
                 
                 <div className="space-y-4">

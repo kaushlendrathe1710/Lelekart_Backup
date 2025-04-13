@@ -75,12 +75,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             <Button 
               variant="ghost" 
               className="p-0 hover:bg-transparent focus:bg-transparent"
-              onClick={() => window.location.href = "/admin"}
+              onClick={() => window.location.href = "/"}
             >
               <div className="flex items-center space-x-2 text-xl font-bold">
                 {/* Logo updated from Flipkart to Lelekart */}
               <div className="text-xl font-bold text-white">Lelekart</div>
-                <span className="hidden md:inline text-white font-medium text-xl">Admin Panel</span>
               </div>
             </Button>
 
@@ -88,7 +87,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             <div className="relative hidden md:flex items-center bg-white rounded-sm px-3 py-1.5 ml-4">
               <input
                 type="text"
-                placeholder="Search in admin..."
+                placeholder="Search products..."
                 className="bg-transparent border-none focus:outline-none text-sm w-40 lg:w-64 placeholder-gray-500 text-gray-900"
               />
               <Search className="h-5 w-5 text-[#2874f0]" />

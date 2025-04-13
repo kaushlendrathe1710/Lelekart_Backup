@@ -11,7 +11,7 @@ export function Footer() {
               <li><Link href="#" className="hover:underline">Contact Us</Link></li>
               <li><Link href="#" className="hover:underline">About Us</Link></li>
               <li><Link href="#" className="hover:underline">Careers</Link></li>
-              <li><Link href="#" className="hover:underline">Flipkart Stories</Link></li>
+              <li><Link href="#" className="hover:underline">Lelekart Stories</Link></li>
               <li><Link href="#" className="hover:underline">Press</Link></li>
               <li><Link href="#" className="hover:underline">Corporate Information</Link></li>
             </ul>

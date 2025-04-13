@@ -123,7 +123,7 @@ export default function BuyerDashboardPage() {
           <Card className="shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle>Account Summary</CardTitle>
-              <CardDescription>Your Flipkart account at a glance</CardDescription>
+              <CardDescription>Your Lelekart account at a glance</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -247,8 +247,8 @@ export default function BuyerDashboardPage() {
           {/* Recent Purchases */}
           <Card className="shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle>Flipkart Plus</CardTitle>
-              <CardDescription>Enjoy exclusive benefits with Flipkart Plus</CardDescription>
+              <CardTitle>Lelekart Plus</CardTitle>
+              <CardDescription>Enjoy exclusive benefits with Lelekart Plus</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -263,7 +263,7 @@ export default function BuyerDashboardPage() {
               <div className="flex justify-center pt-4">
                 <Button className="bg-primary" size="sm" asChild>
                   <Link href="/">
-                    Explore Flipkart Plus
+                    Explore Lelekart Plus
                   </Link>
                 </Button>
               </div>
