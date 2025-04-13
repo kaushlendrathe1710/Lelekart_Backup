@@ -66,13 +66,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/sellers", isAdmin, async (req: Request, res: Response) => {
     try {
       // Get all sellers with role = 'seller'
+      console.log("Fetching sellers...");
       const sellers = await db.query.users.findMany({
         where: eq(users.role, "seller"),
       });
+      console.log(`Found ${sellers.length} sellers`);
       res.json(sellers);
     } catch (error) {
       console.error("Error fetching sellers:", error);
-      res.status(500).json({ error: "Failed to fetch sellers" });
+      res.status(500).json({ error: "Failed to fetch sellers", details: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
@@ -148,15 +150,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/products/approval", isAdmin, async (req: Request, res: Response) => {
     try {
       // Get all products
+      console.log("Fetching products for approval...");
       const products = await db.query.products.findMany({
         with: {
           seller: true,
         },
       });
+      console.log(`Found ${products.length} products for approval`);
       res.json(products);
     } catch (error) {
       console.error("Error fetching products:", error);
-      res.status(500).json({ error: "Failed to fetch products" });
+      res.status(500).json({ error: "Failed to fetch products", details: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
