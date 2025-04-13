@@ -109,34 +109,49 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProducts(category?: string, sellerId?: number, approved?: boolean): Promise<Product[]> {
-    // Use SQL query for more flexibility with filtering
-    let query = `
-      SELECT * FROM products 
-      WHERE 1=1
-    `;
-    const params: any[] = [];
-    
-    // Add category filter (case-insensitive)
-    if (category) {
-      query += ` AND LOWER(category) = LOWER($${params.length + 1})`;
-      params.push(category);
+    try {
+      // Use Drizzle ORM instead of raw SQL for better type checking
+      let query = db.select().from(products);
+      
+      // Add category filter (case-insensitive)
+      if (category) {
+        // SQL LOWER function not directly available in drizzle-orm
+        // Use direct db.select for better reliability
+        let categoryFilter = category.toLowerCase();
+        return db.select()
+          .from(products)
+          .all()
+          .then(rows => 
+            rows.filter(p => 
+              p.category && p.category.toLowerCase() === categoryFilter && 
+              (sellerId === undefined || p.sellerId === sellerId) &&
+              (approved === undefined || p.approved === approved)
+            )
+          );
+      }
+      
+      // Without category filter, can use more efficient filtering with ORM
+      let filters = [];
+      
+      if (sellerId !== undefined) {
+        filters.push(eq(products.sellerId, sellerId));
+      }
+      
+      if (approved !== undefined) {
+        filters.push(eq(products.approved, approved));
+      }
+      
+      // Apply filters if any
+      if (filters.length > 0) {
+        query = query.where(and(...filters));
+      }
+      
+      console.log("Executing products query with ORM");
+      return query.all();
+    } catch (error) {
+      console.error("Error in getProducts:", error);
+      return [];
     }
-    
-    // Add seller filter
-    if (sellerId) {
-      query += ` AND "sellerId" = $${params.length + 1}`;
-      params.push(sellerId);
-    }
-    
-    // Add approved filter
-    if (approved !== undefined) {
-      query += ` AND approved = $${params.length + 1}`;
-      params.push(approved);
-    }
-    
-    // Execute the query
-    const { rows } = await pool.query(query, params);
-    return rows;
   }
 
   async getProduct(id: number): Promise<Product | undefined> {

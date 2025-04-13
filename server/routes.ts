@@ -25,20 +25,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sellerId = req.query.sellerId ? Number(req.query.sellerId) : undefined;
       const approved = req.query.approved !== undefined ? req.query.approved === "true" : undefined;
       
+      console.log('Fetching products with filters:', { category, sellerId, approved });
+      
       let products = await storage.getProducts(category, sellerId, approved);
+      console.log(`Found ${products?.length || 0} products`);
+      
+      if (!products || !Array.isArray(products)) {
+        console.error('Invalid products data returned:', products);
+        return res.status(500).json({ error: "Invalid products data returned" });
+      }
       
       // Process products to ensure they all have valid images
       products = products.map(product => {
         // Ensure imageUrl exists for every product
         if (!product.imageUrl) {
-          product.imageUrl = "https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg";
+          product.imageUrl = "/images/placeholder.svg";
         }
         return product;
       });
       
       res.json(products);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch products" });
+      console.error('Error fetching products:', error);
+      res.status(500).json({ error: "Failed to fetch products", details: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
