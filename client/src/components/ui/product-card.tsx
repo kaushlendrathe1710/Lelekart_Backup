@@ -112,36 +112,10 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
                 // Use category-specific placeholder or default placeholder
                 if (product.category) {
                   // Map to our known category placeholders
-                  switch(product.category) {
-                    case 'Electronics':
-                      target.src = "/images/categories/electronics.svg";
-                      break;
-                    case 'Fashion':
-                      target.src = "/images/categories/fashion.svg";
-                      break;
-                    case 'Home':
-                      target.src = "/images/categories/home.svg";
-                      break;
-                    case 'Appliances':
-                      target.src = "/images/categories/appliances.svg";
-                      break;
-                    case 'Mobiles':
-                      target.src = "/images/categories/mobiles.svg";
-                      break;
-                    case 'Beauty':
-                      target.src = "/images/categories/beauty.svg";
-                      break;
-                    case 'Toys':
-                      target.src = "/images/categories/toys.svg";
-                      break;
-                    case 'Grocery':
-                      target.src = "/images/categories/grocery.svg";
-                      break;
-                    default:
-                      target.src = "/images/placeholder.svg";
-                  }
+                  const categoryLower = product.category.toLowerCase();
+                  target.src = `../images/${categoryLower}.svg`;
                 } else {
-                  target.src = "/images/placeholder.svg";
+                  target.src = "../images/placeholder.svg";
                 }
               }}
             />
@@ -185,11 +159,11 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
               
               // Use category-specific placeholder or default placeholder
               if (product.category) {
-                // Convert to lowercase and use direct category images
+                // Convert to lowercase and use direct category images from client/public/images
                 const categoryLower = product.category.toLowerCase();
-                target.src = `/images/${categoryLower}.svg`;
+                target.src = `../images/${categoryLower}.svg`;
               } else {
-                target.src = "/images/placeholder.svg";
+                target.src = "../images/placeholder.svg";
               }
             }}
           />
