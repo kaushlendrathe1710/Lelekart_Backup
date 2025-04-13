@@ -57,18 +57,6 @@ function ProductImageSlider({ images, name }: { images: string[], name: string }
             onError={handleImageError}
           />
         </div>
-        
-        {/* Action buttons */}
-        <div className="flex mt-6 gap-4">
-          <Button className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white px-4 flex items-center justify-center">
-            <ShoppingCart className="h-4 w-4 mr-2" />
-            ADD TO CART
-          </Button>
-          <Button className="flex-1 bg-orange-500 hover:bg-orange-600 text-white px-4 flex items-center justify-center">
-            <Zap className="h-4 w-4 mr-2" />
-            BUY NOW
-          </Button>
-        </div>
       </div>
     </div>
   );
@@ -499,7 +487,7 @@ export default function ProductDetailsPage() {
                   </div>
                 </div>
                 
-                {/* Buttons Section */}
+                {/* Buttons Section - Only shown in product info section, not duplicated at bottom */}
                 <div className="flex mt-6 gap-3">
                   <Button 
                     size="lg"
