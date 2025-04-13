@@ -351,17 +351,32 @@ export default function AdminOrders() {
         <head>
           <title>Shipping Label #${viewOrder.id}</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-            .shipping-container { max-width: 800px; margin: 0 auto; border: 2px dashed #000; padding: 20px; }
-            .shipping-header { display: flex; justify-content: space-between; margin-bottom: 20px; }
-            .shipping-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
-            .address-section { margin-bottom: 15px; }
-            .shipping-barcode { text-align: center; margin: 20px 0; }
-            .shipping-barcode img { max-width: 300px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-            th, td { padding: 5px; text-align: left; border-bottom: 1px solid #ddd; }
-            .order-details { margin-top: 20px; border-top: 1px solid #ddd; padding-top: 10px; }
-            @media print { @page { margin: 0.5cm; } }
+            body { font-family: 'Arial', sans-serif; margin: 0; padding: 0; background: #fff; }
+            .shipping-container { width: 100%; max-width: 800px; margin: 0 auto; }
+            .meesho-header { background: #f43397; color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; }
+            .meesho-logo { font-size: 24px; font-weight: bold; letter-spacing: 1px; }
+            .label-type { background: #333; color: white; padding: 3px 8px; border-radius: 4px; font-size: 12px; }
+            .order-box { border: 2px solid #000; margin: 0; padding: 0; }
+            .order-header { display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #ddd; }
+            .order-id { font-size: 18px; font-weight: bold; }
+            .order-date { font-size: 14px; color: #666; }
+            .shipping-info { display: flex; padding: 0; }
+            .address-box { flex: 1; padding: 15px; }
+            .address-box.to { border-right: 1px dashed #ccc; }
+            .address-title { background: #f0f0f0; padding: 5px 10px; margin-bottom: 10px; font-weight: bold; border-left: 4px solid #f43397; }
+            .address-content { font-size: 14px; line-height: 1.5; }
+            .customer-name { font-size: 16px; font-weight: bold; margin-bottom: 5px; }
+            .barcode-section { text-align: center; padding: 15px; border-top: 1px solid #ddd; }
+            .barcode-text { font-family: 'Courier New', monospace; font-size: 18px; letter-spacing: 2px; margin: 10px 0; font-weight: bold; }
+            .product-details { padding: 15px; border-top: 1px solid #ddd; }
+            .product-title { font-weight: bold; margin-bottom: 10px; }
+            .product-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+            .product-table th { background: #f0f0f0; text-align: left; padding: 8px; }
+            .product-table td { padding: 8px; border-bottom: 1px solid #eee; }
+            .delivery-info { background: #f8f8f8; padding: 10px 15px; margin-top: 10px; border-top: 1px solid #ddd; font-size: 13px; }
+            .cod-badge { display: inline-block; background: #ffeb3b; color: #000; padding: 2px 8px; border-radius: 3px; font-weight: bold; }
+            .footer { text-align: center; font-size: 12px; color: #999; padding: 10px; border-top: 1px solid #eee; }
+            @media print { @page { margin: 0; } body { margin: 0.5cm; } }
           </style>
         </head>
         <body>
@@ -1196,88 +1211,110 @@ export default function AdminOrders() {
 
                       {/* Hidden shipping label template for printing */}
                       <div className="hidden">
-                        <div ref={shippingLabelRef} className="shipping-container p-6">
-                          <div className="shipping-header border-b pb-4">
-                            <div>
-                              <h1 className="shipping-title text-xl font-bold">LELEKART SHIPPING</h1>
-                              <p className="text-sm text-gray-600">Order #{viewOrder.id}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm font-bold">{new Date().toLocaleDateString()}</p>
-                              <p className="text-xs text-gray-600">{viewOrder.status.toUpperCase()}</p>
-                            </div>
+                        <div ref={shippingLabelRef} className="shipping-container">
+                          {/* Meesho-style Header */}
+                          <div className="meesho-header">
+                            <div className="meesho-logo">LELEKART</div>
+                            <div className="label-type">SHIPPING LABEL</div>
                           </div>
 
-                          <div className="flex flex-col md:flex-row gap-6 mt-4">
-                            <div className="address-section flex-1">
-                              <h3 className="shipping-title mb-2">SHIP TO:</h3>
-                              {viewOrder.shippingDetails ? (
-                                <div className="text-md">
-                                  {typeof viewOrder.shippingDetails === 'string' ? (
-                                    (() => {
-                                      const details = JSON.parse(viewOrder.shippingDetails);
-                                      return (
-                                        <div className="font-bold">
-                                          <p className="text-lg">{details.name}</p>
-                                          <p>{details.address}</p>
-                                          <p>{details.city}, {details.state} {details.zipCode}</p>
-                                          <p>Phone: {details.phone}</p>
-                                        </div>
-                                      );
-                                    })()
-                                  ) : (
-                                    <div className="font-bold">
-                                      <p className="text-lg">{viewOrder.shippingDetails.name}</p>
-                                      <p>{viewOrder.shippingDetails.address}</p>
-                                      <p>{viewOrder.shippingDetails.city}, {viewOrder.shippingDetails.state} {viewOrder.shippingDetails.zipCode}</p>
-                                      <p>Phone: {viewOrder.shippingDetails.phone}</p>
-                                    </div>
-                                  )}
-                                </div>
-                              ) : (
-                                <p className="text-md font-bold">User #{viewOrder.userId}</p>
-                              )}
-                            </div>
-
-                            <div className="address-section flex-1">
-                              <h3 className="shipping-title mb-2">FROM:</h3>
-                              <div className="text-md font-bold">
-                                <p className="text-lg">Lelekart Fulfillment Center</p>
-                                <p>123 Commerce Street</p>
-                                <p>Bengaluru, Karnataka 560001</p>
-                                <p>India</p>
+                          {/* Order Box */}
+                          <div className="order-box">
+                            {/* Order Header */}
+                            <div className="order-header">
+                              <div className="order-id">Order ID: #{viewOrder.id}</div>
+                              <div className="order-date">
+                                Date: {new Date().toLocaleDateString()}
+                                <span className="ml-3 cod-badge">
+                                  {viewOrder.paymentMethod === 'cod' ? 'COD' : 'PREPAID'}
+                                </span>
                               </div>
                             </div>
-                          </div>
 
-                          <div className="shipping-barcode mt-4 mb-4 pt-4 border-t border-b pb-4">
-                            <div className="text-center font-mono text-xl tracking-widest font-bold">
-                              *LK{viewOrder.id.toString().padStart(10, '0')}*
+                            {/* Shipping Information */}
+                            <div className="shipping-info">
+                              {/* Delivery Address */}
+                              <div className="address-box to">
+                                <div className="address-title">DELIVER TO:</div>
+                                <div className="address-content">
+                                  {viewOrder.shippingDetails ? (
+                                    <>
+                                      {typeof viewOrder.shippingDetails === 'string' ? (
+                                        (() => {
+                                          const details = JSON.parse(viewOrder.shippingDetails);
+                                          return (
+                                            <>
+                                              <div className="customer-name">{details.name}</div>
+                                              <div>{details.address}</div>
+                                              <div>{details.city}, {details.state} {details.zipCode}</div>
+                                              <div>Phone: {details.phone}</div>
+                                            </>
+                                          );
+                                        })()
+                                      ) : (
+                                        <>
+                                          <div className="customer-name">{viewOrder.shippingDetails.name}</div>
+                                          <div>{viewOrder.shippingDetails.address}</div>
+                                          <div>{viewOrder.shippingDetails.city}, {viewOrder.shippingDetails.state} {viewOrder.shippingDetails.zipCode}</div>
+                                          <div>Phone: {viewOrder.shippingDetails.phone}</div>
+                                        </>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <div className="customer-name">User #{viewOrder.userId}</div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Sender Address */}
+                              <div className="address-box from">
+                                <div className="address-title">SHIP FROM:</div>
+                                <div className="address-content">
+                                  <div className="customer-name">Lelekart Fulfillment Center</div>
+                                  <div>123 Commerce Street</div>
+                                  <div>Bengaluru, Karnataka 560001</div>
+                                  <div>India</div>
+                                </div>
+                              </div>
                             </div>
-                          </div>
 
-                          <div className="order-details mt-2">
-                            <h3 className="shipping-title">ORDER SUMMARY:</h3>
-                            <table className="w-full text-sm">
-                              <thead>
-                                <tr>
-                                  <th className="py-1 text-left">Item</th>
-                                  <th className="py-1 text-right">Qty</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {viewOrder.items && viewOrder.items.map((item) => (
-                                  <tr key={item.id}>
-                                    <td className="py-1">{item.product.name}</td>
-                                    <td className="py-1 text-right">{item.quantity}</td>
+                            {/* Barcode Section */}
+                            <div className="barcode-section">
+                              <div className="barcode-text">
+                                *LK{viewOrder.id.toString().padStart(10, '0')}*
+                              </div>
+                            </div>
+
+                            {/* Product Details */}
+                            <div className="product-details">
+                              <div className="product-title">PACKAGE CONTENTS:</div>
+                              <table className="product-table">
+                                <thead>
+                                  <tr>
+                                    <th>Item</th>
+                                    <th style={{width: '70px', textAlign: 'center'}}>Qty</th>
                                   </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                            <div className="text-xs mt-4">
-                              <p>Shipped via: Express Delivery</p>
-                              <p>Expected Delivery: Within 3-5 business days</p>
-                              <p className="font-bold mt-2">HANDLE WITH CARE</p>
+                                </thead>
+                                <tbody>
+                                  {viewOrder.items && viewOrder.items.map((item) => (
+                                    <tr key={item.id}>
+                                      <td>{item.product.name}</td>
+                                      <td style={{textAlign: 'center'}}>{item.quantity}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+
+                            {/* Delivery Information */}
+                            <div className="delivery-info">
+                              <div>Shipped via: Express Delivery | Expected: 3-5 business days</div>
+                              <div style={{marginTop: '5px', fontWeight: 'bold'}}>HANDLE WITH CARE</div>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="footer">
+                              Thank you for shopping with Lelekart | Questions? Contact help@lelekart.com
                             </div>
                           </div>
                         </div>
