@@ -52,38 +52,15 @@ function App() {
                   </Layout>
                 )}
               </Route>
-              {/* Alternative standalone product view page - doesn't use React Router params */}
-              <Route path="/product-view/:id">
-                {(params) => {
-                  console.log("App.tsx: ProductView route matched with params:", params);
-                  return (
-                    <Layout>
-                      <ProductViewPage />
-                    </Layout>
-                  );
-                }}
-              </Route>
-              
-              {/* Original product page - kept for compatibility */}
+              {/* New Flipkart-style product details page */}
               <Route path="/product/:id">
                 {(params) => {
                   console.log("App router matched product page with params:", params);
-                  const productId = params?.id;
-                  
-                  if (!productId) {
-                    return (
-                      <Layout>
-                        <NotFound />
-                      </Layout>
-                    );
-                  }
-                  
-                  // Use unique key that includes route path to force complete remounting
-                  const componentKey = `product-${productId}-${Date.now()}`;
-                  
-                  // Redirect to the new standalone product view
-                  window.location.href = `/product-view/${productId}`;
-                  return null;
+                  return (
+                    <Layout>
+                      <ProductDetailsPage />
+                    </Layout>
+                  );
                 }}
               </Route>
               
