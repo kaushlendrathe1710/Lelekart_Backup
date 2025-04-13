@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 interface Product extends SchemaProduct {
   sku?: string;
   image?: string;
+  image_url?: string; // Add snake_case version from API
 }
 import { 
   AlertDialog,
@@ -205,11 +206,13 @@ export default function SellerProductsPage() {
                       <TableCell>
                         <img 
                           src={
-                            (product.image || product.imageUrl) && 
-                            ((product.image || product.imageUrl)?.includes('flixcart.com') || 
-                             (product.image || product.imageUrl)?.includes('flipkart.com'))
-                              ? `/api/image-proxy?url=${encodeURIComponent(product.image || product.imageUrl || '')}&category=${encodeURIComponent(product.category || '')}`
-                              : (product.image || product.imageUrl)
+                            // Check for image_url (snake_case) first, as it contains the actual URL from API
+                            // Then fall back to other properties
+                            (product.image_url || product.image || product.imageUrl) && 
+                            ((product.image_url || product.image || product.imageUrl)?.includes('flixcart.com') || 
+                             (product.image_url || product.image || product.imageUrl)?.includes('flipkart.com'))
+                              ? `/api/image-proxy?url=${encodeURIComponent(product.image_url || product.image || product.imageUrl || '')}&category=${encodeURIComponent(product.category || '')}`
+                              : (product.image_url || product.image || product.imageUrl)
                           } 
                           alt={product.name} 
                           className="w-10 h-10 rounded-md object-cover"
@@ -217,6 +220,12 @@ export default function SellerProductsPage() {
                             // Use a fallback image on error
                             const target = e.target as HTMLImageElement;
                             target.onerror = null; // Prevent infinite loop
+                            
+                            console.log('Image load error for product:', product.name, 'URLs:', {
+                              image_url: product.image_url,
+                              image: product.image,
+                              imageUrl: product.imageUrl
+                            });
                             
                             // Use category-specific placeholder or default placeholder
                             if (product.category) {
