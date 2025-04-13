@@ -49,9 +49,27 @@ export default function SmartInventory() {
   const { data: products, isLoading: isLoadingProducts } = useQuery({
     queryKey: ["/api/products", { sellerId: user?.id }],
     queryFn: async () => {
-      const res = await fetch(`/api/products?sellerId=${user?.id}`);
-      const data = await res.json();
-      return data.products;
+      try {
+        console.log(`Fetching products for seller ID: ${user?.id}`);
+        const res = await apiRequest("GET", `/api/products?sellerId=${user?.id}`);
+        const data = await res.json();
+        console.log("Fetched products:", data);
+        
+        if (!data.products || !Array.isArray(data.products)) {
+          console.error("Invalid products data structure:", data);
+          throw new Error("Invalid products data received");
+        }
+        
+        return data.products;
+      } catch (error) {
+        console.error("Error fetching products:", error);
+        toast({
+          title: "Error fetching products",
+          description: "Could not load your products. Please try again.",
+          variant: "destructive",
+        });
+        return [];
+      }
     },
     enabled: !!user?.id,
   });
@@ -59,6 +77,10 @@ export default function SmartInventory() {
   // Handle product selection
   const handleProductSelect = (productId: number) => {
     setSelectedProduct(productId);
+    toast({
+      title: "Product selected",
+      description: "Loading AI insights for this product",
+    });
   };
 
   return (
@@ -110,9 +132,14 @@ export default function SmartInventory() {
                           <div className="flex items-center gap-3">
                             <div className="h-16 w-16 rounded-md overflow-hidden border">
                               <img 
-                                src={product.imageUrl || '/images/placeholder.svg'} 
+                                src={product.imageUrl || product.images?.[0] || '/images/placeholder.svg'} 
                                 alt={product.name} 
                                 className="h-full w-full object-cover"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.onerror = null;
+                                  target.src = '/images/placeholder.svg';
+                                }}
                               />
                             </div>
                             <div>
