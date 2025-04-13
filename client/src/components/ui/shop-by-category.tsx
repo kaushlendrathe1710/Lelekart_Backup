@@ -53,10 +53,39 @@ export function ShopByCategory() {
                       alt={category.name} 
                       className="h-28 w-28 object-contain"
                       onError={(e) => {
-                        // Use a fallback image on error
+                        // Use a category-specific fallback image on error
                         const target = e.target as HTMLImageElement;
                         target.onerror = null; // Prevent infinite loop
-                        target.src = "https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg";
+                        
+                        // Use appropriate category placeholder
+                        switch(category.name) {
+                          case 'Electronics':
+                            target.src = "/images/categories/electronics.svg";
+                            break;
+                          case 'Fashion':
+                            target.src = "/images/categories/fashion.svg";
+                            break;
+                          case 'Home':
+                            target.src = "/images/categories/home.svg";
+                            break;
+                          case 'Appliances':
+                            target.src = "/images/categories/appliances.svg";
+                            break;
+                          case 'Mobiles':
+                            target.src = "/images/categories/mobiles.svg";
+                            break;
+                          case 'Beauty':
+                            target.src = "/images/categories/beauty.svg";
+                            break;
+                          case 'Toys':
+                            target.src = "/images/categories/toys.svg";
+                            break;
+                          case 'Grocery':
+                            target.src = "/images/categories/grocery.svg";
+                            break;
+                          default:
+                            target.src = "/images/placeholder.svg";
+                        }
                       }}
                     />
                   ) : (
