@@ -92,8 +92,9 @@ export interface IStorage {
   
   // Wishlist operations
   getWishlistItems(userId: number): Promise<{id: number, product: Product, userId: number, dateAdded: Date}[]>;
+  getWishlistItem(userId: number, productId: number): Promise<Wishlist | undefined>;
   addToWishlist(wishlist: InsertWishlist): Promise<Wishlist>;
-  removeFromWishlist(id: number): Promise<void>;
+  removeFromWishlist(userId: number, productId: number): Promise<void>;
   clearWishlist(userId: number): Promise<void>;
   isProductInWishlist(userId: number, productId: number): Promise<boolean>;
 
@@ -1536,10 +1537,37 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async removeFromWishlist(id: number): Promise<void> {
+  async getWishlistItem(userId: number, productId: number): Promise<Wishlist | undefined> {
     try {
-      console.log('Removing item from wishlist:', id);
-      await db.delete(wishlists).where(eq(wishlists.id, id));
+      console.log('Getting wishlist item:', { userId, productId });
+      
+      const [wishlistItem] = await db
+        .select()
+        .from(wishlists)
+        .where(
+          and(
+            eq(wishlists.userId, userId),
+            eq(wishlists.productId, productId)
+          )
+        );
+      
+      return wishlistItem;
+    } catch (error) {
+      console.error("Error in getWishlistItem:", error);
+      throw error;
+    }
+  }
+
+  async removeFromWishlist(userId: number, productId: number): Promise<void> {
+    try {
+      console.log('Removing item from wishlist:', { userId, productId });
+      await db.delete(wishlists)
+        .where(
+          and(
+            eq(wishlists.userId, userId),
+            eq(wishlists.productId, productId)
+          )
+        );
       console.log('Removed item from wishlist');
     } catch (error) {
       console.error("Error in removeFromWishlist:", error);
