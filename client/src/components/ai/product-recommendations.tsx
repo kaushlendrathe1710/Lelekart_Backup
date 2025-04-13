@@ -3,16 +3,8 @@ import { useAIAssistant } from "@/context/ai-assistant-context";
 import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
+import { cn, formatPrice } from "@/lib/utils";
 import { Sparkles } from "lucide-react";
-
-export const formatIndianPrice = (price: number) => {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(price);
-};
 
 interface ProductRecommendationCardProps {
   product: {
@@ -53,7 +45,7 @@ export const ProductRecommendationCard: React.FC<ProductRecommendationCardProps>
           </div>
           <h3 className="text-sm font-medium line-clamp-2 mb-1">{product.name}</h3>
           <p className="text-muted-foreground text-xs mb-2 line-clamp-1">{product.category}</p>
-          <p className="font-semibold">{formatIndianPrice(product.price)}</p>
+          <p className="font-semibold">{formatPrice(product.price)}</p>
         </CardContent>
       </Card>
     </Link>
@@ -100,7 +92,7 @@ export const PersonalizedRecommendations = () => {
   );
 };
 
-export const ComplementaryProducts = ({ productId }: { productId: number }) => {
+export const SuggestedProducts = ({ productId }: { productId: number }) => {
   const { getComplementaryProducts, complementaryProducts, trackActivity } = useAIAssistant();
   const [isLoading, setIsLoading] = React.useState(true);
 
