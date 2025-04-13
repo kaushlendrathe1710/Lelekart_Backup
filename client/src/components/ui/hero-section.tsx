@@ -2,6 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Product } from "@shared/schema";
+import ProductRecommendationCarousel from "./product-recommendation-carousel";
+import { ProductCard } from "./product-card";
 
 // Hero slider image interface
 interface SliderImage {
@@ -29,9 +33,10 @@ interface HeroSectionProps {
     seconds: number;
     productId?: number;  // Added product ID for linking
   };
+  products?: Product[];
 }
 
-export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
+export function HeroSection({ sliderImages, dealOfTheDay, products = [] }: HeroSectionProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const sliderRef = useRef<HTMLDivElement>(null);
   const intervalRef = useRef<number | null>(null);
@@ -265,6 +270,59 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
             />
           ))}
         </div>
+      </div>
+
+      {/* Product Tabs Section */}
+      <div className="container mx-auto px-4 py-4">
+        <Tabs defaultValue="all" className="w-full">
+          <TabsList className="mb-4 border-b w-full justify-start rounded-none h-auto p-0 bg-transparent">
+            <TabsTrigger 
+              value="all" 
+              className="px-6 py-3 text-base font-medium data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:shadow-none rounded-none"
+            >
+              All Products
+            </TabsTrigger>
+            <TabsTrigger 
+              value="new" 
+              className="px-6 py-3 text-base font-medium data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:shadow-none rounded-none"
+            >
+              New Arrivals
+            </TabsTrigger>
+            <TabsTrigger 
+              value="popular" 
+              className="px-6 py-3 text-base font-medium data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:shadow-none rounded-none"
+            >
+              Popular
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="all" className="mt-0">
+            <ProductRecommendationCarousel 
+              title=""
+              endpoint="/api/recommendations/featured"
+              limit={10}
+              className="my-0"
+            />
+          </TabsContent>
+          
+          <TabsContent value="new" className="mt-0">
+            <ProductRecommendationCarousel 
+              title=""
+              endpoint="/api/recommendations" 
+              limit={10}
+              className="my-0"
+            />
+          </TabsContent>
+          
+          <TabsContent value="popular" className="mt-0">
+            <ProductRecommendationCarousel 
+              title=""
+              endpoint="/api/recommendations/similar/1"
+              limit={10}
+              className="my-0"
+            />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Deal of the Day Section */}

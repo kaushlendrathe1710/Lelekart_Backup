@@ -202,19 +202,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Personalized Recommendations - Only shown for logged in users */}
-      {!category && (
-        <div className="container mx-auto px-4 py-4">
-          <div className="bg-white p-4 rounded shadow-sm">
-            <ProductRecommendationCarousel 
-              title="Recommended for You"
-              description="Products picked just for you based on your browsing history"
-              endpoint="/api/recommendations"
-              limit={10}
-            />
-          </div>
-        </div>
-      )}
+      {/* Personalized Recommendations removed - Now shown in Hero section tabs */}
       
       {/* Dynamic Category Sections - Show only if not filtered by specific category */}
       {!category && categorizedProducts.map((categoryGroup, index) => (
