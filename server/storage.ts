@@ -30,6 +30,9 @@ export interface IStorage {
   getUsers(): Promise<User[]>;
   updateUserRole(id: number, role: string): Promise<User>;
   getSellers(approved?: boolean, rejected?: boolean): Promise<User[]>;
+  getPendingSellers(): Promise<User[]>;
+  getApprovedSellers(): Promise<User[]>;
+  getRejectedSellers(): Promise<User[]>;
   updateSellerApproval(id: number, approved: boolean, rejected?: boolean): Promise<User>;
 
   // Product operations
@@ -209,6 +212,63 @@ export class DatabaseStorage implements IStorage {
       console.error("Error in getSellers:", error);
       return [];
     }
+  }
+  
+  // Get pending sellers (not approved, not rejected)
+  async getPendingSellers(): Promise<User[]> {
+    try {
+      return await db.select()
+        .from(users)
+        .where(
+          and(
+            eq(users.role, "seller"),
+            eq(users.approved, false),
+            eq(users.rejected, false)
+          )
+        );
+    } catch (error) {
+      console.error("Error in getPendingSellers:", error);
+      return [];
+    }
+  }
+  
+  // Get approved sellers
+  async getApprovedSellers(): Promise<User[]> {
+    try {
+      return await db.select()
+        .from(users)
+        .where(
+          and(
+            eq(users.role, "seller"),
+            eq(users.approved, true)
+          )
+        );
+    } catch (error) {
+      console.error("Error in getApprovedSellers:", error);
+      return [];
+    }
+  }
+  
+  // Get rejected sellers
+  async getRejectedSellers(): Promise<User[]> {
+    try {
+      return await db.select()
+        .from(users)
+        .where(
+          and(
+            eq(users.role, "seller"),
+            eq(users.rejected, true)
+          )
+        );
+    } catch (error) {
+      console.error("Error in getRejectedSellers:", error);
+      return [];
+    }
+  }
+  
+  // For interface compatibility
+  async updateSellerApproval(id: number, approved: boolean, rejected: boolean = false): Promise<User> {
+    return this.updateSellerApprovalStatus(id, approved, rejected);
   }
   
   async updateSellerApprovalStatus(id: number, status: boolean, isRejected: boolean = false): Promise<User> {
