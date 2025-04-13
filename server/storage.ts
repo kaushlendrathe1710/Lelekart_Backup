@@ -4,7 +4,10 @@ import {
   carts, Cart, InsertCart,
   orders, Order, InsertOrder,
   orderItems, OrderItem, InsertOrderItem,
-  categories, Category, InsertCategory
+  categories, Category, InsertCategory,
+  reviews, Review, InsertReview,
+  reviewImages, ReviewImage, InsertReviewImage,
+  reviewHelpful, ReviewHelpful, InsertReviewHelpful
 } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";

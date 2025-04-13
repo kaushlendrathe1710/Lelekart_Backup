@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, foreignKey } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, foreignKey, doublePrecision } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -115,6 +115,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   products: many(products),
   carts: many(carts),
   orders: many(orders),
+  reviews: many(reviews),
+  reviewHelpfulVotes: many(reviewHelpful),
 }));
 
 export const productsRelations = relations(products, ({ one, many }) => ({
@@ -124,6 +126,7 @@ export const productsRelations = relations(products, ({ one, many }) => ({
   }),
   cartItems: many(carts),
   orderItems: many(orderItems),
+  reviews: many(reviews),
 }));
 
 export const cartsRelations = relations(carts, ({ one }) => ({
@@ -143,6 +146,7 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
     references: [users.id],
   }),
   items: many(orderItems),
+  reviews: many(reviews),
 }));
 
 export const orderItemsRelations = relations(orderItems, ({ one }) => ({
@@ -189,6 +193,95 @@ export const insertCategorySchema = createInsertSchema(categories).pick({
   displayOrder: true,
 });
 
+// Reviews table
+export const reviews = pgTable("reviews", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  productId: integer("product_id").notNull().references(() => products.id),
+  orderId: integer("order_id").references(() => orders.id), // Optional - to verify purchase
+  rating: integer("rating").notNull(), // 1-5 star rating
+  review: text("review"), // Text review (optional)
+  title: text("title"), // Review title/headline (optional)
+  verifiedPurchase: boolean("verified_purchase").notNull().default(false),
+  status: text("status").notNull().default("published"), // published, pending, rejected
+  helpfulCount: integer("helpful_count").notNull().default(0), // Number of users who found this helpful
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertReviewSchema = createInsertSchema(reviews).pick({
+  userId: true,
+  productId: true,
+  orderId: true,
+  rating: true,
+  review: true,
+  title: true,
+  verifiedPurchase: true,
+  status: true,
+});
+
+// Review Images table (for photo reviews)
+export const reviewImages = pgTable("review_images", {
+  id: serial("id").primaryKey(),
+  reviewId: integer("review_id").notNull().references(() => reviews.id),
+  imageUrl: text("image_url").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertReviewImageSchema = createInsertSchema(reviewImages).pick({
+  reviewId: true,
+  imageUrl: true,
+});
+
+// Review Helpful Votes (to track which users found which reviews helpful)
+export const reviewHelpful = pgTable("review_helpful", {
+  id: serial("id").primaryKey(),
+  reviewId: integer("review_id").notNull().references(() => reviews.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertReviewHelpfulSchema = createInsertSchema(reviewHelpful).pick({
+  reviewId: true,
+  userId: true,
+});
+
+// Relations for reviews
+export const reviewsRelations = relations(reviews, ({ one, many }) => ({
+  user: one(users, {
+    fields: [reviews.userId],
+    references: [users.id],
+  }),
+  product: one(products, {
+    fields: [reviews.productId],
+    references: [products.id],
+  }),
+  order: one(orders, {
+    fields: [reviews.orderId],
+    references: [orders.id],
+  }),
+  images: many(reviewImages),
+  helpfulVotes: many(reviewHelpful),
+}));
+
+export const reviewImagesRelations = relations(reviewImages, ({ one }) => ({
+  review: one(reviews, {
+    fields: [reviewImages.reviewId],
+    references: [reviews.id],
+  }),
+}));
+
+export const reviewHelpfulRelations = relations(reviewHelpful, ({ one }) => ({
+  review: one(reviews, {
+    fields: [reviewHelpful.reviewId],
+    references: [reviews.id],
+  }),
+  user: one(users, {
+    fields: [reviewHelpful.userId],
+    references: [users.id],
+  }),
+}));
+
 // Type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -210,3 +303,12 @@ export type InsertUserOtp = z.infer<typeof insertUserOtpSchema>;
 
 export type Category = typeof categories.$inferSelect;
 export type InsertCategory = z.infer<typeof insertCategorySchema>;
+
+export type Review = typeof reviews.$inferSelect;
+export type InsertReview = z.infer<typeof insertReviewSchema>;
+
+export type ReviewImage = typeof reviewImages.$inferSelect;
+export type InsertReviewImage = z.infer<typeof insertReviewImageSchema>;
+
+export type ReviewHelpful = typeof reviewHelpful.$inferSelect;
+export type InsertReviewHelpful = z.infer<typeof insertReviewHelpfulSchema>;
