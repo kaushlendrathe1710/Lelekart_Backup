@@ -65,9 +65,9 @@ export function Header() {
   return (
     <header className="bg-primary text-white sticky top-0 z-50 shadow-md">
       <div className="container mx-auto px-4">
-        <div className="flex flex-col md:flex-row items-center py-2">
+        <div className="flex flex-col md:flex-row items-center py-4 justify-between">
           {/* Logo */}
-          <div className="flex items-center">
+          <div className="flex-shrink-0 md:w-52">
             <Link href="/" className="flex items-center mb-2 md:mb-0">
               <span className="text-2xl font-bold mr-1">Lelekart</span>
               <span className="text-xs italic text-yellow-400 flex items-end">
@@ -78,13 +78,13 @@ export function Header() {
             </Link>
           </div>
           
-          {/* Search Bar */}
-          <div className="w-full md:w-5/12 md:ml-4 relative mb-2 md:mb-0">
+          {/* Search Bar (Centered) */}
+          <div className="w-full md:flex-1 flex justify-center mb-3 md:mb-0 order-last md:order-none">
             <SimpleSearch />
           </div>
           
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center justify-between md:ml-auto space-x-4 md:space-x-6">
+          <nav className="hidden md:flex items-center justify-end flex-shrink-0 md:w-52 space-x-4 md:space-x-5">
             {/* User Controls */}
             {!user ? (
               // If not logged in, show a direct login button
