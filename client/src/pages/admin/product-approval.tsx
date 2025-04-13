@@ -7,24 +7,22 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, PackageCheck, CheckCircle, XCircle, AlertTriangle, Trash2, ImageOff, Image } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, AlertTriangle, Trash2, Eye } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { Product, User } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
-import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
-// Helper function to format currency
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: 'INR',
-    maximumFractionDigits: 0
+    maximumFractionDigits: 0,
   }).format(amount);
 }
 
-// Extended Product interface with seller info
 interface ProductWithSeller extends Product {
   seller?: User;
 }
@@ -38,6 +36,7 @@ export default function AdminProductApproval() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -45,7 +44,7 @@ export default function AdminProductApproval() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await apiRequest("GET", "/api/admin/products/approval?status=all");
+        const response = await apiRequest("GET", "/api/admin/products/approval");
         if (!response.ok) {
           throw new Error("Failed to fetch products");
         }
@@ -54,15 +53,15 @@ export default function AdminProductApproval() {
         
         // Separate products by approval status
         setPendingProducts(data.filter((product: ProductWithSeller) => 
-          !product.approved || product.approved === false
+          product.approvalStatus === "pending" || !product.approvalStatus
         ));
         
         setApprovedProducts(data.filter((product: ProductWithSeller) => 
-          product.approved === true
+          product.approvalStatus === "approved"
         ));
         
         setRejectedProducts(data.filter((product: ProductWithSeller) => 
-          product.approved === null // Using null to indicate rejected products for now
+          product.approvalStatus === "rejected"
         ));
         
         setIsLoading(false);
@@ -103,7 +102,7 @@ export default function AdminProductApproval() {
       
       toast({
         title: "Product approved",
-        description: "The product has been approved and will now be visible in the store.",
+        description: "The product has been approved and is now visible on the store.",
       });
       
       // Invalidate relevant queries to refresh data
@@ -125,7 +124,9 @@ export default function AdminProductApproval() {
   const handleRejectProduct = async (productId: number) => {
     setIsRejecting(true);
     try {
-      const response = await apiRequest("POST", `/api/admin/products/${productId}/reject`);
+      const response = await apiRequest("POST", `/api/admin/products/${productId}/reject`, {
+        reason: rejectionReason || "Product does not meet store requirements"
+      });
       
       if (!response.ok) {
         throw new Error("Failed to reject product");
@@ -145,11 +146,15 @@ export default function AdminProductApproval() {
       
       toast({
         title: "Product rejected",
-        description: "The product has been rejected and will not be visible in the store.",
+        description: "The product has been rejected and will not be visible on the store.",
       });
+      
+      // Clear the rejection reason for next use
+      setRejectionReason("");
       
       // Invalidate relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/admin/products/approval"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       
     } catch (error) {
       console.error("Error rejecting product:", error);
@@ -166,21 +171,27 @@ export default function AdminProductApproval() {
   const openProductDetails = (product: ProductWithSeller) => {
     setSelectedProduct(product);
     setDetailsOpen(true);
+    // Reset rejection reason when opening details
+    setRejectionReason("");
   };
   
-  // Parse additional images
   const getProductImages = (product: ProductWithSeller) => {
-    const images = [product.imageUrl]; // Start with the main image
+    const images = [];
     
+    // Add the primary image
+    if (product.imageUrl) {
+      images.push(product.imageUrl);
+    }
+    
+    // Parse and add additional images if available
     if (product.images) {
       try {
-        // Try to parse the additional images
         const additionalImages = JSON.parse(product.images);
         if (Array.isArray(additionalImages)) {
-          images.push(...additionalImages);
+          images.push(...additionalImages.filter(Boolean));
         }
       } catch (error) {
-        console.error("Error parsing product images:", error);
+        console.error("Failed to parse additional images:", error);
       }
     }
     
@@ -239,7 +250,7 @@ export default function AdminProductApproval() {
             {pendingProducts.length === 0 ? (
               <Card>
                 <CardContent className="pt-6 flex flex-col items-center justify-center text-center min-h-[200px]">
-                  <PackageCheck className="h-12 w-12 text-muted-foreground mb-4" />
+                  <CheckCircle className="h-12 w-12 text-muted-foreground mb-4" />
                   <h3 className="text-lg font-medium">No pending product approvals</h3>
                   <p className="text-sm text-muted-foreground mt-1">
                     All products have been reviewed.
@@ -259,9 +270,9 @@ export default function AdminProductApproval() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Product</TableHead>
-                        <TableHead>Seller</TableHead>
                         <TableHead>Price</TableHead>
                         <TableHead>Category</TableHead>
+                        <TableHead>Seller</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
@@ -271,25 +282,37 @@ export default function AdminProductApproval() {
                         <TableRow key={product.id}>
                           <TableCell className="font-medium">
                             <div className="flex items-center gap-3">
-                              <div className="h-10 w-10 overflow-hidden rounded-md bg-gray-100">
-                                {product.imageUrl ? (
-                                  <img
-                                    src={product.imageUrl}
-                                    alt={product.name}
-                                    className="h-full w-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="flex h-full w-full items-center justify-center bg-gray-200">
-                                    <ImageOff className="h-5 w-5 text-gray-400" />
-                                  </div>
-                                )}
+                              <div className="relative h-10 w-10 overflow-hidden rounded-md">
+                                <img
+                                  src={product.imageUrl}
+                                  alt={product.name}
+                                  className="h-full w-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = "/images/placeholder.svg";
+                                  }}
+                                />
                               </div>
-                              <span className="line-clamp-1">{product.name}</span>
+                              <span className="truncate max-w-[150px]" title={product.name}>
+                                {product.name}
+                              </span>
                             </div>
                           </TableCell>
-                          <TableCell>{product.seller?.username || "Unknown Seller"}</TableCell>
                           <TableCell>{formatCurrency(product.price)}</TableCell>
                           <TableCell>{product.category}</TableCell>
+                          <TableCell>
+                            {product.seller ? (
+                              <div className="flex items-center gap-2">
+                                <Avatar className="h-6 w-6">
+                                  <AvatarFallback>
+                                    {(product.seller.name || product.seller.username)?.charAt(0).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span>{product.seller.name || product.seller.username}</span>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">Unknown</span>
+                            )}
+                          </TableCell>
                           <TableCell>
                             <Badge className="bg-orange-500">Pending</Badge>
                           </TableCell>
@@ -300,6 +323,7 @@ export default function AdminProductApproval() {
                                 size="sm"
                                 onClick={() => openProductDetails(product)}
                               >
+                                <Eye className="h-4 w-4 mr-1" />
                                 Details
                               </Button>
                               <Button 
@@ -315,10 +339,10 @@ export default function AdminProductApproval() {
                               <Button 
                                 variant="destructive" 
                                 size="sm"
-                                onClick={() => handleRejectProduct(product.id)}
+                                onClick={() => openProductDetails(product)}
                                 disabled={isRejecting}
                               >
-                                {isRejecting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <XCircle className="h-4 w-4 mr-1" />}
+                                <XCircle className="h-4 w-4 mr-1" />
                                 Reject
                               </Button>
                             </div>
@@ -336,7 +360,7 @@ export default function AdminProductApproval() {
             {approvedProducts.length === 0 ? (
               <Card>
                 <CardContent className="pt-6 flex flex-col items-center justify-center text-center min-h-[200px]">
-                  <PackageCheck className="h-12 w-12 text-muted-foreground mb-4" />
+                  <CheckCircle className="h-12 w-12 text-muted-foreground mb-4" />
                   <h3 className="text-lg font-medium">No approved products yet</h3>
                   <p className="text-sm text-muted-foreground mt-1">
                     Products that are approved will appear here.
@@ -348,7 +372,7 @@ export default function AdminProductApproval() {
                 <CardHeader>
                   <CardTitle>Approved Products</CardTitle>
                   <CardDescription>
-                    All products that have been approved and are visible in the store
+                    All products that have been approved and are visible on the store
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -356,9 +380,9 @@ export default function AdminProductApproval() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Product</TableHead>
-                        <TableHead>Seller</TableHead>
                         <TableHead>Price</TableHead>
                         <TableHead>Category</TableHead>
+                        <TableHead>Seller</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
@@ -368,25 +392,37 @@ export default function AdminProductApproval() {
                         <TableRow key={product.id}>
                           <TableCell className="font-medium">
                             <div className="flex items-center gap-3">
-                              <div className="h-10 w-10 overflow-hidden rounded-md bg-gray-100">
-                                {product.imageUrl ? (
-                                  <img
-                                    src={product.imageUrl}
-                                    alt={product.name}
-                                    className="h-full w-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="flex h-full w-full items-center justify-center bg-gray-200">
-                                    <ImageOff className="h-5 w-5 text-gray-400" />
-                                  </div>
-                                )}
+                              <div className="relative h-10 w-10 overflow-hidden rounded-md">
+                                <img
+                                  src={product.imageUrl}
+                                  alt={product.name}
+                                  className="h-full w-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = "/images/placeholder.svg";
+                                  }}
+                                />
                               </div>
-                              <span className="line-clamp-1">{product.name}</span>
+                              <span className="truncate max-w-[150px]" title={product.name}>
+                                {product.name}
+                              </span>
                             </div>
                           </TableCell>
-                          <TableCell>{product.seller?.username || "Unknown Seller"}</TableCell>
                           <TableCell>{formatCurrency(product.price)}</TableCell>
                           <TableCell>{product.category}</TableCell>
+                          <TableCell>
+                            {product.seller ? (
+                              <div className="flex items-center gap-2">
+                                <Avatar className="h-6 w-6">
+                                  <AvatarFallback>
+                                    {(product.seller.name || product.seller.username)?.charAt(0).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span>{product.seller.name || product.seller.username}</span>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">Unknown</span>
+                            )}
+                          </TableCell>
                           <TableCell>
                             <Badge className="bg-green-500">Approved</Badge>
                           </TableCell>
@@ -397,13 +433,15 @@ export default function AdminProductApproval() {
                                 size="sm"
                                 onClick={() => openProductDetails(product)}
                               >
-                                View Details
+                                <Eye className="h-4 w-4 mr-1" />
+                                View
                               </Button>
                               <Button 
                                 variant="destructive" 
                                 size="sm"
-                                onClick={() => handleRejectProduct(product.id)}
+                                onClick={() => openProductDetails(product)}
                               >
+                                <XCircle className="h-4 w-4 mr-1" />
                                 Reject
                               </Button>
                             </div>
@@ -433,7 +471,7 @@ export default function AdminProductApproval() {
                 <CardHeader>
                   <CardTitle>Rejected Products</CardTitle>
                   <CardDescription>
-                    All products that have been rejected and are not visible in the store
+                    All products that have been rejected and are not visible on the store
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -441,9 +479,9 @@ export default function AdminProductApproval() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Product</TableHead>
-                        <TableHead>Seller</TableHead>
                         <TableHead>Price</TableHead>
                         <TableHead>Category</TableHead>
+                        <TableHead>Seller</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
@@ -453,25 +491,37 @@ export default function AdminProductApproval() {
                         <TableRow key={product.id}>
                           <TableCell className="font-medium">
                             <div className="flex items-center gap-3">
-                              <div className="h-10 w-10 overflow-hidden rounded-md bg-gray-100">
-                                {product.imageUrl ? (
-                                  <img
-                                    src={product.imageUrl}
-                                    alt={product.name}
-                                    className="h-full w-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="flex h-full w-full items-center justify-center bg-gray-200">
-                                    <ImageOff className="h-5 w-5 text-gray-400" />
-                                  </div>
-                                )}
+                              <div className="relative h-10 w-10 overflow-hidden rounded-md">
+                                <img
+                                  src={product.imageUrl}
+                                  alt={product.name}
+                                  className="h-full w-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = "/images/placeholder.svg";
+                                  }}
+                                />
                               </div>
-                              <span className="line-clamp-1">{product.name}</span>
+                              <span className="truncate max-w-[150px]" title={product.name}>
+                                {product.name}
+                              </span>
                             </div>
                           </TableCell>
-                          <TableCell>{product.seller?.username || "Unknown Seller"}</TableCell>
                           <TableCell>{formatCurrency(product.price)}</TableCell>
                           <TableCell>{product.category}</TableCell>
+                          <TableCell>
+                            {product.seller ? (
+                              <div className="flex items-center gap-2">
+                                <Avatar className="h-6 w-6">
+                                  <AvatarFallback>
+                                    {(product.seller.name || product.seller.username)?.charAt(0).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span>{product.seller.name || product.seller.username}</span>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">Unknown</span>
+                            )}
+                          </TableCell>
                           <TableCell>
                             <Badge variant="destructive">Rejected</Badge>
                           </TableCell>
@@ -482,6 +532,7 @@ export default function AdminProductApproval() {
                                 size="sm"
                                 onClick={() => openProductDetails(product)}
                               >
+                                <Eye className="h-4 w-4 mr-1" />
                                 Details
                               </Button>
                               <Button 
@@ -490,6 +541,7 @@ export default function AdminProductApproval() {
                                 className="bg-green-600 hover:bg-green-700"
                                 onClick={() => handleApproveProduct(product.id)}
                               >
+                                <CheckCircle className="h-4 w-4 mr-1" />
                                 Approve
                               </Button>
                             </div>
@@ -506,7 +558,7 @@ export default function AdminProductApproval() {
         
         {/* Product Details Dialog */}
         <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-          <DialogContent className="max-w-4xl">
+          <DialogContent className="max-w-3xl">
             <DialogHeader>
               <DialogTitle>Product Details</DialogTitle>
               <DialogDescription>
@@ -515,130 +567,179 @@ export default function AdminProductApproval() {
             </DialogHeader>
             
             {selectedProduct && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="text-xl font-semibold mb-2">{selectedProduct.name}</h3>
-                    <div className="mb-3">
-                      {!selectedProduct.approved ? (
-                        <Badge className="bg-orange-500">Pending Approval</Badge>
-                      ) : selectedProduct.approved === true ? (
-                        <Badge className="bg-green-500">Approved</Badge>
-                      ) : (
-                        <Badge variant="destructive">Rejected</Badge>
-                      )}
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Product Images */}
+                  <div className="flex flex-col">
+                    <div className="bg-gray-100 rounded-lg mb-3">
+                      <div className="aspect-square overflow-hidden rounded-lg">
+                        <img
+                          src={selectedProduct.imageUrl}
+                          alt={selectedProduct.name}
+                          className="h-full w-full object-cover object-center"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "/images/placeholder.svg";
+                          }}
+                        />
+                      </div>
                     </div>
                     
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="text-sm font-medium text-muted-foreground">Price</h4>
-                        <p className="text-lg font-bold">{formatCurrency(selectedProduct.price)}</p>
-                      </div>
-                      
-                      <div>
-                        <h4 className="text-sm font-medium text-muted-foreground">Category</h4>
-                        <p>{selectedProduct.category}</p>
-                      </div>
-                      
-                      <div>
-                        <h4 className="text-sm font-medium text-muted-foreground">Seller</h4>
-                        <p>{selectedProduct.seller?.username || "Unknown Seller"}</p>
-                      </div>
-                      
-                      <div>
-                        <h4 className="text-sm font-medium text-muted-foreground">Stock</h4>
-                        <p>{selectedProduct.stock} units</p>
-                      </div>
-                      
-                      {selectedProduct.color && (
-                        <div>
-                          <h4 className="text-sm font-medium text-muted-foreground">Color</h4>
-                          <p>{selectedProduct.color}</p>
+                    {/* Additional Images Grid */}
+                    <div className="grid grid-cols-4 gap-2">
+                      {getProductImages(selectedProduct).map((imgUrl, idx) => (
+                        <div 
+                          key={idx} 
+                          className="aspect-square rounded overflow-hidden border hover:border-primary transition-colors"
+                        >
+                          <img 
+                            src={imgUrl} 
+                            alt={`${selectedProduct.name} - Image ${idx + 1}`} 
+                            className="h-full w-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = "/images/placeholder.svg";
+                            }}
+                          />
                         </div>
-                      )}
-                      
-                      {selectedProduct.size && (
-                        <div>
-                          <h4 className="text-sm font-medium text-muted-foreground">Size</h4>
-                          <p>{selectedProduct.size}</p>
-                        </div>
-                      )}
+                      ))}
                     </div>
                   </div>
                   
-                  <div>
-                    <div className="mb-4">
-                      <h4 className="text-sm font-medium text-muted-foreground mb-2">Product Images</h4>
-                      <div className="border rounded-md overflow-hidden">
-                        {getProductImages(selectedProduct).length > 0 ? (
-                          <Carousel>
-                            <CarouselContent>
-                              {getProductImages(selectedProduct).map((image, index) => (
-                                <CarouselItem key={index}>
-                                  <AspectRatio ratio={1 / 1}>
-                                    <img
-                                      src={image}
-                                      alt={`${selectedProduct.name} - Image ${index + 1}`}
-                                      className="h-full w-full object-cover"
-                                    />
-                                  </AspectRatio>
-                                </CarouselItem>
-                              ))}
-                            </CarouselContent>
-                            <CarouselPrevious />
-                            <CarouselNext />
-                          </Carousel>
+                  {/* Product Info */}
+                  <div className="space-y-4">
+                    <div>
+                      <h2 className="text-xl font-semibold">{selectedProduct.name}</h2>
+                      
+                      <div className="mt-1">
+                        {selectedProduct.approvalStatus === "pending" || !selectedProduct.approvalStatus ? (
+                          <Badge className="bg-orange-500">Pending Approval</Badge>
+                        ) : selectedProduct.approvalStatus === "approved" ? (
+                          <Badge className="bg-green-500">Approved</Badge>
                         ) : (
-                          <div className="flex h-48 w-full items-center justify-center bg-gray-100">
-                            <div className="flex flex-col items-center">
-                              <ImageOff className="h-10 w-10 text-gray-400 mb-2" />
-                              <p className="text-sm text-gray-500">No product images</p>
-                            </div>
-                          </div>
+                          <Badge variant="destructive">Rejected</Badge>
                         )}
                       </div>
+                      
+                      <div className="mt-3 text-xl font-bold text-primary">
+                        {formatCurrency(selectedProduct.price)}
+                      </div>
+                      
+                      {selectedProduct.purchasePrice && (
+                        <div className="mt-1 text-sm text-muted-foreground">
+                          Purchase Price: {formatCurrency(selectedProduct.purchasePrice)}
+                        </div>
+                      )}
                     </div>
+                    
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground">Category</h3>
+                      <p>{selectedProduct.category}</p>
+                    </div>
+                    
+                    {selectedProduct.seller && (
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">Seller Information</h3>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Avatar className="h-6 w-6">
+                            <AvatarFallback>
+                              {(selectedProduct.seller.name || selectedProduct.seller.username)?.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium">{selectedProduct.seller.name || selectedProduct.seller.username}</div>
+                            <div className="text-xs text-muted-foreground">{selectedProduct.seller.email}</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground">Stock</h3>
+                      <p>{selectedProduct.stock} units</p>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground">Description</h3>
+                      <p className="whitespace-pre-line text-sm">{selectedProduct.description}</p>
+                    </div>
+                    
+                    {selectedProduct.specifications && (
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">Specifications</h3>
+                        <p className="whitespace-pre-line text-sm">{selectedProduct.specifications}</p>
+                      </div>
+                    )}
+                    
+                    {selectedProduct.rejectionReason && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                        <h3 className="text-sm font-medium text-red-500">Rejection Reason</h3>
+                        <p className="text-sm text-red-700">{selectedProduct.rejectionReason}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
                 
-                <Separator />
-                
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-2">Product Description</h4>
-                  <div className="prose prose-sm max-w-none">
-                    <p>{selectedProduct.description}</p>
-                  </div>
-                </div>
-                
-                {selectedProduct.specifications && (
-                  <div>
-                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Technical Specifications</h4>
-                    <div className="prose prose-sm max-w-none">
-                      <p>{selectedProduct.specifications}</p>
+                {/* Rejection reason input - show only for pending products or when approving rejected products */}
+                {(selectedProduct.approvalStatus === "pending" || !selectedProduct.approvalStatus) && (
+                  <div className="pt-4 border-t">
+                    <div className="space-y-2">
+                      <Label htmlFor="rejection-reason">Rejection Reason (only needed if rejecting)</Label>
+                      <Textarea
+                        id="rejection-reason"
+                        placeholder="Provide a reason for rejection"
+                        value={rejectionReason}
+                        onChange={(e) => setRejectionReason(e.target.value)}
+                        className="min-h-[80px]"
+                      />
                     </div>
                   </div>
                 )}
-                
-                <Separator />
-                
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-2">Approval Status</h4>
-                  <div className="flex items-start gap-2 mb-4">
-                    <AlertTriangle className="h-5 w-5 text-orange-500 mt-0.5" />
-                    <p className="text-sm">
-                      {!selectedProduct.approved 
-                        ? "This product is awaiting approval. It will not be visible in the store until approved."
-                        : selectedProduct.approved === true
-                          ? "This product has been approved and is visible in the store."
-                          : "This product has been rejected and is not visible in the store."}
-                    </p>
-                  </div>
-                </div>
               </div>
             )}
             
             <DialogFooter className="flex flex-col sm:flex-row gap-2">
-              {selectedProduct && (!selectedProduct.approved || selectedProduct.approved === null) && (
+              {selectedProduct && (selectedProduct.approvalStatus === "pending" || !selectedProduct.approvalStatus) && (
+                <>
+                  <Button 
+                    className="bg-green-600 hover:bg-green-700"
+                    onClick={() => handleApproveProduct(selectedProduct.id)}
+                    disabled={isApproving}
+                  >
+                    {isApproving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
+                    Approve Product
+                  </Button>
+                  <Button 
+                    variant="destructive"
+                    onClick={() => handleRejectProduct(selectedProduct.id)}
+                    disabled={isRejecting || !rejectionReason.trim()}
+                  >
+                    {isRejecting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <XCircle className="h-4 w-4 mr-2" />}
+                    Reject Product
+                  </Button>
+                </>
+              )}
+              
+              {selectedProduct && selectedProduct.approvalStatus === "approved" && (
+                <Button 
+                  variant="destructive"
+                  onClick={() => {
+                    if (rejectionReason.trim()) {
+                      handleRejectProduct(selectedProduct.id);
+                    } else {
+                      toast({
+                        title: "Rejection reason required",
+                        description: "Please provide a reason for rejecting this product.",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                  disabled={isRejecting}
+                >
+                  {isRejecting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <XCircle className="h-4 w-4 mr-2" />}
+                  Reject Product
+                </Button>
+              )}
+              
+              {selectedProduct && selectedProduct.approvalStatus === "rejected" && (
                 <Button 
                   className="bg-green-600 hover:bg-green-700"
                   onClick={() => handleApproveProduct(selectedProduct.id)}
@@ -646,17 +747,6 @@ export default function AdminProductApproval() {
                 >
                   {isApproving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
                   Approve Product
-                </Button>
-              )}
-              
-              {selectedProduct && (selectedProduct.approved !== null) && (
-                <Button 
-                  variant="destructive"
-                  onClick={() => handleRejectProduct(selectedProduct.id)}
-                  disabled={isRejecting}
-                >
-                  {isRejecting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <XCircle className="h-4 w-4 mr-2" />}
-                  Reject Product
                 </Button>
               )}
               
