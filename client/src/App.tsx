@@ -14,6 +14,8 @@ import OrderDetailsPage from "./pages/order-details-page";
 import { Layout } from "@/components/layout/layout";
 import { AuthProvider } from "@/hooks/use-auth";
 import { CartProvider } from "@/context/cart-context";
+import { AIAssistantProvider } from "@/context/ai-assistant-context";
+import { AIAssistantButton, AIShoppingAssistant } from "@/components/ai";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { ProtectedRoute } from "./lib/protected-route";
