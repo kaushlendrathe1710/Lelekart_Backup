@@ -9,8 +9,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useContext } from "react";
 import { apiRequest } from "@/lib/queryClient";
 
+// Define an extended Product interface to include image_url
+interface ExtendedProduct extends Product {
+  image?: string;
+  image_url?: string;
+}
+
 interface ProductCardProps {
-  product: Product;
+  product: ExtendedProduct;
   featured?: boolean;
 }
 
@@ -101,15 +107,26 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
         >
           <CardContent className="p-0 flex flex-col items-center">
             <img 
-              src={product.imageUrl && (product.imageUrl.includes('flixcart.com') || product.imageUrl.includes('flipkart.com'))
-                ? `/api/image-proxy?url=${encodeURIComponent(product.imageUrl)}&category=${encodeURIComponent(product.category)}`
-                : product.imageUrl}
+              src={
+                // Get the image URL, checking all possible sources
+                (product.image_url || product.image || product.imageUrl) && 
+                ((product.image_url || product.image || product.imageUrl)?.includes('flixcart.com') || 
+                 (product.image_url || product.image || product.imageUrl)?.includes('flipkart.com'))
+                  ? `/api/image-proxy?url=${encodeURIComponent(product.image_url || product.image || product.imageUrl || '')}&category=${encodeURIComponent(product.category || '')}`
+                  : (product.image_url || product.image || product.imageUrl)
+              }
               alt={product.name} 
               className="w-32 h-40 object-contain mb-3"
               onError={(e) => {
                 // Use a fallback image on error
                 const target = e.target as HTMLImageElement;
                 target.onerror = null; // Prevent infinite loop
+                
+                console.log('Image load error for product:', product.name, 'URLs:', {
+                  image_url: product.image_url,
+                  image: product.image,
+                  imageUrl: product.imageUrl
+                });
                 
                 // Use category-specific placeholder or default placeholder
                 if (product.category) {
@@ -151,15 +168,26 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
       >
         <CardContent className="p-0 flex flex-col items-center">
           <img 
-            src={product.imageUrl && (product.imageUrl.includes('flixcart.com') || product.imageUrl.includes('flipkart.com'))
-              ? `/api/image-proxy?url=${encodeURIComponent(product.imageUrl)}&category=${encodeURIComponent(product.category)}`
-              : product.imageUrl}
+            src={
+              // Get the image URL, checking all possible sources
+              (product.image_url || product.image || product.imageUrl) && 
+              ((product.image_url || product.image || product.imageUrl)?.includes('flixcart.com') || 
+               (product.image_url || product.image || product.imageUrl)?.includes('flipkart.com'))
+                ? `/api/image-proxy?url=${encodeURIComponent(product.image_url || product.image || product.imageUrl || '')}&category=${encodeURIComponent(product.category || '')}`
+                : (product.image_url || product.image || product.imageUrl)
+            }
             alt={product.name} 
             className="w-28 h-32 object-contain mb-2"
             onError={(e) => {
               // Use a fallback image on error
               const target = e.target as HTMLImageElement;
               target.onerror = null; // Prevent infinite loop
+              
+              console.log('Image load error for product:', product.name, 'URLs:', {
+                image_url: product.image_url,
+                image: product.image,
+                imageUrl: product.imageUrl
+              });
               
               // Use category-specific placeholder or default placeholder
               if (product.category) {
