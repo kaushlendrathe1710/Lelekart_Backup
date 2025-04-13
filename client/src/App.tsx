@@ -47,8 +47,8 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <AIAssistantProvider>
-          <CartProvider>
+        <CartProvider>
+          <AIAssistantProvider>
             <TooltipProvider>
               <div className="app">
                 <AIAssistantButton />
@@ -430,8 +430,8 @@ function App() {
                 <Toaster />
               </div>
             </TooltipProvider>
-          </CartProvider>
-        </AIAssistantProvider>
+          </AIAssistantProvider>
+        </CartProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
