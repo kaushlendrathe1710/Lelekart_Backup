@@ -17,7 +17,7 @@ import multer from "multer";
 import { uploadFile } from "./helpers/s3";
 import { handleImageProxy } from "./utils/image-proxy";
 import { RecommendationEngine } from "./utils/recommendation-engine";
-import { createOrder, processPayment, getRazorpayKeyId } from "./utils/razorpay";
+import { createRazorpayOrder, handleSuccessfulPayment, generateReceiptId } from "./utils/razorpay";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes with OTP-based authentication
@@ -326,7 +326,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       // Create Razorpay order
-      const order = await createOrder(totalInPaise, receiptId, notes);
+      const order = await createRazorpayOrder(totalInPaise, receiptId, notes);
       
       res.json({
         orderId: order.id,
@@ -351,11 +351,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Verify the payment signature
-      const result = await processPayment({
-        orderId: razorpayOrderId,
-        paymentId: razorpayPaymentId,
-        signature: razorpaySignature
-      });
+      const result = await handleSuccessfulPayment(
+        razorpayPaymentId,
+        razorpayOrderId, 
+        razorpaySignature
+      );
       
       if (!result.success) {
         return res.status(400).json({ error: "Payment verification failed" });

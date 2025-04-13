@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Form,
   FormControl,
@@ -18,6 +19,7 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
+import RazorpayPayment from "@/components/payment/razorpay-payment";
 
 // Define form schema with Zod
 const checkoutSchema = z.object({
@@ -28,7 +30,7 @@ const checkoutSchema = z.object({
   city: z.string().min(2, { message: "City must be at least 2 characters" }),
   state: z.string().min(2, { message: "State must be at least 2 characters" }),
   zipCode: z.string().min(5, { message: "ZIP code must be at least 5 characters" }),
-  paymentMethod: z.enum(["cod"], {
+  paymentMethod: z.enum(["cod", "razorpay"], {
     required_error: "Please select a payment method",
   }),
   notes: z.string().optional(),
@@ -379,11 +381,15 @@ export default function CheckoutPage() {
                         <RadioGroup
                           onValueChange={field.onChange}
                           defaultValue={field.value}
-                          className="flex flex-col space-y-1"
+                          className="flex flex-col space-y-3"
                         >
                           <div className="flex items-center space-x-2">
                             <RadioGroupItem value="cod" id="cod" />
                             <Label htmlFor="cod">Cash on Delivery (COD)</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="razorpay" id="razorpay" />
+                            <Label htmlFor="razorpay">Pay Online with Razorpay</Label>
                           </div>
                         </RadioGroup>
                       </FormControl>
@@ -392,15 +398,42 @@ export default function CheckoutPage() {
                   )}
                 />
                 
-                <div className="pt-4">
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-primary text-white"
-                    disabled={processingOrder}
-                  >
-                    {processingOrder ? "Processing..." : "Place Order"}
-                  </Button>
-                </div>
+                {form.watch("paymentMethod") === "razorpay" ? (
+                  <div className="border-t pt-4">
+                    <RazorpayPayment 
+                      amount={total * 100} // Convert to paise
+                      shippingDetails={{
+                        name: form.getValues("name"),
+                        address: form.getValues("address"),
+                        city: form.getValues("city"),
+                        state: form.getValues("state"),
+                        zipCode: form.getValues("zipCode"),
+                        phone: form.getValues("phone"),
+                      }}
+                      onSuccess={(orderId) => {
+                        // Redirect to order confirmation page
+                        setLocation(`/order-confirmation/${orderId}?success=true&total=${total}`);
+                      }}
+                      onError={(error) => {
+                        toast({
+                          title: "Payment Failed",
+                          description: error || "There was an error processing your payment. Please try again.",
+                          variant: "destructive",
+                        });
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="pt-4">
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-primary text-white"
+                      disabled={processingOrder}
+                    >
+                      {processingOrder ? "Processing..." : "Place Order"}
+                    </Button>
+                  </div>
+                )}
               </form>
             </Form>
           </div>

@@ -1,30 +1,60 @@
-import Razorpay from 'razorpay';
 import crypto from 'crypto';
 
-// Initialize Razorpay with the API keys
-export const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!
-});
+// Check for required environment variables
+if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+  console.warn("Warning: RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET environment variables are missing. Razorpay payment functionality will not work correctly.");
+}
+
+// Constants
+const KEY_ID = process.env.RAZORPAY_KEY_ID || '';
+const KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || '';
+
+/**
+ * Get Razorpay Key ID for client-side usage
+ * @returns Razorpay Key ID
+ */
+export function getRazorpayKeyId(): string {
+  return KEY_ID;
+}
+
+/**
+ * Generate a receipt ID for Razorpay order
+ */
+export function generateReceiptId(): string {
+  return `receipt_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+}
 
 /**
  * Create a Razorpay order
- * @param amount Amount in lowest currency unit (paise for INR)
- * @param receiptId Receipt ID for the order
- * @param notes Any additional notes for the order
- * @returns Razorpay order object
+ * @param amount Amount in paisa (smallest currency unit)
+ * @param receipt Receipt ID for the order
+ * @param notes Optional notes for the order
  */
-export async function createOrder(amount: number, receiptId: string, notes: Record<string, any> = {}) {
+export async function createRazorpayOrder(amount: number, receipt: string, notes?: Record<string, string>): Promise<any> {
   try {
-    const options = {
-      amount, // Amount in smallest currency unit (paise for INR)
-      currency: "INR",
-      receipt: receiptId,
-      notes
+    const requestOptions = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${Buffer.from(`${KEY_ID}:${KEY_SECRET}`).toString('base64')}`
+      },
+      body: JSON.stringify({
+        amount,
+        currency: 'INR',
+        receipt,
+        notes: notes || {},
+        payment_capture: 1, // Auto capture payment
+      })
     };
 
-    const order = await razorpay.orders.create(options);
-    return order;
+    const response = await fetch('https://api.razorpay.com/v1/orders', requestOptions);
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Razorpay order creation failed: ${JSON.stringify(error)}`);
+    }
+    
+    return await response.json();
   } catch (error) {
     console.error('Error creating Razorpay order:', error);
     throw error;
@@ -36,64 +66,109 @@ export async function createOrder(amount: number, receiptId: string, notes: Reco
  * @param orderId Razorpay order ID
  * @param paymentId Razorpay payment ID
  * @param signature Razorpay signature
- * @returns Boolean indicating whether the signature is valid
  */
 export function verifyPaymentSignature(orderId: string, paymentId: string, signature: string): boolean {
   try {
     const expectedSignature = crypto
-      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
+      .createHmac('sha256', KEY_SECRET)
       .update(`${orderId}|${paymentId}`)
       .digest('hex');
     
     return expectedSignature === signature;
   } catch (error) {
-    console.error('Error verifying payment signature:', error);
+    console.error('Error verifying Razorpay signature:', error);
     return false;
   }
 }
 
 /**
- * Process payment and verify payment signature
- * @param paymentDetails The payment details from Razorpay
- * @returns Boolean indicating whether the payment was successful
+ * Get payment details from Razorpay
+ * @param paymentId Razorpay payment ID
  */
-export async function processPayment(paymentDetails: {
-  orderId: string;
-  paymentId: string;
-  signature: string;
-}) {
-  const { orderId, paymentId, signature } = paymentDetails;
-  
-  // Step 1: Verify the payment signature
-  const isValid = verifyPaymentSignature(orderId, paymentId, signature);
-  
-  if (!isValid) {
-    throw new Error('Invalid payment signature');
-  }
-  
-  // Step 2: Fetch payment details from Razorpay (optional, for additional verification)
+export async function getPaymentDetails(paymentId: string): Promise<any> {
   try {
-    const payment = await razorpay.payments.fetch(paymentId);
+    const requestOptions = {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${Buffer.from(`${KEY_ID}:${KEY_SECRET}`).toString('base64')}`
+      }
+    };
+
+    const response = await fetch(`https://api.razorpay.com/v1/payments/${paymentId}`, requestOptions);
     
-    // Verify payment status and other attributes if needed
-    if (payment.status !== 'captured') {
-      throw new Error(`Payment not captured. Status: ${payment.status}`);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Failed to fetch payment details: ${JSON.stringify(error)}`);
     }
     
-    return {
-      success: true,
-      payment
-    };
+    return await response.json();
   } catch (error) {
-    console.error('Error processing payment:', error);
+    console.error('Error getting payment details:', error);
     throw error;
   }
 }
 
 /**
- * Get Razorpay public key (to be used in the frontend)
- * @returns Razorpay Key ID
+ * Capture a payment (if not auto-captured)
+ * @param paymentId Razorpay payment ID
+ * @param amount Amount to capture in paisa
  */
-export function getRazorpayKeyId(): string {
-  return process.env.RAZORPAY_KEY_ID!;
+export async function capturePayment(paymentId: string, amount: number): Promise<any> {
+  try {
+    const requestOptions = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${Buffer.from(`${KEY_ID}:${KEY_SECRET}`).toString('base64')}`
+      },
+      body: JSON.stringify({ amount, currency: 'INR' })
+    };
+
+    const response = await fetch(`https://api.razorpay.com/v1/payments/${paymentId}/capture`, requestOptions);
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Payment capture failed: ${JSON.stringify(error)}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error capturing payment:', error);
+    throw error;
+  }
+}
+
+/**
+ * Handle a successful Razorpay payment
+ * @param paymentId Razorpay payment ID
+ * @param orderId Razorpay order ID
+ * @param signature Razorpay signature
+ */
+export async function handleSuccessfulPayment(paymentId: string, orderId: string, signature: string): Promise<{success: boolean, payment?: any, error?: string}> {
+  try {
+    // Verify the payment signature
+    const isValid = verifyPaymentSignature(orderId, paymentId, signature);
+    
+    if (!isValid) {
+      return { 
+        success: false, 
+        error: 'Invalid payment signature' 
+      };
+    }
+    
+    // Get payment details
+    const paymentDetails = await getPaymentDetails(paymentId);
+    
+    return {
+      success: true,
+      payment: paymentDetails
+    };
+  } catch (error) {
+    console.error('Error handling successful payment:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error processing payment'
+    };
+  }
 }
