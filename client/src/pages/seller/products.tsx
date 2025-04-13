@@ -204,9 +204,29 @@ export default function SellerProductsPage() {
                     <TableRow key={product.id}>
                       <TableCell>
                         <img 
-                          src={product.image || product.imageUrl} 
+                          src={
+                            (product.image || product.imageUrl) && 
+                            ((product.image || product.imageUrl)?.includes('flixcart.com') || 
+                             (product.image || product.imageUrl)?.includes('flipkart.com'))
+                              ? `/api/image-proxy?url=${encodeURIComponent(product.image || product.imageUrl || '')}&category=${encodeURIComponent(product.category || '')}`
+                              : (product.image || product.imageUrl)
+                          } 
                           alt={product.name} 
-                          className="w-10 h-10 rounded-md object-cover" 
+                          className="w-10 h-10 rounded-md object-cover"
+                          onError={(e) => {
+                            // Use a fallback image on error
+                            const target = e.target as HTMLImageElement;
+                            target.onerror = null; // Prevent infinite loop
+                            
+                            // Use category-specific placeholder or default placeholder
+                            if (product.category) {
+                              // Convert to lowercase for category-specific image
+                              const categoryLower = product.category.toLowerCase();
+                              target.src = `../images/${categoryLower}.svg`;
+                            } else {
+                              target.src = "../images/placeholder.svg";
+                            }
+                          }}
                         />
                       </TableCell>
                       <TableCell className="font-medium">{product.name}</TableCell>
