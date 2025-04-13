@@ -4,6 +4,7 @@ import NotFound from "@/pages/not-found";
 import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
 import ProductPage from "./pages/product-page";
+import CategoryPage from "./pages/category-page";
 import CartPage from "./pages/cart-page";
 import CheckoutPage from "./pages/checkout-page";
 import OrderConfirmationPage from "./pages/order-confirmation-page";
@@ -60,6 +61,15 @@ function App() {
                     </Layout>
                   );
                 }}
+              </Route>
+              
+              {/* Category page */}
+              <Route path="/category/:category">
+                {(params) => (
+                  <Layout>
+                    <CategoryPage />
+                  </Layout>
+                )}
               </Route>
               
               {/* Cart, Checkout, and Order routes - restricted to buyers */}
