@@ -12,6 +12,7 @@ import {
 import { z } from "zod";
 import multer from "multer";
 import { uploadFile } from "./helpers/s3";
+import { handleImageProxy } from "./utils/image-proxy";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes with OTP-based authentication
