@@ -7,7 +7,12 @@ import {
   categories, Category, InsertCategory,
   reviews, Review, InsertReview,
   reviewImages, ReviewImage, InsertReviewImage,
-  reviewHelpful, ReviewHelpful, InsertReviewHelpful
+  reviewHelpful, ReviewHelpful, InsertReviewHelpful,
+  salesHistory, SalesHistory, InsertSalesHistory,
+  demandForecasts, DemandForecast, InsertDemandForecast,
+  priceOptimizations, PriceOptimization, InsertPriceOptimization,
+  inventoryOptimizations, InventoryOptimization, InsertInventoryOptimization,
+  aiGeneratedContent, AIGeneratedContent, InsertAIGeneratedContent
 } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
@@ -83,6 +88,37 @@ export interface IStorage {
   
   // Check if user purchased product (for verified review status)
   hasUserPurchasedProduct(userId: number, productId: number): Promise<boolean>;
+
+  // Smart Inventory & Price Management Features
+  // Sales History
+  getSalesHistory(productId: number, sellerId: number): Promise<SalesHistory[]>;
+  createSalesRecord(salesData: InsertSalesHistory): Promise<SalesHistory>;
+  
+  // Demand Forecasts
+  getDemandForecasts(productId: number, sellerId: number): Promise<DemandForecast[]>;
+  getDemandForecast(id: number): Promise<DemandForecast | undefined>;
+  createDemandForecast(forecastData: InsertDemandForecast): Promise<DemandForecast>;
+  
+  // Price Optimizations
+  getPriceOptimizations(productId: number, sellerId: number): Promise<PriceOptimization[]>;
+  getPriceOptimization(id: number): Promise<PriceOptimization | undefined>;
+  createPriceOptimization(optimizationData: InsertPriceOptimization): Promise<PriceOptimization>;
+  updatePriceOptimizationStatus(id: number, status: string, sellerId: number): Promise<PriceOptimization>;
+  applyPriceOptimization(id: number, sellerId: number): Promise<Product>;
+  
+  // Inventory Optimizations
+  getInventoryOptimizations(productId: number, sellerId: number): Promise<InventoryOptimization[]>;
+  getInventoryOptimization(id: number): Promise<InventoryOptimization | undefined>;
+  createInventoryOptimization(optimizationData: InsertInventoryOptimization): Promise<InventoryOptimization>;
+  updateInventoryOptimizationStatus(id: number, status: string, sellerId: number): Promise<InventoryOptimization>;
+  applyInventoryOptimization(id: number, sellerId: number): Promise<Product>;
+  
+  // AI Generated Content
+  getAIGeneratedContents(productId: number, sellerId: number, contentType?: string): Promise<AIGeneratedContent[]>;
+  getAIGeneratedContent(id: number): Promise<AIGeneratedContent | undefined>;
+  createAIGeneratedContent(contentData: InsertAIGeneratedContent): Promise<AIGeneratedContent>;
+  updateAIGeneratedContentStatus(id: number, status: string, sellerId: number): Promise<AIGeneratedContent>;
+  applyAIGeneratedContent(id: number, sellerId: number): Promise<Product>;
 
   // Session store
   sessionStore: session.SessionStore;
