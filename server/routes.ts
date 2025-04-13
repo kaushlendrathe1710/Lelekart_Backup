@@ -56,7 +56,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       // Get sellers where approved=false AND rejected=false
-      const pendingSellers = await storage.getSellers(false, false);
+      const pendingSellers = await storage.getPendingSellers();
       res.json(pendingSellers);
     } catch (error) {
       console.error("Error fetching pending sellers:", error);
@@ -70,7 +70,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       // Get sellers where rejected=true
-      const rejectedSellers = await storage.getSellers(undefined, true);
+      const rejectedSellers = await storage.getRejectedSellers();
       res.json(rejectedSellers);
     } catch (error) {
       console.error("Error fetching rejected sellers:", error);
@@ -83,7 +83,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
     
     try {
-      const approvedSellers = await storage.getSellers(true);
+      const approvedSellers = await storage.getApprovedSellers();
       res.json(approvedSellers);
     } catch (error) {
       console.error("Error fetching approved sellers:", error);
