@@ -778,10 +778,11 @@ export default function AdminOrders() {
             </DialogHeader>
 
             <Tabs defaultValue="details" className="mt-4">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="details">Order Details</TabsTrigger>
                 <TabsTrigger value="items">Order Items</TabsTrigger>
                 <TabsTrigger value="shipping">Shipping Info</TabsTrigger>
+                <TabsTrigger value="documents">Documents</TabsTrigger>
               </TabsList>
               
               <TabsContent value="details" className="space-y-4 mt-4">
@@ -968,6 +969,265 @@ export default function AdminOrders() {
                     )}
                   </CardContent>
                 </Card>
+              </TabsContent>
+              
+              <TabsContent value="documents" className="mt-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  {/* Invoice Document */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm font-medium">Invoice</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="text-sm text-muted-foreground">
+                        Generate and print a professional invoice for this order for your records.
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button onClick={printInvoice} variant="outline" size="sm">
+                          <Printer className="mr-2 h-4 w-4" />
+                          Print Invoice
+                        </Button>
+                        <Button onClick={downloadInvoice} variant="outline" size="sm">
+                          <Download className="mr-2 h-4 w-4" />
+                          Download PDF
+                        </Button>
+                      </div>
+
+                      {/* Hidden invoice template for printing */}
+                      <div className="hidden">
+                        <div ref={invoiceRef} className="invoice-container p-8">
+                          <div className="invoice-header">
+                            <div>
+                              <h1 className="invoice-title mb-1">INVOICE</h1>
+                              <p className="text-sm text-gray-600">#{viewOrder.id}</p>
+                            </div>
+                            <div className="company-details">
+                              <h2 className="text-xl font-bold mb-1">Lelekart</h2>
+                              <p className="text-sm">
+                                123 Commerce Street<br />
+                                Bengaluru, Karnataka 560001<br />
+                                India<br />
+                                hello@lelekart.com
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-8 my-8">
+                            <div className="customer-details">
+                              <h3 className="section-title">Bill To:</h3>
+                              {viewOrder.shippingDetails ? (
+                                <div className="text-sm">
+                                  {typeof viewOrder.shippingDetails === 'string' ? (
+                                    (() => {
+                                      const details = JSON.parse(viewOrder.shippingDetails);
+                                      return (
+                                        <>
+                                          <p className="font-medium">{details.name}</p>
+                                          <p>{details.address}</p>
+                                          <p>{details.city}, {details.state} {details.zipCode}</p>
+                                          <p>Phone: {details.phone}</p>
+                                          <p>Email: {details.email}</p>
+                                        </>
+                                      );
+                                    })()
+                                  ) : (
+                                    <>
+                                      <p className="font-medium">{viewOrder.shippingDetails.name}</p>
+                                      <p>{viewOrder.shippingDetails.address}</p>
+                                      <p>{viewOrder.shippingDetails.city}, {viewOrder.shippingDetails.state} {viewOrder.shippingDetails.zipCode}</p>
+                                      <p>Phone: {viewOrder.shippingDetails.phone}</p>
+                                      <p>Email: {viewOrder.shippingDetails.email}</p>
+                                    </>
+                                  )}
+                                </div>
+                              ) : (
+                                <p className="text-sm">User #{viewOrder.userId}</p>
+                              )}
+                            </div>
+                            <div className="order-details">
+                              <h3 className="section-title">Invoice Details:</h3>
+                              <table className="w-full text-sm">
+                                <tbody>
+                                  <tr>
+                                    <td className="py-1 font-medium">Invoice Number:</td>
+                                    <td className="py-1 text-right">INV-{viewOrder.id}</td>
+                                  </tr>
+                                  <tr>
+                                    <td className="py-1 font-medium">Order ID:</td>
+                                    <td className="py-1 text-right">{viewOrder.id}</td>
+                                  </tr>
+                                  <tr>
+                                    <td className="py-1 font-medium">Invoice Date:</td>
+                                    <td className="py-1 text-right">{new Date().toLocaleDateString()}</td>
+                                  </tr>
+                                  <tr>
+                                    <td className="py-1 font-medium">Order Date:</td>
+                                    <td className="py-1 text-right">{new Date(viewOrder.date).toLocaleDateString()}</td>
+                                  </tr>
+                                  <tr>
+                                    <td className="py-1 font-medium">Payment Method:</td>
+                                    <td className="py-1 text-right capitalize">{formatPaymentMethod(viewOrder.paymentMethod)}</td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+
+                          <h3 className="section-title mb-4">Order Items:</h3>
+                          <table className="w-full">
+                            <thead>
+                              <tr className="border-b">
+                                <th className="py-2 text-left">Item</th>
+                                <th className="py-2 text-right">Price</th>
+                                <th className="py-2 text-right">Quantity</th>
+                                <th className="py-2 text-right">Amount</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {viewOrder.items && viewOrder.items.map((item) => (
+                                <tr key={item.id} className="border-b">
+                                  <td className="py-3">{item.product.name}</td>
+                                  <td className="py-3 text-right">₹{item.price.toFixed(2)}</td>
+                                  <td className="py-3 text-right">{item.quantity}</td>
+                                  <td className="py-3 text-right">₹{(item.price * item.quantity).toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+
+                          <div className="total-section mt-6">
+                            <table className="w-1/2 ml-auto">
+                              <tbody>
+                                <tr>
+                                  <td className="py-1 font-medium">Subtotal:</td>
+                                  <td className="py-1 text-right">₹{viewOrder.total.toFixed(2)}</td>
+                                </tr>
+                                <tr>
+                                  <td className="py-1 font-medium">Shipping:</td>
+                                  <td className="py-1 text-right">₹0.00</td>
+                                </tr>
+                                <tr className="border-t">
+                                  <td className="py-2 font-bold">Total:</td>
+                                  <td className="py-2 text-right font-bold">₹{viewOrder.total.toFixed(2)}</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+
+                          <div className="footer mt-8 pt-4 border-t text-center text-gray-500">
+                            <p>Thank you for shopping with Lelekart!</p>
+                            <p>For questions or concerns, please contact customer service at support@lelekart.com</p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Shipping Label Document */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm font-medium">Shipping Label</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="text-sm text-muted-foreground">
+                        Generate and print a shipping label for this order for packaging.
+                      </div>
+                      <Button onClick={printShippingLabel} variant="outline" size="sm">
+                        <Printer className="mr-2 h-4 w-4" />
+                        Print Shipping Label
+                      </Button>
+
+                      {/* Hidden shipping label template for printing */}
+                      <div className="hidden">
+                        <div ref={shippingLabelRef} className="shipping-container p-6">
+                          <div className="shipping-header border-b pb-4">
+                            <div>
+                              <h1 className="shipping-title text-xl font-bold">LELEKART SHIPPING</h1>
+                              <p className="text-sm text-gray-600">Order #{viewOrder.id}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-bold">{new Date().toLocaleDateString()}</p>
+                              <p className="text-xs text-gray-600">{viewOrder.status.toUpperCase()}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col md:flex-row gap-6 mt-4">
+                            <div className="address-section flex-1">
+                              <h3 className="shipping-title mb-2">SHIP TO:</h3>
+                              {viewOrder.shippingDetails ? (
+                                <div className="text-md">
+                                  {typeof viewOrder.shippingDetails === 'string' ? (
+                                    (() => {
+                                      const details = JSON.parse(viewOrder.shippingDetails);
+                                      return (
+                                        <div className="font-bold">
+                                          <p className="text-lg">{details.name}</p>
+                                          <p>{details.address}</p>
+                                          <p>{details.city}, {details.state} {details.zipCode}</p>
+                                          <p>Phone: {details.phone}</p>
+                                        </div>
+                                      );
+                                    })()
+                                  ) : (
+                                    <div className="font-bold">
+                                      <p className="text-lg">{viewOrder.shippingDetails.name}</p>
+                                      <p>{viewOrder.shippingDetails.address}</p>
+                                      <p>{viewOrder.shippingDetails.city}, {viewOrder.shippingDetails.state} {viewOrder.shippingDetails.zipCode}</p>
+                                      <p>Phone: {viewOrder.shippingDetails.phone}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <p className="text-md font-bold">User #{viewOrder.userId}</p>
+                              )}
+                            </div>
+
+                            <div className="address-section flex-1">
+                              <h3 className="shipping-title mb-2">FROM:</h3>
+                              <div className="text-md font-bold">
+                                <p className="text-lg">Lelekart Fulfillment Center</p>
+                                <p>123 Commerce Street</p>
+                                <p>Bengaluru, Karnataka 560001</p>
+                                <p>India</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="shipping-barcode mt-4 mb-4 pt-4 border-t border-b pb-4">
+                            <div className="text-center font-mono text-xl tracking-widest font-bold">
+                              *LK{viewOrder.id.toString().padStart(10, '0')}*
+                            </div>
+                          </div>
+
+                          <div className="order-details mt-2">
+                            <h3 className="shipping-title">ORDER SUMMARY:</h3>
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr>
+                                  <th className="py-1 text-left">Item</th>
+                                  <th className="py-1 text-right">Qty</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {viewOrder.items && viewOrder.items.map((item) => (
+                                  <tr key={item.id}>
+                                    <td className="py-1">{item.product.name}</td>
+                                    <td className="py-1 text-right">{item.quantity}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                            <div className="text-xs mt-4">
+                              <p>Shipped via: Express Delivery</p>
+                              <p>Expected Delivery: Within 3-5 business days</p>
+                              <p className="font-bold mt-2">HANDLE WITH CARE</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               </TabsContent>
             </Tabs>
 
