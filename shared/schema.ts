@@ -121,6 +121,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   orders: many(orders),
   reviews: many(reviews),
   reviewHelpfulVotes: many(reviewHelpful),
+  wishlists: many(wishlists),
 }));
 
 export const productsRelations = relations(products, ({ one, many }) => ({
@@ -131,6 +132,7 @@ export const productsRelations = relations(products, ({ one, many }) => ({
   cartItems: many(carts),
   orderItems: many(orderItems),
   reviews: many(reviews),
+  wishlists: many(wishlists),
 }));
 
 export const cartsRelations = relations(carts, ({ one }) => ({
@@ -457,6 +459,35 @@ export type InsertAiAssistantConversation = z.infer<typeof insertAiAssistantConv
 
 export type UserSizePreference = typeof userSizePreferences.$inferSelect;
 export type InsertUserSizePreference = z.infer<typeof insertUserSizePreferenceSchema>;
+
+// ----------- Wishlist Feature -----------
+
+// Wishlist table
+export const wishlists = pgTable("wishlists", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  productId: integer("product_id").notNull().references(() => products.id),
+  dateAdded: timestamp("date_added").notNull().defaultNow(),
+});
+
+export const insertWishlistSchema = createInsertSchema(wishlists).pick({
+  userId: true,
+  productId: true,
+});
+
+export const wishlistsRelations = relations(wishlists, ({ one }) => ({
+  user: one(users, {
+    fields: [wishlists.userId],
+    references: [users.id],
+  }),
+  product: one(products, {
+    fields: [wishlists.productId],
+    references: [products.id],
+  }),
+}));
+
+export type Wishlist = typeof wishlists.$inferSelect;
+export type InsertWishlist = z.infer<typeof insertWishlistSchema>;
 
 // ----------- Smart Inventory & Price Management Features -----------
 

@@ -8,6 +8,7 @@ import {
   reviews, Review, InsertReview,
   reviewImages, ReviewImage, InsertReviewImage,
   reviewHelpful, ReviewHelpful, InsertReviewHelpful,
+  wishlists, Wishlist, InsertWishlist,
   salesHistory, SalesHistory, InsertSalesHistory,
   demandForecasts, DemandForecast, InsertDemandForecast,
   priceOptimizations, PriceOptimization, InsertPriceOptimization,
@@ -88,6 +89,13 @@ export interface IStorage {
   
   // Check if user purchased product (for verified review status)
   hasUserPurchasedProduct(userId: number, productId: number): Promise<boolean>;
+  
+  // Wishlist operations
+  getWishlistItems(userId: number): Promise<{id: number, product: Product, userId: number, dateAdded: Date}[]>;
+  addToWishlist(wishlist: InsertWishlist): Promise<Wishlist>;
+  removeFromWishlist(id: number): Promise<void>;
+  clearWishlist(userId: number): Promise<void>;
+  isProductInWishlist(userId: number, productId: number): Promise<boolean>;
 
   // Smart Inventory & Price Management Features
   // Sales History
@@ -1460,6 +1468,116 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error applying AI generated content:', error);
       throw error;
+    }
+  }
+
+  // Wishlist Operations
+  async getWishlistItems(userId: number): Promise<{id: number, product: Product, userId: number, dateAdded: Date}[]> {
+    try {
+      console.log('Getting wishlist items for user:', userId);
+      
+      const wishlistWithProducts = await db
+        .select({
+          id: wishlists.id,
+          userId: wishlists.userId,
+          dateAdded: wishlists.dateAdded,
+          product: products
+        })
+        .from(wishlists)
+        .where(eq(wishlists.userId, userId))
+        .innerJoin(products, eq(wishlists.productId, products.id));
+      
+      console.log(`Found ${wishlistWithProducts.length} items in wishlist`);
+      
+      return wishlistWithProducts.map(item => ({
+        id: item.id,
+        userId: item.userId,
+        dateAdded: item.dateAdded,
+        product: item.product
+      }));
+    } catch (error) {
+      console.error("Error in getWishlistItems:", error);
+      return [];
+    }
+  }
+
+  async addToWishlist(insertWishlist: InsertWishlist): Promise<Wishlist> {
+    try {
+      console.log('Adding to wishlist:', insertWishlist);
+      
+      // First check if product already exists in wishlist
+      const [existingWishlistItem] = await db
+        .select()
+        .from(wishlists)
+        .where(
+          and(
+            eq(wishlists.userId, insertWishlist.userId),
+            eq(wishlists.productId, insertWishlist.productId)
+          )
+        );
+      
+      // If it already exists, just return it
+      if (existingWishlistItem) {
+        console.log('Product already in wishlist');
+        return existingWishlistItem;
+      }
+      
+      // Otherwise insert new wishlist item
+      const [wishlistItem] = await db
+        .insert(wishlists)
+        .values(insertWishlist)
+        .returning();
+      
+      console.log('Added item to wishlist:', wishlistItem);
+      return wishlistItem;
+    } catch (error) {
+      console.error("Error in addToWishlist:", error);
+      throw error;
+    }
+  }
+
+  async removeFromWishlist(id: number): Promise<void> {
+    try {
+      console.log('Removing item from wishlist:', id);
+      await db.delete(wishlists).where(eq(wishlists.id, id));
+      console.log('Removed item from wishlist');
+    } catch (error) {
+      console.error("Error in removeFromWishlist:", error);
+      throw error;
+    }
+  }
+
+  async clearWishlist(userId: number): Promise<void> {
+    try {
+      console.log('Clearing wishlist for user:', userId);
+      await db.delete(wishlists).where(eq(wishlists.userId, userId));
+      console.log('Cleared wishlist');
+    } catch (error) {
+      console.error("Error in clearWishlist:", error);
+      throw error;
+    }
+  }
+
+  async isProductInWishlist(userId: number, productId: number): Promise<boolean> {
+    try {
+      console.log('Checking if product is in wishlist:', { userId, productId });
+      
+      const [existingWishlistItem] = await db
+        .select()
+        .from(wishlists)
+        .where(
+          and(
+            eq(wishlists.userId, userId),
+            eq(wishlists.productId, productId)
+          )
+        );
+      
+      const result = !!existingWishlistItem;
+      console.log('Product in wishlist:', result);
+      return result;
+    } catch (error) {
+      console.error("Error in isProductInWishlist:", error);
+      return false;
     }
   }
 }
