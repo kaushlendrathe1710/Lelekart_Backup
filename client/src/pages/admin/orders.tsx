@@ -49,6 +49,7 @@ import {
   Filter,
   CheckCircle2,
   Clock,
+  Download,
   FileText,
   Printer,
   Truck,
@@ -66,9 +67,22 @@ type OrderItemWithProduct = {
   product: Product;
 };
 
+// Define shipping details type
+interface ShippingDetails {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  notes?: string;
+}
+
 // Define type for order with items
 type OrderWithItems = Order & {
   items?: OrderItemWithProduct[];
+  shippingDetails: string | ShippingDetails;
 };
 
 export default function AdminOrders() {
