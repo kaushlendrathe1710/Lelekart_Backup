@@ -99,8 +99,7 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
       <div className="relative">
         <Card 
           className="product-card p-3 flex flex-col items-center rounded transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1"
-          onClick={(e) => {
-            e.preventDefault();
+          onClick={() => {
             console.log(`Navigating to product page: /product/${product.id}`);
             setLocation(`/product/${product.id}`, { replace: false });
           }}
@@ -160,8 +159,7 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
     <div className="relative">
       <Card 
         className="product-card flex flex-col items-center p-3 transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1"
-        onClick={(e) => {
-          e.preventDefault();
+        onClick={() => {
           console.log(`Navigating to product page: /product/${product.id}`);
           setLocation(`/product/${product.id}`, { replace: false });
         }}
