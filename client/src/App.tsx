@@ -4,6 +4,7 @@ import NotFound from "@/pages/not-found";
 import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
 import ProductPage from "./pages/product-page";
+import ProductViewPage from "./pages/product-view"; // New standalone product view
 import CategoryPage from "./pages/category-page";
 import CartPage from "./pages/cart-page";
 import CheckoutPage from "./pages/checkout-page";
@@ -52,6 +53,16 @@ function App() {
                   </Layout>
                 )}
               </Route>
+              {/* Alternative standalone product view page - doesn't use React Router params */}
+              <Route path="/product-view/:id">
+                {() => (
+                  <Layout>
+                    <ProductViewPage />
+                  </Layout>
+                )}
+              </Route>
+              
+              {/* Original product page - kept for compatibility */}
               <Route path="/product/:id">
                 {(params) => {
                   console.log("App router matched product page with params:", params);
@@ -67,13 +78,10 @@ function App() {
                   
                   // Use unique key that includes route path to force complete remounting
                   const componentKey = `product-${productId}-${Date.now()}`;
-                  return (
-                    <Layout>
-                      <div className="product-page-container" key={componentKey}>
-                        <ProductPage />
-                      </div>
-                    </Layout>
-                  );
+                  
+                  // Redirect to the new standalone product view
+                  window.location.href = `/product-view/${productId}`;
+                  return null;
                 }}
               </Route>
               
