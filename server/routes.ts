@@ -62,6 +62,9 @@ import {
 } from "./utils/ml-inventory-manager";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Set up authentication middleware
+  setupAuth(app);
+  
   // Seller approval API endpoints
   app.get("/api/admin/sellers", isAdmin, async (req: Request, res: Response) => {
     try {
@@ -244,9 +247,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ----- Existing routes below -----
-  // Setup authentication routes with OTP-based authentication
-  setupAuth(app);
-
   // Search endpoint
   app.get("/api/search", async (req, res) => {
     try {
