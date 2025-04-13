@@ -60,7 +60,7 @@ const productSchema = z.object({
   }),
   sku: z.string().min(2, "SKU is required"),
   category: z.string().min(1, "Please select a category"),
-  subcategory: z.string().optional(),
+  // subcategory field removed
   brand: z.string().min(2, "Brand name is required"),
   color: z.string().optional(),
   size: z.string().optional(),
@@ -452,36 +452,7 @@ export default function AddProductPage() {
                             )}
                           />
                           
-                          <FormField
-                            control={form.control}
-                            name="subcategory"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>
-                                  Subcategory
-                                </FormLabel>
-                                <Select 
-                                  onValueChange={field.onChange} 
-                                  defaultValue={field.value}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select a subcategory" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    <SelectItem value="Mobiles">Mobiles</SelectItem>
-                                    <SelectItem value="Laptops">Laptops</SelectItem>
-                                    <SelectItem value="Audio">Audio</SelectItem>
-                                    <SelectItem value="Cameras">Cameras</SelectItem>
-                                    <SelectItem value="Accessories">Accessories</SelectItem>
-                                    <SelectItem value="Wearables">Wearables</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                          {/* Subcategory field removed as requested */}
                         </div>
                         
                         <FormField

@@ -57,35 +57,9 @@ export function ShopByCategory() {
                         const target = e.target as HTMLImageElement;
                         target.onerror = null; // Prevent infinite loop
                         
-                        // Use appropriate category placeholder
-                        switch(category.name) {
-                          case 'Electronics':
-                            target.src = "/images/categories/electronics.svg";
-                            break;
-                          case 'Fashion':
-                            target.src = "/images/categories/fashion.svg";
-                            break;
-                          case 'Home':
-                            target.src = "/images/categories/home.svg";
-                            break;
-                          case 'Appliances':
-                            target.src = "/images/categories/appliances.svg";
-                            break;
-                          case 'Mobiles':
-                            target.src = "/images/categories/mobiles.svg";
-                            break;
-                          case 'Beauty':
-                            target.src = "/images/categories/beauty.svg";
-                            break;
-                          case 'Toys':
-                            target.src = "/images/categories/toys.svg";
-                            break;
-                          case 'Grocery':
-                            target.src = "/images/categories/grocery.svg";
-                            break;
-                          default:
-                            target.src = "/images/placeholder.svg";
-                        }
+                        // Use the simplified category-based placeholder
+                        const categoryLower = category.name.toLowerCase();
+                        target.src = `/images/${categoryLower}.svg`;
                       }}
                     />
                   ) : (
