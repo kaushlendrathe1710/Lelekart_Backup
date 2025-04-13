@@ -155,27 +155,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get products filtered by approval status
       console.log("Fetching products for approval...");
       
-      // Using raw SQL queries to avoid column issues
-      const pendingProducts = await db.$executeRaw`
+      // Using the pool directly for raw SQL queries to avoid column issues
+      const pendingResult = await pool.query(`
         SELECT p.*, u.username as seller_username, u.name as seller_name 
         FROM products p
         LEFT JOIN users u ON p.seller_id = u.id
         WHERE p.approval_status = 'pending' OR p.approval_status IS NULL
-      `;
+      `);
       
-      const approvedProducts = await db.$executeRaw`
+      const approvedResult = await pool.query(`
         SELECT p.*, u.username as seller_username, u.name as seller_name 
         FROM products p
         LEFT JOIN users u ON p.seller_id = u.id
         WHERE p.approval_status = 'approved'
-      `;
+      `);
       
-      const rejectedProducts = await db.$executeRaw`
+      const rejectedResult = await pool.query(`
         SELECT p.*, u.username as seller_username, u.name as seller_name 
         FROM products p
         LEFT JOIN users u ON p.seller_id = u.id
         WHERE p.approval_status = 'rejected'
-      `;
+      `);
+      
+      const pendingProducts = pendingResult.rows;
+      const approvedProducts = approvedResult.rows;
+      const rejectedProducts = rejectedResult.rows;
       
       // Format the results to match expected structure
       const formatProducts = (products: any[]) => {
@@ -215,9 +219,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Found ${pendingProducts.length} pending, ${approvedProducts.length} approved, and ${rejectedProducts.length} rejected products`);
       
       res.json({
-        pending: formatProducts(pendingProducts as any[]),
-        approved: formatProducts(approvedProducts as any[]),
-        rejected: formatProducts(rejectedProducts as any[])
+        pending: formatProducts(pendingProducts),
+        approved: formatProducts(approvedProducts),
+        rejected: formatProducts(rejectedProducts)
       });
     } catch (error) {
       console.error("Error fetching products:", error);
@@ -233,29 +237,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Update the product status to approved using raw SQL
-      await db.$executeRaw`
+      await pool.query(`
         UPDATE products
         SET approved = true,
             approval_status = 'approved',
             approved_at = NOW(),
-            approved_by = ${req.user?.id}
-        WHERE id = ${productId}
-      `;
+            approved_by = $1
+        WHERE id = $2
+      `, [req.user?.id, productId]);
 
       // Fetch the updated product with seller info using raw SQL
-      const result = await db.$executeRaw`
+      const result = await pool.query(`
         SELECT p.*, u.username as seller_username, u.name as seller_name 
         FROM products p
         LEFT JOIN users u ON p.seller_id = u.id
-        WHERE p.id = ${productId}
-      `;
+        WHERE p.id = $1
+      `, [productId]);
 
-      if (!result || !Array.isArray(result) || result.length === 0) {
+      if (!result.rows || result.rows.length === 0) {
         return res.status(404).json({ error: "Product not found after update" });
       }
 
       // Format the result to match the expected structure
-      const updatedProduct = result[0];
+      const updatedProduct = result.rows[0];
       const formattedProduct = {
         id: updatedProduct.id,
         name: updatedProduct.name,
@@ -302,30 +306,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Update the product status to rejected using raw SQL
-      await db.$executeRaw`
+      await pool.query(`
         UPDATE products
         SET approved = false,
             approval_status = 'rejected',
             rejected_at = NOW(),
-            approved_by = ${req.user?.id},
-            rejection_reason = ${reason || "Does not meet store requirements"}
-        WHERE id = ${productId}
-      `;
+            approved_by = $1,
+            rejection_reason = $2
+        WHERE id = $3
+      `, [req.user?.id, reason || "Does not meet store requirements", productId]);
 
       // Fetch the updated product with seller info using raw SQL
-      const result = await db.$executeRaw`
+      const result = await pool.query(`
         SELECT p.*, u.username as seller_username, u.name as seller_name 
         FROM products p
         LEFT JOIN users u ON p.seller_id = u.id
-        WHERE p.id = ${productId}
-      `;
+        WHERE p.id = $1
+      `, [productId]);
 
-      if (!result || !Array.isArray(result) || result.length === 0) {
+      if (!result.rows || result.rows.length === 0) {
         return res.status(404).json({ error: "Product not found after update" });
       }
 
       // Format the result to match the expected structure
-      const updatedProduct = result[0];
+      const updatedProduct = result.rows[0];
       const formattedProduct = {
         id: updatedProduct.id,
         name: updatedProduct.name,
