@@ -41,8 +41,8 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <CartProvider>
-          <AIAssistantProvider>
-            <TooltipProvider>
+          <TooltipProvider>
+            <AIAssistantProvider>
               <div className="app">
                 {/* AI Assistant components */}
                 <AIAssistantButton />
@@ -395,10 +395,10 @@ function App() {
                 )}
               </Route>
             </Switch>
-            <Toaster />
-          </div>
-            </TooltipProvider>
-          </AIAssistantProvider>
+              </div>
+              <Toaster />
+            </AIAssistantProvider>
+          </TooltipProvider>
         </CartProvider>
       </AuthProvider>
     </QueryClientProvider>
