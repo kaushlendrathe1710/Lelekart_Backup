@@ -246,7 +246,7 @@ export default function ProductDetailsPage() {
       images.push(imageUrl);
     }
     
-    // Additional images from the images array
+    // Additional images from the images array - without filtering duplicates
     try {
       if (product.images) {
         const additionalImages = typeof product.images === 'string' 
@@ -262,10 +262,9 @@ export default function ProductDetailsPage() {
               ? `/api/image-proxy?url=${encodeURIComponent(img)}&category=${encodeURIComponent(product.category || 'general')}`
               : img;
             
-            // Avoid duplicates
-            if (!images.includes(imageUrl)) {
-              images.push(imageUrl);
-            }
+            // Include all images, even if they appear to be duplicates
+            // This ensures we show exactly the number of images that exist in the database
+            images.push(imageUrl);
           });
         }
       }
