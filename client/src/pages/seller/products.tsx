@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "wouter";
 import { SellerDashboardLayout } from "@/components/layout/seller-dashboard-layout";
+import { Pagination } from "@/components/ui/pagination";
 import { 
   Layers, 
   Search, 
@@ -63,11 +64,16 @@ export default function SellerProductsPage() {
   // Use context user if available, otherwise use API user
   const user = authContext?.user || apiUser;
   
-  // Fetch products for the logged-in seller
-  const { data: fetchedProducts = [], isLoading } = useQuery({
-    queryKey: ['/api/products'],
-    queryFn: async () => {
-      const res = await fetch('/api/products?sellerId=' + (user?.id || '')); 
+  // State for pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(12);
+
+  // Fetch products for the logged-in seller with pagination
+  const { data, isLoading } = useQuery({
+    queryKey: ['/api/products', { sellerId: user?.id, page: currentPage, limit: itemsPerPage }],
+    queryFn: async ({ queryKey }) => {
+      const [_, params] = queryKey as [string, { sellerId?: number, page: number, limit: number }];
+      const res = await fetch(`/api/products?sellerId=${params.sellerId || ''}&page=${params.page}&limit=${params.limit}`); 
       if (!res.ok) {
         throw new Error('Failed to fetch products');
       }
@@ -75,6 +81,10 @@ export default function SellerProductsPage() {
     },
     enabled: !!user?.id,
   });
+  
+  // Extract products and pagination from response
+  const fetchedProducts = data?.products || [];
+  const pagination = data?.pagination || { currentPage: 1, totalPages: 1, total: 0 };
   
   // Delete product mutation
   const deleteMutation = useMutation({
@@ -312,16 +322,30 @@ export default function SellerProductsPage() {
           </CardContent>
           <CardFooter className="flex items-center justify-between border-t pt-6">
             <div className="text-sm text-muted-foreground">
-              Showing <strong>1-{products.length}</strong> of <strong>{products.length}</strong> products
+              Showing <strong>{((pagination.currentPage - 1) * itemsPerPage) + 1}-{Math.min(pagination.currentPage * itemsPerPage, pagination.total)}</strong> of <strong>{pagination.total}</strong> products
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" disabled>
-                Previous
-              </Button>
-              <Button variant="outline" size="sm" disabled>
-                Next
-              </Button>
-            </div>
+            
+            {/* Only show pagination if there are multiple pages */}
+            {pagination && pagination.totalPages > 1 ? (
+              <Pagination 
+                currentPage={pagination.currentPage} 
+                totalPages={pagination.totalPages} 
+                onPageChange={(page) => {
+                  setCurrentPage(page);
+                  // Scroll to top of page when changing pages
+                  window.scrollTo(0, 0);
+                }} 
+              />
+            ) : (
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" disabled>
+                  Previous
+                </Button>
+                <Button variant="outline" size="sm" disabled>
+                  Next
+                </Button>
+              </div>
+            )}
           </CardFooter>
         </Card>
       </div>

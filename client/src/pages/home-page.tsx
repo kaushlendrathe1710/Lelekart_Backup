@@ -9,6 +9,8 @@ import { HeroSection } from "@/components/ui/hero-section";
 import { ShopByCategory } from "@/components/ui/shop-by-category";
 import { Loader2 } from "lucide-react";
 import TestNavigation from "@/components/test-navigation";
+import { Pagination } from "@/components/ui/pagination";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function HomePage() {
   const [location] = useLocation();
@@ -21,17 +23,36 @@ export default function HomePage() {
     setCategory(categoryParam);
   }, [location]);
 
-  // Fetch products
-  const { data: products, isLoading } = useQuery<Product[]>({
-    queryKey: ["/api/products", { category }],
+  // State for pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
+  
+  // Extract page from URL if present
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.split('?')[1]);
+    const pageParam = searchParams.get('page');
+    if (pageParam) {
+      setCurrentPage(parseInt(pageParam));
+    } else {
+      setCurrentPage(1); // Reset to page 1 when category changes
+    }
+  }, [location]);
+  
+  // Fetch products with pagination
+  const { data, isLoading } = useQuery({
+    queryKey: ["/api/products", { category, page: currentPage, limit: itemsPerPage }],
     queryFn: async ({ queryKey }) => {
-      const [_, params] = queryKey as [string, { category: string | null }];
-      const url = `/api/products${params.category ? `?category=${params.category}` : ''}`;
+      const [_, params] = queryKey as [string, { category: string | null, page: number, limit: number }];
+      const url = `/api/products?page=${params.page}&limit=${params.limit}${params.category ? `&category=${params.category}` : ''}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error('Failed to fetch products');
       return res.json();
     }
   });
+  
+  // Extract products and pagination info
+  const products = data?.products || [];
+  const pagination = data?.pagination || { currentPage: 1, totalPages: 1, total: 0 };
 
   // Fetch featured hero products
   const { data: heroProducts, isLoading: isLoadingHero } = useQuery({
@@ -58,15 +79,18 @@ export default function HomePage() {
   
   // Function to get products by category
   const getProductsByCategory = (categoryName: string) => {
-    return products?.filter(p => 
-      p.category?.toLowerCase() === categoryName.toLowerCase()
-    ).slice(0, 6) || [];
+    if (Array.isArray(products)) {
+      return products.filter(p => 
+        p.category?.toLowerCase() === categoryName.toLowerCase()
+      ).slice(0, 6);
+    }
+    return [];
   };
   
   // Featured products (display either filtered or all featured)
   const featuredProducts = category 
-    ? products?.slice(0, 5) || [] 
-    : products?.filter(p => p.id <= 5).slice(0, 5) || [];
+    ? (Array.isArray(products) ? products.slice(0, 5) : [])
+    : (Array.isArray(products) ? products.filter(p => p.id <= 5).slice(0, 5) : []);
     
   // Generate products list for each category
   const categorizedProducts = allCategories.map(cat => ({
@@ -202,22 +226,125 @@ export default function HomePage() {
         </div>
       ))}
       
+      {/* Add "All Products" tab with pagination - show only on homepage without category filter */}
+      {!category && (
+        <div className="container mx-auto px-4 py-6">
+          <Tabs defaultValue="all" className="w-full">
+            <TabsList className="mb-4">
+              <TabsTrigger value="all">All Products</TabsTrigger>
+              <TabsTrigger value="new">New Arrivals</TabsTrigger>
+              <TabsTrigger value="popular">Popular</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="all" className="bg-white p-4 rounded shadow-sm">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-medium">All Products</h2>
+              </div>
+              
+              {isLoading ? (
+                <CategoryProductsLoading />
+              ) : products.length > 0 ? (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                    {products.map(product => (
+                      <ProductCard key={product.id} product={product} />
+                    ))}
+                  </div>
+                  
+                  {/* Pagination component */}
+                  {pagination && pagination.totalPages > 1 && (
+                    <div className="mt-6 flex justify-center">
+                      <Pagination 
+                        currentPage={pagination.currentPage} 
+                        totalPages={pagination.totalPages} 
+                        onPageChange={(page) => {
+                          // Update URL to include page number
+                          const params = new URLSearchParams(location.split('?')[1] || '');
+                          params.set('page', page.toString());
+                          
+                          // Build new URL with page
+                          const newUrl = `/?${params.toString()}`;
+                          window.location.href = newUrl;
+                          
+                          // Scroll to top when page changes
+                          window.scrollTo(0, 0);
+                        }} 
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Results count */}
+                  <div className="text-sm text-gray-500 text-center mt-2">
+                    Showing {((pagination.currentPage - 1) * itemsPerPage) + 1} to {Math.min(pagination.currentPage * itemsPerPage, pagination.total)} of {pagination.total} products
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-8">
+                  <p>No products available yet.</p>
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="new" className="bg-white p-4 rounded shadow-sm">
+              <div className="text-center py-8">
+                <p>New arrivals coming soon!</p>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="popular" className="bg-white p-4 rounded shadow-sm">
+              <div className="text-center py-8">
+                <p>Popular products feature coming soon!</p>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      )}
+      
       {/* If filtering by category, show all matching products */}
-      {category && products && products.length > 0 && (
+      {category && products.length > 0 && (
         <div className="container mx-auto px-4 py-6">
           <h2 className="text-2xl font-medium mb-4 capitalize">{category} Products</h2>
           <div className="bg-white p-4 rounded shadow-sm">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
-              {products.map(product => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
+                {products.map(product => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+              
+              {/* Pagination for category pages */}
+              {pagination && pagination.totalPages > 1 && (
+                <div className="mt-6 flex justify-center">
+                  <Pagination 
+                    currentPage={pagination.currentPage} 
+                    totalPages={pagination.totalPages} 
+                    onPageChange={(page) => {
+                      // Update URL to include page number
+                      const params = new URLSearchParams(location.split('?')[1] || '');
+                      params.set('page', page.toString());
+                      
+                      // Build new URL with category and page
+                      const newUrl = `/?category=${category}&${params.toString()}`;
+                      window.location.href = newUrl;
+                      
+                      // Scroll to top when page changes
+                      window.scrollTo(0, 0);
+                    }} 
+                  />
+                </div>
+              )}
+              
+              {/* Results count */}
+              <div className="text-sm text-gray-500 text-center mt-2">
+                Showing {((pagination.currentPage - 1) * itemsPerPage) + 1} to {Math.min(pagination.currentPage * itemsPerPage, pagination.total)} of {pagination.total} products
+              </div>
+            </>
           </div>
         </div>
       )}
       
       {/* No products found message */}
-      {category && (!products || products.length === 0) && !isLoading && (
+      {category && products.length === 0 && !isLoading && (
         <div className="container mx-auto px-4 py-6 text-center">
           <div className="bg-white p-8 rounded shadow-sm">
             <h2 className="text-2xl font-medium mb-2">No Products Found</h2>
