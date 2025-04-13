@@ -702,8 +702,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Use actual product images with fallback to category placeholders if needed
           if (product.imageUrl) {
             imageUrl = product.imageUrl;
-          } else if (product.image_url) {
-            imageUrl = product.image_url;
           } else if (product.images && typeof product.images === 'string') {
             try {
               const parsedImages = JSON.parse(product.images);

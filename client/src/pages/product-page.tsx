@@ -149,7 +149,8 @@ export default function ProductPage() {
         } 
         // If it's already an array, use it directly
         else if (Array.isArray(product.images)) {
-          product.images.forEach((img: any) => {
+          // Use a type assertion to tell TypeScript that this is an array of strings
+          (product.images as string[]).forEach((img: string) => {
             if (typeof img === 'string' && img.trim() !== '') {
               images.push(img.trim());
             }

@@ -14,6 +14,34 @@ const s3 = new AWS.S3({
   region: AWS_REGION,
 });
 
+// Set up CORS for the bucket
+async function configureBucketCORS() {
+  try {
+    const corsParams = {
+      Bucket: AWS_BUCKET_NAME,
+      CORSConfiguration: {
+        CORSRules: [
+          {
+            AllowedHeaders: ['*'],
+            AllowedMethods: ['GET', 'PUT', 'POST', 'DELETE', 'HEAD'],
+            AllowedOrigins: ['*'], // For development, allow all origins
+            ExposeHeaders: ['ETag'],
+            MaxAgeSeconds: 3000
+          }
+        ]
+      }
+    };
+    
+    await s3.putBucketCors(corsParams).promise();
+    console.log('S3 bucket CORS configured successfully');
+  } catch (error) {
+    console.error('Error configuring S3 bucket CORS:', error);
+  }
+}
+
+// Configure CORS on startup
+configureBucketCORS();
+
 // Upload file to S3
 export async function uploadFile(
   fileBuffer: Buffer,
