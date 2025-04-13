@@ -381,17 +381,31 @@ export default function SellerOrdersPage() {
           <title>Shipping Label #${selectedOrder?.id}</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-            .shipping-label { width: 400px; margin: 0 auto; border: 2px solid #000; padding: 15px; }
-            .header { text-align: center; margin-bottom: 15px; border-bottom: 1px solid #000; padding-bottom: 10px; }
-            .company-logo { font-size: 24px; font-weight: bold; margin-bottom: 5px; }
-            .addresses { display: flex; justify-content: space-between; margin-bottom: 15px; }
-            .address-section { width: 48%; }
-            .label { font-weight: bold; font-size: 12px; }
-            .order-id { font-size: 16px; font-weight: bold; text-align: center; margin: 15px 0; }
-            .barcode { text-align: center; margin: 15px 0; }
-            .barcode img { max-width: 100%; height: auto; }
-            .instructions { font-size: 12px; margin-top: 15px; }
-            @media print { @page { size: 4in 6in; margin: 0; } }
+            .shipping-container { width: 100%; max-width: 800px; margin: 0 auto; }
+            .meesho-header { background: #f43397; color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; }
+            .meesho-logo { font-size: 24px; font-weight: bold; letter-spacing: 1px; }
+            .label-type { background: #333; color: white; padding: 3px 8px; border-radius: 4px; font-size: 12px; }
+            .order-box { border: 2px solid #000; margin: 0; padding: 0; }
+            .order-header { display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #ddd; }
+            .order-id { font-size: 18px; font-weight: bold; }
+            .order-date { font-size: 14px; color: #666; }
+            .shipping-info { display: flex; padding: 0; }
+            .address-box { flex: 1; padding: 15px; }
+            .address-box.to { border-right: 1px dashed #ccc; }
+            .address-title { background: #f0f0f0; padding: 5px 10px; margin-bottom: 10px; font-weight: bold; border-left: 4px solid #f43397; }
+            .address-content { font-size: 14px; line-height: 1.5; }
+            .customer-name { font-size: 16px; font-weight: bold; margin-bottom: 5px; }
+            .barcode-section { text-align: center; padding: 15px; border-top: 1px solid #ddd; }
+            .barcode-text { font-family: 'Courier New', monospace; font-size: 18px; letter-spacing: 2px; margin: 10px 0; font-weight: bold; }
+            .product-details { padding: 15px; border-top: 1px solid #ddd; }
+            .product-title { font-weight: bold; margin-bottom: 10px; }
+            .product-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+            .product-table th { background: #f0f0f0; text-align: left; padding: 8px; }
+            .product-table td { padding: 8px; border-bottom: 1px solid #eee; }
+            .delivery-info { background: #f8f8f8; padding: 10px 15px; margin-top: 10px; border-top: 1px solid #ddd; font-size: 13px; }
+            .cod-badge { display: inline-block; background: #ffeb3b; color: #000; padding: 2px 8px; border-radius: 3px; font-weight: bold; }
+            .footer { text-align: center; font-size: 12px; color: #999; padding: 10px; border-top: 1px solid #eee; }
+            @media print { @page { margin: 0; } body { margin: 0.5cm; } }
           </style>
         </head>
         <body>
