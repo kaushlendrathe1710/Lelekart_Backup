@@ -18,13 +18,22 @@ export default function ProductPage() {
   const componentMounted = useRef(true);
   const cachedImages = useRef<Record<number, string[]>>({});
   
+  // First try to get the product ID from the URL path directly
+  const pathParts = window.location.pathname.split('/');
+  const pathProductId = pathParts[pathParts.length - 1];
+  
+  // As a fallback, try with the router
   const [matched, params] = useRoute("/product/:id");
   console.log("Product route params:", matched, params);
   
   // Get productId from URL, with fallback to search params if route doesn't match
   let productId: number | null = null;
   
-  if (params?.id) {
+  // Use the path ID first if it's a valid number
+  if (/^\d+$/.test(pathProductId)) {
+    productId = parseInt(pathProductId);
+    console.log("Using path segment for product ID:", productId);
+  } else if (params?.id) {
     productId = parseInt(params.id);
     console.log("Using route param for product ID:", productId);
   } else {

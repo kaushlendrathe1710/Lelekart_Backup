@@ -55,9 +55,23 @@ function App() {
               <Route path="/product/:id">
                 {(params) => {
                   console.log("App router matched product page with params:", params);
+                  const productId = params?.id;
+                  
+                  if (!productId) {
+                    return (
+                      <Layout>
+                        <NotFound />
+                      </Layout>
+                    );
+                  }
+                  
+                  // Use unique key that includes route path to force complete remounting
+                  const componentKey = `product-${productId}-${Date.now()}`;
                   return (
                     <Layout>
-                      <ProductPage key={params.id} />
+                      <div className="product-page-container" key={componentKey}>
+                        <ProductPage />
+                      </div>
                     </Layout>
                   );
                 }}
@@ -65,11 +79,27 @@ function App() {
               
               {/* Category page */}
               <Route path="/category/:category">
-                {(params) => (
-                  <Layout>
-                    <CategoryPage key={params.category} />
-                  </Layout>
-                )}
+                {(params) => {
+                  const category = params?.category;
+                  
+                  if (!category) {
+                    return (
+                      <Layout>
+                        <NotFound />
+                      </Layout>
+                    );
+                  }
+                  
+                  // Use unique key that includes route path to force complete remounting
+                  const componentKey = `category-${category}-${Date.now()}`;
+                  return (
+                    <Layout>
+                      <div className="category-page-container" key={componentKey}>
+                        <CategoryPage />
+                      </div>
+                    </Layout>
+                  );
+                }}
               </Route>
               
               {/* Cart, Checkout, and Order routes - restricted to buyers */}
