@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, foreignKey, doublePrecision } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, foreignKey, doublePrecision, jsonb } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -457,3 +457,224 @@ export type InsertAiAssistantConversation = z.infer<typeof insertAiAssistantConv
 
 export type UserSizePreference = typeof userSizePreferences.$inferSelect;
 export type InsertUserSizePreference = z.infer<typeof insertUserSizePreferenceSchema>;
+
+// ----------- Smart Inventory & Price Management Features -----------
+
+// Sales Data table - for historical sales data used in demand forecasting
+export const salesHistory = pgTable("sales_history", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").notNull().references(() => products.id),
+  sellerId: integer("seller_id").notNull().references(() => users.id),
+  date: timestamp("date").notNull(),
+  quantity: integer("quantity").notNull(),
+  revenue: integer("revenue").notNull(), // in cents
+  costPrice: integer("cost_price").notNull(), // in cents
+  profitMargin: doublePrecision("profit_margin"), // percentage
+  channel: text("channel"), // e.g., "marketplace", "direct", etc.
+  promotionApplied: boolean("promotion_applied").default(false),
+  seasonality: text("seasonality"), // e.g., "holiday", "summer", "back-to-school"
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertSalesHistorySchema = createInsertSchema(salesHistory).pick({
+  productId: true,
+  sellerId: true,
+  date: true,
+  quantity: true,
+  revenue: true,
+  costPrice: true,
+  profitMargin: true,
+  channel: true,
+  promotionApplied: true,
+  seasonality: true,
+});
+
+// Demand Forecasts table - stores ML-generated demand predictions
+export const demandForecasts = pgTable("demand_forecasts", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").notNull().references(() => products.id),
+  sellerId: integer("seller_id").notNull().references(() => users.id),
+  forecastDate: timestamp("forecast_date").notNull(),
+  predictedDemand: integer("predicted_demand").notNull(),
+  confidenceScore: doublePrecision("confidence_score").notNull(), // 0.0 to 1.0
+  forecastPeriod: text("forecast_period").notNull(), // "daily", "weekly", "monthly"
+  factorsConsidered: jsonb("factors_considered"), // JSON with factors that influenced the prediction
+  actualDemand: integer("actual_demand"), // Filled in later for model evaluation
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertDemandForecastSchema = createInsertSchema(demandForecasts).pick({
+  productId: true,
+  sellerId: true,
+  forecastDate: true,
+  predictedDemand: true,
+  confidenceScore: true,
+  forecastPeriod: true,
+  factorsConsidered: true,
+  actualDemand: true,
+});
+
+// Price Optimization table - stores ML-generated pricing recommendations
+export const priceOptimizations = pgTable("price_optimizations", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").notNull().references(() => products.id),
+  sellerId: integer("seller_id").notNull().references(() => users.id),
+  currentPrice: integer("current_price").notNull(), // in cents
+  suggestedPrice: integer("suggested_price").notNull(), // in cents
+  projectedRevenue: integer("projected_revenue"), // in cents
+  projectedSales: integer("projected_sales"), 
+  confidenceScore: doublePrecision("confidence_score").notNull(), // 0.0 to 1.0
+  reasoningFactors: jsonb("reasoning_factors"), // JSON with factors that influenced the recommendation
+  status: text("status").notNull().default("pending"), // "pending", "applied", "rejected"
+  appliedAt: timestamp("applied_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertPriceOptimizationSchema = createInsertSchema(priceOptimizations).pick({
+  productId: true,
+  sellerId: true,
+  currentPrice: true,
+  suggestedPrice: true,
+  projectedRevenue: true,
+  projectedSales: true,
+  confidenceScore: true,
+  reasoningFactors: true,
+  status: true,
+  appliedAt: true,
+});
+
+// Inventory Optimization table - stores ML-generated inventory recommendations
+export const inventoryOptimizations = pgTable("inventory_optimizations", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").notNull().references(() => products.id),
+  sellerId: integer("seller_id").notNull().references(() => users.id),
+  currentStock: integer("current_stock").notNull(),
+  recommendedStock: integer("recommended_stock").notNull(),
+  reorderPoint: integer("reorder_point"), 
+  maxStock: integer("max_stock"),
+  safetyStock: integer("safety_stock"),
+  leadTime: integer("lead_time"), // in days
+  reason: text("reason"), // Explanation for the recommendation
+  priorityLevel: text("priority_level").notNull().default("medium"), // "low", "medium", "high", "critical"
+  status: text("status").notNull().default("pending"), // "pending", "applied", "rejected"
+  appliedAt: timestamp("applied_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertInventoryOptimizationSchema = createInsertSchema(inventoryOptimizations).pick({
+  productId: true,
+  sellerId: true,
+  currentStock: true,
+  recommendedStock: true,
+  reorderPoint: true,
+  maxStock: true,
+  safetyStock: true,
+  leadTime: true,
+  reason: true,
+  priorityLevel: true,
+  status: true,
+  appliedAt: true,
+});
+
+// AI Content Generation - stores ML-generated product content
+export const aiGeneratedContent = pgTable("ai_generated_content", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").notNull().references(() => products.id),
+  sellerId: integer("seller_id").notNull().references(() => users.id),
+  contentType: text("content_type").notNull(), // "description", "features", "specifications", "image"
+  originalData: text("original_data"), // The input data provided for generation
+  generatedContent: text("generated_content").notNull(), // The AI-generated content
+  imageUrl: text("image_url"), // URL for generated images, if applicable
+  promptUsed: text("prompt_used"), // The prompt used to generate the content
+  status: text("status").notNull().default("pending"), // "pending", "applied", "rejected"
+  appliedAt: timestamp("applied_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertAiGeneratedContentSchema = createInsertSchema(aiGeneratedContent).pick({
+  productId: true,
+  sellerId: true,
+  contentType: true,
+  originalData: true,
+  generatedContent: true,
+  imageUrl: true,
+  promptUsed: true,
+  status: true,
+  appliedAt: true,
+});
+
+// Relations for Smart Inventory & Price Management tables
+export const salesHistoryRelations = relations(salesHistory, ({ one }) => ({
+  product: one(products, {
+    fields: [salesHistory.productId],
+    references: [products.id],
+  }),
+  seller: one(users, {
+    fields: [salesHistory.sellerId],
+    references: [users.id],
+  }),
+}));
+
+export const demandForecastsRelations = relations(demandForecasts, ({ one }) => ({
+  product: one(products, {
+    fields: [demandForecasts.productId],
+    references: [products.id],
+  }),
+  seller: one(users, {
+    fields: [demandForecasts.sellerId],
+    references: [users.id],
+  }),
+}));
+
+export const priceOptimizationsRelations = relations(priceOptimizations, ({ one }) => ({
+  product: one(products, {
+    fields: [priceOptimizations.productId],
+    references: [products.id],
+  }),
+  seller: one(users, {
+    fields: [priceOptimizations.sellerId],
+    references: [users.id],
+  }),
+}));
+
+export const inventoryOptimizationsRelations = relations(inventoryOptimizations, ({ one }) => ({
+  product: one(products, {
+    fields: [inventoryOptimizations.productId],
+    references: [products.id],
+  }),
+  seller: one(users, {
+    fields: [inventoryOptimizations.sellerId],
+    references: [users.id],
+  }),
+}));
+
+export const aiGeneratedContentRelations = relations(aiGeneratedContent, ({ one }) => ({
+  product: one(products, {
+    fields: [aiGeneratedContent.productId],
+    references: [products.id],
+  }),
+  seller: one(users, {
+    fields: [aiGeneratedContent.sellerId],
+    references: [users.id],
+  }),
+}));
+
+// Type exports for Smart Inventory & Price Management
+export type SalesHistory = typeof salesHistory.$inferSelect;
+export type InsertSalesHistory = z.infer<typeof insertSalesHistorySchema>;
+
+export type DemandForecast = typeof demandForecasts.$inferSelect;
+export type InsertDemandForecast = z.infer<typeof insertDemandForecastSchema>;
+
+export type PriceOptimization = typeof priceOptimizations.$inferSelect;
+export type InsertPriceOptimization = z.infer<typeof insertPriceOptimizationSchema>;
+
+export type InventoryOptimization = typeof inventoryOptimizations.$inferSelect;
+export type InsertInventoryOptimization = z.infer<typeof insertInventoryOptimizationSchema>;
+
+export type AIGeneratedContent = typeof aiGeneratedContent.$inferSelect;
+export type InsertAIGeneratedContent = z.infer<typeof insertAiGeneratedContentSchema>;

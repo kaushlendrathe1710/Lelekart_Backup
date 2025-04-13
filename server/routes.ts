@@ -11,7 +11,12 @@ import {
   insertReviewSchema,
   insertReviewImageSchema,
   insertReviewHelpfulSchema,
-  insertUserActivitySchema
+  insertUserActivitySchema,
+  insertSalesHistorySchema,
+  insertDemandForecastSchema,
+  insertPriceOptimizationSchema,
+  insertInventoryOptimizationSchema,
+  insertAiGeneratedContentSchema
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
