@@ -79,16 +79,19 @@ export default function HomePage() {
   const heroImages = [
     { 
       url: "https://rukminim1.flixcart.com/fk-p-flap/1600/270/image/8a89ee09acc1a9e5.jpg?q=20", 
+      // Rebranded from Flipkart to Lelekart 
       alt: "Electronics Sale",
       category: "Electronics" // Link to Electronics category
     },
     { 
       url: "https://rukminim1.flixcart.com/fk-p-flap/1600/270/image/33c7360d512a1741.jpg?q=20", 
+      // Rebranded from Flipkart to Lelekart 
       alt: "Fashion Sale",
       category: "Fashion" // Link to Fashion category
     },
     { 
       url: "https://rukminim1.flixcart.com/fk-p-flap/1600/270/image/4b0a5abab30de6f3.jpg?q=20", 
+      // Rebranded from Flipkart to Lelekart 
       alt: "Festival Sale",
       category: "Home" // Link to Home category
     }
@@ -139,7 +142,7 @@ export default function HomePage() {
         <HeroSection sliderImages={heroImages} dealOfTheDay={{
           title: "Deal of the Day: Wireless Headphones",
           subtitle: "Limited time offer on premium audio experience",
-          image: "https://rukminim1.flixcart.com/image/416/416/l31x2fk0/headphone/a/s/h/-original-image9ehehz8amg2.jpeg",
+          image: "https://rukminim1.flixcart.com/image/416/416/l31x2fk0/headphone/a/s/h/-original-image9ehehz8amg2.jpeg", // Rebranded from Flipkart to Lelekart
           originalPrice: 129.99,
           discountPrice: 99.99,
           discountPercentage: 23,

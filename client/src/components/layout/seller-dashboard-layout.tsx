@@ -404,7 +404,7 @@ export function SellerDashboardLayout({ children }: SellerDashboardLayoutProps) 
                   <span className="text-xs font-medium">Seller Status: <span className="text-green-600">Active</span></span>
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  © 2025 Flipkart Seller Hub
+                  © 2025 Lelekart Seller Hub
                 </div>
               </div>
             </SidebarFooter>
