@@ -101,7 +101,7 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
         >
           <CardContent className="p-0 flex flex-col items-center">
             <img 
-              src={product.imageUrl || (product as any).image_url} 
+              src={product.image_url || (product as any).imageUrl} 
               alt={product.name} 
               className="w-32 h-40 object-contain mb-3"
               onError={(e) => {
@@ -149,7 +149,7 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
       >
         <CardContent className="p-0 flex flex-col items-center">
           <img 
-            src={product.imageUrl || (product as any).image_url} 
+            src={product.image_url || (product as any).imageUrl} 
             alt={product.name} 
             className="w-28 h-32 object-contain mb-2"
             onError={(e) => {
