@@ -126,7 +126,7 @@ export function SellerDashboardLayout({ children }: SellerDashboardLayoutProps) 
             <div className="flex items-center gap-4">
               <SidebarTrigger className="text-white hover:bg-primary-foreground/10 hover:text-white" />
               <Link href="/" className="flex items-center">
-                <span className="text-xl font-bold text-white">Flipkart</span>
+                <span className="text-xl font-bold text-white">Lelekart</span>
                 <span className="text-xs italic text-yellow-400 flex items-end ml-1">
                   <span>Seller</span>
                   <span className="text-yellow-400 ml-1">Hub</span>

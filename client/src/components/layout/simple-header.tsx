@@ -113,7 +113,7 @@ export function SimpleHeader() {
         <div className="flex items-center justify-between w-full py-2">
           <div className="flex items-center space-x-8">
             <Link href="/">
-              <div className="text-2xl font-bold pt-0.5">Flipkart</div>
+              <div className="text-2xl font-bold pt-0.5">Lelekart</div>
             </Link>
 
             <form onSubmit={handleSearch} className="flex-grow max-w-xl">
@@ -204,7 +204,7 @@ export function SimpleHeader() {
             </button>
 
             <Link href="/">
-              <div className="text-2xl font-bold">Flipkart</div>
+              <div className="text-2xl font-bold">Lelekart</div>
             </Link>
           </div>
           

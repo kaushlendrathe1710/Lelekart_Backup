@@ -78,11 +78,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               onClick={() => window.location.href = "/admin"}
             >
               <div className="flex items-center space-x-2 text-xl font-bold">
-                <img 
-                  src="https://static-assets-web.flixcart.com/www/linchpin/fk-cp-zion/img/flipkart-plus_8d85f4.png" 
-                  alt="Lelekart Logo" 
-                  className="h-6 w-auto" 
-                />
+                {/* Logo updated from Flipkart to Lelekart */}
+              <div className="text-xl font-bold text-white">Lelekart</div>
                 <span className="hidden md:inline text-white font-medium text-xl">Admin Panel</span>
               </div>
             </Button>

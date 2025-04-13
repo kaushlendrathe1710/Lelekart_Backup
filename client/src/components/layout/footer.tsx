@@ -75,7 +75,7 @@ export function Footer() {
             <div className="mt-6">
               <h3 className="text-gray-400 font-medium mb-2 uppercase text-sm">Mail Us:</h3>
               <p className="text-xs leading-relaxed">
-                Flipkart Internet Private Limited,<br />
+                Lelekart Internet Private Limited,<br />
                 Buildings Alyssa, Begonia &<br />
                 Clove Embassy Tech Village,<br />
                 Outer Ring Road, Devarabeesanahalli Village,<br />
@@ -86,7 +86,7 @@ export function Footer() {
           </div>
         </div>
         <div className="border-t border-gray-700 mt-8 pt-8 text-center text-xs text-gray-400">
-          <p>&copy; {new Date().getFullYear()} Flipkart.com. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Lelekart.com. All rights reserved.</p>
         </div>
       </div>
     </footer>
