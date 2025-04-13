@@ -10,6 +10,42 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
 
 /**
+ * General purpose chat function for the AI assistant
+ */
+export async function getChatResponse(
+  messages: Array<{ role: string; content: string }>,
+  systemPrompt: string
+): Promise<string> {
+  // Convert messages format for Gemini
+  const geminiMessages = messages.map(msg => ({
+    role: msg.role === 'user' ? 'user' : 'model',
+    parts: [{ text: msg.content }]
+  }));
+
+  // Add system prompt as first message from model
+  geminiMessages.unshift({
+    role: 'model',
+    parts: [{ text: systemPrompt }]
+  });
+
+  try {
+    const result = await model.generateContent({
+      contents: geminiMessages,
+      generationConfig: {
+        maxOutputTokens: 1000,
+        temperature: 0.7,
+      }
+    });
+    
+    const response = result.response;
+    return response.text();
+  } catch (error) {
+    console.error("Error in chat response:", error);
+    throw new Error(`Failed to generate chat response: ${error.message}`);
+  }
+}
+
+/**
  * Get a personalized product recommendation based on user preferences and history
  */
 export async function getPersonalizedRecommendations(

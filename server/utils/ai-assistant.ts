@@ -570,29 +570,8 @@ ${product.color ? `Available Colors: ${product.color}` : ''}
       }
     }
 
-    // Convert messages format for Gemini
-    const geminiMessages = messages.map(msg => ({
-      role: msg.role === 'user' ? 'user' : 'model',
-      parts: [{ text: msg.content }]
-    }));
-
-    // Add system prompt as first message from model
-    geminiMessages.unshift({
-      role: 'model',
-      parts: [{ text: systemPrompt }]
-    });
-
-    // Send to Google's Gemini
-    const result = await model.generateContent({
-      contents: geminiMessages,
-      generationConfig: {
-        maxOutputTokens: 1000,
-        temperature: 0.7,
-      }
-    });
-    
-    const response = result.response;
-    const responseText = response.text();
+    // Use the centralized Gemini chat function
+    const responseText = await geminiAi.getChatResponse(messages, systemPrompt);
 
     // Save the conversation if we have session info
     if (contextInfo) {
@@ -677,29 +656,9 @@ When answering:
 - For questions about delivery, returns, or store policy, direct the customer to the store's customer service
 `;
 
-    // Create Gemini message format
-    const geminiMessages = [
-      {
-        role: 'model',
-        parts: [{ text: systemPrompt }]
-      },
-      {
-        role: 'user',
-        parts: [{ text: userQuestion }]
-      }
-    ];
-
-    // Send to Google's Gemini
-    const result = await model.generateContent({
-      contents: geminiMessages,
-      generationConfig: {
-        maxOutputTokens: 600,
-        temperature: 0.5,
-      }
-    });
-    
-    const response = result.response;
-    const responseText = response.text();
+    // Use the centralized Gemini chat function with a single message
+    const messages = [{ role: 'user', content: userQuestion }];
+    const responseText = await geminiAi.getChatResponse(messages, systemPrompt);
 
     // Track interaction for personalization
     if (sessionId) {
