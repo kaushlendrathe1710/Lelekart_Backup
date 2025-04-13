@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { users, products } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
-import { db } from "./db";
+import { db, pool } from "./db";
 
 // Middleware to check if user is admin
 function isAdmin(req: Request, res: Response, next: NextFunction) {
