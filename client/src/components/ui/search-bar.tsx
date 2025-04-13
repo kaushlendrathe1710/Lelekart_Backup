@@ -50,23 +50,55 @@ export function SearchBar() {
     setSearchTerm('');
   };
 
-  // Fetch search results with TanStack Query
-  const { data: searchResults = [], isLoading } = useQuery<Product[]>({
-    queryKey: ['/api/lelekart-search', debouncedSearchTerm],
-    queryFn: async () => {
-      if (!debouncedSearchTerm || debouncedSearchTerm.length < 2) return [];
-      
-      console.log('Searching for:', debouncedSearchTerm);
-      const response = await fetch(`/api/lelekart-search?q=${encodeURIComponent(debouncedSearchTerm)}`);
-      if (!response.ok) {
-        throw new Error('Search failed');
+  // Use state for search results to avoid routing issues
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Use effect to fetch search results
+  useEffect(() => {
+    // Define the search function
+    const searchProducts = async () => {
+      if (!debouncedSearchTerm || debouncedSearchTerm.length < 2) {
+        setSearchResults([]);
+        return;
       }
-      const data = await response.json();
-      console.log('Search results:', data);
-      return data;
-    },
-    enabled: debouncedSearchTerm.length >= 2,
-  });
+      
+      setIsLoading(true);
+      console.log('Searching for:', debouncedSearchTerm);
+      
+      try {
+        // Make a direct request to retrieve products
+        const response = await fetch('/api/products');
+        if (!response.ok) {
+          throw new Error('Search failed');
+        }
+        
+        const allProducts = await response.json();
+        
+        // Filter products on the client side
+        const filteredResults = allProducts.filter((product: Product) => 
+          product.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+          (product.description && product.description.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+          (product.category && product.category.toLowerCase().includes(debouncedSearchTerm.toLowerCase()))
+        );
+        
+        console.log(`Found ${filteredResults.length} results for "${debouncedSearchTerm}"`);
+        setSearchResults(filteredResults);
+      } catch (error) {
+        console.error('Search error:', error);
+        setSearchResults([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    // Execute search when debounced term changes
+    if (debouncedSearchTerm.length >= 2) {
+      searchProducts();
+    } else {
+      setSearchResults([]);
+    }
+  }, [debouncedSearchTerm]);
 
   return (
     <>
