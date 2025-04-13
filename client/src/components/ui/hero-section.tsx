@@ -98,9 +98,10 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
 
   const handleSlideClick = (image: SliderImage) => {
     if (image.productId) {
-      navigate(`/product/${image.productId}`);
+      // Use navigate with { replace: false } to ensure it doesn't replace the current route
+      navigate(`/product/${image.productId}`, { replace: false });
     } else if (image.category) {
-      navigate(`/?category=${image.category.toLowerCase()}`);
+      navigate(`/?category=${image.category.toLowerCase()}`, { replace: false });
     }
   };
 
@@ -307,7 +308,8 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
                     className="bg-blue-600 hover:bg-blue-700"
                     onClick={() => {
                       if (dealOfTheDay.productId) {
-                        navigate(`/product/${dealOfTheDay.productId}`);
+                        // Use navigate with { replace: false } to prevent route replacement
+                        navigate(`/product/${dealOfTheDay.productId}`, { replace: false });
                       }
                     }}
                   >
@@ -321,7 +323,8 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
                     className="cursor-pointer" 
                     onClick={() => {
                       if (dealOfTheDay.productId) {
-                        navigate(`/product/${dealOfTheDay.productId}`);
+                        // Use navigate with { replace: false } to prevent route replacement
+                        navigate(`/product/${dealOfTheDay.productId}`, { replace: false });
                       }
                     }}
                   >
