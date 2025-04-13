@@ -377,6 +377,17 @@ export default function AdminOrders() {
       printWindow.close();
     }, 500);
   };
+  
+  // Download shipping label as PDF
+  const downloadShippingLabel = () => {
+    // Using browser print to PDF functionality
+    printShippingLabel();
+    
+    toast({
+      title: "Download Started",
+      description: "Your shipping label is being prepared for download.",
+    });
+  };
 
   return (
     <AdminLayout>
@@ -970,10 +981,36 @@ export default function AdminOrders() {
                   <CardContent>
                     {viewOrder.shippingDetails ? (
                       <div className="space-y-3">
-                        {typeof viewOrder.shippingDetails === 'string' 
-                          ? JSON.parse(viewOrder.shippingDetails)
-                          : viewOrder.shippingDetails 
-                        }
+                        {typeof viewOrder.shippingDetails === 'string' ? (
+                          (() => {
+                            const details = JSON.parse(viewOrder.shippingDetails);
+                            return (
+                              <>
+                                <p><strong>Name:</strong> {details.name}</p>
+                                <p><strong>Address:</strong> {details.address}</p>
+                                <p><strong>City:</strong> {details.city}</p>
+                                <p><strong>State:</strong> {details.state}</p>
+                                <p><strong>Zip Code:</strong> {details.zipCode}</p>
+                                <p><strong>Phone:</strong> {details.phone}</p>
+                                <p><strong>Email:</strong> {details.email}</p>
+                                {details.notes && <p><strong>Notes:</strong> {details.notes}</p>}
+                              </>
+                            );
+                          })()
+                        ) : (
+                          <>
+                            <p><strong>Name:</strong> {viewOrder.shippingDetails.name}</p>
+                            <p><strong>Address:</strong> {viewOrder.shippingDetails.address}</p>
+                            <p><strong>City:</strong> {viewOrder.shippingDetails.city}</p>
+                            <p><strong>State:</strong> {viewOrder.shippingDetails.state}</p>
+                            <p><strong>Zip Code:</strong> {viewOrder.shippingDetails.zipCode}</p>
+                            <p><strong>Phone:</strong> {viewOrder.shippingDetails.phone}</p>
+                            <p><strong>Email:</strong> {viewOrder.shippingDetails.email}</p>
+                            {viewOrder.shippingDetails.notes && (
+                              <p><strong>Notes:</strong> {viewOrder.shippingDetails.notes}</p>
+                            )}
+                          </>
+                        )}
                       </div>
                     ) : (
                       <div className="text-center py-8">
@@ -1146,10 +1183,16 @@ export default function AdminOrders() {
                       <div className="text-sm text-muted-foreground">
                         Generate and print a shipping label for this order for packaging.
                       </div>
-                      <Button onClick={printShippingLabel} variant="outline" size="sm">
-                        <Printer className="mr-2 h-4 w-4" />
-                        Print Shipping Label
-                      </Button>
+                      <div className="flex flex-wrap gap-2">
+                        <Button onClick={printShippingLabel} variant="outline" size="sm">
+                          <Printer className="mr-2 h-4 w-4" />
+                          Print Shipping Label
+                        </Button>
+                        <Button onClick={downloadShippingLabel} variant="outline" size="sm">
+                          <Download className="mr-2 h-4 w-4" />
+                          Download PDF
+                        </Button>
+                      </div>
 
                       {/* Hidden shipping label template for printing */}
                       <div className="hidden">
