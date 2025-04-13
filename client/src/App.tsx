@@ -29,6 +29,7 @@ import AdminProducts from './pages/admin/products';
 import AdminUsers from './pages/admin/users';
 import AdminOrders from './pages/admin/orders';
 import AdminCategories from './pages/admin/categories';
+import SellerApproval from './pages/admin/seller-approval';
 
 // Seller pages
 import SellerDashboardPage from './pages/seller/dashboard';

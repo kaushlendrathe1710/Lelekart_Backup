@@ -23,6 +23,7 @@ import {
   ShoppingCart,
   Search,
   Grid,
+  UserCheck,
 } from "lucide-react";
 
 interface AdminLayoutProps {
@@ -52,6 +53,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       title: "Users",
       href: "/admin/users",
       icon: <Users className="h-5 w-5" />,
+    },
+    {
+      title: "Seller Approval",
+      href: "/admin/seller-approval",
+      icon: <UserCheck className="h-5 w-5" />,
     },
     {
       title: "Orders",

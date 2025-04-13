@@ -187,6 +187,42 @@ export class DatabaseStorage implements IStorage {
     
     return updatedUser;
   }
+  
+  async getSellers(approved?: boolean): Promise<User[]> {
+    try {
+      let query = db.select().from(users).where(eq(users.role, 'seller'));
+      
+      if (approved !== undefined) {
+        query = query.where(eq(users.approved, approved));
+      }
+      
+      return await query;
+    } catch (error) {
+      console.error("Error in getSellers:", error);
+      return [];
+    }
+  }
+  
+  async updateSellerApproval(id: number, approved: boolean): Promise<User> {
+    const [seller] = await db.select().from(users).where(
+      and(
+        eq(users.id, id),
+        eq(users.role, 'seller')
+      )
+    );
+    
+    if (!seller) {
+      throw new Error(`Seller with ID ${id} not found`);
+    }
+    
+    const [updatedSeller] = await db
+      .update(users)
+      .set({ approved })
+      .where(eq(users.id, id))
+      .returning();
+      
+    return updatedSeller;
+  }
 
   async getProducts(category?: string, sellerId?: number, approved?: boolean): Promise<Product[]> {
     try {

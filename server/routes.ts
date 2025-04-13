@@ -48,6 +48,84 @@ import {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes with OTP-based authentication
   setupAuth(app);
+  
+  // Seller approval routes
+  app.get("/api/sellers/pending", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const pendingSellers = await storage.getSellers(false);
+      res.json(pendingSellers);
+    } catch (error) {
+      console.error("Error fetching pending sellers:", error);
+      res.status(500).json({ error: "Failed to fetch pending sellers" });
+    }
+  });
+  
+  app.get("/api/sellers/approved", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const approvedSellers = await storage.getSellers(true);
+      res.json(approvedSellers);
+    } catch (error) {
+      console.error("Error fetching approved sellers:", error);
+      res.status(500).json({ error: "Failed to fetch approved sellers" });
+    }
+  });
+  
+  app.put("/api/sellers/:id/approve", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const id = parseInt(req.params.id);
+      const seller = await storage.updateSellerApproval(id, true);
+      res.json(seller);
+    } catch (error) {
+      console.error("Error approving seller:", error);
+      res.status(500).json({ error: "Failed to approve seller" });
+    }
+  });
+  
+  app.put("/api/sellers/:id/reject", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const id = parseInt(req.params.id);
+      const seller = await storage.updateSellerApproval(id, false);
+      res.json(seller);
+    } catch (error) {
+      console.error("Error rejecting seller:", error);
+      res.status(500).json({ error: "Failed to reject seller" });
+    }
+  });
+  
+  // Check if seller is approved
+  app.get("/api/seller/status", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller") return res.status(403).json({ error: "Not a seller account" });
+    
+    try {
+      const seller = await storage.getUser(req.user.id);
+      if (!seller) {
+        return res.status(404).json({ error: "Seller not found" });
+      }
+      
+      res.json({ 
+        approved: !!seller.approved,
+        message: seller.approved 
+          ? "Your seller account is approved." 
+          : "Your profile is pending approval by admin. Please update your profile details ASAP so it can be approved quickly."
+      });
+    } catch (error) {
+      console.error("Error checking seller status:", error);
+      res.status(500).json({ error: "Failed to check seller status" });
+    }
+  });
 
   // Search endpoint
   app.get("/api/search", async (req, res) => {
