@@ -2121,6 +2121,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Seller approval endpoints (admin only)
+  app.get("/api/admin/sellers", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const sellers = await storage.getSellers();
+      res.json(sellers);
+    } catch (error) {
+      console.error("Error fetching sellers:", error);
+      res.status(500).json({ error: "Failed to fetch sellers" });
+    }
+  });
+  
+  app.post("/api/admin/sellers/:id/approve", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const sellerId = parseInt(req.params.id);
+      await storage.updateSellerApprovalStatus(sellerId, true);
+      res.json({ message: "Seller approved successfully" });
+    } catch (error) {
+      console.error("Error approving seller:", error);
+      res.status(500).json({ error: "Failed to approve seller" });
+    }
+  });
+  
+  app.post("/api/admin/sellers/:id/reject", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const sellerId = parseInt(req.params.id);
+      await storage.updateSellerApprovalStatus(sellerId, false);
+      res.json({ message: "Seller rejected successfully" });
+    } catch (error) {
+      console.error("Error rejecting seller:", error);
+      res.status(500).json({ error: "Failed to reject seller" });
+    }
+  });
+  
+  // Seller status check (for sellers to check their approval status)
+  app.get("/api/seller/status", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const seller = await storage.getUser(req.user.id);
+      
+      if (!seller) {
+        return res.status(404).json({ error: "Seller not found" });
+      }
+      
+      res.json({
+        approved: seller.approved || false,
+        message: seller.approved 
+          ? "Your seller account is approved. You can now list products and manage your store."
+          : "Your seller account is pending approval. Please wait for an admin to review your application."
+      });
+    } catch (error) {
+      console.error("Error checking seller status:", error);
+      res.status(500).json({ error: "Failed to check seller status" });
+    }
+  });
+  
   const httpServer = createServer(app);
   return httpServer;
 }

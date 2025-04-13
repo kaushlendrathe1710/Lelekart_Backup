@@ -131,6 +131,10 @@ export interface IStorage {
   updateAIGeneratedContentStatus(id: number, status: string, sellerId: number): Promise<AIGeneratedContent>;
   applyAIGeneratedContent(id: number, sellerId: number): Promise<Product>;
 
+  // Seller Approval Operations
+  getSellers(): Promise<User[]>;
+  updateSellerApprovalStatus(sellerId: number, status: boolean): Promise<User>;
+  
   // Session store
   sessionStore: session.SessionStore;
 }
@@ -203,7 +207,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
-  async updateSellerApproval(id: number, approved: boolean): Promise<User> {
+  async updateSellerApprovalStatus(id: number, status: boolean): Promise<User> {
     const [seller] = await db.select().from(users).where(
       and(
         eq(users.id, id),
@@ -217,7 +221,7 @@ export class DatabaseStorage implements IStorage {
     
     const [updatedSeller] = await db
       .update(users)
-      .set({ approved })
+      .set({ approved: status })
       .where(eq(users.id, id))
       .returning();
       
