@@ -399,6 +399,15 @@ function App() {
                       />
                     )}
                   </Route>
+                  <Route path="/buyer/wishlist">
+                    {() => (
+                      <ProtectedRoute 
+                        path="/buyer/wishlist" 
+                        role="buyer" 
+                        component={BuyerWishlistPage} 
+                      />
+                    )}
+                  </Route>
                   
                   <Route>
                     {() => (
