@@ -166,6 +166,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to perform search" });
     }
   });
+  
+  // Product approval routes
+  
+  // Get pending products (admin only)
+  app.get("/api/products/pending", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const pendingProducts = await storage.getPendingProducts();
+      res.json(pendingProducts);
+    } catch (error) {
+      console.error("Error fetching pending products:", error);
+      res.status(500).json({ error: "Failed to fetch pending products" });
+    }
+  });
+  
+  // Approve a product (admin only)
+  app.put("/api/products/:id/approve", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    const { id } = req.params;
+    
+    try {
+      const productId = parseInt(id);
+      const approvedProduct = await storage.approveProduct(productId);
+      res.json(approvedProduct);
+    } catch (error) {
+      console.error(`Error approving product ${id}:`, error);
+      res.status(500).json({ error: "Failed to approve product" });
+    }
+  });
+  
+  // Reject a product (admin only)
+  app.put("/api/products/:id/reject", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    const { id } = req.params;
+    
+    try {
+      const productId = parseInt(id);
+      const rejectedProduct = await storage.rejectProduct(productId);
+      res.json(rejectedProduct);
+    } catch (error) {
+      console.error(`Error rejecting product ${id}:`, error);
+      res.status(500).json({ error: "Failed to reject product" });
+    }
+  });
+  
+  // Get product approval status (for seller)
+  app.get("/api/products/:id/status", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    const { id } = req.params;
+    
+    try {
+      const productId = parseInt(id);
+      const product = await storage.getProduct(productId);
+      
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      
+      // Check if the requestor is either admin or the seller who owns the product
+      if (req.user.role !== "admin" && product.sellerId !== req.user.id) {
+        return res.status(403).json({ error: "Not authorized to view this product's status" });
+      }
+      
+      res.json({
+        approved: !!product.approved,
+        message: product.approved
+          ? "Your product is approved and visible to buyers."
+          : "Your product is pending approval by an admin."
+      });
+    } catch (error) {
+      console.error(`Error fetching product status ${id}:`, error);
+      res.status(500).json({ error: "Failed to fetch product status" });
+    }
+  });
 
   // Product routes with pagination
   app.get("/api/products", async (req, res) => {
@@ -265,10 +346,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const productData = insertProductSchema.parse({
         ...req.body,
-        sellerId: req.user.id
+        sellerId: req.user.id,
+        approved: false // All new products start as unapproved
       });
+      
       const product = await storage.createProduct(productData);
-      res.status(201).json(product);
+      
+      // Let the user know their product is pending approval
+      res.status(201).json({
+        ...product,
+        message: "Your product has been created and is pending approval by an admin."
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: error.errors });
@@ -323,25 +411,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin product approval
-  app.put("/api/products/:id/approve", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
-    
-    try {
-      const id = parseInt(req.params.id);
-      const product = await storage.getProduct(id);
-      
-      if (!product) {
-        return res.status(404).json({ error: "Product not found" });
-      }
-      
-      const updatedProduct = await storage.updateProduct(id, { approved: true });
-      res.json(updatedProduct);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to approve product" });
-    }
-  });
+  // Admin product approval is handled above in the Product approval routes section
 
   // Cart routes
   app.get("/api/cart", async (req, res) => {

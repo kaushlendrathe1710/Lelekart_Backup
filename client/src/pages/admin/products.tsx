@@ -114,22 +114,42 @@ function AdminProductsContent() {
 
   // Approve product mutation
   const approveMutation = useMutation({
-    mutationFn: async ({ id, approved }: { id: number; approved: boolean }) => {
-      const res = await apiRequest("PUT", `/api/products/${id}`, {
-        approved,
-      });
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("PUT", `/api/products/${id}/approve`);
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       toast({
-        title: "Product updated",
-        description: "The product approval status has been updated.",
+        title: "Product approved",
+        description: "The product is now visible to buyers.",
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Failed to update product",
+        title: "Failed to approve product",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Reject product mutation
+  const rejectMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("PUT", `/api/products/${id}/reject`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      toast({
+        title: "Product rejected",
+        description: "The product will not be visible to buyers.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to reject product",
         description: error.message,
         variant: "destructive",
       });
@@ -157,12 +177,14 @@ function AdminProductsContent() {
     }
   };
 
-  // Toggle product approval
-  const toggleApproval = async (product: Product) => {
-    await approveMutation.mutateAsync({
-      id: product.id,
-      approved: !product.approved,
-    });
+  // Handle product approval
+  const handleApproveProduct = async (product: Product) => {
+    await approveMutation.mutateAsync(product.id);
+  };
+  
+  // Handle product rejection
+  const handleRejectProduct = async (product: Product) => {
+    await rejectMutation.mutateAsync(product.id);
   };
 
   // Filter and sort products
