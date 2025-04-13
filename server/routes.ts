@@ -97,13 +97,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Process products to ensure they all have valid images
-      products = products.map(product => {
-        // Ensure imageUrl exists for every product
-        if (!product.imageUrl) {
-          product.imageUrl = "/images/placeholder.svg";
-        }
-        return product;
-      });
+      // and fetch seller information for each product
+      const productsWithSellerInfo = await Promise.all(
+        products.map(async (product) => {
+          // Ensure imageUrl exists for every product
+          if (!product.imageUrl) {
+            product.imageUrl = "/images/placeholder.svg";
+          }
+          
+          // Fetch seller information if sellerId exists
+          if (product.sellerId) {
+            try {
+              const seller = await storage.getUser(product.sellerId);
+              if (seller) {
+                return {
+                  ...product,
+                  sellerName: seller.username || "Unknown Seller"
+                };
+              }
+            } catch (error) {
+              console.error(`Error fetching seller for product ${product.id}:`, error);
+            }
+          }
+          
+          return {
+            ...product,
+            sellerName: "Unknown Seller"
+          };
+        })
+      );
+      
+      products = productsWithSellerInfo;
       
       // Return both products and pagination data
       res.json({
