@@ -2,7 +2,7 @@ import { useEffect, useState, useContext, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
 import { Product, User } from "@shared/schema";
-import { CategoryNav } from "@/components/layout/category-nav";
+import { CategoryNav } from "@/components/ui/category-nav";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Minus, Plus, ShoppingCart, Star, Zap } from "lucide-react";
