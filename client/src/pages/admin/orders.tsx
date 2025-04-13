@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/layout/admin-layout";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Order, Product } from "@shared/schema";
+import { format } from 'date-fns';
 import {
   Table,
   TableBody,
@@ -48,6 +49,8 @@ import {
   Filter,
   CheckCircle2,
   Clock,
+  FileText,
+  Printer,
   Truck,
   AlertCircle,
   XCircle,
@@ -77,6 +80,8 @@ export default function AdminOrders() {
     start: string | null;
     end: string | null;
   }>({ start: null, end: null });
+  const invoiceRef = useRef<HTMLDivElement>(null);
+  const shippingLabelRef = useRef<HTMLDivElement>(null);
 
   // Fetch orders data
   const {
@@ -252,6 +257,111 @@ export default function AdminOrders() {
       default:
         return method;
     }
+  };
+  
+  // Print invoice
+  const printInvoice = () => {
+    if (!invoiceRef.current || !viewOrder) return;
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast({
+        title: "Error",
+        description: "Could not open print window. Please check your browser settings.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Invoice #${viewOrder.id}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+            .invoice-container { max-width: 800px; margin: 0 auto; }
+            .invoice-header { display: flex; justify-content: space-between; margin-bottom: 20px; }
+            .company-details { text-align: right; }
+            .invoice-title { font-size: 24px; font-weight: bold; margin-bottom: 20px; }
+            .customer-details, .order-details { margin-bottom: 20px; }
+            .section-title { font-size: 16px; font-weight: bold; margin-bottom: 10px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+            th { background-color: #f9f9f9; }
+            .total-section { margin-top: 20px; text-align: right; }
+            .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+            @media print { @page { margin: 0.5cm; } }
+          </style>
+        </head>
+        <body>
+          ${invoiceRef.current.innerHTML}
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 500);
+  };
+  
+  // Download invoice as PDF
+  const downloadInvoice = () => {
+    // Using browser print to PDF functionality
+    printInvoice();
+    
+    toast({
+      title: "Download Started",
+      description: "Your invoice is being prepared for download.",
+    });
+  };
+  
+  // Print shipping label
+  const printShippingLabel = () => {
+    if (!shippingLabelRef.current || !viewOrder) return;
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast({
+        title: "Error",
+        description: "Could not open print window. Please check your browser settings.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Shipping Label #${viewOrder.id}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+            .shipping-container { max-width: 800px; margin: 0 auto; border: 2px dashed #000; padding: 20px; }
+            .shipping-header { display: flex; justify-content: space-between; margin-bottom: 20px; }
+            .shipping-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
+            .address-section { margin-bottom: 15px; }
+            .shipping-barcode { text-align: center; margin: 20px 0; }
+            .shipping-barcode img { max-width: 300px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            th, td { padding: 5px; text-align: left; border-bottom: 1px solid #ddd; }
+            .order-details { margin-top: 20px; border-top: 1px solid #ddd; padding-top: 10px; }
+            @media print { @page { margin: 0.5cm; } }
+          </style>
+        </head>
+        <body>
+          ${shippingLabelRef.current.innerHTML}
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 500);
   };
 
   return (
