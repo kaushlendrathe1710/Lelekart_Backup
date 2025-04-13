@@ -456,21 +456,18 @@ function AdminProductsContent() {
                         <div className="flex items-center gap-3">
                           <div className="h-12 w-12 rounded bg-gray-100 relative overflow-hidden border">
                             {(() => {
-                              // Log the entire product to see what image fields are available
-                              console.log("Full product data:", product);
-                              
                               // Determine which image source to use
                               let imageSrc = "";
                               
                               try {
-                                // Check for imageUrl (camelCase)
-                                if (product.imageUrl) {
-                                  imageSrc = product.imageUrl;
-                                } 
-                                // Check for image_url (snake_case)
-                                else if ((product as any).image_url) {
+                                // Check for image_url (snake_case) first - this is what's in our data
+                                if ((product as any).image_url) {
                                   imageSrc = (product as any).image_url;
                                 }
+                                // Check for imageUrl (camelCase)
+                                else if (product.imageUrl) {
+                                  imageSrc = product.imageUrl;
+                                } 
                                 // Check for images array or string
                                 else if (product.images) {
                                   // Handle array of images
@@ -495,36 +492,49 @@ function AdminProductsContent() {
                                     }
                                   }
                                 }
-                                
-                                // If we have an image URL and it's from Flipkart, use the proxy
-                                if (imageSrc && (imageSrc.includes('flixcart.com') || imageSrc.includes('flipkart.com'))) {
-                                  imageSrc = `/api/image-proxy?url=${encodeURIComponent(imageSrc)}&category=${encodeURIComponent(product.category || 'general')}`;
-                                }
                               } catch (err) {
                                 console.error("Error processing image:", err);
                               }
                               
-                              // Fallback to category-specific placeholder if no image
-                              const fallbackImage = imageSrc ? 
-                                "https://placehold.co/100?text=No+Image" : 
-                                `../images/${(product.category || 'general').toLowerCase()}.svg`;
+                              // Always use category-specific fallback as default
+                              const categoryImage = `../images/${(product.category || 'general').toLowerCase()}.svg`;
+                              const genericFallback = "https://placehold.co/100?text=No+Image";
+                              
+                              // If this is a Flipkart image, use our proxy
+                              const useProxy = imageSrc && (imageSrc.includes('flixcart.com') || imageSrc.includes('flipkart.com'));
+                              const displaySrc = useProxy 
+                                ? `/api/image-proxy?url=${encodeURIComponent(imageSrc)}&category=${encodeURIComponent(product.category || 'general')}`
+                                : (imageSrc || categoryImage);
                               
                               return (
                                 <img
-                                  src={imageSrc || fallbackImage}
+                                  key={`product-image-${product.id}`}
+                                  src={displaySrc}
                                   alt={product.name}
                                   className="object-contain h-full w-full"
-                                  loading="eager"
+                                  loading="lazy"
                                   onError={(e) => {
-                                    console.error("Failed to load image:", imageSrc);
-                                    // Try category-specific fallback
-                                    (e.target as HTMLImageElement).src = fallbackImage;
+                                    console.error("Failed to load image:", displaySrc);
                                     
-                                    // Add a second error handler for the fallback
+                                    // If using proxy failed, try direct URL
+                                    if (useProxy && imageSrc) {
+                                      console.log("Proxy failed, trying direct URL:", imageSrc);
+                                      (e.target as HTMLImageElement).src = imageSrc;
+                                      return;
+                                    }
+                                    
+                                    // Try category-specific fallback
+                                    (e.target as HTMLImageElement).src = categoryImage;
+                                    
+                                    // Add a second error handler for the category fallback
                                     (e.target as HTMLImageElement).onerror = () => {
-                                      (e.target as HTMLImageElement).src = "https://placehold.co/100?text=No+Image";
+                                      (e.target as HTMLImageElement).src = genericFallback;
                                       (e.target as HTMLImageElement).onerror = null; // Prevent infinite loop
                                     };
+                                  }}
+                                  style={{ 
+                                    maxHeight: '48px',
+                                    background: '#f9f9f9'
                                   }}
                                 />
                               );
