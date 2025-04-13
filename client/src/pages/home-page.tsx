@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { HeroSection } from "@/components/ui/hero-section";
 import { ShopByCategory } from "@/components/ui/shop-by-category";
 import { Loader2 } from "lucide-react";
+import TestNavigation from "@/components/test-navigation";
 
 export default function HomePage() {
   const [location] = useLocation();
@@ -150,6 +151,11 @@ export default function HomePage() {
 
       {/* Shop by Category */}
       <ShopByCategory />
+      
+      {/* Test Navigation - for debugging product navigation */}
+      <div className="container mx-auto px-4 py-2">
+        <TestNavigation />
+      </div>
       
       {/* Featured Deals */}
       <div className="container mx-auto px-4 py-6">
