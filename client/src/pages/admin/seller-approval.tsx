@@ -77,8 +77,10 @@ export default function SellerApprovalPage() {
     }
   });
 
-  const pendingSellers = sellers?.filter(seller => !seller.approved) || [];
-  const approvedSellers = sellers?.filter(seller => seller.approved) || [];
+  // Filter sellers based on their status
+  const pendingSellers = sellers?.filter(seller => seller.role === 'seller' && !seller.approved && !seller.rejected) || [];
+  const approvedSellers = sellers?.filter(seller => seller.role === 'seller' && seller.approved) || [];
+  const rejectedSellers = sellers?.filter(seller => seller.role === 'seller' && !seller.approved && seller.rejected) || [];
 
   return (
     <AdminLayout>
@@ -92,6 +94,9 @@ export default function SellerApprovalPage() {
             <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-100">
               {approvedSellers.length} Approved
             </Badge>
+            <Badge variant="outline" className="bg-red-100 text-red-800 hover:bg-red-100">
+              {rejectedSellers.length} Rejected
+            </Badge>
           </div>
         </div>
 
@@ -99,6 +104,7 @@ export default function SellerApprovalPage() {
           <TabsList className="mb-6">
             <TabsTrigger value="pending">Pending Approval</TabsTrigger>
             <TabsTrigger value="approved">Approved Sellers</TabsTrigger>
+            <TabsTrigger value="rejected">Rejected Sellers</TabsTrigger>
           </TabsList>
           
           <TabsContent value="pending" className="space-y-6">

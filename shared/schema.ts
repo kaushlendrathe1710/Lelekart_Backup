@@ -14,6 +14,7 @@ export const users = pgTable("users", {
   phone: text("phone"),
   address: text("address"),
   approved: boolean("approved").notNull().default(false), // Sellers need admin approval
+  rejected: boolean("rejected").notNull().default(false), // For rejected sellers
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -25,6 +26,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   phone: true,
   address: true,
   approved: true,
+  rejected: true,
 });
 
 // Product schema
