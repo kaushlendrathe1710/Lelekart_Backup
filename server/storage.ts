@@ -125,9 +125,9 @@ export class DatabaseStorage implements IStorage {
         params.push(category);
       }
       
-      // Add seller filter
+      // Add seller filter - NOTE: Use snake_case for database column names
       if (sellerId !== undefined) {
-        query += ` AND "sellerId" = $${params.length + 1}`;
+        query += ` AND seller_id = $${params.length + 1}`;
         params.push(sellerId);
       }
       
@@ -155,10 +155,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProduct(insertProduct: InsertProduct): Promise<Product> {
+    // Changed default to TRUE so products appear instantly without requiring admin approval
     const productToInsert = {
       ...insertProduct,
-      approved: insertProduct.approved ?? false
+      approved: insertProduct.approved ?? true
     };
+    
+    console.log('Creating product with auto-approval:', productToInsert);
     
     const [product] = await db
       .insert(products)
