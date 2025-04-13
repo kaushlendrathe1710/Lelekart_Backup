@@ -18,6 +18,8 @@ type Seller = {
   phone: string | null;
   address: string | null;
   approved: boolean;
+  rejected: boolean;
+  role: string;
 };
 
 export default function SellerApprovalPage() {
@@ -25,13 +27,35 @@ export default function SellerApprovalPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: sellers, isLoading } = useQuery<Seller[]>({
-    queryKey: ['/api/admin/sellers'],
+  // Fetch pending sellers
+  const { data: pendingSellers = [], isLoading: isPendingLoading } = useQuery<Seller[]>({
+    queryKey: ['/api/sellers/pending'],
     queryFn: async () => {
-      const res = await apiRequest('GET', '/api/admin/sellers');
+      const res = await apiRequest('GET', '/api/sellers/pending');
       return res.json();
     }
   });
+  
+  // Fetch approved sellers
+  const { data: approvedSellers = [], isLoading: isApprovedLoading } = useQuery<Seller[]>({
+    queryKey: ['/api/sellers/approved'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/sellers/approved');
+      return res.json();
+    }
+  });
+  
+  // Fetch rejected sellers
+  const { data: rejectedSellers = [], isLoading: isRejectedLoading } = useQuery<Seller[]>({
+    queryKey: ['/api/sellers/rejected'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/sellers/rejected');
+      return res.json();
+    }
+  });
+  
+  // Combine loading states
+  const isLoading = isPendingLoading || isApprovedLoading || isRejectedLoading;
 
   const approveMutation = useMutation({
     mutationFn: async (sellerId: number) => {
@@ -39,7 +63,11 @@ export default function SellerApprovalPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/sellers'] });
+      // Invalidate all seller queries to refresh the lists
+      queryClient.invalidateQueries({ queryKey: ['/api/sellers/pending'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sellers/approved'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sellers/rejected'] });
+      
       toast({
         title: 'Seller approved',
         description: 'The seller has been approved successfully',
@@ -61,7 +89,11 @@ export default function SellerApprovalPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/sellers'] });
+      // Invalidate all seller queries to refresh the lists
+      queryClient.invalidateQueries({ queryKey: ['/api/sellers/pending'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sellers/approved'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sellers/rejected'] });
+      
       toast({
         title: 'Seller rejected',
         description: 'The seller has been rejected',
@@ -77,10 +109,7 @@ export default function SellerApprovalPage() {
     }
   });
 
-  // Filter sellers based on their status
-  const pendingSellers = sellers?.filter(seller => seller.role === 'seller' && !seller.approved && !seller.rejected) || [];
-  const approvedSellers = sellers?.filter(seller => seller.role === 'seller' && seller.approved) || [];
-  const rejectedSellers = sellers?.filter(seller => seller.role === 'seller' && !seller.approved && seller.rejected) || [];
+  // Sellers are already separated by their status through the API
 
   return (
     <AdminLayout>
@@ -165,6 +194,36 @@ export default function SellerApprovalPage() {
               </div>
             )}
           </TabsContent>
+          
+          <TabsContent value="rejected" className="space-y-6">
+            {isLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : rejectedSellers.length === 0 ? (
+              <div className="bg-muted rounded-lg p-8 text-center">
+                <User className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium">No rejected sellers</h3>
+                <p className="text-muted-foreground mt-1">
+                  Rejected sellers will appear here.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-6">
+                {rejectedSellers.map(seller => (
+                  <SellerCard 
+                    key={seller.id} 
+                    seller={seller} 
+                    onApprove={() => approveMutation.mutate(seller.id)}
+                    onReject={() => {}}
+                    isApproving={approveMutation.isPending}
+                    isRejecting={false}
+                    rejected={true}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
         </Tabs>
       </div>
     </AdminLayout>
@@ -178,9 +237,10 @@ type SellerCardProps = {
   isApproving: boolean;
   isRejecting: boolean;
   approved?: boolean;
+  rejected?: boolean;
 };
 
-function SellerCard({ seller, onApprove, onReject, isApproving, isRejecting, approved = false }: SellerCardProps) {
+function SellerCard({ seller, onApprove, onReject, isApproving, isRejecting, approved = false, rejected = false }: SellerCardProps) {
   return (
     <Card className="shadow-sm hover:shadow-md transition-shadow">
       <CardContent className="p-6">
@@ -197,6 +257,11 @@ function SellerCard({ seller, onApprove, onReject, isApproving, isRejecting, app
               {approved && (
                 <Badge className="ml-auto bg-green-100 text-green-800 hover:bg-green-100">
                   Approved
+                </Badge>
+              )}
+              {rejected && (
+                <Badge className="ml-auto bg-red-100 text-red-800 hover:bg-red-100">
+                  Rejected
                 </Badge>
               )}
             </div>
@@ -230,7 +295,33 @@ function SellerCard({ seller, onApprove, onReject, isApproving, isRejecting, app
             </div>
           </div>
           
-          {!approved ? (
+          {approved ? (
+            // Approved seller - Show revoke action
+            <div className="flex flex-col gap-3 justify-center">
+              <Button 
+                onClick={() => onReject(seller.id)} 
+                variant="outline" 
+                className="flex gap-2 items-center text-red-600 border-red-200 hover:bg-red-50 w-40"
+                disabled={isRejecting}
+              >
+                {isRejecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
+                Revoke Access
+              </Button>
+            </div>
+          ) : rejected ? (
+            // Rejected seller - Show approve action
+            <div className="flex flex-col gap-3 justify-center">
+              <Button 
+                onClick={() => onApprove(seller.id)} 
+                className="flex gap-2 items-center w-40"
+                disabled={isApproving}
+              >
+                {isApproving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                Approve
+              </Button>
+            </div>
+          ) : (
+            // Pending seller - Show both actions
             <div className="flex flex-col gap-3 justify-center">
               <Button 
                 onClick={() => onApprove(seller.id)} 
@@ -248,18 +339,6 @@ function SellerCard({ seller, onApprove, onReject, isApproving, isRejecting, app
               >
                 {isRejecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
                 Reject
-              </Button>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3 justify-center">
-              <Button 
-                onClick={() => onReject(seller.id)} 
-                variant="outline" 
-                className="flex gap-2 items-center text-red-600 border-red-200 hover:bg-red-50 w-40"
-                disabled={isRejecting}
-              >
-                {isRejecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
-                Revoke Access
               </Button>
             </div>
           )}
