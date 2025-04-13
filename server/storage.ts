@@ -54,6 +54,33 @@ export interface IStorage {
   updateCategory(id: number, category: Partial<Category>): Promise<Category>;
   deleteCategory(id: number): Promise<void>;
 
+  // Review operations
+  getProductReviews(productId: number): Promise<(Review & { user: User, images?: ReviewImage[] })[]>;
+  getUserReviews(userId: number): Promise<(Review & { product: Product, images?: ReviewImage[] })[]>;
+  getReview(id: number): Promise<(Review & { user: User, product: Product, images?: ReviewImage[] }) | undefined>;
+  createReview(review: InsertReview): Promise<Review>;
+  updateReview(id: number, review: Partial<Review>): Promise<Review>;
+  deleteReview(id: number): Promise<void>;
+  
+  // Review Image operations
+  addReviewImage(reviewImage: InsertReviewImage): Promise<ReviewImage>;
+  deleteReviewImage(id: number): Promise<void>;
+  
+  // Review Helpful operations
+  markReviewHelpful(reviewId: number, userId: number): Promise<ReviewHelpful>;
+  unmarkReviewHelpful(reviewId: number, userId: number): Promise<void>;
+  isReviewHelpfulByUser(reviewId: number, userId: number): Promise<boolean>;
+  
+  // Product Rating Summary
+  getProductRatingSummary(productId: number): Promise<{ 
+    averageRating: number, 
+    totalReviews: number, 
+    ratingCounts: { rating: number, count: number }[] 
+  }>;
+  
+  // Check if user purchased product (for verified review status)
+  hasUserPurchasedProduct(userId: number, productId: number): Promise<boolean>;
+
   // Session store
   sessionStore: session.SessionStore;
 }
@@ -486,6 +513,337 @@ export class DatabaseStorage implements IStorage {
     if (!result) {
       throw new Error(`Category with ID ${id} not found`);
     }
+  }
+
+  // Review operations
+  async getProductReviews(productId: number): Promise<(Review & { user: User, images?: ReviewImage[] })[]> {
+    const reviewsWithUsers = await db
+      .select({
+        review: reviews,
+        user: users
+      })
+      .from(reviews)
+      .where(eq(reviews.productId, productId))
+      .innerJoin(users, eq(reviews.userId, users.id))
+      .orderBy(reviews.createdAt, 'desc'); // Latest reviews first
+    
+    // Get review images for each review
+    const reviewsWithUsersAndImages = await Promise.all(
+      reviewsWithUsers.map(async ({ review, user }) => {
+        const images = await db
+          .select()
+          .from(reviewImages)
+          .where(eq(reviewImages.reviewId, review.id));
+        
+        return {
+          ...review,
+          user,
+          images: images.length > 0 ? images : undefined
+        };
+      })
+    );
+    
+    return reviewsWithUsersAndImages;
+  }
+  
+  async getUserReviews(userId: number): Promise<(Review & { product: Product, images?: ReviewImage[] })[]> {
+    const reviewsWithProducts = await db
+      .select({
+        review: reviews,
+        product: products
+      })
+      .from(reviews)
+      .where(eq(reviews.userId, userId))
+      .innerJoin(products, eq(reviews.productId, products.id))
+      .orderBy(reviews.createdAt, 'desc'); // Latest reviews first
+    
+    // Get review images for each review
+    const reviewsWithProductsAndImages = await Promise.all(
+      reviewsWithProducts.map(async ({ review, product }) => {
+        const images = await db
+          .select()
+          .from(reviewImages)
+          .where(eq(reviewImages.reviewId, review.id));
+        
+        return {
+          ...review,
+          product,
+          images: images.length > 0 ? images : undefined
+        };
+      })
+    );
+    
+    return reviewsWithProductsAndImages;
+  }
+  
+  async getReview(id: number): Promise<(Review & { user: User, product: Product, images?: ReviewImage[] }) | undefined> {
+    const [result] = await db
+      .select({
+        review: reviews,
+        user: users,
+        product: products
+      })
+      .from(reviews)
+      .where(eq(reviews.id, id))
+      .innerJoin(users, eq(reviews.userId, users.id))
+      .innerJoin(products, eq(reviews.productId, products.id));
+    
+    if (!result) return undefined;
+    
+    // Get review images
+    const images = await db
+      .select()
+      .from(reviewImages)
+      .where(eq(reviewImages.reviewId, id));
+    
+    return {
+      ...result.review,
+      user: result.user,
+      product: result.product,
+      images: images.length > 0 ? images : undefined
+    };
+  }
+  
+  async createReview(insertReview: InsertReview): Promise<Review> {
+    // Check if user has already reviewed this product
+    const existingReview = await db
+      .select()
+      .from(reviews)
+      .where(
+        and(
+          eq(reviews.userId, insertReview.userId),
+          eq(reviews.productId, insertReview.productId)
+        )
+      );
+    
+    if (existingReview.length > 0) {
+      throw new Error('You have already reviewed this product');
+    }
+    
+    // If orderId is provided, verify that the user actually purchased the product
+    if (insertReview.orderId) {
+      const hasOrderItem = await db
+        .select()
+        .from(orderItems)
+        .where(
+          and(
+            eq(orderItems.orderId, insertReview.orderId),
+            eq(orderItems.productId, insertReview.productId)
+          )
+        );
+      
+      if (hasOrderItem.length > 0) {
+        // Mark as verified purchase
+        insertReview.verifiedPurchase = true;
+      }
+    }
+    
+    // Set timestamps
+    const now = new Date();
+    const reviewData = {
+      ...insertReview,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    const [review] = await db
+      .insert(reviews)
+      .values(reviewData)
+      .returning();
+    
+    return review;
+  }
+  
+  async updateReview(id: number, reviewData: Partial<Review>): Promise<Review> {
+    // Always update the updatedAt timestamp
+    const dataToUpdate = {
+      ...reviewData,
+      updatedAt: new Date()
+    };
+    
+    const [updatedReview] = await db
+      .update(reviews)
+      .set(dataToUpdate)
+      .where(eq(reviews.id, id))
+      .returning();
+    
+    if (!updatedReview) {
+      throw new Error(`Review with ID ${id} not found`);
+    }
+    
+    return updatedReview;
+  }
+  
+  async deleteReview(id: number): Promise<void> {
+    // First delete all associated images
+    await db.delete(reviewImages).where(eq(reviewImages.reviewId, id));
+    
+    // Delete all helpful votes for this review
+    await db.delete(reviewHelpful).where(eq(reviewHelpful.reviewId, id));
+    
+    // Then delete the review
+    const result = await db.delete(reviews).where(eq(reviews.id, id));
+    
+    if (!result) {
+      throw new Error(`Review with ID ${id} not found`);
+    }
+  }
+  
+  // Review Image operations
+  async addReviewImage(insertReviewImage: InsertReviewImage): Promise<ReviewImage> {
+    const [reviewImage] = await db
+      .insert(reviewImages)
+      .values(insertReviewImage)
+      .returning();
+    
+    return reviewImage;
+  }
+  
+  async deleteReviewImage(id: number): Promise<void> {
+    await db.delete(reviewImages).where(eq(reviewImages.id, id));
+  }
+  
+  // Review Helpful operations
+  async markReviewHelpful(reviewId: number, userId: number): Promise<ReviewHelpful> {
+    // Check if user has already marked this review as helpful
+    const [existingVote] = await db
+      .select()
+      .from(reviewHelpful)
+      .where(
+        and(
+          eq(reviewHelpful.reviewId, reviewId),
+          eq(reviewHelpful.userId, userId)
+        )
+      );
+    
+    if (existingVote) {
+      return existingVote; // User already marked this as helpful
+    }
+    
+    // Create new helpful vote
+    const [helpfulVote] = await db
+      .insert(reviewHelpful)
+      .values({
+        reviewId,
+        userId,
+        createdAt: new Date()
+      })
+      .returning();
+    
+    // Update the helpfulCount in the review
+    await db
+      .update(reviews)
+      .set({
+        helpfulCount: (row) => `${row.helpfulCount} + 1`
+      })
+      .where(eq(reviews.id, reviewId));
+    
+    return helpfulVote;
+  }
+  
+  async unmarkReviewHelpful(reviewId: number, userId: number): Promise<void> {
+    // Delete the helpful vote
+    await db
+      .delete(reviewHelpful)
+      .where(
+        and(
+          eq(reviewHelpful.reviewId, reviewId),
+          eq(reviewHelpful.userId, userId)
+        )
+      );
+    
+    // Update the helpfulCount in the review (ensure it doesn't go below 0)
+    await db
+      .update(reviews)
+      .set({
+        helpfulCount: (row) => `GREATEST(${row.helpfulCount} - 1, 0)`
+      })
+      .where(eq(reviews.id, reviewId));
+  }
+  
+  async isReviewHelpfulByUser(reviewId: number, userId: number): Promise<boolean> {
+    const [helpfulVote] = await db
+      .select()
+      .from(reviewHelpful)
+      .where(
+        and(
+          eq(reviewHelpful.reviewId, reviewId),
+          eq(reviewHelpful.userId, userId)
+        )
+      );
+    
+    return !!helpfulVote;
+  }
+  
+  // Product Rating Summary
+  async getProductRatingSummary(productId: number): Promise<{
+    averageRating: number,
+    totalReviews: number,
+    ratingCounts: { rating: number, count: number }[]
+  }> {
+    // Get all ratings for this product
+    const productReviews = await db
+      .select()
+      .from(reviews)
+      .where(eq(reviews.productId, productId));
+    
+    if (productReviews.length === 0) {
+      return {
+        averageRating: 0,
+        totalReviews: 0,
+        ratingCounts: [
+          { rating: 5, count: 0 },
+          { rating: 4, count: 0 },
+          { rating: 3, count: 0 },
+          { rating: 2, count: 0 },
+          { rating: 1, count: 0 }
+        ]
+      };
+    }
+    
+    // Calculate average rating
+    const totalRating = productReviews.reduce((sum, review) => sum + review.rating, 0);
+    const averageRating = totalRating / productReviews.length;
+    
+    // Count reviews for each rating
+    const ratingCounts = [5, 4, 3, 2, 1].map(rating => ({
+      rating,
+      count: productReviews.filter(review => review.rating === rating).length
+    }));
+    
+    return {
+      averageRating,
+      totalReviews: productReviews.length,
+      ratingCounts
+    };
+  }
+  
+  // Check if user purchased product (for verified review status)
+  async hasUserPurchasedProduct(userId: number, productId: number): Promise<boolean> {
+    // Check if there's an order item with this product for any of the user's orders
+    const userOrders = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.userId, userId));
+    
+    if (userOrders.length === 0) return false;
+    
+    // Check if any of these orders contain the product
+    for (const order of userOrders) {
+      const orderItem = await db
+        .select()
+        .from(orderItems)
+        .where(
+          and(
+            eq(orderItems.orderId, order.id),
+            eq(orderItems.productId, productId)
+          )
+        );
+      
+      if (orderItem.length > 0) return true;
+    }
+    
+    return false;
   }
 }
 

@@ -7,7 +7,10 @@ import {
   insertCartSchema, 
   insertOrderSchema, 
   insertOrderItemSchema,
-  insertCategorySchema
+  insertCategorySchema,
+  insertReviewSchema,
+  insertReviewImageSchema,
+  insertReviewHelpfulSchema
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
@@ -838,6 +841,243 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Image proxy route to handle CORS issues with external images
   app.get("/api/image-proxy", handleImageProxy);
+  
+  // Review Routes
+  // Get reviews for a product
+  app.get("/api/products/:id/reviews", async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const product = await storage.getProduct(productId);
+      
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      
+      const reviews = await storage.getProductReviews(productId);
+      res.json(reviews);
+    } catch (error) {
+      console.error("Error fetching product reviews:", error);
+      res.status(500).json({ error: "Failed to fetch product reviews" });
+    }
+  });
+  
+  // Get product rating summary
+  app.get("/api/products/:id/rating", async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const product = await storage.getProduct(productId);
+      
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      
+      const ratingSummary = await storage.getProductRatingSummary(productId);
+      res.json(ratingSummary);
+    } catch (error) {
+      console.error("Error fetching product rating summary:", error);
+      res.status(500).json({ error: "Failed to fetch product rating summary" });
+    }
+  });
+  
+  // Get reviews by a user
+  app.get("/api/user/reviews", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const reviews = await storage.getUserReviews(req.user.id);
+      res.json(reviews);
+    } catch (error) {
+      console.error("Error fetching user reviews:", error);
+      res.status(500).json({ error: "Failed to fetch user reviews" });
+    }
+  });
+  
+  // Get a specific review
+  app.get("/api/reviews/:id", async (req, res) => {
+    try {
+      const reviewId = parseInt(req.params.id);
+      const review = await storage.getReview(reviewId);
+      
+      if (!review) {
+        return res.status(404).json({ error: "Review not found" });
+      }
+      
+      res.json(review);
+    } catch (error) {
+      console.error("Error fetching review:", error);
+      res.status(500).json({ error: "Failed to fetch review" });
+    }
+  });
+  
+  // Create a review
+  app.post("/api/products/:id/reviews", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const productId = parseInt(req.params.id);
+      const product = await storage.getProduct(productId);
+      
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      
+      // Check if user has purchased the product (for verified purchase status)
+      const hasUserPurchased = await storage.hasUserPurchasedProduct(req.user.id, productId);
+      
+      // Create the review
+      const reviewData = insertReviewSchema.parse({
+        ...req.body,
+        userId: req.user.id,
+        productId,
+        verifiedPurchase: hasUserPurchased
+      });
+      
+      const review = await storage.createReview(reviewData);
+      
+      // If review has images, create them
+      if (req.body.images && Array.isArray(req.body.images)) {
+        for (const imageUrl of req.body.images) {
+          await storage.addReviewImage({
+            reviewId: review.id,
+            imageUrl
+          });
+        }
+      }
+      
+      res.status(201).json(review);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      console.error("Error creating review:", error);
+      res.status(500).json({ 
+        error: "Failed to create review",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
+  // Update a review
+  app.put("/api/reviews/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const reviewId = parseInt(req.params.id);
+      const review = await storage.getReview(reviewId);
+      
+      if (!review) {
+        return res.status(404).json({ error: "Review not found" });
+      }
+      
+      // Only the author of the review or an admin can update it
+      if (review.userId !== req.user.id && req.user.role !== "admin") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      const updatedReview = await storage.updateReview(reviewId, req.body);
+      res.json(updatedReview);
+    } catch (error) {
+      console.error("Error updating review:", error);
+      res.status(500).json({ error: "Failed to update review" });
+    }
+  });
+  
+  // Delete a review
+  app.delete("/api/reviews/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const reviewId = parseInt(req.params.id);
+      const review = await storage.getReview(reviewId);
+      
+      if (!review) {
+        return res.status(404).json({ error: "Review not found" });
+      }
+      
+      // Only the author of the review or an admin can delete it
+      if (review.userId !== req.user.id && req.user.role !== "admin") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      await storage.deleteReview(reviewId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting review:", error);
+      res.status(500).json({ error: "Failed to delete review" });
+    }
+  });
+  
+  // Mark a review as helpful
+  app.post("/api/reviews/:id/helpful", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const reviewId = parseInt(req.params.id);
+      const review = await storage.getReview(reviewId);
+      
+      if (!review) {
+        return res.status(404).json({ error: "Review not found" });
+      }
+      
+      // Can't mark your own review as helpful
+      if (review.userId === req.user.id) {
+        return res.status(400).json({ error: "Cannot mark your own review as helpful" });
+      }
+      
+      const helpfulVote = await storage.markReviewHelpful(reviewId, req.user.id);
+      res.status(201).json(helpfulVote);
+    } catch (error) {
+      console.error("Error marking review as helpful:", error);
+      res.status(500).json({ error: "Failed to mark review as helpful" });
+    }
+  });
+  
+  // Remove helpful mark from a review
+  app.delete("/api/reviews/:id/helpful", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const reviewId = parseInt(req.params.id);
+      const review = await storage.getReview(reviewId);
+      
+      if (!review) {
+        return res.status(404).json({ error: "Review not found" });
+      }
+      
+      // Check if user has marked this review as helpful
+      const isHelpful = await storage.isReviewHelpfulByUser(reviewId, req.user.id);
+      
+      if (!isHelpful) {
+        return res.status(400).json({ error: "You have not marked this review as helpful" });
+      }
+      
+      await storage.unmarkReviewHelpful(reviewId, req.user.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error removing helpful mark from review:", error);
+      res.status(500).json({ error: "Failed to remove helpful mark from review" });
+    }
+  });
+  
+  // Check if user has marked a review as helpful
+  app.get("/api/reviews/:id/helpful", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const reviewId = parseInt(req.params.id);
+      const review = await storage.getReview(reviewId);
+      
+      if (!review) {
+        return res.status(404).json({ error: "Review not found" });
+      }
+      
+      const isHelpful = await storage.isReviewHelpfulByUser(reviewId, req.user.id);
+      res.json({ isHelpful });
+    } catch (error) {
+      console.error("Error checking if review is helpful:", error);
+      res.status(500).json({ error: "Failed to check if review is helpful" });
+    }
+  });
   
   const httpServer = createServer(app);
   return httpServer;
