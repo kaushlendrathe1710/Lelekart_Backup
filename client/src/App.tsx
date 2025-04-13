@@ -41,6 +41,7 @@ import BulkUploadPage from './pages/seller/bulk-upload';
 import SmartInventoryPage from './pages/seller/smart-inventory';
 import BuyerDashboardPage from './pages/buyer/dashboard';
 import BuyerWishlistPage from './pages/buyer/wishlist';
+import BuyerSettingsPage from './pages/buyer/settings';
 
 function App() {
   return (
@@ -405,6 +406,15 @@ function App() {
                         path="/buyer/wishlist" 
                         role="buyer" 
                         component={BuyerWishlistPage} 
+                      />
+                    )}
+                  </Route>
+                  <Route path="/buyer/settings">
+                    {() => (
+                      <ProtectedRoute 
+                        path="/buyer/settings" 
+                        role="buyer" 
+                        component={BuyerSettingsPage} 
                       />
                     )}
                   </Route>
