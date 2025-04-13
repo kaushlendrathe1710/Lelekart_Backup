@@ -460,12 +460,19 @@ function AdminProductsContent() {
                               console.log("Full product data:", product);
                               
                               // Determine which image source to use
-                              let imageSrc = "https://placehold.co/100?text=No+Image";
+                              let imageSrc = "";
                               
                               try {
+                                // Check for imageUrl (camelCase)
                                 if (product.imageUrl) {
                                   imageSrc = product.imageUrl;
-                                } else if (product.images) {
+                                } 
+                                // Check for image_url (snake_case)
+                                else if ((product as any).image_url) {
+                                  imageSrc = (product as any).image_url;
+                                }
+                                // Check for images array or string
+                                else if (product.images) {
                                   // Handle array of images
                                   if (Array.isArray(product.images) && product.images.length > 0) {
                                     imageSrc = product.images[0];
@@ -488,20 +495,36 @@ function AdminProductsContent() {
                                     }
                                   }
                                 }
+                                
+                                // If we have an image URL and it's from Flipkart, use the proxy
+                                if (imageSrc && (imageSrc.includes('flixcart.com') || imageSrc.includes('flipkart.com'))) {
+                                  imageSrc = `/api/image-proxy?url=${encodeURIComponent(imageSrc)}&category=${encodeURIComponent(product.category || 'general')}`;
+                                }
                               } catch (err) {
                                 console.error("Error processing image:", err);
                               }
                               
+                              // Fallback to category-specific placeholder if no image
+                              const fallbackImage = imageSrc ? 
+                                "https://placehold.co/100?text=No+Image" : 
+                                `../images/${(product.category || 'general').toLowerCase()}.svg`;
+                              
                               return (
                                 <img
-                                  src={imageSrc}
+                                  src={imageSrc || fallbackImage}
                                   alt={product.name}
                                   className="object-contain h-full w-full"
                                   loading="eager"
                                   onError={(e) => {
                                     console.error("Failed to load image:", imageSrc);
-                                    (e.target as HTMLImageElement).src =
-                                      "https://placehold.co/100?text=No+Image";
+                                    // Try category-specific fallback
+                                    (e.target as HTMLImageElement).src = fallbackImage;
+                                    
+                                    // Add a second error handler for the fallback
+                                    (e.target as HTMLImageElement).onerror = () => {
+                                      (e.target as HTMLImageElement).src = "https://placehold.co/100?text=No+Image";
+                                      (e.target as HTMLImageElement).onerror = null; // Prevent infinite loop
+                                    };
                                   }}
                                 />
                               );
