@@ -97,9 +97,14 @@ export default function ProductPage() {
     enabled: !!product?.category,
   });
 
-  // Reset quantity when product changes
+  // Reset state when product changes
   useEffect(() => {
     setQuantity(1);
+    // Reset other state as needed
+    return () => {
+      // Cleanup if needed
+      console.log("ProductPage cleanup for product ID:", productId);
+    };
   }, [productId]);
 
   // Format price in Indian Rupees

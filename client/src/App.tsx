@@ -57,7 +57,7 @@ function App() {
                   console.log("App router matched product page with params:", params);
                   return (
                     <Layout>
-                      <ProductPage />
+                      <ProductPage key={params.id} />
                     </Layout>
                   );
                 }}
@@ -67,7 +67,7 @@ function App() {
               <Route path="/category/:category">
                 {(params) => (
                   <Layout>
-                    <CategoryPage />
+                    <CategoryPage key={params.category} />
                   </Layout>
                 )}
               </Route>

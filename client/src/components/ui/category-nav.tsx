@@ -12,7 +12,8 @@ export function CategoryNav() {
   });
   
   const handleCategoryClick = (category: string) => {
-    navigate(`/category/${encodeURIComponent(category)}`);
+    // Use navigate with { replace: false } to ensure it doesn't replace the current route
+    navigate(`/category/${encodeURIComponent(category)}`, { replace: false });
   };
   
   if (isLoading) {

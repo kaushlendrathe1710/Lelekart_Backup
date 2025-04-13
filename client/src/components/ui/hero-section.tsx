@@ -101,7 +101,7 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
       // Use navigate with { replace: false } to ensure it doesn't replace the current route
       navigate(`/product/${image.productId}`, { replace: false });
     } else if (image.category) {
-      navigate(`/?category=${image.category.toLowerCase()}`, { replace: false });
+      navigate(`/category/${image.category.toLowerCase()}`, { replace: false });
     }
   };
 
