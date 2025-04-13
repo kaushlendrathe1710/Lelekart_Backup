@@ -34,6 +34,7 @@ import AddProductPage from "./pages/seller/add-product";
 import EditProductPage from "./pages/seller/edit-product";
 import ProductPreviewPage from "./pages/seller/product-preview";
 import BulkUploadPage from "./pages/seller/bulk-upload";
+import SmartInventoryPage from "./pages/seller/smart-inventory";
 import BuyerDashboardPage from "./pages/buyer/dashboard";
 
 function App() {
@@ -277,6 +278,15 @@ function App() {
                     path="/seller/products/bulk-upload" 
                     role="seller" 
                     component={BulkUploadPage} 
+                  />
+                )}
+              </Route>
+              <Route path="/seller/smart-inventory">
+                {() => (
+                  <ProtectedRoute 
+                    path="/seller/smart-inventory" 
+                    role="seller" 
+                    component={SmartInventoryPage} 
                   />
                 )}
               </Route>

@@ -12,7 +12,9 @@ import {
   ShoppingBag,
   Settings, 
   ChevronRight,
-  Bell
+  Bell,
+  LineChart,
+  TrendingUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -238,6 +240,74 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             </SidebarHeader>
             <SidebarContent>
               <SidebarMenu>
+                {/* Seller specific menu items */}
+                {user.role === "seller" && (
+                  <>
+                    <SidebarMenuItem>
+                      <Button
+                        variant="ghost"
+                        asChild
+                        className={`w-full justify-start ${isActive('/seller/products') ? 'bg-primary/10 text-primary' : ''}`}
+                      >
+                        <Link href="/seller/products">
+                          <Package className="mr-2 h-4 w-4" />
+                          <span>Seller Products</span>
+                        </Link>
+                      </Button>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <Button
+                        variant="ghost"
+                        asChild
+                        className={`w-full justify-start ${isActive('/seller/orders') ? 'bg-primary/10 text-primary' : ''}`}
+                      >
+                        <Link href="/seller/orders">
+                          <ShoppingBag className="mr-2 h-4 w-4" />
+                          <span>Seller Orders</span>
+                        </Link>
+                      </Button>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <Button
+                        variant="ghost"
+                        asChild
+                        className={`w-full justify-start ${isActive('/seller/smart-inventory') ? 'bg-primary/10 text-primary' : ''}`}
+                      >
+                        <Link href="/seller/smart-inventory">
+                          <TrendingUp className="mr-2 h-4 w-4" />
+                          <span>Smart Inventory</span>
+                        </Link>
+                      </Button>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <Button
+                        variant="ghost"
+                        asChild
+                        className={`w-full justify-start ${isActive('/seller/add-product') ? 'bg-primary/10 text-primary' : ''}`}
+                      >
+                        <Link href="/seller/add-product">
+                          <Package className="mr-2 h-4 w-4" />
+                          <span>Add New Product</span>
+                        </Link>
+                      </Button>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <Button
+                        variant="ghost"
+                        asChild
+                        className={`w-full justify-start ${isActive('/seller/bulk-upload') ? 'bg-primary/10 text-primary' : ''}`}
+                      >
+                        <Link href="/seller/bulk-upload">
+                          <Package className="mr-2 h-4 w-4" />
+                          <span>Bulk Upload</span>
+                        </Link>
+                      </Button>
+                    </SidebarMenuItem>
+                    <SidebarSeparator />
+                  </>
+                )}
+
+                {/* Common menu items for all users */}
                 <SidebarMenuItem>
                   <Button
                     variant="ghost"
