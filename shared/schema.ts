@@ -13,6 +13,10 @@ export const users = pgTable("users", {
   name: text("name"),
   phone: text("phone"),
   address: text("address"),
+  approvalStatus: text("approval_status"), // For seller approval: pending, approved, rejected
+  approvedAt: timestamp("approved_at"),
+  rejectedAt: timestamp("rejected_at"),
+  approvedBy: integer("approved_by"), // Admin user ID who approved/rejected
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -23,6 +27,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   name: true,
   phone: true,
   address: true,
+  approvalStatus: true,
 });
 
 // Product schema
@@ -41,6 +46,12 @@ export const products = pgTable("products", {
   sellerId: integer("seller_id").notNull().references(() => users.id),
   stock: integer("stock").notNull().default(0),
   approved: boolean("approved").notNull().default(false),
+  approvalStatus: text("approval_status"), // pending, approved, rejected
+  approvedAt: timestamp("approved_at"),
+  rejectedAt: timestamp("rejected_at"),
+  approvedBy: integer("approved_by"), // Admin user ID who approved/rejected
+  rejectionReason: text("rejection_reason"), // Reason for rejection
+  featured: boolean("featured").default(false), // Featured products for hero section
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -58,6 +69,9 @@ export const insertProductSchema = createInsertSchema(products).pick({
   sellerId: true,
   stock: true,
   approved: true,
+  approvalStatus: true,
+  rejectionReason: true,
+  featured: true,
 });
 
 // Cart schema

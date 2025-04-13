@@ -29,6 +29,8 @@ import AdminProducts from './pages/admin/products';
 import AdminUsers from './pages/admin/users';
 import AdminOrders from './pages/admin/orders';
 import AdminCategories from './pages/admin/categories';
+import AdminSellerApproval from './pages/admin/seller-approval';
+import AdminProductApproval from './pages/admin/product-approval';
 
 // Seller pages
 import SellerDashboardPage from './pages/seller/dashboard';
@@ -227,6 +229,24 @@ function App() {
                         path="/admin/categories" 
                         role="admin" 
                         component={AdminCategories} 
+                      />
+                    )}
+                  </Route>
+                  <Route path="/admin/seller-approval">
+                    {() => (
+                      <ProtectedRoute 
+                        path="/admin/seller-approval" 
+                        role="admin" 
+                        component={AdminSellerApproval} 
+                      />
+                    )}
+                  </Route>
+                  <Route path="/admin/product-approval">
+                    {() => (
+                      <ProtectedRoute 
+                        path="/admin/product-approval" 
+                        role="admin" 
+                        component={AdminProductApproval} 
                       />
                     )}
                   </Route>

@@ -23,6 +23,9 @@ import {
   ShoppingCart,
   Search,
   Grid,
+  UserCheck,
+  CheckSquare,
+  Store,
 } from "lucide-react";
 
 interface AdminLayoutProps {
@@ -44,6 +47,12 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       icon: <Package className="h-5 w-5" />,
     },
     {
+      title: "Product Approval",
+      href: "/admin/product-approval",
+      icon: <CheckSquare className="h-5 w-5" />,
+      badge: "New",
+    },
+    {
       title: "Categories",
       href: "/admin/categories",
       icon: <Grid className="h-5 w-5" />,
@@ -52,6 +61,12 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       title: "Users",
       href: "/admin/users",
       icon: <Users className="h-5 w-5" />,
+    },
+    {
+      title: "Seller Approval",
+      href: "/admin/seller-approval",
+      icon: <UserCheck className="h-5 w-5" />,
+      badge: "New",
     },
     {
       title: "Orders",
@@ -191,6 +206,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                   >
                     {item.icon}
                     <span>{item.title}</span>
+                    {item.badge && (
+                      <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                        {item.badge}
+                      </span>
+                    )}
                   </div>
                 </Link>
               ))}

@@ -1,7 +1,23 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
+import { users, products } from "@shared/schema";
+import { eq, and } from "drizzle-orm";
+import { db } from "./db";
+
+// Middleware to check if user is admin
+function isAdmin(req: Request, res: Response, next: NextFunction) {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ error: "Forbidden: Admin access required" });
+  }
+  
+  next();
+}
 import { 
   insertProductSchema, 
   insertCartSchema, 
@@ -46,6 +62,184 @@ import {
 } from "./utils/ml-inventory-manager";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Seller approval API endpoints
+  app.get("/api/admin/sellers", isAdmin, async (req: Request, res: Response) => {
+    try {
+      // Get all sellers with role = 'seller'
+      const sellers = await db.query.users.findMany({
+        where: eq(users.role, "seller"),
+      });
+      res.json(sellers);
+    } catch (error) {
+      console.error("Error fetching sellers:", error);
+      res.status(500).json({ error: "Failed to fetch sellers" });
+    }
+  });
+
+  app.post("/api/admin/sellers/:id/approve", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const sellerId = parseInt(req.params.id);
+      if (isNaN(sellerId)) {
+        return res.status(400).json({ error: "Invalid seller ID" });
+      }
+
+      // Update the seller status to approved
+      const [updatedSeller] = await db
+        .update(users)
+        .set({ 
+          approvalStatus: "approved",
+          approvedAt: new Date(),
+          approvedBy: req.user?.id
+        })
+        .where(
+          and(
+            eq(users.id, sellerId),
+            eq(users.role, "seller")
+          )
+        )
+        .returning();
+
+      if (!updatedSeller) {
+        return res.status(404).json({ error: "Seller not found" });
+      }
+
+      res.json(updatedSeller);
+    } catch (error) {
+      console.error("Error approving seller:", error);
+      res.status(500).json({ error: "Failed to approve seller" });
+    }
+  });
+
+  app.post("/api/admin/sellers/:id/reject", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const sellerId = parseInt(req.params.id);
+      if (isNaN(sellerId)) {
+        return res.status(400).json({ error: "Invalid seller ID" });
+      }
+
+      // Update the seller status to rejected
+      const [updatedSeller] = await db
+        .update(users)
+        .set({ 
+          approvalStatus: "rejected",
+          rejectedAt: new Date(),
+          approvedBy: req.user?.id
+        })
+        .where(
+          and(
+            eq(users.id, sellerId),
+            eq(users.role, "seller")
+          )
+        )
+        .returning();
+
+      if (!updatedSeller) {
+        return res.status(404).json({ error: "Seller not found" });
+      }
+
+      res.json(updatedSeller);
+    } catch (error) {
+      console.error("Error rejecting seller:", error);
+      res.status(500).json({ error: "Failed to reject seller" });
+    }
+  });
+
+  // Product approval API endpoints
+  app.get("/api/admin/products/approval", isAdmin, async (req: Request, res: Response) => {
+    try {
+      // Get all products
+      const products = await db.query.products.findMany({
+        with: {
+          seller: true,
+        },
+      });
+      res.json(products);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      res.status(500).json({ error: "Failed to fetch products" });
+    }
+  });
+
+  app.post("/api/admin/products/:id/approve", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const productId = parseInt(req.params.id);
+      if (isNaN(productId)) {
+        return res.status(400).json({ error: "Invalid product ID" });
+      }
+
+      // Update the product status to approved
+      const [updatedProduct] = await db
+        .update(products)
+        .set({ 
+          approved: true,
+          approvalStatus: "approved",
+          approvedAt: new Date(),
+          approvedBy: req.user?.id
+        })
+        .where(eq(products.id, productId))
+        .returning();
+
+      if (!updatedProduct) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+
+      // Fetch the product with seller info
+      const productWithSeller = await db.query.products.findFirst({
+        where: eq(products.id, productId),
+        with: {
+          seller: true,
+        },
+      });
+
+      res.json(productWithSeller);
+    } catch (error) {
+      console.error("Error approving product:", error);
+      res.status(500).json({ error: "Failed to approve product" });
+    }
+  });
+
+  app.post("/api/admin/products/:id/reject", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const { reason } = req.body;
+      
+      if (isNaN(productId)) {
+        return res.status(400).json({ error: "Invalid product ID" });
+      }
+
+      // Update the product status to rejected
+      const [updatedProduct] = await db
+        .update(products)
+        .set({ 
+          approved: false,
+          approvalStatus: "rejected",
+          rejectedAt: new Date(),
+          approvedBy: req.user?.id,
+          rejectionReason: reason || "Does not meet store requirements"
+        })
+        .where(eq(products.id, productId))
+        .returning();
+
+      if (!updatedProduct) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+
+      // Fetch the product with seller info
+      const productWithSeller = await db.query.products.findFirst({
+        where: eq(products.id, productId),
+        with: {
+          seller: true,
+        },
+      });
+
+      res.json(productWithSeller);
+    } catch (error) {
+      console.error("Error rejecting product:", error);
+      res.status(500).json({ error: "Failed to reject product" });
+    }
+  });
+
+  // ----- Existing routes below -----
   // Setup authentication routes with OTP-based authentication
   setupAuth(app);
 

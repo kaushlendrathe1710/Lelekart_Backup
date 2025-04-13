@@ -230,6 +230,8 @@ export function setupAuth(app: Express) {
         ...userData,
         // Use a random password string since we're using OTP
         password: randomBytes(16).toString('hex'),
+        // Set approval status to pending for sellers, approved for buyers and admins
+        ...(userData.role === 'seller' ? { approvalStatus: 'pending' } : { approvalStatus: 'approved' }),
       });
 
       // Log in the new user
