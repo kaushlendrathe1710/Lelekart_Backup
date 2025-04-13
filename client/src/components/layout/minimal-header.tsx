@@ -38,7 +38,7 @@ export function Header() {
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center mb-2 md:mb-0">
-              <span className="text-2xl font-bold mr-1">Flipkart</span>
+              <span className="text-2xl font-bold mr-1">Lelekart</span>
               <span className="text-xs italic text-yellow-400 flex items-end">
                 <span>Explore</span>
                 <span className="ml-1 text-yellow-400">Plus</span>

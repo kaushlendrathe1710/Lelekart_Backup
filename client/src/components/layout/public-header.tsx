@@ -36,7 +36,7 @@ export function PublicHeader() {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-8">
             <Link href="/">
-              <div className="text-2xl font-bold">Flipkart</div>
+              <div className="text-2xl font-bold">Lelekart</div>
             </Link>
 
             <form onSubmit={handleSearch} className="flex-grow max-w-xl">
@@ -95,7 +95,7 @@ export function PublicHeader() {
           </button>
 
           <Link href="/">
-            <div className="text-2xl font-bold">Flipkart</div>
+            <div className="text-2xl font-bold">Lelekart</div>
           </Link>
 
           <div className="flex items-center space-x-3">
