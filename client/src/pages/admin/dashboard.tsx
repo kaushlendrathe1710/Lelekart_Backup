@@ -1,131 +1,25 @@
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useLocation, Link } from "wouter";
-import { AuthContext } from "@/hooks/use-auth";
+import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
 import { useContext } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { User } from "@shared/schema";
-import { Users, ShoppingBag, ShoppingCart, LineChart, Loader2 } from "lucide-react";
+import { AuthContext } from "@/hooks/use-auth";
+import { AdminLayout } from "@/components/layout/admin-layout";
+import { Users, ShoppingBag, ShoppingCart, LineChart } from "lucide-react";
 
 export default function AdminDashboardPage() {
-  // Try to use context first if available
   const authContext = useContext(AuthContext);
-  const queryClient = useQueryClient();
-  const [, setLocation] = useLocation();
+  const user = authContext?.user;
   
-  // Get user data from direct API if context is not available
-  const { data: apiUser, isLoading: apiLoading } = useQuery<User | null>({
-    queryKey: ['/api/user'],
-    queryFn: async () => {
-      const res = await fetch('/api/user', {
-        credentials: 'include',
-      });
-      
-      if (!res.ok) {
-        if (res.status === 401) return null;
-        throw new Error('Failed to fetch user');
-      }
-      
-      return res.json();
-    },
-    staleTime: 60000, // 1 minute
-  });
-  
-  // Use context user if available, otherwise use API user
-  const user = authContext?.user || apiUser;
-  const isLoading = authContext ? authContext.isLoading : apiLoading;
-  
-  // Logout mutation if no context available
-  const logoutMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include'
-      });
-      
-      if (!res.ok) {
-        throw new Error('Logout failed');
-      }
-    },
-    onSuccess: () => {
-      queryClient.setQueryData(['/api/user'], null);
-      setLocation('/');
-    }
-  });
-  
-  // Handle logout with either context or direct API
-  const handleLogout = () => {
-    if (authContext) {
-      authContext.logoutMutation.mutate();
-    } else {
-      logoutMutation.mutate();
-    }
-  };
-  
-  // Show loading state while fetching user data
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
-  }
-  
-  // If no user (not authenticated) or wrong role, redirect to auth page
-  if (!user || user.role !== 'admin') {
-    // Use wouter for navigation
-    setLocation('/auth');
-    return null;
+  if (!user) {
+    return null; // Protected route will handle redirects
   }
   
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Dashboard Header */}
-      <header className="bg-primary text-white py-4">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center">
-            <div className="text-2xl font-bold">Admin Dashboard</div>
-            <div className="flex items-center gap-3">
-              <Button 
-                variant="outline" 
-                className="bg-transparent text-white hover:bg-primary-foreground/10 border-2 border-white font-medium flex items-center gap-2"
-                asChild
-              >
-                <Link to="/">
-                  <ShoppingCart className="h-4 w-4" />
-                  View Store
-                </Link>
-              </Button>
-              <Button 
-                variant="secondary" 
-                className="bg-white text-primary hover:bg-gray-100 border-2 border-white font-medium flex items-center gap-2 shadow-sm"
-                onClick={handleLogout}
-              >
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  width="18" 
-                  height="18" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  strokeWidth="2" 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round"
-                >
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                  <polyline points="16 17 21 12 16 7"></polyline>
-                  <line x1="21" y1="12" x2="9" y2="12"></line>
-                </svg>
-                Logout
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-      
-      {/* Dashboard Content */}
-      <div className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+    <AdminLayout>
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold">Dashboard Overview</h1>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Stats Cards */}
           <Card className="shadow-md">
             <CardContent className="pt-6">
@@ -215,25 +109,34 @@ export default function AdminDashboardPage() {
               <Button 
                 variant="default"
                 className="w-full flex items-center justify-center gap-2"
+                asChild
               >
-                <Users className="h-4 w-4" />
-                Manage Users
+                <Link href="/admin/users">
+                  <Users className="h-4 w-4" />
+                  Manage Users
+                </Link>
               </Button>
               
               <Button 
                 variant="outline"
                 className="w-full flex items-center justify-center gap-2"
+                asChild
               >
-                <ShoppingBag className="h-4 w-4" />
-                Manage Products
+                <Link href="/admin/products">
+                  <ShoppingBag className="h-4 w-4" />
+                  Manage Products
+                </Link>
               </Button>
               
               <Button 
                 variant="outline"
                 className="w-full flex items-center justify-center gap-2"
+                asChild
               >
-                <ShoppingCart className="h-4 w-4" />
-                View Orders
+                <Link href="/admin/orders">
+                  <ShoppingCart className="h-4 w-4" />
+                  View Orders
+                </Link>
               </Button>
             </CardContent>
           </Card>
@@ -273,6 +176,6 @@ export default function AdminDashboardPage() {
           </Card>
         </div>
       </div>
-    </div>
+    </AdminLayout>
   );
 }
