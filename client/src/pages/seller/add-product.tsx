@@ -115,7 +115,7 @@ export default function AddProductPage() {
       mrp: "",
       sku: "",
       category: "",
-      subcategory: "",
+      // subcategory removed
       brand: "",
       color: "",
       size: "",
