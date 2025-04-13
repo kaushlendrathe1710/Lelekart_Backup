@@ -2155,7 +2155,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const sellerId = parseInt(req.params.id);
-      await storage.updateSellerApprovalStatus(sellerId, false);
+      // Set approved to false and rejected to true
+      await storage.updateSellerApprovalStatus(sellerId, false, true);
       res.json({ message: "Seller rejected successfully" });
     } catch (error) {
       console.error("Error rejecting seller:", error);
@@ -2177,9 +2178,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({
         approved: seller.approved || false,
+        rejected: seller.rejected || false,
         message: seller.approved 
           ? "Your seller account is approved. You can now list products and manage your store."
-          : "Your seller account is pending approval. Please wait for an admin to review your application."
+          : seller.rejected
+            ? "Your seller account has been rejected. Please contact customer support for more information."
+            : "Your seller account is pending approval. Please wait for an admin to review your application."
       });
     } catch (error) {
       console.error("Error checking seller status:", error);

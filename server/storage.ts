@@ -133,7 +133,7 @@ export interface IStorage {
 
   // Seller Approval Operations
   getSellers(): Promise<User[]>;
-  updateSellerApprovalStatus(sellerId: number, status: boolean): Promise<User>;
+  updateSellerApprovalStatus(sellerId: number, status: boolean, isRejected?: boolean): Promise<User>;
   
   // Session store
   sessionStore: session.SessionStore;
@@ -207,7 +207,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
-  async updateSellerApprovalStatus(id: number, status: boolean): Promise<User> {
+  async updateSellerApprovalStatus(id: number, status: boolean, isRejected: boolean = false): Promise<User> {
     const [seller] = await db.select().from(users).where(
       and(
         eq(users.id, id),
@@ -219,9 +219,14 @@ export class DatabaseStorage implements IStorage {
       throw new Error(`Seller with ID ${id} not found`);
     }
     
+    // When approving, clear the rejected flag
+    // When rejecting, set the rejected flag and clear approved
     const [updatedSeller] = await db
       .update(users)
-      .set({ approved: status })
+      .set({
+        approved: status,
+        rejected: isRejected
+      })
       .where(eq(users.id, id))
       .returning();
       
