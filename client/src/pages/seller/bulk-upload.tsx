@@ -26,10 +26,10 @@ import {
 } from "@/components/ui/popover";
 
 // Complete template with all possible product fields - matches the exact schema requirements
-const EXAMPLE_CSV = `name,description,price,purchasePrice,mrp,category,subcategory,brand,color,size,imageUrl1,imageUrl2,imageUrl3,imageUrl4,stock,sku,hsn,weight,length,width,height,warranty,returnPolicy,tax,specifications,productType
-Samsung Galaxy S21,Latest flagship smartphone with high-performance features,99999,89999,109999,Electronics,Mobiles,Samsung,Black,6.5 inch,https://example.com/smartphone.jpg,https://example.com/smartphone-back.jpg,https://example.com/smartphone-side.jpg,https://example.com/smartphone-box.jpg,100,SM-G991,85171290,180,150,72,8,12,15,18,"Display: AMOLED|RAM: 8GB|Storage: 128GB|Battery: 5000mAh",physical
-Apple AirPods Pro,Wireless earbuds with active noise cancellation,29999,19999,34999,Electronics,Audio,Apple,White,One Size,https://example.com/earbuds.jpg,https://example.com/earbuds-case.jpg,https://example.com/earbuds-open.jpg,https://example.com/earbuds-charging.jpg,200,APP-123,85183000,50,52,48,23,12,7,18,"Battery Life: 6 hours|Water Resistant: Yes|ANC: Yes|Wireless Charging: Yes",physical
-Nike Air Zoom,Comfortable sports shoes for daily runners,4999,3999,5999,Fashion,Footwear,Nike,Blue,"UK 9, US 10",https://example.com/shoes.jpg,https://example.com/shoes-side.jpg,https://example.com/shoes-sole.jpg,https://example.com/shoes-box.jpg,50,NK-AZ-10,64021990,290,285,105,110,6,30,12,"Material: Mesh|Sole: Rubber|Weight: 290g|Cushioning: React Foam",physical`;
+const EXAMPLE_CSV = `name,description,price,purchasePrice,mrp,category,brand,color,size,imageUrl1,imageUrl2,imageUrl3,imageUrl4,stock,sku,hsn,weight,length,width,height,warranty,returnPolicy,tax,specifications,productType
+Samsung Galaxy S21,Latest flagship smartphone with high-performance features,99999,89999,109999,Electronics,Samsung,Black,6.5 inch,https://example.com/smartphone.jpg,https://example.com/smartphone-back.jpg,https://example.com/smartphone-side.jpg,https://example.com/smartphone-box.jpg,100,SM-G991,85171290,180,150,72,8,12,15,18,"Display: AMOLED|RAM: 8GB|Storage: 128GB|Battery: 5000mAh",physical
+Apple AirPods Pro,Wireless earbuds with active noise cancellation,29999,19999,34999,Electronics,Apple,White,One Size,https://example.com/earbuds.jpg,https://example.com/earbuds-case.jpg,https://example.com/earbuds-open.jpg,https://example.com/earbuds-charging.jpg,200,APP-123,85183000,50,52,48,23,12,7,18,"Battery Life: 6 hours|Water Resistant: Yes|ANC: Yes|Wireless Charging: Yes",physical
+Nike Air Zoom,Comfortable sports shoes for daily runners,4999,3999,5999,Fashion,Nike,Blue,"UK 9, US 10",https://example.com/shoes.jpg,https://example.com/shoes-side.jpg,https://example.com/shoes-sole.jpg,https://example.com/shoes-box.jpg,50,NK-AZ-10,64021990,290,285,105,110,6,30,12,"Material: Mesh|Sole: Rubber|Weight: 290g|Cushioning: React Foam",physical`;
 
 // Helper function to parse CSV lines, properly handling quoted fields
 // This handles fields with commas inside quoted strings
@@ -219,7 +219,7 @@ export default function BulkUploadPage() {
               productData.images.push(value);
             }
             // Handle product metadata fields that should be combined into a metadata object
-            else if (['subcategory', 'brand', 'sku', 'hsn', 'productType'].includes(header)) {
+            else if (['brand', 'sku', 'hsn', 'productType'].includes(header)) {
               if (!productData.metadata) {
                 productData.metadata = {};
               }
