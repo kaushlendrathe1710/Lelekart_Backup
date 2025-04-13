@@ -11,7 +11,7 @@ export function ShopByCategory() {
   });
   
   const handleCategoryClick = (category: string) => {
-    navigate(`/?category=${category.toLowerCase()}`);
+    navigate(`/category/${encodeURIComponent(category)}`);
   };
   
   if (isLoading) {

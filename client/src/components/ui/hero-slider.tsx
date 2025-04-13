@@ -49,7 +49,7 @@ export function HeroSlider({ images, autoplayInterval = 5000 }: HeroSliderProps)
       navigate(`/product/${image.productId}`);
     } else if (image.category) {
       console.log("Navigating to category:", image.category);
-      navigate(`/?category=${image.category.toLowerCase()}`);
+      navigate(`/category/${encodeURIComponent(image.category)}`);
     }
   };
 
