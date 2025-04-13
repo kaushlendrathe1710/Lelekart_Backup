@@ -394,7 +394,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sellerId = req.query.sellerId ? Number(req.query.sellerId) : undefined;
       const approved = req.query.approved !== undefined ? req.query.approved === "true" : undefined;
       
-      // Pagination parameters
+      // Enhanced pagination parameters
       const page = req.query.page ? parseInt(req.query.page as string) : 1;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 12;
       const offset = (page - 1) * limit;
@@ -436,6 +436,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching products:', error);
       res.status(500).json({ error: "Failed to fetch products", details: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+  
+  // Bulk delete products
+  app.post("/api/products/bulk-delete", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin" && req.user.role !== "seller") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const { productIds } = req.body;
+      
+      if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
+        return res.status(400).json({ error: "Product IDs must be provided as an array" });
+      }
+      
+      console.log(`Bulk deleting ${productIds.length} products`);
+      
+      // If seller, verify they own all products
+      if (req.user.role === "seller") {
+        for (const id of productIds) {
+          const product = await storage.getProduct(id);
+          if (!product) {
+            return res.status(404).json({ error: `Product with ID ${id} not found` });
+          }
+          
+          if (product.sellerId !== req.user.id) {
+            return res.status(403).json({ error: "You can only delete your own products" });
+          }
+        }
+      }
+      
+      // Delete all products
+      for (const id of productIds) {
+        await storage.deleteProduct(id);
+      }
+      
+      res.status(200).json({ success: true, message: `Successfully deleted ${productIds.length} products` });
+    } catch (error) {
+      console.error('Error bulk deleting products:', error);
+      res.status(500).json({ error: "Failed to delete products", details: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
