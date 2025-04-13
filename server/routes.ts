@@ -831,6 +831,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Image proxy route to handle CORS issues with external images
+  app.get("/api/image-proxy", handleImageProxy);
+  
   const httpServer = createServer(app);
   return httpServer;
 }
