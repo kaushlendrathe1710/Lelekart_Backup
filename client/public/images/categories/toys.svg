@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <g id="toys-icon">
+    <!-- Teddy Bear Body -->
+    <circle cx="256" cy="256" r="170" fill="#F9D3B4"/>
+    <!-- Ears -->
+    <circle cx="156" cy="156" r="50" fill="#F9D3B4" stroke="#E6B89C" stroke-width="10"/>
+    <circle cx="356" cy="156" r="50" fill="#F9D3B4" stroke="#E6B89C" stroke-width="10"/>
+    <!-- Eyes -->
+    <circle cx="206" cy="236" r="20" fill="#333333"/>
+    <circle cx="306" cy="236" r="20" fill="#333333"/>
+    <!-- Reflection in eyes -->
+    <circle cx="212" cy="230" r="6" fill="white"/>
+    <circle cx="312" cy="230" r="6" fill="white"/>
+    <!-- Nose -->
+    <circle cx="256" cy="276" r="25" fill="#E6B89C"/>
+    <!-- Mouth -->
+    <path d="M226 306 C226 326 286 326 286 306" stroke="#333333" stroke-width="8" stroke-linecap="round"/>
+    <!-- Bow -->
+    <path d="M256 340 L236 360 L256 380 L276 360 L256 340 Z" fill="#FF6B6B"/>
+    <rect x="246" y="340" width="20" height="40" rx="5" fill="#FF6B6B"/>
+    <!-- Arms -->
+    <path d="M160 280 C120 300 120 340 130 360" stroke="#E6B89C" stroke-width="20" stroke-linecap="round"/>
+    <path d="M352 280 C392 300 392 340 382 360" stroke="#E6B89C" stroke-width="20" stroke-linecap="round"/>
+    <!-- Belly -->
+    <circle cx="256" cy="320" r="60" fill="#F0C2A1"/>
+  </g>
+</svg>
