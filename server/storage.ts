@@ -458,6 +458,66 @@ export class DatabaseStorage implements IStorage {
     
     return updatedProduct;
   }
+  
+  // Get products that are pending approval (where approved=false)
+  async getPendingProducts(): Promise<Product[]> {
+    try {
+      console.log('Getting pending products');
+      const result = await db
+        .select()
+        .from(products)
+        .where(eq(products.approved, false))
+        .orderBy(desc(products.createdAt));
+      
+      console.log(`Found ${result.length} pending products`);
+      return result;
+    } catch (error) {
+      console.error("Error in getPendingProducts:", error);
+      return [];
+    }
+  }
+  
+  // Approve a product
+  async approveProduct(id: number): Promise<Product> {
+    try {
+      const [updatedProduct] = await db
+        .update(products)
+        .set({ approved: true })
+        .where(eq(products.id, id))
+        .returning();
+      
+      if (!updatedProduct) {
+        throw new Error(`Product with ID ${id} not found`);
+      }
+      
+      return updatedProduct;
+    } catch (error) {
+      console.error(`Error approving product ${id}:`, error);
+      throw error;
+    }
+  }
+  
+  // Reject a product (keeping it as false but marking it somehow)
+  async rejectProduct(id: number): Promise<Product> {
+    try {
+      // Here we're just marking it as not approved
+      // You could add a 'rejected' field to the schema if you want to track rejected products separately
+      const [updatedProduct] = await db
+        .update(products)
+        .set({ approved: false })
+        .where(eq(products.id, id))
+        .returning();
+      
+      if (!updatedProduct) {
+        throw new Error(`Product with ID ${id} not found`);
+      }
+      
+      return updatedProduct;
+    } catch (error) {
+      console.error(`Error rejecting product ${id}:`, error);
+      throw error;
+    }
+  }
 
   async searchProducts(query: string, limit: number = 10): Promise<Product[]> {
     try {
