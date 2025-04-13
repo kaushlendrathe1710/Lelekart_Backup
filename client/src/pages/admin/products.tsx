@@ -565,7 +565,7 @@ function AdminProductsContent() {
                           {product.approved ? "Approved" : "Pending"}
                         </Badge>
                       </TableCell>
-                      <TableCell>Seller #{product.sellerId}</TableCell>
+                      <TableCell>{product.sellerName || `Seller #${product.sellerId}`}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -673,7 +673,7 @@ function AdminProductsContent() {
             <DialogHeader>
               <DialogTitle>{viewProduct.name}</DialogTitle>
               <DialogDescription>
-                Product ID: {viewProduct.id} | Added by Seller #{viewProduct.sellerId}
+                Product ID: {viewProduct.id} | Added by {viewProduct.sellerName || `Seller #${viewProduct.sellerId}`}
               </DialogDescription>
             </DialogHeader>
             
