@@ -270,14 +270,17 @@ function AdminProductsContent() {
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
               <Input
                 type="search"
                 placeholder="Search products..."
-                className="pl-8 w-full"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8 pr-24 w-full"
+                disabled
+                onClick={() => alert('Search functionality is being improved. Please check back later!')}
               />
+              <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400">
+                Coming soon
+              </span>
             </div>
 
             {/* Filter Dropdown */}

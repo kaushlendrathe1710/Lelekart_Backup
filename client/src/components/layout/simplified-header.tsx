@@ -41,25 +41,23 @@ export function Header() {
             </Link>
           </div>
           
-          {/* Search Bar */}
+          {/* Search Bar - Non-functional Placeholder */}
           <div className="w-full md:w-5/12 md:ml-4 relative mb-2 md:mb-0">
-            <form onSubmit={handleSearch} className="relative">
+            <div className="relative">
               <Input
                 type="text"
                 placeholder="Search for products, brands and more"
                 className="w-full py-2 px-4 text-gray-900 rounded-sm focus:outline-none"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                disabled
+                onClick={() => alert('Search functionality is being improved. Please check back later!')}
               />
-              <Button
-                type="submit"
-                size="icon"
-                variant="ghost"
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-primary"
-              >
+              <span className="absolute right-16 top-1/2 transform -translate-y-1/2 text-xs text-gray-400">
+                Coming soon
+              </span>
+              <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400">
                 <Search className="h-5 w-5" />
-              </Button>
-            </form>
+              </span>
+            </div>
           </div>
           
           {/* Desktop Navigation */}

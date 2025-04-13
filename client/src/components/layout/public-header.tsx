@@ -39,23 +39,23 @@ export function PublicHeader() {
               <div className="text-2xl font-bold">Lelekart</div>
             </Link>
 
-            <form onSubmit={handleSearch} className="flex-grow max-w-xl">
+            <div className="flex-grow max-w-xl">
               <div className="relative flex items-center">
                 <Input
                   type="text"
                   placeholder="Search for products, brands and more"
-                  className="w-full bg-white text-black pr-12"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-white text-black pr-24"
+                  disabled
+                  onClick={() => alert('Search functionality is being improved. Please check back later!')}
                 />
-                <button
-                  type="submit"
-                  className="absolute right-0 h-full px-3 bg-transparent text-gray-500 hover:text-gray-700"
-                >
+                <span className="absolute right-12 text-xs text-gray-400">
+                  Coming soon
+                </span>
+                <span className="absolute right-0 h-full px-3 text-gray-400">
                   <Search size={20} />
-                </button>
+                </span>
               </div>
-            </form>
+            </div>
           </div>
 
           <div className="flex items-center space-x-4">
@@ -113,25 +113,23 @@ export function PublicHeader() {
           </div>
         </div>
 
-        {/* Mobile Search */}
+        {/* Mobile Search - Non-functional Placeholder */}
         <div className="mt-3">
-          <form onSubmit={handleSearch}>
-            <div className="relative flex items-center">
-              <Input
-                type="text"
-                placeholder="Search products..."
-                className="w-full bg-white text-black pr-12"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <button
-                type="submit"
-                className="absolute right-0 h-full px-3 bg-transparent text-gray-500 hover:text-gray-700"
-              >
-                <Search size={20} />
-              </button>
-            </div>
-          </form>
+          <div className="relative flex items-center">
+            <Input
+              type="text"
+              placeholder="Search products..."
+              className="w-full bg-white text-black pr-24"
+              disabled
+              onClick={() => alert('Search functionality is being improved. Please check back later!')}
+            />
+            <span className="absolute right-12 text-xs text-gray-400">
+              Coming soon
+            </span>
+            <span className="absolute right-0 h-full px-3 text-gray-400">
+              <Search size={20} />
+            </span>
+          </div>
         </div>
 
         {/* Mobile Menu */}
