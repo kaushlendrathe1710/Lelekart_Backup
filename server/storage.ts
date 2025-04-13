@@ -385,35 +385,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCartItems(userId: number): Promise<{id: number, quantity: number, product: Product, userId: number}[]> {
-    try {
-      console.log('Running getCartItems query for userId:', userId);
-      
-      const cartWithProducts = await db
-        .select({
-          id: carts.id,
-          quantity: carts.quantity,
-          userId: carts.userId,
-          product: products
-        })
-        .from(carts)
-        .where(eq(carts.userId, userId))
-        .innerJoin(products, eq(carts.productId, products.id));
-      
-      console.log('Cart query result:', cartWithProducts);
-      
-      const result = cartWithProducts.map(item => ({
-        id: item.id,
-        quantity: item.quantity,
-        userId: item.userId,
-        product: item.product
-      }));
-      
-      console.log('Mapped cart items:', result);
-      return result;
-    } catch (error) {
-      console.error("Error in getCartItems:", error);
-      throw error;
-    }
+    const cartWithProducts = await db
+      .select({
+        id: carts.id,
+        quantity: carts.quantity,
+        userId: carts.userId,
+        product: products
+      })
+      .from(carts)
+      .where(eq(carts.userId, userId))
+      .innerJoin(products, eq(carts.productId, products.id));
+    
+    return cartWithProducts.map(item => ({
+      id: item.id,
+      quantity: item.quantity,
+      userId: item.userId,
+      product: item.product
+    }));
   }
 
   async getCartItem(id: number): Promise<Cart | undefined> {

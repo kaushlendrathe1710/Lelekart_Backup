@@ -80,15 +80,13 @@ function AdminProductsContent() {
 
   // Fetch products
   const {
-    data: productsData,
+    data: products,
     isLoading,
     isError,
     refetch,
-  } = useQuery<{ products: Product[], pagination: any }>({
+  } = useQuery<Product[]>({
     queryKey: ["/api/products"],
   });
-  
-  const products = productsData?.products || [];
 
   // Delete product mutation
   const deleteMutation = useMutation({

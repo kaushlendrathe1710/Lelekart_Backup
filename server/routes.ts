@@ -1,23 +1,7 @@
-import type { Express, Request, Response, NextFunction } from "express";
+import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
-import { users, products } from "@shared/schema";
-import { eq, and } from "drizzle-orm";
-import { db, pool } from "./db";
-
-// Middleware to check if user is admin
-function isAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-  
-  if (req.user.role !== "admin") {
-    return res.status(403).json({ error: "Forbidden: Admin access required" });
-  }
-  
-  next();
-}
 import { 
   insertProductSchema, 
   insertCartSchema, 
@@ -62,311 +46,9 @@ import {
 } from "./utils/ml-inventory-manager";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Set up authentication middleware
+  // Setup authentication routes with OTP-based authentication
   setupAuth(app);
-  
-  // Seller approval API endpoints
-  app.get("/api/admin/sellers", isAdmin, async (req: Request, res: Response) => {
-    try {
-      // Get all sellers with role = 'seller'
-      console.log("Fetching sellers...");
-      const sellers = await db.query.users.findMany({
-        where: eq(users.role, "seller"),
-      });
-      console.log(`Found ${sellers.length} sellers`);
-      res.json(sellers);
-    } catch (error) {
-      console.error("Error fetching sellers:", error);
-      res.status(500).json({ error: "Failed to fetch sellers", details: error instanceof Error ? error.message : 'Unknown error' });
-    }
-  });
 
-  app.post("/api/admin/sellers/:id/approve", isAdmin, async (req: Request, res: Response) => {
-    try {
-      const sellerId = parseInt(req.params.id);
-      if (isNaN(sellerId)) {
-        return res.status(400).json({ error: "Invalid seller ID" });
-      }
-
-      // Update the seller status to approved
-      const [updatedSeller] = await db
-        .update(users)
-        .set({ 
-          approvalStatus: "approved",
-          approvedAt: new Date(),
-          approvedBy: req.user?.id
-        })
-        .where(
-          and(
-            eq(users.id, sellerId),
-            eq(users.role, "seller")
-          )
-        )
-        .returning();
-
-      if (!updatedSeller) {
-        return res.status(404).json({ error: "Seller not found" });
-      }
-
-      res.json(updatedSeller);
-    } catch (error) {
-      console.error("Error approving seller:", error);
-      res.status(500).json({ error: "Failed to approve seller" });
-    }
-  });
-
-  app.post("/api/admin/sellers/:id/reject", isAdmin, async (req: Request, res: Response) => {
-    try {
-      const sellerId = parseInt(req.params.id);
-      if (isNaN(sellerId)) {
-        return res.status(400).json({ error: "Invalid seller ID" });
-      }
-
-      // Update the seller status to rejected
-      const [updatedSeller] = await db
-        .update(users)
-        .set({ 
-          approvalStatus: "rejected",
-          rejectedAt: new Date(),
-          approvedBy: req.user?.id
-        })
-        .where(
-          and(
-            eq(users.id, sellerId),
-            eq(users.role, "seller")
-          )
-        )
-        .returning();
-
-      if (!updatedSeller) {
-        return res.status(404).json({ error: "Seller not found" });
-      }
-
-      res.json(updatedSeller);
-    } catch (error) {
-      console.error("Error rejecting seller:", error);
-      res.status(500).json({ error: "Failed to reject seller" });
-    }
-  });
-
-  // Product approval API endpoints
-  app.get("/api/admin/products/approval", isAdmin, async (req: Request, res: Response) => {
-    try {
-      // Get products filtered by approval status
-      console.log("Fetching products for approval...");
-      
-      // Using the pool directly for raw SQL queries to avoid column issues
-      const pendingResult = await pool.query(`
-        SELECT p.*, u.username as seller_username, u.name as seller_name 
-        FROM products p
-        LEFT JOIN users u ON p.seller_id = u.id
-        WHERE p.approval_status = 'pending' OR p.approval_status IS NULL
-      `);
-      
-      const approvedResult = await pool.query(`
-        SELECT p.*, u.username as seller_username, u.name as seller_name 
-        FROM products p
-        LEFT JOIN users u ON p.seller_id = u.id
-        WHERE p.approval_status = 'approved'
-      `);
-      
-      const rejectedResult = await pool.query(`
-        SELECT p.*, u.username as seller_username, u.name as seller_name 
-        FROM products p
-        LEFT JOIN users u ON p.seller_id = u.id
-        WHERE p.approval_status = 'rejected'
-      `);
-      
-      const pendingProducts = pendingResult.rows;
-      const approvedProducts = approvedResult.rows;
-      const rejectedProducts = rejectedResult.rows;
-      
-      // Format the results to match expected structure
-      const formatProducts = (products: any[]) => {
-        return products.map(product => {
-          // Convert snake_case to camelCase for frontend
-          return {
-            id: product.id,
-            name: product.name,
-            description: product.description,
-            specifications: product.specifications,
-            purchasePrice: product.purchase_price,
-            price: product.price,
-            category: product.category,
-            color: product.color,
-            size: product.size,
-            imageUrl: product.image_url,
-            images: product.images,
-            sellerId: product.seller_id,
-            stock: product.stock,
-            approved: product.approved,
-            approvalStatus: product.approval_status,
-            approvedAt: product.approved_at,
-            rejectedAt: product.rejected_at,
-            approvedBy: product.approved_by,
-            rejectionReason: product.rejection_reason,
-            createdAt: product.created_at,
-            // Add seller information
-            seller: {
-              id: product.seller_id,
-              username: product.seller_username,
-              name: product.seller_name
-            }
-          };
-        });
-      };
-      
-      console.log(`Found ${pendingProducts.length} pending, ${approvedProducts.length} approved, and ${rejectedProducts.length} rejected products`);
-      
-      res.json({
-        pending: formatProducts(pendingProducts),
-        approved: formatProducts(approvedProducts),
-        rejected: formatProducts(rejectedProducts)
-      });
-    } catch (error) {
-      console.error("Error fetching products:", error);
-      res.status(500).json({ error: "Failed to fetch products", details: error instanceof Error ? error.message : 'Unknown error' });
-    }
-  });
-
-  app.post("/api/admin/products/:id/approve", isAdmin, async (req: Request, res: Response) => {
-    try {
-      const productId = parseInt(req.params.id);
-      if (isNaN(productId)) {
-        return res.status(400).json({ error: "Invalid product ID" });
-      }
-
-      // Update the product status to approved using raw SQL
-      await pool.query(`
-        UPDATE products
-        SET approved = true,
-            approval_status = 'approved',
-            approved_at = NOW(),
-            approved_by = $1
-        WHERE id = $2
-      `, [req.user?.id, productId]);
-
-      // Fetch the updated product with seller info using raw SQL
-      const result = await pool.query(`
-        SELECT p.*, u.username as seller_username, u.name as seller_name 
-        FROM products p
-        LEFT JOIN users u ON p.seller_id = u.id
-        WHERE p.id = $1
-      `, [productId]);
-
-      if (!result.rows || result.rows.length === 0) {
-        return res.status(404).json({ error: "Product not found after update" });
-      }
-
-      // Format the result to match the expected structure
-      const updatedProduct = result.rows[0];
-      const formattedProduct = {
-        id: updatedProduct.id,
-        name: updatedProduct.name,
-        description: updatedProduct.description,
-        specifications: updatedProduct.specifications,
-        purchasePrice: updatedProduct.purchase_price,
-        price: updatedProduct.price,
-        category: updatedProduct.category,
-        color: updatedProduct.color,
-        size: updatedProduct.size,
-        imageUrl: updatedProduct.image_url,
-        images: updatedProduct.images,
-        sellerId: updatedProduct.seller_id,
-        stock: updatedProduct.stock,
-        approved: updatedProduct.approved,
-        approvalStatus: updatedProduct.approval_status,
-        approvedAt: updatedProduct.approved_at,
-        rejectedAt: updatedProduct.rejected_at,
-        approvedBy: updatedProduct.approved_by,
-        rejectionReason: updatedProduct.rejection_reason,
-        createdAt: updatedProduct.created_at,
-        // Add seller information
-        seller: {
-          id: updatedProduct.seller_id,
-          username: updatedProduct.seller_username,
-          name: updatedProduct.seller_name
-        }
-      };
-
-      res.json(formattedProduct);
-    } catch (error) {
-      console.error("Error approving product:", error);
-      res.status(500).json({ error: "Failed to approve product" });
-    }
-  });
-
-  app.post("/api/admin/products/:id/reject", isAdmin, async (req: Request, res: Response) => {
-    try {
-      const productId = parseInt(req.params.id);
-      const { reason } = req.body;
-      
-      if (isNaN(productId)) {
-        return res.status(400).json({ error: "Invalid product ID" });
-      }
-
-      // Update the product status to rejected using raw SQL
-      await pool.query(`
-        UPDATE products
-        SET approved = false,
-            approval_status = 'rejected',
-            rejected_at = NOW(),
-            approved_by = $1,
-            rejection_reason = $2
-        WHERE id = $3
-      `, [req.user?.id, reason || "Does not meet store requirements", productId]);
-
-      // Fetch the updated product with seller info using raw SQL
-      const result = await pool.query(`
-        SELECT p.*, u.username as seller_username, u.name as seller_name 
-        FROM products p
-        LEFT JOIN users u ON p.seller_id = u.id
-        WHERE p.id = $1
-      `, [productId]);
-
-      if (!result.rows || result.rows.length === 0) {
-        return res.status(404).json({ error: "Product not found after update" });
-      }
-
-      // Format the result to match the expected structure
-      const updatedProduct = result.rows[0];
-      const formattedProduct = {
-        id: updatedProduct.id,
-        name: updatedProduct.name,
-        description: updatedProduct.description,
-        specifications: updatedProduct.specifications,
-        purchasePrice: updatedProduct.purchase_price,
-        price: updatedProduct.price,
-        category: updatedProduct.category,
-        color: updatedProduct.color,
-        size: updatedProduct.size,
-        imageUrl: updatedProduct.image_url,
-        images: updatedProduct.images,
-        sellerId: updatedProduct.seller_id,
-        stock: updatedProduct.stock,
-        approved: updatedProduct.approved,
-        approvalStatus: updatedProduct.approval_status,
-        approvedAt: updatedProduct.approved_at,
-        rejectedAt: updatedProduct.rejected_at,
-        approvedBy: updatedProduct.approved_by,
-        rejectionReason: updatedProduct.rejection_reason,
-        createdAt: updatedProduct.created_at,
-        // Add seller information
-        seller: {
-          id: updatedProduct.seller_id,
-          username: updatedProduct.seller_username,
-          name: updatedProduct.seller_name
-        }
-      };
-
-      res.json(formattedProduct);
-    } catch (error) {
-      console.error("Error rejecting product:", error);
-      res.status(500).json({ error: "Failed to reject product" });
-    }
-  });
-
-  // ----- Existing routes below -----
   // Search endpoint
   app.get("/api/search", async (req, res) => {
     try {
@@ -394,7 +76,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sellerId = req.query.sellerId ? Number(req.query.sellerId) : undefined;
       const approved = req.query.approved !== undefined ? req.query.approved === "true" : undefined;
       
-      // Enhanced pagination parameters
+      // Pagination parameters
       const page = req.query.page ? parseInt(req.query.page as string) : 1;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 12;
       const offset = (page - 1) * limit;
@@ -436,46 +118,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching products:', error);
       res.status(500).json({ error: "Failed to fetch products", details: error instanceof Error ? error.message : 'Unknown error' });
-    }
-  });
-  
-  // Bulk delete products
-  app.post("/api/products/bulk-delete", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    if (req.user.role !== "admin" && req.user.role !== "seller") return res.status(403).json({ error: "Not authorized" });
-    
-    try {
-      const { productIds } = req.body;
-      
-      if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
-        return res.status(400).json({ error: "Product IDs must be provided as an array" });
-      }
-      
-      console.log(`Bulk deleting ${productIds.length} products`);
-      
-      // If seller, verify they own all products
-      if (req.user.role === "seller") {
-        for (const id of productIds) {
-          const product = await storage.getProduct(id);
-          if (!product) {
-            return res.status(404).json({ error: `Product with ID ${id} not found` });
-          }
-          
-          if (product.sellerId !== req.user.id) {
-            return res.status(403).json({ error: "You can only delete your own products" });
-          }
-        }
-      }
-      
-      // Delete all products
-      for (const id of productIds) {
-        await storage.deleteProduct(id);
-      }
-      
-      res.status(200).json({ success: true, message: `Successfully deleted ${productIds.length} products` });
-    } catch (error) {
-      console.error('Error bulk deleting products:', error);
-      res.status(500).json({ error: "Failed to delete products", details: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
@@ -584,12 +226,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
-      console.log('Fetching cart for user:', req.user.id);
       const cartItems = await storage.getCartItems(req.user.id);
-      console.log('Cart items fetched successfully:', cartItems);
       res.json(cartItems);
     } catch (error) {
-      console.error("Error in getCartItems:", error);
       res.status(500).json({ error: "Failed to fetch cart" });
     }
   });

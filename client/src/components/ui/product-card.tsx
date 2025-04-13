@@ -8,7 +8,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useContext } from "react";
 import { apiRequest } from "@/lib/queryClient";
-import { useAuth } from "@/hooks/use-auth";
 
 // Define an extended Product interface to include image_url
 interface ExtendedProduct extends Product {
@@ -27,8 +26,12 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   
-  // Get user data from AuthContext
-  const { user } = useAuth();
+  // Get user data to check if logged in
+  const { data: user } = useQuery<User | null>({
+    queryKey: ['/api/user'],
+    retry: false,
+    staleTime: 60000,
+  });
 
   // Format price in Indian Rupees
   const formatPrice = (price: number) => {
@@ -99,8 +102,8 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
           onClick={() => {
             try {
               console.log(`Navigating to product details page: /product/${product.id}`);
-              // Use SPA routing with setLocation instead of direct window.location change
-              setLocation(`/product/${product.id}`);
+              // Use SPA routing for better performance
+              window.location.href = `/product/${product.id}`;
             } catch (e) {
               console.error('Navigation error:', e);
             }
@@ -164,8 +167,8 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
         onClick={() => {
           try {
             console.log(`Navigating to product details page: /product/${product.id}`);
-            // Use SPA routing with setLocation instead of direct window.location change
-            setLocation(`/product/${product.id}`);
+            // Use SPA routing for better performance
+            window.location.href = `/product/${product.id}`;
           } catch (e) {
             console.error('Navigation error:', e);
           }
