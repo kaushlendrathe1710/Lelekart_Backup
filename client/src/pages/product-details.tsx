@@ -12,6 +12,7 @@ import { CartContext } from "@/context/cart-context";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ProductReviews from "@/components/product/product-reviews";
 
 // Custom image slider component with Flipkart-like thumbnails on the left
 function ProductImageSlider({ images, name }: { images: string[], name: string }) {
@@ -547,95 +548,7 @@ export default function ProductDetailsPage() {
                 </TabsContent>
                 
                 <TabsContent value="reviews" className="p-2">
-                  <div className="flex mb-6">
-                    <div className="w-1/3 border-r pr-6">
-                      <div className="text-center">
-                        <div className="text-5xl font-medium text-gray-800">4.3 <span className="text-xl">★</span></div>
-                        <div className="text-sm text-gray-600 mt-1">1,248 Ratings &</div>
-                        <div className="text-sm text-gray-600">235 Reviews</div>
-                      </div>
-                      
-                      <div className="mt-6">
-                        <div className="flex items-center mb-1">
-                          <div className="text-sm mr-2">5★</div>
-                          <div className="flex-1 bg-gray-200 h-2 rounded-full overflow-hidden">
-                            <div className="bg-green-500 h-full" style={{ width: '65%' }}></div>
-                          </div>
-                          <div className="text-sm ml-2 text-gray-600">789</div>
-                        </div>
-                        <div className="flex items-center mb-1">
-                          <div className="text-sm mr-2">4★</div>
-                          <div className="flex-1 bg-gray-200 h-2 rounded-full overflow-hidden">
-                            <div className="bg-green-500 h-full" style={{ width: '20%' }}></div>
-                          </div>
-                          <div className="text-sm ml-2 text-gray-600">237</div>
-                        </div>
-                        <div className="flex items-center mb-1">
-                          <div className="text-sm mr-2">3★</div>
-                          <div className="flex-1 bg-gray-200 h-2 rounded-full overflow-hidden">
-                            <div className="bg-yellow-500 h-full" style={{ width: '10%' }}></div>
-                          </div>
-                          <div className="text-sm ml-2 text-gray-600">124</div>
-                        </div>
-                        <div className="flex items-center mb-1">
-                          <div className="text-sm mr-2">2★</div>
-                          <div className="flex-1 bg-gray-200 h-2 rounded-full overflow-hidden">
-                            <div className="bg-orange-500 h-full" style={{ width: '3%' }}></div>
-                          </div>
-                          <div className="text-sm ml-2 text-gray-600">43</div>
-                        </div>
-                        <div className="flex items-center mb-1">
-                          <div className="text-sm mr-2">1★</div>
-                          <div className="flex-1 bg-gray-200 h-2 rounded-full overflow-hidden">
-                            <div className="bg-red-500 h-full" style={{ width: '2%' }}></div>
-                          </div>
-                          <div className="text-sm ml-2 text-gray-600">29</div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="w-2/3 pl-6">
-                      <h3 className="font-medium mb-3">Product Reviews</h3>
-                      
-                      {/* Sample review */}
-                      <div className="mb-4 pb-4 border-b">
-                        <div className="flex items-center mb-2">
-                          <div className="flex items-center bg-green-600 text-white px-1.5 py-0.5 rounded text-xs">
-                            <span>5</span>
-                            <Star className="h-2 w-2 ml-0.5 fill-current" />
-                          </div>
-                          <span className="text-gray-700 font-medium ml-2">Excellent product</span>
-                        </div>
-                        <p className="text-gray-600 text-sm">This product exceeded my expectations. Quality is outstanding and delivery was prompt.</p>
-                        <div className="flex items-center mt-2 text-sm text-gray-500">
-                          <span>Rahul M.</span>
-                          <span className="mx-1">•</span>
-                          <span>Verified Purchase</span>
-                        </div>
-                      </div>
-                      
-                      {/* Sample review 2 */}
-                      <div className="mb-4 pb-4 border-b">
-                        <div className="flex items-center mb-2">
-                          <div className="flex items-center bg-green-600 text-white px-1.5 py-0.5 rounded text-xs">
-                            <span>4</span>
-                            <Star className="h-2 w-2 ml-0.5 fill-current" />
-                          </div>
-                          <span className="text-gray-700 font-medium ml-2">Good value for money</span>
-                        </div>
-                        <p className="text-gray-600 text-sm">Works great, easy to use. The only downside is the battery life could be better.</p>
-                        <div className="flex items-center mt-2 text-sm text-gray-500">
-                          <span>Priya S.</span>
-                          <span className="mx-1">•</span>
-                          <span>Verified Purchase</span>
-                        </div>
-                      </div>
-                      
-                      <Button variant="outline" className="text-sm">
-                        View All Reviews
-                      </Button>
-                    </div>
-                  </div>
+                  {productId && <ProductReviews productId={productId} />}
                 </TabsContent>
               </Tabs>
             </div>
