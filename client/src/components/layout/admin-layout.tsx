@@ -24,6 +24,7 @@ import {
   Search,
   Grid,
   UserCheck,
+  CheckSquare,
 } from "lucide-react";
 
 interface AdminLayoutProps {
@@ -43,6 +44,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       title: "Products",
       href: "/admin/products",
       icon: <Package className="h-5 w-5" />,
+    },
+    {
+      title: "Product Approval",
+      href: "/admin/product-approval",
+      icon: <CheckSquare className="h-5 w-5" />,
     },
     {
       title: "Categories",

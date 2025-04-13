@@ -30,6 +30,7 @@ import AdminUsers from './pages/admin/users';
 import AdminOrders from './pages/admin/orders';
 import AdminCategories from './pages/admin/categories';
 import SellerApproval from './pages/admin/seller-approval';
+import ProductApproval from './pages/admin/product-approval';
 
 // Seller pages
 import SellerDashboardPage from './pages/seller/dashboard';
@@ -237,6 +238,15 @@ function App() {
                         path="/admin/seller-approval" 
                         role="admin" 
                         component={SellerApproval} 
+                      />
+                    )}
+                  </Route>
+                  <Route path="/admin/product-approval">
+                    {() => (
+                      <ProtectedRoute 
+                        path="/admin/product-approval" 
+                        role="admin" 
+                        component={ProductApproval} 
                       />
                     )}
                   </Route>
