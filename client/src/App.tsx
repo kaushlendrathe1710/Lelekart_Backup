@@ -276,9 +276,7 @@ function App() {
                   <ProtectedRoute 
                     path="/seller/orders" 
                     role="seller" 
-                    component={() => (
-                      <SellerDashboardPage />
-                    )} 
+                    component={SellerOrdersPage} 
                   />
                 )}
               </Route>
