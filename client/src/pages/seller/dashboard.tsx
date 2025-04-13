@@ -16,6 +16,7 @@ import {
 import { useContext } from "react";
 import { AuthContext } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
+import { ApprovalCheck } from "@/components/seller/approval-check";
 
 export default function SellerDashboardPage() {
   // Try to use context first if available
@@ -32,31 +33,32 @@ export default function SellerDashboardPage() {
   
   return (
     <SellerDashboardLayout>
-      <div className="space-y-8">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Seller Dashboard</h1>
-          <div className="flex gap-3">
-            <Button 
-              variant="outline" 
-              className="flex items-center gap-2"
-              asChild
-            >
-              <Link href="/seller/products/add">
-                <Layers className="h-4 w-4" />
-                Add Product
-              </Link>
-            </Button>
-            <Button 
-              className="flex items-center gap-2"
-              asChild
-            >
-              <Link href="/seller/orders">
-                <PackageOpen className="h-4 w-4" />
-                View Orders
-              </Link>
-            </Button>
+      <ApprovalCheck>
+        <div className="space-y-8">
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold">Seller Dashboard</h1>
+            <div className="flex gap-3">
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-2"
+                asChild
+              >
+                <Link href="/seller/products/add">
+                  <Layers className="h-4 w-4" />
+                  Add Product
+                </Link>
+              </Button>
+              <Button 
+                className="flex items-center gap-2"
+                asChild
+              >
+                <Link href="/seller/orders">
+                  <PackageOpen className="h-4 w-4" />
+                  View Orders
+                </Link>
+              </Button>
+            </div>
           </div>
-        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Stats Cards */}
@@ -283,7 +285,7 @@ export default function SellerDashboardPage() {
                   <Calendar className="h-5 w-5 text-blue-700" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Flipkart Sale Event</p>
+                  <p className="text-sm font-medium">Lelekart Sale Event</p>
                   <p className="text-xs text-muted-foreground">May 15, 2025 - May 20, 2025</p>
                   <p className="text-xs mt-1">
                     Prepare your inventory for the upcoming sale event. Special discounts and promotions.
@@ -307,6 +309,7 @@ export default function SellerDashboardPage() {
           </CardContent>
         </Card>
       </div>
+      </ApprovalCheck>
     </SellerDashboardLayout>
   );
 }

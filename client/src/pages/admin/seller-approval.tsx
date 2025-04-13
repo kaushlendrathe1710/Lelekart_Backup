@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AdminLayout } from '@/components/layout/admin-layout';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { queryClient, apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2, CheckCircle, XCircle, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { apiRequest } from '@/lib/queryClient';
+import { Loader2, CheckCircle, XCircle, User, Mail, Phone, MapPin } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 
 type Seller = {
   id: number;
@@ -20,181 +21,141 @@ type Seller = {
 };
 
 export default function SellerApprovalPage() {
+  const [selectedTab, setSelectedTab] = useState('pending');
+  const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<string>('pending');
 
-  // Fetch pending sellers
-  const {
-    data: pendingSellers,
-    isLoading: isPendingLoading,
-    error: pendingError
-  } = useQuery({
-    queryKey: ['/api/sellers/pending'],
+  const { data: sellers, isLoading } = useQuery<Seller[]>({
+    queryKey: ['/api/admin/sellers'],
     queryFn: async () => {
-      const res = await apiRequest('GET', '/api/sellers/pending');
-      return res.json() as Promise<Seller[]>;
-    },
-    enabled: activeTab === 'pending'
+      const res = await apiRequest('GET', '/api/admin/sellers');
+      return res.json();
+    }
   });
 
-  // Fetch approved sellers
-  const {
-    data: approvedSellers,
-    isLoading: isApprovedLoading,
-    error: approvedError
-  } = useQuery({
-    queryKey: ['/api/sellers/approved'],
-    queryFn: async () => {
-      const res = await apiRequest('GET', '/api/sellers/approved');
-      return res.json() as Promise<Seller[]>;
-    },
-    enabled: activeTab === 'approved'
-  });
-
-  // Mutation for approving seller
   const approveMutation = useMutation({
     mutationFn: async (sellerId: number) => {
-      const res = await apiRequest('PUT', `/api/sellers/${sellerId}/approve`);
+      const res = await apiRequest('POST', `/api/admin/sellers/${sellerId}/approve`);
       return res.json();
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/sellers'] });
       toast({
-        title: 'Success',
-        description: 'Seller has been approved successfully.',
-        variant: 'default',
+        title: 'Seller approved',
+        description: 'The seller has been approved successfully',
+        variant: 'success',
       });
-      
-      // Invalidate both seller queries to refresh the data
-      queryClient.invalidateQueries({ queryKey: ['/api/sellers/pending'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/sellers/approved'] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
-        title: 'Error',
-        description: `Failed to approve seller: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        title: 'Failed to approve seller',
+        description: error.message || 'Something went wrong',
         variant: 'destructive',
       });
     }
   });
 
-  // Mutation for rejecting seller
   const rejectMutation = useMutation({
     mutationFn: async (sellerId: number) => {
-      const res = await apiRequest('PUT', `/api/sellers/${sellerId}/reject`);
+      const res = await apiRequest('POST', `/api/admin/sellers/${sellerId}/reject`);
       return res.json();
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/sellers'] });
       toast({
-        title: 'Success',
-        description: 'Seller approval has been revoked.',
-        variant: 'default',
+        title: 'Seller rejected',
+        description: 'The seller has been rejected',
+        variant: 'success',
       });
-      
-      // Invalidate both seller queries to refresh the data
-      queryClient.invalidateQueries({ queryKey: ['/api/sellers/pending'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/sellers/approved'] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
-        title: 'Error',
-        description: `Failed to reject seller: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        title: 'Failed to reject seller',
+        description: error.message || 'Something went wrong',
         variant: 'destructive',
       });
     }
   });
 
-  // Handle tab change
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-  };
-
-  // Handle approve seller
-  const handleApproveSeller = (sellerId: number) => {
-    approveMutation.mutate(sellerId);
-  };
-
-  // Handle reject seller
-  const handleRejectSeller = (sellerId: number) => {
-    rejectMutation.mutate(sellerId);
-  };
+  const pendingSellers = sellers?.filter(seller => !seller.approved) || [];
+  const approvedSellers = sellers?.filter(seller => seller.approved) || [];
 
   return (
     <AdminLayout>
-      <div className="p-6">
+      <div className="container mx-auto py-6">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Seller Approval</h1>
+          <h1 className="text-2xl font-bold">Seller Approval</h1>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="bg-amber-100 text-amber-800 hover:bg-amber-100">
+              {pendingSellers.length} Pending
+            </Badge>
+            <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-100">
+              {approvedSellers.length} Approved
+            </Badge>
+          </div>
         </div>
 
-        <Tabs defaultValue="pending" onValueChange={handleTabChange}>
+        <Tabs defaultValue="pending" value={selectedTab} onValueChange={setSelectedTab}>
           <TabsList className="mb-6">
-            <TabsTrigger value="pending">
-              Pending Approval
-              {pendingSellers && pendingSellers.length > 0 && (
-                <Badge variant="destructive" className="ml-2">{pendingSellers.length}</Badge>
-              )}
-            </TabsTrigger>
+            <TabsTrigger value="pending">Pending Approval</TabsTrigger>
             <TabsTrigger value="approved">Approved Sellers</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="pending">
-            {isPendingLoading ? (
-              <div className="flex items-center justify-center h-64">
+          
+          <TabsContent value="pending" className="space-y-6">
+            {isLoading ? (
+              <div className="flex justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            ) : pendingError ? (
-              <div className="bg-destructive/10 p-4 rounded-md text-destructive">
-                Error loading pending sellers: {pendingError instanceof Error ? pendingError.message : 'Unknown error'}
+            ) : pendingSellers.length === 0 ? (
+              <div className="bg-muted rounded-lg p-8 text-center">
+                <User className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium">No pending sellers</h3>
+                <p className="text-muted-foreground mt-1">
+                  All sellers have been reviewed. Check the approved tab to see approved sellers.
+                </p>
               </div>
-            ) : pendingSellers && pendingSellers.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {pendingSellers.map((seller) => (
+            ) : (
+              <div className="grid grid-cols-1 gap-6">
+                {pendingSellers.map(seller => (
                   <SellerCard 
                     key={seller.id} 
                     seller={seller} 
-                    onApprove={handleApproveSeller}
-                    onReject={handleRejectSeller}
+                    onApprove={() => approveMutation.mutate(seller.id)}
+                    onReject={() => rejectMutation.mutate(seller.id)}
                     isApproving={approveMutation.isPending}
                     isRejecting={rejectMutation.isPending}
                   />
                 ))}
               </div>
-            ) : (
-              <div className="text-center p-12 bg-muted/20 rounded-lg">
-                <User className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                <h3 className="text-lg font-medium">No pending seller approvals</h3>
-                <p className="text-muted-foreground">All sellers have been reviewed!</p>
-              </div>
             )}
           </TabsContent>
-
-          <TabsContent value="approved">
-            {isApprovedLoading ? (
-              <div className="flex items-center justify-center h-64">
+          
+          <TabsContent value="approved" className="space-y-6">
+            {isLoading ? (
+              <div className="flex justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            ) : approvedError ? (
-              <div className="bg-destructive/10 p-4 rounded-md text-destructive">
-                Error loading approved sellers: {approvedError instanceof Error ? approvedError.message : 'Unknown error'}
+            ) : approvedSellers.length === 0 ? (
+              <div className="bg-muted rounded-lg p-8 text-center">
+                <User className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium">No approved sellers</h3>
+                <p className="text-muted-foreground mt-1">
+                  Once you approve sellers, they will appear here.
+                </p>
               </div>
-            ) : approvedSellers && approvedSellers.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {approvedSellers.map((seller) => (
+            ) : (
+              <div className="grid grid-cols-1 gap-6">
+                {approvedSellers.map(seller => (
                   <SellerCard 
                     key={seller.id} 
                     seller={seller} 
-                    onApprove={handleApproveSeller}
-                    onReject={handleRejectSeller}
-                    isApproving={approveMutation.isPending}
+                    onApprove={() => {}}
+                    onReject={() => rejectMutation.mutate(seller.id)}
+                    isApproving={false}
                     isRejecting={rejectMutation.isPending}
                     approved={true}
                   />
                 ))}
-              </div>
-            ) : (
-              <div className="text-center p-12 bg-muted/20 rounded-lg">
-                <User className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                <h3 className="text-lg font-medium">No approved sellers yet</h3>
-                <p className="text-muted-foreground">Approve some sellers to see them here!</p>
               </div>
             )}
           </TabsContent>
@@ -215,61 +176,89 @@ type SellerCardProps = {
 
 function SellerCard({ seller, onApprove, onReject, isApproving, isRejecting, approved = false }: SellerCardProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex justify-between items-center">
-          {seller.username}
-          {approved && (
-            <Badge className="ml-2 bg-green-500 hover:bg-green-600">Approved</Badge>
+    <Card className="shadow-sm hover:shadow-md transition-shadow">
+      <CardContent className="p-6">
+        <div className="flex flex-col md:flex-row gap-6">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="bg-primary/10 rounded-full p-3">
+                <User className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">{seller.name || seller.username}</h3>
+                <p className="text-sm text-muted-foreground">Seller ID: #{seller.id}</p>
+              </div>
+              {approved && (
+                <Badge className="ml-auto bg-green-100 text-green-800 hover:bg-green-100">
+                  Approved
+                </Badge>
+              )}
+            </div>
+            
+            <Separator className="my-4" />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-start gap-2">
+                <Mail className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium">Email</p>
+                  <p className="text-sm text-muted-foreground">{seller.email}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-2">
+                <Phone className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium">Phone</p>
+                  <p className="text-sm text-muted-foreground">{seller.phone || 'Not provided'}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-2 md:col-span-2">
+                <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium">Address</p>
+                  <p className="text-sm text-muted-foreground">{seller.address || 'Not provided'}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {!approved ? (
+            <div className="flex flex-col gap-3 justify-center">
+              <Button 
+                onClick={() => onApprove(seller.id)} 
+                className="flex gap-2 items-center w-40"
+                disabled={isApproving || isRejecting}
+              >
+                {isApproving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                Approve
+              </Button>
+              <Button 
+                onClick={() => onReject(seller.id)} 
+                variant="outline" 
+                className="flex gap-2 items-center text-red-600 border-red-200 hover:bg-red-50 w-40"
+                disabled={isApproving || isRejecting}
+              >
+                {isRejecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
+                Reject
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3 justify-center">
+              <Button 
+                onClick={() => onReject(seller.id)} 
+                variant="outline" 
+                className="flex gap-2 items-center text-red-600 border-red-200 hover:bg-red-50 w-40"
+                disabled={isRejecting}
+              >
+                {isRejecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
+                Revoke Access
+              </Button>
+            </div>
           )}
-        </CardTitle>
-        <CardDescription>{seller.email}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          <div>
-            <span className="font-semibold">Name:</span> {seller.name || 'Not provided'}
-          </div>
-          <div>
-            <span className="font-semibold">Phone:</span> {seller.phone || 'Not provided'}
-          </div>
-          <div>
-            <span className="font-semibold">Address:</span> {seller.address || 'Not provided'}
-          </div>
         </div>
       </CardContent>
-      <CardFooter className="justify-between">
-        {approved ? (
-          <Button 
-            variant="destructive" 
-            onClick={() => onReject(seller.id)}
-            disabled={isRejecting}
-          >
-            {isRejecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <XCircle className="mr-2 h-4 w-4" />}
-            Revoke Approval
-          </Button>
-        ) : (
-          <>
-            <Button 
-              variant="default" 
-              className="bg-green-600 hover:bg-green-700 text-white"
-              onClick={() => onApprove(seller.id)}
-              disabled={isApproving}
-            >
-              {isApproving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
-              Approve
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => onReject(seller.id)}
-              disabled={isRejecting}
-            >
-              {isRejecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <XCircle className="mr-2 h-4 w-4" />}
-              Reject
-            </Button>
-          </>
-        )}
-      </CardFooter>
     </Card>
   );
 }
