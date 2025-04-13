@@ -21,7 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { BasicSearch } from "@/components/ui/basic-search";
+import { SimpleSearch } from "@/components/ui/simple-search";
 import { useCart } from "@/context/cart-context";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -80,7 +80,7 @@ export function Header() {
           
           {/* Search Bar */}
           <div className="w-full md:w-5/12 md:ml-4 relative mb-2 md:mb-0">
-            <BasicSearch />
+            <SimpleSearch />
           </div>
           
           {/* Desktop Navigation */}

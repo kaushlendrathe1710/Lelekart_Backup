@@ -102,14 +102,17 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               </Button>
             </Link>
 
-            {/* Search Box */}
+            {/* Search Box - Now Non-Functional Placeholder */}
             <div className="relative hidden md:flex items-center bg-white rounded-sm px-3 py-1.5 ml-4">
               <input
                 type="text"
                 placeholder="Search products..."
                 className="bg-transparent border-none focus:outline-none text-sm w-40 lg:w-64 placeholder-gray-500 text-gray-900"
+                disabled
+                onClick={() => alert('Search functionality is coming soon!')}
               />
-              <Search className="h-5 w-5 text-[#2874f0]" />
+              <Search className="h-5 w-5 text-gray-400" />
+              <span className="text-xs text-gray-400 ml-1 absolute right-10">Coming soon</span>
             </div>
           </div>
 
