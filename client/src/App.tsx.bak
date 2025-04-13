@@ -231,15 +231,6 @@ function App() {
                       />
                     )}
                   </Route>
-                  <Route path="/admin/seller-approval">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/admin/seller-approval" 
-                        role="admin" 
-                        component={SellerApproval} 
-                      />
-                    )}
-                  </Route>
                   {/* Seller route with nested paths to use the same layout */}
                   <Route path="/seller/dashboard">
                     {() => (
