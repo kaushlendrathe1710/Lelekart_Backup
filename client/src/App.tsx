@@ -18,6 +18,7 @@ import { queryClient } from "@/lib/queryClient";
 import { ProtectedRoute } from "./lib/protected-route";
 
 // Import dashboard components
+import SellerOrdersPage from "./pages/seller/orders";
 import AdminDashboard from "./pages/admin/index";
 import AdminProducts from "./pages/admin/products";
 import AdminUsers from "./pages/admin/users";

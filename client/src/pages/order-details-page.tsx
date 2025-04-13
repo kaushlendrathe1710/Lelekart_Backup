@@ -1,13 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Package2, Truck, ClipboardCheck, Clock, MapPin, User, Phone, Mail } from "lucide-react";
+import { Package2, Truck, ClipboardCheck, Clock, MapPin, User, Phone, Mail, FileText, Download, Printer } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 
 // Types for order items and products
 interface Product {
@@ -113,7 +114,67 @@ export default function OrderDetailsPage() {
   const [items, setItems] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const invoiceRef = useRef<HTMLDivElement>(null);
   
+  // Function to print/download invoice
+  const printInvoice = () => {
+    if (!invoiceRef.current) return;
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast({
+        title: "Error",
+        description: "Could not open print window. Please check your browser settings.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Invoice #${order?.id}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+            .invoice-container { max-width: 800px; margin: 0 auto; }
+            .invoice-header { display: flex; justify-content: space-between; margin-bottom: 20px; }
+            .company-details { text-align: right; }
+            .invoice-title { font-size: 24px; font-weight: bold; margin-bottom: 20px; }
+            .customer-details, .order-details { margin-bottom: 20px; }
+            .section-title { font-size: 16px; font-weight: bold; margin-bottom: 10px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+            th { background-color: #f9f9f9; }
+            .total-section { margin-top: 20px; text-align: right; }
+            .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+            @media print { @page { margin: 0.5cm; } }
+          </style>
+        </head>
+        <body>
+          ${invoiceRef.current.innerHTML}
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 500);
+  };
+  
+  // Download invoice as PDF
+  const downloadInvoice = () => {
+    // Using browser print to PDF functionality
+    printInvoice();
+    
+    toast({
+      title: "Download Started",
+      description: "Your invoice is being prepared for download.",
+    });
+  };
+
   useEffect(() => {
     // Check if user is logged in
     const cachedUser = queryClient.getQueryData<any>(['/api/user']);
@@ -206,13 +267,19 @@ export default function OrderDetailsPage() {
             <h1 className="text-2xl font-bold">Order Details</h1>
             <p className="text-muted-foreground">Order #{order.id}</p>
           </div>
-          <div className="mt-4 md:mt-0">
+          <div className="mt-4 md:mt-0 flex gap-2">
             <Button 
               variant="outline" 
               onClick={() => navigate("/orders")}
-              className="mr-2"
             >
               Back to Orders
+            </Button>
+            <Button
+              variant="outline"
+              onClick={downloadInvoice}
+              className="flex items-center gap-2"
+            >
+              <FileText className="h-4 w-4" /> Download Invoice
             </Button>
           </div>
         </div>
@@ -391,6 +458,88 @@ export default function OrderDetailsPage() {
             <Button variant="outline">Cancel Order</Button>
             <Button variant="outline">Return or Exchange</Button>
             <Button variant="outline">Contact Support</Button>
+          </div>
+        </div>
+
+        {/* Hidden Invoice Template for Printing */}
+        <div className="hidden">
+          <div ref={invoiceRef} className="invoice-container">
+            <div className="invoice-header">
+              <div className="logo">
+                <div style={{ fontSize: '24px', fontWeight: 'bold' }}>Lelekart</div>
+                <div>Online Marketplace</div>
+              </div>
+              <div className="company-details">
+                <div>Lelekart Internet Private Limited</div>
+                <div>123 Commerce Street, Bangalore</div>
+                <div>Karnataka, India 560001</div>
+                <div>GST: 29AABCT1332L1ZT</div>
+              </div>
+            </div>
+            
+            <div className="invoice-title">TAX INVOICE</div>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div className="customer-details">
+                <div className="section-title">Bill To:</div>
+                {order.shippingDetails && typeof order.shippingDetails === 'object' && (
+                  <>
+                    <div>{order.shippingDetails.name}</div>
+                    <div>{order.shippingDetails.address}</div>
+                    <div>{order.shippingDetails.city}, {order.shippingDetails.state}</div>
+                    <div>{order.shippingDetails.zipCode}</div>
+                    <div>Phone: {order.shippingDetails.phone}</div>
+                    <div>Email: {order.shippingDetails.email}</div>
+                  </>
+                )}
+              </div>
+              
+              <div className="order-details">
+                <div className="section-title">Invoice Details:</div>
+                <div><strong>Invoice Number:</strong> INV-{order.id}</div>
+                <div><strong>Order Number:</strong> ORD-{order.id}</div>
+                <div><strong>Date:</strong> {format(new Date(order.date), 'dd/MM/yyyy')}</div>
+                <div><strong>Payment Method:</strong> {order.paymentMethod === 'cod' ? 'Cash on Delivery' : order.paymentMethod}</div>
+              </div>
+            </div>
+            
+            <div style={{ marginTop: '20px' }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th style={{ width: '50%' }}>Item Description</th>
+                    <th>Quantity</th>
+                    <th>Unit Price</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item) => (
+                    <tr key={item.id}>
+                      <td>{item.product.name}</td>
+                      <td>{item.quantity}</td>
+                      <td>₹{item.price.toFixed(2)}</td>
+                      <td>₹{(item.price * item.quantity).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            <div className="total-section">
+              <div><strong>Subtotal:</strong> ₹{order.total.toFixed(2)}</div>
+              <div><strong>Shipping:</strong> ₹0.00</div>
+              <div><strong>Tax:</strong> Included</div>
+              <div style={{ marginTop: '10px', fontSize: '18px', fontWeight: 'bold' }}>
+                <strong>Grand Total:</strong> ₹{order.total.toFixed(2)}
+              </div>
+            </div>
+            
+            <div className="footer">
+              <p>Thank you for shopping with Lelekart!</p>
+              <p>For any questions, please contact our customer service at support@lelekart.com</p>
+              <p>This is a computer-generated invoice and does not require a signature.</p>
+            </div>
           </div>
         </div>
       </div>
