@@ -1,5 +1,6 @@
 import { Switch, Route } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
@@ -40,15 +41,21 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <CartProvider>
-          <div className="app">
-            <Switch>
-              <Route path="/">
-                {() => (
-                  <Layout>
-                    <HomePage />
-                  </Layout>
-                )}
-              </Route>
+          <AIAssistantProvider>
+            <TooltipProvider>
+              <div className="app">
+                {/* AI Assistant components */}
+                <AIAssistantButton />
+                <AIShoppingAssistant />
+                
+                <Switch>
+                <Route path="/">
+                  {() => (
+                    <Layout>
+                      <HomePage />
+                    </Layout>
+                  )}
+                </Route>
               <Route path="/auth">
                 {() => (
                   <Layout>
@@ -390,6 +397,8 @@ function App() {
             </Switch>
             <Toaster />
           </div>
+            </TooltipProvider>
+          </AIAssistantProvider>
         </CartProvider>
       </AuthProvider>
     </QueryClientProvider>

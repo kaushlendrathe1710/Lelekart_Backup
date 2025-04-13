@@ -12,6 +12,7 @@ import TestNavigation from "@/components/test-navigation";
 import { Pagination } from "@/components/ui/pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProductRecommendationCarousel from "@/components/ui/product-recommendation-carousel";
+import { PersonalizedRecommendations } from "@/components/ai";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function HomePage() {
@@ -202,16 +203,11 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Personalized Recommendations - Only shown for logged in users */}
+      {/* AI-Powered Personalized Recommendations */}
       {!category && (
         <div className="container mx-auto px-4 py-4">
           <div className="bg-white p-4 rounded shadow-sm">
-            <ProductRecommendationCarousel 
-              title="Recommended for You"
-              description="Products picked just for you based on your browsing history"
-              endpoint="/api/recommendations"
-              limit={10}
-            />
+            <PersonalizedRecommendations />
           </div>
         </div>
       )}

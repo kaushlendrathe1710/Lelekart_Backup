@@ -14,6 +14,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProductReviews from "@/components/product/product-reviews";
 import ProductRecommendationCarousel from "@/components/ui/product-recommendation-carousel";
+import { ProductQA, ComplementaryProducts, SizeRecommendation } from "@/components/ai";
 
 // Custom image slider component with Flipkart-like thumbnails on the left
 function ProductImageSlider({ images, name }: { images: string[], name: string }) {
@@ -524,10 +525,34 @@ export default function ProductDetailsPage() {
                 <TabsContent value="description" className="p-2">
                   <h3 className="font-medium text-lg mb-3">Product Description</h3>
                   <p className="text-gray-700 whitespace-pre-line">{product?.description}</p>
+                  
+                  {/* AI-Powered Product Q&A */}
+                  {product && (
+                    <div className="mt-8">
+                      <ProductQA productId={product.id} />
+                    </div>
+                  )}
                 </TabsContent>
                 
                 <TabsContent value="specifications" className="p-2">
                   <h3 className="font-medium text-lg mb-3">Specifications</h3>
+                  
+                  {/* AI-Powered Size Recommendation */}
+                  {product?.category?.toLowerCase().includes('fashion') || 
+                   product?.category?.toLowerCase().includes('clothing') || 
+                   product?.name?.toLowerCase().includes('shirt') || 
+                   product?.name?.toLowerCase().includes('pant') || 
+                   product?.name?.toLowerCase().includes('shoe') ? (
+                    <div className="mb-5">
+                      <SizeRecommendation 
+                        productId={product.id} 
+                        category={product.category}
+                        availableSizes={['XS', 'S', 'M', 'L', 'XL', 'XXL']}
+                      />
+                      <Separator className="my-4" />
+                    </div>
+                  ) : null}
+                  
                   <div className="border rounded">
                     <div className="bg-gray-50 p-3 border-b">
                       <h4 className="font-medium">General</h4>
@@ -577,51 +602,16 @@ export default function ProductDetailsPage() {
             />
           </div>
           
-          {/* Frequently Bought Together */}
+          {/* AI-Powered Complementary Products */}
           <div className="bg-white rounded shadow-sm mb-3 p-4">
-            <h2 className="font-medium text-xl mb-4">Frequently Bought Together</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* This could be populated dynamically but using placeholder for now */}
-              <div className="border rounded p-4 flex items-center">
-                <div className="w-20 h-20 mr-4">
-                  <img 
-                    src={productImages[0]} 
-                    alt="Current product" 
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-                <div>
-                  <div className="text-sm font-medium">{product?.name}</div>
-                  <div className="text-primary font-medium">{formatPrice(price)}</div>
-                </div>
-              </div>
-              
-              {/* Placeholder items */}
-              <div className="border rounded p-4 flex items-center opacity-50">
-                <div className="w-20 h-20 mr-4 flex items-center justify-center">
-                  <Package className="w-12 h-12 text-gray-300" />
-                </div>
-                <div>
-                  <div className="text-sm font-medium">Compatible Accessory</div>
-                  <div className="text-primary font-medium">₹399</div>
-                </div>
-              </div>
-              
-              <div className="border rounded p-4 flex items-center opacity-50">
-                <div className="w-20 h-20 mr-4 flex items-center justify-center">
-                  <Package className="w-12 h-12 text-gray-300" />
-                </div>
-                <div>
-                  <div className="text-sm font-medium">Extended Warranty</div>
-                  <div className="text-primary font-medium">₹499</div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="mt-4 flex items-center">
-              <span className="font-medium mr-4">Total: {formatPrice(price + 399 + 499)}</span>
-              <Button variant="outline" size="sm">Add All To Cart</Button>
-            </div>
+            {product && (
+              <ComplementaryProducts 
+                productId={product.id}
+                productName={product.name}
+                productImage={productImages[0]}
+                productPrice={price}
+              />
+            )}
           </div>
         </div>
       </div>

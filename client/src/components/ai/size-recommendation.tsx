@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAIAssistant } from "@/context/ai-assistant-context";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, RulerSquare, Check, AlertCircle } from "lucide-react";
+import { Loader2, Ruler, Check, AlertCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
@@ -63,7 +63,7 @@ export const SizeRecommendation: React.FC<SizeRecommendationProps> = ({
     <div className="space-y-3 mt-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <RulerSquare size={16} className="text-primary" />
+          <Ruler size={16} className="text-primary" />
           <h3 className="text-sm font-medium">Select Size</h3>
         </div>
         
