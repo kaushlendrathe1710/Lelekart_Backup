@@ -17,11 +17,14 @@ interface CartItem {
     name: string;
     description: string;
     price: number;
-    image: string;
+    image?: string;
+    image_url?: string;
+    imageUrl?: string;
     category: string;
     sellerId: number;
     approved: boolean;
     createdAt: string;
+    images?: string;
   };
 }
 
@@ -105,7 +108,7 @@ export default function CartPage() {
 
   const proceedToCheckout = () => {
     // Use wouter for navigation
-    setLocation('/checkout');
+    setLocation('/checkout', { replace: false });
   };
 
   // Calculate totals
@@ -131,7 +134,7 @@ export default function CartPage() {
           <h2 className="text-2xl font-semibold mb-4">Your cart is empty</h2>
           <p className="text-gray-600 mb-8">Looks like you haven't added any items to your cart yet.</p>
           <Button 
-            onClick={() => setLocation('/')} 
+            onClick={() => setLocation('/', { replace: false })} 
             className="bg-primary text-white"
           >
             Continue Shopping
@@ -155,9 +158,36 @@ export default function CartPage() {
                   <li key={item.id} className="py-6 flex">
                     <div className="flex-shrink-0 w-24 h-24 border border-gray-200 rounded-md overflow-hidden">
                       <img
-                        src={item.product.image}
+                        src={
+                          // Get the image URL, checking all possible sources
+                          (item.product.image_url || item.product.image || item.product.imageUrl) && 
+                          ((item.product.image_url || item.product.image || item.product.imageUrl)?.includes('flixcart.com') || 
+                           (item.product.image_url || item.product.image || item.product.imageUrl)?.includes('flipkart.com'))
+                            ? `/api/image-proxy?url=${encodeURIComponent(item.product.image_url || item.product.image || item.product.imageUrl || '')}&category=${encodeURIComponent(item.product.category || '')}`
+                            : (item.product.image_url || item.product.image || item.product.imageUrl)
+                        }
                         alt={item.product.name}
                         className="w-full h-full object-center object-cover"
+                        onError={(e) => {
+                          // Use a fallback image on error
+                          const target = e.target as HTMLImageElement;
+                          target.onerror = null; // Prevent infinite loop
+                          
+                          console.log('Image load error for product:', item.product.name, 'URLs:', {
+                            image_url: item.product.image_url,
+                            image: item.product.image,
+                            imageUrl: item.product.imageUrl
+                          });
+                          
+                          // Use category-specific placeholder or default placeholder
+                          if (item.product.category) {
+                            // Convert to lowercase and use direct category images from client/public/images
+                            const categoryLower = item.product.category.toLowerCase();
+                            target.src = `../images/${categoryLower}.svg`;
+                          } else {
+                            target.src = "../images/placeholder.svg";
+                          }
+                        }}
                       />
                     </div>
 
