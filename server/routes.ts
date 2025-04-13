@@ -843,7 +843,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/image-proxy", handleImageProxy);
   
   // Advanced search endpoint with instant results
-  app.get("/api/product-search", async (req, res) => {
+  app.get("/api/lelekart-search", async (req, res) => {
     try {
       const query = req.query.q as string;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
