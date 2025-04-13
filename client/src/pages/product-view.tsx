@@ -31,8 +31,12 @@ export default function ProductViewPage() {
   
   // Basic validation
   if (isNaN(productId)) {
-    window.location.href = "/"; // Redirect to home if invalid ID
-    return null;
+    console.error(`Invalid product ID in URL: ${productIdStr}`);
+    // Add a small delay before redirecting to allow console logs to be seen
+    setTimeout(() => {
+      window.location.href = "/";
+    }, 200);
+    return <div className="p-10 text-center">Invalid product ID. Redirecting...</div>;
   }
   
   const [quantity, setQuantity] = useState(1);

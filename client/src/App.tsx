@@ -55,11 +55,14 @@ function App() {
               </Route>
               {/* Alternative standalone product view page - doesn't use React Router params */}
               <Route path="/product-view/:id">
-                {() => (
-                  <Layout>
-                    <ProductViewPage />
-                  </Layout>
-                )}
+                {(params) => {
+                  console.log("App.tsx: ProductView route matched with params:", params);
+                  return (
+                    <Layout>
+                      <ProductViewPage />
+                    </Layout>
+                  );
+                }}
               </Route>
               
               {/* Original product page - kept for compatibility */}
