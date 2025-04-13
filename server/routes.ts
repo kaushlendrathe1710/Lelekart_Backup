@@ -10,14 +10,24 @@ import {
   insertCategorySchema,
   insertReviewSchema,
   insertReviewImageSchema,
-  insertReviewHelpfulSchema
+  insertReviewHelpfulSchema,
+  insertUserActivitySchema
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
 import { uploadFile } from "./helpers/s3";
 import { handleImageProxy } from "./utils/image-proxy";
 import { RecommendationEngine } from "./utils/recommendation-engine";
-import { createRazorpayOrder, handleSuccessfulPayment, generateReceiptId } from "./utils/razorpay";
+import { createRazorpayOrder, handleSuccessfulPayment, generateReceiptId, getRazorpayKeyId } from "./utils/razorpay";
+import { 
+  trackUserActivity, 
+  getPersonalizedRecommendations, 
+  getComplementaryProducts,
+  getSizeRecommendations,
+  generateSessionId,
+  getProductQAResponse,
+  getAIResponse
+} from "./utils/ai-assistant";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes with OTP-based authentication
@@ -1332,6 +1342,180 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Image proxy route to avoid CORS issues with external image URLs
   app.get("/api/proxy-image", handleImageProxy);
+  
+  // ======= AI Shopping Assistant API Routes =======
+
+  // Generate a session ID for tracking user activity
+  app.get('/api/ai/session', (req, res) => {
+    const sessionId = req.query.sessionId || generateSessionId();
+    res.json({ sessionId });
+  });
+
+  // Track user activity endpoint (views, clicks, searches)
+  app.post('/api/ai/track-activity', async (req, res) => {
+    try {
+      const { sessionId, activityType, productId, categoryId, searchQuery, additionalData } = req.body;
+      
+      if (!sessionId || !activityType) {
+        return res.status(400).json({ error: "sessionId and activityType are required" });
+      }
+      
+      const userId = req.isAuthenticated() ? req.user.id : null;
+      
+      await trackUserActivity(
+        userId,
+        sessionId,
+        activityType,
+        productId,
+        categoryId,
+        searchQuery,
+        additionalData
+      );
+      
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error('Error tracking user activity:', error);
+      res.status(500).json({ error: "Failed to track user activity" });
+    }
+  });
+
+  // Personalized product recommendations
+  app.get('/api/ai/recommendations', async (req, res) => {
+    try {
+      const sessionId = req.query.sessionId as string;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const userId = req.isAuthenticated() ? req.user.id : null;
+      
+      console.log(`Getting AI-powered personalized recommendations for ${userId ? `user ${userId}` : 'anonymous user'}`);
+      
+      const recommendations = await getPersonalizedRecommendations(userId, sessionId, limit);
+      res.json(recommendations);
+    } catch (error) {
+      console.error('Error getting personalized recommendations:', error);
+      res.status(500).json({ error: "Failed to get personalized recommendations" });
+    }
+  });
+
+  // Complementary product suggestions
+  app.get('/api/ai/complementary-products/:productId', async (req, res) => {
+    try {
+      const productId = parseInt(req.params.productId);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
+      
+      // Track this activity if session ID is provided
+      if (req.query.sessionId) {
+        const userId = req.isAuthenticated() ? req.user.id : null;
+        await trackUserActivity(
+          userId,
+          req.query.sessionId as string,
+          'view_complementary_products',
+          productId
+        );
+      }
+      
+      const complementaryProducts = await getComplementaryProducts(productId, limit);
+      res.json(complementaryProducts);
+    } catch (error) {
+      console.error('Error getting complementary products:', error);
+      res.status(500).json({ error: "Failed to get complementary products" });
+    }
+  });
+
+  // Size recommendations
+  app.get('/api/ai/size-recommendations/:productId', async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(200).json({
+        recommendedSize: null,
+        confidence: 0,
+        message: "Sign in to get personalized size recommendations"
+      });
+    }
+    
+    try {
+      const productId = parseInt(req.params.productId);
+      const category = req.query.category as string;
+      
+      const recommendation = await getSizeRecommendations(req.user.id, productId, category);
+      res.json(recommendation);
+    } catch (error) {
+      console.error('Error getting size recommendations:', error);
+      res.status(500).json({ error: "Failed to get size recommendations" });
+    }
+  });
+
+  // Product-specific Q&A
+  app.post('/api/ai/product-qa/:productId', async (req, res) => {
+    try {
+      const productId = parseInt(req.params.productId);
+      const { question, sessionId } = req.body;
+      
+      if (!question) {
+        return res.status(400).json({ error: "Question is required" });
+      }
+      
+      const userId = req.isAuthenticated() ? req.user.id : null;
+      
+      const answer = await getProductQAResponse(
+        productId,
+        question,
+        userId,
+        sessionId
+      );
+      
+      res.json({ answer });
+    } catch (error) {
+      console.error('Error getting product Q&A response:', error);
+      res.status(500).json({ error: "Failed to get answer" });
+    }
+  });
+
+  // General AI shopping assistant conversation
+  app.post('/api/ai/chat', async (req, res) => {
+    try {
+      const { 
+        message, 
+        sessionId, 
+        productId, 
+        categoryId, 
+        conversationHistory = [] 
+      } = req.body;
+      
+      if (!message || !sessionId) {
+        return res.status(400).json({ error: "Message and sessionId are required" });
+      }
+      
+      const userId = req.isAuthenticated() ? req.user.id : null;
+      
+      // Format the conversation history for Anthropic's Claude
+      const messages = [
+        ...conversationHistory,
+        { role: 'user', content: message }
+      ];
+      
+      const contextInfo = {
+        userId,
+        sessionId,
+        productId: productId ? parseInt(productId) : undefined,
+        categoryId: categoryId ? parseInt(categoryId) : undefined
+      };
+      
+      const aiResponse = await getAIResponse(messages, contextInfo);
+      
+      // Add AI response to the history
+      const updatedHistory = [
+        ...messages,
+        { role: 'assistant', content: aiResponse }
+      ];
+      
+      res.json({
+        response: aiResponse,
+        conversationHistory: updatedHistory
+      });
+    } catch (error) {
+      console.error('Error getting AI chat response:', error);
+      res.status(500).json({ error: "Failed to get AI response" });
+    }
+  });
   
   const httpServer = createServer(app);
   return httpServer;
