@@ -207,7 +207,9 @@ function AdminProductsContent() {
           ? true
           : approvalFilter === "approved"
           ? product.approved
-          : !product.approved;
+          : approvalFilter === "rejected"
+          ? product.rejected
+          : !product.approved && !product.rejected; // pending products (not approved and not rejected)
 
       return matchesSearch && matchesCategory && matchesApproval;
     })
@@ -221,12 +223,13 @@ function AdminProductsContent() {
   // Product counts for stats
   const totalProducts = products?.length || 0;
   const approvedProducts = products?.filter((p) => p.approved).length || 0;
-  const pendingProducts = products?.filter((p) => !p.approved).length || 0;
+  const rejectedProducts = products?.filter((p) => p.rejected).length || 0;
+  const pendingProducts = products?.filter((p) => !p.approved && !p.rejected).length || 0;
 
   // Loading states
   const ProductStatsLoading = () => (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {["total", "approved", "pending"].map((stat) => (
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {["total", "approved", "pending", "rejected"].map((stat) => (
         <Card key={stat} className="bg-white">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium capitalize">
@@ -257,7 +260,7 @@ function AdminProductsContent() {
         {isLoading ? (
           <ProductStatsLoading />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card className="bg-white">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium">
@@ -286,6 +289,16 @@ function AdminProductsContent() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{pendingProducts}</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-white">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Rejected Products
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{rejectedProducts}</div>
               </CardContent>
             </Card>
           </div>
@@ -354,7 +367,17 @@ function AdminProductsContent() {
                       onClick={() => setApprovalFilter("pending")}
                       className="justify-start"
                     >
-                      <X className="mr-2 h-4 w-4" /> Pending
+                      <Clock className="mr-2 h-4 w-4" /> Pending
+                    </Button>
+                    <Button
+                      variant={
+                        approvalFilter === "rejected" ? "secondary" : "outline"
+                      }
+                      size="sm"
+                      onClick={() => setApprovalFilter("rejected")}
+                      className="justify-start"
+                    >
+                      <X className="mr-2 h-4 w-4" /> Rejected
                     </Button>
                   </div>
                 </div>
