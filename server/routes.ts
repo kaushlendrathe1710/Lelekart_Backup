@@ -16,7 +16,8 @@ import {
   insertDemandForecastSchema,
   insertPriceOptimizationSchema,
   insertInventoryOptimizationSchema,
-  insertAiGeneratedContentSchema
+  insertAiGeneratedContentSchema,
+  insertWishlistSchema
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
@@ -1931,6 +1932,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error applying AI content:", error);
       res.status(500).json({ error: "Failed to apply AI content" });
+    }
+  });
+  
+  // Wishlist routes
+  app.get("/api/wishlist", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const wishlistItems = await storage.getWishlistItems(req.user.id);
+      res.json(wishlistItems);
+    } catch (error) {
+      console.error("Error fetching wishlist:", error);
+      res.status(500).json({ error: "Failed to fetch wishlist" });
+    }
+  });
+
+  app.post("/api/wishlist", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { productId } = req.body;
+      if (!productId) {
+        return res.status(400).json({ error: "Product ID is required" });
+      }
+      
+      const wishlistData = insertWishlistSchema.parse({
+        userId: req.user.id,
+        productId: parseInt(productId)
+      });
+      
+      // Check if product exists
+      const product = await storage.getProduct(wishlistData.productId);
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      
+      // Check if item already exists in wishlist
+      const existing = await storage.getWishlistItem(req.user.id, wishlistData.productId);
+      if (existing) {
+        return res.status(409).json({ error: "Product already in wishlist", item: existing });
+      }
+      
+      const wishlistItem = await storage.addToWishlist(wishlistData);
+      res.status(201).json(wishlistItem);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      console.error("Error adding to wishlist:", error);
+      res.status(500).json({ error: "Failed to add to wishlist" });
+    }
+  });
+
+  app.delete("/api/wishlist/:productId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const productId = parseInt(req.params.productId);
+      
+      // Check if product exists in user's wishlist
+      const existing = await storage.getWishlistItem(req.user.id, productId);
+      if (!existing) {
+        return res.status(404).json({ error: "Product not found in wishlist" });
+      }
+      
+      await storage.removeFromWishlist(req.user.id, productId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error removing from wishlist:", error);
+      res.status(500).json({ error: "Failed to remove from wishlist" });
+    }
+  });
+
+  // Check if a product is in the user's wishlist
+  app.get("/api/wishlist/check/:productId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ inWishlist: false });
+    
+    try {
+      const productId = parseInt(req.params.productId);
+      const wishlistItem = await storage.getWishlistItem(req.user.id, productId);
+      res.json({ inWishlist: !!wishlistItem });
+    } catch (error) {
+      console.error("Error checking wishlist:", error);
+      res.status(500).json({ error: "Failed to check wishlist status" });
     }
   });
   
