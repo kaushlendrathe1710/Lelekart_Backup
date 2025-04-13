@@ -80,7 +80,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               <div className="flex items-center space-x-2 text-xl font-bold">
                 <img 
                   src="https://static-assets-web.flixcart.com/www/linchpin/fk-cp-zion/img/flipkart-plus_8d85f4.png" 
-                  alt="Flipkart Logo" 
+                  alt="Lelekart Logo" 
                   className="h-6 w-auto" 
                 />
                 <span className="hidden md:inline text-white font-medium text-xl">Admin Panel</span>

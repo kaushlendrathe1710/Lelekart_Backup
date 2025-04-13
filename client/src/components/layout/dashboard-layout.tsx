@@ -339,7 +339,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             </SidebarContent>
             <SidebarFooter>
               <div className="text-xs text-muted-foreground px-4 py-2">
-                © 2025 Flipkart Replica
+                © 2025 Lelekart
               </div>
             </SidebarFooter>
           </Sidebar>
