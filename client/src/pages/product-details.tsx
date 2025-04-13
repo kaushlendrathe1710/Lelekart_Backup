@@ -577,6 +577,18 @@ export default function ProductDetailsPage() {
             </div>
           </div>
           
+          {/* AI-powered Complementary Products */}
+          <div className="bg-white rounded shadow-sm mb-3 p-4">
+            {product && (
+              <ComplementaryProducts
+                productId={product.id}
+                productName={product.name}
+                productImage={productImages[0]}
+                productPrice={price}
+              />
+            )}
+          </div>
+          
           {/* Similar Products Recommendation Carousel */}
           <div className="bg-white rounded shadow-sm mb-3 p-4">
             {product && (
@@ -598,18 +610,6 @@ export default function ProductDetailsPage() {
               endpoint="/api/recommendations"
               limit={10}
             />
-          </div>
-          
-          {/* AI-Powered Complementary Products */}
-          <div className="bg-white rounded shadow-sm mb-3 p-4">
-            {product && (
-              <ComplementaryProducts 
-                productId={product.id}
-                productName={product.name}
-                productImage={productImages[0]}
-                productPrice={price}
-              />
-            )}
           </div>
         </div>
       </div>
