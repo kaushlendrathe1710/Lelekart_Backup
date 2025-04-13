@@ -1486,7 +1486,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const userId = req.isAuthenticated() ? req.user.id : null;
       
-      // Format the conversation history for Anthropic's Claude
+      // Format the conversation history for Gemini
       const messages = [
         ...conversationHistory,
         { role: 'user', content: message }

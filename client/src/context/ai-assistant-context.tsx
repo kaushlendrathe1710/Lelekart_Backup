@@ -77,6 +77,9 @@ export const AIAssistantProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setConversationHistory([]);
   }, []);
 
+  // Session ID for tracking conversation
+  const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
+
   const sendMessage = useCallback(async (message: string) => {
     if (!message.trim()) return;
 
@@ -86,7 +89,12 @@ export const AIAssistantProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setIsLoading(true);
 
     try {
-      const response = await apiRequest("POST", "/api/ai/chat", { message });
+      // Send message with session ID and conversation history
+      const response = await apiRequest("POST", "/api/ai/chat", { 
+        message, 
+        sessionId,
+        conversationHistory
+      });
       const data = await response.json();
 
       // Add assistant response to conversation
@@ -113,7 +121,7 @@ export const AIAssistantProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [toast, sessionId, conversationHistory]);
 
   const getComplementaryProducts = useCallback(async (productId: number, limit = 4) => {
     try {
