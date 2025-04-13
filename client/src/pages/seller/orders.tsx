@@ -774,51 +774,88 @@ export default function SellerOrdersPage() {
               
               {/* Hidden Shipping Label Template for Printing */}
               <div className="hidden">
-                <div ref={shippingLabelRef} className="shipping-label">
-                  <div className="header">
-                    <div className="company-logo">LELEKART</div>
-                    <div>Shipping Label</div>
+                <div ref={shippingLabelRef} className="shipping-container">
+                  {/* Meesho-style Header */}
+                  <div className="meesho-header">
+                    <div className="meesho-logo">LELEKART</div>
+                    <div className="label-type">SHIPPING LABEL</div>
                   </div>
-                  
-                  <div className="addresses">
-                    <div className="address-section">
-                      <div className="label">FROM:</div>
-                      <div>Lelekart Fulfillment Center</div>
-                      <div>123 Commerce Street</div>
-                      <div>Bangalore, Karnataka 560001</div>
+
+                  {/* Order Box */}
+                  <div className="order-box">
+                    {/* Order Header */}
+                    <div className="order-header">
+                      <div className="order-id">Order ID: #{selectedOrder.id}</div>
+                      <div className="order-date">
+                        Date: {format(new Date(selectedOrder.date), 'dd/MM/yyyy')}
+                        <span className="ml-3 cod-badge">
+                          {selectedOrder.paymentMethod === 'cod' ? 'COD' : 'PREPAID'}
+                        </span>
+                      </div>
                     </div>
-                    
-                    <div className="address-section">
-                      <div className="label">TO:</div>
-                      {typeof selectedOrder.shippingDetails === 'object' && (
-                        <>
-                          <div>{selectedOrder.shippingDetails.name}</div>
-                          <div>{selectedOrder.shippingDetails.address}</div>
-                          <div>{selectedOrder.shippingDetails.city}, {selectedOrder.shippingDetails.state}</div>
-                          <div>{selectedOrder.shippingDetails.zipCode}</div>
-                          <div>Phone: {selectedOrder.shippingDetails.phone}</div>
-                        </>
-                      )}
+
+                    {/* Shipping Information */}
+                    <div className="shipping-info">
+                      {/* Delivery Address */}
+                      <div className="address-box to">
+                        <div className="address-title">DELIVER TO:</div>
+                        <div className="address-content">
+                          {typeof selectedOrder.shippingDetails === 'object' && (
+                            <>
+                              <div className="customer-name">{selectedOrder.shippingDetails.name}</div>
+                              <div>{selectedOrder.shippingDetails.address}</div>
+                              <div>{selectedOrder.shippingDetails.city}, {selectedOrder.shippingDetails.state} {selectedOrder.shippingDetails.zipCode}</div>
+                              <div>Phone: {selectedOrder.shippingDetails.phone}</div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Sender Address */}
+                      <div className="address-box from">
+                        <div className="address-title">SHIP FROM:</div>
+                        <div className="address-content">
+                          <div className="customer-name">Lelekart Fulfillment Center</div>
+                          <div>123 Commerce Street</div>
+                          <div>Bengaluru, Karnataka 560001</div>
+                          <div>India</div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="order-id">
-                    Order #: ORD-{selectedOrder.id}
-                  </div>
-                  
-                  <div className="barcode">
-                    <div style={{ fontFamily: 'monospace', fontSize: '16px' }}>
-                      *{selectedOrder.id.toString().padStart(10, '0')}*
+
+                    {/* Barcode Section */}
+                    <div className="barcode-section">
+                      <div className="barcode-text">
+                        *LK{selectedOrder.id.toString().padStart(10, '0')}*
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="instructions">
-                    <div className="label">SHIPPING METHOD:</div>
-                    <div>Standard Delivery</div>
-                    <div className="label">DATE:</div>
-                    <div>{format(new Date(selectedOrder.date), 'dd/MM/yyyy')}</div>
-                    <div className="label">SPECIAL INSTRUCTIONS:</div>
-                    <div>{typeof selectedOrder.shippingDetails === 'object' && selectedOrder.shippingDetails.notes || 'None'}</div>
+
+                    {/* Product Details */}
+                    <div className="product-details">
+                      <div className="product-title">PACKAGE CONTENTS:</div>
+                      <table className="product-table">
+                        <thead>
+                          <tr>
+                            <th>Item</th>
+                            <th style={{width: '70px', textAlign: 'center'}}>Qty</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedOrder.items && selectedOrder.items.map((item) => (
+                            <tr key={item.id}>
+                              <td>{item.product.name}</td>
+                              <td style={{textAlign: 'center'}}>{item.quantity}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Delivery Information */}
+                    <div className="delivery-info">
+                      <p><strong>Special Instructions:</strong> {typeof selectedOrder.shippingDetails === 'object' && selectedOrder.shippingDetails.notes || 'None'}</p>
+                      <p>Please inspect your package before signing. Thank you for shopping with Lelekart!</p>
+                    </div>
                   </div>
                 </div>
               </div>
