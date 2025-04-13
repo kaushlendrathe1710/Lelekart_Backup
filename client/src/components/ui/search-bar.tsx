@@ -72,8 +72,15 @@ export function SearchBar() {
         }
         
         const products = await response.json();
-        console.log(`Loaded ${products.length} products for search`);
-        setAllProducts(products);
+        console.log(`Loaded ${products.length} products for search:`, products);
+        
+        // Check if we have valid product data
+        if (Array.isArray(products) && products.length > 0) {
+          setAllProducts(products);
+        } else {
+          console.error('Invalid product data received:', products);
+          setAllProducts([]);
+        }
       } catch (error) {
         console.error('Error fetching products:', error);
       } finally {
