@@ -777,8 +777,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Try to get image URL from product data
       if (dealProduct.imageUrl) {
         imageUrl = dealProduct.imageUrl;
-      } else if (dealProduct.image_url) {
-        imageUrl = dealProduct.image_url;
       } else if (dealProduct.images && typeof dealProduct.images === 'string') {
         try {
           const parsedImages = JSON.parse(dealProduct.images);
