@@ -16,6 +16,7 @@ import { z } from "zod";
 import multer from "multer";
 import { uploadFile } from "./helpers/s3";
 import { handleImageProxy } from "./utils/image-proxy";
+import { RecommendationEngine } from "./utils/recommendation-engine";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes with OTP-based authentication
@@ -1140,6 +1141,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to check if review is helpful" });
     }
   });
+  
+  // RECOMMENDATION API ENDPOINTS
+  
+  // Get personalized recommendations for the current user
+  app.get("/api/recommendations", async (req, res) => {
+    try {
+      const userId = req.isAuthenticated() ? req.user.id : null;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      
+      console.log(`Getting personalized recommendations for ${userId ? `user ${userId}` : 'anonymous user'}`);
+      const recommendations = await RecommendationEngine.getPersonalizedRecommendations(userId, limit);
+      
+      console.log(`Found ${recommendations.length} personalized recommendations`);
+      res.json(recommendations);
+    } catch (error) {
+      console.error("Error getting personalized recommendations:", error);
+      res.status(500).json({ error: "Failed to get recommendations" });
+    }
+  });
+  
+  // Get similar products for a specific product
+  app.get("/api/products/:id/similar", async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 6;
+      
+      console.log(`Getting similar products for product ID ${productId}`);
+      const similarProducts = await RecommendationEngine.getSimilarProducts(productId, limit);
+      
+      console.log(`Found ${similarProducts.length} similar products for product ID ${productId}`);
+      res.json(similarProducts);
+    } catch (error) {
+      console.error("Error getting similar products:", error);
+      res.status(500).json({ error: "Failed to get similar products" });
+    }
+  });
+  
+  // Get recommended products for homepage and product pages
+  app.get("/api/recommendations/featured", async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 8;
+      const userId = req.isAuthenticated() ? req.user.id : null;
+      
+      console.log("Getting featured recommendations");
+      const featuredRecommendations = await RecommendationEngine.getPersonalizedRecommendations(userId, limit);
+      
+      console.log(`Found ${featuredRecommendations.length} featured recommendations`);
+      res.json(featuredRecommendations);
+    } catch (error) {
+      console.error("Error getting featured recommendations:", error);
+      res.status(500).json({ error: "Failed to get featured recommendations" });
+    }
+  });
+  
+  // Image proxy route to avoid CORS issues with external image URLs
+  app.get("/api/proxy-image", handleImageProxy);
   
   const httpServer = createServer(app);
   return httpServer;
