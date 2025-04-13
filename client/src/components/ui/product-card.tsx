@@ -101,9 +101,9 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
           className="product-card p-3 flex flex-col items-center rounded transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1"
           onClick={() => {
             try {
-              console.log(`Navigating to product view page: /product-view/${product.id}`);
-              // Use window.open instead of location.href for more reliable navigation
-              window.open(`/product-view/${product.id}`, '_self');
+              console.log(`Navigating to product details page: /product/${product.id}`);
+              // Use SPA routing for better performance
+              window.location.href = `/product/${product.id}`;
             } catch (e) {
               console.error('Navigation error:', e);
             }
@@ -166,9 +166,9 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
         className="product-card flex flex-col items-center p-3 transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1"
         onClick={() => {
           try {
-            console.log(`Navigating to product view page: /product-view/${product.id}`);
-            // Use window.open instead of location.href for more reliable navigation
-            window.open(`/product-view/${product.id}`, '_self');
+            console.log(`Navigating to product details page: /product/${product.id}`);
+            // Use SPA routing for better performance
+            window.location.href = `/product/${product.id}`;
           } catch (e) {
             console.error('Navigation error:', e);
           }

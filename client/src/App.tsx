@@ -3,8 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
-import ProductPage from "./pages/product-page";
-import ProductViewPage from "./pages/product-view"; // New standalone product view
+import ProductDetailsPage from "./pages/product-details"; // New Flipkart-style product page
 import CategoryPage from "./pages/category-page";
 import CartPage from "./pages/cart-page";
 import CheckoutPage from "./pages/checkout-page";
