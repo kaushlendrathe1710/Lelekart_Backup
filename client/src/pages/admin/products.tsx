@@ -577,15 +577,27 @@ function AdminProductsContent() {
                       <TableCell>{product.category}</TableCell>
                       <TableCell>₹{Number(product.price).toFixed(2)}</TableCell>
                       <TableCell>
-                        <Badge
-                          className={
-                            product.approved
-                              ? "bg-green-100 text-green-800 hover:bg-green-100"
-                              : "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
-                          }
-                        >
-                          {product.approved ? "Approved" : "Pending"}
-                        </Badge>
+                        {product.approved !== undefined ? (
+                          <Badge
+                            className={
+                              product.approved
+                                ? "bg-green-100 text-green-800 hover:bg-green-100"
+                                : product.rejected
+                                  ? "bg-red-100 text-red-800 hover:bg-red-100"
+                                  : "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                            }
+                          >
+                            {product.approved 
+                              ? "Approved" 
+                              : product.rejected 
+                                ? "Rejected" 
+                                : "Pending"}
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
+                            Pending
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell>{product.sellerName || `Seller #${product.sellerId}`}</TableCell>
                       <TableCell className="text-right">
@@ -611,22 +623,26 @@ function AdminProductsContent() {
                               <Edit className="mr-2 h-4 w-4" />
                               Edit Product
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => toggleApproval(product)}
-                              disabled={approveMutation.isPending}
-                            >
-                              {product.approved ? (
-                                <>
-                                  <X className="mr-2 h-4 w-4" />
-                                  Unapprove
-                                </>
-                              ) : (
-                                <>
-                                  <Check className="mr-2 h-4 w-4" />
-                                  Approve
-                                </>
-                              )}
-                            </DropdownMenuItem>
+                            {!product.approved && (
+                              <DropdownMenuItem
+                                onClick={() => handleApproveProduct(product)}
+                                disabled={approveMutation.isPending}
+                              >
+                                <Check className="mr-2 h-4 w-4" />
+                                Approve Product
+                              </DropdownMenuItem>
+                            )}
+                            
+                            {!product.approved && (
+                              <DropdownMenuItem
+                                onClick={() => handleRejectProduct(product)}
+                                disabled={rejectMutation.isPending}
+                                className="text-red-600"
+                              >
+                                <X className="mr-2 h-4 w-4" />
+                                Reject Product
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className="text-red-600"
@@ -727,10 +743,16 @@ function AdminProductsContent() {
                     className={
                       viewProduct.approved
                         ? "bg-green-100 text-green-800"
-                        : "bg-yellow-100 text-yellow-800"
+                        : viewProduct.rejected
+                          ? "bg-red-100 text-red-800"
+                          : "bg-yellow-100 text-yellow-800"
                     }
                   >
-                    {viewProduct.approved ? "Approved" : "Pending Approval"}
+                    {viewProduct.approved 
+                      ? "Approved" 
+                      : viewProduct.rejected 
+                        ? "Rejected" 
+                        : "Pending Approval"}
                   </Badge>
                 </div>
                 
@@ -787,6 +809,45 @@ function AdminProductsContent() {
               >
                 Close
               </Button>
+              
+              {/* Show approve/reject buttons only for pending products */}
+              {viewProduct && !viewProduct.approved && (
+                <>
+                  <Button 
+                    variant="outline"
+                    className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                    onClick={() => {
+                      handleRejectProduct(viewProduct);
+                      setViewProduct(null);
+                    }}
+                    disabled={rejectMutation.isPending}
+                  >
+                    {rejectMutation.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <X className="mr-2 h-4 w-4" />
+                    )}
+                    Reject Product
+                  </Button>
+                  
+                  <Button 
+                    className="bg-green-600 hover:bg-green-700"
+                    onClick={() => {
+                      handleApproveProduct(viewProduct);
+                      setViewProduct(null);
+                    }}
+                    disabled={approveMutation.isPending}
+                  >
+                    {approveMutation.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="mr-2 h-4 w-4" />
+                    )}
+                    Approve Product
+                  </Button>
+                </>
+              )}
+              
               <Button>Edit Product</Button>
             </div>
           </DialogContent>
