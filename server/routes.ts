@@ -21,6 +21,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes with OTP-based authentication
   setupAuth(app);
 
+  // Search endpoint
+  app.get("/api/search", async (req, res) => {
+    try {
+      const query = req.query.q as string;
+      if (!query || query.trim() === '') {
+        return res.status(400).json({ error: "Search query is required" });
+      }
+
+      console.log(`Searching for products with query: "${query}"`);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const results = await storage.searchProducts(query, limit);
+      
+      console.log(`Found ${results.length} search results for "${query}"`);
+      return res.json(results);
+    } catch (error) {
+      console.error("Error in search endpoint:", error);
+      return res.status(500).json({ error: "Failed to perform search" });
+    }
+  });
+
   // Product routes
   app.get("/api/products", async (req, res) => {
     try {
