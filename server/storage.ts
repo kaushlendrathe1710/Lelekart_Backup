@@ -997,6 +997,471 @@ export class DatabaseStorage implements IStorage {
     
     return false;
   }
+
+  // Smart Inventory & Price Management Features
+
+  // Sales History
+  async getSalesHistory(productId: number, sellerId: number): Promise<SalesHistory[]> {
+    try {
+      return db
+        .select()
+        .from(salesHistory)
+        .where(
+          and(
+            eq(salesHistory.productId, productId),
+            eq(salesHistory.sellerId, sellerId)
+          )
+        )
+        .orderBy(desc(salesHistory.date));
+    } catch (error) {
+      console.error('Error fetching sales history:', error);
+      return [];
+    }
+  }
+
+  async createSalesRecord(salesData: InsertSalesHistory): Promise<SalesHistory> {
+    try {
+      const [newRecord] = await db
+        .insert(salesHistory)
+        .values(salesData)
+        .returning();
+      return newRecord;
+    } catch (error) {
+      console.error('Error creating sales record:', error);
+      throw error;
+    }
+  }
+
+  // Demand Forecasts
+  async getDemandForecasts(productId: number, sellerId: number): Promise<DemandForecast[]> {
+    try {
+      return db
+        .select()
+        .from(demandForecasts)
+        .where(
+          and(
+            eq(demandForecasts.productId, productId),
+            eq(demandForecasts.sellerId, sellerId)
+          )
+        )
+        .orderBy(desc(demandForecasts.createdAt));
+    } catch (error) {
+      console.error('Error fetching demand forecasts:', error);
+      return [];
+    }
+  }
+
+  async getDemandForecast(id: number): Promise<DemandForecast | undefined> {
+    try {
+      const [forecast] = await db
+        .select()
+        .from(demandForecasts)
+        .where(eq(demandForecasts.id, id));
+      return forecast;
+    } catch (error) {
+      console.error('Error fetching demand forecast:', error);
+      return undefined;
+    }
+  }
+
+  async createDemandForecast(forecastData: InsertDemandForecast): Promise<DemandForecast> {
+    try {
+      const [newForecast] = await db
+        .insert(demandForecasts)
+        .values(forecastData)
+        .returning();
+      return newForecast;
+    } catch (error) {
+      console.error('Error creating demand forecast:', error);
+      throw error;
+    }
+  }
+
+  // Price Optimizations
+  async getPriceOptimizations(productId: number, sellerId: number): Promise<PriceOptimization[]> {
+    try {
+      return db
+        .select()
+        .from(priceOptimizations)
+        .where(
+          and(
+            eq(priceOptimizations.productId, productId),
+            eq(priceOptimizations.sellerId, sellerId)
+          )
+        )
+        .orderBy(desc(priceOptimizations.createdAt));
+    } catch (error) {
+      console.error('Error fetching price optimizations:', error);
+      return [];
+    }
+  }
+
+  async getPriceOptimization(id: number): Promise<PriceOptimization | undefined> {
+    try {
+      const [optimization] = await db
+        .select()
+        .from(priceOptimizations)
+        .where(eq(priceOptimizations.id, id));
+      return optimization;
+    } catch (error) {
+      console.error('Error fetching price optimization:', error);
+      return undefined;
+    }
+  }
+
+  async createPriceOptimization(optimizationData: InsertPriceOptimization): Promise<PriceOptimization> {
+    try {
+      const [newOptimization] = await db
+        .insert(priceOptimizations)
+        .values(optimizationData)
+        .returning();
+      return newOptimization;
+    } catch (error) {
+      console.error('Error creating price optimization:', error);
+      throw error;
+    }
+  }
+
+  async updatePriceOptimizationStatus(id: number, status: string, sellerId: number): Promise<PriceOptimization> {
+    try {
+      // First, verify seller owns this optimization
+      const [existingOptimization] = await db
+        .select()
+        .from(priceOptimizations)
+        .where(
+          and(
+            eq(priceOptimizations.id, id),
+            eq(priceOptimizations.sellerId, sellerId)
+          )
+        );
+
+      if (!existingOptimization) {
+        throw new Error("Price optimization not found or not authorized");
+      }
+
+      // Update status
+      const [updatedOptimization] = await db
+        .update(priceOptimizations)
+        .set({
+          status,
+          appliedAt: status === "applied" ? new Date() : null,
+          updatedAt: new Date()
+        })
+        .where(eq(priceOptimizations.id, id))
+        .returning();
+
+      return updatedOptimization;
+    } catch (error) {
+      console.error('Error updating price optimization status:', error);
+      throw error;
+    }
+  }
+
+  async applyPriceOptimization(id: number, sellerId: number): Promise<Product> {
+    try {
+      // First, verify and get the optimization
+      const [optimization] = await db
+        .select()
+        .from(priceOptimizations)
+        .where(
+          and(
+            eq(priceOptimizations.id, id),
+            eq(priceOptimizations.sellerId, sellerId)
+          )
+        );
+
+      if (!optimization) {
+        throw new Error("Price optimization not found or not authorized");
+      }
+
+      // Update product price with the suggested price
+      const [updatedProduct] = await db
+        .update(products)
+        .set({ price: optimization.suggestedPrice })
+        .where(eq(products.id, optimization.productId))
+        .returning();
+
+      // Update optimization status to "applied"
+      await db
+        .update(priceOptimizations)
+        .set({
+          status: "applied",
+          appliedAt: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(priceOptimizations.id, id));
+
+      return updatedProduct;
+    } catch (error) {
+      console.error('Error applying price optimization:', error);
+      throw error;
+    }
+  }
+
+  // Inventory Optimizations
+  async getInventoryOptimizations(productId: number, sellerId: number): Promise<InventoryOptimization[]> {
+    try {
+      return db
+        .select()
+        .from(inventoryOptimizations)
+        .where(
+          and(
+            eq(inventoryOptimizations.productId, productId),
+            eq(inventoryOptimizations.sellerId, sellerId)
+          )
+        )
+        .orderBy(desc(inventoryOptimizations.createdAt));
+    } catch (error) {
+      console.error('Error fetching inventory optimizations:', error);
+      return [];
+    }
+  }
+
+  async getInventoryOptimization(id: number): Promise<InventoryOptimization | undefined> {
+    try {
+      const [optimization] = await db
+        .select()
+        .from(inventoryOptimizations)
+        .where(eq(inventoryOptimizations.id, id));
+      return optimization;
+    } catch (error) {
+      console.error('Error fetching inventory optimization:', error);
+      return undefined;
+    }
+  }
+
+  async createInventoryOptimization(optimizationData: InsertInventoryOptimization): Promise<InventoryOptimization> {
+    try {
+      const [newOptimization] = await db
+        .insert(inventoryOptimizations)
+        .values(optimizationData)
+        .returning();
+      return newOptimization;
+    } catch (error) {
+      console.error('Error creating inventory optimization:', error);
+      throw error;
+    }
+  }
+
+  async updateInventoryOptimizationStatus(id: number, status: string, sellerId: number): Promise<InventoryOptimization> {
+    try {
+      // First, verify seller owns this optimization
+      const [existingOptimization] = await db
+        .select()
+        .from(inventoryOptimizations)
+        .where(
+          and(
+            eq(inventoryOptimizations.id, id),
+            eq(inventoryOptimizations.sellerId, sellerId)
+          )
+        );
+
+      if (!existingOptimization) {
+        throw new Error("Inventory optimization not found or not authorized");
+      }
+
+      // Update status
+      const [updatedOptimization] = await db
+        .update(inventoryOptimizations)
+        .set({
+          status,
+          appliedAt: status === "applied" ? new Date() : null,
+          updatedAt: new Date()
+        })
+        .where(eq(inventoryOptimizations.id, id))
+        .returning();
+
+      return updatedOptimization;
+    } catch (error) {
+      console.error('Error updating inventory optimization status:', error);
+      throw error;
+    }
+  }
+
+  async applyInventoryOptimization(id: number, sellerId: number): Promise<Product> {
+    try {
+      // First, verify and get the optimization
+      const [optimization] = await db
+        .select()
+        .from(inventoryOptimizations)
+        .where(
+          and(
+            eq(inventoryOptimizations.id, id),
+            eq(inventoryOptimizations.sellerId, sellerId)
+          )
+        );
+
+      if (!optimization) {
+        throw new Error("Inventory optimization not found or not authorized");
+      }
+
+      // Update product stock with the recommended stock
+      const [updatedProduct] = await db
+        .update(products)
+        .set({ stock: optimization.recommendedStock })
+        .where(eq(products.id, optimization.productId))
+        .returning();
+
+      // Update optimization status to "applied"
+      await db
+        .update(inventoryOptimizations)
+        .set({
+          status: "applied",
+          appliedAt: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(inventoryOptimizations.id, id));
+
+      return updatedProduct;
+    } catch (error) {
+      console.error('Error applying inventory optimization:', error);
+      throw error;
+    }
+  }
+
+  // AI Generated Content
+  async getAIGeneratedContents(productId: number, sellerId: number, contentType?: string): Promise<AIGeneratedContent[]> {
+    try {
+      let query = db
+        .select()
+        .from(aiGeneratedContent)
+        .where(
+          and(
+            eq(aiGeneratedContent.productId, productId),
+            eq(aiGeneratedContent.sellerId, sellerId)
+          )
+        );
+
+      // Add content type filter if provided
+      if (contentType) {
+        query = query.where(eq(aiGeneratedContent.contentType, contentType));
+      }
+
+      return query.orderBy(desc(aiGeneratedContent.createdAt));
+    } catch (error) {
+      console.error('Error fetching AI generated contents:', error);
+      return [];
+    }
+  }
+
+  async getAIGeneratedContent(id: number): Promise<AIGeneratedContent | undefined> {
+    try {
+      const [content] = await db
+        .select()
+        .from(aiGeneratedContent)
+        .where(eq(aiGeneratedContent.id, id));
+      return content;
+    } catch (error) {
+      console.error('Error fetching AI generated content:', error);
+      return undefined;
+    }
+  }
+
+  async createAIGeneratedContent(contentData: InsertAIGeneratedContent): Promise<AIGeneratedContent> {
+    try {
+      const [newContent] = await db
+        .insert(aiGeneratedContent)
+        .values(contentData)
+        .returning();
+      return newContent;
+    } catch (error) {
+      console.error('Error creating AI generated content:', error);
+      throw error;
+    }
+  }
+
+  async updateAIGeneratedContentStatus(id: number, status: string, sellerId: number): Promise<AIGeneratedContent> {
+    try {
+      // First, verify seller owns this content
+      const [existingContent] = await db
+        .select()
+        .from(aiGeneratedContent)
+        .where(
+          and(
+            eq(aiGeneratedContent.id, id),
+            eq(aiGeneratedContent.sellerId, sellerId)
+          )
+        );
+
+      if (!existingContent) {
+        throw new Error("AI generated content not found or not authorized");
+      }
+
+      // Update status
+      const [updatedContent] = await db
+        .update(aiGeneratedContent)
+        .set({
+          status,
+          appliedAt: status === "applied" ? new Date() : null,
+          updatedAt: new Date()
+        })
+        .where(eq(aiGeneratedContent.id, id))
+        .returning();
+
+      return updatedContent;
+    } catch (error) {
+      console.error('Error updating AI generated content status:', error);
+      throw error;
+    }
+  }
+
+  async applyAIGeneratedContent(id: number, sellerId: number): Promise<Product> {
+    try {
+      // First, verify and get the content
+      const [content] = await db
+        .select()
+        .from(aiGeneratedContent)
+        .where(
+          and(
+            eq(aiGeneratedContent.id, id),
+            eq(aiGeneratedContent.sellerId, sellerId)
+          )
+        );
+
+      if (!content) {
+        throw new Error("AI generated content not found or not authorized");
+      }
+
+      // Prepare update data based on content type
+      const updateData: any = {};
+      
+      switch (content.contentType) {
+        case "description":
+          updateData.description = content.generatedContent;
+          break;
+        case "specifications":
+          updateData.specifications = content.generatedContent;
+          break;
+        case "features":
+          updateData.features = content.generatedContent;
+          break;
+        default:
+          console.warn(`Unhandled content type: ${content.contentType}`);
+      }
+
+      // Update product with the generated content
+      const [updatedProduct] = await db
+        .update(products)
+        .set(updateData)
+        .where(eq(products.id, content.productId))
+        .returning();
+
+      // Update content status to "applied"
+      await db
+        .update(aiGeneratedContent)
+        .set({
+          status: "applied",
+          appliedAt: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(aiGeneratedContent.id, id));
+
+      return updatedProduct;
+    } catch (error) {
+      console.error('Error applying AI generated content:', error);
+      throw error;
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();

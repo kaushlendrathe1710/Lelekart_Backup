@@ -33,6 +33,16 @@ import {
   getProductQAResponse,
   getAIResponse
 } from "./utils/ai-assistant";
+import {
+  generateDemandForecast,
+  generatePriceOptimization,
+  generateInventoryOptimization,
+  generateProductContent,
+  recordSalesData,
+  updatePriceOptimizationStatus,
+  updateInventoryOptimizationStatus,
+  updateAIContentStatus
+} from "./utils/ml-inventory-manager";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes with OTP-based authentication
@@ -1519,6 +1529,408 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error getting AI chat response:', error);
       res.status(500).json({ error: "Failed to get AI response" });
+    }
+  });
+  
+  // Smart Inventory & Price Management API Routes
+  
+  // Sales History endpoints
+  app.get("/api/seller/sales-history/:productId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" && req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const productId = parseInt(req.params.productId);
+      const sellerId = req.user.id;
+      
+      // Verify product belongs to seller
+      const product = await storage.getProduct(productId);
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      
+      if (product.sellerId !== sellerId && req.user.role !== "admin") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      const salesHistory = await storage.getSalesHistory(productId, sellerId);
+      res.json(salesHistory);
+    } catch (error) {
+      console.error("Error fetching sales history:", error);
+      res.status(500).json({ error: "Failed to fetch sales history" });
+    }
+  });
+  
+  app.post("/api/seller/sales-history", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" && req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const { productId, quantity, revenue, costPrice, channel, promotionApplied, seasonality } = req.body;
+      
+      // Verify product belongs to seller
+      const product = await storage.getProduct(productId);
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      
+      if (product.sellerId !== req.user.id && req.user.role !== "admin") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      const salesData = insertSalesHistorySchema.parse({
+        productId,
+        sellerId: req.user.id,
+        date: new Date(),
+        quantity,
+        revenue,
+        costPrice,
+        profitMargin: ((revenue - costPrice) / revenue) * 100,
+        channel: channel || "marketplace",
+        promotionApplied: promotionApplied || false,
+        seasonality: seasonality || "",
+        createdAt: new Date()
+      });
+      
+      const salesRecord = await storage.createSalesRecord(salesData);
+      res.status(201).json(salesRecord);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      console.error("Error recording sales data:", error);
+      res.status(500).json({ error: "Failed to record sales data" });
+    }
+  });
+  
+  // Demand Forecast endpoints
+  app.get("/api/seller/demand-forecasts/:productId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" && req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const productId = parseInt(req.params.productId);
+      const sellerId = req.user.id;
+      
+      // Verify product belongs to seller
+      const product = await storage.getProduct(productId);
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      
+      if (product.sellerId !== sellerId && req.user.role !== "admin") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      const forecasts = await storage.getDemandForecasts(productId, sellerId);
+      res.json(forecasts);
+    } catch (error) {
+      console.error("Error fetching demand forecasts:", error);
+      res.status(500).json({ error: "Failed to fetch demand forecasts" });
+    }
+  });
+  
+  app.post("/api/seller/demand-forecasts/:productId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" && req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const productId = parseInt(req.params.productId);
+      const sellerId = req.user.id;
+      const { period } = req.body;
+      
+      // Verify product belongs to seller
+      const product = await storage.getProduct(productId);
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      
+      if (product.sellerId !== sellerId && req.user.role !== "admin") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      // Generate demand forecast using Gemini AI
+      const forecast = await generateDemandForecast(productId, sellerId, period || "monthly");
+      res.status(201).json(forecast);
+    } catch (error) {
+      console.error("Error generating demand forecast:", error);
+      res.status(500).json({ error: "Failed to generate demand forecast" });
+    }
+  });
+  
+  // Price Optimization endpoints
+  app.get("/api/seller/price-optimizations/:productId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" && req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const productId = parseInt(req.params.productId);
+      const sellerId = req.user.id;
+      
+      // Verify product belongs to seller
+      const product = await storage.getProduct(productId);
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      
+      if (product.sellerId !== sellerId && req.user.role !== "admin") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      const optimizations = await storage.getPriceOptimizations(productId, sellerId);
+      res.json(optimizations);
+    } catch (error) {
+      console.error("Error fetching price optimizations:", error);
+      res.status(500).json({ error: "Failed to fetch price optimizations" });
+    }
+  });
+  
+  app.post("/api/seller/price-optimizations/:productId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" && req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const productId = parseInt(req.params.productId);
+      const sellerId = req.user.id;
+      
+      // Verify product belongs to seller
+      const product = await storage.getProduct(productId);
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      
+      if (product.sellerId !== sellerId && req.user.role !== "admin") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      // Generate price optimization using Gemini AI
+      const optimization = await generatePriceOptimization(productId, sellerId);
+      res.status(201).json(optimization);
+    } catch (error) {
+      console.error("Error generating price optimization:", error);
+      res.status(500).json({ error: "Failed to generate price optimization" });
+    }
+  });
+  
+  app.put("/api/seller/price-optimizations/:id/status", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" && req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const id = parseInt(req.params.id);
+      const { status } = req.body;
+      
+      if (!status || !["pending", "applied", "rejected"].includes(status)) {
+        return res.status(400).json({ error: "Invalid status" });
+      }
+      
+      const optimization = await storage.updatePriceOptimizationStatus(id, status, req.user.id);
+      res.json(optimization);
+    } catch (error) {
+      console.error("Error updating price optimization status:", error);
+      res.status(500).json({ error: "Failed to update price optimization status" });
+    }
+  });
+  
+  app.post("/api/seller/price-optimizations/:id/apply", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" && req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Apply the price optimization to the product
+      const updatedProduct = await storage.applyPriceOptimization(id, req.user.id);
+      res.json(updatedProduct);
+    } catch (error) {
+      console.error("Error applying price optimization:", error);
+      res.status(500).json({ error: "Failed to apply price optimization" });
+    }
+  });
+  
+  // Inventory Optimization endpoints
+  app.get("/api/seller/inventory-optimizations/:productId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" && req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const productId = parseInt(req.params.productId);
+      const sellerId = req.user.id;
+      
+      // Verify product belongs to seller
+      const product = await storage.getProduct(productId);
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      
+      if (product.sellerId !== sellerId && req.user.role !== "admin") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      const optimizations = await storage.getInventoryOptimizations(productId, sellerId);
+      res.json(optimizations);
+    } catch (error) {
+      console.error("Error fetching inventory optimizations:", error);
+      res.status(500).json({ error: "Failed to fetch inventory optimizations" });
+    }
+  });
+  
+  app.post("/api/seller/inventory-optimizations/:productId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" && req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const productId = parseInt(req.params.productId);
+      const sellerId = req.user.id;
+      
+      // Verify product belongs to seller
+      const product = await storage.getProduct(productId);
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      
+      if (product.sellerId !== sellerId && req.user.role !== "admin") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      // Generate inventory optimization using Gemini AI
+      const optimization = await generateInventoryOptimization(productId, sellerId);
+      res.status(201).json(optimization);
+    } catch (error) {
+      console.error("Error generating inventory optimization:", error);
+      res.status(500).json({ error: "Failed to generate inventory optimization" });
+    }
+  });
+  
+  app.put("/api/seller/inventory-optimizations/:id/status", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" && req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const id = parseInt(req.params.id);
+      const { status } = req.body;
+      
+      if (!status || !["pending", "applied", "rejected"].includes(status)) {
+        return res.status(400).json({ error: "Invalid status" });
+      }
+      
+      const optimization = await storage.updateInventoryOptimizationStatus(id, status, req.user.id);
+      res.json(optimization);
+    } catch (error) {
+      console.error("Error updating inventory optimization status:", error);
+      res.status(500).json({ error: "Failed to update inventory optimization status" });
+    }
+  });
+  
+  app.post("/api/seller/inventory-optimizations/:id/apply", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" && req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Apply the inventory optimization to the product
+      const updatedProduct = await storage.applyInventoryOptimization(id, req.user.id);
+      res.json(updatedProduct);
+    } catch (error) {
+      console.error("Error applying inventory optimization:", error);
+      res.status(500).json({ error: "Failed to apply inventory optimization" });
+    }
+  });
+  
+  // AI Generated Content endpoints
+  app.get("/api/seller/ai-generated-content/:productId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" && req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const productId = parseInt(req.params.productId);
+      const sellerId = req.user.id;
+      const contentType = req.query.contentType as string | undefined;
+      
+      // Verify product belongs to seller
+      const product = await storage.getProduct(productId);
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      
+      if (product.sellerId !== sellerId && req.user.role !== "admin") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      const contents = await storage.getAIGeneratedContents(productId, sellerId, contentType);
+      res.json(contents);
+    } catch (error) {
+      console.error("Error fetching AI generated content:", error);
+      res.status(500).json({ error: "Failed to fetch AI generated content" });
+    }
+  });
+  
+  app.post("/api/seller/ai-generated-content/:productId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" && req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const productId = parseInt(req.params.productId);
+      const sellerId = req.user.id;
+      const { contentType, originalData } = req.body;
+      
+      if (!contentType || !["description", "features", "specifications"].includes(contentType)) {
+        return res.status(400).json({ error: "Invalid content type" });
+      }
+      
+      // Verify product belongs to seller
+      const product = await storage.getProduct(productId);
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      
+      if (product.sellerId !== sellerId && req.user.role !== "admin") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      // Generate AI content using Gemini AI
+      const content = await generateProductContent(productId, sellerId, contentType, originalData || "");
+      res.status(201).json(content);
+    } catch (error) {
+      console.error("Error generating AI content:", error);
+      res.status(500).json({ error: "Failed to generate AI content" });
+    }
+  });
+  
+  app.put("/api/seller/ai-generated-content/:id/status", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" && req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const id = parseInt(req.params.id);
+      const { status } = req.body;
+      
+      if (!status || !["pending", "applied", "rejected"].includes(status)) {
+        return res.status(400).json({ error: "Invalid status" });
+      }
+      
+      const content = await storage.updateAIGeneratedContentStatus(id, status, req.user.id);
+      res.json(content);
+    } catch (error) {
+      console.error("Error updating AI content status:", error);
+      res.status(500).json({ error: "Failed to update AI content status" });
+    }
+  });
+  
+  app.post("/api/seller/ai-generated-content/:id/apply", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" && req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Apply the AI generated content to the product
+      const updatedProduct = await storage.applyAIGeneratedContent(id, req.user.id);
+      res.json(updatedProduct);
+    } catch (error) {
+      console.error("Error applying AI content:", error);
+      res.status(500).json({ error: "Failed to apply AI content" });
     }
   });
   
