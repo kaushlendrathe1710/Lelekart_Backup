@@ -78,10 +78,8 @@ export function ProductImageGallery({ imageUrl, additionalImages, productName = 
       console.error("Error processing images:", err);
     }
 
-    // Return all images as an array (including duplicates)
-    // This is because sometimes the backend or database may have duplicate entries
-    // that are intentionally meant to be shown (e.g., same image from different angles)
-    return allImages;
+    // Return the unique images as an array to avoid TypeScript issues and remove duplicates
+    return Array.from(new Set(allImages));
   }, [imageUrl, additionalImages]);
 
   // References to Swiper instances
