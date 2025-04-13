@@ -110,44 +110,39 @@ export class DatabaseStorage implements IStorage {
 
   async getProducts(category?: string, sellerId?: number, approved?: boolean): Promise<Product[]> {
     try {
-      // Use Drizzle ORM instead of raw SQL for better type checking
-      let query = db.select().from(products);
+      console.log('Getting products with filters:', { category, sellerId, approved });
+      
+      // Use SQL query for more flexibility with filtering
+      let query = `
+        SELECT * FROM products 
+        WHERE 1=1
+      `;
+      const params: any[] = [];
       
       // Add category filter (case-insensitive)
       if (category) {
-        // SQL LOWER function not directly available in drizzle-orm
-        // Use direct db.select for better reliability
-        let categoryFilter = category.toLowerCase();
-        return db.select()
-          .from(products)
-          .all()
-          .then(rows => 
-            rows.filter(p => 
-              p.category && p.category.toLowerCase() === categoryFilter && 
-              (sellerId === undefined || p.sellerId === sellerId) &&
-              (approved === undefined || p.approved === approved)
-            )
-          );
+        query += ` AND LOWER(category) = LOWER($${params.length + 1})`;
+        params.push(category);
       }
       
-      // Without category filter, can use more efficient filtering with ORM
-      let filters = [];
-      
+      // Add seller filter
       if (sellerId !== undefined) {
-        filters.push(eq(products.sellerId, sellerId));
+        query += ` AND "sellerId" = $${params.length + 1}`;
+        params.push(sellerId);
       }
       
+      // Add approved filter
       if (approved !== undefined) {
-        filters.push(eq(products.approved, approved));
+        query += ` AND approved = $${params.length + 1}`;
+        params.push(approved);
       }
       
-      // Apply filters if any
-      if (filters.length > 0) {
-        query = query.where(and(...filters));
-      }
+      console.log('Executing SQL query:', query, 'with params:', params);
       
-      console.log("Executing products query with ORM");
-      return query.all();
+      // Execute the query
+      const { rows } = await pool.query(query, params);
+      console.log(`Found ${rows.length} products`);
+      return rows;
     } catch (error) {
       console.error("Error in getProducts:", error);
       return [];
