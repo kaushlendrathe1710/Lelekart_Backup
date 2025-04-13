@@ -4,6 +4,7 @@ import NotFound from "@/pages/not-found";
 import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
 import ProductDetailsPage from "./pages/product-details"; // New Flipkart-style product page
+import SearchResultsPage from "./pages/search-results-page"; // Search Results Page
 import CategoryPage from "./pages/category-page";
 import CartPage from "./pages/cart-page";
 import CheckoutPage from "./pages/checkout-page";
@@ -63,6 +64,15 @@ function App() {
                     </Layout>
                   );
                 }}
+              </Route>
+              
+              {/* Search Results Page */}
+              <Route path="/search">
+                {() => (
+                  <Layout>
+                    <SearchResultsPage />
+                  </Layout>
+                )}
               </Route>
               
               {/* Category page */}
