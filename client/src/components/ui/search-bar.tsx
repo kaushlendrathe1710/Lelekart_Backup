@@ -52,15 +52,18 @@ export function SearchBar() {
 
   // Fetch search results with TanStack Query
   const { data: searchResults = [], isLoading } = useQuery<Product[]>({
-    queryKey: ['/api/search', debouncedSearchTerm],
+    queryKey: ['/api/product-search', debouncedSearchTerm],
     queryFn: async () => {
       if (!debouncedSearchTerm || debouncedSearchTerm.length < 2) return [];
       
-      const response = await fetch(`/api/search?q=${encodeURIComponent(debouncedSearchTerm)}`);
+      console.log('Searching for:', debouncedSearchTerm);
+      const response = await fetch(`/api/product-search?q=${encodeURIComponent(debouncedSearchTerm)}`);
       if (!response.ok) {
         throw new Error('Search failed');
       }
-      return response.json();
+      const data = await response.json();
+      console.log('Search results:', data);
+      return data;
     },
     enabled: debouncedSearchTerm.length >= 2,
   });

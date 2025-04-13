@@ -843,7 +843,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/image-proxy", handleImageProxy);
   
   // Advanced search endpoint with instant results
-  app.get("/api/search", async (req, res) => {
+  app.get("/api/product-search", async (req, res) => {
     try {
       const query = req.query.q as string;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
@@ -854,7 +854,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Searching products with query:", query);
       const results = await storage.searchProducts(query, limit);
-      res.json(results);
+      console.log(`Found ${results.length} results for "${query}"`);
+      
+      // Set the content type explicitly to application/json
+      res.setHeader('Content-Type', 'application/json');
+      return res.json(results);
     } catch (error) {
       console.error("Error searching products:", error);
       res.status(500).json({ error: "Failed to search products" });
