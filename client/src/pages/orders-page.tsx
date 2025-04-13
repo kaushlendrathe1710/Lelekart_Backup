@@ -156,11 +156,14 @@ export default function OrdersPage() {
               <Input
                 type="text"
                 placeholder="Search by order ID or status"
-                className="pl-10 w-full md:w-80"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-24 w-full md:w-80"
+                disabled
+                onClick={() => alert('Search functionality is being improved. Please check back later!')}
               />
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400">
+                Coming soon
+              </span>
             </div>
           </div>
         </div>
