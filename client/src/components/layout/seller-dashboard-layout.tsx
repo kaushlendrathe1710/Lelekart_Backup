@@ -288,6 +288,18 @@ export function SellerDashboardLayout({ children }: SellerDashboardLayoutProps) 
                     </Link>
                   </Button>
                 </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <Button
+                    variant="ghost"
+                    asChild
+                    className={`w-full justify-start ${isActive('/seller/smart-inventory') ? 'bg-primary/10 text-primary font-medium' : ''}`}
+                  >
+                    <Link href="/seller/smart-inventory">
+                      <BarChart2 className="mr-2 h-4 w-4" />
+                      <span>Smart Inventory</span>
+                    </Link>
+                  </Button>
+                </SidebarMenuItem>
               </SidebarMenu>
 
               {/* Order Management Section */}
