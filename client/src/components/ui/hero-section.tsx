@@ -98,10 +98,10 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
 
   const handleSlideClick = (image: SliderImage) => {
     if (image.productId) {
-      // Use navigate with { replace: false } to ensure it doesn't replace the current route
-      navigate(`/product/${image.productId}`, { replace: false });
+      // Use direct location change to ensure the page fully reloads with the product
+      window.location.href = `/product/${image.productId}`;
     } else if (image.category) {
-      navigate(`/category/${image.category.toLowerCase()}`, { replace: false });
+      window.location.href = `/category/${image.category.toLowerCase()}`;
     }
   };
 
@@ -308,8 +308,8 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
                     className="bg-blue-600 hover:bg-blue-700"
                     onClick={() => {
                       if (dealOfTheDay.productId) {
-                        // Use navigate with { replace: false } to prevent route replacement
-                        navigate(`/product/${dealOfTheDay.productId}`, { replace: false });
+                        // Use direct location change to ensure proper page loading
+                        window.location.href = `/product/${dealOfTheDay.productId}`;
                       }
                     }}
                   >
@@ -323,8 +323,8 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
                     className="cursor-pointer" 
                     onClick={() => {
                       if (dealOfTheDay.productId) {
-                        // Use navigate with { replace: false } to prevent route replacement
-                        navigate(`/product/${dealOfTheDay.productId}`, { replace: false });
+                        // Use direct location change to ensure proper page loading
+                        window.location.href = `/product/${dealOfTheDay.productId}`;
                       }
                     }}
                   >
