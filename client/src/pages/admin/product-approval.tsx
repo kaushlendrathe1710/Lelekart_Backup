@@ -81,23 +81,33 @@ export default function AdminProductApproval() {
         const data = await response.json();
         console.log("Fetched products data:", data);
         
-        if (!Array.isArray(data)) {
-          console.error("Expected array of products but got:", data);
+        // API now returns an object with pending, approved, and rejected arrays
+        if (data && typeof data === 'object' && 'pending' in data) {
+          // Set products from the categorized response
+          setPendingProducts(Array.isArray(data.pending) ? data.pending : []);
+          setApprovedProducts(Array.isArray(data.approved) ? data.approved : []);
+          setRejectedProducts(Array.isArray(data.rejected) ? data.rejected : []);
+          
+          console.log(`Loaded ${data.pending?.length || 0} pending, ${data.approved?.length || 0} approved, and ${data.rejected?.length || 0} rejected products`);
+        } else if (Array.isArray(data)) {
+          // Fallback to old format if needed
+          console.log("Using legacy format for product data");
+          // Separate products by approval status
+          setPendingProducts(data.filter((product: ProductWithSeller) => 
+            product.approvalStatus === "pending" || !product.approvalStatus
+          ));
+          
+          setApprovedProducts(data.filter((product: ProductWithSeller) => 
+            product.approvalStatus === "approved"
+          ));
+          
+          setRejectedProducts(data.filter((product: ProductWithSeller) => 
+            product.approvalStatus === "rejected"
+          ));
+        } else {
+          console.error("Invalid data format:", data);
           throw new Error("Invalid data format received from server");
         }
-        
-        // Separate products by approval status
-        setPendingProducts(data.filter((product: ProductWithSeller) => 
-          product.approvalStatus === "pending" || !product.approvalStatus
-        ));
-        
-        setApprovedProducts(data.filter((product: ProductWithSeller) => 
-          product.approvalStatus === "approved"
-        ));
-        
-        setRejectedProducts(data.filter((product: ProductWithSeller) => 
-          product.approvalStatus === "rejected"
-        ));
         
         setIsLoading(false);
       } catch (error) {

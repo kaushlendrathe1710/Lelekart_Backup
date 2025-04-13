@@ -152,15 +152,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Product approval API endpoints
   app.get("/api/admin/products/approval", isAdmin, async (req: Request, res: Response) => {
     try {
-      // Get all products
+      // Get products filtered by approval status
       console.log("Fetching products for approval...");
-      const products = await db.query.products.findMany({
+      
+      const pendingProducts = await db.query.products.findMany({
+        where: (products, { eq, or, isNull }) => or(
+          eq(products.approvalStatus, "pending"),
+          isNull(products.approvalStatus)
+        ),
         with: {
           seller: true,
         },
       });
-      console.log(`Found ${products.length} products for approval`);
-      res.json(products);
+      
+      const approvedProducts = await db.query.products.findMany({
+        where: (products, { eq }) => eq(products.approvalStatus, "approved"),
+        with: {
+          seller: true,
+        },
+      });
+      
+      const rejectedProducts = await db.query.products.findMany({
+        where: (products, { eq }) => eq(products.approvalStatus, "rejected"),
+        with: {
+          seller: true,
+        },
+      });
+      
+      console.log(`Found ${pendingProducts.length} pending, ${approvedProducts.length} approved, and ${rejectedProducts.length} rejected products`);
+      
+      res.json({
+        pending: pendingProducts,
+        approved: approvedProducts,
+        rejected: rejectedProducts
+      });
     } catch (error) {
       console.error("Error fetching products:", error);
       res.status(500).json({ error: "Failed to fetch products", details: error instanceof Error ? error.message : 'Unknown error' });
