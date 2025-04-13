@@ -40,6 +40,7 @@ import SellerOrdersPage from './pages/seller/orders';
 import BulkUploadPage from './pages/seller/bulk-upload';
 import SmartInventoryPage from './pages/seller/smart-inventory';
 import BuyerDashboardPage from './pages/buyer/dashboard';
+import BuyerWishlistPage from './pages/buyer/wishlist';
 
 function App() {
   return (
