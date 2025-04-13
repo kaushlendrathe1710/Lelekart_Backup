@@ -29,8 +29,8 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   getUsers(): Promise<User[]>;
   updateUserRole(id: number, role: string): Promise<User>;
-  getSellers(approved?: boolean): Promise<User[]>;
-  updateSellerApproval(id: number, approved: boolean): Promise<User>;
+  getSellers(approved?: boolean, rejected?: boolean): Promise<User[]>;
+  updateSellerApproval(id: number, approved: boolean, rejected?: boolean): Promise<User>;
 
   // Product operations
   getProducts(category?: string, sellerId?: number, approved?: boolean): Promise<Product[]>;
@@ -192,12 +192,16 @@ export class DatabaseStorage implements IStorage {
     return updatedUser;
   }
   
-  async getSellers(approved?: boolean): Promise<User[]> {
+  async getSellers(approved?: boolean, rejected?: boolean): Promise<User[]> {
     try {
       let query = db.select().from(users).where(eq(users.role, 'seller'));
       
       if (approved !== undefined) {
         query = query.where(eq(users.approved, approved));
+      }
+      
+      if (rejected !== undefined) {
+        query = query.where(eq(users.rejected, rejected));
       }
       
       return await query;

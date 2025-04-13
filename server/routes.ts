@@ -55,11 +55,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
     
     try {
-      const pendingSellers = await storage.getSellers(false);
+      // Get sellers where approved=false AND rejected=false
+      const pendingSellers = await storage.getSellers(false, false);
       res.json(pendingSellers);
     } catch (error) {
       console.error("Error fetching pending sellers:", error);
       res.status(500).json({ error: "Failed to fetch pending sellers" });
+    }
+  });
+  
+  app.get("/api/sellers/rejected", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      // Get sellers where rejected=true
+      const rejectedSellers = await storage.getSellers(undefined, true);
+      res.json(rejectedSellers);
+    } catch (error) {
+      console.error("Error fetching rejected sellers:", error);
+      res.status(500).json({ error: "Failed to fetch rejected sellers" });
     }
   });
   
@@ -82,7 +97,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const id = parseInt(req.params.id);
-      const seller = await storage.updateSellerApproval(id, true);
+      // Set approved to true and rejected to false
+      const seller = await storage.updateSellerApprovalStatus(id, true, false);
       res.json(seller);
     } catch (error) {
       console.error("Error approving seller:", error);
@@ -96,7 +112,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const id = parseInt(req.params.id);
-      const seller = await storage.updateSellerApproval(id, false);
+      // Set approved to false and rejected to true
+      const seller = await storage.updateSellerApprovalStatus(id, false, true);
       res.json(seller);
     } catch (error) {
       console.error("Error rejecting seller:", error);
@@ -117,9 +134,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({ 
         approved: !!seller.approved,
+        rejected: !!seller.rejected,
         message: seller.approved 
-          ? "Your seller account is approved." 
-          : "Your profile is pending approval by admin. Please update your profile details ASAP so it can be approved quickly."
+          ? "Your seller account is approved. You can now list products and manage your store." 
+          : seller.rejected
+            ? "Your seller account has been rejected. Please contact customer support for more information."
+            : "Your profile is pending approval by admin. Please update your profile details ASAP so it can be approved quickly."
       });
     } catch (error) {
       console.error("Error checking seller status:", error);
