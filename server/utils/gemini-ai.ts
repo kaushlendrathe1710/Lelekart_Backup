@@ -8,8 +8,9 @@ const genAI = process.env.GEMINI_API_KEY ?
 if (!genAI) {
   console.warn("Warning: GEMINI_API_KEY environment variable is missing. AI features will be disabled.");
 }
-// Use the most advanced model - Gemini 1.5 Pro
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
+
+// Use the most advanced model - Gemini 1.5 Pro only if API is available
+const model = genAI ? genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" }) : null;
 
 /**
  * General purpose chat function for the AI assistant
@@ -18,6 +19,9 @@ export async function getChatResponse(
   messages: Array<{ role: string; content: string }>,
   systemPrompt: string
 ): Promise<string> {
+  if (!model) {
+    throw new Error("Gemini API is not configured. Please add GEMINI_API_KEY to your secrets.");
+  }
   // Convert messages format for Gemini
   const geminiMessages = messages.map(msg => ({
     role: msg.role === 'user' ? 'user' : 'model',
