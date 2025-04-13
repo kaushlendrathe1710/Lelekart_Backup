@@ -13,6 +13,7 @@ export const users = pgTable("users", {
   name: text("name"),
   phone: text("phone"),
   address: text("address"),
+  approved: boolean("approved").notNull().default(false), // Sellers need admin approval
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -23,6 +24,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   name: true,
   phone: true,
   address: true,
+  approved: true,
 });
 
 // Product schema

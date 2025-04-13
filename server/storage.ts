@@ -29,6 +29,8 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   getUsers(): Promise<User[]>;
   updateUserRole(id: number, role: string): Promise<User>;
+  getSellers(approved?: boolean): Promise<User[]>;
+  updateSellerApproval(id: number, approved: boolean): Promise<User>;
 
   // Product operations
   getProducts(category?: string, sellerId?: number, approved?: boolean): Promise<Product[]>;
