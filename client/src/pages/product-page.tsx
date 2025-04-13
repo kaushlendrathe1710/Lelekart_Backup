@@ -211,7 +211,7 @@ export default function ProductPage() {
         description: "You need to be logged in to add items to cart",
         variant: "default",
       });
-      setLocation("/auth");
+      setLocation("/auth", { replace: false });
       return;
     }
     
@@ -253,7 +253,7 @@ export default function ProductPage() {
         description: "You need to be logged in to purchase items",
         variant: "default",
       });
-      setLocation("/auth");
+      setLocation("/auth", { replace: false });
       return;
     }
     
@@ -280,7 +280,7 @@ export default function ProductPage() {
         });
         
         // Redirect to checkout
-        setLocation("/checkout");
+        setLocation("/checkout", { replace: false });
       }
     } catch (error) {
       console.error("Failed to buy now:", error);

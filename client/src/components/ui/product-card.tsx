@@ -49,7 +49,7 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
         description: "You need to be logged in to add items to cart",
         variant: "default",
       });
-      setLocation("/auth");
+      setLocation("/auth", { replace: false });
       return;
     }
     
@@ -102,7 +102,7 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
           onClick={(e) => {
             e.preventDefault();
             console.log(`Navigating to product page: /product/${product.id}`);
-            setLocation(`/product/${product.id}`);
+            setLocation(`/product/${product.id}`, { replace: false });
           }}
         >
           <CardContent className="p-0 flex flex-col items-center">
@@ -163,7 +163,7 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
         onClick={(e) => {
           e.preventDefault();
           console.log(`Navigating to product page: /product/${product.id}`);
-          setLocation(`/product/${product.id}`);
+          setLocation(`/product/${product.id}`, { replace: false });
         }}
       >
         <CardContent className="p-0 flex flex-col items-center">
