@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CartContext } from "@/context/cart-context";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { formatPrice } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProductReviews from "@/components/product/product-reviews";
 import ProductRecommendationCarousel from "@/components/ui/product-recommendation-carousel";
@@ -104,10 +105,7 @@ export default function ProductDetailsPage() {
     enabled: !!product?.category,
   });
   
-  // Format price in Indian Rupees
-  const formatPrice = (price: number) => {
-    return `₹${price.toLocaleString('en-IN')}`;
-  };
+  // Use formatPrice from utils.ts
   
   // Create mutations for cart operations
   const addToCartMutation = useMutation({
