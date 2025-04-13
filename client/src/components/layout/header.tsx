@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { 
-  Search, 
   Menu, 
   X, 
   ShoppingCart, 
@@ -14,7 +13,6 @@ import {
   Heart
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { SearchBar } from "@/components/ui/search-bar";
 import { useCart } from "@/context/cart-context";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -33,7 +32,6 @@ export function Header() {
   const { toggleCart, cartItems } = useCart();
   const [, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
 
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -47,12 +45,6 @@ export function Header() {
         });
       }
     });
-  };
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Implement search functionality
-    console.log("Search for:", searchQuery);
   };
 
   const getDashboardLink = () => {
@@ -88,23 +80,7 @@ export function Header() {
           
           {/* Search Bar */}
           <div className="w-full md:w-5/12 md:ml-4 relative mb-2 md:mb-0">
-            <form onSubmit={handleSearch} className="relative">
-              <Input
-                type="text"
-                placeholder="Search for products, brands and more"
-                className="w-full py-2 px-4 text-gray-900 rounded-sm focus:outline-none"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <Button
-                type="submit"
-                size="icon"
-                variant="ghost"
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-primary"
-              >
-                <Search className="h-5 w-5" />
-              </Button>
-            </form>
+            <SearchBar />
           </div>
           
           {/* Desktop Navigation */}
