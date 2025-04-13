@@ -316,3 +316,144 @@ export type InsertReviewImage = z.infer<typeof insertReviewImageSchema>;
 
 export type ReviewHelpful = typeof reviewHelpful.$inferSelect;
 export type InsertReviewHelpful = z.infer<typeof insertReviewHelpfulSchema>;
+
+// User Activity Tracking for AI Assistant
+export const userActivities = pgTable("user_activities", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id), // Can be null for anonymous sessions
+  sessionId: text("session_id").notNull(), // For tracking anonymous users
+  activityType: text("activity_type").notNull(), // view, search, add_to_cart, purchase, etc.
+  productId: integer("product_id").references(() => products.id),
+  categoryId: integer("category_id").references(() => categories.id),
+  searchQuery: text("search_query"),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+  additionalData: text("additional_data"), // JSON string with additional context
+});
+
+export const insertUserActivitySchema = createInsertSchema(userActivities).pick({
+  userId: true,
+  sessionId: true,
+  activityType: true,
+  productId: true,
+  categoryId: true,
+  searchQuery: true,
+  additionalData: true,
+});
+
+// Product Relationships for Complementary Products
+export const productRelationships = pgTable("product_relationships", {
+  id: serial("id").primaryKey(),
+  sourceProductId: integer("source_product_id").notNull().references(() => products.id),
+  relatedProductId: integer("related_product_id").notNull().references(() => products.id),
+  relationshipType: text("relationship_type").notNull(), // complementary, similar, bundle, etc.
+  strength: doublePrecision("strength").notNull().default(1.0), // Relation strength (higher = stronger relationship)
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertProductRelationshipSchema = createInsertSchema(productRelationships).pick({
+  sourceProductId: true,
+  relatedProductId: true,
+  relationshipType: true,
+  strength: true,
+});
+
+// AI Assistant Conversations
+export const aiAssistantConversations = pgTable("ai_assistant_conversations", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  sessionId: text("session_id").notNull(),
+  productId: integer("product_id").references(() => products.id), // Optional - if about a specific product
+  categoryId: integer("category_id").references(() => categories.id), // Optional - if about a specific category
+  conversationHistory: text("conversation_history").notNull(), // JSON string of messages
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertAiAssistantConversationSchema = createInsertSchema(aiAssistantConversations).pick({
+  userId: true,
+  sessionId: true,
+  productId: true,
+  categoryId: true,
+  conversationHistory: true,
+});
+
+// Size Preferences for Size Recommendations
+export const userSizePreferences = pgTable("user_size_preferences", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  category: text("category").notNull(), // clothing, shoes, etc.
+  size: text("size").notNull(), // S, M, L, 42, etc.
+  fit: text("fit"), // slim, regular, loose, etc.
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertUserSizePreferenceSchema = createInsertSchema(userSizePreferences).pick({
+  userId: true,
+  category: true,
+  size: true,
+  fit: true,
+});
+
+// Relations for new tables
+export const userActivitiesRelations = relations(userActivities, ({ one }) => ({
+  user: one(users, {
+    fields: [userActivities.userId],
+    references: [users.id],
+  }),
+  product: one(products, {
+    fields: [userActivities.productId],
+    references: [products.id],
+  }),
+  category: one(categories, {
+    fields: [userActivities.categoryId],
+    references: [categories.id],
+  }),
+}));
+
+export const productRelationshipsRelations = relations(productRelationships, ({ one }) => ({
+  sourceProduct: one(products, {
+    fields: [productRelationships.sourceProductId],
+    references: [products.id],
+  }),
+  relatedProduct: one(products, {
+    fields: [productRelationships.relatedProductId],
+    references: [products.id],
+  }),
+}));
+
+export const aiAssistantConversationsRelations = relations(aiAssistantConversations, ({ one }) => ({
+  user: one(users, {
+    fields: [aiAssistantConversations.userId],
+    references: [users.id],
+  }),
+  product: one(products, {
+    fields: [aiAssistantConversations.productId],
+    references: [products.id],
+  }),
+  category: one(categories, {
+    fields: [aiAssistantConversations.categoryId],
+    references: [categories.id],
+  }),
+}));
+
+export const userSizePreferencesRelations = relations(userSizePreferences, ({ one }) => ({
+  user: one(users, {
+    fields: [userSizePreferences.userId],
+    references: [users.id],
+  }),
+}));
+
+// Add relationships to existing tables
+export type UserActivity = typeof userActivities.$inferSelect;
+export type InsertUserActivity = z.infer<typeof insertUserActivitySchema>;
+
+export type ProductRelationship = typeof productRelationships.$inferSelect;
+export type InsertProductRelationship = z.infer<typeof insertProductRelationshipSchema>;
+
+export type AiAssistantConversation = typeof aiAssistantConversations.$inferSelect;
+export type InsertAiAssistantConversation = z.infer<typeof insertAiAssistantConversationSchema>;
+
+export type UserSizePreference = typeof userSizePreferences.$inferSelect;
+export type InsertUserSizePreference = z.infer<typeof insertUserSizePreferenceSchema>;
