@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { db } from '../db';
 import {
   products,
@@ -19,14 +19,12 @@ import {
 import { eq, and, desc, sql, like, ilike, or, gte, lte, isNull, isNotNull, not } from 'drizzle-orm';
 import { UUID } from 'crypto';
 import { randomUUID } from 'crypto';
+import * as geminiAi from './gemini-ai';
 
-// the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
-const MODEL_NAME = 'claude-3-7-sonnet-20250219';
-
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+// Initialize Google Generative AI client
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+// Use the most advanced model - Gemini 1.5 Pro
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
 
 // Generate a session ID for tracking user activity
 export function generateSessionId(): string {
@@ -572,13 +570,29 @@ ${product.color ? `Available Colors: ${product.color}` : ''}
       }
     }
 
-    // Send to Anthropic's Claude
-    const response = await anthropic.messages.create({
-      model: MODEL_NAME,
-      system: systemPrompt,
-      messages: messages,
-      max_tokens: 1000,
+    // Convert messages format for Gemini
+    const geminiMessages = messages.map(msg => ({
+      role: msg.role === 'user' ? 'user' : 'model',
+      parts: [{ text: msg.content }]
+    }));
+
+    // Add system prompt as first message from model
+    geminiMessages.unshift({
+      role: 'model',
+      parts: [{ text: systemPrompt }]
     });
+
+    // Send to Google's Gemini
+    const result = await model.generateContent({
+      contents: geminiMessages,
+      generationConfig: {
+        maxOutputTokens: 1000,
+        temperature: 0.7,
+      }
+    });
+    
+    const response = result.response;
+    const responseText = response.text();
 
     // Save the conversation if we have session info
     if (contextInfo) {
@@ -587,11 +601,11 @@ ${product.color ? `Available Colors: ${product.color}` : ''}
         contextInfo.sessionId,
         contextInfo.productId || null,
         contextInfo.categoryId || null,
-        [...messages, { role: 'assistant', content: response.content[0].text }]
+        [...messages, { role: 'assistant', content: responseText }]
       );
     }
 
-    return response.content[0].text;
+    return responseText;
   } catch (error) {
     console.error('Error getting AI response:', error);
     return "I'm sorry, but I'm having trouble processing your request right now. Please try again later.";
@@ -663,13 +677,29 @@ When answering:
 - For questions about delivery, returns, or store policy, direct the customer to the store's customer service
 `;
 
-    // Send to Anthropic's Claude
-    const response = await anthropic.messages.create({
-      model: MODEL_NAME,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userQuestion }],
-      max_tokens: 600,
+    // Create Gemini message format
+    const geminiMessages = [
+      {
+        role: 'model',
+        parts: [{ text: systemPrompt }]
+      },
+      {
+        role: 'user',
+        parts: [{ text: userQuestion }]
+      }
+    ];
+
+    // Send to Google's Gemini
+    const result = await model.generateContent({
+      contents: geminiMessages,
+      generationConfig: {
+        maxOutputTokens: 600,
+        temperature: 0.5,
+      }
     });
+    
+    const response = result.response;
+    const responseText = response.text();
 
     // Track interaction for personalization
     if (sessionId) {
@@ -684,7 +714,7 @@ When answering:
       );
     }
 
-    return response.content[0].text;
+    return responseText;
   } catch (error) {
     console.error('Error getting product Q&A response:', error);
     return "I'm sorry, but I'm having trouble processing your request right now. Please try again later.";
