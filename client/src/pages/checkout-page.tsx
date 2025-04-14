@@ -406,186 +406,196 @@ export default function CheckoutPage() {
             
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <div style={{ display: addresses.length > 0 && !showAddressForm ? 'none' : 'block' }}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Full Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="John Doe" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input type="email" placeholder="john@example.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone</FormLabel>
-                      <FormControl>
-                        <Input placeholder="1234567890" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Address</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="123 Main St, Apt 4B" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="city"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>City</FormLabel>
-                        <FormControl>
-                          <Input placeholder="New York" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="state"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>State</FormLabel>
-                        <FormControl>
-                          <Input placeholder="NY" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="zipCode"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>ZIP Code</FormLabel>
-                        <FormControl>
-                          <Input placeholder="10001" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <FormField
-                  control={form.control}
-                  name="notes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Order Notes (Optional)</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Special instructions for delivery" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="paymentMethod"
-                  render={({ field }) => (
-                    <FormItem className="space-y-3">
-                      <FormLabel>Payment Method</FormLabel>
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          className="flex flex-col space-y-3"
-                        >
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="cod" id="cod" />
-                            <Label htmlFor="cod">Cash on Delivery (COD)</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="razorpay" id="razorpay" />
-                            <Label htmlFor="razorpay">Pay Online with Razorpay</Label>
-                          </div>
-                        </RadioGroup>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                {form.watch("paymentMethod") === "razorpay" ? (
-                  <div className="border-t pt-4">
-                    <RazorpayPayment 
-                      amount={total * 100} // Convert to paise
-                      shippingDetails={{
-                        name: form.getValues("name"),
-                        address: form.getValues("address"),
-                        city: form.getValues("city"),
-                        state: form.getValues("state"),
-                        zipCode: form.getValues("zipCode"),
-                        phone: form.getValues("phone"),
-                      }}
-                      onSuccess={(orderId) => {
-                        // Redirect to order confirmation page
-                        setLocation(`/order-confirmation/${orderId}?success=true&total=${total}`);
-                      }}
-                      onError={(error) => {
-                        toast({
-                          title: "Payment Failed",
-                          description: error || "There was an error processing your payment. Please try again.",
-                          variant: "destructive",
-                        });
-                      }}
+                {/* Address entry section - conditionally shown/hidden */}
+                {(addresses.length === 0 || showAddressForm) && (
+                  <div className="address-form-section mb-8">
+                    <h3 className="font-medium text-base mb-4">Shipping Address</h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Full Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="John Doe" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                              <Input type="email" placeholder="john@example.com" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone</FormLabel>
+                          <FormControl>
+                            <Input placeholder="1234567890" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="address"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Address</FormLabel>
+                          <FormControl>
+                            <Textarea placeholder="123 Main St, Apt 4B" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="city"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>City</FormLabel>
+                            <FormControl>
+                              <Input placeholder="New York" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="state"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>State</FormLabel>
+                            <FormControl>
+                              <Input placeholder="NY" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="zipCode"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>ZIP Code</FormLabel>
+                            <FormControl>
+                              <Input placeholder="10001" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <FormField
+                      control={form.control}
+                      name="notes"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Order Notes (Optional)</FormLabel>
+                          <FormControl>
+                            <Textarea placeholder="Special instructions for delivery" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
                   </div>
-                ) : (
-                  <div className="pt-4">
-                    <Button 
-                      type="submit" 
-                      className="w-full bg-primary text-white"
-                      disabled={processingOrder}
-                    >
-                      {processingOrder ? "Processing..." : "Place Order"}
-                    </Button>
-                  </div>
                 )}
+
+                {/* Payment section - always visible */}
+                <div className="payment-section pt-4 border-t">
+                  <h3 className="font-medium text-base mb-4">Payment Information</h3>
+                  
+                  <FormField
+                    control={form.control}
+                    name="paymentMethod"
+                    render={({ field }) => (
+                      <FormItem className="space-y-3">
+                        <FormLabel>Payment Method</FormLabel>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            className="flex flex-col space-y-3"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="cod" id="cod" />
+                              <Label htmlFor="cod">Cash on Delivery (COD)</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="razorpay" id="razorpay" />
+                              <Label htmlFor="razorpay">Pay Online with Razorpay</Label>
+                            </div>
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {form.watch("paymentMethod") === "razorpay" ? (
+                    <div className="border-t pt-4 mt-4">
+                      <RazorpayPayment 
+                        amount={total * 100} // Convert to paise
+                        shippingDetails={{
+                          name: form.getValues("name"),
+                          address: form.getValues("address"),
+                          city: form.getValues("city"),
+                          state: form.getValues("state"),
+                          zipCode: form.getValues("zipCode"),
+                          phone: form.getValues("phone"),
+                        }}
+                        onSuccess={(orderId) => {
+                          // Redirect to order confirmation page
+                          setLocation(`/order-confirmation/${orderId}?success=true&total=${total}`);
+                        }}
+                        onError={(error) => {
+                          toast({
+                            title: "Payment Failed",
+                            description: error || "There was an error processing your payment. Please try again.",
+                            variant: "destructive",
+                          });
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="pt-4 mt-4">
+                      <Button 
+                        type="submit" 
+                        className="w-full bg-primary text-white"
+                        disabled={processingOrder}
+                      >
+                        {processingOrder ? "Processing..." : "Place Order"}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </form>
             </Form>
