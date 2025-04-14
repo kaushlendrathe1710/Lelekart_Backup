@@ -1401,23 +1401,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No file uploaded" });
       }
       
-      // Upload to S3
-      const params = {
-        Bucket: process.env.AWS_BUCKET_NAME,
-        Key: `banners/${Date.now()}-${req.file.originalname}`,
-        Body: req.file.buffer,
-        ContentType: req.file.mimetype,
-        ACL: "public-read"
-      };
+      // Create a copy of the file with a banner-specific prefix
+      const bannerFile = { ...req.file };
+      bannerFile.originalname = `banner-${bannerFile.originalname}`;
       
-      const s3Result = await s3.upload(params).promise();
+      // Use the existing uploadFileToS3 function
+      const uploadResult = await uploadFileToS3(bannerFile);
       
       return res.status(200).json({ 
-        imageUrl: s3Result.Location 
+        imageUrl: uploadResult.Location,
+        success: true,
+        message: "Banner image uploaded successfully"
       });
     } catch (error) {
       console.error("Error uploading banner image:", error);
-      return res.status(500).json({ error: "Failed to upload banner image" });
+      return res.status(500).json({ 
+        error: "Failed to upload banner image",
+        success: false,
+        message: "There was an error uploading your banner image"
+      });
     }
   });
   

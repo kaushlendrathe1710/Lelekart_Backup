@@ -21,6 +21,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Loader2, Plus, Trash2, ArrowUp, ArrowDown, EyeOff, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { type ToastActionElement, type ToastProps } from "@/components/ui/toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { 
@@ -241,15 +242,25 @@ export default function BannerManagement() {
       
       const data = await res.json();
       
-      if (data.imageUrl) {
+      if (data.success && data.imageUrl) {
+        // Update the banner state with the new image URL
         setNewBanner(prev => ({
           ...prev,
           imageUrl: data.imageUrl
         }));
         
+        // Show success message
         toast({
-          title: "Image uploaded",
-          description: "Your image has been uploaded successfully.",
+          title: "Banner image uploaded",
+          description: data.message || "Your banner image has been uploaded successfully.",
+          variant: "default",
+        });
+      } else {
+        // Show error message
+        toast({
+          title: "Upload failed",
+          description: data.message || "There was an error uploading your image. Please try again.",
+          variant: "destructive",
         });
       }
     } catch (error) {
@@ -285,7 +296,8 @@ export default function BannerManagement() {
       
       const data = await res.json();
       
-      if (data.imageUrl) {
+      if (data.success && data.imageUrl) {
+        // Update the banner state with the new image URL
         setEditingBanner(prev => {
           if (!prev) return null;
           return {
@@ -294,9 +306,18 @@ export default function BannerManagement() {
           };
         });
         
+        // Show success message
         toast({
-          title: "Image uploaded",
-          description: "Your image has been uploaded successfully.",
+          title: "Banner image uploaded",
+          description: data.message || "Your banner image has been uploaded successfully.",
+          variant: "default",
+        });
+      } else {
+        // Show error message
+        toast({
+          title: "Upload failed",
+          description: data.message || "There was an error uploading your image. Please try again.",
+          variant: "destructive",
         });
       }
     } catch (error) {
