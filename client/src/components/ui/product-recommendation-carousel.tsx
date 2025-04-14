@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "./button";
 import { Skeleton } from "./skeleton";
 import { cn } from "@/lib/utils";
+import { CartProvider } from "@/context/cart-context";
 
 // Add custom styles to hide scrollbar but keep functionality
 const scrollbarHideStyles = {
@@ -129,7 +130,9 @@ const ProductRecommendationCarousel: FC<ProductRecommendationCarouselProps> = ({
         
         {!isLoading && products?.map((product) => (
           <div key={product.id} className="flex-shrink-0" style={{ width: "245px" }}>
-            <ProductCard product={product} />
+            <CartProvider>
+              <ProductCard product={product} />
+            </CartProvider>
           </div>
         ))}
       </div>
