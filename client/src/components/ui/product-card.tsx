@@ -104,8 +104,8 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
               console.log(`Navigating to product details page: /product/${product.id}`);
               // Use Wouter's setLocation for proper SPA routing
               setLocation(`/product/${product.id}`);
-            } catch (e) {
-              console.error('Navigation error:', e);
+            } catch (err) {
+              console.error('Navigation error:', err);
             }
           }}
         >
