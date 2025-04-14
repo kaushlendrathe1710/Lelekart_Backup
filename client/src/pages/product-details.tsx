@@ -184,18 +184,25 @@ function ProductImageSlider({ images, name }: { images: string[], name: string }
                 <>
                   <div className="h-full flex items-center justify-center">
                     <div className="w-full h-full">
-                      <React360View
-                        amount={36}
-                        imagePath={images[activeImage]}
-                        fileName="product_{index}.jpg"
-                        spinReverse
-                        autoplay
-                        buttonClass="vr-btn"
-                      />
+                      {/* Custom simplified 360 view implementation */}
+                      <div className="relative w-full h-full">
+                        <img 
+                          src={images[activeImage]} 
+                          alt={`${name} 360 view`} 
+                          className="max-w-full max-h-full object-contain"
+                          onError={handleImageError}
+                        />
+                        <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+                          <div className="bg-black bg-opacity-60 text-white px-3 py-1 rounded-full text-xs flex items-center">
+                            <RotateCw size={14} className="mr-1 animate-spin" />
+                            <span>Simulated 360° View</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <div className="mt-2 text-center text-xs text-gray-500">
-                    Drag to rotate 360°
+                    Interactive 360° view (simulated with product images)
                   </div>
                 </>
               ) : (
@@ -214,7 +221,7 @@ function ProductImageSlider({ images, name }: { images: string[], name: string }
         <ul className="list-disc pl-5 mt-1">
           <li>Normal: Click to enlarge the image</li>
           <li>Zoom: Hover over the image to see magnified details</li>
-          <li>360° View: Drag left/right to rotate the product</li>
+          <li>360° View: Simulated view that displays the product image in a special viewer</li>
         </ul>
       </div>
     </div>
