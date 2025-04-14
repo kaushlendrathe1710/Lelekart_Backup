@@ -252,6 +252,7 @@ function ProductImageSlider({ images, name }: { images: string[], name: string }
   );
 }
 
+// Wrap the entire component with CartProvider
 export default function ProductDetailsPage() {
   // Extract product ID from the URL using wouter's useRoute
   const [match, params] = useRoute('/product/:id');
@@ -537,7 +538,7 @@ export default function ProductDetailsPage() {
   const { price, discount, original } = getPriceDetails(product);
   
   return (
-    <>
+    <CartProvider>
       <CategoryNav />
       
       <div className="bg-gray-100 min-h-screen">
@@ -815,6 +816,6 @@ export default function ProductDetailsPage() {
           </div>
         </div>
       </div>
-    </>
+    </CartProvider>
   );
 }
