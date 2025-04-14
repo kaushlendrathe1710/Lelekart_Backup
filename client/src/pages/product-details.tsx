@@ -1,11 +1,11 @@
-import { useState, useContext } from "react";
+import { useState, useContext, useRef, useEffect } from "react";
 import { useLocation, useRoute } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Product, User } from "@shared/schema";
 import { CategoryNav } from "@/components/ui/category-nav";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Minus, Plus, ShoppingCart, Star, Zap, Heart, Share2, Package, Shield, TruckIcon, Award, BarChart3, ChevronDown } from "lucide-react";
+import { Minus, Plus, ShoppingCart, Star, Zap, Heart, Share2, Package, Shield, TruckIcon, Award, BarChart3, ChevronDown, Maximize, RotateCw } from "lucide-react";
 import { ProductCard } from "@/components/ui/product-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CartContext, CartProvider } from "@/context/cart-context";
@@ -16,10 +16,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProductReviews from "@/components/product/product-reviews";
 import ProductRecommendationCarousel from "@/components/ui/product-recommendation-carousel";
 import { ProductQA, ComplementaryProducts, SizeRecommendation } from "@/components/ai";
+import ImageZoom from 'react-image-zoom';
+import Zoom from 'react-medium-image-zoom';
+import 'react-medium-image-zoom/dist/styles.css';
+import React360View from 'react-360-view';
 
-// Custom image slider component with Flipkart-like thumbnails on the left
+// Custom enhanced image slider component with zoom and 360-degree view capabilities
 function ProductImageSlider({ images, name }: { images: string[], name: string }) {
   const [activeImage, setActiveImage] = useState(0);
+  const [viewMode, setViewMode] = useState<'normal' | 'zoom' | '360'>('normal');
+  const [isZoomed, setIsZoomed] = useState(false);
+  
+  // Container ref for calculating zoom dimensions
+  const containerRef = useRef<HTMLDivElement>(null);
   
   // Default placeholder image based on category
   const defaultImage = "../images/placeholder.svg";
@@ -31,36 +40,182 @@ function ProductImageSlider({ images, name }: { images: string[], name: string }
     target.src = defaultImage;
   };
   
+  // Sample 360 view images - in a real implementation, these would come from a product API
+  // Here we're using the first image repeated 36 times to simulate a 360° rotation
+  const get360Images = () => {
+    // In a real implementation, you would fetch actual 360 view images
+    // Here we're just simulating with the first product image
+    if (images.length === 0) return [];
+    
+    // Use the current active image as the base for 360 view
+    const baseImage = images[activeImage];
+    
+    // Create a simulated 360 view (36 frames = 10 degrees per frame)
+    return Array(36).fill(baseImage);
+  };
+  
+  // Get props for ImageZoom component
+  const getZoomProps = () => {
+    if (!containerRef.current) return {};
+    
+    const width = containerRef.current.clientWidth;
+    const height = containerRef.current.clientHeight || 384; // Default height
+    
+    return {
+      img: images[activeImage],
+      zoomPosition: 'original',
+      width: width,
+      height: height,
+      zoomWidth: width * 2,
+      zoomStyle: 'opacity: 1;background-color: white;',
+      alt: name
+    };
+  };
+  
   return (
-    <div className="flex">
-      {/* Thumbnails on the left */}
-      <div className="flex flex-col gap-2 mr-4">
-        {images.map((image, index) => (
-          <div 
-            key={index}
-            className={`w-16 h-16 border cursor-pointer hover:border-primary ${index === activeImage ? 'border-primary' : 'border-gray-200'}`}
-            onClick={() => setActiveImage(index)}
-          >
-            <img 
-              src={image} 
-              alt={`${name} thumbnail ${index + 1}`} 
-              className="w-full h-full object-contain"
-              onError={handleImageError}
-            />
-          </div>
-        ))}
+    <div className="space-y-4">
+      {/* View mode toggle buttons */}
+      <div className="flex gap-2 justify-end">
+        <Button
+          variant={viewMode === 'normal' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setViewMode('normal')}
+          className="flex items-center gap-1"
+        >
+          <Maximize size={16} />
+          <span>Normal</span>
+        </Button>
+        
+        <Button
+          variant={viewMode === 'zoom' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setViewMode('zoom')}
+          className="flex items-center gap-1"
+        >
+          <Maximize size={16} />
+          <span>Zoom</span>
+        </Button>
+        
+        <Button
+          variant={viewMode === '360' ? 'default' : 'outline'}
+          size="sm" 
+          onClick={() => setViewMode('360')}
+          className="flex items-center gap-1"
+        >
+          <RotateCw size={16} />
+          <span>360° View</span>
+        </Button>
       </div>
       
-      {/* Main image */}
-      <div className="flex-1 sticky top-0">
-        <div className="w-full h-96 border border-gray-100 flex items-center justify-center bg-white">
-          <img 
-            src={images[activeImage]} 
-            alt={name} 
-            className="max-w-full max-h-full object-contain"
-            onError={handleImageError}
-          />
+      <div className="flex">
+        {/* Thumbnails on the left - always visible regardless of view mode */}
+        <div className="flex flex-col gap-2 mr-4">
+          {images.map((image, index) => (
+            <div 
+              key={index}
+              className={`w-16 h-16 border cursor-pointer hover:border-primary ${index === activeImage ? 'border-primary' : 'border-gray-200'}`}
+              onClick={() => {
+                setActiveImage(index);
+                // Reset to normal view when changing images
+                if (viewMode !== 'normal') setViewMode('normal');
+              }}
+            >
+              <img 
+                src={image} 
+                alt={`${name} thumbnail ${index + 1}`} 
+                className="w-full h-full object-contain"
+                onError={handleImageError}
+              />
+            </div>
+          ))}
         </div>
+        
+        {/* Main image area with different view modes */}
+        <div ref={containerRef} className="flex-1 sticky top-0">
+          {viewMode === 'normal' && (
+            <div className="w-full h-96 border border-gray-100 flex items-center justify-center bg-white">
+              <Zoom 
+                ZoomContent={({ img, onUnzoom }) => (
+                  <div 
+                    className="relative cursor-zoom-out"
+                    onClick={onUnzoom}
+                  >
+                    <img
+                      alt={name}
+                      src={img}
+                      className="max-w-full max-h-full object-contain"
+                      style={{
+                        height: 'auto',
+                        maxHeight: '80vh',
+                        width: 'auto',
+                        maxWidth: '80vw'
+                      }}
+                    />
+                    <div className="absolute top-2 right-2 bg-black bg-opacity-60 text-white p-1 rounded text-xs">
+                      Click to zoom out
+                    </div>
+                  </div>
+                )}
+              >
+                <img 
+                  src={images[activeImage]} 
+                  alt={name} 
+                  className="max-w-full max-h-full object-contain cursor-zoom-in"
+                  onError={handleImageError}
+                />
+              </Zoom>
+            </div>
+          )}
+          
+          {viewMode === 'zoom' && (
+            <div className="w-full h-96 border border-gray-100 bg-white">
+              <div className="h-full">
+                <ImageZoom {...getZoomProps()} />
+              </div>
+              <div className="mt-2 text-center text-xs text-gray-500">
+                Hover over the image to zoom in
+              </div>
+            </div>
+          )}
+          
+          {viewMode === '360' && (
+            <div className="w-full h-96 border border-gray-100 bg-white overflow-hidden">
+              {get360Images().length > 0 ? (
+                <>
+                  <div className="h-full flex items-center justify-center">
+                    <div className="w-full h-full">
+                      <React360View
+                        amount={36}
+                        imagePath={images[activeImage]}
+                        fileName="product_{index}.jpg"
+                        spinReverse
+                        autoplay
+                        buttonClass="vr-btn"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-2 text-center text-xs text-gray-500">
+                    Drag to rotate 360°
+                  </div>
+                </>
+              ) : (
+                <div className="h-full flex items-center justify-center text-gray-500">
+                  360° view not available for this product
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Add a helper text explaining the interactions */}
+      <div className="text-sm text-gray-500 mt-2">
+        <p className="font-medium">Interactive view options:</p>
+        <ul className="list-disc pl-5 mt-1">
+          <li>Normal: Click to enlarge the image</li>
+          <li>Zoom: Hover over the image to see magnified details</li>
+          <li>360° View: Drag left/right to rotate the product</li>
+        </ul>
       </div>
     </div>
   );

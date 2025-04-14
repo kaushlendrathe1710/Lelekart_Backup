@@ -44,7 +44,9 @@ interface AdminLayoutProps {
 export function AdminLayout({ children }: AdminLayoutProps) {
   const [location] = useLocation();
   const [heroMenuOpen, setHeroMenuOpen] = useState(
-    location.includes("/admin/banner-management") || location.includes("/admin/categories")
+    location.includes("/admin/banner-management") || 
+    location.includes("/admin/categories") || 
+    location.includes("/admin/design-hero")
   );
 
   const navItems = [
@@ -209,7 +211,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                   <div
                     className={cn(
                       "flex items-center justify-between rounded-lg px-3 py-2 cursor-pointer transition-all hover:bg-gray-100",
-                      (location.includes("/admin/banner-management") || location.includes("/admin/categories"))
+                      (location.includes("/admin/banner-management") || 
+                       location.includes("/admin/categories") || 
+                       location.includes("/admin/design-hero"))
                         ? "bg-primary/10 text-primary font-medium"
                         : "text-gray-700"
                     )}
