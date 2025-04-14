@@ -254,6 +254,19 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                       <span>Categories</span>
                     </div>
                   </Link>
+                  <Link href="/admin/design-hero">
+                    <div
+                      className={cn(
+                        "flex items-center space-x-3 rounded-lg px-3 py-2 transition-all hover:bg-gray-100 mt-1",
+                        location === "/admin/design-hero"
+                          ? "bg-primary/10 text-primary font-medium"
+                          : "text-gray-700"
+                      )}
+                    >
+                      <LayoutDashboardIcon className="h-5 w-5" />
+                      <span>Design Hero</span>
+                    </div>
+                  </Link>
                 </CollapsibleContent>
               </Collapsible>
               
