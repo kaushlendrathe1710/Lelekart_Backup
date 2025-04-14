@@ -18,6 +18,7 @@ import {
   Settings,
   LogOut,
   ChevronDown,
+  ChevronRight,
   User as UserIcon,
   Bell,
   ShoppingCart,
@@ -26,7 +27,15 @@ import {
   UserCheck,
   CheckSquare,
   Image,
+  LayoutGrid,
+  LayoutDashboardIcon,
 } from "lucide-react";
+import { useState } from "react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -34,6 +43,9 @@ interface AdminLayoutProps {
 
 export function AdminLayout({ children }: AdminLayoutProps) {
   const [location] = useLocation();
+  const [heroMenuOpen, setHeroMenuOpen] = useState(
+    location.includes("/admin/banner-management") || location.includes("/admin/categories")
+  );
 
   const navItems = [
     {
@@ -50,16 +62,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       title: "Product Approval",
       href: "/admin/product-approval",
       icon: <CheckSquare className="h-5 w-5" />,
-    },
-    {
-      title: "Categories",
-      href: "/admin/categories",
-      icon: <Grid className="h-5 w-5" />,
-    },
-    {
-      title: "Banner Management",
-      href: "/admin/banner-management",
-      icon: <Image className="h-5 w-5" />,
     },
     {
       title: "Users",
@@ -197,6 +199,65 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           <div className="p-4 h-full overflow-hidden">
             <div className="font-medium text-lg mb-4">Admin Menu</div>
             <nav className="space-y-1 overflow-y-auto h-[calc(100%-2rem)]">
+              {/* Hero Management Dropdown */}
+              <Collapsible
+                open={heroMenuOpen}
+                onOpenChange={setHeroMenuOpen}
+                className="w-full"
+              >
+                <CollapsibleTrigger asChild>
+                  <div
+                    className={cn(
+                      "flex items-center justify-between rounded-lg px-3 py-2 cursor-pointer transition-all hover:bg-gray-100",
+                      (location.includes("/admin/banner-management") || location.includes("/admin/categories"))
+                        ? "bg-primary/10 text-primary font-medium"
+                        : "text-gray-700"
+                    )}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <LayoutGrid className="h-5 w-5" />
+                      <span>Hero Management</span>
+                    </div>
+                    <div>
+                      {heroMenuOpen ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </div>
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pl-6 pt-1">
+                  <Link href="/admin/banner-management">
+                    <div
+                      className={cn(
+                        "flex items-center space-x-3 rounded-lg px-3 py-2 transition-all hover:bg-gray-100",
+                        location === "/admin/banner-management"
+                          ? "bg-primary/10 text-primary font-medium"
+                          : "text-gray-700"
+                      )}
+                    >
+                      <Image className="h-5 w-5" />
+                      <span>Banner Management</span>
+                    </div>
+                  </Link>
+                  <Link href="/admin/categories">
+                    <div
+                      className={cn(
+                        "flex items-center space-x-3 rounded-lg px-3 py-2 transition-all hover:bg-gray-100 mt-1",
+                        location === "/admin/categories"
+                          ? "bg-primary/10 text-primary font-medium"
+                          : "text-gray-700"
+                      )}
+                    >
+                      <Grid className="h-5 w-5" />
+                      <span>Categories</span>
+                    </div>
+                  </Link>
+                </CollapsibleContent>
+              </Collapsible>
+              
+              {/* Regular Nav Items */}
               {navItems.map((item) => (
                 <Link key={item.href} href={item.href}>
                   <div
