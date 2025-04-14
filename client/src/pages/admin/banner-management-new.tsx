@@ -57,6 +57,7 @@ interface Banner {
   category: string;
   position: number;
   active: boolean;
+  rotate360: boolean;
   badgeText: string | null;
   productId: number | null;
   createdAt: string;
