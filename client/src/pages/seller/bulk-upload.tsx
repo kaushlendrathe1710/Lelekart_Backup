@@ -392,121 +392,6 @@ export default function BulkUploadPage() {
     });
   };
 
-  // Handle uploading only valid products (skipping invalid ones)
-  const handleUploadValidOnly = async () => {
-    if (!file || !showPreview) {
-      toast({
-        title: "No preview available",
-        description: "Please select a file and generate a preview before uploading.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Check if there are any valid products to upload
-    if (validRows === 0) {
-      toast({
-        title: "No valid products",
-        description: "There are no valid products to upload. Please fix the errors first.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsUploading(true);
-
-    try {
-      // Track successful uploads and errors
-      let successCount = 0;
-      let errorCount = 0;
-      const currentErrors: UploadError[] = [];
-      
-      // Only upload products that passed validation
-      for (const product of previewProducts) {
-        if (!product.isValid) {
-          continue; // Skip invalid products
-        }
-        
-        try {
-          // Prepare product data for upload
-          const productData = { ...product };
-          
-          // Ensure we have seller ID
-          if (!productData.sellerId && user?.id) {
-            productData.sellerId = user.id;
-          }
-          
-          // Convert any array properties to JSON strings
-          if (productData.images && Array.isArray(productData.images)) {
-            productData.images = JSON.stringify(productData.images);
-          }
-          
-          // Remove preview-specific properties that shouldn't be sent to API
-          const { isValid, errors, rowIndex, ...apiProductData } = productData;
-          
-          // Send to the API
-          const response = await fetch('/api/products', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(apiProductData),
-            credentials: 'include'
-          });
-          
-          if (response.ok) {
-            successCount++;
-          } else {
-            errorCount++;
-            const errorData = await response.json();
-            currentErrors.push({
-              rowIndex: product.rowIndex,
-              productName: product.name,
-              errors: [errorData.message || 'Unknown server error']
-            });
-          }
-        } catch (error) {
-          errorCount++;
-          currentErrors.push({
-            rowIndex: product.rowIndex,
-            productName: product.name,
-            errors: [(error as Error).message || 'Unknown error during upload']
-          });
-        }
-      }
-      
-      // Update stats
-      setUploadStats({
-        total: validRows,
-        success: successCount,
-        failed: errorCount,
-        showResults: true
-      });
-      
-      if (errorCount > 0) {
-        setUploadErrors(currentErrors);
-        setShowErrorDetails(true);
-        toast({
-          title: "Upload partially completed",
-          description: `Successfully uploaded ${successCount} out of ${validRows} valid products. ${errorCount} failed.`,
-          variant: "default",
-        });
-      } else {
-        toast({
-          title: "Upload completed successfully",
-          description: `All ${successCount} valid products were uploaded.`,
-        });
-        setUploadSuccess(true);
-      }
-    } catch (error) {
-      toast({
-        title: "Upload failed",
-        description: (error as Error).message || "An unknown error occurred",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
   // Handle the upload process with previously validated preview data
   const handleUpload = async () => {
     if (!file || !showPreview) {
@@ -1009,33 +894,11 @@ export default function BulkUploadPage() {
                 )}
                 
                 {invalidRows > 0 && (
-                  <div className="mt-4">
-                    <div className="p-3 bg-orange-50 border border-orange-100 rounded text-sm flex items-start">
-                      <AlertCircle className="h-5 w-5 text-orange-500 mr-2 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <span className="font-medium">Action Required:</span> Please fix the errors in your CSV file and reupload. 
-                        Products with errors will not be included in the upload.
-                      </div>
-                    </div>
-                    
-                    <div className="mt-3 flex justify-end">
-                      <Button
-                        onClick={handleUploadValidOnly}
-                        disabled={isUploading || validRows === 0}
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                      >
-                        {isUploading ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Processing...
-                          </>
-                        ) : (
-                          <>
-                            <Check className="h-4 w-4 mr-2" />
-                            Upload Valid Products ({validRows})
-                          </>
-                        )}
-                      </Button>
+                  <div className="mt-4 p-3 bg-orange-50 border border-orange-100 rounded text-sm flex items-start">
+                    <AlertCircle className="h-5 w-5 text-orange-500 mr-2 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-medium">Action Required:</span> Please fix the errors in your CSV file and reupload. 
+                      Products with errors will not be included in the upload.
                     </div>
                   </div>
                 )}
