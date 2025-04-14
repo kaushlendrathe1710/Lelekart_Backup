@@ -60,6 +60,8 @@ export default function SellerProductsPage() {
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
+  const [isSelectAllPages, setIsSelectAllPages] = useState(false);
+  const [allProductsCount, setAllProductsCount] = useState(0);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -91,6 +93,23 @@ export default function SellerProductsPage() {
       return res.json();
     },
     enabled: !!user?.id,
+  });
+  
+  // Fetch all product IDs for the seller (used for "Select All Products" functionality)
+  const { data: allProductIdsData } = useQuery({
+    queryKey: ['/api/products/all-ids', { sellerId: user?.id }],
+    queryFn: async ({ queryKey }) => {
+      const [_, params] = queryKey as [string, { sellerId?: number }];
+      const res = await fetch(`/api/products/all-ids?sellerId=${params.sellerId || ''}`);
+      if (!res.ok) {
+        throw new Error('Failed to fetch all product IDs');
+      }
+      return res.json();
+    },
+    enabled: !!user?.id,
+    onSuccess: (data) => {
+      setAllProductsCount(data.productIds.length);
+    }
   });
   
   // Extract products and pagination from response

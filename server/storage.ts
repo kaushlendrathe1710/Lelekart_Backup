@@ -54,6 +54,7 @@ export interface IStorage {
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: number, product: Partial<Product>): Promise<Product>;
   deleteProduct(id: number): Promise<void>;
+  getAllProductIds(sellerId: number): Promise<number[]>;
 
   // Cart operations
   getCartItems(userId: number): Promise<{id: number, quantity: number, product: Product, userId: number}[]>;
