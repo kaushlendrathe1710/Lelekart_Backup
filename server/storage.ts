@@ -18,7 +18,7 @@ import {
 } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
-import { and, eq } from "drizzle-orm";
+import { and, eq, desc } from "drizzle-orm";
 import { db } from "./db";
 import { pool } from "./db";
 
@@ -307,13 +307,10 @@ export class DatabaseStorage implements IStorage {
         }
       });
       
-      // Update the seller profile
+      // Update the seller profile (without updatedAt since it might not exist in schema)
       const [updatedSeller] = await db
         .update(users)
-        .set({
-          ...safeProfileData,
-          updatedAt: new Date() // Always update the timestamp
-        })
+        .set(safeProfileData)
         .where(eq(users.id, id))
         .returning();
         
