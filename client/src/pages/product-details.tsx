@@ -142,7 +142,7 @@ function ProductImageSlider({ images, name }: { images: string[], name: string }
                   >
                     <img
                       alt={name}
-                      src={img}
+                      src={img as string}
                       className="max-w-full max-h-full object-contain"
                       style={{
                         height: 'auto',
