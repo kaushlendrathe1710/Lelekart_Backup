@@ -692,7 +692,9 @@ export default function ProductDetailsPage() {
                   {/* AI-Powered Product Q&A */}
                   {product && (
                     <div className="mt-8">
-                      <ProductQA productId={product.id} />
+                      <CartProvider>
+                        <ProductQA productId={product.id} />
+                      </CartProvider>
                     </div>
                   )}
                 </TabsContent>
@@ -707,11 +709,13 @@ export default function ProductDetailsPage() {
                    product?.name?.toLowerCase().includes('pant') || 
                    product?.name?.toLowerCase().includes('shoe') ? (
                     <div className="mb-5">
-                      <SizeRecommendation 
-                        productId={product.id} 
-                        category={product.category}
-                        availableSizes={['XS', 'S', 'M', 'L', 'XL', 'XXL']}
-                      />
+                      <CartProvider>
+                        <SizeRecommendation 
+                          productId={product.id} 
+                          category={product.category}
+                          availableSizes={['XS', 'S', 'M', 'L', 'XL', 'XXL']}
+                        />
+                      </CartProvider>
                       <Separator className="my-4" />
                     </div>
                   ) : null}
