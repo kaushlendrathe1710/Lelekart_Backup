@@ -64,11 +64,17 @@ interface CartItem {
     name: string;
     description: string;
     price: number;
-    image: string;
+    imageUrl: string;
+    images: string;
     category: string;
     sellerId: number;
     approved: boolean;
     createdAt: string;
+    specifications?: string;
+    purchasePrice?: number;
+    color?: string;
+    size?: string;
+    stock: number;
   };
 }
 
@@ -216,13 +222,36 @@ export default function CheckoutPage() {
         if (item && item.product) {
           console.log("Full product object:", item.product);
           
+          // Log image data for debugging
+          console.log("Image URL:", item.product.image_url);
+          console.log("Images array:", item.product.images);
+          
+          let imageUrl = item.product.image_url || 'https://via.placeholder.com/80?text=Product';
+          
+          // Safely try to parse images if it exists and is a string
+          if (item.product.images && typeof item.product.images === 'string') {
+            try {
+              const parsedImages = JSON.parse(item.product.images);
+              if (parsedImages && parsedImages.length > 0) {
+                // If we have no image_url but have images array, use first image
+                if (!imageUrl || imageUrl === 'https://via.placeholder.com/80?text=Product') {
+                  imageUrl = parsedImages[0];
+                }
+                console.log("Parsed images array:", parsedImages);
+              }
+            } catch (e) {
+              console.error("Failed to parse images JSON:", e);
+            }
+          }
+          
           // Create a processed item with proper image property
           return {
             ...item,
             product: {
               ...item.product,
-              // Use image_url as primary image source, or fall back to images array
-              image_url: item.product.image_url || (item.product.images && item.product.images[0]) || 'https://via.placeholder.com/80?text=Product'
+              // Already properly cased in database (imageUrl), but also add image_url for backward compatibility
+              imageUrl: imageUrl,
+              image_url: imageUrl
             }
           };
         }
@@ -634,7 +663,7 @@ export default function CheckoutPage() {
                   <div className="flex items-center">
                     <div className="w-10 h-10 rounded-md overflow-hidden mr-2 bg-gray-100 flex items-center justify-center">
                       <img 
-                          src={item.product.image_url || (item.product.images && item.product.images[0]) || 'https://via.placeholder.com/80?text=Product'}
+                          src={item.product.imageUrl} 
                           alt={item.product.name}
                           className="w-full h-full object-cover"
                           onError={(e) => {
