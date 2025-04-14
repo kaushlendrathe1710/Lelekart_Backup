@@ -40,18 +40,39 @@ function ProductImageSlider({ images, name }: { images: string[], name: string }
     target.src = defaultImage;
   };
   
-  // Sample 360 view images - in a real implementation, these would come from a product API
-  // Here we're using the first image repeated 36 times to simulate a 360° rotation
+  // Create a simulated 360° rotation effect using the available product images
   const get360Images = () => {
-    // In a real implementation, you would fetch actual 360 view images
-    // Here we're just simulating with the first product image
     if (images.length === 0) return [];
     
-    // Use the current active image as the base for 360 view
-    const baseImage = images[activeImage];
+    // If we only have one image, use it as the base for the simulation
+    if (images.length === 1) {
+      return Array(36).fill(images[0]);
+    }
     
-    // Create a simulated 360 view (36 frames = 10 degrees per frame)
-    return Array(36).fill(baseImage);
+    // Use all available product images and repeat them to create a circular effect
+    // For example, if we have 4 images, we'll create a sequence like [0,1,2,3,2,1,0,1,2,3...] to simulate rotation
+    const allImages = [...images];
+    
+    // Create a sequence that goes forward then backward through the images
+    // This creates a more natural rotation effect with limited images
+    const frames: string[] = [];
+    
+    // Generate 36 frames for a complete 360° view (each frame = 10 degrees)
+    for (let i = 0; i < 36; i++) {
+      // Determine which image to use for this frame
+      // We cycle through the available images to create the illusion of rotation
+      const index = i % (allImages.length * 2);
+      
+      // If we're in the first half of the cycle, go forward through images
+      // If we're in the second half, go backward
+      const imageIndex = index < allImages.length 
+        ? index 
+        : allImages.length * 2 - index - 1;
+      
+      frames.push(allImages[imageIndex]);
+    }
+    
+    return frames;
   };
   
   // Get props for ImageZoom component
@@ -134,36 +155,17 @@ function ProductImageSlider({ images, name }: { images: string[], name: string }
         <div ref={containerRef} className="flex-1 sticky top-0">
           {viewMode === 'normal' && (
             <div className="w-full h-96 border border-gray-100 flex items-center justify-center bg-white">
-              <Zoom 
-                ZoomContent={({ img, onUnzoom }) => (
-                  <div 
-                    className="relative cursor-zoom-out"
-                    onClick={onUnzoom}
-                  >
-                    <img
-                      alt={name}
-                      src={img as string}
-                      className="max-w-full max-h-full object-contain"
-                      style={{
-                        height: 'auto',
-                        maxHeight: '80vh',
-                        width: 'auto',
-                        maxWidth: '80vw'
-                      }}
-                    />
-                    <div className="absolute top-2 right-2 bg-black bg-opacity-60 text-white p-1 rounded text-xs">
-                      Click to zoom out
-                    </div>
-                  </div>
-                )}
-              >
-                <img 
-                  src={images[activeImage]} 
-                  alt={name} 
-                  className="max-w-full max-h-full object-contain cursor-zoom-in"
-                  onError={handleImageError}
-                />
-              </Zoom>
+              {/* Use simple clickable image that expands to full screen on click */}
+              <img 
+                src={images[activeImage]} 
+                alt={name} 
+                className="max-w-full max-h-full object-contain cursor-zoom-in"
+                onError={handleImageError}
+                onClick={() => setViewMode('zoom')}
+              />
+              <div className="absolute bottom-2 right-2 bg-black bg-opacity-60 text-white p-1 rounded text-xs">
+                Click to zoom
+              </div>
             </div>
           )}
           
@@ -184,8 +186,30 @@ function ProductImageSlider({ images, name }: { images: string[], name: string }
                 <>
                   <div className="h-full flex items-center justify-center">
                     <div className="w-full h-full">
-                      {/* Custom simplified 360 view implementation */}
-                      <div className="relative w-full h-full">
+                      {/* Interactive 360° view implementation with user controls */}
+                      <div 
+                        className="relative w-full h-full flex items-center justify-center"
+                        onMouseMove={(e) => {
+                          // Calculate rotation based on mouse position
+                          const frames = get360Images();
+                          if (frames.length === 0) return;
+                          
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const x = e.clientX - rect.left; // x position within the element
+                          const relativeX = x / rect.width;
+                          
+                          // Map the x position to a frame index (0 to frames.length-1)
+                          const frameIndex = Math.min(
+                            frames.length - 1,
+                            Math.max(0, Math.floor(relativeX * frames.length))
+                          );
+                          
+                          // Update active image based on mouse position
+                          if (images[frameIndex % images.length]) {
+                            setActiveImage(frameIndex % images.length);
+                          }
+                        }}
+                      >
                         <img 
                           src={images[activeImage]} 
                           alt={`${name} 360 view`} 
@@ -195,14 +219,14 @@ function ProductImageSlider({ images, name }: { images: string[], name: string }
                         <div className="absolute bottom-4 left-0 right-0 flex justify-center">
                           <div className="bg-black bg-opacity-60 text-white px-3 py-1 rounded-full text-xs flex items-center">
                             <RotateCw size={14} className="mr-1 animate-spin" />
-                            <span>Simulated 360° View</span>
+                            <span>Move mouse left/right to rotate</span>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
                   <div className="mt-2 text-center text-xs text-gray-500">
-                    Interactive 360° view (simulated with product images)
+                    Interactive 360° view (move your mouse from left to right to rotate)
                   </div>
                 </>
               ) : (
