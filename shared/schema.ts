@@ -764,3 +764,65 @@ export type InsertInventoryOptimization = z.infer<typeof insertInventoryOptimiza
 
 export type AIGeneratedContent = typeof aiGeneratedContent.$inferSelect;
 export type InsertAIGeneratedContent = z.infer<typeof insertAiGeneratedContentSchema>;
+
+// Seller Documents
+export const sellerDocuments = pgTable("seller_documents", {
+  id: serial("id").primaryKey(),
+  sellerId: integer("seller_id").notNull().references(() => users.id),
+  documentType: text("document_type").notNull(), // e.g., "GST Certificate", "PAN Card", etc.
+  documentUrl: text("document_url").notNull(),
+  documentName: text("document_name").notNull(),
+  verified: boolean("verified").default(false),
+  uploadedAt: timestamp("uploaded_at").defaultNow(),
+  verifiedAt: timestamp("verified_at"),
+});
+
+export const insertSellerDocumentSchema = createInsertSchema(sellerDocuments).omit({
+  id: true,
+  verified: true,
+  uploadedAt: true,
+  verifiedAt: true,
+});
+
+export type SellerDocument = typeof sellerDocuments.$inferSelect;
+export type InsertSellerDocument = z.infer<typeof insertSellerDocumentSchema>;
+
+// Business Details
+export const businessDetails = pgTable("business_details", {
+  id: serial("id").primaryKey(),
+  sellerId: integer("seller_id").notNull().references(() => users.id).unique(),
+  businessName: text("business_name").notNull(),
+  gstNumber: text("gst_number"),
+  panNumber: text("pan_number"),
+  businessType: text("business_type"),
+  taxRegistrationDate: timestamp("tax_registration_date"),
+  taxFilingStatus: text("tax_filing_status"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertBusinessDetailsSchema = createInsertSchema(businessDetails).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export type BusinessDetails = typeof businessDetails.$inferSelect;
+export type InsertBusinessDetails = z.infer<typeof insertBusinessDetailsSchema>;
+
+// Banking Information
+export const bankingInformation = pgTable("banking_information", {
+  id: serial("id").primaryKey(),
+  sellerId: integer("seller_id").notNull().references(() => users.id).unique(),
+  accountHolderName: text("account_holder_name").notNull(),
+  accountNumber: text("account_number").notNull(),
+  bankName: text("bank_name").notNull(),
+  ifscCode: text("ifsc_code").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertBankingInformationSchema = createInsertSchema(bankingInformation).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export type BankingInformation = typeof bankingInformation.$inferSelect;
+export type InsertBankingInformation = z.infer<typeof insertBankingInformationSchema>;
