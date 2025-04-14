@@ -407,7 +407,7 @@ export default function CheckoutPage() {
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 {/* Address entry section - conditionally shown/hidden */}
-                {(addresses.length === 0 || showAddressForm) && (
+                <div style={{ display: addresses.length > 0 && !showAddressForm ? 'none' : 'block' }}>
                   <div className="address-form-section mb-8">
                     <h3 className="font-medium text-base mb-4">Shipping Address</h3>
                     
@@ -527,7 +527,7 @@ export default function CheckoutPage() {
                       )}
                     />
                   </div>
-                )}
+                </div>
 
                 {/* Payment section - always visible */}
                 <div className="payment-section pt-4 border-t">
@@ -612,11 +612,17 @@ export default function CheckoutPage() {
                 <div key={item.id} className="flex justify-between items-center border-b pb-2">
                   <div className="flex items-center">
                     <div className="w-10 h-10 rounded-md overflow-hidden mr-2">
-                      <img 
-                        src={item.product.image} 
-                        alt={item.product.name} 
-                        className="w-full h-full object-cover"
-                      />
+                      {item.product.image && (
+                        <img 
+                          src={item.product.image} 
+                          alt={item.product.name} 
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = 'https://via.placeholder.com/80?text=Product';
+                          }}
+                        />
+                      )}
                     </div>
                     <div>
                       <p className="text-sm font-medium">{item.product.name}</p>
