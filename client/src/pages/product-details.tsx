@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Minus, Plus, ShoppingCart, Star, Zap, Heart, Share2, Package, Shield, TruckIcon, Award, BarChart3, ChevronDown } from "lucide-react";
 import { ProductCard } from "@/components/ui/product-card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CartContext } from "@/context/cart-context";
+import { CartContext, CartProvider } from "@/context/cart-context";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { formatPrice } from "@/lib/utils";
@@ -590,12 +590,14 @@ export default function ProductDetailsPage() {
           {/* AI-powered Complementary Products */}
           <div className="bg-white rounded shadow-sm mb-3 p-4">
             {product && (
-              <ComplementaryProducts
-                productId={product.id}
-                productName={product.name}
-                productImage={productImages[0]}
-                productPrice={price}
-              />
+              <CartProvider>
+                <ComplementaryProducts
+                  productId={product.id}
+                  productName={product.name}
+                  productImage={productImages[0]}
+                  productPrice={price}
+                />
+              </CartProvider>
             )}
           </div>
           
