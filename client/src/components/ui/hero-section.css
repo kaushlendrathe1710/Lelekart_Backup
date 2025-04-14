@@ -1,0 +1,25 @@
+/* Styles for the 360-degree rotating banner images */
+.rotate360-container {
+  perspective: 1000px;
+  overflow: hidden;
+}
+
+.rotate360-image {
+  animation: rotate360 20s linear infinite;
+  transform-style: preserve-3d;
+  transition: transform 0.5s ease-in-out;
+}
+
+@keyframes rotate360 {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(360deg);
+  }
+}
+
+/* Add a hover pause effect */
+.rotate360-container:hover .rotate360-image {
+  animation-play-state: paused;
+}

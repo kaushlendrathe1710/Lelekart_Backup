@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import './hero-section.css';
 
 // Hero slider image interface
 interface SliderImage {
@@ -13,6 +14,7 @@ interface SliderImage {
   category?: string;
   badgeText?: string;
   productId?: number;
+  rotate360?: boolean; // Flag for 360-degree rotation effect
 }
 
 interface HeroSectionProps {
@@ -181,50 +183,59 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
                 
                 {/* Image area */}
                 <div className="md:w-1/2">
-                  <img 
-                    src={image.url} 
-                    alt={image.alt} 
-                    className="w-full h-64 md:h-80 object-cover rounded-lg shadow-lg" 
-                    onError={(e) => {
-                      // Use a category-specific fallback image on error
-                      const target = e.target as HTMLImageElement;
-                      target.onerror = null; // Prevent infinite loop
-                      
-                      // Use category-specific placeholders
-                      if (image.category) {
-                        switch(image.category) {
-                          case 'Electronics':
-                            target.src = "/images/categories/electronics.svg";
-                            break;
-                          case 'Fashion':
-                            target.src = "/images/categories/fashion.svg";
-                            break;
-                          case 'Home':
-                            target.src = "/images/categories/home.svg";
-                            break;
-                          case 'Appliances':
-                            target.src = "/images/categories/appliances.svg";
-                            break;
-                          case 'Mobiles':
-                            target.src = "/images/categories/mobiles.svg";
-                            break;
-                          case 'Beauty':
-                            target.src = "/images/categories/beauty.svg";
-                            break;
-                          case 'Toys':
-                            target.src = "/images/categories/toys.svg";
-                            break;
-                          case 'Grocery':
-                            target.src = "/images/categories/grocery.svg";
-                            break;
-                          default:
-                            target.src = "/images/placeholder.svg";
+                  <div className={`relative ${image.rotate360 ? 'rotate360-container' : ''}`}>
+                    <img 
+                      src={image.url} 
+                      alt={image.alt} 
+                      className={`w-full h-64 md:h-80 object-cover rounded-lg shadow-lg ${
+                        image.rotate360 ? 'rotate360-image' : ''
+                      }`}
+                      onError={(e) => {
+                        // Use a category-specific fallback image on error
+                        const target = e.target as HTMLImageElement;
+                        target.onerror = null; // Prevent infinite loop
+                        
+                        // Use category-specific placeholders
+                        if (image.category) {
+                          switch(image.category) {
+                            case 'Electronics':
+                              target.src = "/images/categories/electronics.svg";
+                              break;
+                            case 'Fashion':
+                              target.src = "/images/categories/fashion.svg";
+                              break;
+                            case 'Home':
+                              target.src = "/images/categories/home.svg";
+                              break;
+                            case 'Appliances':
+                              target.src = "/images/categories/appliances.svg";
+                              break;
+                            case 'Mobiles':
+                              target.src = "/images/categories/mobiles.svg";
+                              break;
+                            case 'Beauty':
+                              target.src = "/images/categories/beauty.svg";
+                              break;
+                            case 'Toys':
+                              target.src = "/images/categories/toys.svg";
+                              break;
+                            case 'Grocery':
+                              target.src = "/images/categories/grocery.svg";
+                              break;
+                            default:
+                              target.src = "/images/placeholder.svg";
+                          }
+                        } else {
+                          target.src = "/images/placeholder.svg";
                         }
-                      } else {
-                        target.src = "/images/placeholder.svg";
-                      }
-                    }}
-                  />
+                      }}
+                    />
+                    {image.rotate360 && (
+                      <div className="absolute top-2 right-2 bg-white/80 text-xs text-blue-600 font-bold px-2 py-1 rounded-full">
+                        360°
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
