@@ -208,6 +208,7 @@ export default function CheckoutPage() {
     })
     .then(res => res.json())
     .then(data => {
+      console.log("Cart items debug:", data);
       setCartItems(data);
       setLoading(false);
       
@@ -611,18 +612,16 @@ export default function CheckoutPage() {
               {cartItems.map((item) => (
                 <div key={item.id} className="flex justify-between items-center border-b pb-2">
                   <div className="flex items-center">
-                    <div className="w-10 h-10 rounded-md overflow-hidden mr-2">
-                      {item.product.image && (
-                        <img 
-                          src={item.product.image} 
-                          alt={item.product.name} 
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = 'https://via.placeholder.com/80?text=Product';
-                          }}
-                        />
-                      )}
+                    <div className="w-10 h-10 rounded-md overflow-hidden mr-2 bg-gray-100 flex items-center justify-center">
+                      <img 
+                        src={item.product.image || 'https://via.placeholder.com/80?text=Product'}
+                        alt={item.product.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = 'https://via.placeholder.com/80?text=Product';
+                        }}
+                      />
                     </div>
                     <div>
                       <p className="text-sm font-medium">{item.product.name}</p>
