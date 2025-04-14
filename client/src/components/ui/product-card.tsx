@@ -164,11 +164,24 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
     <div className="relative">
       <Card 
         className="product-card flex flex-col items-center p-3 transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1"
-        onClick={() => {
+        onClick={(e) => {
           try {
+            e.preventDefault();
+            e.stopPropagation();
+            
             console.log(`Navigating to product details page: /product/${product.id}`);
+            
             // Use Wouter's setLocation for proper SPA routing
-            setLocation(`/product/${product.id}`);
+            if (product.id) {
+              setLocation(`/product/${product.id}`);
+            } else {
+              console.error('Cannot navigate: Product ID is missing');
+              toast({
+                title: "Navigation Error",
+                description: "Cannot view product details due to missing information",
+                variant: "destructive"
+              });
+            }
           } catch (e) {
             console.error('Navigation error:', e);
           }

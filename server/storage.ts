@@ -17,7 +17,7 @@ import {
 } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
-import { and, eq } from "drizzle-orm";
+import { and, eq, desc, sql } from "drizzle-orm";
 import { db } from "./db";
 import { pool } from "./db";
 
@@ -428,17 +428,17 @@ export class DatabaseStorage implements IStorage {
       console.log(`Getting product with id: ${id}`);
       
       // Simple approach using Drizzle ORM
-      const products = await db
+      const result = await db
         .select()
-        .from(schema.products)
-        .where(eq(schema.products.id, id));
+        .from(products)
+        .where(eq(products.id, id));
       
-      if (products.length === 0) {
+      if (result.length === 0) {
         console.log(`No product found with id: ${id}`);
         return undefined;
       }
       
-      const product = products[0];
+      const product = result[0];
       console.log(`Successfully retrieved product: ${product.name} (ID: ${product.id})`);
       
       return product;
