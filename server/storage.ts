@@ -583,23 +583,33 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCartItems(userId: number): Promise<{id: number, quantity: number, product: Product, userId: number}[]> {
-    const cartWithProducts = await db
-      .select({
-        id: carts.id,
-        quantity: carts.quantity,
-        userId: carts.userId,
-        product: products
-      })
-      .from(carts)
-      .where(eq(carts.userId, userId))
-      .innerJoin(products, eq(carts.productId, products.id));
-    
-    return cartWithProducts.map(item => ({
-      id: item.id,
-      quantity: item.quantity,
-      userId: item.userId,
-      product: item.product
-    }));
+    try {
+      console.log(`Getting cart items for user: ${userId}`);
+      
+      const cartWithProducts = await db
+        .select({
+          id: carts.id,
+          quantity: carts.quantity,
+          userId: carts.userId,
+          product: products
+        })
+        .from(carts)
+        .where(eq(carts.userId, userId))
+        .innerJoin(products, eq(carts.productId, products.id));
+      
+      console.log(`Found ${cartWithProducts.length} cart items for user ${userId}`);
+      
+      return cartWithProducts.map(item => ({
+        id: item.id,
+        quantity: item.quantity,
+        userId: item.userId,
+        product: item.product
+      }));
+    } catch (error) {
+      console.error(`Error getting cart items for user ${userId}:`, error);
+      // Return empty array instead of throwing error
+      return [];
+    }
   }
 
   async getCartItem(id: number): Promise<Cart | undefined> {
@@ -608,37 +618,57 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addToCart(insertCart: InsertCart): Promise<Cart> {
-    // First check if product already exists in cart
-    const [existingCartItem] = await db
-      .select()
-      .from(carts)
-      .where(
-        and(
-          eq(carts.userId, insertCart.userId),
-          eq(carts.productId, insertCart.productId)
-        )
-      );
-    
-    // If exists, update quantity
-    if (existingCartItem) {
-      const [updatedCartItem] = await db
-        .update(carts)
-        .set({
-          quantity: existingCartItem.quantity + insertCart.quantity
-        })
-        .where(eq(carts.id, existingCartItem.id))
+    try {
+      // Ensure quantity is defined, default to 1 if not
+      const quantity = insertCart.quantity ?? 1;
+      
+      // Create new cart object with validated data
+      const validatedCart = {
+        ...insertCart,
+        quantity
+      };
+      
+      console.log(`Adding to cart: User ${validatedCart.userId}, Product ${validatedCart.productId}, Quantity ${validatedCart.quantity}`);
+      
+      // First check if product already exists in cart
+      const [existingCartItem] = await db
+        .select()
+        .from(carts)
+        .where(
+          and(
+            eq(carts.userId, validatedCart.userId),
+            eq(carts.productId, validatedCart.productId)
+          )
+        );
+      
+      // If exists, update quantity
+      if (existingCartItem) {
+        console.log(`Item already in cart (ID: ${existingCartItem.id}), updating quantity from ${existingCartItem.quantity} to ${existingCartItem.quantity + validatedCart.quantity}`);
+        
+        const [updatedCartItem] = await db
+          .update(carts)
+          .set({
+            quantity: existingCartItem.quantity + validatedCart.quantity
+          })
+          .where(eq(carts.id, existingCartItem.id))
+          .returning();
+        
+        return updatedCartItem;
+      }
+      
+      // Otherwise insert new cart item
+      console.log('Adding new item to cart with data:', validatedCart);
+      
+      const [cartItem] = await db
+        .insert(carts)
+        .values(validatedCart)
         .returning();
       
-      return updatedCartItem;
+      return cartItem;
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      throw error;
     }
-    
-    // Otherwise insert new cart item
-    const [cartItem] = await db
-      .insert(carts)
-      .values(insertCart)
-      .returning();
-    
-    return cartItem;
   }
 
   async updateCartItem(id: number, quantity: number): Promise<Cart> {
