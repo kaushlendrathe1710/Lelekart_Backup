@@ -25,6 +25,7 @@ import {
   Grid,
   UserCheck,
   CheckSquare,
+  Image,
 } from "lucide-react";
 
 interface AdminLayoutProps {
@@ -54,6 +55,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       title: "Categories",
       href: "/admin/categories",
       icon: <Grid className="h-5 w-5" />,
+    },
+    {
+      title: "Banner Management",
+      href: "/admin/banner-management",
+      icon: <Image className="h-5 w-5" />,
     },
     {
       title: "Users",
