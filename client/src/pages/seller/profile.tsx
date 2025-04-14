@@ -510,19 +510,24 @@ const SellerProfilePage = () => {
                     </div>
                     
                     <div className="p-8 flex flex-col items-center justify-center">
-                      <div className="h-12 w-12 flex items-center justify-center rounded-full border-2 border-blue-500 mb-4">
+                      <div 
+                        className="h-12 w-12 flex items-center justify-center rounded-full border-2 border-blue-500 mb-4 cursor-pointer hover:bg-blue-50"
+                        onClick={() => {
+                          setDocumentType("GST Certificate");
+                          setIsUploadDocumentOpen(true);
+                        }}
+                      >
                         <Upload className="h-6 w-6 text-blue-500" />
                       </div>
-                      <Button 
-                        variant="link" 
-                        className="text-blue-500 font-medium p-0 h-auto"
+                      <div 
+                        className="text-blue-500 font-medium cursor-pointer hover:underline"
                         onClick={() => {
                           setDocumentType("GST Certificate");
                           setIsUploadDocumentOpen(true);
                         }}
                       >
                         Click to upload
-                      </Button>
+                      </div>
                       <p className="text-xs text-muted-foreground mt-1">PDF, JPG or PNG (max. 5MB)</p>
                     </div>
                   </div>
@@ -535,19 +540,24 @@ const SellerProfilePage = () => {
                     </div>
                     
                     <div className="p-8 flex flex-col items-center justify-center">
-                      <div className="h-12 w-12 flex items-center justify-center rounded-full border-2 border-blue-500 mb-4">
+                      <div 
+                        className="h-12 w-12 flex items-center justify-center rounded-full border-2 border-blue-500 mb-4 cursor-pointer hover:bg-blue-50"
+                        onClick={() => {
+                          setDocumentType("PAN Card");
+                          setIsUploadDocumentOpen(true);
+                        }}
+                      >
                         <Upload className="h-6 w-6 text-blue-500" />
                       </div>
-                      <Button 
-                        variant="link" 
-                        className="text-blue-500 font-medium p-0 h-auto"
+                      <div 
+                        className="text-blue-500 font-medium cursor-pointer hover:underline"
                         onClick={() => {
                           setDocumentType("PAN Card");
                           setIsUploadDocumentOpen(true);
                         }}
                       >
                         Click to upload
-                      </Button>
+                      </div>
                       <p className="text-xs text-muted-foreground mt-1">PDF, JPG or PNG (max. 5MB)</p>
                     </div>
                   </div>
@@ -560,19 +570,24 @@ const SellerProfilePage = () => {
                     </div>
                     
                     <div className="p-8 flex flex-col items-center justify-center">
-                      <div className="h-12 w-12 flex items-center justify-center rounded-full border-2 border-blue-500 mb-4">
+                      <div 
+                        className="h-12 w-12 flex items-center justify-center rounded-full border-2 border-blue-500 mb-4 cursor-pointer hover:bg-blue-50"
+                        onClick={() => {
+                          setDocumentType("Address Proof");
+                          setIsUploadDocumentOpen(true);
+                        }}
+                      >
                         <Upload className="h-6 w-6 text-blue-500" />
                       </div>
-                      <Button 
-                        variant="link" 
-                        className="text-blue-500 font-medium p-0 h-auto"
+                      <div 
+                        className="text-blue-500 font-medium cursor-pointer hover:underline"
                         onClick={() => {
                           setDocumentType("Address Proof");
                           setIsUploadDocumentOpen(true);
                         }}
                       >
                         Click to upload
-                      </Button>
+                      </div>
                       <p className="text-xs text-muted-foreground mt-1">PDF, JPG or PNG (max. 5MB)</p>
                     </div>
                   </div>
@@ -585,19 +600,24 @@ const SellerProfilePage = () => {
                     </div>
                     
                     <div className="p-8 flex flex-col items-center justify-center">
-                      <div className="h-12 w-12 flex items-center justify-center rounded-full border-2 border-blue-500 mb-4">
+                      <div 
+                        className="h-12 w-12 flex items-center justify-center rounded-full border-2 border-blue-500 mb-4 cursor-pointer hover:bg-blue-50"
+                        onClick={() => {
+                          setDocumentType("Letter of Incorporation");
+                          setIsUploadDocumentOpen(true);
+                        }}
+                      >
                         <Upload className="h-6 w-6 text-blue-500" />
                       </div>
-                      <Button 
-                        variant="link" 
-                        className="text-blue-500 font-medium p-0 h-auto"
+                      <div 
+                        className="text-blue-500 font-medium cursor-pointer hover:underline"
                         onClick={() => {
                           setDocumentType("Letter of Incorporation");
                           setIsUploadDocumentOpen(true);
                         }}
                       >
                         Click to upload
-                      </Button>
+                      </div>
                       <p className="text-xs text-muted-foreground mt-1">PDF, JPG or PNG (max. 5MB)</p>
                     </div>
                   </div>
