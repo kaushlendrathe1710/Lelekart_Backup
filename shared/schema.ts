@@ -35,6 +35,8 @@ export const products = pgTable("products", {
   name: text("name").notNull(),
   description: text("description").notNull(),
   specifications: text("specifications"), // Technical specifications
+  sku: text("sku"), // Stock Keeping Unit (unique product identifier)
+  mrp: integer("mrp"), // Maximum Retail Price (original price before discount)
   purchasePrice: integer("purchase_price"), // Purchase Price (cost price)
   price: integer("price").notNull(),
   category: text("category").notNull(),
@@ -52,6 +54,8 @@ export const insertProductSchema = createInsertSchema(products).pick({
   name: true,
   description: true,
   specifications: true,
+  sku: true,
+  mrp: true,
   purchasePrice: true,
   price: true,
   category: true,

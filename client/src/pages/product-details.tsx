@@ -381,8 +381,16 @@ export default function ProductDetailsPage() {
                 {/* Product Title */}
                 <h1 className="text-xl text-gray-800 font-medium">{product?.name}</h1>
                 
+                {/* SKU */}
+                <div className="flex mt-1 text-sm text-gray-500">
+                  <span>in {product?.category}</span>
+                  {product?.sku && (
+                    <span className="ml-4">SKU: {product.sku}</span>
+                  )}
+                </div>
+                
                 {/* Ratings */}
-                <div className="flex items-center mt-1 mb-2">
+                <div className="flex items-center mt-2 mb-2">
                   <div className="flex items-center bg-green-600 text-white px-2 py-0.5 rounded text-xs">
                     <span>4.3</span>
                     <Star className="h-3 w-3 ml-1 fill-current" />
@@ -397,8 +405,10 @@ export default function ProductDetailsPage() {
                 {/* Pricing */}
                 <div className="flex items-baseline mt-1">
                   <span className="text-3xl font-medium text-gray-800">{formatPrice(price)}</span>
-                  <span className="text-sm text-gray-500 line-through ml-2">₹{original.toLocaleString('en-IN')}</span>
-                  <span className="text-sm text-green-600 ml-2">20% off</span>
+                  <span className="text-sm text-gray-500 line-through ml-2">₹{product?.mrp?.toLocaleString('en-IN') || original.toLocaleString('en-IN')}</span>
+                  <span className="text-sm text-green-600 ml-2">
+                    {Math.round(((product?.mrp || original) - price) / (product?.mrp || original) * 100)}% off
+                  </span>
                 </div>
                 
                 {/* Available Offers */}
