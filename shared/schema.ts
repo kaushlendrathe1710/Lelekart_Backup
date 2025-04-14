@@ -839,7 +839,6 @@ export const banners = pgTable("banners", {
   productId: integer("product_id"),
   active: boolean("active").notNull().default(true),
   position: integer("position").notNull().default(0),
-  rotate360: boolean("rotate_360").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

@@ -9,7 +9,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -58,7 +57,6 @@ interface Banner {
   category: string;
   position: number;
   active: boolean;
-  rotate360: boolean;
   badgeText: string | null;
   productId: number | null;
   createdAt: string;
@@ -96,7 +94,6 @@ export default function BannerManagement() {
     category: "",
     position: 1,
     active: true,
-    rotate360: false,
     badgeText: "HOT DEAL",
     productId: null,
   });
@@ -134,7 +131,6 @@ export default function BannerManagement() {
         category: "",
         position: 1,
         active: true,
-        rotate360: false,
         badgeText: "HOT DEAL",
         productId: null,
       });
@@ -595,25 +591,6 @@ export default function BannerManagement() {
                     onChange={handleNewBannerChange}
                     placeholder="e.g. HOT DEAL"
                   />
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="rotate360" 
-                    name="rotate360"
-                    checked={newBanner.rotate360}
-                    onCheckedChange={(checked) => {
-                      setNewBanner(prev => ({
-                        ...prev,
-                        rotate360: checked === true
-                      }));
-                    }}
-                  />
-                  <Label 
-                    htmlFor="rotate360"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Enable 360° Rotation Effect
-                  </Label>
                 </div>
               </div>
               <div className="flex flex-col gap-4">
@@ -1128,28 +1105,6 @@ export default function BannerManagement() {
                     value={editingBanner.badgeText || ""}
                     onChange={handleEditingBannerChange}
                   />
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="edit-rotate360" 
-                    name="rotate360"
-                    checked={editingBanner.rotate360}
-                    onCheckedChange={(checked) => {
-                      setEditingBanner(prev => {
-                        if (!prev) return null;
-                        return {
-                          ...prev,
-                          rotate360: checked === true
-                        };
-                      });
-                    }}
-                  />
-                  <Label 
-                    htmlFor="edit-rotate360"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Enable 360° Rotation Effect
-                  </Label>
                 </div>
               </div>
               <div className="flex flex-col gap-4">

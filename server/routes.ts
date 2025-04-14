@@ -1540,8 +1540,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           category: banner.category,
           badgeText: banner.badgeText,
           productId: banner.productId,
-          position: banner.position,
-          rotate360: banner.rotate360
+          position: banner.position
         }));
         
         // Sort by position
