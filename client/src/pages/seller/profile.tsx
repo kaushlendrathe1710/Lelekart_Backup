@@ -98,7 +98,7 @@ export default function SellerProfilePage() {
   // Update profile mutation
   const updateProfileMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest('PATCH', '/api/seller/profile', data);
+      const response = await apiRequest('PUT', '/api/seller/profile', data);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to update profile');

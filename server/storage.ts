@@ -35,6 +35,7 @@ export interface IStorage {
   getApprovedSellers(): Promise<User[]>;
   getRejectedSellers(): Promise<User[]>;
   updateSellerApproval(id: number, approved: boolean, rejected?: boolean): Promise<User>;
+  updateSellerProfile(id: number, profileData: Partial<User>): Promise<User>;
   
   // User Address operations
   getUserAddresses(userId: number): Promise<UserAddress[]>;
@@ -279,6 +280,48 @@ export class DatabaseStorage implements IStorage {
   // For interface compatibility
   async updateSellerApproval(id: number, approved: boolean, rejected: boolean = false): Promise<User> {
     return this.updateSellerApprovalStatus(id, approved, rejected);
+  }
+  
+  async updateSellerProfile(id: number, profileData: Partial<User>): Promise<User> {
+    try {
+      // First check if user exists and is a seller
+      const [seller] = await db.select().from(users).where(
+        and(
+          eq(users.id, id),
+          eq(users.role, 'seller')
+        )
+      );
+      
+      if (!seller) {
+        throw new Error(`Seller with ID ${id} not found`);
+      }
+      
+      // Remove fields that shouldn't be updated via this method
+      const safeProfileData: Partial<User> = { ...profileData };
+      
+      // Fields to exclude from updates
+      const excludeFields = ['id', 'role', 'approved', 'rejected'];
+      excludeFields.forEach(field => {
+        if (field in safeProfileData) {
+          delete safeProfileData[field as keyof User];
+        }
+      });
+      
+      // Update the seller profile
+      const [updatedSeller] = await db
+        .update(users)
+        .set({
+          ...safeProfileData,
+          updatedAt: new Date() // Always update the timestamp
+        })
+        .where(eq(users.id, id))
+        .returning();
+        
+      return updatedSeller;
+    } catch (error) {
+      console.error(`Error updating seller profile for ID ${id}:`, error);
+      throw new Error("Failed to update seller profile");
+    }
   }
   
   async updateSellerApprovalStatus(id: number, status: boolean, isRejected: boolean = false): Promise<User> {

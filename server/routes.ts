@@ -147,6 +147,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to check seller status" });
     }
   });
+  
+  // Update seller profile
+  app.put("/api/seller/profile", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller") return res.status(403).json({ error: "Not a seller account" });
+    
+    try {
+      // Update the seller profile with the provided data
+      const updatedSeller = await storage.updateSellerProfile(req.user.id, req.body);
+      
+      // Return the updated profile data
+      res.json(updatedSeller);
+    } catch (error) {
+      console.error("Error updating seller profile:", error);
+      res.status(500).json({ error: "Failed to update seller profile" });
+    }
+  });
 
   // Search endpoint
   app.get("/api/search", async (req, res) => {
