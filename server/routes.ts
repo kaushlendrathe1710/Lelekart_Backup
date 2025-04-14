@@ -1377,10 +1377,150 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Banner Management Routes
+  
+  // Get all banners
+  app.get("/api/banners", async (req, res) => {
+    try {
+      const active = req.query.active === 'true' ? true : 
+                     req.query.active === 'false' ? false : 
+                     undefined;
+      
+      const banners = await storage.getBanners(active);
+      res.json(banners);
+    } catch (error) {
+      console.error("Error fetching banners:", error);
+      res.status(500).json({ error: "Failed to fetch banners" });
+    }
+  });
+  
+  // Get a single banner by ID
+  app.get("/api/banners/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const banner = await storage.getBanner(id);
+      
+      if (!banner) {
+        return res.status(404).json({ error: "Banner not found" });
+      }
+      
+      res.json(banner);
+    } catch (error) {
+      console.error("Error fetching banner:", error);
+      res.status(500).json({ error: "Failed to fetch banner" });
+    }
+  });
+  
+  // Create a new banner - admin only
+  app.post("/api/banners", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const bannerData = req.body;
+      const banner = await storage.createBanner(bannerData);
+      res.status(201).json(banner);
+    } catch (error) {
+      console.error("Error creating banner:", error);
+      res.status(500).json({ error: "Failed to create banner" });
+    }
+  });
+  
+  // Update a banner - admin only
+  app.put("/api/banners/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const id = parseInt(req.params.id);
+      const bannerData = req.body;
+      const banner = await storage.updateBanner(id, bannerData);
+      res.json(banner);
+    } catch (error) {
+      console.error("Error updating banner:", error);
+      res.status(500).json({ error: "Failed to update banner" });
+    }
+  });
+  
+  // Delete a banner - admin only
+  app.delete("/api/banners/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteBanner(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting banner:", error);
+      res.status(500).json({ error: "Failed to delete banner" });
+    }
+  });
+  
+  // Update banner position - admin only
+  app.patch("/api/banners/:id/position", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const id = parseInt(req.params.id);
+      const { position } = req.body;
+      
+      if (typeof position !== 'number' || position < 1) {
+        return res.status(400).json({ error: "Position must be a positive number" });
+      }
+      
+      const banner = await storage.updateBannerPosition(id, position);
+      res.json(banner);
+    } catch (error) {
+      console.error("Error updating banner position:", error);
+      res.status(500).json({ error: "Failed to update banner position" });
+    }
+  });
+  
+  // Toggle banner active status - admin only
+  app.patch("/api/banners/:id/toggle-active", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const id = parseInt(req.params.id);
+      const banner = await storage.toggleBannerActive(id);
+      res.json(banner);
+    } catch (error) {
+      console.error("Error toggling banner active status:", error);
+      res.status(500).json({ error: "Failed to toggle banner active status" });
+    }
+  });
+
   // API route to get featured products for hero section
   app.get('/api/featured-hero-products', async (_req, res) => {
     try {
-      // Get one product from each category for the hero carousel
+      // First, try to get active banners from the database
+      const activeBanners = await storage.getBanners(true);
+      
+      // If we have banners, use them
+      if (activeBanners.length > 0) {
+        const heroProducts = activeBanners.map(banner => ({
+          id: banner.id,
+          title: banner.title,
+          subtitle: banner.subtitle,
+          url: banner.imageUrl,
+          alt: banner.title,
+          buttonText: banner.buttonText,
+          category: banner.category,
+          badgeText: banner.badgeText,
+          productId: banner.productId,
+          position: banner.position
+        }));
+        
+        // Sort by position
+        heroProducts.sort((a, b) => a.position - b.position);
+        
+        return res.json(heroProducts);
+      }
+      
+      // Fallback: Get one product from each category for the hero carousel
       const categories = await storage.getCategories();
       const heroProducts = [];
       

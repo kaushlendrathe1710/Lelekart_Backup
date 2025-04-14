@@ -2205,6 +2205,184 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
   }
+
+  // Banner Management Methods
+  async getBanners(active?: boolean): Promise<Banner[]> {
+    try {
+      let query = db.select().from(banners);
+      
+      if (active !== undefined) {
+        query = query.where(eq(banners.active, active));
+      }
+      
+      return await query.orderBy(banners.position);
+    } catch (error) {
+      console.error("Error in getBanners:", error);
+      return [];
+    }
+  }
+  
+  async getBanner(id: number): Promise<Banner | undefined> {
+    try {
+      const [banner] = await db.select()
+        .from(banners)
+        .where(eq(banners.id, id));
+      return banner;
+    } catch (error) {
+      console.error(`Error getting banner with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+  
+  async createBanner(insertBanner: InsertBanner): Promise<Banner> {
+    try {
+      // Set position to be at the end if not provided
+      if (!insertBanner.position) {
+        const lastBanners = await db.select()
+          .from(banners)
+          .orderBy(desc(banners.position))
+          .limit(1);
+        
+        const lastPosition = lastBanners.length > 0 ? lastBanners[0].position : 0;
+        insertBanner.position = lastPosition + 1;
+      }
+      
+      const [banner] = await db.insert(banners)
+        .values({
+          ...insertBanner,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+      
+      return banner;
+    } catch (error) {
+      console.error("Error creating banner:", error);
+      throw new Error("Failed to create banner");
+    }
+  }
+  
+  async updateBanner(id: number, updateData: Partial<Banner>): Promise<Banner> {
+    try {
+      const [banner] = await db.update(banners)
+        .set({
+          ...updateData,
+          updatedAt: new Date()
+        })
+        .where(eq(banners.id, id))
+        .returning();
+      
+      if (!banner) {
+        throw new Error(`Banner with ID ${id} not found`);
+      }
+      
+      return banner;
+    } catch (error) {
+      console.error(`Error updating banner ${id}:`, error);
+      throw new Error("Failed to update banner");
+    }
+  }
+  
+  async deleteBanner(id: number): Promise<void> {
+    try {
+      await db.delete(banners)
+        .where(eq(banners.id, id));
+      
+      // Re-order remaining banners to maintain consistent position values
+      const remainingBanners = await db.select()
+        .from(banners)
+        .orderBy(banners.position);
+      
+      for (let i = 0; i < remainingBanners.length; i++) {
+        await db.update(banners)
+          .set({ position: i + 1 })
+          .where(eq(banners.id, remainingBanners[i].id));
+      }
+    } catch (error) {
+      console.error(`Error deleting banner ${id}:`, error);
+      throw new Error("Failed to delete banner");
+    }
+  }
+  
+  async updateBannerPosition(id: number, position: number): Promise<Banner> {
+    try {
+      // Get the current position of the banner
+      const [banner] = await db.select()
+        .from(banners)
+        .where(eq(banners.id, id));
+      
+      if (!banner) {
+        throw new Error(`Banner with ID ${id} not found`);
+      }
+      
+      const currentPosition = banner.position;
+      
+      // Get all banners
+      const allBanners = await db.select()
+        .from(banners)
+        .orderBy(banners.position);
+      
+      // Update positions
+      if (position < currentPosition) {
+        // Moving up - increase position of banners between new and old position
+        for (const b of allBanners) {
+          if (b.position >= position && b.position < currentPosition) {
+            await db.update(banners)
+              .set({ position: b.position + 1 })
+              .where(eq(banners.id, b.id));
+          }
+        }
+      } else if (position > currentPosition) {
+        // Moving down - decrease position of banners between old and new position
+        for (const b of allBanners) {
+          if (b.position > currentPosition && b.position <= position) {
+            await db.update(banners)
+              .set({ position: b.position - 1 })
+              .where(eq(banners.id, b.id));
+          }
+        }
+      }
+      
+      // Update the position of the target banner
+      const [updatedBanner] = await db.update(banners)
+        .set({ 
+          position,
+          updatedAt: new Date()
+        })
+        .where(eq(banners.id, id))
+        .returning();
+      
+      return updatedBanner;
+    } catch (error) {
+      console.error(`Error updating banner position ${id}:`, error);
+      throw new Error("Failed to update banner position");
+    }
+  }
+  
+  async toggleBannerActive(id: number): Promise<Banner> {
+    try {
+      const [banner] = await db.select()
+        .from(banners)
+        .where(eq(banners.id, id));
+      
+      if (!banner) {
+        throw new Error(`Banner with ID ${id} not found`);
+      }
+      
+      const [updatedBanner] = await db.update(banners)
+        .set({ 
+          active: !banner.active,
+          updatedAt: new Date()
+        })
+        .where(eq(banners.id, id))
+        .returning();
+      
+      return updatedBanner;
+    } catch (error) {
+      console.error(`Error toggling banner active state ${id}:`, error);
+      throw new Error("Failed to toggle banner active state");
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();
