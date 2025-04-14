@@ -392,6 +392,122 @@ export default function BulkUploadPage() {
     });
   };
 
+  // Handle uploading only valid products (skipping invalid ones)
+  const handleUploadValidOnly = async () => {
+    if (!file || !showPreview) {
+      toast({
+        title: "No preview available",
+        description: "Please select a file and generate a preview before uploading.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Check if there are any valid products to upload
+    if (validRows === 0) {
+      toast({
+        title: "No valid products",
+        description: "There are no valid products to upload. Please fix the errors first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      // Track successful uploads and errors
+      let successCount = 0;
+      let errorCount = 0;
+      const currentErrors: UploadError[] = [];
+      
+      // Only upload products that passed validation
+      for (const product of previewProducts) {
+        if (!product.isValid) {
+          continue; // Skip invalid products
+        }
+        
+        try {
+          // Prepare product data for upload
+          const productData = {
+            name: product.name,
+            description: product.description,
+            price: product.price,
+            category: product.category,
+            imageUrl: product.imageUrl,
+            stock: product.stock,
+            images: product.images,
+            sku: product.sku,
+            mrp: product.mrp,
+            purchasePrice: product.purchasePrice,
+            color: product.color,
+            size: product.size,
+            sellerId: user.id,
+          };
+          
+          // Send to the API
+          const response = await fetch('/api/products', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(productData),
+            credentials: 'include'
+          });
+          
+          if (response.ok) {
+            successCount++;
+          } else {
+            errorCount++;
+            const errorData = await response.json();
+            currentErrors.push({
+              rowIndex: product.rowIndex,
+              productName: product.name,
+              errors: [errorData.message || 'Unknown server error']
+            });
+          }
+        } catch (error) {
+          errorCount++;
+          currentErrors.push({
+            rowIndex: product.rowIndex,
+            productName: product.name,
+            errors: [(error as Error).message || 'Unknown error during upload']
+          });
+        }
+      }
+      
+      // Update stats
+      setUploadStats({
+        total: validRows,
+        success: successCount,
+        failed: errorCount,
+        showResults: true
+      });
+      
+      if (errorCount > 0) {
+        setUploadErrors(currentErrors);
+        setShowErrorDetails(true);
+        toast({
+          title: "Upload partially completed",
+          description: `Successfully uploaded ${successCount} out of ${validRows} valid products. ${errorCount} failed.`,
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "Upload completed successfully",
+          description: `All ${successCount} valid products were uploaded.`,
+        });
+        setUploadSuccess(true);
+      }
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: (error as Error).message || "An unknown error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   // Handle the upload process with previously validated preview data
   const handleUpload = async () => {
     if (!file || !showPreview) {
