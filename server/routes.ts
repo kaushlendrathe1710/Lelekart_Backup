@@ -2212,6 +2212,184 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Address Management API
+  
+  // Get all addresses for a user
+  app.get("/api/addresses", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const userId = req.user.id;
+      const addresses = await storage.getUserAddresses(userId);
+      res.json(addresses);
+    } catch (error) {
+      console.error("Error fetching addresses:", error);
+      res.status(500).json({ error: "Failed to fetch addresses" });
+    }
+  });
+  
+  // Get default address for a user
+  app.get("/api/addresses/default", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const userId = req.user.id;
+      const defaultAddress = await storage.getDefaultAddress(userId);
+      
+      if (!defaultAddress) {
+        return res.status(404).json({ error: "No default address found" });
+      }
+      
+      res.json(defaultAddress);
+    } catch (error) {
+      console.error("Error fetching default address:", error);
+      res.status(500).json({ error: "Failed to fetch default address" });
+    }
+  });
+  
+  // Get a specific address by ID
+  app.get("/api/addresses/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const addressId = parseInt(req.params.id);
+      const userId = req.user.id;
+      
+      const address = await storage.getUserAddressById(addressId);
+      
+      if (!address) {
+        return res.status(404).json({ error: "Address not found" });
+      }
+      
+      // Security check: Make sure the address belongs to the requesting user
+      if (address.userId !== userId) {
+        return res.status(403).json({ error: "Unauthorized access to this address" });
+      }
+      
+      res.json(address);
+    } catch (error) {
+      console.error("Error fetching address:", error);
+      res.status(500).json({ error: "Failed to fetch address" });
+    }
+  });
+  
+  // Create a new address
+  app.post("/api/addresses", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const userId = req.user.id;
+      
+      // Validate the input data
+      const addressData = insertUserAddressSchema.parse({
+        ...req.body,
+        userId
+      });
+      
+      const newAddress = await storage.createUserAddress(addressData);
+      res.status(201).json(newAddress);
+    } catch (error) {
+      console.error("Error creating address:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create address" });
+    }
+  });
+  
+  // Update an existing address
+  app.put("/api/addresses/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const addressId = parseInt(req.params.id);
+      const userId = req.user.id;
+      
+      // Get the address to verify ownership
+      const existingAddress = await storage.getUserAddressById(addressId);
+      
+      if (!existingAddress) {
+        return res.status(404).json({ error: "Address not found" });
+      }
+      
+      // Security check: Make sure the address belongs to the requesting user
+      if (existingAddress.userId !== userId) {
+        return res.status(403).json({ error: "Unauthorized access to this address" });
+      }
+      
+      // Update the address
+      const updatedAddress = await storage.updateUserAddress(addressId, req.body);
+      res.json(updatedAddress);
+    } catch (error) {
+      console.error("Error updating address:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      res.status(500).json({ error: "Failed to update address" });
+    }
+  });
+  
+  // Delete an address
+  app.delete("/api/addresses/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const addressId = parseInt(req.params.id);
+      const userId = req.user.id;
+      
+      // Get the address to verify ownership
+      const existingAddress = await storage.getUserAddressById(addressId);
+      
+      if (!existingAddress) {
+        return res.status(404).json({ error: "Address not found" });
+      }
+      
+      // Security check: Make sure the address belongs to the requesting user
+      if (existingAddress.userId !== userId) {
+        return res.status(403).json({ error: "Unauthorized access to this address" });
+      }
+      
+      // Delete the address
+      await storage.deleteUserAddress(addressId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting address:", error);
+      res.status(500).json({ error: "Failed to delete address" });
+    }
+  });
+  
+  // Set an address as default
+  app.post("/api/addresses/:id/set-default", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const addressId = parseInt(req.params.id);
+      const userId = req.user.id;
+      
+      // Get the address to verify ownership
+      const existingAddress = await storage.getUserAddressById(addressId);
+      
+      if (!existingAddress) {
+        return res.status(404).json({ error: "Address not found" });
+      }
+      
+      // Security check: Make sure the address belongs to the requesting user
+      if (existingAddress.userId !== userId) {
+        return res.status(403).json({ error: "Unauthorized access to this address" });
+      }
+      
+      // Set as default
+      await storage.setDefaultAddress(userId, addressId);
+      
+      // Get the updated address
+      const updatedAddress = await storage.getUserAddressById(addressId);
+      res.json(updatedAddress);
+    } catch (error) {
+      console.error("Error setting default address:", error);
+      res.status(500).json({ error: "Failed to set default address" });
+    }
+  });
+  
   // Seller approval endpoints (admin only)
   app.get("/api/admin/sellers", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

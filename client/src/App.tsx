@@ -44,6 +44,7 @@ import SmartInventoryPage from './pages/seller/smart-inventory';
 import BuyerDashboardPage from './pages/buyer/dashboard';
 import BuyerWishlistPage from './pages/buyer/wishlist';
 import BuyerSettingsPage from './pages/buyer/settings';
+import AddressManagementPage from './pages/buyer/address-management';
 
 function App() {
   return (
@@ -435,6 +436,15 @@ function App() {
                         path="/buyer/settings" 
                         role="buyer" 
                         component={BuyerSettingsPage} 
+                      />
+                    )}
+                  </Route>
+                  <Route path="/buyer/addresses">
+                    {() => (
+                      <ProtectedRoute 
+                        path="/buyer/addresses" 
+                        role="buyer" 
+                        component={AddressManagementPage} 
                       />
                     )}
                   </Route>

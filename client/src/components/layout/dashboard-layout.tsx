@@ -14,7 +14,8 @@ import {
   ChevronRight,
   Bell,
   LineChart,
-  TrendingUp
+  TrendingUp,
+  MapPin
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -341,6 +342,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     <Link href="/buyer/wishlist">
                       <Heart className="mr-2 h-4 w-4" />
                       <span>Wishlist</span>
+                    </Link>
+                  </Button>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <Button
+                    variant="ghost"
+                    asChild
+                    className={`w-full justify-start ${isActive('/buyer/addresses') ? 'bg-primary/10 text-primary' : ''}`}
+                  >
+                    <Link href="/buyer/addresses">
+                      <MapPin className="mr-2 h-4 w-4" />
+                      <span>Manage Addresses</span>
                     </Link>
                   </Button>
                 </SidebarMenuItem>
