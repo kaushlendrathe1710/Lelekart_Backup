@@ -429,27 +429,26 @@ export default function BulkUploadPage() {
         
         try {
           // Prepare product data for upload
-          const productData = {
-            name: product.name,
-            description: product.description,
-            price: product.price,
-            category: product.category,
-            imageUrl: product.imageUrl,
-            stock: product.stock,
-            images: product.images,
-            sku: product.sku,
-            mrp: product.mrp,
-            purchasePrice: product.purchasePrice,
-            color: product.color,
-            size: product.size,
-            sellerId: user.id,
-          };
+          const productData = { ...product };
+          
+          // Ensure we have seller ID
+          if (!productData.sellerId && user?.id) {
+            productData.sellerId = user.id;
+          }
+          
+          // Convert any array properties to JSON strings
+          if (productData.images && Array.isArray(productData.images)) {
+            productData.images = JSON.stringify(productData.images);
+          }
+          
+          // Remove preview-specific properties that shouldn't be sent to API
+          const { isValid, errors, rowIndex, ...apiProductData } = productData;
           
           // Send to the API
           const response = await fetch('/api/products', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(productData),
+            body: JSON.stringify(apiProductData),
             credentials: 'include'
           });
           
