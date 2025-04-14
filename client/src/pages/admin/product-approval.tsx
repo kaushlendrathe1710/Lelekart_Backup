@@ -169,9 +169,8 @@ function ProductApprovalContent() {
     .sort((a, b) => b.id - a.id); // Sort by newest first
 
   // Extract unique categories for filtering
-  const categories = [
-    ...new Set(pendingProducts?.map((product) => product.category) || []),
-  ];
+  const uniqueCategories = new Set(pendingProducts?.map((product) => product.category) || []);
+  const categories = Array.from(uniqueCategories);
 
   // Product counts for stats
   const totalPendingProducts = pendingProducts?.length || 0;
