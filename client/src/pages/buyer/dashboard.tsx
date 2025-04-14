@@ -83,7 +83,14 @@ export default function BuyerDashboardPage() {
             <CardHeader className="pb-3">
               <CardTitle className="flex justify-between items-center">
                 <span>Personal Information</span>
-                <Button variant="outline" size="sm" className="h-8">Edit</Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8" 
+                  onClick={() => setLocation('/buyer/settings')}
+                >
+                  Edit
+                </Button>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -112,7 +119,12 @@ export default function BuyerDashboardPage() {
               </div>
             </CardContent>
             <CardFooter className="border-t pt-3 pb-1 px-6">
-              <Button variant="link" size="sm" className="text-primary p-0 h-auto flex items-center">
+              <Button 
+                variant="link" 
+                size="sm" 
+                className="text-primary p-0 h-auto flex items-center"
+                onClick={() => setLocation('/buyer/settings')}
+              >
                 <span>View account details</span>
                 <ChevronRight className="ml-1 h-4 w-4" />
               </Button>
