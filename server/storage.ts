@@ -54,7 +54,6 @@ export interface IStorage {
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: number, product: Partial<Product>): Promise<Product>;
   deleteProduct(id: number): Promise<void>;
-  getAllProductIds(sellerId: number): Promise<number[]>;
 
   // Cart operations
   getCartItems(userId: number): Promise<{id: number, quantity: number, product: Product, userId: number}[]>;
@@ -727,29 +726,6 @@ export class DatabaseStorage implements IStorage {
     
     if (!result) {
       throw new Error(`Product with ID ${id} not found`);
-    }
-  }
-  
-  async getAllProductIds(sellerId: number): Promise<number[]> {
-    try {
-      console.log(`Getting all product IDs for seller ${sellerId}`);
-      
-      // Use SQL query to fetch just the IDs efficiently
-      const query = `
-        SELECT id FROM products 
-        WHERE seller_id = $1
-      `;
-      
-      const { rows } = await pool.query(query, [sellerId]);
-      
-      // Extract just the ID numbers from the results
-      const productIds = rows.map(row => row.id);
-      console.log(`Found ${productIds.length} product IDs for seller ${sellerId}`);
-      
-      return productIds;
-    } catch (error) {
-      console.error('Error in getAllProductIds:', error);
-      return [];
     }
   }
 

@@ -60,8 +60,6 @@ export default function SellerProductsPage() {
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
-  const [isSelectAllPages, setIsSelectAllPages] = useState(false);
-  const [allProductsCount, setAllProductsCount] = useState(0);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -93,28 +91,6 @@ export default function SellerProductsPage() {
       return res.json();
     },
     enabled: !!user?.id,
-  });
-  
-  // Define interface for the API response
-  interface AllProductIdsResponse {
-    productIds: number[];
-  }
-  
-  // Fetch all product IDs for the seller (used for "Select All Products" functionality)
-  const { data: allProductIdsData } = useQuery<AllProductIdsResponse>({
-    queryKey: ['/api/products/all-ids', { sellerId: user?.id }],
-    queryFn: async ({ queryKey }) => {
-      const [_, params] = queryKey as [string, { sellerId?: number }];
-      const res = await fetch(`/api/products/all-ids?sellerId=${params.sellerId || ''}`);
-      if (!res.ok) {
-        throw new Error('Failed to fetch all product IDs');
-      }
-      return res.json();
-    },
-    enabled: !!user?.id,
-    onSuccess: (data: AllProductIdsResponse) => {
-      setAllProductsCount(data.productIds.length);
-    }
   });
   
   // Extract products and pagination from response
@@ -207,17 +183,6 @@ export default function SellerProductsPage() {
   // Handle bulk delete confirmation
   const handleBulkDeleteProducts = () => {
     if (selectedProducts.length > 0) {
-      // Update the dialog description text when many products are selected
-      if (isSelectAllPages) {
-        // Show a more informative message when all products are selected
-        toast({
-          title: `Deleting ${selectedProducts.length} products`,
-          description: "This operation may take some time to complete.",
-          duration: 5000
-        });
-      }
-      
-      // Submit for deletion
       bulkDeleteMutation.mutate(selectedProducts);
     }
   };
@@ -326,58 +291,18 @@ export default function SellerProductsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[40px]">
-                      <div className="flex flex-col gap-1">
-                        <Checkbox 
-                          checked={products.length > 0 && (isSelectAllPages || selectedProducts.length === products.length)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              // Select all products in the current page
-                              setSelectedProducts(products.map(p => p.id));
-                              setIsSelectAllPages(false);
-                            } else {
-                              // Deselect all products
-                              setSelectedProducts([]);
-                              setIsSelectAllPages(false);
-                            }
-                          }}
-                        />
-                        
-                        {/* Popup context menu for "Select All" or "Select All Pages" */}
-                        {(products.length > 0 && selectedProducts.length === products.length && !isSelectAllPages && allProductsCount > products.length) && (
-                          <div className="absolute z-10 mt-8 ml-6 p-2 bg-white shadow-lg rounded-md border text-xs">
-                            <button 
-                              className="text-blue-600 hover:underline whitespace-nowrap"
-                              onClick={() => {
-                                // This will select all products across all pages
-                                if (allProductIdsData?.productIds) {
-                                  setSelectedProducts(allProductIdsData.productIds);
-                                  setIsSelectAllPages(true);
-                                }
-                              }}
-                            >
-                              Select all {allProductsCount} products
-                            </button>
-                          </div>
-                        )}
-                        
-                        {/* Show "All products selected" message when all products are selected */}
-                        {isSelectAllPages && (
-                          <div className="absolute z-10 mt-8 ml-6 p-2 bg-white shadow-lg rounded-md border text-xs">
-                            <span className="text-muted-foreground">
-                              All {allProductsCount} products selected
-                            </span>
-                            <button 
-                              className="block text-blue-600 hover:underline whitespace-nowrap"
-                              onClick={() => {
-                                setSelectedProducts([]);
-                                setIsSelectAllPages(false);
-                              }}
-                            >
-                              Clear selection
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                      <Checkbox 
+                        checked={products.length > 0 && selectedProducts.length === products.length}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            // Select all products
+                            setSelectedProducts(products.map(p => p.id));
+                          } else {
+                            // Deselect all products
+                            setSelectedProducts([]);
+                          }
+                        }}
+                      />
                     </TableHead>
                     <TableHead className="w-[80px]">Image</TableHead>
                     <TableHead>Product Name</TableHead>
@@ -591,15 +516,9 @@ export default function SellerProductsPage() {
       <AlertDialog open={isBulkDeleteDialogOpen} onOpenChange={setIsBulkDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {isSelectAllPages 
-                ? `Delete all ${selectedProducts.length} products?` 
-                : `Delete ${selectedProducts.length} product${selectedProducts.length > 1 ? 's' : ''}?`}
-            </AlertDialogTitle>
+            <AlertDialogTitle>Delete {selectedProducts.length} products?</AlertDialogTitle>
             <AlertDialogDescription>
-              {isSelectAllPages 
-                ? `This action cannot be undone. This will permanently delete ALL ${selectedProducts.length} products across all pages and remove them from our servers. This operation may take some time.`
-                : `This action cannot be undone. This will permanently delete the selected products and remove them from our servers.`}
+              This action cannot be undone. This will permanently delete the selected products and remove them from our servers.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

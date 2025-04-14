@@ -250,26 +250,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Product routes with pagination
-  
-  // Get all product IDs for a seller (used for bulk operations)
-  app.get("/api/products/all-ids", async (req, res) => {
-    try {
-      const { sellerId } = req.query;
-      
-      if (!sellerId) {
-        return res.status(400).json({ error: 'sellerId is required' });
-      }
-      
-      // Fetch all product IDs without pagination for this seller
-      const allIds = await storage.getAllProductIds(parseInt(sellerId as string));
-      
-      res.json({ productIds: allIds });
-    } catch (error) {
-      console.error('Error fetching all product IDs:', error);
-      res.status(500).json({ error: 'Failed to fetch product IDs' });
-    }
-  });
-  
   app.get("/api/products", async (req, res) => {
     try {
       const category = req.query.category as string | undefined;
