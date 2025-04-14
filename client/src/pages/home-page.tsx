@@ -251,6 +251,12 @@ export default function HomePage() {
             <TabsContent value="all" className="bg-white p-4 rounded shadow-sm">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-medium">All Products</h2>
+                <Link 
+                  href="/products" 
+                  className="text-primary hover:underline flex items-center gap-1"
+                >
+                  View All <span aria-hidden="true">→</span>
+                </Link>
               </div>
               
               {isLoading ? (

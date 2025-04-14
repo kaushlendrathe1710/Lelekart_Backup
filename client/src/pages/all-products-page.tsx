@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ProductCard } from "@/components/product/product-card";
+import { ProductCard } from "@/components/ui/product-card";
 import { Loader2 } from "lucide-react";
 
 interface Product {
