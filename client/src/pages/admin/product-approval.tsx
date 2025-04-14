@@ -101,12 +101,15 @@ function ProductApprovalContent() {
   
   // Reject product mutation
   const rejectMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const res = await apiRequest("PUT", `/api/products/${id}/reject`);
+    mutationFn: async ({ id, reason }: { id: number, reason: string }) => {
+      const res = await apiRequest("PUT", `/api/products/${id}/reject`, { rejectionReason: reason });
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      setShowRejectionDialog(false);
+      setProductToReject(null);
+      setRejectionReason("");
       toast({
         title: "Product rejected",
         description: "The product will not be visible to buyers.",
@@ -128,7 +131,20 @@ function ProductApprovalContent() {
   
   // Handle product rejection
   const handleRejectProduct = async (product: Product) => {
-    await rejectMutation.mutateAsync(product.id);
+    // Open the rejection dialog
+    setProductToReject(product);
+    setRejectionReason("");
+    setShowRejectionDialog(true);
+  };
+  
+  // Submit product rejection with reason
+  const submitRejection = async () => {
+    if (!productToReject) return;
+    
+    await rejectMutation.mutateAsync({ 
+      id: productToReject.id, 
+      reason: rejectionReason 
+    });
   };
 
   // Filter for pending products only and sort by newest first
@@ -468,7 +484,7 @@ function ProductApprovalContent() {
                       <TableCell>{product.category}</TableCell>
                       <TableCell>₹{Number(product.price).toFixed(2)}</TableCell>
                       <TableCell>
-                        {product.seller ? product.seller.username : 'Unknown'}
+                        Seller ID: {product.sellerId || 'Unknown'}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
@@ -572,7 +588,7 @@ function ProductApprovalContent() {
                 <div className="mt-1">
                   <div className="text-sm font-medium text-gray-500">Seller Information</div>
                   <div className="mt-1 text-sm">
-                    {viewProduct.seller ? viewProduct.seller.username : 'Unknown Seller'}
+                    Seller ID: {viewProduct.sellerId || 'Unknown'}
                   </div>
                 </div>
                 
@@ -601,6 +617,87 @@ function ProductApprovalContent() {
             </div>
           </DialogContent>
         )}
+      </Dialog>
+
+      {/* Rejection Dialog */}
+      <Dialog open={showRejectionDialog} onOpenChange={setShowRejectionDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Product</DialogTitle>
+            <DialogDescription>
+              Provide a reason for rejecting this product. This information will be shared with the seller.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {productToReject && (
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-12 w-12 rounded bg-gray-100 relative overflow-hidden border">
+                  <img
+                    src={productToReject.imageUrl || ""}
+                    alt={productToReject.name}
+                    className="object-contain h-full w-full"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = `../images/${(productToReject.category || 'general').toLowerCase()}.svg`;
+                    }}
+                  />
+                </div>
+                <div>
+                  <h3 className="font-medium">{productToReject.name}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {productToReject.category}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <label htmlFor="rejectionReason" className="text-sm font-medium">
+                Rejection Reason
+              </label>
+              <textarea
+                id="rejectionReason"
+                className="w-full min-h-[100px] p-2 border rounded-md"
+                placeholder="Explain why this product is being rejected..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Be specific to help the seller understand what changes are needed.
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex gap-3 justify-end">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowRejectionDialog(false);
+                setProductToReject(null);
+                setRejectionReason("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={submitRejection}
+              disabled={rejectMutation.isPending}
+            >
+              {rejectMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Rejecting...
+                </>
+              ) : (
+                <>
+                  <X className="mr-2 h-4 w-4" />
+                  Reject Product
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
       </Dialog>
     </AdminLayout>
   );

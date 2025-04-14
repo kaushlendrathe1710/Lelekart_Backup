@@ -1,0 +1,524 @@
+# Lelekart (Flipkart Clone) API Documentation
+
+## Authentication & User Management
+
+### User Registration
+- **Endpoint**: `/api/register`
+- **Method**: POST
+- **Description**: Register a new user
+- **Request Body**:
+  ```json
+  {
+    "username": "string",
+    "email": "string",
+    "password": "string", 
+    "role": "buyer|seller|admin",
+    "name": "string (optional)",
+    "phone": "string (optional)",
+    "address": "string (optional)"
+  }
+  ```
+- **Response**: Returns created user object
+- **Authentication**: Not required
+
+### User Login (OTP Generation)
+- **Endpoint**: `/api/auth/generate-otp`
+- **Method**: POST
+- **Description**: Generate an OTP for passwordless login
+- **Request Body**:
+  ```json
+  {
+    "email": "string"
+  }
+  ```
+- **Response**: Success message
+- **Authentication**: Not required
+
+### Verify OTP and Login
+- **Endpoint**: `/api/auth/verify-otp`
+- **Method**: POST
+- **Description**: Verify OTP and create session
+- **Request Body**:
+  ```json
+  {
+    "email": "string",
+    "otp": "string"
+  }
+  ```
+- **Response**: User object with session token
+- **Authentication**: Not required
+
+### Get Current User
+- **Endpoint**: `/api/user`
+- **Method**: GET
+- **Description**: Get details of currently authenticated user
+- **Response**: User object
+- **Authentication**: Required
+
+### Logout
+- **Endpoint**: `/api/logout`
+- **Method**: POST
+- **Description**: End user session
+- **Authentication**: Required
+
+### Get All Users (Admin Only)
+- **Endpoint**: `/api/users`
+- **Method**: GET
+- **Description**: Get list of all users
+- **Authentication**: Required (Admin only)
+
+### Get User by ID
+- **Endpoint**: `/api/users/:id`
+- **Method**: GET
+- **Description**: Get user by ID
+- **Authentication**: Required (Admin or own account)
+
+### Update User
+- **Endpoint**: `/api/users/:id`
+- **Method**: PUT
+- **Description**: Update user details
+- **Request Body**: User properties to update
+- **Authentication**: Required (Admin or own account)
+
+### Delete User
+- **Endpoint**: `/api/users/:id`
+- **Method**: DELETE
+- **Description**: Delete user account
+- **Authentication**: Required (Admin or own account)
+
+### Change User Role (Admin Only)
+- **Endpoint**: `/api/users/:id/role`
+- **Method**: PUT
+- **Description**: Change user role
+- **Request Body**:
+  ```json
+  {
+    "role": "buyer|seller|admin"
+  }
+  ```
+- **Authentication**: Required (Admin only)
+
+## Seller Management
+
+### Get Pending Sellers (Admin Only)
+- **Endpoint**: `/api/sellers/pending`
+- **Method**: GET
+- **Description**: Get list of sellers awaiting approval
+- **Authentication**: Required (Admin only)
+
+### Get Approved Sellers (Admin Only)
+- **Endpoint**: `/api/sellers/approved`
+- **Method**: GET
+- **Description**: Get list of approved sellers
+- **Authentication**: Required (Admin only)
+
+### Get Rejected Sellers (Admin Only)
+- **Endpoint**: `/api/sellers/rejected`
+- **Method**: GET
+- **Description**: Get list of rejected sellers
+- **Authentication**: Required (Admin only)
+
+### Approve Seller (Admin Only)
+- **Endpoint**: `/api/sellers/:id/approve`
+- **Method**: PUT
+- **Description**: Approve a seller application
+- **Authentication**: Required (Admin only)
+
+### Reject Seller (Admin Only)
+- **Endpoint**: `/api/sellers/:id/reject`
+- **Method**: PUT
+- **Description**: Reject a seller application
+- **Authentication**: Required (Admin only)
+
+### Check Seller Approval Status
+- **Endpoint**: `/api/sellers/status`
+- **Method**: GET
+- **Description**: Check current seller's approval status
+- **Authentication**: Required (Seller only)
+
+## Products
+
+### Get Products
+- **Endpoint**: `/api/products`
+- **Method**: GET
+- **Description**: Get list of products with filtering options
+- **Query Parameters**:
+  - `category`: Filter by category
+  - `sellerId`: Filter by seller ID
+  - `approved`: Filter by approval status
+  - `page`: Pagination page number
+  - `limit`: Items per page
+- **Authentication**: Not required
+
+### Get Product by ID
+- **Endpoint**: `/api/products/:id`
+- **Method**: GET
+- **Description**: Get product details by ID
+- **Authentication**: Not required
+
+### Create Product (Seller)
+- **Endpoint**: `/api/products`
+- **Method**: POST
+- **Description**: Create a new product (starts unapproved)
+- **Request Body**: Product details
+- **Authentication**: Required (Seller or Admin only)
+
+### Update Product
+- **Endpoint**: `/api/products/:id`
+- **Method**: PUT
+- **Description**: Update product details
+- **Request Body**: Updated product properties
+- **Authentication**: Required (Product owner or Admin)
+
+### Delete Product
+- **Endpoint**: `/api/products/:id`
+- **Method**: DELETE
+- **Description**: Delete a product
+- **Authentication**: Required (Product owner or Admin)
+
+### Approve Product (Admin Only)
+- **Endpoint**: `/api/products/:id/approve`
+- **Method**: PUT
+- **Description**: Approve a product for visibility
+- **Authentication**: Required (Admin only)
+
+### Reject Product (Admin Only)
+- **Endpoint**: `/api/products/:id/reject`
+- **Method**: PUT
+- **Description**: Reject a product with reason
+- **Request Body**:
+  ```json
+  {
+    "rejectionReason": "string (optional)"
+  }
+  ```
+- **Authentication**: Required (Admin only)
+
+### Get Product Approval Status
+- **Endpoint**: `/api/products/:id/status`
+- **Method**: GET
+- **Description**: Check product approval status
+- **Authentication**: Required (Product owner or Admin)
+
+### Search Products
+- **Endpoint**: `/api/products/search`
+- **Method**: GET
+- **Description**: Search products by query
+- **Query Parameters**:
+  - `q`: Search query
+  - `limit`: Maximum results to return
+- **Authentication**: Not required
+
+## Categories
+
+### Get Categories
+- **Endpoint**: `/api/categories`
+- **Method**: GET
+- **Description**: Get all product categories
+- **Authentication**: Not required
+
+### Get Category by ID
+- **Endpoint**: `/api/categories/:id`
+- **Method**: GET
+- **Description**: Get category details by ID
+- **Authentication**: Not required
+
+### Create Category (Admin Only)
+- **Endpoint**: `/api/categories`
+- **Method**: POST
+- **Description**: Create a new category
+- **Request Body**: Category details
+- **Authentication**: Required (Admin only)
+
+### Update Category (Admin Only)
+- **Endpoint**: `/api/categories/:id`
+- **Method**: PUT
+- **Description**: Update category details
+- **Request Body**: Updated category properties
+- **Authentication**: Required (Admin only)
+
+### Delete Category (Admin Only)
+- **Endpoint**: `/api/categories/:id`
+- **Method**: DELETE
+- **Description**: Delete a category
+- **Authentication**: Required (Admin only)
+
+## Cart
+
+### Get Cart
+- **Endpoint**: `/api/cart`
+- **Method**: GET
+- **Description**: Get current user's cart
+- **Authentication**: Required
+
+### Add to Cart
+- **Endpoint**: `/api/cart`
+- **Method**: POST
+- **Description**: Add item to cart
+- **Request Body**:
+  ```json
+  {
+    "productId": "number",
+    "quantity": "number"
+  }
+  ```
+- **Authentication**: Required
+
+### Update Cart Item
+- **Endpoint**: `/api/cart/:id`
+- **Method**: PUT
+- **Description**: Update cart item quantity
+- **Request Body**:
+  ```json
+  {
+    "quantity": "number"
+  }
+  ```
+- **Authentication**: Required
+
+### Remove from Cart
+- **Endpoint**: `/api/cart/:id`
+- **Method**: DELETE
+- **Description**: Remove item from cart
+- **Authentication**: Required
+
+### Clear Cart
+- **Endpoint**: `/api/cart/clear`
+- **Method**: POST
+- **Description**: Remove all items from cart
+- **Authentication**: Required
+
+## Orders
+
+### Get Orders
+- **Endpoint**: `/api/orders`
+- **Method**: GET
+- **Description**: Get user's orders or seller's orders
+- **Query Parameters**:
+  - `userId`: For admin to filter by user
+  - `sellerId`: For admin to filter by seller
+- **Authentication**: Required
+
+### Get Order by ID
+- **Endpoint**: `/api/orders/:id`
+- **Method**: GET
+- **Description**: Get order details by ID
+- **Authentication**: Required (Order owner, seller with products in order, or admin)
+
+### Create Order
+- **Endpoint**: `/api/orders`
+- **Method**: POST
+- **Description**: Create a new order from cart
+- **Request Body**:
+  ```json
+  {
+    "shippingDetails": "object",
+    "paymentMethod": "string"
+  }
+  ```
+- **Authentication**: Required
+
+### Update Order Status
+- **Endpoint**: `/api/orders/:id/status`
+- **Method**: PUT
+- **Description**: Update order status
+- **Request Body**:
+  ```json
+  {
+    "status": "string"
+  }
+  ```
+- **Authentication**: Required (Seller with products in order or admin)
+
+### Get Order Items
+- **Endpoint**: `/api/orders/:id/items`
+- **Method**: GET
+- **Description**: Get items in an order
+- **Authentication**: Required (Order owner, seller with products in order, or admin)
+
+## Razorpay Payment
+
+### Get Razorpay Key
+- **Endpoint**: `/api/razorpay/key`
+- **Method**: GET
+- **Description**: Get Razorpay public key
+- **Authentication**: Not required
+
+### Create Payment Order
+- **Endpoint**: `/api/razorpay/create-order`
+- **Method**: POST
+- **Description**: Create a Razorpay order from cart
+- **Authentication**: Required
+
+### Verify Payment
+- **Endpoint**: `/api/razorpay/verify-payment`
+- **Method**: POST
+- **Description**: Verify payment and create order
+- **Request Body**:
+  ```json
+  {
+    "razorpayOrderId": "string",
+    "razorpayPaymentId": "string",
+    "razorpaySignature": "string",
+    "shippingDetails": "object"
+  }
+  ```
+- **Authentication**: Required
+
+## Wishlist
+
+### Get Wishlist
+- **Endpoint**: `/api/wishlist`
+- **Method**: GET
+- **Description**: Get user's wishlist
+- **Authentication**: Required
+
+### Add to Wishlist
+- **Endpoint**: `/api/wishlist`
+- **Method**: POST
+- **Description**: Add product to wishlist
+- **Request Body**:
+  ```json
+  {
+    "productId": "number"
+  }
+  ```
+- **Authentication**: Required
+
+### Remove from Wishlist
+- **Endpoint**: `/api/wishlist/:id`
+- **Method**: DELETE
+- **Description**: Remove product from wishlist
+- **Authentication**: Required
+
+## Reviews
+
+### Get Product Reviews
+- **Endpoint**: `/api/products/:id/reviews`
+- **Method**: GET
+- **Description**: Get reviews for a product
+- **Authentication**: Not required
+
+### Create Review
+- **Endpoint**: `/api/reviews`
+- **Method**: POST
+- **Description**: Create a product review
+- **Request Body**:
+  ```json
+  {
+    "productId": "number",
+    "orderId": "number (optional)",
+    "rating": "number (1-5)",
+    "review": "string (optional)",
+    "title": "string (optional)"
+  }
+  ```
+- **Authentication**: Required
+
+### Update Review
+- **Endpoint**: `/api/reviews/:id`
+- **Method**: PUT
+- **Description**: Update a review
+- **Request Body**: Updated review properties
+- **Authentication**: Required (Review owner only)
+
+### Delete Review
+- **Endpoint**: `/api/reviews/:id`
+- **Method**: DELETE
+- **Description**: Delete a review
+- **Authentication**: Required (Review owner or admin)
+
+### Mark Review as Helpful
+- **Endpoint**: `/api/reviews/:id/helpful`
+- **Method**: POST
+- **Description**: Mark a review as helpful
+- **Authentication**: Required
+
+## AI Assistant
+
+### Get Personalized Recommendations
+- **Endpoint**: `/api/recommendations`
+- **Method**: GET
+- **Description**: Get AI personalized product recommendations
+- **Authentication**: Optional (better personalization when authenticated)
+
+### Get Product Recommendations
+- **Endpoint**: `/api/products/:id/recommendations`
+- **Method**: GET
+- **Description**: Get product recommendations related to a specific product
+- **Authentication**: Not required
+
+### Create AI Assistant Conversation
+- **Endpoint**: `/api/ai-assistant/conversations`
+- **Method**: POST
+- **Description**: Create a new AI assistant conversation
+- **Request Body**:
+  ```json
+  {
+    "message": "string",
+    "productId": "number (optional)",
+    "categoryId": "number (optional)"
+  }
+  ```
+- **Authentication**: Optional
+
+### Continue AI Assistant Conversation
+- **Endpoint**: `/api/ai-assistant/conversations/:id`
+- **Method**: POST
+- **Description**: Continue an existing AI conversation
+- **Request Body**:
+  ```json
+  {
+    "message": "string"
+  }
+  ```
+- **Authentication**: Optional (same session required)
+
+## Smart Inventory & Price Management (Seller)
+
+### Get Sales History
+- **Endpoint**: `/api/seller/sales-history`
+- **Method**: GET
+- **Description**: Get historical sales data
+- **Query Parameters**:
+  - `productId`: Filter by product
+  - `startDate`: Filter by date range start
+  - `endDate`: Filter by date range end
+- **Authentication**: Required (Seller or Admin)
+
+### Get Demand Forecast
+- **Endpoint**: `/api/seller/demand-forecast`
+- **Method**: GET
+- **Description**: Get ML-generated demand forecast
+- **Query Parameters**:
+  - `productId`: Filter by product
+- **Authentication**: Required (Seller or Admin)
+
+### Get Price Optimization
+- **Endpoint**: `/api/seller/price-optimization`
+- **Method**: GET
+- **Description**: Get price optimization suggestions
+- **Query Parameters**:
+  - `productId`: Filter by product
+- **Authentication**: Required (Seller or Admin)
+
+### Get Inventory Optimization
+- **Endpoint**: `/api/seller/inventory-optimization`
+- **Method**: GET
+- **Description**: Get inventory optimization suggestions
+- **Query Parameters**:
+  - `productId`: Filter by product
+- **Authentication**: Required (Seller or Admin)
+
+### Generate Product Content
+- **Endpoint**: `/api/seller/generate-content`
+- **Method**: POST
+- **Description**: Generate AI content for product
+- **Request Body**:
+  ```json
+  {
+    "productId": "number",
+    "contentType": "description|specifications|features"
+  }
+  ```
+- **Authentication**: Required (Seller or Admin)
