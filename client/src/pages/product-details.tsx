@@ -724,9 +724,7 @@ export default function ProductDetailsPage() {
                   {/* AI-Powered Product Q&A */}
                   {product && (
                     <div className="mt-8">
-                      <CartProvider>
-                        <ProductQA productId={product.id} />
-                      </CartProvider>
+                      <ProductQA productId={product.id} />
                     </div>
                   )}
                 </TabsContent>
@@ -741,13 +739,11 @@ export default function ProductDetailsPage() {
                    product?.name?.toLowerCase().includes('pant') || 
                    product?.name?.toLowerCase().includes('shoe') ? (
                     <div className="mb-5">
-                      <CartProvider>
-                        <SizeRecommendation 
-                          productId={product.id} 
-                          category={product.category}
-                          availableSizes={['XS', 'S', 'M', 'L', 'XL', 'XXL']}
-                        />
-                      </CartProvider>
+                      <SizeRecommendation 
+                        productId={product.id} 
+                        category={product.category}
+                        availableSizes={['XS', 'S', 'M', 'L', 'XL', 'XXL']}
+                      />
                       <Separator className="my-4" />
                     </div>
                   ) : null}
@@ -781,14 +777,12 @@ export default function ProductDetailsPage() {
           {/* AI-powered Complementary Products */}
           <div className="bg-white rounded shadow-sm mb-3 p-4">
             {product && (
-              <CartProvider>
-                <ComplementaryProducts
-                  productId={product.id}
-                  productName={product.name}
-                  productImage={productImages[0]}
-                  productPrice={price}
-                />
-              </CartProvider>
+              <ComplementaryProducts
+                productId={product.id}
+                productName={product.name}
+                productImage={productImages[0]}
+                productPrice={price}
+              />
             )}
           </div>
           

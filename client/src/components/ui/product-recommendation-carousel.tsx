@@ -130,9 +130,7 @@ const ProductRecommendationCarousel: FC<ProductRecommendationCarouselProps> = ({
         
         {!isLoading && products?.map((product) => (
           <div key={product.id} className="flex-shrink-0" style={{ width: "245px" }}>
-            <CartProvider>
-              <ProductCard product={product} />
-            </CartProvider>
+            <ProductCard product={product} />
           </div>
         ))}
       </div>
