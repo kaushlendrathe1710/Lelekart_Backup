@@ -209,7 +209,27 @@ export default function CheckoutPage() {
     .then(res => res.json())
     .then(data => {
       console.log("Cart items debug:", data);
-      setCartItems(data);
+      
+      // Process product data to ensure images are properly handled
+      const processedData = data.map((item: any) => {
+        // Log the full product object to inspect its structure
+        if (item && item.product) {
+          console.log("Full product object:", item.product);
+          
+          // Create a processed item with guaranteed image property
+          return {
+            ...item,
+            product: {
+              ...item.product,
+              // Provide a fallback for image if it's undefined, null, or empty string
+              image: item.product.image || item.product.images?.[0] || 'https://via.placeholder.com/80?text=Product'
+            }
+          };
+        }
+        return item;
+      });
+      
+      setCartItems(processedData || []);
       setLoading(false);
       
       // If cart is empty, redirect to cart page
@@ -614,14 +634,15 @@ export default function CheckoutPage() {
                   <div className="flex items-center">
                     <div className="w-10 h-10 rounded-md overflow-hidden mr-2 bg-gray-100 flex items-center justify-center">
                       <img 
-                        src={item.product.image || 'https://via.placeholder.com/80?text=Product'}
-                        alt={item.product.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = 'https://via.placeholder.com/80?text=Product';
-                        }}
-                      />
+                          src={item.product.image || 'https://via.placeholder.com/80?text=Product'}
+                          alt={item.product.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            console.log("Image load error for:", item.product.name);
+                            const target = e.target as HTMLImageElement;
+                            target.src = 'https://via.placeholder.com/80?text=Product';
+                          }}
+                        />
                     </div>
                     <div>
                       <p className="text-sm font-medium">{item.product.name}</p>
