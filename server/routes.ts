@@ -1394,6 +1394,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Upload banner image to S3
+  app.post("/api/upload/banner", upload.single("bannerImage"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+      
+      // Upload to S3
+      const params = {
+        Bucket: process.env.AWS_BUCKET_NAME,
+        Key: `banners/${Date.now()}-${req.file.originalname}`,
+        Body: req.file.buffer,
+        ContentType: req.file.mimetype,
+        ACL: "public-read"
+      };
+      
+      const s3Result = await s3.upload(params).promise();
+      
+      return res.status(200).json({ 
+        imageUrl: s3Result.Location 
+      });
+    } catch (error) {
+      console.error("Error uploading banner image:", error);
+      return res.status(500).json({ error: "Failed to upload banner image" });
+    }
+  });
+  
   // Get a single banner by ID
   app.get("/api/banners/:id", async (req, res) => {
     try {
