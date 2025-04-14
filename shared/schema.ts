@@ -464,6 +464,47 @@ export type InsertAiAssistantConversation = z.infer<typeof insertAiAssistantConv
 export type UserSizePreference = typeof userSizePreferences.$inferSelect;
 export type InsertUserSizePreference = z.infer<typeof insertUserSizePreferenceSchema>;
 
+export type UserAddress = typeof userAddresses.$inferSelect;
+export type InsertUserAddress = z.infer<typeof insertUserAddressSchema>;
+
+// ----------- User Addresses Feature -----------
+
+// User Addresses table
+export const userAddresses = pgTable("user_addresses", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  addressName: text("address_name").notNull(), // Home, Work, etc.
+  fullName: text("full_name").notNull(),
+  address: text("address").notNull(),
+  city: text("city").notNull(),
+  state: text("state").notNull(),
+  pincode: text("pincode").notNull(),
+  phone: text("phone").notNull(),
+  isDefault: boolean("is_default").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertUserAddressSchema = createInsertSchema(userAddresses).pick({
+  userId: true,
+  addressName: true,
+  fullName: true,
+  address: true,
+  city: true,
+  state: true,
+  pincode: true,
+  phone: true,
+  isDefault: true,
+});
+
+// User Address Relations
+export const userAddressesRelations = relations(userAddresses, ({ one }) => ({
+  user: one(users, {
+    fields: [userAddresses.userId],
+    references: [users.id],
+  }),
+}));
+
 // ----------- Wishlist Feature -----------
 
 // Wishlist table

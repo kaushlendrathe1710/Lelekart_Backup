@@ -9,6 +9,7 @@ import {
   reviewImages, ReviewImage, InsertReviewImage,
   reviewHelpful, ReviewHelpful, InsertReviewHelpful,
   wishlists, Wishlist, InsertWishlist,
+  userAddresses, UserAddress, InsertUserAddress,
   salesHistory, SalesHistory, InsertSalesHistory,
   demandForecasts, DemandForecast, InsertDemandForecast,
   priceOptimizations, PriceOptimization, InsertPriceOptimization,
@@ -34,6 +35,15 @@ export interface IStorage {
   getApprovedSellers(): Promise<User[]>;
   getRejectedSellers(): Promise<User[]>;
   updateSellerApproval(id: number, approved: boolean, rejected?: boolean): Promise<User>;
+  
+  // User Address operations
+  getUserAddresses(userId: number): Promise<UserAddress[]>;
+  getUserAddressById(id: number): Promise<UserAddress | undefined>;
+  createUserAddress(address: InsertUserAddress): Promise<UserAddress>;
+  updateUserAddress(id: number, address: Partial<UserAddress>): Promise<UserAddress>;
+  deleteUserAddress(id: number): Promise<void>;
+  setDefaultAddress(userId: number, addressId: number): Promise<void>;
+  getDefaultAddress(userId: number): Promise<UserAddress | undefined>;
 
   // Product operations
   getProducts(category?: string, sellerId?: number, approved?: boolean): Promise<Product[]>;
@@ -295,6 +305,170 @@ export class DatabaseStorage implements IStorage {
       .returning();
       
     return updatedSeller;
+  }
+  
+  // User Address Management Methods
+  
+  async getUserAddresses(userId: number): Promise<UserAddress[]> {
+    try {
+      return await db.select()
+        .from(userAddresses)
+        .where(eq(userAddresses.userId, userId));
+    } catch (error) {
+      console.error("Error in getUserAddresses:", error);
+      return [];
+    }
+  }
+  
+  async getUserAddressById(id: number): Promise<UserAddress | undefined> {
+    try {
+      const [address] = await db.select()
+        .from(userAddresses)
+        .where(eq(userAddresses.id, id));
+      return address;
+    } catch (error) {
+      console.error(`Error getting address ${id}:`, error);
+      return undefined;
+    }
+  }
+  
+  async createUserAddress(address: InsertUserAddress): Promise<UserAddress> {
+    try {
+      // If this is set as default, make sure to unset any other default addresses for this user
+      if (address.isDefault) {
+        await db.update(userAddresses)
+          .set({ isDefault: false })
+          .where(
+            and(
+              eq(userAddresses.userId, address.userId),
+              eq(userAddresses.isDefault, true)
+            )
+          );
+      }
+      
+      // Now create the new address
+      const [newAddress] = await db.insert(userAddresses)
+        .values(address)
+        .returning();
+      
+      return newAddress;
+    } catch (error) {
+      console.error("Error creating address:", error);
+      throw new Error("Failed to create address");
+    }
+  }
+  
+  async updateUserAddress(id: number, updateData: Partial<UserAddress>): Promise<UserAddress> {
+    try {
+      const [existingAddress] = await db.select()
+        .from(userAddresses)
+        .where(eq(userAddresses.id, id));
+      
+      if (!existingAddress) {
+        throw new Error(`Address with ID ${id} not found`);
+      }
+      
+      // If setting this address as default, unset any other defaults first
+      if (updateData.isDefault) {
+        await db.update(userAddresses)
+          .set({ isDefault: false })
+          .where(
+            and(
+              eq(userAddresses.userId, existingAddress.userId),
+              eq(userAddresses.isDefault, true),
+              (userAddresses.id != id) // Don't unset the current address
+            )
+          );
+      }
+      
+      // Update the address
+      const [updatedAddress] = await db.update(userAddresses)
+        .set({
+          ...updateData,
+          updatedAt: new Date() // Always update the updatedAt timestamp
+        })
+        .where(eq(userAddresses.id, id))
+        .returning();
+      
+      return updatedAddress;
+    } catch (error) {
+      console.error(`Error updating address ${id}:`, error);
+      throw new Error("Failed to update address");
+    }
+  }
+  
+  async deleteUserAddress(id: number): Promise<void> {
+    try {
+      const [deletedAddress] = await db.delete(userAddresses)
+        .where(eq(userAddresses.id, id))
+        .returning();
+      
+      // If this was a default address and there are other addresses, make one of them the default
+      if (deletedAddress?.isDefault) {
+        const addresses = await db.select()
+          .from(userAddresses)
+          .where(eq(userAddresses.userId, deletedAddress.userId))
+          .limit(1);
+        
+        if (addresses.length > 0) {
+          await db.update(userAddresses)
+            .set({ isDefault: true })
+            .where(eq(userAddresses.id, addresses[0].id));
+        }
+      }
+    } catch (error) {
+      console.error(`Error deleting address ${id}:`, error);
+      throw new Error("Failed to delete address");
+    }
+  }
+  
+  async setDefaultAddress(userId: number, addressId: number): Promise<void> {
+    try {
+      // First, check if the address exists and belongs to the user
+      const [address] = await db.select()
+        .from(userAddresses)
+        .where(
+          and(
+            eq(userAddresses.id, addressId),
+            eq(userAddresses.userId, userId)
+          )
+        );
+      
+      if (!address) {
+        throw new Error(`Address ${addressId} not found for user ${userId}`);
+      }
+      
+      // Unset all default addresses for this user
+      await db.update(userAddresses)
+        .set({ isDefault: false })
+        .where(eq(userAddresses.userId, userId));
+      
+      // Set the selected address as default
+      await db.update(userAddresses)
+        .set({ isDefault: true })
+        .where(eq(userAddresses.id, addressId));
+    } catch (error) {
+      console.error(`Error setting default address:`, error);
+      throw new Error("Failed to set default address");
+    }
+  }
+  
+  async getDefaultAddress(userId: number): Promise<UserAddress | undefined> {
+    try {
+      const [address] = await db.select()
+        .from(userAddresses)
+        .where(
+          and(
+            eq(userAddresses.userId, userId),
+            eq(userAddresses.isDefault, true)
+          )
+        );
+      
+      return address;
+    } catch (error) {
+      console.error(`Error getting default address for user ${userId}:`, error);
+      return undefined;
+    }
   }
 
   async getProducts(category?: string, sellerId?: number, approved?: boolean): Promise<Product[]> {
