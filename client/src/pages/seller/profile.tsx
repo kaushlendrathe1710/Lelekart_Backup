@@ -23,7 +23,6 @@ import {
   CreditCard, 
   Shield, 
   TrendingUp,
-  FileUp,
   Clock,
   Award
 } from "lucide-react";
@@ -243,7 +242,7 @@ const SellerProfilePage = () => {
       <div className="container py-6">
         <header className="mb-8">
           <h1 className="text-3xl font-bold">Seller Profile</h1>
-          <p className="text-muted-foreground">Member since {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}</p>
+          <p className="text-muted-foreground">Member since April 2023</p>
         </header>
         
         <Tabs defaultValue="business-details" value={activeTab} onValueChange={setActiveTab}>
@@ -303,7 +302,7 @@ const SellerProfilePage = () => {
                         <dt className="text-sm font-medium text-muted-foreground">Tax Filing Status</dt>
                         <dd className="text-base">
                           {businessData?.taxFilingStatus ? (
-                            <Badge variant={businessData.taxFilingStatus === "Up to date" ? "success" : "warning"}>
+                            <Badge variant={businessData.taxFilingStatus === "Up to date" ? "default" : "secondary"}>
                               {businessData.taxFilingStatus}
                             </Badge>
                           ) : "Not available"}
@@ -478,7 +477,7 @@ const SellerProfilePage = () => {
                             </div>
                           </div>
                           <div className="flex flex-col items-end">
-                            <Badge variant={doc.verified ? "success" : "outline"}>
+                            <Badge variant={doc.verified ? "default" : "outline"}>
                               {doc.verified ? "Verified" : "Pending"}
                             </Badge>
                             <div className="flex mt-2">
@@ -603,28 +602,28 @@ const SellerProfilePage = () => {
                     <div>
                       <dt className="text-sm font-medium text-muted-foreground">Seller Verification</dt>
                       <dd className="flex items-center">
-                        <Badge variant="success" className="mr-2">Complete</Badge>
+                        <Badge variant="default" className="mr-2">Complete</Badge>
                         <span className="text-sm text-muted-foreground">Verified on Apr 12, 2023</span>
                       </dd>
                     </div>
                     <div>
                       <dt className="text-sm font-medium text-muted-foreground">GST Compliance</dt>
                       <dd className="flex items-center">
-                        <Badge variant="success" className="mr-2">Complete</Badge>
+                        <Badge variant="default" className="mr-2">Complete</Badge>
                         <span className="text-sm text-muted-foreground">Last updated Jan 15, 2024</span>
                       </dd>
                     </div>
                     <div>
                       <dt className="text-sm font-medium text-muted-foreground">Tax Filing Status</dt>
                       <dd className="flex items-center">
-                        <Badge variant="success" className="mr-2">Current</Badge>
+                        <Badge variant="default" className="mr-2">Current</Badge>
                         <span className="text-sm text-muted-foreground">Next due Jun 30, 2024</span>
                       </dd>
                     </div>
                     <div>
                       <dt className="text-sm font-medium text-muted-foreground">Policy Agreement</dt>
                       <dd className="flex items-center">
-                        <Badge variant="success" className="mr-2">Accepted</Badge>
+                        <Badge variant="default" className="mr-2">Accepted</Badge>
                         <span className="text-sm text-muted-foreground">Seller Policy v3.2</span>
                       </dd>
                     </div>
