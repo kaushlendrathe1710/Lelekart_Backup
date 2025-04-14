@@ -8,6 +8,7 @@ import {
   insertOrderSchema, 
   insertOrderItemSchema,
   insertCategorySchema,
+  insertUserAddressSchema,
   insertReviewSchema,
   insertReviewImageSchema,
   insertReviewHelpfulSchema,
