@@ -19,7 +19,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Plus, Trash2, ArrowUp, ArrowDown, EyeOff, Eye } from "lucide-react";
+import { 
+  Loader2, Plus, Trash2, ArrowUp, ArrowDown, EyeOff, Eye, 
+  Search, X, Edit, ArrowUpDown, SlidersHorizontal, LayoutGrid, List
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { type ToastActionElement, type ToastProps } from "@/components/ui/toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -36,6 +39,14 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useCategories } from "@/hooks/use-categories";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Banner type matching the database schema
 interface Banner {
@@ -69,6 +80,9 @@ export default function BannerManagement() {
     productId: null,
   });
   const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterActive, setFilterActive] = useState<boolean | null>(null);
   const { data: categories = [] } = useCategories();
 
   // Fetch all banners
