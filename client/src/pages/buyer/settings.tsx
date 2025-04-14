@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { User } from "@shared/schema";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -25,7 +25,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Bell, LockKeyhole, ShoppingBag, User, UserCircle, Loader2 } from "lucide-react";
+import { Bell, LockKeyhole, ShoppingBag, User as UserIcon, UserCircle, Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -83,9 +83,26 @@ const notificationSchema = z.object({
 
 export default function BuyerSettingsPage() {
   const { toast } = useToast();
-  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
   const [communicationPreference, setCommunicationPreference] = useState("email");
+  
+  // Safely get user data directly from API
+  const { data: user, isLoading } = useQuery<User | null>({
+    queryKey: ['/api/user'],
+    queryFn: async () => {
+      const res = await fetch('/api/user', {
+        credentials: 'include',
+      });
+      
+      if (!res.ok) {
+        if (res.status === 401) return null;
+        throw new Error('Failed to fetch user');
+      }
+      
+      return res.json();
+    },
+    staleTime: 60000, // 1 minute
+  });
 
   // Profile form setup
   const profileForm = useForm<z.infer<typeof profileFormSchema>>({
@@ -228,7 +245,7 @@ export default function BuyerSettingsPage() {
               value="profile" 
               className="data-[state=active]:border-primary data-[state=active]:border-b-2 rounded-none py-2 px-4 bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
-              <User className="h-4 w-4 mr-2" />
+              <UserIcon className="h-4 w-4 mr-2" />
               Profile
             </TabsTrigger>
             <TabsTrigger 
