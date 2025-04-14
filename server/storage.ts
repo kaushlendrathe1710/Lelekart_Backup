@@ -427,19 +427,46 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`Getting product with id: ${id}`);
       
-      // Simple approach using Drizzle ORM
-      const result = await db
-        .select()
-        .from(products)
-        .where(eq(products.id, id));
+      // Use direct SQL query to avoid schema issues
+      const { rows } = await pool.query(`
+        SELECT 
+          id,
+          name, 
+          description, 
+          price, 
+          category, 
+          image_url as "imageUrl", 
+          seller_id as "sellerId",
+          stock,
+          specifications,
+          purchase_price as "purchasePrice",
+          color,
+          size,
+          images,
+          COALESCE(approved, false) as approved,
+          COALESCE(rejected, false) as rejected,
+          rejection_reason as "rejectionReason",
+          created_at as "createdAt"
+        FROM products
+        WHERE id = $1
+      `, [id]);
       
-      if (result.length === 0) {
+      if (rows.length === 0) {
         console.log(`No product found with id: ${id}`);
         return undefined;
       }
       
-      const product = result[0];
+      const product = rows[0];
       console.log(`Successfully retrieved product: ${product.name} (ID: ${product.id})`);
+      
+      // Try to parse any JSON strings
+      if (product.images && typeof product.images === 'string') {
+        try {
+          product.images = JSON.parse(product.images);
+        } catch (e) {
+          console.log('Failed to parse images JSON, keeping as string');
+        }
+      }
       
       return product;
     } catch (error) {
@@ -586,24 +613,52 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`Getting cart items for user: ${userId}`);
       
-      const cartWithProducts = await db
-        .select({
-          id: carts.id,
-          quantity: carts.quantity,
-          userId: carts.userId,
-          product: products
-        })
-        .from(carts)
-        .where(eq(carts.userId, userId))
-        .innerJoin(products, eq(carts.productId, products.id));
+      // Use SQL directly to select only the needed columns without relying on schema
+      const { rows } = await pool.query(`
+        SELECT 
+          c.id, 
+          c.quantity, 
+          c.user_id as "userId",
+          p.id as "productId", 
+          p.name, 
+          p.description, 
+          p.price, 
+          p.category, 
+          p.image_url as "imageUrl", 
+          p.seller_id as "sellerId",
+          p.stock
+        FROM carts c
+        JOIN products p ON c.product_id = p.id
+        WHERE c.user_id = $1
+      `, [userId]);
       
-      console.log(`Found ${cartWithProducts.length} cart items for user ${userId}`);
+      console.log(`Found ${rows.length} cart items for user ${userId}`);
       
-      return cartWithProducts.map(item => ({
-        id: item.id,
-        quantity: item.quantity,
-        userId: item.userId,
-        product: item.product
+      // Transform the results to match the expected format
+      return rows.map(row => ({
+        id: row.id,
+        quantity: row.quantity,
+        userId: row.userId,
+        product: {
+          id: row.productId,
+          name: row.name,
+          description: row.description,
+          price: row.price,
+          category: row.category,
+          imageUrl: row.imageUrl,
+          sellerId: row.sellerId,
+          stock: row.stock,
+          // Default values for potentially missing fields
+          approved: true,
+          rejected: false,
+          rejectionReason: null,
+          images: null,
+          specifications: null,
+          purchasePrice: null,
+          color: null,
+          size: null,
+          createdAt: new Date()
+        }
       }));
     } catch (error) {
       console.error(`Error getting cart items for user ${userId}:`, error);
