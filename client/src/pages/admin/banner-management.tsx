@@ -217,6 +217,97 @@ export default function BannerManagement() {
       updateBannerMutation.mutate(editingBanner);
     }
   };
+  
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) {
+      return;
+    }
+    
+    const file = e.target.files[0];
+    const formData = new FormData();
+    formData.append('bannerImage', file);
+    
+    try {
+      // Show loading toast
+      toast({
+        title: "Uploading image...",
+        description: "Please wait while we upload your image.",
+      });
+      
+      const res = await fetch("/api/upload/banner", {
+        method: "POST",
+        body: formData,
+      });
+      
+      const data = await res.json();
+      
+      if (data.imageUrl) {
+        setNewBanner(prev => ({
+          ...prev,
+          imageUrl: data.imageUrl
+        }));
+        
+        toast({
+          title: "Image uploaded",
+          description: "Your image has been uploaded successfully.",
+        });
+      }
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast({
+        title: "Upload failed",
+        description: "There was an error uploading your image. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const handleEditImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0 || !editingBanner) {
+      return;
+    }
+    
+    const file = e.target.files[0];
+    const formData = new FormData();
+    formData.append('bannerImage', file);
+    
+    try {
+      // Show loading toast
+      toast({
+        title: "Uploading image...",
+        description: "Please wait while we upload your image.",
+      });
+      
+      const res = await fetch("/api/upload/banner", {
+        method: "POST",
+        body: formData,
+      });
+      
+      const data = await res.json();
+      
+      if (data.imageUrl) {
+        setEditingBanner(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            imageUrl: data.imageUrl
+          };
+        });
+        
+        toast({
+          title: "Image uploaded",
+          description: "Your image has been uploaded successfully.",
+        });
+      }
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast({
+        title: "Upload failed",
+        description: "There was an error uploading your image. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleMoveUp = (banner: Banner) => {
     if (banner.position > 1) {
@@ -333,15 +424,51 @@ export default function BannerManagement() {
                 </div>
               </div>
               <div className="flex flex-col gap-4">
-                <div>
-                  <Label htmlFor="imageUrl">Image URL</Label>
-                  <Input
-                    id="imageUrl"
-                    name="imageUrl"
-                    value={newBanner.imageUrl}
-                    onChange={handleNewBannerChange}
-                    placeholder="https://example.com/image.jpg"
-                  />
+                <div className="space-y-2">
+                  <Label>Banner Image</Label>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <Label htmlFor="imageUpload" className="text-sm text-muted-foreground">Upload Image</Label>
+                      <Input
+                        id="imageUpload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div className="-- OR --">
+                      <div className="relative flex items-center my-2">
+                        <div className="flex-grow border-t border-gray-300"></div>
+                        <span className="flex-shrink mx-4 text-gray-400 text-sm">OR</span>
+                        <div className="flex-grow border-t border-gray-300"></div>
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="imageUrl" className="text-sm text-muted-foreground">Image URL</Label>
+                      <Input
+                        id="imageUrl"
+                        name="imageUrl"
+                        value={newBanner.imageUrl}
+                        onChange={handleNewBannerChange}
+                        placeholder="https://example.com/image.jpg"
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+                  {newBanner.imageUrl && (
+                    <div className="mt-2">
+                      <Label className="text-sm text-muted-foreground">Image Preview</Label>
+                      <div className="mt-1 border rounded-md overflow-hidden w-full h-32 relative">
+                        <img 
+                          src={newBanner.imageUrl} 
+                          alt="Banner preview" 
+                          className="object-cover w-full h-full"
+                          onError={(e) => e.currentTarget.src = "https://via.placeholder.com/300x150?text=Invalid+Image+URL"}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="category">Category</Label>
@@ -601,14 +728,51 @@ export default function BannerManagement() {
                 </div>
               </div>
               <div className="flex flex-col gap-4">
-                <div>
-                  <Label htmlFor="edit-imageUrl">Image URL</Label>
-                  <Input
-                    id="edit-imageUrl"
-                    name="imageUrl"
-                    value={editingBanner.imageUrl}
-                    onChange={handleEditingBannerChange}
-                  />
+                <div className="space-y-2">
+                  <Label>Banner Image</Label>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <Label htmlFor="edit-imageUpload" className="text-sm text-muted-foreground">Upload Image</Label>
+                      <Input
+                        id="edit-imageUpload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleEditImageUpload}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div className="-- OR --">
+                      <div className="relative flex items-center my-2">
+                        <div className="flex-grow border-t border-gray-300"></div>
+                        <span className="flex-shrink mx-4 text-gray-400 text-sm">OR</span>
+                        <div className="flex-grow border-t border-gray-300"></div>
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="edit-imageUrl" className="text-sm text-muted-foreground">Image URL</Label>
+                      <Input
+                        id="edit-imageUrl"
+                        name="imageUrl"
+                        value={editingBanner.imageUrl}
+                        onChange={handleEditingBannerChange}
+                        placeholder="https://example.com/image.jpg"
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+                  {editingBanner.imageUrl && (
+                    <div className="mt-2">
+                      <Label className="text-sm text-muted-foreground">Image Preview</Label>
+                      <div className="mt-1 border rounded-md overflow-hidden w-full h-32 relative">
+                        <img 
+                          src={editingBanner.imageUrl} 
+                          alt="Banner preview" 
+                          className="object-cover w-full h-full"
+                          onError={(e) => e.currentTarget.src = "https://via.placeholder.com/300x150?text=Invalid+Image+URL"}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="edit-category">Category</Label>
