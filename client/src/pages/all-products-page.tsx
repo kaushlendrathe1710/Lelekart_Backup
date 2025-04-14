@@ -13,23 +13,26 @@ import {
 } from "@/components/ui/select";
 import { ProductCard } from "@/components/ui/product-card";
 import { Loader2 } from "lucide-react";
+import { CartProvider } from "@/context/cart-context";
 
+// Define an interface that matches the ExtendedProduct in product-card.tsx
 interface Product {
   id: number;
   name: string;
   price: number;
   imageUrl?: string;
   image_url?: string;
+  image?: string;
   images?: string;
   description: string;
   category: string;
   sellerId: number;
   approved: boolean;
   createdAt: string;
-  specifications?: string;
-  purchasePrice?: number;
-  color?: string;
-  size?: string;
+  specifications?: string | null;
+  purchasePrice?: number | null;
+  color?: string | null;
+  size?: string | null;
   stock?: number;
 }
 
@@ -184,7 +187,8 @@ export default function AllProductsPage() {
 
   return (
     <Layout>
-      <div className="container mx-auto py-8">
+      <CartProvider>
+        <div className="container mx-auto py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">All Products</h1>
           
@@ -227,11 +231,10 @@ export default function AllProductsPage() {
               {productsData.products.map((product: Product) => (
                 <ProductCard 
                   key={product.id}
-                  id={product.id}
-                  name={product.name}
-                  price={product.price}
-                  imageUrl={getProductImageUrl(product)}
-                  category={product.category}
+                  product={{
+                    ...product,
+                    imageUrl: getProductImageUrl(product),
+                  }}
                 />
               ))}
             </div>
@@ -272,6 +275,7 @@ export default function AllProductsPage() {
           </Card>
         )}
       </div>
+      </CartProvider>
     </Layout>
   );
 }
