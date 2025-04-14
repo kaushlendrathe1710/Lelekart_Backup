@@ -102,8 +102,8 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
           onClick={() => {
             try {
               console.log(`Navigating to product details page: /product/${product.id}`);
-              // Use SPA routing for better performance
-              window.location.href = `/product/${product.id}`;
+              // Use Wouter's setLocation for proper SPA routing
+              setLocation(`/product/${product.id}`);
             } catch (e) {
               console.error('Navigation error:', e);
             }
@@ -167,8 +167,8 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
         onClick={() => {
           try {
             console.log(`Navigating to product details page: /product/${product.id}`);
-            // Use SPA routing for better performance
-            window.location.href = `/product/${product.id}`;
+            // Use Wouter's setLocation for proper SPA routing
+            setLocation(`/product/${product.id}`);
           } catch (e) {
             console.error('Navigation error:', e);
           }

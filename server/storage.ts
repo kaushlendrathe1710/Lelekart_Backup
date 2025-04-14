@@ -427,22 +427,18 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`Getting product with id: ${id}`);
       
-      // Use SQL query for better error handling and logging
-      const query = `
-        SELECT * FROM products 
-        WHERE id = $1
-      `;
+      // Simple approach using Drizzle ORM
+      const products = await db
+        .select()
+        .from(schema.products)
+        .where(eq(schema.products.id, id));
       
-      // Execute the query
-      const result = await db.client.query(query, [id]);
-      
-      // Check if we found a product
-      if (result.rowCount === 0) {
+      if (products.length === 0) {
         console.log(`No product found with id: ${id}`);
         return undefined;
       }
       
-      const product = result.rows[0];
+      const product = products[0];
       console.log(`Successfully retrieved product: ${product.name} (ID: ${product.id})`);
       
       return product;
