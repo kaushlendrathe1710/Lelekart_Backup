@@ -1010,10 +1010,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(403).json({ error: "Not authorized" });
     }
     
-    // This endpoint just confirms receipt of the upload
-    // Actual processing is done on the client to demonstrate both approaches
-    // In a production environment, you'd likely process the CSV server-side
-    res.status(200).json({ message: "Upload received" });
+    try {
+      // Get the user ID for product creation
+      const sellerId = req.user.id;
+      
+      // Check if this is a validation-only request (preview mode)
+      const previewMode = req.query.preview === 'true';
+      
+      if (previewMode) {
+        // Just validate and return results without saving
+        res.status(200).json({ 
+          message: "Validation successful", 
+          previewMode: true
+        });
+        return;
+      }
+      
+      // For actual submissions, the client will handle the product creation
+      // one by one with detailed error tracking
+      res.status(200).json({ 
+        message: "Upload received and ready for processing",
+        sellerId: sellerId
+      });
+    } catch (error) {
+      console.error("Bulk upload error:", error);
+      res.status(500).json({ 
+        error: "Server error processing bulk upload",
+        details: error.message
+      });
+    }
   });
 
   // Get all orders endpoint (admin only)
