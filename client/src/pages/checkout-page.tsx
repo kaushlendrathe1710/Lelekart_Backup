@@ -531,14 +531,14 @@ export default function CheckoutPage() {
 
                 {/* Payment section - always visible */}
                 <div className="payment-section pt-4 border-t">
-                  <h3 className="font-medium text-base mb-4">Payment Information</h3>
+                  <h3 className="font-medium text-base mb-4">Payment Method</h3>
                   
                   <FormField
                     control={form.control}
                     name="paymentMethod"
                     render={({ field }) => (
                       <FormItem className="space-y-3">
-                        <FormLabel>Payment Method</FormLabel>
+                        <FormLabel>Select Payment Option</FormLabel>
                         <FormControl>
                           <RadioGroup
                             onValueChange={field.onChange}
@@ -650,7 +650,11 @@ export default function CheckoutPage() {
             
             <div className="bg-gray-50 p-4 rounded-md">
               <h3 className="font-medium text-sm mb-2">Payment Method</h3>
-              <p className="text-sm text-gray-600">Cash on Delivery (COD)</p>
+              <p className="text-sm text-gray-600">
+                {form.watch("paymentMethod") === "razorpay" 
+                  ? "Pay Online with Razorpay" 
+                  : "Cash on Delivery (COD)"}
+              </p>
             </div>
           </div>
         </div>
