@@ -33,6 +33,7 @@ import AdminCategories from './pages/admin/categories';
 import SellerApproval from './pages/admin/seller-approval';
 import ProductApproval from './pages/admin/product-approval';
 import BannerManagement from './pages/admin/banner-management-new';
+import DesignHero from './pages/admin/design-hero';
 
 // Seller pages
 import SellerDashboardPage from './pages/seller/dashboard';
@@ -277,6 +278,15 @@ function App() {
                         path="/admin/banner-management" 
                         role="admin" 
                         component={BannerManagement} 
+                      />
+                    )}
+                  </Route>
+                  <Route path="/admin/design-hero">
+                    {() => (
+                      <ProtectedRoute 
+                        path="/admin/design-hero" 
+                        role="admin" 
+                        component={DesignHero} 
                       />
                     )}
                   </Route>
