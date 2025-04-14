@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "@/hooks/use-auth";
+import { useState, useEffect, useContext } from "react";
+import { useAuth, AuthContext } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -26,9 +26,36 @@ import {
   Clock,
   Award
 } from "lucide-react";
+import { User as UserType } from "@shared/schema";
+import { useLocation } from "wouter";
 
 const SellerProfilePage = () => {
-  const { user } = useAuth();
+  // Try to use context first if available
+  const authContext = useContext(AuthContext);
+  const [location, setLocation] = useLocation();
+  
+  // Get user data from direct API if context is not available
+  const { data: apiUser, isLoading: apiLoading } = useQuery<UserType | null>({
+    queryKey: ['/api/user'],
+    queryFn: async () => {
+      const res = await fetch('/api/user', {
+        credentials: 'include',
+      });
+      
+      if (!res.ok) {
+        if (res.status === 401) return null;
+        throw new Error('Failed to fetch user');
+      }
+      
+      return res.json();
+    },
+    staleTime: 60000, // 1 minute
+  });
+  
+  // Use context user if available, otherwise use API user
+  const user = authContext?.user || apiUser;
+  const isLoadingUser = authContext ? authContext.isLoading : apiLoading;
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("business-details");
@@ -236,6 +263,21 @@ const SellerProfilePage = () => {
     e.preventDefault();
     updateBankingInfoMutation.mutate();
   };
+  
+  // Show loading state while fetching user data
+  if (isLoadingUser) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+  
+  // If no user (not authenticated) or wrong role, redirect to auth page
+  if (!user || user.role !== 'seller') {
+    setLocation('/auth');
+    return null;
+  }
   
   return (
     <SellerDashboardLayout>
