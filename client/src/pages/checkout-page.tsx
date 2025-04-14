@@ -17,9 +17,26 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import RazorpayPayment from "@/components/payment/razorpay-payment";
+import { Home, Building2, MapPin, Phone, User, Plus } from "lucide-react";
+import { UserAddress } from "@shared/schema";
 
 // Define form schema with Zod
 const checkoutSchema = z.object({
@@ -60,6 +77,9 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [processingOrder, setProcessingOrder] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [addresses, setAddresses] = useState<UserAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string>("");
+  const [showAddressForm, setShowAddressForm] = useState(true);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -116,6 +136,9 @@ export default function CheckoutPage() {
         
         // Fetch cart data
         fetchCartItems();
+        
+        // Fetch user addresses
+        fetchUserAddresses();
       } else {
         setLoading(false);
         setLocation('/auth');
@@ -126,6 +149,54 @@ export default function CheckoutPage() {
       setLoading(false);
     });
   }, [form]);
+  
+  // Fetch user addresses
+  const fetchUserAddresses = () => {
+    fetch('/api/addresses', {
+      credentials: 'include',
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    })
+    .then(res => res.json())
+    .then(data => {
+      setAddresses(data);
+      
+      // If user has addresses, show address selection instead of the form
+      if (data.length > 0) {
+        setShowAddressForm(false);
+        
+        // Get default address if exists
+        const defaultAddress = data.find((addr: UserAddress) => addr.isDefault);
+        if (defaultAddress) {
+          setSelectedAddressId(defaultAddress.id.toString());
+          
+          // Pre-fill form with default address data for payment processing
+          form.setValue("name", defaultAddress.fullName);
+          form.setValue("phone", defaultAddress.phone);
+          form.setValue("address", defaultAddress.address);
+          form.setValue("city", defaultAddress.city);
+          form.setValue("state", defaultAddress.state);
+          form.setValue("zipCode", defaultAddress.pincode);
+        } else {
+          // Use the first address if no default
+          setSelectedAddressId(data[0].id.toString());
+          
+          // Pre-fill form with first address data for payment processing
+          form.setValue("name", data[0].fullName);
+          form.setValue("phone", data[0].phone);
+          form.setValue("address", data[0].address);
+          form.setValue("city", data[0].city);
+          form.setValue("state", data[0].state);
+          form.setValue("zipCode", data[0].pincode);
+        }
+      }
+    })
+    .catch(err => {
+      console.error("Error fetching addresses:", err);
+    });
+  };
 
   const fetchCartItems = () => {
     fetch('/api/cart', {
@@ -168,7 +239,7 @@ export default function CheckoutPage() {
     
     try {
       // Prepare order data
-      const orderData = {
+      const orderData: any = {
         userId: user.id,
         total,
         status: "pending",
@@ -184,6 +255,11 @@ export default function CheckoutPage() {
           notes: values.notes,
         }),
       };
+      
+      // Add address ID if using saved address
+      if (addresses.length > 0 && selectedAddressId && !showAddressForm) {
+        orderData.addressId = parseInt(selectedAddressId);
+      }
       
       // Log order data before submission
       console.log("Submitting order with data:", orderData);
@@ -253,8 +329,84 @@ export default function CheckoutPage() {
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-lg font-semibold mb-6">Shipping Information</h2>
             
+            {addresses.length > 0 && (
+              <div className="mb-6">
+                <h3 className="font-medium text-base mb-4">Select Delivery Address</h3>
+                
+                <div className="grid grid-cols-1 gap-4 mb-4">
+                  {addresses.map((address) => (
+                    <div 
+                      key={address.id}
+                      className={`border rounded-lg p-4 cursor-pointer transition-colors ${
+                        selectedAddressId === address.id.toString() 
+                          ? 'border-primary bg-primary/5' 
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => {
+                        setSelectedAddressId(address.id.toString());
+                        
+                        // Update form values when address is selected
+                        form.setValue("name", address.fullName);
+                        form.setValue("phone", address.phone);
+                        form.setValue("address", address.address);
+                        form.setValue("city", address.city);
+                        form.setValue("state", address.state);
+                        form.setValue("zipCode", address.pincode);
+                      }}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center">
+                          <span className="font-semibold">{address.addressName}</span>
+                          {address.isDefault && (
+                            <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                              Default
+                            </span>
+                          )}
+                        </div>
+                        {selectedAddressId === address.id.toString() && (
+                          <div className="w-4 h-4 rounded-full bg-primary"></div>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-700 mb-1">
+                        <User className="inline-block h-3 w-3 mr-1" /> 
+                        {address.fullName}
+                      </div>
+                      <div className="text-sm text-gray-700 mb-1">
+                        <MapPin className="inline-block h-3 w-3 mr-1" /> 
+                        {address.address}, {address.city}, {address.state}, {address.pincode}
+                      </div>
+                      <div className="text-sm text-gray-700">
+                        <Phone className="inline-block h-3 w-3 mr-1" /> 
+                        {address.phone}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="flex items-center mb-4">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setShowAddressForm(!showAddressForm)}
+                  >
+                    {showAddressForm ? "Hide Form" : "Enter New Address"}
+                  </Button>
+                  <span className="text-sm text-gray-500 ml-2">
+                    {showAddressForm ? "Fill in the form below" : "Or use a different address"}
+                  </span>
+                </div>
+                
+                <div className={`${showAddressForm ? 'block' : 'hidden'}`}>
+                  <div className="border-t border-dashed my-4"></div>
+                  <h3 className="font-medium text-base mb-4">Or Enter New Address</h3>
+                </div>
+              </div>
+            )}
+            
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6"
+                style={{ display: addresses.length > 0 && !showAddressForm ? 'none' : 'block' }}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}
