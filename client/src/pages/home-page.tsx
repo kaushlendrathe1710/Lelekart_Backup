@@ -64,7 +64,13 @@ export default function HomePage() {
       const res = await fetch('/api/featured-hero-products');
       if (!res.ok) throw new Error('Failed to fetch hero products');
       return res.json();
-    }
+    },
+    // Refetch every 30 seconds to ensure changes from banner management are reflected
+    refetchInterval: 30000,
+    // Enable refetch on window focus to update when user returns to tab
+    refetchOnWindowFocus: true,
+    // Ensure we always have the most up-to-date data
+    staleTime: 0
   });
   
   // Fetch deal of the day
