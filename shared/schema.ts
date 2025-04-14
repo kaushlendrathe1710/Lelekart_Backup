@@ -45,8 +45,6 @@ export const products = pgTable("products", {
   sellerId: integer("seller_id").notNull().references(() => users.id),
   stock: integer("stock").notNull().default(0),
   approved: boolean("approved").notNull().default(false),
-  rejected: boolean("rejected").notNull().default(false),
-  rejectionReason: text("rejection_reason"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

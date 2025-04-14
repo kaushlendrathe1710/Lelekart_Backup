@@ -71,7 +71,6 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [newImageUrl, setNewImageUrl] = useState('');
-  const [uploadingImage, setUploadingImage] = useState(false);
   
   const form = useForm<ReviewFormValues>({
     resolver: zodResolver(reviewFormSchema),
@@ -84,15 +83,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) => {
   });
   
   const addImageUrl = () => {
-    if (!newImageUrl) {
-      toast({
-        title: 'Empty URL',
-        description: 'Please enter an image URL',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
+    if (!newImageUrl) return;
     if (imageUrls.includes(newImageUrl)) {
       toast({
         title: 'Duplicate image',
@@ -102,37 +93,8 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) => {
       return;
     }
     
-    // Basic URL validation
-    try {
-      new URL(newImageUrl);
-    } catch (e) {
-      toast({
-        title: 'Invalid URL',
-        description: 'Please enter a valid image URL',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    // Check if the URL points to an image (pre-load)
-    const img = new Image();
-    img.onload = () => {
-      // Valid image - add to the list
-      setImageUrls(prev => [...prev, newImageUrl]);
-      setNewImageUrl('');
-      toast({
-        title: 'Image added',
-        description: 'Image has been added to your review',
-      });
-    };
-    img.onerror = () => {
-      toast({
-        title: 'Invalid image',
-        description: 'The URL provided does not seem to be a valid image',
-        variant: 'destructive',
-      });
-    };
-    img.src = newImageUrl;
+    setImageUrls([...imageUrls, newImageUrl]);
+    setNewImageUrl('');
   };
   
   const removeImageUrl = (url: string) => {
@@ -234,121 +196,24 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) => {
             
             <div className="space-y-2">
               <FormLabel>Add Images (Optional)</FormLabel>
-              <div className="flex flex-col space-y-2">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Enter image URL"
-                    value={newImageUrl}
-                    onChange={(e) => setNewImageUrl(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button 
-                    type="button" 
-                    onClick={addImageUrl}
-                    variant="outline"
-                    disabled={uploadingImage}
-                  >
-                    <Upload className="h-4 w-4 mr-1" />
-                    Add URL
-                  </Button>
-                </div>
-                
-                <div className="flex gap-2 items-center">
-                  <p className="text-sm text-muted-foreground">Or upload directly:</p>
-                  <div className="relative">
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        
-                        // Validate file type
-                        if (!file.type.startsWith('image/')) {
-                          toast({
-                            title: 'Invalid file',
-                            description: 'Please upload an image file',
-                            variant: 'destructive',
-                          });
-                          return;
-                        }
-                        
-                        // Max size validation (2MB)
-                        if (file.size > 2 * 1024 * 1024) {
-                          toast({
-                            title: 'File too large',
-                            description: 'Image size should be less than 2MB',
-                            variant: 'destructive',
-                          });
-                          return;
-                        }
-                        
-                        try {
-                          setUploadingImage(true);
-                          
-                          // Create FormData for file upload
-                          const formData = new FormData();
-                          formData.append('image', file);
-                          
-                          // Upload to server
-                          const response = await fetch('/api/upload-image', {
-                            method: 'POST',
-                            credentials: 'include',
-                            body: formData,
-                          });
-                          
-                          if (!response.ok) {
-                            throw new Error('Failed to upload image');
-                          }
-                          
-                          const result = await response.json();
-                          
-                          // Add the uploaded image URL to our list
-                          setImageUrls(prev => [...prev, result.imageUrl]);
-                          
-                          toast({
-                            title: 'Image uploaded',
-                            description: 'Image has been added to your review',
-                          });
-                        } catch (error) {
-                          console.error('Upload error:', error);
-                          toast({
-                            title: 'Upload failed',
-                            description: 'Could not upload image. Please try again.',
-                            variant: 'destructive',
-                          });
-                        } finally {
-                          setUploadingImage(false);
-                          // Clear the file input
-                          e.target.value = '';
-                        }
-                      }}
-                      disabled={uploadingImage}
-                    />
-                    <Button 
-                      type="button"
-                      variant="outline"
-                      className="w-full"
-                      disabled={uploadingImage}
-                    >
-                      {uploadingImage ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Uploading...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="h-4 w-4 mr-2" />
-                          Upload Image
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Enter image URL"
+                  value={newImageUrl}
+                  onChange={(e) => setNewImageUrl(e.target.value)}
+                  className="flex-1"
+                />
+                <Button 
+                  type="button" 
+                  onClick={addImageUrl}
+                  variant="outline"
+                >
+                  <Upload className="h-4 w-4 mr-1" />
+                  Add
+                </Button>
               </div>
               <FormDescription>
-                Add images to include photos with your review (URL or upload)
+                Add image URLs to include photos with your review
               </FormDescription>
               
               {imageUrls.length > 0 && (

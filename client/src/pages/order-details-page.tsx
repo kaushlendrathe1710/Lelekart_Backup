@@ -16,7 +16,6 @@ interface Product {
   name: string;
   price: number;
   image: string;
-  image_url?: string; // Optional backup image URL
   description: string;
   category: string;
   sellerId: number;
@@ -167,66 +166,13 @@ export default function OrderDetailsPage() {
   
   // Download invoice as PDF
   const downloadInvoice = () => {
-    if (!invoiceRef.current) return;
+    // Using browser print to PDF functionality
+    printInvoice();
     
-    // Create a container element to clone the invoice
-    const container = document.createElement('div');
-    container.innerHTML = invoiceRef.current.innerHTML;
-    
-    // Apply styles directly to facilitate better PDF generation
-    const styles = `
-      <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-        .invoice-container { max-width: 800px; margin: 0 auto; }
-        .invoice-header { display: flex; justify-content: space-between; margin-bottom: 20px; }
-        .company-details { text-align: right; }
-        .invoice-title { font-size: 24px; font-weight: bold; margin-bottom: 20px; }
-        .customer-details, .order-details { margin-bottom: 20px; }
-        .section-title { font-size: 16px; font-weight: bold; margin-bottom: 10px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background-color: #f9f9f9; }
-        .total-section { margin-top: 20px; text-align: right; }
-        .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
-      </style>
-    `;
-    
-    // Create an iframe to render the invoice
-    const iframe = document.createElement('iframe');
-    iframe.style.visibility = 'hidden';
-    iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    document.body.appendChild(iframe);
-    
-    // Write the invoice content to the iframe document
-    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-    iframeDoc?.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Invoice #${order?.id}</title>
-          ${styles}
-        </head>
-        <body>
-          <div class="invoice-container">
-            ${container.innerHTML}
-          </div>
-        </body>
-      </html>
-    `);
-    iframeDoc?.close();
-    
-    // Print and then remove the iframe
-    setTimeout(() => {
-      iframe.contentWindow?.print();
-      document.body.removeChild(iframe);
-      
-      toast({
-        title: "Download Started",
-        description: "Your invoice is being prepared for download.",
-      });
-    }, 500);
+    toast({
+      title: "Download Started",
+      description: "Your invoice is being prepared for download.",
+    });
   };
 
   useEffect(() => {
@@ -384,18 +330,9 @@ export default function OrderDetailsPage() {
                 <div className="md:w-1/6 mb-4 md:mb-0">
                   <div className="relative h-24 w-24 overflow-hidden rounded-md border">
                     <img
-                      src={item.product.image || item.product.image_url || '/images/placeholder.svg'}
+                      src={item.product.image}
                       alt={item.product.name}
                       className="h-full w-full object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.onerror = null; // Prevent infinite loop
-                        if (item.product.image_url && target.src !== item.product.image_url) {
-                          target.src = item.product.image_url;
-                        } else {
-                          target.src = '/images/placeholder.svg';
-                        }
-                      }}
                     />
                   </div>
                 </div>

@@ -17,7 +17,7 @@ import {
 } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
-import { and, eq, desc, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "./db";
 import { pool } from "./db";
 
@@ -424,55 +424,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProduct(id: number): Promise<Product | undefined> {
-    try {
-      console.log(`Getting product with id: ${id}`);
-      
-      // Use direct SQL query to avoid schema issues
-      const { rows } = await pool.query(`
-        SELECT 
-          id,
-          name, 
-          description, 
-          price, 
-          category, 
-          image_url as "imageUrl", 
-          seller_id as "sellerId",
-          stock,
-          specifications,
-          purchase_price as "purchasePrice",
-          color,
-          size,
-          images,
-          COALESCE(approved, false) as approved,
-          COALESCE(rejected, false) as rejected,
-          rejection_reason as "rejectionReason",
-          created_at as "createdAt"
-        FROM products
-        WHERE id = $1
-      `, [id]);
-      
-      if (rows.length === 0) {
-        console.log(`No product found with id: ${id}`);
-        return undefined;
-      }
-      
-      const product = rows[0];
-      console.log(`Successfully retrieved product: ${product.name} (ID: ${product.id})`);
-      
-      // Try to parse any JSON strings
-      if (product.images && typeof product.images === 'string') {
-        try {
-          product.images = JSON.parse(product.images);
-        } catch (e) {
-          console.log('Failed to parse images JSON, keeping as string');
-        }
-      }
-      
-      return product;
-    } catch (error) {
-      console.error(`Error fetching product with id ${id}:`, error);
-      return undefined;
-    }
+    const [product] = await db.select().from(products).where(eq(products.id, id));
+    return product;
   }
 
   async createProduct(insertProduct: InsertProduct): Promise<Product> {
@@ -529,11 +482,7 @@ export class DatabaseStorage implements IStorage {
     try {
       const [updatedProduct] = await db
         .update(products)
-        .set({ 
-          approved: true,
-          rejected: false,
-          rejectionReason: null
-        })
+        .set({ approved: true })
         .where(eq(products.id, id))
         .returning();
       
@@ -548,17 +497,14 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
-  // Reject a product with optional reason
-  async rejectProduct(id: number, rejectionReason?: string): Promise<Product> {
+  // Reject a product (keeping it as false but marking it somehow)
+  async rejectProduct(id: number): Promise<Product> {
     try {
-      // Now we mark it as rejected and store the reason if provided
+      // Here we're just marking it as not approved
+      // You could add a 'rejected' field to the schema if you want to track rejected products separately
       const [updatedProduct] = await db
         .update(products)
-        .set({ 
-          approved: false, 
-          rejected: true,
-          rejectionReason: rejectionReason || null
-        })
+        .set({ approved: false })
         .where(eq(products.id, id))
         .returning();
       
@@ -610,61 +556,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCartItems(userId: number): Promise<{id: number, quantity: number, product: Product, userId: number}[]> {
-    try {
-      console.log(`Getting cart items for user: ${userId}`);
-      
-      // Use SQL directly to select only the needed columns without relying on schema
-      const { rows } = await pool.query(`
-        SELECT 
-          c.id, 
-          c.quantity, 
-          c.user_id as "userId",
-          p.id as "productId", 
-          p.name, 
-          p.description, 
-          p.price, 
-          p.category, 
-          p.image_url as "imageUrl", 
-          p.seller_id as "sellerId",
-          p.stock
-        FROM carts c
-        JOIN products p ON c.product_id = p.id
-        WHERE c.user_id = $1
-      `, [userId]);
-      
-      console.log(`Found ${rows.length} cart items for user ${userId}`);
-      
-      // Transform the results to match the expected format
-      return rows.map(row => ({
-        id: row.id,
-        quantity: row.quantity,
-        userId: row.userId,
-        product: {
-          id: row.productId,
-          name: row.name,
-          description: row.description,
-          price: row.price,
-          category: row.category,
-          imageUrl: row.imageUrl,
-          sellerId: row.sellerId,
-          stock: row.stock,
-          // Default values for potentially missing fields
-          approved: true,
-          rejected: false,
-          rejectionReason: null,
-          images: null,
-          specifications: null,
-          purchasePrice: null,
-          color: null,
-          size: null,
-          createdAt: new Date()
-        }
-      }));
-    } catch (error) {
-      console.error(`Error getting cart items for user ${userId}:`, error);
-      // Return empty array instead of throwing error
-      return [];
-    }
+    const cartWithProducts = await db
+      .select({
+        id: carts.id,
+        quantity: carts.quantity,
+        userId: carts.userId,
+        product: products
+      })
+      .from(carts)
+      .where(eq(carts.userId, userId))
+      .innerJoin(products, eq(carts.productId, products.id));
+    
+    return cartWithProducts.map(item => ({
+      id: item.id,
+      quantity: item.quantity,
+      userId: item.userId,
+      product: item.product
+    }));
   }
 
   async getCartItem(id: number): Promise<Cart | undefined> {
@@ -673,57 +581,37 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addToCart(insertCart: InsertCart): Promise<Cart> {
-    try {
-      // Ensure quantity is defined, default to 1 if not
-      const quantity = insertCart.quantity ?? 1;
-      
-      // Create new cart object with validated data
-      const validatedCart = {
-        ...insertCart,
-        quantity
-      };
-      
-      console.log(`Adding to cart: User ${validatedCart.userId}, Product ${validatedCart.productId}, Quantity ${validatedCart.quantity}`);
-      
-      // First check if product already exists in cart
-      const [existingCartItem] = await db
-        .select()
-        .from(carts)
-        .where(
-          and(
-            eq(carts.userId, validatedCart.userId),
-            eq(carts.productId, validatedCart.productId)
-          )
-        );
-      
-      // If exists, update quantity
-      if (existingCartItem) {
-        console.log(`Item already in cart (ID: ${existingCartItem.id}), updating quantity from ${existingCartItem.quantity} to ${existingCartItem.quantity + validatedCart.quantity}`);
-        
-        const [updatedCartItem] = await db
-          .update(carts)
-          .set({
-            quantity: existingCartItem.quantity + validatedCart.quantity
-          })
-          .where(eq(carts.id, existingCartItem.id))
-          .returning();
-        
-        return updatedCartItem;
-      }
-      
-      // Otherwise insert new cart item
-      console.log('Adding new item to cart with data:', validatedCart);
-      
-      const [cartItem] = await db
-        .insert(carts)
-        .values(validatedCart)
+    // First check if product already exists in cart
+    const [existingCartItem] = await db
+      .select()
+      .from(carts)
+      .where(
+        and(
+          eq(carts.userId, insertCart.userId),
+          eq(carts.productId, insertCart.productId)
+        )
+      );
+    
+    // If exists, update quantity
+    if (existingCartItem) {
+      const [updatedCartItem] = await db
+        .update(carts)
+        .set({
+          quantity: existingCartItem.quantity + insertCart.quantity
+        })
+        .where(eq(carts.id, existingCartItem.id))
         .returning();
       
-      return cartItem;
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-      throw error;
+      return updatedCartItem;
     }
+    
+    // Otherwise insert new cart item
+    const [cartItem] = await db
+      .insert(carts)
+      .values(insertCart)
+      .returning();
+    
+    return cartItem;
   }
 
   async updateCartItem(id: number, quantity: number): Promise<Cart> {

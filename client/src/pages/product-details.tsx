@@ -67,24 +67,9 @@ function ProductImageSlider({ images, name }: { images: string[], name: string }
 }
 
 export default function ProductDetailsPage() {
-  // Extract product ID using multiple methods for reliability
+  // Extract product ID from the URL using wouter's useRoute
   const [match, params] = useRoute('/product/:id');
-  
-  // First try to get from route params
-  let productId: number | null = match ? parseInt(params.id) : null;
-  
-  // If that fails, try to get from URL path directly
-  if (!productId || isNaN(productId)) {
-    const pathParts = window.location.pathname.split('/');
-    const lastPart = pathParts[pathParts.length - 1];
-    
-    if (/^\d+$/.test(lastPart)) {
-      productId = parseInt(lastPart);
-      console.log("Using URL path to get product ID:", productId);
-    }
-  }
-  
-  console.log("Product Details - Final productId:", productId);
+  const productId = match ? parseInt(params.id) : null;
   
   const [quantity, setQuantity] = useState(1);
   const [, setLocation] = useLocation();
@@ -101,31 +86,17 @@ export default function ProductDetailsPage() {
     staleTime: 60000,
   });
   
-  // Fetch product details with improved error handling
+  // Fetch product details
   const { data: product, isLoading: isProductLoading } = useQuery<Product>({
     queryKey: ['/api/products', productId],
     queryFn: async () => {
       if (!productId) throw new Error('Product ID is required');
       
-      try {
-        console.log(`Fetching product data from API for ID: ${productId}`);
-        const res = await fetch(`/api/products/${productId}`);
-        
-        if (!res.ok) {
-          console.error(`Failed to fetch product: ${res.status} ${res.statusText}`);
-          throw new Error(`Failed to fetch product: ${res.status}`);
-        }
-        
-        const data = await res.json();
-        console.log("Successfully fetched product data:", data);
-        return data;
-      } catch (error) {
-        console.error("Error fetching product:", error);
-        throw error;
-      }
+      const res = await fetch(`/api/products/${productId}`);
+      if (!res.ok) throw new Error('Failed to fetch product details');
+      return res.json();
     },
     enabled: !!productId && !isNaN(productId),
-    retry: 1,
   });
   
   // Fetch related products

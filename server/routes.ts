@@ -206,11 +206,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
     
     const { id } = req.params;
-    const { rejectionReason } = req.body;
     
     try {
       const productId = parseInt(id);
-      const rejectedProduct = await storage.rejectProduct(productId, rejectionReason);
+      const rejectedProduct = await storage.rejectProduct(productId);
       res.json(rejectedProduct);
     } catch (error) {
       console.error(`Error rejecting product ${id}:`, error);
@@ -416,22 +415,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Cart routes
   app.get("/api/cart", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      console.log("User not authenticated, returning 401");
-      return res.sendStatus(401);
-    }
+    if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
-      console.log(`Fetching cart for user ID: ${req.user.id}`);
       const cartItems = await storage.getCartItems(req.user.id);
-      console.log(`Successfully fetched cart for user ID: ${req.user.id}, found ${cartItems.length} items`);
-      
-      // Success - even if cart is empty (which returns an empty array)
-      return res.json(cartItems);
+      res.json(cartItems);
     } catch (error) {
-      console.error(`Error fetching cart for user ID: ${req.user.id}:`, error);
-      // Send empty array instead of 500 error to prevent UI errors
-      return res.json([]);
+      res.status(500).json({ error: "Failed to fetch cart" });
     }
   });
 

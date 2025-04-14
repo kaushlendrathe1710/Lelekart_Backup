@@ -102,10 +102,10 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
           onClick={() => {
             try {
               console.log(`Navigating to product details page: /product/${product.id}`);
-              // Use Wouter's setLocation for proper SPA routing
-              setLocation(`/product/${product.id}`);
-            } catch (err) {
-              console.error('Navigation error:', err);
+              // Use SPA routing for better performance
+              window.location.href = `/product/${product.id}`;
+            } catch (e) {
+              console.error('Navigation error:', e);
             }
           }}
         >
@@ -164,24 +164,11 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
     <div className="relative">
       <Card 
         className="product-card flex flex-col items-center p-3 transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1"
-        onClick={(e) => {
+        onClick={() => {
           try {
-            e.preventDefault();
-            e.stopPropagation();
-            
             console.log(`Navigating to product details page: /product/${product.id}`);
-            
-            // Use Wouter's setLocation for proper SPA routing
-            if (product.id) {
-              setLocation(`/product/${product.id}`);
-            } else {
-              console.error('Cannot navigate: Product ID is missing');
-              toast({
-                title: "Navigation Error",
-                description: "Cannot view product details due to missing information",
-                variant: "destructive"
-              });
-            }
+            // Use SPA routing for better performance
+            window.location.href = `/product/${product.id}`;
           } catch (e) {
             console.error('Navigation error:', e);
           }
