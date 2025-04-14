@@ -58,6 +58,11 @@ function ProductApprovalContent() {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [viewProduct, setViewProduct] = useState<Product | null>(null);
+  const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
+  const [rejectionReason, setRejectionReason] = useState<string>("");
+  const [showRejectionDialog, setShowRejectionDialog] = useState<boolean>(false);
+  const [productToReject, setProductToReject] = useState<Product | null>(null);
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest" | "price-asc" | "price-desc">("newest");
 
   // Fetch products
   const {
