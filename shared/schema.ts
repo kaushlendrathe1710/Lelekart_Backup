@@ -89,6 +89,7 @@ export const orders = pgTable("orders", {
   paymentMethod: text("payment_method").notNull().default("cod"),
   paymentId: text("payment_id"), // For Razorpay paymentId
   orderId: text("order_id"), // For Razorpay orderId
+  addressId: integer("address_id").references(() => userAddresses.id), // Optional reference to saved address
 });
 
 export const insertOrderSchema = createInsertSchema(orders).pick({
@@ -100,6 +101,7 @@ export const insertOrderSchema = createInsertSchema(orders).pick({
   paymentMethod: true,
   paymentId: true,
   orderId: true,
+  addressId: true,
 });
 
 // OrderItem schema
@@ -154,6 +156,10 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
   user: one(users, {
     fields: [orders.userId],
     references: [users.id],
+  }),
+  address: one(userAddresses, {
+    fields: [orders.addressId],
+    references: [userAddresses.id],
   }),
   items: many(orderItems),
   reviews: many(reviews),

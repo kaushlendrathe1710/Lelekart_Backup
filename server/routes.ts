@@ -654,7 +654,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create order with shipping details from request body
       const { shippingDetails, paymentMethod } = req.body;
       
-      const orderData = {
+      // Prepare base order data
+      const orderData: any = {
         userId: req.user.id,
         status: "pending",
         total,
@@ -662,6 +663,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         shippingDetails: typeof shippingDetails === 'string' ? shippingDetails : JSON.stringify(shippingDetails || {}),
         paymentMethod: paymentMethod || "cod",
       };
+      
+      // Add address ID if provided
+      if (req.body.addressId) {
+        orderData.addressId = parseInt(req.body.addressId);
+      }
       
       // Log the order data for debugging
       console.log("Creating order with data:", orderData);
