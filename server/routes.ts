@@ -2,6 +2,48 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
+import multer from "multer";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+
+// Configure multer for file uploads
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+});
+
+// Configure AWS S3
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY!,
+    secretAccessKey: process.env.AWS_SECRET_KEY!
+  }
+});
+
+// Function to upload file to S3
+const uploadFileToS3 = async (file: Express.Multer.File) => {
+  try {
+    const fileName = `${Date.now()}-${file.originalname}`;
+    
+    const params = {
+      Bucket: process.env.AWS_BUCKET_NAME!,
+      Key: fileName,
+      Body: file.buffer,
+      ContentType: file.mimetype
+    };
+    
+    const command = new PutObjectCommand(params);
+    await s3Client.send(command);
+    
+    // Return the URL of the uploaded file
+    return {
+      Location: `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`
+    };
+  } catch (error) {
+    console.error("Error uploading file to S3:", error);
+    throw new Error("Failed to upload file to S3");
+  }
+};
 import { 
   insertProductSchema, 
   insertCartSchema, 
@@ -21,7 +63,6 @@ import {
   insertWishlistSchema
 } from "@shared/schema";
 import { z } from "zod";
-import multer from "multer";
 import { uploadFile } from "./helpers/s3";
 import { handleImageProxy } from "./utils/image-proxy";
 import { RecommendationEngine } from "./utils/recommendation-engine";
@@ -162,6 +203,160 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating seller profile:", error);
       res.status(500).json({ error: "Failed to update seller profile" });
+    }
+  });
+  
+  // Get seller documents
+  app.get("/api/seller/documents", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller") return res.status(403).json({ error: "Not a seller account" });
+    
+    try {
+      const documents = await storage.getSellerDocuments(req.user.id);
+      res.json(documents);
+    } catch (error) {
+      console.error("Error fetching seller documents:", error);
+      res.status(500).json({ error: "Failed to fetch seller documents" });
+    }
+  });
+  
+  // Upload seller document - requires multer setup for file upload
+  app.post("/api/seller/documents", upload.single("document"), async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller") return res.status(403).json({ error: "Not a seller account" });
+    
+    try {
+      // Check if file was uploaded
+      if (!req.file) {
+        return res.status(400).json({ error: "No document file uploaded" });
+      }
+      
+      // Get document metadata from the request body
+      const { documentType } = req.body;
+      
+      if (!documentType) {
+        return res.status(400).json({ error: "Document type is required" });
+      }
+      
+      // Upload file to AWS S3
+      const uploadResult = await uploadFileToS3(req.file);
+      
+      // Create document record in the database
+      const document = await storage.createSellerDocument({
+        sellerId: req.user.id,
+        documentType,
+        documentUrl: uploadResult.Location,
+        documentName: req.file.originalname
+      });
+      
+      res.status(201).json(document);
+    } catch (error) {
+      console.error("Error uploading seller document:", error);
+      res.status(500).json({ error: "Failed to upload seller document" });
+    }
+  });
+  
+  // Delete seller document
+  app.delete("/api/seller/documents/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller") return res.status(403).json({ error: "Not a seller account" });
+    
+    try {
+      const documentId = parseInt(req.params.id);
+      
+      // Get the document to check if it belongs to the seller
+      const document = await storage.getSellerDocumentById(documentId);
+      
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      if (document.sellerId !== req.user.id) {
+        return res.status(403).json({ error: "You don't have permission to delete this document" });
+      }
+      
+      // Delete the document
+      await storage.deleteSellerDocument(documentId);
+      
+      res.sendStatus(204);
+    } catch (error) {
+      console.error("Error deleting seller document:", error);
+      res.status(500).json({ error: "Failed to delete seller document" });
+    }
+  });
+  
+  // Get seller business details
+  app.get("/api/seller/business-details", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller") return res.status(403).json({ error: "Not a seller account" });
+    
+    try {
+      const details = await storage.getBusinessDetails(req.user.id);
+      res.json(details || { sellerId: req.user.id });
+    } catch (error) {
+      console.error("Error fetching business details:", error);
+      res.status(500).json({ error: "Failed to fetch business details" });
+    }
+  });
+  
+  // Update seller business details
+  app.put("/api/seller/business-details", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller") return res.status(403).json({ error: "Not a seller account" });
+    
+    try {
+      // Validate required fields
+      if (!req.body.businessName) {
+        return res.status(400).json({ error: "Business name is required" });
+      }
+      
+      // Update or create business details
+      const details = await storage.updateBusinessDetails(req.user.id, req.body);
+      
+      res.json(details);
+    } catch (error) {
+      console.error("Error updating business details:", error);
+      res.status(500).json({ error: "Failed to update business details" });
+    }
+  });
+  
+  // Get seller banking information
+  app.get("/api/seller/banking-information", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller") return res.status(403).json({ error: "Not a seller account" });
+    
+    try {
+      const info = await storage.getBankingInformation(req.user.id);
+      res.json(info || { sellerId: req.user.id });
+    } catch (error) {
+      console.error("Error fetching banking information:", error);
+      res.status(500).json({ error: "Failed to fetch banking information" });
+    }
+  });
+  
+  // Update seller banking information
+  app.put("/api/seller/banking-information", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller") return res.status(403).json({ error: "Not a seller account" });
+    
+    try {
+      // Validate required fields
+      const requiredFields = ['accountHolderName', 'accountNumber', 'bankName', 'ifscCode'];
+      const missingFields = requiredFields.filter(field => !req.body[field]);
+      
+      if (missingFields.length > 0) {
+        return res.status(400).json({ 
+          error: `Missing required fields: ${missingFields.join(', ')}` 
+        });
+      }
+      
+      // Update or create banking information
+      const info = await storage.updateBankingInformation(req.user.id, req.body);
+      
+      res.json(info);
+    } catch (error) {
+      console.error("Error updating banking information:", error);
+      res.status(500).json({ error: "Failed to update banking information" });
     }
   });
 
@@ -947,8 +1142,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // File Upload endpoint
-  const upload = multer({
+  // File Upload endpoint for images
+  const imageUpload = multer({
     storage: multer.memoryStorage(),
     limits: {
       fileSize: 100 * 1024 * 1024, // 100MB file size limit
@@ -966,7 +1161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/upload", (req, res, next) => {
     // Custom error handler to catch multer errors
-    upload.single("file")(req, res, function (err) {
+    imageUpload.single("file")(req, res, function (err) {
       if (err instanceof multer.MulterError) {
         // A Multer error occurred when uploading
         console.error("Multer error:", err);

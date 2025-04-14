@@ -14,7 +14,10 @@ import {
   demandForecasts, DemandForecast, InsertDemandForecast,
   priceOptimizations, PriceOptimization, InsertPriceOptimization,
   inventoryOptimizations, InventoryOptimization, InsertInventoryOptimization,
-  aiGeneratedContent, AIGeneratedContent, InsertAIGeneratedContent
+  aiGeneratedContent, AIGeneratedContent, InsertAIGeneratedContent,
+  sellerDocuments, SellerDocument, InsertSellerDocument,
+  businessDetails, BusinessDetails, InsertBusinessDetails,
+  bankingInformation, BankingInformation, InsertBankingInformation
 } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
@@ -37,6 +40,22 @@ export interface IStorage {
   updateSellerApproval(id: number, approved: boolean, rejected?: boolean): Promise<User>;
   updateSellerProfile(id: number, profileData: Partial<User>): Promise<User>;
   
+  // Seller Document operations
+  getSellerDocuments(sellerId: number): Promise<SellerDocument[]>;
+  getSellerDocumentById(id: number): Promise<SellerDocument | undefined>;
+  createSellerDocument(document: InsertSellerDocument): Promise<SellerDocument>;
+  updateSellerDocument(id: number, verified: boolean): Promise<SellerDocument>;
+  deleteSellerDocument(id: number): Promise<void>;
+  
+  // Business Details operations
+  getBusinessDetails(sellerId: number): Promise<BusinessDetails | undefined>;
+  createBusinessDetails(details: InsertBusinessDetails): Promise<BusinessDetails>;
+  updateBusinessDetails(sellerId: number, details: Partial<BusinessDetails>): Promise<BusinessDetails>;
+  
+  // Banking Information operations
+  getBankingInformation(sellerId: number): Promise<BankingInformation | undefined>;
+  createBankingInformation(info: InsertBankingInformation): Promise<BankingInformation>;
+  updateBankingInformation(sellerId: number, info: Partial<BankingInformation>): Promise<BankingInformation>;
   // User Address operations
   getUserAddresses(userId: number): Promise<UserAddress[]>;
   getUserAddressById(id: number): Promise<UserAddress | undefined>;
@@ -163,6 +182,189 @@ export class DatabaseStorage implements IStorage {
       pool, 
       createTableIfMissing: true 
     });
+  }
+  
+  // Seller Document methods
+  async getSellerDocuments(sellerId: number): Promise<SellerDocument[]> {
+    try {
+      return await db.select()
+        .from(sellerDocuments)
+        .where(eq(sellerDocuments.sellerId, sellerId));
+    } catch (error) {
+      console.error(`Error getting seller documents for seller ID ${sellerId}:`, error);
+      return [];
+    }
+  }
+  
+  async getSellerDocumentById(id: number): Promise<SellerDocument | undefined> {
+    try {
+      const [document] = await db.select()
+        .from(sellerDocuments)
+        .where(eq(sellerDocuments.id, id));
+      return document;
+    } catch (error) {
+      console.error(`Error getting seller document with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+  
+  async createSellerDocument(document: InsertSellerDocument): Promise<SellerDocument> {
+    try {
+      const [newDocument] = await db.insert(sellerDocuments)
+        .values(document)
+        .returning();
+      return newDocument;
+    } catch (error) {
+      console.error("Error creating seller document:", error);
+      throw new Error("Failed to create seller document");
+    }
+  }
+  
+  async updateSellerDocument(id: number, verified: boolean): Promise<SellerDocument> {
+    try {
+      const [document] = await db.update(sellerDocuments)
+        .set({ 
+          verified,
+          verifiedAt: verified ? new Date() : null 
+        })
+        .where(eq(sellerDocuments.id, id))
+        .returning();
+      
+      if (!document) {
+        throw new Error(`Document with ID ${id} not found`);
+      }
+      
+      return document;
+    } catch (error) {
+      console.error(`Error updating seller document ${id}:`, error);
+      throw new Error("Failed to update seller document");
+    }
+  }
+  
+  async deleteSellerDocument(id: number): Promise<void> {
+    try {
+      await db.delete(sellerDocuments)
+        .where(eq(sellerDocuments.id, id));
+    } catch (error) {
+      console.error(`Error deleting seller document ${id}:`, error);
+      throw new Error("Failed to delete seller document");
+    }
+  }
+  
+  // Business Details methods
+  async getBusinessDetails(sellerId: number): Promise<BusinessDetails | undefined> {
+    try {
+      const [details] = await db.select()
+        .from(businessDetails)
+        .where(eq(businessDetails.sellerId, sellerId));
+      return details;
+    } catch (error) {
+      console.error(`Error getting business details for seller ID ${sellerId}:`, error);
+      return undefined;
+    }
+  }
+  
+  async createBusinessDetails(details: InsertBusinessDetails): Promise<BusinessDetails> {
+    try {
+      const [newDetails] = await db.insert(businessDetails)
+        .values(details)
+        .returning();
+      return newDetails;
+    } catch (error) {
+      console.error("Error creating business details:", error);
+      throw new Error("Failed to create business details");
+    }
+  }
+  
+  async updateBusinessDetails(sellerId: number, details: Partial<BusinessDetails>): Promise<BusinessDetails> {
+    try {
+      // Check if business details exist for this seller
+      const existingDetails = await this.getBusinessDetails(sellerId);
+      
+      if (existingDetails) {
+        // Update existing details
+        const [updatedDetails] = await db.update(businessDetails)
+          .set({
+            ...details,
+            updatedAt: new Date()
+          })
+          .where(eq(businessDetails.sellerId, sellerId))
+          .returning();
+        
+        return updatedDetails;
+      } else {
+        // Create new business details
+        return await this.createBusinessDetails({
+          sellerId,
+          businessName: details.businessName || "Default Business Name", // Required field
+          gstNumber: details.gstNumber,
+          panNumber: details.panNumber,
+          businessType: details.businessType,
+          taxRegistrationDate: details.taxRegistrationDate,
+          taxFilingStatus: details.taxFilingStatus
+        });
+      }
+    } catch (error) {
+      console.error(`Error updating business details for seller ID ${sellerId}:`, error);
+      throw new Error("Failed to update business details");
+    }
+  }
+  
+  // Banking Information methods
+  async getBankingInformation(sellerId: number): Promise<BankingInformation | undefined> {
+    try {
+      const [info] = await db.select()
+        .from(bankingInformation)
+        .where(eq(bankingInformation.sellerId, sellerId));
+      return info;
+    } catch (error) {
+      console.error(`Error getting banking information for seller ID ${sellerId}:`, error);
+      return undefined;
+    }
+  }
+  
+  async createBankingInformation(info: InsertBankingInformation): Promise<BankingInformation> {
+    try {
+      const [newInfo] = await db.insert(bankingInformation)
+        .values(info)
+        .returning();
+      return newInfo;
+    } catch (error) {
+      console.error("Error creating banking information:", error);
+      throw new Error("Failed to create banking information");
+    }
+  }
+  
+  async updateBankingInformation(sellerId: number, info: Partial<BankingInformation>): Promise<BankingInformation> {
+    try {
+      // Check if banking information exists for this seller
+      const existingInfo = await this.getBankingInformation(sellerId);
+      
+      if (existingInfo) {
+        // Update existing information
+        const [updatedInfo] = await db.update(bankingInformation)
+          .set({
+            ...info,
+            updatedAt: new Date()
+          })
+          .where(eq(bankingInformation.sellerId, sellerId))
+          .returning();
+        
+        return updatedInfo;
+      } else {
+        // Create new banking information
+        return await this.createBankingInformation({
+          sellerId,
+          accountHolderName: info.accountHolderName || "Account Holder", // Required field
+          accountNumber: info.accountNumber || "0000000000000", // Required field
+          bankName: info.bankName || "Bank Name", // Required field
+          ifscCode: info.ifscCode || "XXXX0000000" // Required field
+        });
+      }
+    } catch (error) {
+      console.error(`Error updating banking information for seller ID ${sellerId}:`, error);
+      throw new Error("Failed to update banking information");
+    }
   }
 
   async getUser(id: number): Promise<User | undefined> {

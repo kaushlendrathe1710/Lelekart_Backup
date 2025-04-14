@@ -1,1053 +1,944 @@
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { SellerDashboardLayout } from "@/components/layout/seller-dashboard-layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { useAuth } from "@/hooks/use-auth";
-import { 
-  Edit, Star, Award, ShieldCheck, CheckCircle, FileText, HelpCircle, 
-  Briefcase, Mail, Phone, MapPin, Globe, Calendar, TrendingUp, 
-  AlertCircle, BarChart2, Truck, Package, DollarSign, X, Loader2 
-} from "lucide-react";
-import { Separator } from "@/components/ui/separator";
-import { 
-  Dialog, DialogContent, DialogDescription, 
-  DialogHeader, DialogTitle, DialogFooter, DialogClose 
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
-import { useQueryClient, useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Share2, 
+  Upload, 
+  Edit, 
+  FileText, 
+  RefreshCw, 
+  Building, 
+  CreditCard, 
+  Shield, 
+  TrendingUp,
+  FileUp,
+  Clock,
+  Award
+} from "lucide-react";
 
-export default function SellerProfilePage() {
+const SellerProfilePage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("profile");
-  const [editProfileOpen, setEditProfileOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState("business-details");
   
-  // Form state for profile editing
-  const [formData, setFormData] = useState({
+  // Modal states
+  const [isUploadDocumentOpen, setIsUploadDocumentOpen] = useState(false);
+  const [isEditBusinessOpen, setIsEditBusinessOpen] = useState(false);
+  const [isEditBankingOpen, setIsEditBankingOpen] = useState(false);
+  
+  // Form states
+  const [documentType, setDocumentType] = useState("");
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
+  
+  const [businessDetails, setBusinessDetails] = useState({
     businessName: "",
-    email: "",
-    phone: "",
-    address: "",
-    website: "www.lelekartbusiness.com",
     gstNumber: "",
     panNumber: "",
-    bankAccount: "",
-    bankName: "",
-    ifscCode: "",
+    businessType: "",
+    taxRegistrationDate: "",
+    taxFilingStatus: ""
   });
-
-  // Sample data for seller profile
-  const sellerData = {
-    name: user?.username || "Seller",
-    email: user?.email || "seller@example.com",
-    businessName: "LeleKart Seller Business",
-    phone: user?.phone || "1234567890",
-    address: user?.address || "123 Seller Street, Business District",
-    registrationDate: "April 10, 2023",
-    rating: 4.2,
-    orders: 128,
-    deliverySpeed: 92,
-    returnRate: 3.5,
-    responseTime: "4 hours",
-    qualityScore: 85,
-    pricingCompetitiveness: 78,
-    gstNumber: "22AAAAA0000A1Z5",
-    panNumber: "ABCDE1234F",
-    bankAccount: "XXXX XXXX XXXX 4321",
-    bankName: "State Bank of India",
-    ifscCode: "SBIN0001234",
-  };
   
-  // Initialize form data from user profile
-  React.useEffect(() => {
-    if (user) {
-      setFormData({
-        businessName: sellerData.businessName,
-        email: user.email,
-        phone: user.phone || "",
-        address: user.address || "",
-        website: "www.lelekartbusiness.com",
-        gstNumber: sellerData.gstNumber,
-        panNumber: sellerData.panNumber,
-        bankAccount: sellerData.bankAccount,
-        bankName: sellerData.bankName,
-        ifscCode: sellerData.ifscCode,
+  const [bankingInfo, setBankingInfo] = useState({
+    accountHolderName: "",
+    accountNumber: "",
+    bankName: "",
+    ifscCode: ""
+  });
+  
+  // Query for seller documents
+  const { data: documents, isLoading: isLoadingDocuments } = useQuery({
+    queryKey: ['/api/seller/documents'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/seller/documents');
+      return await res.json();
+    }
+  });
+  
+  // Query for business details
+  const { data: businessData, isLoading: isLoadingBusiness } = useQuery({
+    queryKey: ['/api/seller/business-details'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/seller/business-details');
+      return await res.json();
+    }
+  });
+  
+  // Query for banking information
+  const { data: bankingData, isLoading: isLoadingBanking } = useQuery({
+    queryKey: ['/api/seller/banking-information'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/seller/banking-information');
+      return await res.json();
+    }
+  });
+  
+  // Update useEffect to populate form states when data is loaded
+  useEffect(() => {
+    if (businessData) {
+      setBusinessDetails({
+        businessName: businessData.businessName || "",
+        gstNumber: businessData.gstNumber || "",
+        panNumber: businessData.panNumber || "",
+        businessType: businessData.businessType || "",
+        taxRegistrationDate: businessData.taxRegistrationDate ? 
+          new Date(businessData.taxRegistrationDate).toISOString().split('T')[0] : "",
+        taxFilingStatus: businessData.taxFilingStatus || ""
       });
     }
-  }, [user]);
-
-  // Handle input change
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  // Update profile mutation
-  const updateProfileMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const response = await apiRequest('PUT', '/api/seller/profile', data);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update profile');
+  }, [businessData]);
+  
+  useEffect(() => {
+    if (bankingData) {
+      setBankingInfo({
+        accountHolderName: bankingData.accountHolderName || "",
+        accountNumber: bankingData.accountNumber || "",
+        bankName: bankingData.bankName || "",
+        ifscCode: bankingData.ifscCode || ""
+      });
+    }
+  }, [bankingData]);
+  
+  // Mutations
+  const uploadDocumentMutation = useMutation({
+    mutationFn: async () => {
+      if (!documentFile || !documentType) {
+        throw new Error("Missing document file or type");
       }
-      return await response.json();
+      
+      const formData = new FormData();
+      formData.append("document", documentFile);
+      formData.append("documentType", documentType);
+      
+      const res = await fetch('/api/seller/documents', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to upload document");
+      }
+      
+      return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
       toast({
-        title: "Profile Updated",
-        description: "Your seller profile has been updated successfully."
+        title: "Document Uploaded",
+        description: "Your document has been uploaded successfully.",
       });
-      setEditProfileOpen(false);
-      setIsSubmitting(false);
+      queryClient.invalidateQueries({ queryKey: ['/api/seller/documents'] });
+      setIsUploadDocumentOpen(false);
+      setDocumentFile(null);
+      setDocumentType("");
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast({
-        title: "Update Failed",
-        description: error.message || "There was an error updating your profile.",
-        variant: "destructive"
+        title: "Upload Failed",
+        description: error.message,
+        variant: "destructive",
       });
-      setIsSubmitting(false);
     }
   });
-
-  // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    updateProfileMutation.mutate(formData);
+  
+  const updateBusinessDetailsMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest('PUT', '/api/seller/business-details', businessDetails);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to update business details");
+      }
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Business Details Updated",
+        description: "Your business details have been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/seller/business-details'] });
+      setIsEditBusinessOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Update Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  const updateBankingInfoMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest('PUT', '/api/seller/banking-information', bankingInfo);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to update banking information");
+      }
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Banking Information Updated",
+        description: "Your banking information has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/seller/banking-information'] });
+      setIsEditBankingOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Update Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setDocumentFile(e.target.files[0]);
+    }
   };
-
-  // Performance Metrics
-  const performanceMetrics = [
-    { name: "Order Fulfillment", value: 95, benchmark: 85 },
-    { name: "On-Time Shipping", value: 92, benchmark: 80 },
-    { name: "Return Rate", value: 3.5, benchmark: 10, inverse: true },
-    { name: "Quality Score", value: 85, benchmark: 75 },
-    { name: "Customer Satisfaction", value: 88, benchmark: 80 },
-  ];
-
+  
+  const handleBusinessInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setBusinessDetails(prev => ({ ...prev, [name]: value }));
+  };
+  
+  const handleBankingInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setBankingInfo(prev => ({ ...prev, [name]: value }));
+  };
+  
+  const handleUploadDocument = (e: React.FormEvent) => {
+    e.preventDefault();
+    uploadDocumentMutation.mutate();
+  };
+  
+  const handleUpdateBusinessDetails = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateBusinessDetailsMutation.mutate();
+  };
+  
+  const handleUpdateBankingInfo = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateBankingInfoMutation.mutate();
+  };
+  
   return (
     <SellerDashboardLayout>
-      <div className="container mx-auto p-4 md:p-6">
-        <div className="flex flex-col gap-6">
-          {/* Profile Header */}
-          <div className="flex flex-col md:flex-row justify-between items-start gap-4 bg-white p-6 rounded-lg shadow-sm">
-            <div className="flex gap-4 items-center">
-              <Avatar className="h-20 w-20 border-2 border-primary/20">
-                <AvatarImage src="" />
-                <AvatarFallback className="text-2xl bg-primary/10 text-primary">
-                  {sellerData.name.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <h1 className="text-2xl font-bold">{sellerData.businessName}</h1>
-                <div className="flex items-center gap-2 mt-1">
-                  <div className="flex items-center gap-1">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span className="font-semibold">{sellerData.rating}</span>
-                  </div>
-                  <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                    Verified Seller
-                  </Badge>
-                </div>
-                <div className="text-sm text-muted-foreground mt-1">
-                  Member since {sellerData.registrationDate}
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex gap-3 mt-4 md:mt-0">
-              <Button variant="outline" size="sm" className="gap-1">
-                <FileText className="h-4 w-4" />
-                <span>Export Data</span>
-              </Button>
-              <Button 
-                size="sm" 
-                className="gap-1"
-                onClick={() => setEditProfileOpen(true)}
-              >
-                <Edit className="h-4 w-4" />
-                <span>Edit Profile</span>
-              </Button>
-            </div>
-            
-            {/* Edit Profile Dialog */}
-            <Dialog open={editProfileOpen} onOpenChange={setEditProfileOpen}>
-              <DialogContent className="max-w-[800px] max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle className="text-xl">Edit Profile Details</DialogTitle>
-                  <DialogDescription>
-                    Update your seller profile information
-                  </DialogDescription>
-                </DialogHeader>
-                
-                <form onSubmit={handleSubmit} className="space-y-6 py-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Business Information */}
-                    <div className="space-y-4">
-                      <div className="border rounded-md p-4">
-                        <h3 className="text-sm font-medium mb-3">Business Information</h3>
-                        
-                        <div className="space-y-3">
-                          <div className="space-y-1">
-                            <Label htmlFor="businessName">Business Name</Label>
-                            <Input 
-                              id="businessName"
-                              name="businessName"
-                              value={formData.businessName}
-                              onChange={handleInputChange}
-                              placeholder="Your business name"
-                            />
-                          </div>
-                          
-                          <div className="space-y-1">
-                            <Label htmlFor="email">Email Address</Label>
-                            <Input 
-                              id="email"
-                              name="email"
-                              type="email"
-                              value={formData.email}
-                              onChange={handleInputChange}
-                              placeholder="your@email.com"
-                            />
-                          </div>
-                          
-                          <div className="space-y-1">
-                            <Label htmlFor="phone">Phone Number</Label>
-                            <Input 
-                              id="phone"
-                              name="phone"
-                              value={formData.phone}
-                              onChange={handleInputChange}
-                              placeholder="Your phone number"
-                            />
-                          </div>
-                          
-                          <div className="space-y-1">
-                            <Label htmlFor="website">Website (Optional)</Label>
-                            <Input 
-                              id="website"
-                              name="website"
-                              value={formData.website}
-                              onChange={handleInputChange}
-                              placeholder="www.yourbusiness.com"
-                            />
-                          </div>
-                          
-                          <div className="space-y-1">
-                            <Label htmlFor="address">Business Address</Label>
-                            <Textarea 
-                              id="address"
-                              name="address"
-                              value={formData.address}
-                              onChange={handleInputChange}
-                              rows={3}
-                              placeholder="Your business address"
-                            />
-                          </div>
-                        </div>
-                      </div>
+      <div className="container py-6">
+        <header className="mb-8">
+          <h1 className="text-3xl font-bold">Seller Profile</h1>
+          <p className="text-muted-foreground">Member since {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}</p>
+        </header>
+        
+        <Tabs defaultValue="business-details" value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-6">
+            <TabsTrigger value="business-details">Business Details</TabsTrigger>
+            <TabsTrigger value="performance">Performance</TabsTrigger>
+            <TabsTrigger value="documents">Documents</TabsTrigger>
+            <TabsTrigger value="payments">Payments</TabsTrigger>
+            <TabsTrigger value="compliance">Compliance</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="business-details">
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex justify-between items-center">
+                    <span className="flex items-center">
+                      <Building className="mr-2 h-5 w-5" /> Business Details
+                    </span>
+                    <Button variant="outline" size="sm" onClick={() => setIsEditBusinessOpen(true)}>
+                      <Edit className="h-4 w-4 mr-2" /> Edit
+                    </Button>
+                  </CardTitle>
+                  <CardDescription>Your business registration information</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingBusiness ? (
+                    <div className="animate-pulse space-y-3">
+                      <div className="h-4 bg-muted rounded w-3/4"></div>
+                      <div className="h-4 bg-muted rounded w-1/2"></div>
+                      <div className="h-4 bg-muted rounded w-5/6"></div>
+                      <div className="h-4 bg-muted rounded w-2/3"></div>
                     </div>
-                    
-                    {/* Financial and Legal Information */}
-                    <div className="space-y-4">
-                      <div className="border rounded-md p-4">
-                        <h3 className="text-sm font-medium mb-3">Tax & Banking Details</h3>
-                        
-                        <div className="space-y-3">
-                          <div className="space-y-1">
-                            <Label htmlFor="gstNumber">GST Number</Label>
-                            <Input 
-                              id="gstNumber"
-                              name="gstNumber"
-                              value={formData.gstNumber}
-                              onChange={handleInputChange}
-                              placeholder="22AAAAA0000A1Z5"
-                            />
-                          </div>
-                          
-                          <div className="space-y-1">
-                            <Label htmlFor="panNumber">PAN Number</Label>
-                            <Input 
-                              id="panNumber"
-                              name="panNumber"
-                              value={formData.panNumber}
-                              onChange={handleInputChange}
-                              placeholder="ABCDE1234F"
-                            />
-                          </div>
-                          
-                          <div className="space-y-1">
-                            <Label htmlFor="bankName">Bank Name</Label>
-                            <Input 
-                              id="bankName"
-                              name="bankName"
-                              value={formData.bankName}
-                              onChange={handleInputChange}
-                              placeholder="Your bank name"
-                            />
-                          </div>
-                          
-                          <div className="space-y-1">
-                            <Label htmlFor="bankAccount">Bank Account Number</Label>
-                            <Input 
-                              id="bankAccount"
-                              name="bankAccount"
-                              value={formData.bankAccount}
-                              onChange={handleInputChange}
-                              placeholder="Your account number"
-                            />
-                          </div>
-                          
-                          <div className="space-y-1">
-                            <Label htmlFor="ifscCode">IFSC Code</Label>
-                            <Input 
-                              id="ifscCode"
-                              name="ifscCode"
-                              value={formData.ifscCode}
-                              onChange={handleInputChange}
-                              placeholder="SBIN0001234"
-                            />
-                          </div>
-                        </div>
+                  ) : (
+                    <dl className="space-y-4">
+                      <div>
+                        <dt className="text-sm font-medium text-muted-foreground">GST Number</dt>
+                        <dd className="text-base">{businessData?.gstNumber || "Not provided"}</dd>
                       </div>
+                      <div>
+                        <dt className="text-sm font-medium text-muted-foreground">PAN Number</dt>
+                        <dd className="text-base">{businessData?.panNumber || "Not provided"}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-muted-foreground">Business Type</dt>
+                        <dd className="text-base">{businessData?.businessType || "Not specified"}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-muted-foreground">Tax Registration Date</dt>
+                        <dd className="text-base">
+                          {businessData?.taxRegistrationDate ? 
+                           new Date(businessData.taxRegistrationDate).toLocaleDateString() : 
+                           "Not provided"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-muted-foreground">Tax Filing Status</dt>
+                        <dd className="text-base">
+                          {businessData?.taxFilingStatus ? (
+                            <Badge variant={businessData.taxFilingStatus === "Up to date" ? "success" : "warning"}>
+                              {businessData.taxFilingStatus}
+                            </Badge>
+                          ) : "Not available"}
+                        </dd>
+                      </div>
+                    </dl>
+                  )}
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex justify-between items-center">
+                    <span className="flex items-center">
+                      <CreditCard className="mr-2 h-5 w-5" /> Banking Information
+                    </span>
+                    <Button variant="outline" size="sm" onClick={() => setIsEditBankingOpen(true)}>
+                      <Edit className="h-4 w-4 mr-2" /> Edit
+                    </Button>
+                  </CardTitle>
+                  <CardDescription>Your payment processing details</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingBanking ? (
+                    <div className="animate-pulse space-y-3">
+                      <div className="h-4 bg-muted rounded w-3/4"></div>
+                      <div className="h-4 bg-muted rounded w-1/2"></div>
+                      <div className="h-4 bg-muted rounded w-5/6"></div>
+                      <div className="h-4 bg-muted rounded w-2/3"></div>
+                    </div>
+                  ) : (
+                    <dl className="space-y-4">
+                      <div>
+                        <dt className="text-sm font-medium text-muted-foreground">Bank Account</dt>
+                        <dd className="text-base">
+                          {bankingData?.accountNumber ? 
+                           `XXXX XXXX XXXX ${bankingData.accountNumber.slice(-4)}` : 
+                           "Not provided"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-muted-foreground">Bank Name</dt>
+                        <dd className="text-base">{bankingData?.bankName || "Not provided"}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-muted-foreground">IFSC Code</dt>
+                        <dd className="text-base">{bankingData?.ifscCode || "Not provided"}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-muted-foreground">Account Holder Name</dt>
+                        <dd className="text-base">{bankingData?.accountHolderName || "Not provided"}</dd>
+                      </div>
+                    </dl>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="performance">
+            <div className="grid md:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <TrendingUp className="mr-2 h-5 w-5" /> Sales Overview
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="text-2xl font-bold">₹3,21,450</div>
+                      <p className="text-sm text-muted-foreground">Total Sales (Last 30 days)</p>
+                    </div>
+                    <div>
+                      <div className="text-xl font-bold">432</div>
+                      <p className="text-sm text-muted-foreground">Orders Fulfilled</p>
+                    </div>
+                    <div>
+                      <div className="text-xl font-bold text-green-600">+15.3%</div>
+                      <p className="text-sm text-muted-foreground">Growth Rate (vs. Last Month)</p>
                     </div>
                   </div>
-                  
-                  <DialogFooter>
-                    <Button 
-                      variant="outline" 
-                      type="button" 
-                      onClick={() => setEditProfileOpen(false)}
-                      disabled={isSubmitting}
-                    >
-                      Cancel
-                    </Button>
-                    <Button 
-                      type="submit"
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : "Save Changes"}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          {/* Tabs Navigation */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <div className="bg-white rounded-lg shadow-sm">
-              <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0">
-                <TabsTrigger 
-                  value="profile" 
-                  className="rounded-none border-b-2 border-transparent px-4 py-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
-                >
-                  Business Details
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="performance" 
-                  className="rounded-none border-b-2 border-transparent px-4 py-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
-                >
-                  Performance
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="documents" 
-                  className="rounded-none border-b-2 border-transparent px-4 py-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
-                >
-                  Documents
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="payments" 
-                  className="rounded-none border-b-2 border-transparent px-4 py-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
-                >
-                  Payments
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="compliance" 
-                  className="rounded-none border-b-2 border-transparent px-4 py-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
-                >
-                  Compliance
-                </TabsTrigger>
-              </TabsList>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <RefreshCw className="mr-2 h-5 w-5" /> Return Metrics
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="text-2xl font-bold">3.2%</div>
+                      <p className="text-sm text-muted-foreground">Return Rate</p>
+                    </div>
+                    <div>
+                      <div className="text-xl font-bold">21</div>
+                      <p className="text-sm text-muted-foreground">Pending Returns</p>
+                    </div>
+                    <div>
+                      <div className="text-xl font-bold">92%</div>
+                      <p className="text-sm text-muted-foreground">Customer Satisfaction</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Award className="mr-2 h-5 w-5" /> Seller Rating
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="text-2xl font-bold">4.7/5.0</div>
+                      <p className="text-sm text-muted-foreground">Overall Rating</p>
+                    </div>
+                    <div>
+                      <div className="text-xl font-bold">356</div>
+                      <p className="text-sm text-muted-foreground">Total Reviews</p>
+                    </div>
+                    <div>
+                      <div className="text-xl font-bold text-green-600">A+</div>
+                      <p className="text-sm text-muted-foreground">Seller Performance Grade</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-
-            {/* Profile/Business Details Tab */}
-            <TabsContent value="profile" className="mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Personal Information */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Briefcase className="h-5 w-5 text-primary" />
-                      <span>Business Information</span>
-                    </CardTitle>
-                    <CardDescription>Your company and contact details</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-2">
-                        <Briefcase className="h-4 w-4 text-muted-foreground mt-0.5" />
-                        <div>
-                          <p className="text-sm font-medium">Business Name</p>
-                          <p className="text-sm text-muted-foreground">{sellerData.businessName}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Mail className="h-4 w-4 text-muted-foreground mt-0.5" />
-                        <div>
-                          <p className="text-sm font-medium">Email Address</p>
-                          <p className="text-sm text-muted-foreground">{sellerData.email}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Phone className="h-4 w-4 text-muted-foreground mt-0.5" />
-                        <div>
-                          <p className="text-sm font-medium">Phone Number</p>
-                          <p className="text-sm text-muted-foreground">{sellerData.phone}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                        <div>
-                          <p className="text-sm font-medium">Business Address</p>
-                          <p className="text-sm text-muted-foreground">{sellerData.address}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Globe className="h-4 w-4 text-muted-foreground mt-0.5" />
-                        <div>
-                          <p className="text-sm font-medium">Website</p>
-                          <p className="text-sm text-muted-foreground">www.lelekartbusiness.com</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
-                        <div>
-                          <p className="text-sm font-medium">Registered On</p>
-                          <p className="text-sm text-muted-foreground">{sellerData.registrationDate}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Sales Summary */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <BarChart2 className="h-5 w-5 text-primary" />
-                      <span>Sales Summary</span>
-                    </CardTitle>
-                    <CardDescription>Overview of your selling activity</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-blue-50 p-3 rounded-md">
-                          <div className="text-xs text-blue-600 uppercase font-semibold">Total Orders</div>
-                          <div className="text-2xl font-bold">{sellerData.orders}</div>
-                        </div>
-                        <div className="bg-green-50 p-3 rounded-md">
-                          <div className="text-xs text-green-600 uppercase font-semibold">Ship On Time</div>
-                          <div className="text-2xl font-bold">{sellerData.deliverySpeed}%</div>
-                        </div>
-                        <div className="bg-amber-50 p-3 rounded-md">
-                          <div className="text-xs text-amber-600 uppercase font-semibold">Return Rate</div>
-                          <div className="text-2xl font-bold">{sellerData.returnRate}%</div>
-                        </div>
-                        <div className="bg-purple-50 p-3 rounded-md">
-                          <div className="text-xs text-purple-600 uppercase font-semibold">Response Time</div>
-                          <div className="text-2xl font-bold">{sellerData.responseTime}</div>
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Quality Score</span>
-                          <span className="font-medium">{sellerData.qualityScore}%</span>
-                        </div>
-                        <Progress value={sellerData.qualityScore} className="h-2" />
-                        
-                        <div className="flex justify-between text-sm mt-4">
-                          <span>Pricing Competitiveness</span>
-                          <span className="font-medium">{sellerData.pricingCompetitiveness}%</span>
-                        </div>
-                        <Progress value={sellerData.pricingCompetitiveness} className="h-2" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Account Verification */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <ShieldCheck className="h-5 w-5 text-primary" />
-                      <span>Account Verification</span>
-                    </CardTitle>
-                    <CardDescription>Your account verification status</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          <span className="text-sm">Email Verified</span>
-                        </div>
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          Verified
-                        </Badge>
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          <span className="text-sm">Phone Verified</span>
-                        </div>
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          Verified
-                        </Badge>
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          <span className="text-sm">GST Verification</span>
-                        </div>
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          Verified
-                        </Badge>
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          <span className="text-sm">Bank Account</span>
-                        </div>
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          Verified
-                        </Badge>
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          <span className="text-sm">Business Documents</span>
-                        </div>
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          Verified
-                        </Badge>
-                      </div>
-                      
-                      <div className="mt-4">
-                        <div className="flex items-center gap-1">
-                          <ShieldCheck className="h-4 w-4 text-blue-600" />
-                          <span className="text-sm font-medium text-blue-600">100% Account Completion</span>
-                        </div>
-                        <Progress value={100} className="h-2 mt-2" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+          </TabsContent>
+          
+          <TabsContent value="documents">
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-semibold flex items-center">
+                  <FileText className="mr-2 h-6 w-6" /> Business Documents
+                </h2>
+                <Button onClick={() => setIsUploadDocumentOpen(true)}>
+                  <Upload className="mr-2 h-4 w-4" /> Upload New Document
+                </Button>
               </div>
-            </TabsContent>
-
-            {/* Performance Tab */}
-            <TabsContent value="performance" className="mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Performance Overview */}
-                <Card className="md:col-span-2">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5 text-primary" />
-                      <span>Performance Metrics</span>
-                    </CardTitle>
-                    <CardDescription>
-                      How your store is performing compared to benchmarks
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-6">
-                      {performanceMetrics.map((metric) => (
-                        <div key={metric.name} className="space-y-2">
-                          <div className="flex justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium">{metric.name}</span>
-                              {metric.inverse ? (
-                                <Badge variant="outline" className={metric.value < metric.benchmark ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"}>
-                                  {metric.value < metric.benchmark ? "Good" : "Needs Improvement"}
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline" className={metric.value > metric.benchmark ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"}>
-                                  {metric.value > metric.benchmark ? "Good" : "Needs Improvement"}
-                                </Badge>
-                              )}
-                            </div>
-                            <span className="text-sm font-semibold">{metric.value}{metric.inverse ? "%" : "%"}</span>
-                          </div>
-                          
-                          <div className="relative pt-1">
-                            <div className="flex mb-2 items-center justify-between">
-                              <div>
-                                <span className="text-xs text-gray-500">
-                                  Benchmark: {metric.benchmark}%
+              
+              <p className="text-muted-foreground">Your business verification documents</p>
+              
+              <div className="grid md:grid-cols-2 gap-4">
+                {isLoadingDocuments ? (
+                  <div className="animate-pulse space-y-3">
+                    <div className="h-6 bg-muted rounded w-3/4"></div>
+                    <div className="h-6 bg-muted rounded w-1/2"></div>
+                    <div className="h-6 bg-muted rounded w-5/6"></div>
+                  </div>
+                ) : documents && documents.length > 0 ? (
+                  documents.map((doc: any) => (
+                    <Card key={doc.id}>
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start">
+                          <div className="flex items-center">
+                            <FileText className="h-10 w-10 text-primary mr-3" />
+                            <div>
+                              <h3 className="font-medium">{doc.documentType}</h3>
+                              <p className="text-sm text-muted-foreground">{doc.documentName}</p>
+                              <div className="flex items-center mt-1">
+                                <Clock className="h-3 w-3 mr-1" />
+                                <span className="text-xs text-muted-foreground">
+                                  Uploaded {new Date(doc.uploadedAt).toLocaleDateString()}
                                 </span>
                               </div>
                             </div>
-                            <div className="h-2 w-full bg-gray-200 rounded-full">
-                              <div 
-                                className={`h-2 rounded-full ${
-                                  metric.inverse
-                                    ? metric.value < metric.benchmark ? "bg-green-500" : "bg-red-500"
-                                    : metric.value > metric.benchmark ? "bg-green-500" : "bg-red-500"
-                                }`}
-                                style={{ width: `${metric.value}%` }}
-                              ></div>
+                          </div>
+                          <div className="flex flex-col items-end">
+                            <Badge variant={doc.verified ? "success" : "outline"}>
+                              {doc.verified ? "Verified" : "Pending"}
+                            </Badge>
+                            <div className="flex mt-2">
+                              <Button variant="ghost" size="sm" asChild>
+                                <a href={doc.documentUrl} target="_blank" rel="noopener noreferrer">
+                                  <FileText className="h-4 w-4" />
+                                </a>
+                              </Button>
                             </div>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Performance Insights */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Award className="h-5 w-5 text-primary" />
-                      <span>Performance Insights</span>
-                    </CardTitle>
-                    <CardDescription>Tips to improve your seller metrics</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-start gap-2 p-3 border rounded-md bg-amber-50 border-amber-200">
-                        <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="text-sm font-medium text-amber-700">Improve Response Time</p>
-                          <p className="text-xs text-amber-600 mt-1">
-                            Your current response time of 4 hours is above the average. Try to respond to customer inquiries within 2 hours to improve your score.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-2 p-3 border rounded-md bg-green-50 border-green-200">
-                        <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="text-sm font-medium text-green-700">Great Order Fulfillment</p>
-                          <p className="text-xs text-green-600 mt-1">
-                            You're fulfilling 95% of orders successfully, which is above the benchmark of 85%. Keep up the good work!
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-2 p-3 border rounded-md bg-blue-50 border-blue-200">
-                        <Truck className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="text-sm font-medium text-blue-700">Shipping Performance</p>
-                          <p className="text-xs text-blue-600 mt-1">
-                            Your on-time shipping rate of 92% exceeds the marketplace benchmark of 80%. This positively affects your seller rating.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-2 p-3 border rounded-md bg-purple-50 border-purple-200">
-                        <Package className="h-5 w-5 text-purple-600 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="text-sm font-medium text-purple-700">Low Return Rate</p>
-                          <p className="text-xs text-purple-600 mt-1">
-                            Your return rate of 3.5% is significantly better than the benchmark of 10%. This indicates good product quality and accurate listings.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            {/* Documents Tab */}
-            <TabsContent value="documents" className="mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-primary" />
-                      <span>Business Documents</span>
-                    </CardTitle>
-                    <CardDescription>
-                      Your business verification documents
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">GST Certificate</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Verified</Badge>
-                          <Button variant="ghost" size="sm" className="h-8 px-2">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">PAN Card</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Verified</Badge>
-                          <Button variant="ghost" size="sm" className="h-8 px-2">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">Business Registration</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Verified</Badge>
-                          <Button variant="ghost" size="sm" className="h-8 px-2">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">Bank Statement</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Verified</Badge>
-                          <Button variant="ghost" size="sm" className="h-8 px-2">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">Address Proof</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Verified</Badge>
-                          <Button variant="ghost" size="sm" className="h-8 px-2">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      <div className="pt-2">
-                        <Button variant="outline" size="sm" className="w-full">Upload New Document</Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Briefcase className="h-5 w-5 text-primary" />
-                      <span>Business Details</span>
-                    </CardTitle>
-                    <CardDescription>
-                      Your business registration information
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-sm font-medium">GST Number</p>
-                        <p className="text-sm text-muted-foreground">{sellerData.gstNumber}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">PAN Number</p>
-                        <p className="text-sm text-muted-foreground">{sellerData.panNumber}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">Business Type</p>
-                        <p className="text-sm text-muted-foreground">Private Limited Company</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">Tax Registration Date</p>
-                        <p className="text-sm text-muted-foreground">January 15, 2023</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">Tax Filing Status</p>
-                        <p className="text-sm text-muted-foreground">
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                            Up to date
-                          </Badge>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="col-span-2">
+                    <Card>
+                      <CardContent className="p-6 text-center">
+                        <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-xl font-medium mb-2">No Documents Uploaded Yet</h3>
+                        <p className="text-muted-foreground mb-4">
+                          Upload your business verification documents to complete your seller profile.
                         </p>
-                      </div>
-                      <div className="pt-2">
-                        <Button variant="outline" size="sm">Update Business Details</Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                        <Button onClick={() => setIsUploadDocumentOpen(true)}>
+                          <Upload className="mr-2 h-4 w-4" /> Upload Document
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
               </div>
-            </TabsContent>
-
-            {/* Payments Tab */}
-            <TabsContent value="payments" className="mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <DollarSign className="h-5 w-5 text-primary" />
-                      <span>Payment Information</span>
-                    </CardTitle>
-                    <CardDescription>
-                      Your banking and payment details
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-sm font-medium">Bank Account</p>
-                        <p className="text-sm text-muted-foreground">{sellerData.bankAccount}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">Bank Name</p>
-                        <p className="text-sm text-muted-foreground">{sellerData.bankName}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">IFSC Code</p>
-                        <p className="text-sm text-muted-foreground">{sellerData.ifscCode}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">Account Holder Name</p>
-                        <p className="text-sm text-muted-foreground">{sellerData.businessName}</p>
-                      </div>
-                      <div className="pt-2">
-                        <Button variant="outline" size="sm">Update Banking Information</Button>
-                      </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="payments">
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <CreditCard className="mr-2 h-5 w-5" /> Payment Information
+                  </CardTitle>
+                  <CardDescription>Your banking and payment details</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <dl className="space-y-4">
+                    <div>
+                      <dt className="text-sm font-medium text-muted-foreground">Bank Account</dt>
+                      <dd className="text-base">
+                        {bankingData?.accountNumber ? 
+                         `XXXX XXXX XXXX ${bankingData.accountNumber.slice(-4)}` : 
+                         "Not provided"}
+                      </dd>
                     </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <BarChart2 className="h-5 w-5 text-primary" />
-                      <span>Payment Statistics</span>
-                    </CardTitle>
-                    <CardDescription>
-                      Your payment processing metrics
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-blue-50 p-3 rounded-md">
-                          <div className="text-xs text-blue-600 uppercase font-semibold">Pending</div>
-                          <div className="text-2xl font-bold">₹48,550</div>
-                        </div>
-                        <div className="bg-green-50 p-3 rounded-md">
-                          <div className="text-xs text-green-600 uppercase font-semibold">Processed</div>
-                          <div className="text-2xl font-bold">₹2,35,640</div>
-                        </div>
-                        <div className="bg-amber-50 p-3 rounded-md">
-                          <div className="text-xs text-amber-600 uppercase font-semibold">On Hold</div>
-                          <div className="text-2xl font-bold">₹12,500</div>
-                        </div>
-                        <div className="bg-purple-50 p-3 rounded-md">
-                          <div className="text-xs text-purple-600 uppercase font-semibold">Next Payout</div>
-                          <div className="text-2xl font-bold">Apr 18</div>
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      <div className="pt-2">
-                        <Button variant="outline" size="sm" className="w-full">View Payment History</Button>
-                      </div>
+                    <div>
+                      <dt className="text-sm font-medium text-muted-foreground">Bank Name</dt>
+                      <dd className="text-base">{bankingData?.bankName || "Not provided"}</dd>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            {/* Compliance Tab */}
-            <TabsContent value="compliance" className="mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <ShieldCheck className="h-5 w-5 text-primary" />
-                      <span>Compliance Status</span>
-                    </CardTitle>
-                    <CardDescription>
-                      Your marketplace compliance status
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          <span className="text-sm">Seller Guidelines</span>
-                        </div>
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          Compliant
-                        </Badge>
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          <span className="text-sm">Product Listings</span>
-                        </div>
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          Compliant
-                        </Badge>
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          <span className="text-sm">Shipping Policies</span>
-                        </div>
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          Compliant
-                        </Badge>
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          <span className="text-sm">Return Policies</span>
-                        </div>
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          Compliant
-                        </Badge>
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          <span className="text-sm">Tax Documentation</span>
-                        </div>
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          Compliant
-                        </Badge>
-                      </div>
-                      
-                      <div className="mt-4">
-                        <div className="flex items-center gap-1">
-                          <ShieldCheck className="h-4 w-4 text-blue-600" />
-                          <span className="text-sm font-medium text-blue-600">100% Compliance Rating</span>
-                        </div>
-                        <Progress value={100} className="h-2 mt-2" />
-                      </div>
+                    <div>
+                      <dt className="text-sm font-medium text-muted-foreground">IFSC Code</dt>
+                      <dd className="text-base">{bankingData?.ifscCode || "Not provided"}</dd>
                     </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <HelpCircle className="h-5 w-5 text-primary" />
-                      <span>Compliance Resources</span>
-                    </CardTitle>
-                    <CardDescription>
-                      Resources to help maintain compliance
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-start gap-2 p-3 border rounded-md">
-                        <FileText className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="text-sm font-medium">Seller Guidelines</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Comprehensive guide for selling on LeleKart
-                          </p>
-                          <Button variant="link" size="sm" className="h-8 px-0">
-                            View Guidelines
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-2 p-3 border rounded-md">
-                        <FileText className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="text-sm font-medium">Tax Requirements</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Information on tax obligations for sellers
-                          </p>
-                          <Button variant="link" size="sm" className="h-8 px-0">
-                            View Tax Guide
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-2 p-3 border rounded-md">
-                        <FileText className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="text-sm font-medium">Prohibited Items</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            List of items not permitted for sale
-                          </p>
-                          <Button variant="link" size="sm" className="h-8 px-0">
-                            View List
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-2 p-3 border rounded-md">
-                        <FileText className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="text-sm font-medium">Shipping & Returns</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Policies for shipping and handling returns
-                          </p>
-                          <Button variant="link" size="sm" className="h-8 px-0">
-                            View Policies
-                          </Button>
-                        </div>
-                      </div>
+                    <div>
+                      <dt className="text-sm font-medium text-muted-foreground">Account Holder Name</dt>
+                      <dd className="text-base">{bankingData?.accountHolderName || "Not provided"}</dd>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
+                    
+                    <div className="pt-2">
+                      <Button variant="outline" size="sm" onClick={() => setIsEditBankingOpen(true)}>
+                        <Edit className="h-4 w-4 mr-2" /> Update Banking Information
+                      </Button>
+                    </div>
+                  </dl>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <TrendingUp className="mr-2 h-5 w-5" /> Payment Statistics
+                  </CardTitle>
+                  <CardDescription>Your payment processing metrics</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <div className="text-blue-600 text-sm font-medium mb-1">PENDING</div>
+                      <div className="text-2xl font-bold">₹48,550</div>
+                    </div>
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <div className="text-green-600 text-sm font-medium mb-1">PROCESSED</div>
+                      <div className="text-2xl font-bold">₹2,35,640</div>
+                    </div>
+                    <div className="bg-amber-50 p-4 rounded-lg">
+                      <div className="text-amber-600 text-sm font-medium mb-1">ON HOLD</div>
+                      <div className="text-2xl font-bold">₹12,500</div>
+                    </div>
+                    <div className="bg-purple-50 p-4 rounded-lg">
+                      <div className="text-purple-600 text-sm font-medium mb-1">NEXT PAYOUT</div>
+                      <div className="text-2xl font-bold">Apr 18</div>
+                    </div>
+                  </div>
+                  
+                  <Button variant="outline" className="w-full">
+                    View Payment History
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="compliance">
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Shield className="mr-2 h-5 w-5" /> Compliance Status
+                  </CardTitle>
+                  <CardDescription>Your account compliance details</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <dl className="space-y-4">
+                    <div>
+                      <dt className="text-sm font-medium text-muted-foreground">Seller Verification</dt>
+                      <dd className="flex items-center">
+                        <Badge variant="success" className="mr-2">Complete</Badge>
+                        <span className="text-sm text-muted-foreground">Verified on Apr 12, 2023</span>
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-sm font-medium text-muted-foreground">GST Compliance</dt>
+                      <dd className="flex items-center">
+                        <Badge variant="success" className="mr-2">Complete</Badge>
+                        <span className="text-sm text-muted-foreground">Last updated Jan 15, 2024</span>
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-sm font-medium text-muted-foreground">Tax Filing Status</dt>
+                      <dd className="flex items-center">
+                        <Badge variant="success" className="mr-2">Current</Badge>
+                        <span className="text-sm text-muted-foreground">Next due Jun 30, 2024</span>
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-sm font-medium text-muted-foreground">Policy Agreement</dt>
+                      <dd className="flex items-center">
+                        <Badge variant="success" className="mr-2">Accepted</Badge>
+                        <span className="text-sm text-muted-foreground">Seller Policy v3.2</span>
+                      </dd>
+                    </div>
+                  </dl>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <RefreshCw className="mr-2 h-5 w-5" /> Compliance Requirements
+                  </CardTitle>
+                  <CardDescription>Required actions and documents</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="p-4 border rounded-lg">
+                      <h3 className="font-medium mb-2">Document Requirements</h3>
+                      <ul className="space-y-2">
+                        <li className="flex items-center text-sm">
+                          <div className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 mr-2">✓</div>
+                          GST Certificate
+                        </li>
+                        <li className="flex items-center text-sm">
+                          <div className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 mr-2">✓</div>
+                          PAN Card
+                        </li>
+                        <li className="flex items-center text-sm">
+                          <div className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 mr-2">✓</div>
+                          Business Registration
+                        </li>
+                        <li className="flex items-center text-sm">
+                          <div className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 mr-2">✓</div>
+                          Bank Statement
+                        </li>
+                        <li className="flex items-center text-sm">
+                          <div className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 mr-2">✓</div>
+                          Address Proof
+                        </li>
+                      </ul>
+                    </div>
+                    
+                    <div className="p-4 border rounded-lg">
+                      <h3 className="font-medium mb-2">Policy Compliance</h3>
+                      <ul className="space-y-2">
+                        <li className="flex items-center text-sm">
+                          <div className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 mr-2">✓</div>
+                          Seller Policy Agreement
+                        </li>
+                        <li className="flex items-center text-sm">
+                          <div className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 mr-2">✓</div>
+                          Return & Refund Policy
+                        </li>
+                        <li className="flex items-center text-sm">
+                          <div className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 mr-2">✓</div>
+                          Shipping & Delivery Terms
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
+      
+      {/* Upload Document Dialog */}
+      <Dialog open={isUploadDocumentOpen} onOpenChange={setIsUploadDocumentOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Upload Document</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUploadDocument} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="documentType">Document Type</Label>
+              <Select 
+                value={documentType} 
+                onValueChange={setDocumentType}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select document type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="GST Certificate">GST Certificate</SelectItem>
+                  <SelectItem value="PAN Card">PAN Card</SelectItem>
+                  <SelectItem value="Business Registration">Business Registration</SelectItem>
+                  <SelectItem value="Bank Statement">Bank Statement</SelectItem>
+                  <SelectItem value="Address Proof">Address Proof</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="document">Document File</Label>
+              <div className="border-dashed border-2 rounded-md p-4 text-center cursor-pointer" onClick={() => document.getElementById('document')?.click()}>
+                <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                <p className="text-sm text-muted-foreground mb-1">
+                  Click to upload or drag and drop
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  PDF, PNG, JPG up to 10MB
+                </p>
+                <input
+                  id="document"
+                  type="file"
+                  className="hidden"
+                  accept=".pdf,.png,.jpg,.jpeg"
+                  onChange={handleFileChange}
+                  required
+                />
+              </div>
+              {documentFile && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Selected: {documentFile.name}
+                </p>
+              )}
+            </div>
+            
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsUploadDocumentOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={!documentFile || !documentType || uploadDocumentMutation.isPending}
+              >
+                {uploadDocumentMutation.isPending && <RefreshCw className="mr-2 h-4 w-4 animate-spin" />}
+                Upload Document
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit Business Details Dialog */}
+      <Dialog open={isEditBusinessOpen} onOpenChange={setIsEditBusinessOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Update Business Details</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdateBusinessDetails} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="businessName">Business Name*</Label>
+              <Input 
+                id="businessName"
+                name="businessName"
+                value={businessDetails.businessName}
+                onChange={handleBusinessInputChange}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="gstNumber">GST Number</Label>
+              <Input 
+                id="gstNumber"
+                name="gstNumber"
+                value={businessDetails.gstNumber}
+                onChange={handleBusinessInputChange}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="panNumber">PAN Number</Label>
+              <Input 
+                id="panNumber"
+                name="panNumber"
+                value={businessDetails.panNumber}
+                onChange={handleBusinessInputChange}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="businessType">Business Type</Label>
+              <Select 
+                value={businessDetails.businessType} 
+                onValueChange={(value) => setBusinessDetails(prev => ({ ...prev, businessType: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select business type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Sole Proprietorship">Sole Proprietorship</SelectItem>
+                  <SelectItem value="Partnership">Partnership</SelectItem>
+                  <SelectItem value="Private Limited Company">Private Limited Company</SelectItem>
+                  <SelectItem value="Limited Liability Partnership">Limited Liability Partnership</SelectItem>
+                  <SelectItem value="Public Limited Company">Public Limited Company</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="taxRegistrationDate">Tax Registration Date</Label>
+              <Input 
+                id="taxRegistrationDate"
+                name="taxRegistrationDate"
+                type="date"
+                value={businessDetails.taxRegistrationDate}
+                onChange={handleBusinessInputChange}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="taxFilingStatus">Tax Filing Status</Label>
+              <Select 
+                value={businessDetails.taxFilingStatus} 
+                onValueChange={(value) => setBusinessDetails(prev => ({ ...prev, taxFilingStatus: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Up to date">Up to date</SelectItem>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                  <SelectItem value="Overdue">Overdue</SelectItem>
+                  <SelectItem value="Exempt">Exempt</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsEditBusinessOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={!businessDetails.businessName || updateBusinessDetailsMutation.isPending}
+              >
+                {updateBusinessDetailsMutation.isPending && <RefreshCw className="mr-2 h-4 w-4 animate-spin" />}
+                Save Changes
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit Banking Information Dialog */}
+      <Dialog open={isEditBankingOpen} onOpenChange={setIsEditBankingOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Update Banking Information</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdateBankingInfo} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="accountHolderName">Account Holder Name*</Label>
+              <Input 
+                id="accountHolderName"
+                name="accountHolderName"
+                value={bankingInfo.accountHolderName}
+                onChange={handleBankingInputChange}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="accountNumber">Account Number*</Label>
+              <Input 
+                id="accountNumber"
+                name="accountNumber"
+                value={bankingInfo.accountNumber}
+                onChange={handleBankingInputChange}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="bankName">Bank Name*</Label>
+              <Input 
+                id="bankName"
+                name="bankName"
+                value={bankingInfo.bankName}
+                onChange={handleBankingInputChange}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="ifscCode">IFSC Code*</Label>
+              <Input 
+                id="ifscCode"
+                name="ifscCode"
+                value={bankingInfo.ifscCode}
+                onChange={handleBankingInputChange}
+                required
+              />
+            </div>
+            
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsEditBankingOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={
+                  !bankingInfo.accountHolderName || 
+                  !bankingInfo.accountNumber || 
+                  !bankingInfo.bankName || 
+                  !bankingInfo.ifscCode ||
+                  updateBankingInfoMutation.isPending
+                }
+              >
+                {updateBankingInfoMutation.isPending && <RefreshCw className="mr-2 h-4 w-4 animate-spin" />}
+                Save Changes
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </SellerDashboardLayout>
   );
-}
+};
+
+export default SellerProfilePage;
