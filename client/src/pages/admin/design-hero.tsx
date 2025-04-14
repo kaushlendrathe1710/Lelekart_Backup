@@ -90,6 +90,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useGallery } from "@/hooks/use-gallery";
+import { type Category } from "@/hooks/use-categories";
 
 // Types for drag and drop elements
 interface DraggableElement {
@@ -178,7 +179,7 @@ function SortableItem({ element, onEdit, onRemove }: { element: DraggableElement
 }
 
 // Component to render a preview of a banner
-function BannerPreview({ banner }: { banner: any }) {
+function BannerPreview({ banner }: { banner: { id: number; title: string; subtitle?: string; imageUrl: string; badgeText?: string; buttonText?: string } }) {
   return (
     <div className="relative w-full h-32 overflow-hidden rounded-md mb-2">
       <img 
@@ -467,7 +468,7 @@ export default function DesignHero() {
                         <h3 className="text-lg font-medium mb-3">Available Banners</h3>
                         <div className="space-y-2">
                           {banners.length > 0 ? (
-                            banners.map((banner) => (
+                            banners.map((banner: { id: number; title: string; subtitle?: string; imageUrl: string; badgeText?: string; buttonText?: string }) => (
                               <div 
                                 key={banner.id} 
                                 className="border rounded-md p-2 cursor-pointer hover:bg-gray-50"
