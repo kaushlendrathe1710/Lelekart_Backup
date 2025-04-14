@@ -42,6 +42,7 @@ import ProductPreviewPage from './pages/seller/product-preview';
 import SellerOrdersPage from './pages/seller/orders';
 import BulkUploadPage from './pages/seller/bulk-upload';
 import SmartInventoryPage from './pages/seller/smart-inventory';
+import SellerProfilePage from './pages/seller/profile';
 import BuyerDashboardPage from './pages/buyer/dashboard';
 import BuyerWishlistPage from './pages/buyer/wishlist';
 import BuyerSettingsPage from './pages/buyer/settings';
@@ -424,9 +425,7 @@ function App() {
                       <ProtectedRoute 
                         path="/seller/profile" 
                         role="seller" 
-                        component={() => (
-                          <SellerDashboardPage />
-                        )} 
+                        component={SellerProfilePage} 
                       />
                     )}
                   </Route>
