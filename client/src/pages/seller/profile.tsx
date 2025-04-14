@@ -7,12 +7,44 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/use-auth";
-import { Edit, Star, Award, ShieldCheck, CheckCircle, FileText, HelpCircle, Briefcase, Mail, Phone, MapPin, Globe, Calendar, TrendingUp, AlertCircle, BarChart2, Truck, Package, DollarSign } from "lucide-react";
+import { 
+  Edit, Star, Award, ShieldCheck, CheckCircle, FileText, HelpCircle, 
+  Briefcase, Mail, Phone, MapPin, Globe, Calendar, TrendingUp, 
+  AlertCircle, BarChart2, Truck, Package, DollarSign, X, Loader2 
+} from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { 
+  Dialog, DialogContent, DialogDescription, 
+  DialogHeader, DialogTitle, DialogFooter, DialogClose 
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function SellerProfilePage() {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("profile");
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Form state for profile editing
+  const [formData, setFormData] = useState({
+    businessName: "",
+    email: "",
+    phone: "",
+    address: "",
+    website: "www.lelekartbusiness.com",
+    gstNumber: "",
+    panNumber: "",
+    bankAccount: "",
+    bankName: "",
+    ifscCode: "",
+  });
 
   // Sample data for seller profile
   const sellerData = {
@@ -34,6 +66,69 @@ export default function SellerProfilePage() {
     bankAccount: "XXXX XXXX XXXX 4321",
     bankName: "State Bank of India",
     ifscCode: "SBIN0001234",
+  };
+  
+  // Initialize form data from user profile
+  React.useEffect(() => {
+    if (user) {
+      setFormData({
+        businessName: sellerData.businessName,
+        email: user.email,
+        phone: user.phone || "",
+        address: user.address || "",
+        website: "www.lelekartbusiness.com",
+        gstNumber: sellerData.gstNumber,
+        panNumber: sellerData.panNumber,
+        bankAccount: sellerData.bankAccount,
+        bankName: sellerData.bankName,
+        ifscCode: sellerData.ifscCode,
+      });
+    }
+  }, [user]);
+
+  // Handle input change
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Update profile mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await apiRequest('PATCH', '/api/seller/profile', data);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update profile');
+      }
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+      toast({
+        title: "Profile Updated",
+        description: "Your seller profile has been updated successfully."
+      });
+      setEditProfileOpen(false);
+      setIsSubmitting(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "There was an error updating your profile.",
+        variant: "destructive"
+      });
+      setIsSubmitting(false);
+    }
+  });
+
+  // Handle form submission
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    updateProfileMutation.mutate(formData);
   };
 
   // Performance Metrics
@@ -80,11 +175,183 @@ export default function SellerProfilePage() {
                 <FileText className="h-4 w-4" />
                 <span>Export Data</span>
               </Button>
-              <Button size="sm" className="gap-1">
+              <Button 
+                size="sm" 
+                className="gap-1"
+                onClick={() => setEditProfileOpen(true)}
+              >
                 <Edit className="h-4 w-4" />
                 <span>Edit Profile</span>
               </Button>
             </div>
+            
+            {/* Edit Profile Dialog */}
+            <Dialog open={editProfileOpen} onOpenChange={setEditProfileOpen}>
+              <DialogContent className="max-w-[800px] max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="text-xl">Edit Profile Details</DialogTitle>
+                  <DialogDescription>
+                    Update your seller profile information
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <form onSubmit={handleSubmit} className="space-y-6 py-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Business Information */}
+                    <div className="space-y-4">
+                      <div className="border rounded-md p-4">
+                        <h3 className="text-sm font-medium mb-3">Business Information</h3>
+                        
+                        <div className="space-y-3">
+                          <div className="space-y-1">
+                            <Label htmlFor="businessName">Business Name</Label>
+                            <Input 
+                              id="businessName"
+                              name="businessName"
+                              value={formData.businessName}
+                              onChange={handleInputChange}
+                              placeholder="Your business name"
+                            />
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <Label htmlFor="email">Email Address</Label>
+                            <Input 
+                              id="email"
+                              name="email"
+                              type="email"
+                              value={formData.email}
+                              onChange={handleInputChange}
+                              placeholder="your@email.com"
+                            />
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <Label htmlFor="phone">Phone Number</Label>
+                            <Input 
+                              id="phone"
+                              name="phone"
+                              value={formData.phone}
+                              onChange={handleInputChange}
+                              placeholder="Your phone number"
+                            />
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <Label htmlFor="website">Website (Optional)</Label>
+                            <Input 
+                              id="website"
+                              name="website"
+                              value={formData.website}
+                              onChange={handleInputChange}
+                              placeholder="www.yourbusiness.com"
+                            />
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <Label htmlFor="address">Business Address</Label>
+                            <Textarea 
+                              id="address"
+                              name="address"
+                              value={formData.address}
+                              onChange={handleInputChange}
+                              rows={3}
+                              placeholder="Your business address"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Financial and Legal Information */}
+                    <div className="space-y-4">
+                      <div className="border rounded-md p-4">
+                        <h3 className="text-sm font-medium mb-3">Tax & Banking Details</h3>
+                        
+                        <div className="space-y-3">
+                          <div className="space-y-1">
+                            <Label htmlFor="gstNumber">GST Number</Label>
+                            <Input 
+                              id="gstNumber"
+                              name="gstNumber"
+                              value={formData.gstNumber}
+                              onChange={handleInputChange}
+                              placeholder="22AAAAA0000A1Z5"
+                            />
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <Label htmlFor="panNumber">PAN Number</Label>
+                            <Input 
+                              id="panNumber"
+                              name="panNumber"
+                              value={formData.panNumber}
+                              onChange={handleInputChange}
+                              placeholder="ABCDE1234F"
+                            />
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <Label htmlFor="bankName">Bank Name</Label>
+                            <Input 
+                              id="bankName"
+                              name="bankName"
+                              value={formData.bankName}
+                              onChange={handleInputChange}
+                              placeholder="Your bank name"
+                            />
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <Label htmlFor="bankAccount">Bank Account Number</Label>
+                            <Input 
+                              id="bankAccount"
+                              name="bankAccount"
+                              value={formData.bankAccount}
+                              onChange={handleInputChange}
+                              placeholder="Your account number"
+                            />
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <Label htmlFor="ifscCode">IFSC Code</Label>
+                            <Input 
+                              id="ifscCode"
+                              name="ifscCode"
+                              value={formData.ifscCode}
+                              onChange={handleInputChange}
+                              placeholder="SBIN0001234"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <DialogFooter>
+                    <Button 
+                      variant="outline" 
+                      type="button" 
+                      onClick={() => setEditProfileOpen(false)}
+                      disabled={isSubmitting}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : "Save Changes"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
 
           {/* Tabs Navigation */}
