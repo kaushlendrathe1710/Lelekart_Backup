@@ -405,8 +405,8 @@ export default function CheckoutPage() {
             )}
             
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6"
-                style={{ display: addresses.length > 0 && !showAddressForm ? 'none' : 'block' }}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <div style={{ display: addresses.length > 0 && !showAddressForm ? 'none' : 'block' }}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}
@@ -586,6 +586,7 @@ export default function CheckoutPage() {
                     </Button>
                   </div>
                 )}
+                </div>
               </form>
             </Form>
           </div>
