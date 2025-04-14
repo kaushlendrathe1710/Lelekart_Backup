@@ -1072,6 +1072,7 @@ export default function BulkUploadPage() {
                   <li>Each image URL should be placed in its own column - do not use commas to separate them</li>
                   <li>Format <span className="font-semibold">colors</span> and <span className="font-semibold">sizes</span> as comma-separated values (Example: Red,Blue,Green)</li>
                   <li>Use consistent formatting for prices (numbers only, no currency symbols)</li>
+                  <li>The <span className="font-semibold">warranty_months</span> field should specify warranty duration in months (Example: 12 for 1 year, 24 for 2 years)</li>
                   <li>Maximum file size is 10MB</li>
                 </ul>
               </div>
