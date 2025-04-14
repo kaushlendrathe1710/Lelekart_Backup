@@ -38,7 +38,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useCategories } from "@/hooks/use-categories";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -63,6 +62,25 @@ interface Banner {
   createdAt: string;
   updatedAt: string;
 }
+
+interface Category {
+  id: number;
+  name: string;
+  image: string;
+}
+
+// Mock useCategories hook until we create the real one
+const useCategories = () => {
+  const { data } = useQuery({
+    queryKey: ["/api/categories"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/categories");
+      return await res.json() as Category[];
+    },
+  });
+  
+  return { data: data || [] };
+};
 
 export default function BannerManagement() {
   const { toast } = useToast();
@@ -805,95 +823,237 @@ export default function BannerManagement() {
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="text-destructive"
-                          title="Delete"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete banner</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete this banner? This action
-                            cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction 
-                            onClick={() => deleteBannerMutation.mutate(banner.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            {deleteBannerMutation.isPending && (
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button 
+                                size="icon" 
+                                variant="destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete banner</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete this banner? This action
+                                  cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  onClick={() => deleteBannerMutation.mutate(banner.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  {deleteBannerMutation.isPending && (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  )}
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                    </div>
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="flex items-center">
+                            {banner.title}
+                            {!banner.active && (
+                              <Badge variant="outline" className="ml-2 text-xs">Inactive</Badge>
                             )}
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                  <CardTitle className="mb-2">
-                    {banner.title}
-                    <span className="text-sm text-muted-foreground ml-2">
-                      (Position: {banner.position})
-                    </span>
-                  </CardTitle>
-                  <CardDescription>{banner.subtitle}</CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  <div className="aspect-video relative overflow-hidden rounded-md">
-                    <img
-                      src={banner.imageUrl}
-                      alt={banner.title}
-                      className="object-cover w-full h-full"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = "/images/placeholder.svg";
-                      }}
-                    />
-                    {banner.badgeText && (
-                      <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-2 py-1 text-xs rounded">
-                        {banner.badgeText}
+                          </CardTitle>
+                          <CardDescription>{banner.subtitle}</CardDescription>
+                        </div>
+                        <Badge variant="outline" title="Display order">#{banner.position}</Badge>
                       </div>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="font-medium">Button:</span>{" "}
-                      {banner.buttonText}
-                    </div>
-                    <div>
-                      <span className="font-medium">Category:</span>{" "}
-                      {banner.category}
-                    </div>
-                    {banner.productId && (
-                      <div>
-                        <span className="font-medium">Product ID:</span>{" "}
-                        {banner.productId}
+                    </CardHeader>
+                    <CardContent className="pb-2">
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Button:</span> {banner.buttonText}
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Category:</span> {banner.category || "None"}
+                        </div>
                       </div>
-                    )}
-                    <div>
-                      <span className="font-medium">Status:</span>{" "}
-                      {banner.active ? "Active" : "Inactive"}
+                    </CardContent>
+                    <CardFooter className="flex justify-between pt-2">
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleMoveUp(banner)}
+                          disabled={banner.position <= 1}
+                        >
+                          <ArrowUp className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleMoveDown(banner)}
+                          disabled={banner.position >= filteredBanners.length}
+                        >
+                          <ArrowDown className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <Button 
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEditingBanner(banner)}
+                        className="h-8"
+                      >
+                        <Edit className="h-3.5 w-3.5 mr-1" />
+                        Edit
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            )}
+            
+            {/* List View Mode */}
+            {viewMode === 'list' && (
+              <div className="space-y-4">
+                {filteredBanners.map((banner) => (
+                  <Card key={banner.id} className={`overflow-hidden hover:shadow-md transition-all duration-300 ${banner.active ? "" : "opacity-70"}`}>
+                    <div className="flex flex-col md:flex-row">
+                      <div className="relative w-full md:w-48 h-40">
+                        <img 
+                          src={banner.imageUrl} 
+                          alt={banner.title} 
+                          className="w-full h-full object-cover"
+                          onError={(e) => e.currentTarget.src = "https://via.placeholder.com/300x150?text=Invalid+Image+URL"}
+                        />
+                        {banner.badgeText && (
+                          <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded">
+                            {banner.badgeText}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 flex flex-col">
+                        <CardHeader className="pb-2">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <CardTitle className="group flex items-center gap-2">
+                                {banner.title}
+                                {!banner.active && (
+                                  <Badge variant="outline" className="text-xs">Inactive</Badge>
+                                )}
+                              </CardTitle>
+                              <CardDescription>{banner.subtitle}</CardDescription>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Badge variant="outline" title="Display position">#{banner.position}</Badge>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="pb-2 flex-grow">
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Button Text:</span> {banner.buttonText}
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Category:</span> {banner.category || "None"}
+                            </div>
+                          </div>
+                        </CardContent>
+                        <CardFooter className="flex justify-between pt-2">
+                          <div className="flex gap-1">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => handleMoveUp(banner)}
+                              disabled={banner.position <= 1}
+                              className="h-8 w-8"
+                            >
+                              <ArrowUp className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => handleMoveDown(banner)}
+                              disabled={banner.position >= filteredBanners.length}
+                              className="h-8 w-8"
+                            >
+                              <ArrowDown className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8"
+                              onClick={() => handleToggleActive(banner.id)}
+                            >
+                              {banner.active ? (
+                                <>
+                                  <EyeOff className="h-3.5 w-3.5 mr-1" />
+                                  Deactivate
+                                </>
+                              ) : (
+                                <>
+                                  <Eye className="h-3.5 w-3.5 mr-1" />
+                                  Activate
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8"
+                              onClick={() => setEditingBanner(banner)}
+                            >
+                              <Edit className="h-3.5 w-3.5 mr-1" />
+                              Edit
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 text-destructive border-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5 mr-1" />
+                                  Delete
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete banner</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete this banner? This action
+                                    cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    onClick={() => deleteBannerMutation.mutate(banner.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    {deleteBannerMutation.isPending && (
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    )}
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </CardFooter>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex justify-end">
-                  <Button
-                    variant="outline"
-                    onClick={() => setEditingBanner(banner)}
-                  >
-                    Edit
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

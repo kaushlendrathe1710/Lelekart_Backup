@@ -32,7 +32,7 @@ import AdminOrders from './pages/admin/orders';
 import AdminCategories from './pages/admin/categories';
 import SellerApproval from './pages/admin/seller-approval';
 import ProductApproval from './pages/admin/product-approval';
-import BannerManagement from './pages/admin/banner-management';
+import BannerManagement from './pages/admin/banner-management-new';
 
 // Seller pages
 import SellerDashboardPage from './pages/seller/dashboard';

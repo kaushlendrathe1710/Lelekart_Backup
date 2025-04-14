@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 interface Category {
   id: number;
@@ -6,21 +7,14 @@ interface Category {
   image: string;
 }
 
-export function useCategories() {
-  const { data: categories = [], isLoading, error } = useQuery<Category[]>({
+export const useCategories = () => {
+  const { data, isLoading, error } = useQuery({
     queryKey: ["/api/categories"],
     queryFn: async () => {
-      const response = await fetch("/api/categories");
-      if (!response.ok) {
-        throw new Error("Failed to fetch categories");
-      }
-      return response.json();
+      const res = await apiRequest("GET", "/api/categories");
+      return await res.json() as Category[];
     },
   });
-
-  return {
-    categories,
-    isLoading,
-    error,
-  };
-}
+  
+  return { data: data || [], isLoading, error };
+};
