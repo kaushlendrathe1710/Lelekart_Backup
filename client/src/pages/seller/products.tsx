@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Link } from "wouter";
 import { SellerDashboardLayout } from "@/components/layout/seller-dashboard-layout";
 import { Pagination } from "@/components/ui/pagination";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Layers, 
   Search, 
@@ -15,7 +16,8 @@ import {
   CheckCircle,
   XCircle,
   Eye,
-  Loader2
+  Loader2,
+  Trash2
 } from "lucide-react";
 import { useContext, useState } from "react";
 import { AuthContext } from "@/hooks/use-auth";
@@ -44,11 +46,20 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function SellerProductsPage() {
   // State for deletion dialog
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
+  const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
+  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -66,7 +77,7 @@ export default function SellerProductsPage() {
   
   // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(12);
+  const [itemsPerPage, setItemsPerPage] = useState(10); // Changed default to 10 for page size selector
 
   // Fetch products for the logged-in seller with pagination
   const { data, isLoading } = useQuery({
@@ -208,6 +219,20 @@ export default function SellerProductsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[40px]">
+                      <Checkbox 
+                        checked={products.length > 0 && selectedProducts.length === products.length}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            // Select all products
+                            setSelectedProducts(products.map(p => p.id));
+                          } else {
+                            // Deselect all products
+                            setSelectedProducts([]);
+                          }
+                        }}
+                      />
+                    </TableHead>
                     <TableHead className="w-[80px]">Image</TableHead>
                     <TableHead>Product Name</TableHead>
                     <TableHead>SKU</TableHead>
@@ -221,6 +246,18 @@ export default function SellerProductsPage() {
                 <TableBody>
                   {products.map((product: Product) => (
                     <TableRow key={product.id}>
+                      <TableCell>
+                        <Checkbox 
+                          checked={selectedProducts.includes(product.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedProducts([...selectedProducts, product.id]);
+                            } else {
+                              setSelectedProducts(selectedProducts.filter(id => id !== product.id));
+                            }
+                          }}
+                        />
+                      </TableCell>
                       <TableCell>
                         <img 
                           src={
@@ -320,9 +357,34 @@ export default function SellerProductsPage() {
               </Table>
             </div>
           </CardContent>
-          <CardFooter className="flex items-center justify-between border-t pt-6">
-            <div className="text-sm text-muted-foreground">
-              Showing <strong>{((pagination.currentPage - 1) * itemsPerPage) + 1}-{Math.min(pagination.currentPage * itemsPerPage, pagination.total)}</strong> of <strong>{pagination.total}</strong> products
+          <CardFooter className="flex flex-col md:flex-row items-center justify-between gap-4 border-t pt-6">
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              <div className="text-sm text-muted-foreground">
+                Showing <strong>{((pagination.currentPage - 1) * itemsPerPage) + 1}-{Math.min(pagination.currentPage * itemsPerPage, pagination.total)}</strong> of <strong>{pagination.total}</strong> products
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Show:</span>
+                <Select
+                  value={itemsPerPage.toString()}
+                  onValueChange={(value) => {
+                    // Reset to page 1 when changing items per page
+                    setCurrentPage(1);
+                    setItemsPerPage(parseInt(value));
+                    // Scroll to top of page
+                    window.scrollTo(0, 0);
+                  }}
+                >
+                  <SelectTrigger className="w-[80px] h-8">
+                    <SelectValue placeholder="10" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                    <SelectItem value="500">500</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             
             {/* Only show pagination if there are multiple pages */}
