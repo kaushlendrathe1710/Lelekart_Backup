@@ -65,8 +65,8 @@ export default function HomePage() {
       if (!res.ok) throw new Error('Failed to fetch hero products');
       return res.json();
     },
-    // Refetch every 30 seconds to ensure changes from banner management are reflected
-    refetchInterval: 30000,
+    // Refetch every 10 seconds to ensure changes from banner management are reflected quickly
+    refetchInterval: 10000,
     // Enable refetch on window focus to update when user returns to tab
     refetchOnWindowFocus: true,
     // Ensure we always have the most up-to-date data
@@ -108,27 +108,7 @@ export default function HomePage() {
     products: getProductsByCategory(cat)
   })).filter(catGroup => catGroup.products.length > 0);
 
-  // Hero slider images with category links - using more reliable image URLs
-  const heroImages = [
-    { 
-      url: "https://rukminim1.flixcart.com/fk-p-flap/1600/270/image/8a89ee09acc1a9e5.jpg?q=20", 
-      // Rebranded from Flipkart to Lelekart 
-      alt: "Electronics Sale",
-      category: "Electronics" // Link to Electronics category
-    },
-    { 
-      url: "https://rukminim1.flixcart.com/fk-p-flap/1600/270/image/33c7360d512a1741.jpg?q=20", 
-      // Rebranded from Flipkart to Lelekart 
-      alt: "Fashion Sale",
-      category: "Fashion" // Link to Fashion category
-    },
-    { 
-      url: "https://rukminim1.flixcart.com/fk-p-flap/1600/270/image/4b0a5abab30de6f3.jpg?q=20", 
-      // Rebranded from Flipkart to Lelekart 
-      alt: "Festival Sale",
-      category: "Home" // Link to Home category
-    }
-  ];
+  // We're no longer using static hero images - all banners come from Banner Management
 
   // Loading states for product sections
   const ProductsLoading = () => (
@@ -161,28 +141,31 @@ export default function HomePage() {
       <CategoryNav />
       
       {/* Hero Section with enhanced slider and deal of the day */}
-      {isLoadingHero || isLoadingDeal ? (
+      {isLoadingHero ? (
         <div className="h-64 bg-gradient-to-r from-blue-500 to-indigo-700 flex items-center justify-center">
           <Loader2 className="w-10 h-10 text-white animate-spin" />
         </div>
-      ) : heroProducts && heroProducts.length > 0 && dealOfTheDay ? (
+      ) : heroProducts && heroProducts.length > 0 ? (
         <HeroSection 
           sliderImages={heroProducts} 
-          dealOfTheDay={dealOfTheDay}
+          dealOfTheDay={dealOfTheDay || {
+            title: "Deal of the Day: Limited Time Offer",
+            subtitle: "Shop our amazing deals before they're gone",
+            image: "https://rukminim1.flixcart.com/image/416/416/l31x2fk0/headphone/a/s/h/-original-image9ehehz8amg2.jpeg",
+            originalPrice: 129.99,
+            discountPrice: 99.99,
+            discountPercentage: 23,
+            hours: 24,
+            minutes: 0,
+            seconds: 0
+          }}
         />
       ) : (
-        // Fallback to static images if API fails
-        <HeroSection sliderImages={heroImages} dealOfTheDay={{
-          title: "Deal of the Day: Wireless Headphones",
-          subtitle: "Limited time offer on premium audio experience",
-          image: "https://rukminim1.flixcart.com/image/416/416/l31x2fk0/headphone/a/s/h/-original-image9ehehz8amg2.jpeg", // Rebranded from Flipkart to Lelekart
-          originalPrice: 129.99,
-          discountPrice: 99.99,
-          discountPercentage: 23,
-          hours: 47,
-          minutes: 53,
-          seconds: 41
-        }} />
+        // Show loading state if no banners exist
+        <div className="h-64 bg-gradient-to-r from-blue-500 to-indigo-700 flex flex-col items-center justify-center text-white">
+          <div className="mb-4">No banners found in Banner Management</div>
+          <p className="text-sm opacity-80">Add banners in Admin Panel → Banner Management</p>
+        </div>
       )}
 
       {/* Shop by Category */}
