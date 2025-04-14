@@ -24,15 +24,7 @@ import { AuthContext } from "@/hooks/use-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Product as SchemaProduct } from "@shared/schema";
 
-import { useToast } from "@/hooks/use-toast";
-
-// Define a ProductWithSKU interface that extends the base Product type
-interface Product extends SchemaProduct {
-  sku?: string;
-  image?: string;
-  image_url?: string; // Add snake_case version from API
-}
-import { 
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -41,8 +33,16 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+
+import { useToast } from "@/hooks/use-toast";
+
+// Define a ProductWithSKU interface that extends the base Product type
+interface Product extends SchemaProduct {
+  sku?: string;
+  image?: string;
+  image_url?: string; // Add snake_case version from API
+}
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
@@ -57,9 +57,9 @@ import {
 export default function SellerProductsPage() {
   // State for deletion dialog
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
-  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -133,6 +133,45 @@ export default function SellerProductsPage() {
       });
     }
   });
+  
+  // Bulk delete mutation
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (productIds: number[]) => {
+      const response = await fetch(`/api/products/bulk-delete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ productIds }),
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete products');
+      }
+      
+      return true;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Products deleted",
+        description: `${selectedProducts.length} products have been removed from your inventory.`,
+      });
+      
+      // Invalidate products query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+      setIsBulkDeleteDialogOpen(false);
+      setSelectedProducts([]);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to delete products",
+        description: error.message || "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
 
   // Handle delete confirmation
   const handleDeleteProduct = () => {
@@ -141,10 +180,30 @@ export default function SellerProductsPage() {
     }
   };
   
+  // Handle bulk delete confirmation
+  const handleBulkDeleteProducts = () => {
+    if (selectedProducts.length > 0) {
+      bulkDeleteMutation.mutate(selectedProducts);
+    }
+  };
+  
   // Open delete confirmation dialog
   const confirmDelete = (productId: number) => {
     setSelectedProductId(productId);
     setIsDeleteDialogOpen(true);
+  };
+  
+  // Open bulk delete confirmation dialog
+  const confirmBulkDelete = () => {
+    if (selectedProducts.length > 0) {
+      setIsBulkDeleteDialogOpen(true);
+    } else {
+      toast({
+        title: "No products selected",
+        description: "Please select at least one product to delete.",
+        variant: "destructive",
+      });
+    }
   };
   
   // Always use real fetched products
@@ -209,10 +268,22 @@ export default function SellerProductsPage() {
                   Coming soon
                 </span>
               </div>
-              <Button variant="outline" className="flex items-center gap-2">
-                <Filter className="h-4 w-4" />
-                Filters
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  className="flex items-center gap-2 text-red-600 border-red-200 hover:bg-red-50"
+                  onClick={confirmBulkDelete}
+                  disabled={selectedProducts.length === 0 || bulkDeleteMutation.isPending}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {bulkDeleteMutation.isPending ? 'Deleting...' : 'Delete Selected'}
+                  {selectedProducts.length > 0 && ` (${selectedProducts.length})`}
+                </Button>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Filter className="h-4 w-4" />
+                  Filters
+                </Button>
+              </div>
             </div>
             
             <div className="rounded-md border">
@@ -435,6 +506,35 @@ export default function SellerProductsPage() {
                 </>
               ) : (
                 "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={isBulkDeleteDialogOpen} onOpenChange={setIsBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedProducts.length} products?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the selected products and remove them from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleBulkDeleteProducts} 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={bulkDeleteMutation.isPending}
+            >
+              {bulkDeleteMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Selected"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

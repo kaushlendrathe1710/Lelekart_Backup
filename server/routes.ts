@@ -411,6 +411,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to delete product" });
     }
   });
+  
+  // Bulk delete products
+  app.post("/api/products/bulk-delete", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { productIds } = req.body;
+      
+      if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
+        return res.status(400).json({ error: "Invalid product IDs. Please provide an array of product IDs." });
+      }
+
+      // Filter out products that this user doesn't own
+      const userProducts = [];
+      const isAdmin = req.user.role === "admin";
+      
+      for (const productId of productIds) {
+        const product = await storage.getProduct(productId);
+        
+        if (product && (product.sellerId === req.user.id || isAdmin)) {
+          userProducts.push(productId);
+        }
+      }
+      
+      if (userProducts.length === 0) {
+        return res.status(403).json({ error: "You do not own any of these products." });
+      }
+      
+      // Delete the products
+      const results = [];
+      for (const productId of userProducts) {
+        await storage.deleteProduct(productId);
+        results.push(productId);
+      }
+      
+      res.status(200).json({ 
+        message: `${results.length} products deleted successfully`,
+        deletedProductIds: results
+      });
+    } catch (error) {
+      console.error('Error bulk deleting products:', error);
+      res.status(500).json({ error: "Failed to bulk delete products" });
+    }
+  });
 
   // Admin product approval is handled above in the Product approval routes section
 
