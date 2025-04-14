@@ -826,3 +826,28 @@ export const insertBankingInformationSchema = createInsertSchema(bankingInformat
 
 export type BankingInformation = typeof bankingInformation.$inferSelect;
 export type InsertBankingInformation = z.infer<typeof insertBankingInformationSchema>;
+
+// Banner schema for hero section
+export const banners = pgTable("banners", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  subtitle: text("subtitle").notNull(),
+  imageUrl: text("image_url").notNull(),
+  buttonText: text("button_text").notNull().default("Shop Now"),
+  category: text("category"),
+  badgeText: text("badge_text"),
+  productId: integer("product_id"),
+  active: boolean("active").notNull().default(true),
+  position: integer("position").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertBannerSchema = createInsertSchema(banners).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type Banner = typeof banners.$inferSelect;
+export type InsertBanner = z.infer<typeof insertBannerSchema>;
