@@ -1010,11 +1010,33 @@ export default function BulkUploadPage() {
                 )}
                 
                 {invalidRows > 0 && (
-                  <div className="mt-4 p-3 bg-orange-50 border border-orange-100 rounded text-sm flex items-start">
-                    <AlertCircle className="h-5 w-5 text-orange-500 mr-2 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-medium">Action Required:</span> Please fix the errors in your CSV file and reupload. 
-                      Products with errors will not be included in the upload.
+                  <div className="mt-4">
+                    <div className="p-3 bg-orange-50 border border-orange-100 rounded text-sm flex items-start">
+                      <AlertCircle className="h-5 w-5 text-orange-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-medium">Action Required:</span> Please fix the errors in your CSV file and reupload. 
+                        Products with errors will not be included in the upload.
+                      </div>
+                    </div>
+                    
+                    <div className="mt-3 flex justify-end">
+                      <Button
+                        onClick={handleUploadValidOnly}
+                        disabled={isUploading || validRows === 0}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        {isUploading ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <Check className="h-4 w-4 mr-2" />
+                            Upload Valid Products ({validRows})
+                          </>
+                        )}
+                      </Button>
                     </div>
                   </div>
                 )}
