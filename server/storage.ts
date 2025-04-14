@@ -17,7 +17,8 @@ import {
   aiGeneratedContent, AIGeneratedContent, InsertAIGeneratedContent,
   sellerDocuments, SellerDocument, InsertSellerDocument,
   businessDetails, BusinessDetails, InsertBusinessDetails,
-  bankingInformation, BankingInformation, InsertBankingInformation
+  bankingInformation, BankingInformation, InsertBankingInformation,
+  banners, Banner, InsertBanner
 } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
@@ -167,6 +168,15 @@ export interface IStorage {
   // Seller Approval Operations
   getSellers(): Promise<User[]>;
   updateSellerApprovalStatus(sellerId: number, status: boolean, isRejected?: boolean): Promise<User>;
+  
+  // Banner operations
+  getBanners(active?: boolean): Promise<Banner[]>;
+  getBanner(id: number): Promise<Banner | undefined>;
+  createBanner(banner: InsertBanner): Promise<Banner>;
+  updateBanner(id: number, banner: Partial<Banner>): Promise<Banner>;
+  deleteBanner(id: number): Promise<void>;
+  updateBannerPosition(id: number, position: number): Promise<Banner>;
+  toggleBannerActive(id: number): Promise<Banner>;
   
   // Session store
   sessionStore: session.SessionStore;
