@@ -206,10 +206,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
     
     const { id } = req.params;
+    const { rejectionReason } = req.body;
     
     try {
       const productId = parseInt(id);
-      const rejectedProduct = await storage.rejectProduct(productId);
+      const rejectedProduct = await storage.rejectProduct(productId, rejectionReason);
       res.json(rejectedProduct);
     } catch (error) {
       console.error(`Error rejecting product ${id}:`, error);

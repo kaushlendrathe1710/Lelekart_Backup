@@ -482,7 +482,11 @@ export class DatabaseStorage implements IStorage {
     try {
       const [updatedProduct] = await db
         .update(products)
-        .set({ approved: true })
+        .set({ 
+          approved: true,
+          rejected: false,
+          rejectionReason: null
+        })
         .where(eq(products.id, id))
         .returning();
       
@@ -497,14 +501,17 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
-  // Reject a product (keeping it as false but marking it somehow)
-  async rejectProduct(id: number): Promise<Product> {
+  // Reject a product with optional reason
+  async rejectProduct(id: number, rejectionReason?: string): Promise<Product> {
     try {
-      // Here we're just marking it as not approved
-      // You could add a 'rejected' field to the schema if you want to track rejected products separately
+      // Now we mark it as rejected and store the reason if provided
       const [updatedProduct] = await db
         .update(products)
-        .set({ approved: false })
+        .set({ 
+          approved: false, 
+          rejected: true,
+          rejectionReason: rejectionReason || null
+        })
         .where(eq(products.id, id))
         .returning();
       
