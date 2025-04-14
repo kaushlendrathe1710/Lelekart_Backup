@@ -66,12 +66,50 @@ function parseCsvLine(line: string): string[] {
   });
 }
 
+// Type for product preview data
+interface ProductPreview {
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  imageUrl: string;
+  stock: number;
+  sku?: string;
+  mrp?: number;
+  purchasePrice?: number;
+  color?: string;
+  size?: string;
+  sellerId: number;
+  isValid: boolean;
+  errors?: string[];
+  rowIndex: number;
+  images?: string[] | string; // Can be an array or a JSON string
+}
+
+// Type for upload error reporting
+interface UploadError {
+  rowIndex: number;
+  errors: string[];
+  productName?: string;
+}
+
 export default function BulkUploadPage() {
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Preview state for two-step upload process
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewProducts, setPreviewProducts] = useState<ProductPreview[]>([]);
+  const [totalRows, setTotalRows] = useState(0);
+  const [validRows, setValidRows] = useState(0);
+  const [invalidRows, setInvalidRows] = useState(0);
+  
+  // Detailed error tracking
+  const [uploadErrors, setUploadErrors] = useState<UploadError[]>([]);
+  const [showErrorDetails, setShowErrorDetails] = useState(false);
   
   // Try to use context first if available
   const authContext = useContext(AuthContext);
@@ -84,6 +122,159 @@ export default function BulkUploadPage() {
   
   // Use context user if available, otherwise use API user
   const user = authContext?.user || apiUser;
+
+  // Function to validate a product record
+  const validateProduct = (product: Record<string, any>, rowIndex: number): { isValid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+    
+    // Required fields
+    if (!product.name) errors.push(`Name is required`);
+    if (!product.description) errors.push(`Description is required`);
+    if (!product.price) errors.push(`Price is required`);
+    if (!product.category) errors.push(`Category is required`);
+    if (!product.imageUrl) errors.push(`Image URL is required`);
+    if (!product.stock && product.stock !== 0) errors.push(`Stock quantity is required`);
+    
+    // Validate numeric fields
+    if (product.price && isNaN(Number(product.price))) errors.push(`Price must be a number`);
+    if (product.stock && isNaN(Number(product.stock))) errors.push(`Stock must be a number`);
+    if (product.mrp && isNaN(Number(product.mrp))) errors.push(`MRP must be a number`);
+    if (product.purchasePrice && isNaN(Number(product.purchasePrice))) errors.push(`Purchase price must be a number`);
+
+    // Validate price logic
+    if (product.price && product.mrp && Number(product.price) > Number(product.mrp)) {
+      errors.push(`Selling price (${product.price}) cannot be greater than MRP (${product.mrp})`);
+    }
+    
+    return { isValid: errors.length === 0, errors };
+  };
+
+  // Function to process CSV data and generate preview
+  const processCSVForPreview = (csvData: string) => {
+    const lines = csvData.split('\n');
+    if (lines.length < 2) {
+      toast({
+        title: "Invalid CSV format",
+        description: "The CSV file appears to be empty or missing required rows.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const headers = parseCsvLine(lines[0]).map(h => h.trim());
+    const previews: ProductPreview[] = [];
+    const errors: UploadError[] = [];
+    let validCount = 0;
+    let invalidCount = 0;
+    
+    // Skip the header line and process each product line
+    for (let i = 1; i < lines.length; i++) {
+      if (!lines[i].trim()) continue; // Skip empty lines
+      
+      const values = parseCsvLine(lines[i]);
+      
+      // Prepare the base product data with required fields
+      const productData: Record<string, any> = {
+        name: "",
+        description: "",
+        price: 0,
+        category: "",
+        imageUrl: "",
+        stock: 0,
+        sellerId: user?.id
+      };
+      
+      // Map CSV values to product schema fields
+      headers.forEach((header, index) => {
+        const value = values[index]?.trim();
+        if (!value) return; // Skip empty values
+        
+        // Handle numeric fields
+        if (['price', 'purchasePrice', 'stock', 'mrp', 'weight', 'length', 'width', 'height', 'warranty', 'returnPolicy', 'tax'].includes(header)) {
+          productData[header] = parseInt(value, 10);
+        } 
+        // Handle boolean fields
+        else if (header === 'approved') {
+          productData[header] = value.toLowerCase() === 'true';
+        }
+        // Handle image fields mapping - use the first one as the main image
+        else if (header === 'imageUrl1') {
+          // First image becomes the main imageUrl
+          productData.imageUrl = value;
+          
+          // Start the additional images array
+          if (!productData.images) {
+            productData.images = [];
+          }
+        }
+        // Handle additional image fields
+        else if (['imageUrl2', 'imageUrl3', 'imageUrl4'].includes(header) && value) {
+          if (!productData.images) {
+            productData.images = [];
+          }
+          productData.images.push(value);
+        }
+        // Handle SKU directly (don't put in metadata)
+        else if (header === 'sku') {
+          productData.sku = value;
+        }
+        // All other fields
+        else {
+          productData[header] = value;
+        }
+      });
+      
+      // Validate the product
+      const { isValid, errors: validationErrors } = validateProduct(productData, i);
+      
+      if (isValid) {
+        validCount++;
+      } else {
+        invalidCount++;
+        errors.push({
+          rowIndex: i,
+          productName: productData.name || `Row ${i}`,
+          errors: validationErrors
+        });
+      }
+      
+      // Convert images array to JSON string for storage
+      const imagesForPreview = productData.images ? [...productData.images] : [];
+      if (productData.images && Array.isArray(productData.images)) {
+        productData.images = JSON.stringify(productData.images);
+      }
+      
+      // Add to preview list
+      previews.push({
+        ...productData,
+        isValid,
+        errors: validationErrors,
+        rowIndex: i,
+        images: imagesForPreview
+      } as any); // TypeScript workaround for dynamic properties
+    }
+    
+    setPreviewProducts(previews);
+    setTotalRows(previews.length);
+    setValidRows(validCount);
+    setInvalidRows(invalidCount);
+    setUploadErrors(errors);
+    setShowPreview(true);
+    
+    if (invalidCount > 0) {
+      toast({
+        title: "Warning: Some products have errors",
+        description: `${invalidCount} out of ${previews.length} products have validation errors that need to be fixed.`,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Preview ready",
+        description: `${validCount} products validated successfully and ready for upload.`,
+        variant: "default",
+      });
+    }
+  };
 
   // Function to handle file selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -110,6 +301,29 @@ export default function BulkUploadPage() {
       }
       
       setFile(selectedFile);
+      
+      // Reset preview state
+      setShowPreview(false);
+      setPreviewProducts([]);
+      setUploadErrors([]);
+      
+      // For CSV files, we can generate preview immediately
+      if (selectedFile.name.endsWith('.csv')) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          if (!event.target?.result) return;
+          processCSVForPreview(event.target.result as string);
+        };
+        reader.readAsText(selectedFile);
+      } else {
+        // For Excel files, we would need a library like SheetJS/xlsx
+        // This is a simplified version that just acknowledges the file
+        toast({
+          title: "Excel file selected",
+          description: "Please click 'Preview Products' to process the file.",
+          variant: "default",
+        });
+      }
     }
   };
 
@@ -129,8 +343,8 @@ export default function BulkUploadPage() {
     });
   };
 
-  // Handle the upload process
-  const handleUpload = async () => {
+  // Handle the preview process
+  const handlePreviewAction = () => {
     if (!file) {
       toast({
         title: "No file selected",
@@ -140,170 +354,141 @@ export default function BulkUploadPage() {
       return;
     }
 
+    // Reset states
+    setShowPreview(false);
+    setPreviewProducts([]);
+    setUploadErrors([]);
+    
+    // Process the file for preview
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (!event.target?.result) return;
+      processCSVForPreview(event.target.result as string);
+    };
+    reader.readAsText(file);
+    
+    toast({
+      title: "Generating preview",
+      description: "Analyzing your data to check for any issues...",
+    });
+  };
+
+  // Handle the upload process with previously validated preview data
+  const handleUpload = async () => {
+    if (!file || !showPreview) {
+      toast({
+        title: "No preview available",
+        description: "Please select a file and generate a preview before uploading.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Check if there are invalid products
+    if (invalidRows > 0) {
+      toast({
+        title: "Cannot upload with errors",
+        description: `There are ${invalidRows} products with validation errors. Please fix them before uploading.`,
+        variant: "destructive",
+      });
+      // Show error details automatically if there are errors
+      setShowErrorDetails(true);
+      return;
+    }
+
     setIsUploading(true);
 
     try {
-      // Create form data to send file
-      const formData = new FormData();
-      formData.append('file', file);
-
-      // Send to API
-      const response = await fetch('/api/products/bulk-upload', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Upload failed');
-      }
-
-      // Parse the CSV file client-side to add products directly
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        if (!event.target?.result) return;
+      // Track successful uploads and errors
+      let successCount = 0;
+      let errorCount = 0;
+      const currentErrors: UploadError[] = [];
+      
+      // Upload each valid product from the preview
+      for (const product of previewProducts) {
+        if (!product.isValid) {
+          errorCount++;
+          continue;
+        }
         
-        const csvData = event.target.result as string;
-        const lines = csvData.split('\n');
-        const headers = parseCsvLine(lines[0]).map(h => h.trim());
-        
-        // Track successful uploads and errors
-        let successCount = 0;
-        let errorCount = 0;
-        
-        // Skip the header line and process each product line
-        for (let i = 1; i < lines.length; i++) {
-          if (!lines[i].trim()) continue; // Skip empty lines
+        try {
+          // Prepare product data for API
+          const productData = { ...product };
           
-          const values = parseCsvLine(lines[i]);
+          // Ensure we have seller ID
+          if (!productData.sellerId && user?.id) {
+            productData.sellerId = user.id;
+          }
           
-          // Prepare the base product data with required fields
-          const productData: Record<string, any> = {
-            name: "",
-            description: "",
-            price: 0,
-            category: "",
-            imageUrl: "",
-            stock: 0
-          };
-          
-          // Map CSV values to product schema fields
-          headers.forEach((header, index) => {
-            const value = values[index]?.trim();
-            if (!value) return; // Skip empty values
-            
-            // Handle numeric fields
-            if (['price', 'purchasePrice', 'stock', 'mrp', 'weight', 'length', 'width', 'height', 'warranty', 'returnPolicy', 'tax'].includes(header)) {
-              productData[header] = parseInt(value, 10);
-            } 
-            // Handle boolean fields
-            else if (header === 'approved') {
-              productData[header] = value.toLowerCase() === 'true';
-            }
-            // Handle image fields mapping - use the first one as the main image
-            else if (header === 'imageUrl1') {
-              // First image becomes the main imageUrl
-              productData.imageUrl = value;
-              
-              // Start the additional images array
-              if (!productData.images) {
-                productData.images = [];
-              }
-            }
-            // Handle additional image fields
-            else if (['imageUrl2', 'imageUrl3', 'imageUrl4'].includes(header) && value) {
-              if (!productData.images) {
-                productData.images = [];
-              }
-              productData.images.push(value);
-            }
-            // Handle product metadata fields that should be combined into a metadata object
-            else if (['brand', 'sku', 'hsn', 'productType'].includes(header)) {
-              if (!productData.metadata) {
-                productData.metadata = {};
-              }
-              productData.metadata[header] = value;
-            }
-            // All other fields
-            else {
-              productData[header] = value;
-            }
-          });
-          
-          // Convert images array to JSON string
+          // Convert any array properties to JSON strings
           if (productData.images && Array.isArray(productData.images)) {
             productData.images = JSON.stringify(productData.images);
           }
           
-          // Convert metadata object to JSON string if it exists
-          if (productData.metadata) {
-            productData.metadata = JSON.stringify(productData.metadata);
-          }
+          // Remove preview-specific properties that shouldn't be sent to API
+          const { isValid, errors, rowIndex, ...apiProductData } = productData;
           
-          // Ensure we have all required fields
-          if (!productData.name || !productData.description || !productData.price || 
-              !productData.category || !productData.imageUrl) {
-            console.error(`Row ${i} is missing required fields`);
+          const createResponse = await fetch('/api/products', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(apiProductData),
+            credentials: 'include'
+          });
+          
+          if (createResponse.ok) {
+            successCount++;
+          } else {
+            const errorData = await createResponse.json();
             errorCount++;
-            continue;
-          }
-          
-          // Create each product via API - use the current user's ID
-          try {
-            // Add the current user's ID to each product
-            if (user?.id) {
-              productData.sellerId = user.id;
-            }
-            
-            const createResponse = await fetch('/api/products', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(productData),
-              credentials: 'include'
+            currentErrors.push({
+              rowIndex: product.rowIndex,
+              productName: product.name,
+              errors: [errorData.error || 'API error']
             });
-            
-            if (createResponse.ok) {
-              successCount++;
-            } else {
-              const errorData = await createResponse.json();
-              console.error(`Error creating product (row ${i}):`, errorData);
-              errorCount++;
-            }
-          } catch (error) {
-            console.error(`Error creating product (row ${i}):`, error);
-            errorCount++;
+            console.error(`Error creating product (row ${product.rowIndex}):`, errorData);
           }
-        }
-        
-        setIsUploading(false);
-        setUploadSuccess(true);
-        
-        // Update the upload stats for displaying results
-        setUploadStats({
-          total: successCount + errorCount,
-          success: successCount,
-          failed: errorCount,
-          showResults: true
-        });
-        
-        if (errorCount > 0) {
-          toast({
-            title: "Upload partially successful",
-            description: `${successCount} products uploaded successfully. ${errorCount} products failed. Check console for details.`,
-            variant: "default",
+        } catch (error: any) {
+          errorCount++;
+          currentErrors.push({
+            rowIndex: product.rowIndex,
+            productName: product.name,
+            errors: [error.message || 'Unknown error']
           });
-        } else {
-          toast({
-            title: "Upload successful",
-            description: `${successCount} products have been uploaded and are pending approval.`,
-          });
+          console.error(`Error creating product (row ${product.rowIndex}):`, error);
         }
-      };
+      }
       
-      reader.readAsText(file);
+      setIsUploading(false);
+      setUploadSuccess(true);
+      
+      // Update the upload errors for detailed reporting
+      if (currentErrors.length > 0) {
+        setUploadErrors(currentErrors);
+        setShowErrorDetails(true);
+      }
+      
+      // Update the upload stats for displaying results
+      setUploadStats({
+        total: successCount + errorCount,
+        success: successCount,
+        failed: errorCount,
+        showResults: true
+      });
+      
+      if (errorCount > 0) {
+        toast({
+          title: "Upload partially successful",
+          description: `${successCount} products uploaded successfully. ${errorCount} products failed.`,
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "Upload successful",
+          description: `${successCount} products have been uploaded and are pending approval.`,
+        });
+      }
     } catch (error: any) {
       setIsUploading(false);
       toast({
@@ -318,6 +503,13 @@ export default function BulkUploadPage() {
   const resetUpload = () => {
     setFile(null);
     setUploadSuccess(false);
+    setShowPreview(false);
+    setPreviewProducts([]);
+    setTotalRows(0);
+    setValidRows(0);
+    setInvalidRows(0);
+    setUploadErrors([]);
+    setShowErrorDetails(false);
     setUploadStats({
       total: 0,
       success: 0,
@@ -523,7 +715,7 @@ export default function BulkUploadPage() {
                         Remove
                       </Button>
                       <Button
-                        onClick={handleUpload}
+                        onClick={showPreview ? handleUpload : handlePreviewAction}
                         disabled={isUploading}
                         className="bg-blue-500 hover:bg-blue-600 text-white"
                       >
@@ -532,10 +724,15 @@ export default function BulkUploadPage() {
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                             Processing...
                           </>
-                        ) : (
+                        ) : showPreview ? (
                           <>
                             <Upload className="h-4 w-4 mr-2" />
-                            Process Upload
+                            Confirm & Upload
+                          </>
+                        ) : (
+                          <>
+                            <FileText className="h-4 w-4 mr-2" />
+                            Preview Products
                           </>
                         )}
                       </Button>
@@ -545,6 +742,150 @@ export default function BulkUploadPage() {
               )}
             </div>
             
+            {/* Preview Section */}
+            {showPreview && previewProducts.length > 0 && (
+              <div className="mt-6 border rounded-md p-4">
+                <h3 className="font-medium text-lg mb-4">Product Preview</h3>
+                
+                <div className="grid grid-cols-3 gap-4 mb-4">
+                  <div className="bg-green-50 border border-green-100 rounded-md p-4 flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                    <div>
+                      <div className="text-green-600 font-medium">Valid Products</div>
+                      <div className="text-xl font-bold text-green-700">{validRows}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-red-50 border border-red-100 rounded-md p-4 flex items-center">
+                    <AlertCircle className="h-5 w-5 text-red-500 mr-3" />
+                    <div>
+                      <div className="text-red-600 font-medium">Products with Errors</div>
+                      <div className="text-xl font-bold text-red-700">{invalidRows}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-blue-50 border border-blue-100 rounded-md p-4 flex items-center">
+                    <InfoIcon className="h-5 w-5 text-blue-500 mr-3" />
+                    <div>
+                      <div className="text-blue-600 font-medium">Total Products</div>
+                      <div className="text-xl font-bold text-blue-700">{totalRows}</div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Preview Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse table-auto">
+                    <thead>
+                      <tr className="bg-muted">
+                        <th className="px-4 py-2 text-left">Row</th>
+                        <th className="px-4 py-2 text-left">Name</th>
+                        <th className="px-4 py-2 text-left">Category</th>
+                        <th className="px-4 py-2 text-right">Price</th>
+                        <th className="px-4 py-2 text-right">MRP</th>
+                        <th className="px-4 py-2 text-center">Stock</th>
+                        <th className="px-4 py-2 text-center">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewProducts.slice(0, 5).map((product) => (
+                        <tr 
+                          key={product.rowIndex} 
+                          className={`border-b ${product.isValid ? '' : 'bg-red-50'}`}
+                        >
+                          <td className="px-4 py-3">{product.rowIndex}</td>
+                          <td className="px-4 py-3 font-medium">{product.name}</td>
+                          <td className="px-4 py-3">{product.category}</td>
+                          <td className="px-4 py-3 text-right">₹{product.price?.toLocaleString('en-IN')}</td>
+                          <td className="px-4 py-3 text-right">{product.mrp ? `₹${product.mrp?.toLocaleString('en-IN')}` : '-'}</td>
+                          <td className="px-4 py-3 text-center">{product.stock}</td>
+                          <td className="px-4 py-3 text-center">
+                            {product.isValid ? (
+                              <span className="inline-flex items-center bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                                <Check className="h-3 w-3 mr-1" />
+                                Valid
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">
+                                <X className="h-3 w-3 mr-1" />
+                                Error
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                      {previewProducts.length > 5 && (
+                        <tr>
+                          <td colSpan={7} className="px-4 py-3 text-center text-muted-foreground">
+                            Showing 5 of {previewProducts.length} products...
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* Error Details Section */}
+                {invalidRows > 0 && (
+                  <div className="mt-6">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-medium text-lg">Error Details</h3>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setShowErrorDetails(!showErrorDetails)}
+                        className="text-sm flex items-center gap-1"
+                      >
+                        {showErrorDetails ? 'Hide Details' : 'Show Details'}
+                        {showErrorDetails ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 transform -rotate-90" />
+                        )}
+                      </Button>
+                    </div>
+                    
+                    {showErrorDetails && (
+                      <div className="border rounded-md overflow-hidden">
+                        {uploadErrors.map((error, index) => (
+                          <div 
+                            key={index} 
+                            className={`border-b last:border-0 p-3 ${index % 2 === 0 ? 'bg-muted/20' : ''}`}
+                          >
+                            <div className="flex items-start">
+                              <div className="bg-red-100 text-red-800 text-xs font-medium px-2 py-1 rounded mr-2">
+                                Row {error.rowIndex}
+                              </div>
+                              <div>
+                                <div className="font-medium">{error.productName || `Row ${error.rowIndex}`}</div>
+                                <ul className="mt-1 space-y-1 text-sm text-muted-foreground">
+                                  {error.errors.map((err, i) => (
+                                    <li key={i} className="flex items-start">
+                                      <span className="text-red-500 mr-1">•</span> {err}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {invalidRows > 0 && (
+                  <div className="mt-4 p-3 bg-orange-50 border border-orange-100 rounded text-sm flex items-start">
+                    <AlertCircle className="h-5 w-5 text-orange-500 mr-2 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-medium">Action Required:</span> Please fix the errors in your CSV file and reupload. 
+                      Products with errors will not be included in the upload.
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Upload Progress and Stats (when applicable) */}
             {uploadSuccess && uploadStats.showResults && (
               <div className="mt-6">
@@ -573,6 +914,47 @@ export default function BulkUploadPage() {
                     </div>
                   </div>
                 </div>
+                
+                {/* Error Details */}
+                {uploadStats.failed > 0 && uploadErrors.length > 0 && (
+                  <div className="mt-4">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowErrorDetails(!showErrorDetails)} 
+                      className="flex items-center"
+                    >
+                      {showErrorDetails ? 'Hide Error Details' : 'Show Error Details'}
+                      <ChevronDown className={`ml-2 h-4 w-4 transition-transform ${showErrorDetails ? 'rotate-180' : ''}`} />
+                    </Button>
+                    
+                    {showErrorDetails && (
+                      <div className="mt-3 border rounded-md">
+                        {uploadErrors.map((error, index) => (
+                          <div 
+                            key={index} 
+                            className={`border-t first:border-t-0 p-3 ${index % 2 === 0 ? 'bg-muted/20' : ''}`}
+                          >
+                            <div className="flex items-start">
+                              <div className="bg-red-100 text-red-800 text-xs font-medium px-2 py-1 rounded mr-2">
+                                Row {error.rowIndex}
+                              </div>
+                              <div>
+                                <div className="font-medium">{error.productName || `Row ${error.rowIndex}`}</div>
+                                <ul className="mt-1 space-y-1 text-sm text-muted-foreground">
+                                  {error.errors.map((err, i) => (
+                                    <li key={i} className="flex items-start">
+                                      <span className="text-red-500 mr-1">•</span> {err}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
             
