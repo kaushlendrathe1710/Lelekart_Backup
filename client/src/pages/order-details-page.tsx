@@ -15,12 +15,19 @@ interface Product {
   id: number;
   name: string;
   price: number;
-  image: string;
+  imageUrl?: string;
+  image_url?: string;
+  images?: string;
   description: string;
   category: string;
   sellerId: number;
   approved: boolean;
   createdAt: string;
+  specifications?: string;
+  purchasePrice?: number;
+  color?: string;
+  size?: string;
+  stock?: number;
 }
 
 interface OrderItem {
@@ -105,6 +112,37 @@ function getExpectedDeliveryDate(orderDate: string) {
   const date = new Date(orderDate);
   date.setDate(date.getDate() + 7);
   return formatDate(date.toISOString());
+}
+
+// Helper to get the product image URL from various sources
+function getProductImageUrl(product: Product): string {
+  // First try to use imageUrl (camelCase)
+  if (product.imageUrl) {
+    return product.imageUrl;
+  }
+  
+  // Then try image_url (snake_case)
+  if (product.image_url) {
+    return product.image_url;
+  }
+  
+  // Then try to parse images JSON array and get first image
+  if (product.images) {
+    try {
+      // If it's already a string, parse it
+      if (typeof product.images === 'string') {
+        const parsedImages = JSON.parse(product.images);
+        if (parsedImages && Array.isArray(parsedImages) && parsedImages.length > 0) {
+          return parsedImages[0];
+        }
+      }
+    } catch (error) {
+      console.error("Failed to parse product images:", error);
+    }
+  }
+  
+  // Fallback to placeholder
+  return 'https://via.placeholder.com/80?text=Product';
 }
 
 export default function OrderDetailsPage() {
@@ -330,9 +368,14 @@ export default function OrderDetailsPage() {
                 <div className="md:w-1/6 mb-4 md:mb-0">
                   <div className="relative h-24 w-24 overflow-hidden rounded-md border">
                     <img
-                      src={item.product.image}
+                      src={getProductImageUrl(item.product)}
                       alt={item.product.name}
                       className="h-full w-full object-cover"
+                      onError={(e) => {
+                        console.log("Image load error for:", item.product.name);
+                        const target = e.target as HTMLImageElement;
+                        target.src = 'https://via.placeholder.com/80?text=Product';
+                      }}
                     />
                   </div>
                 </div>
