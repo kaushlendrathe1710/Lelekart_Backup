@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Package2, Truck, ClipboardCheck, Clock, MapPin, User, Phone, Mail, FileText, Download, Printer } from "lucide-react";
+import { Package2, Truck, ClipboardCheck, Clock, MapPin, User, Phone, Mail, FileText, Download, Printer, X, RefreshCw, MessageSquare } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -497,10 +497,190 @@ export default function OrderDetailsPage() {
         <div className="mt-8 p-6 bg-muted rounded-lg">
           <h2 className="text-lg font-semibold mb-4">Need Help?</h2>
           <div className="flex flex-col md:flex-row gap-4">
-            <Button variant="outline">Track Order</Button>
-            <Button variant="outline">Cancel Order</Button>
-            <Button variant="outline">Return or Exchange</Button>
-            <Button variant="outline">Contact Support</Button>
+            <Button 
+              variant="outline" 
+              className="flex items-center gap-2"
+              onClick={() => {
+                const shipmentTrackingDialog = () => {
+                  toast({
+                    title: "Track Your Order",
+                    description: `Your order #${order.id} is currently ${order.status}. We'll update you when there's a change in status.`,
+                    variant: "default",
+                  });
+                };
+                
+                // For orders in delivered/cancelled state - show different message
+                if (order.status.toLowerCase() === 'delivered') {
+                  toast({
+                    title: "Order Delivered",
+                    description: `Your order #${order.id} has been delivered successfully.`,
+                    variant: "default",
+                  });
+                } else if (order.status.toLowerCase() === 'cancelled') {
+                  toast({
+                    title: "Order Cancelled",
+                    description: `Your order #${order.id} has been cancelled.`,
+                    variant: "default",
+                  });
+                } else {
+                  shipmentTrackingDialog();
+                }
+              }}
+            >
+              <Truck className="h-4 w-4" /> Track Order
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              className="flex items-center gap-2"
+              disabled={['delivered', 'cancelled'].includes(order.status.toLowerCase())}
+              onClick={() => {
+                if (['delivered', 'cancelled'].includes(order.status.toLowerCase())) {
+                  toast({
+                    title: "Cannot Cancel Order",
+                    description: `Orders that are already ${order.status} cannot be cancelled.`,
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                
+                // Open a confirmation dialog
+                if (confirm(`Are you sure you want to cancel order #${order.id}? This action cannot be undone.`)) {
+                  // Call API to cancel order
+                  fetch(`/api/orders/${order.id}/cancel`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                  })
+                  .then(response => {
+                    if (response.ok) {
+                      toast({
+                        title: "Order Cancelled",
+                        description: "Your order has been cancelled successfully. Refund will be processed within 5-7 business days.",
+                        variant: "default",
+                      });
+                      
+                      // Update local state to show cancelled status
+                      setOrder({
+                        ...order,
+                        status: 'cancelled'
+                      });
+                    } else {
+                      throw new Error("Failed to cancel order");
+                    }
+                  })
+                  .catch(error => {
+                    console.error("Error cancelling order:", error);
+                    toast({
+                      title: "Failed to Cancel Order",
+                      description: "There was an error cancelling your order. Please try again or contact customer support.",
+                      variant: "destructive",
+                    });
+                  });
+                }
+              }}
+            >
+              <X className="h-4 w-4" /> Cancel Order
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              className="flex items-center gap-2"
+              disabled={!['delivered'].includes(order.status.toLowerCase())}
+              onClick={() => {
+                if (!['delivered'].includes(order.status.toLowerCase())) {
+                  toast({
+                    title: "Return Not Available",
+                    description: "You can only return or exchange items from delivered orders.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                
+                // Calculate if within return window (10 days from delivery)
+                const deliveryDate = new Date(order.date);
+                deliveryDate.setDate(deliveryDate.getDate() + 7); // Assuming delivery 7 days after order
+                const returnWindowEnd = new Date(deliveryDate);
+                returnWindowEnd.setDate(returnWindowEnd.getDate() + 10);
+                
+                const now = new Date();
+                if (now > returnWindowEnd) {
+                  toast({
+                    title: "Return Period Expired",
+                    description: "The 10-day return period for this order has expired. Please contact customer support for assistance.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                
+                // Show a return dialog - in real app this would open a modal with product selection
+                toast({
+                  title: "Initiate Return/Exchange",
+                  description: "To process your return or exchange, please select the items you wish to return and the reason for return. A customer service representative will contact you shortly.",
+                  variant: "default",
+                  duration: 5000,
+                });
+                
+                // Navigate to returns page (would be implemented in a real app)
+                setTimeout(() => {
+                  navigate(`/returns/new?orderId=${order.id}`);
+                }, 2000);
+              }}
+            >
+              <RefreshCw className="h-4 w-4" /> Return or Exchange
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              className="flex items-center gap-2"
+              onClick={() => {
+                // Show contact options
+                toast({
+                  title: "Contact Customer Support",
+                  description: "Our customer support team is available 24/7. Select your preferred contact method.",
+                  variant: "default",
+                  duration: 5000,
+                });
+                
+                // Create a popup with contact methods
+                const supportOptions = `
+                  <div class="support-options">
+                    <h3>Contact Us</h3>
+                    <p><strong>Email:</strong> support@lelekart.com</p>
+                    <p><strong>Phone:</strong> 1800-202-9898 (Toll Free)</p>
+                    <p><strong>Hours:</strong> 24x7 Available</p>
+                    <p>Please have your Order ID (#${order.id}) ready when contacting support</p>
+                  </div>
+                `;
+                
+                const supportWindow = window.open('', 'Contact Support', 'width=400,height=300');
+                if (supportWindow) {
+                  supportWindow.document.write(`
+                    <html>
+                      <head>
+                        <title>Contact Support</title>
+                        <style>
+                          body { font-family: Arial, sans-serif; padding: 20px; }
+                          .support-options { max-width: 400px; margin: 0 auto; }
+                          h3 { color: #2563eb; }
+                          p { margin: 10px 0; }
+                        </style>
+                      </head>
+                      <body>
+                        ${supportOptions}
+                      </body>
+                    </html>
+                  `);
+                } else {
+                  // Fallback if popup blocked
+                  alert("Contact customer support at: support@lelekart.com or call 1800-202-9898 (Toll Free)");
+                }
+              }}
+            >
+              <MessageSquare className="h-4 w-4" /> Contact Support
+            </Button>
           </div>
         </div>
 
