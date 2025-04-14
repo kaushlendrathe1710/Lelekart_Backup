@@ -440,74 +440,131 @@ const SellerProfilePage = () => {
           
           <TabsContent value="documents">
             <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-semibold flex items-center">
-                  <FileText className="mr-2 h-6 w-6" /> Business Documents
-                </h2>
-                <Button onClick={() => setIsUploadDocumentOpen(true)}>
-                  <Upload className="mr-2 h-4 w-4" /> Upload New Document
+              <div className="flex items-center space-x-4 border-b pb-4">
+                <Button variant="outline" className="bg-primary text-primary-foreground">
+                  Business Info
+                </Button>
+                <Button variant="outline">
+                  Address
+                </Button>
+                <Button variant="outline">
+                  Banking Details
+                </Button>
+                <Button variant="outline">
+                  Documents
                 </Button>
               </div>
               
-              <p className="text-muted-foreground">Your business verification documents</p>
-              
-              <div className="grid md:grid-cols-2 gap-4">
-                {isLoadingDocuments ? (
-                  <div className="animate-pulse space-y-3">
-                    <div className="h-6 bg-muted rounded w-3/4"></div>
-                    <div className="h-6 bg-muted rounded w-1/2"></div>
-                    <div className="h-6 bg-muted rounded w-5/6"></div>
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold">Verification Documents</h2>
+                <p className="text-muted-foreground">Upload documents to verify your business. These documents will be reviewed by our team as part of the verification process.</p>
+                
+                <div className="grid md:grid-cols-2 gap-6 mt-6">
+                  {/* GST Certificate Card */}
+                  <div className="border rounded-md">
+                    <div className="p-4 border-b">
+                      <h3 className="font-medium">GST Certificate</h3>
+                      <p className="text-sm text-muted-foreground mt-1">Upload your GST Certificate for tax verification</p>
+                    </div>
+                    
+                    <div className="p-8 flex flex-col items-center justify-center">
+                      <div className="h-12 w-12 flex items-center justify-center rounded-full border-2 border-blue-500 mb-4">
+                        <Upload className="h-6 w-6 text-blue-500" />
+                      </div>
+                      <Button 
+                        variant="link" 
+                        className="text-blue-500 font-medium p-0 h-auto"
+                        onClick={() => {
+                          setDocumentType("GST Certificate");
+                          setIsUploadDocumentOpen(true);
+                        }}
+                      >
+                        Click to upload
+                      </Button>
+                      <p className="text-xs text-muted-foreground mt-1">PDF, JPG or PNG (max. 5MB)</p>
+                    </div>
                   </div>
-                ) : documents && documents.length > 0 ? (
-                  documents.map((doc: any) => (
-                    <Card key={doc.id}>
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start">
-                          <div className="flex items-center">
-                            <FileText className="h-10 w-10 text-primary mr-3" />
-                            <div>
-                              <h3 className="font-medium">{doc.documentType}</h3>
-                              <p className="text-sm text-muted-foreground">{doc.documentName}</p>
-                              <div className="flex items-center mt-1">
-                                <Clock className="h-3 w-3 mr-1" />
-                                <span className="text-xs text-muted-foreground">
-                                  Uploaded {new Date(doc.uploadedAt).toLocaleDateString()}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex flex-col items-end">
-                            <Badge variant={doc.verified ? "default" : "outline"}>
-                              {doc.verified ? "Verified" : "Pending"}
-                            </Badge>
-                            <div className="flex mt-2">
-                              <Button variant="ghost" size="sm" asChild>
-                                <a href={doc.documentUrl} target="_blank" rel="noopener noreferrer">
-                                  <FileText className="h-4 w-4" />
-                                </a>
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
-                ) : (
-                  <div className="col-span-2">
-                    <Card>
-                      <CardContent className="p-6 text-center">
-                        <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="text-xl font-medium mb-2">No Documents Uploaded Yet</h3>
-                        <p className="text-muted-foreground mb-4">
-                          Upload your business verification documents to complete your seller profile.
-                        </p>
-                        <Button onClick={() => setIsUploadDocumentOpen(true)}>
-                          <Upload className="mr-2 h-4 w-4" /> Upload Document
-                        </Button>
-                      </CardContent>
-                    </Card>
+                  
+                  {/* PAN Card */}
+                  <div className="border rounded-md">
+                    <div className="p-4 border-b">
+                      <h3 className="font-medium">PAN Card</h3>
+                      <p className="text-sm text-muted-foreground mt-1">Upload your PAN Card for identity verification</p>
+                    </div>
+                    
+                    <div className="p-8 flex flex-col items-center justify-center">
+                      <div className="h-12 w-12 flex items-center justify-center rounded-full border-2 border-blue-500 mb-4">
+                        <Upload className="h-6 w-6 text-blue-500" />
+                      </div>
+                      <Button 
+                        variant="link" 
+                        className="text-blue-500 font-medium p-0 h-auto"
+                        onClick={() => {
+                          setDocumentType("PAN Card");
+                          setIsUploadDocumentOpen(true);
+                        }}
+                      >
+                        Click to upload
+                      </Button>
+                      <p className="text-xs text-muted-foreground mt-1">PDF, JPG or PNG (max. 5MB)</p>
+                    </div>
                   </div>
-                )}
+                  
+                  {/* Address Proof */}
+                  <div className="border rounded-md">
+                    <div className="p-4 border-b">
+                      <h3 className="font-medium">Address Proof</h3>
+                      <p className="text-sm text-muted-foreground mt-1">Upload a document as proof of your business address</p>
+                    </div>
+                    
+                    <div className="p-8 flex flex-col items-center justify-center">
+                      <div className="h-12 w-12 flex items-center justify-center rounded-full border-2 border-blue-500 mb-4">
+                        <Upload className="h-6 w-6 text-blue-500" />
+                      </div>
+                      <Button 
+                        variant="link" 
+                        className="text-blue-500 font-medium p-0 h-auto"
+                        onClick={() => {
+                          setDocumentType("Address Proof");
+                          setIsUploadDocumentOpen(true);
+                        }}
+                      >
+                        Click to upload
+                      </Button>
+                      <p className="text-xs text-muted-foreground mt-1">PDF, JPG or PNG (max. 5MB)</p>
+                    </div>
+                  </div>
+                  
+                  {/* Letter of Incorporation */}
+                  <div className="border rounded-md">
+                    <div className="p-4 border-b">
+                      <h3 className="font-medium">Letter of Incorporation</h3>
+                      <p className="text-sm text-muted-foreground mt-1">Upload your company's Letter of Incorporation (Optional)</p>
+                    </div>
+                    
+                    <div className="p-8 flex flex-col items-center justify-center">
+                      <div className="h-12 w-12 flex items-center justify-center rounded-full border-2 border-blue-500 mb-4">
+                        <Upload className="h-6 w-6 text-blue-500" />
+                      </div>
+                      <Button 
+                        variant="link" 
+                        className="text-blue-500 font-medium p-0 h-auto"
+                        onClick={() => {
+                          setDocumentType("Letter of Incorporation");
+                          setIsUploadDocumentOpen(true);
+                        }}
+                      >
+                        Click to upload
+                      </Button>
+                      <p className="text-xs text-muted-foreground mt-1">PDF, JPG or PNG (max. 5MB)</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end gap-2 mt-8">
+                  <Button variant="outline" className="px-6">Cancel</Button>
+                  <Button variant="default" className="bg-blue-500 hover:bg-blue-600 px-6">Save Profile</Button>
+                </div>
               </div>
             </div>
           </TabsContent>
