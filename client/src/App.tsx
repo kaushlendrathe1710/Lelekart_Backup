@@ -14,6 +14,7 @@ import OrdersPage from './pages/orders-page';
 import OrderDetailsPage from './pages/order-details-page';
 import OrderConfirmationPage from './pages/order-confirmation-page';
 import CategoryPage from './pages/category-page';
+import AllProductsPage from './pages/all-products-page';
 import NotFound from './pages/not-found';
 import { Layout } from './components/layout/layout';
 import { ProtectedRoute } from './lib/protected-route';
@@ -88,6 +89,23 @@ function App() {
                     {() => (
                       <Layout>
                         <SearchResultsPage />
+                      </Layout>
+                    )}
+                  </Route>
+                  
+                  {/* All Products Page with pagination */}
+                  <Route path="/products">
+                    {() => (
+                      <Layout>
+                        <AllProductsPage />
+                      </Layout>
+                    )}
+                  </Route>
+                  
+                  <Route path="/products/page/:page">
+                    {() => (
+                      <Layout>
+                        <AllProductsPage />
                       </Layout>
                     )}
                   </Route>
