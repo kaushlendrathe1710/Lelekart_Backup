@@ -496,7 +496,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               if (seller) {
                 return {
                   ...product,
-                  sellerName: seller.username || "Unknown Seller"
+                  sellerName: seller.username || "Unknown Seller",
+                  seller: seller
                 };
               }
             } catch (error) {
@@ -506,7 +507,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           return {
             ...product,
-            sellerName: "Unknown Seller"
+            sellerName: "Unknown Seller",
+            seller: { username: "Unknown Seller" }
           };
         })
       );
