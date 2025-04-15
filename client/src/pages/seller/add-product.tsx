@@ -67,11 +67,21 @@ const productSchema = z.object({
   stock: z.string().refine((val) => !isNaN(parseInt(val)) && parseInt(val) >= 0, {
     message: "Stock must be a non-negative number",
   }),
-  weight: z.string().optional(),
-  height: z.string().optional(),
-  width: z.string().optional(),
-  length: z.string().optional(),
-  warranty: z.string().optional(),
+  weight: z.string().refine((val) => !val || !isNaN(parseFloat(val)), {
+    message: "Weight must be a valid number",
+  }).optional(),
+  height: z.string().refine((val) => !val || !isNaN(parseFloat(val)), {
+    message: "Height must be a valid number",
+  }).optional(),
+  width: z.string().refine((val) => !val || !isNaN(parseFloat(val)), {
+    message: "Width must be a valid number",
+  }).optional(),
+  length: z.string().refine((val) => !val || !isNaN(parseFloat(val)), {
+    message: "Length must be a valid number",
+  }).optional(),
+  warranty: z.string().refine((val) => !val || !isNaN(parseInt(val)), {
+    message: "Warranty must be a valid number of months",
+  }).optional(),
   hsn: z.string().optional(),
   tax: z.string().min(1, "Please select a tax bracket"),
   productType: z.string().min(1, "Please select a product type"),
@@ -79,6 +89,9 @@ const productSchema = z.object({
 }).refine((data) => parseFloat(data.mrp) >= parseFloat(data.price), {
   message: "MRP must be greater than or equal to the selling price",
   path: ["mrp"],
+}).refine((data) => parseFloat(data.price) >= parseFloat(data.purchasePrice), {
+  message: "Selling price must be greater than or equal to the purchase price",
+  path: ["price"],
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -823,14 +836,39 @@ export default function AddProductPage() {
                           name="warranty"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>
+                              <FormLabel className="flex items-center gap-2">
                                 Warranty Period
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="cursor-help">
+                                        <Info className="h-4 w-4 text-blue-500" />
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                      <p>Enter warranty duration in months, not years.</p>
+                                      <p className="mt-1">Examples: 12 months (1 year), 24 months (2 years), etc.</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               </FormLabel>
-                              <FormControl>
-                                <Input placeholder="e.g. 12 (warranty in months)" {...field} />
-                              </FormControl>
-                              <FormDescription>
-                                Enter warranty period in months (e.g. 12 for 1 year)
+                              <div className="flex">
+                                <FormControl>
+                                  <div className="relative">
+                                    <Input 
+                                      placeholder="e.g. 12" 
+                                      type="number" 
+                                      className="pr-16" 
+                                      {...field} 
+                                    />
+                                    <div className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground pointer-events-none bg-muted border-l rounded-r-md">
+                                      months
+                                    </div>
+                                  </div>
+                                </FormControl>
+                              </div>
+                              <FormDescription className="text-amber-600 font-medium">
+                                Important: Enter warranty period in months (e.g. 12 for 1 year, 24 for 2 years)
                               </FormDescription>
                               <FormMessage />
                             </FormItem>
@@ -1099,10 +1137,15 @@ export default function AddProductPage() {
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>
-                                  Weight (kg)
+                                  Weight
                                 </FormLabel>
                                 <FormControl>
-                                  <Input type="number" min="0" step="0.01" placeholder="e.g. 0.5" {...field} />
+                                  <div className="relative">
+                                    <Input type="number" min="0" step="0.01" placeholder="e.g. 0.5" className="pr-12" {...field} />
+                                    <div className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground pointer-events-none bg-muted border-l rounded-r-md">
+                                      kg
+                                    </div>
+                                  </div>
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
