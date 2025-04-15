@@ -1201,7 +1201,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Create the co-admin with a random password since we're using OTP
-      const randomPassword = require('crypto').randomBytes(16).toString('hex');
+      const randomPassword = Array.from(Array(20), () => Math.floor(Math.random() * 36).toString(36)).join('');
       
       // Create the co-admin
       const newCoAdmin = await storage.createUser({
