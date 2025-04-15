@@ -1057,28 +1057,9 @@ export default function AddProductPage() {
                 </CardContent>
               </Card>
               
-              {/* Submit Button */}
+              {/* Note about product review */}
               <div className="mt-8 flex flex-col gap-4">
-                <Button 
-                  type="submit" 
-                  size="lg" 
-                  className="w-full md:w-auto md:self-end bg-green-600 hover:bg-green-700 text-white"
-                  disabled={createProductMutation.isPending}
-                  onClick={form.handleSubmit(onSubmit)}
-                >
-                  {createProductMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Submitting Product...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Submit Product
-                    </>
-                  )}
-                </Button>
-                <p className="text-sm text-muted-foreground text-center md:text-right">
+                <p className="text-sm text-muted-foreground text-center">
                   Your product will be reviewed by our team before being published.
                 </p>
               </div>
