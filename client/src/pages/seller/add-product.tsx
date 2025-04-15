@@ -1181,7 +1181,7 @@ export default function AddProductPage() {
                         <li>Set competitive prices to match market rates</li>
                         <li>MRP must be equal to or higher than selling price</li>
                         <li>Consider shipping costs when setting prices</li>
-                        <li>Flipkart charges commission based on category</li>
+                        <li>Lelekart charges commission based on category</li>
                       </ul>
                     </AccordionContent>
                   </AccordionItem>

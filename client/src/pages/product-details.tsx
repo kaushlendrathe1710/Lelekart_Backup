@@ -591,7 +591,7 @@ export default function ProductDetailsPage() {
                     <Star className="h-3 w-3 ml-1 fill-current" />
                   </div>
                   <span className="text-gray-500 text-sm ml-2">(1,248 Ratings & 235 Reviews)</span>
-                  <span className="text-green-600 text-sm ml-auto">Flipkart Assured</span>
+                  <span className="text-green-600 text-sm ml-auto">Lelekart Assured</span>
                 </div>
                 
                 {/* Special Offer */}

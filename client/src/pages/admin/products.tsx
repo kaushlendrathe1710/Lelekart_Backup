@@ -552,7 +552,7 @@ function AdminProductsContent() {
                               const categoryImage = `../images/${(product.category || 'general').toLowerCase()}.svg`;
                               const genericFallback = "https://placehold.co/100?text=No+Image";
                               
-                              // If this is a Flipkart image, use our proxy
+                              // If this is a Lelekart image, use our proxy
                               const useProxy = imageSrc && (imageSrc.includes('flixcart.com') || imageSrc.includes('flipkart.com'));
                               const displaySrc = useProxy 
                                 ? `/api/image-proxy?url=${encodeURIComponent(imageSrc)}&category=${encodeURIComponent(product.category || 'general')}`
