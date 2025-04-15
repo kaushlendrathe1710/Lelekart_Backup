@@ -1340,6 +1340,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Create a new user (buyer or seller)
+  app.post("/api/users", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+    
+    try {
+      const { email, username, role } = req.body;
+      
+      if (!email || !username || !role) {
+        return res.status(400).json({ error: "Email, username, and role are required" });
+      }
+      
+      if (role !== 'buyer' && role !== 'seller') {
+        return res.status(400).json({ error: "Role must be either 'buyer' or 'seller'" });
+      }
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ error: "User with this email already exists" });
+      }
+      
+      // Create a random password since we're using OTP authentication
+      const randomPassword = Array.from(Array(20), () => Math.floor(Math.random() * 36).toString(36)).join('');
+      
+      // Create the user
+      const newUser = await storage.createUser({
+        email,
+        username,
+        password: randomPassword, // Use random password since authentication is via OTP
+        role,
+        isCoAdmin: false,
+        permissions: {},
+        approved: role === 'buyer', // Buyers are auto-approved, sellers need approval
+        rejected: false
+      });
+      
+      res.status(201).json(newUser);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(500).json({ error: "Failed to create user" });
+    }
+  });
+
   // Update co-admin permissions
   app.put("/api/co-admins/:id/permissions", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

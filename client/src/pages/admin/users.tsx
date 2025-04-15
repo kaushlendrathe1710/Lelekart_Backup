@@ -328,7 +328,7 @@ export default function AdminUsers() {
                   )}
                   Refresh
                 </Button>
-                <Button size="sm">
+                <Button size="sm" onClick={() => window.location.href = "/admin/create-user"}>
                   <UserPlus className="mr-2 h-4 w-4" />
                   Add User
                 </Button>
