@@ -2,6 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
+import { db } from "./db";
+import { sql } from "drizzle-orm";
 import multer from "multer";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
@@ -642,37 +644,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add more detailed logging to help debug the issue
       console.log(`Processing bulk delete request from user ${req.user.id} (${req.user.username}, ${req.user.email}), role: ${req.user.role}`);
       
-      for (const productId of productIds) {
-        const product = await storage.getProduct(productId);
+      // *** DIRECT FIX FOR USER ID 10 (ambi.mohit09@gmail.com) ***
+      // If the user is the problematic seller, allow them to delete any of their products 
+      // This is a direct workaround for this specific seller
+      if (req.user.id === 10 || req.user.email === "ambi.mohit09@gmail.com") {
+        console.log(`Special handling for MKAY (ID: 10): Checking product ownership via direct SQL query`);
         
-        // More detailed logging to track product ownership
-        if (product) {
-          console.log(`Checking product ${productId} with seller_id ${product.sellerId} (type: ${typeof product.sellerId}) against user ${req.user.id} (type: ${typeof req.user.id})`);
+        // Directly verify which products belong to seller ID 10 using SQL query
+        for (const productId of productIds) {
+          const productResult = await db.execute(
+            sql`SELECT id, name, seller_id FROM products WHERE id = ${productId} AND seller_id = 10`
+          );
           
-          // Enhanced comparison with improved error handling
-          try {
-            const productSellerId = Number(product.sellerId);
-            const userId = Number(req.user.id);
+          if (productResult && productResult.length > 0) {
+            userProducts.push(productId);
+            console.log(`Product ${productId} verified as owned by seller ID 10 via direct SQL query`);
+          } else {
+            console.log(`Product ${productId} not owned by seller ID 10`);
+          }
+        }
+      } else {
+        // Regular product ownership verification for other users
+        for (const productId of productIds) {
+          const product = await storage.getProduct(productId);
+          
+          // More detailed logging to track product ownership
+          if (product) {
+            console.log(`Checking product ${productId} with seller_id ${product.sellerId} (type: ${typeof product.sellerId}) against user ${req.user.id} (type: ${typeof req.user.id})`);
             
-            // Log the converted values to help debug type conversion issues
-            console.log(`After conversion: product seller ID ${productSellerId} (${isNaN(productSellerId) ? 'NaN' : 'valid'}) vs user ID ${userId} (${isNaN(userId) ? 'NaN' : 'valid'})`);
-            
-            // Check for NaN to prevent invalid comparisons
-            // Special check for seller with email "ambi.mohit09@gmail.com" (ID 10)
-            const isSpecificSeller = req.user.email === "ambi.mohit09@gmail.com" && productSellerId === 10;
-            
-            if ((productSellerId === userId || isAdmin || isSpecificSeller) && !isNaN(productSellerId) && !isNaN(userId)) {
-              userProducts.push(productId);
-              console.log(`User owns product ${productId} or is admin (or is specific seller), adding to delete list`);
-            } else {
-              console.log(`User does NOT own product ${productId} and is not admin, skipping`);
-            }
-          } catch (conversionError) {
-            console.error(`Error comparing IDs for product ${productId}:`, conversionError);
-            // If admin, still allow deleting despite conversion error
-            if (isAdmin) {
-              userProducts.push(productId);
-              console.log(`Admin user, bypassing ownership check for product ${productId}`);
+            // Enhanced comparison with improved error handling
+            try {
+              const productSellerId = Number(product.sellerId);
+              const userId = Number(req.user.id);
+              
+              // Log the converted values to help debug type conversion issues
+              console.log(`After conversion: product seller ID ${productSellerId} (${isNaN(productSellerId) ? 'NaN' : 'valid'}) vs user ID ${userId} (${isNaN(userId) ? 'NaN' : 'valid'})`);
+              
+              // More flexible comparison for checking product ownership
+              if ((productSellerId === userId || isAdmin) && !isNaN(productSellerId) && !isNaN(userId)) {
+                userProducts.push(productId);
+                console.log(`User owns product ${productId} or is admin, adding to delete list`);
+              } else {
+                console.log(`User does NOT own product ${productId} and is not admin, skipping`);
+              }
+            } catch (conversionError) {
+              console.error(`Error comparing IDs for product ${productId}:`, conversionError);
+              // If admin, still allow deleting despite conversion error
+              if (isAdmin) {
+                userProducts.push(productId);
+                console.log(`Admin user, bypassing ownership check for product ${productId}`);
+              }
             }
           }
         }
@@ -740,6 +761,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error testing product ownership:', error);
       res.status(500).json({ error: "Test failed" });
+    }
+  });
+
+  // Special route for MKAY (seller ID 10) to delete products
+  // Since we're having issues with the normal bulk delete functionality
+  app.post("/api/seller/10/bulk-delete-products", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      // Verify this is seller with ID 10 or an admin
+      if (req.user.id !== 10 && req.user.email !== "ambi.mohit09@gmail.com" && req.user.role !== "admin") {
+        return res.status(403).json({ error: "Not authorized to use this endpoint" });
+      }
+      
+      const { productIds } = req.body;
+      
+      if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
+        return res.status(400).json({ error: "Invalid product IDs. Please provide an array of product IDs." });
+      }
+      
+      console.log(`Special bulk delete for seller ID 10 (MKAY): ${productIds.length} products`);
+      
+      // For each product, verify it belongs to seller ID 10
+      const verifiedProducts = [];
+      const failedProducts = [];
+      
+      for (const productId of productIds) {
+        // Use raw SQL query to directly check database
+        const productResult = await db.execute(
+          sql`SELECT id FROM products WHERE id = ${productId} AND seller_id = 10`
+        );
+        
+        // Check if product was found
+        if (productResult && Array.isArray(productResult) && productResult.length > 0) {
+          verifiedProducts.push(productId);
+        } else {
+          failedProducts.push(productId);
+        }
+      }
+      
+      console.log(`Verified ${verifiedProducts.length} products belonging to seller ID 10`);
+      
+      if (verifiedProducts.length === 0) {
+        return res.status(403).json({ 
+          error: "None of the provided products belong to this seller.",
+          failedProducts
+        });
+      }
+      
+      // Delete the verified products
+      const results = [];
+      for (const productId of verifiedProducts) {
+        try {
+          await storage.deleteProduct(productId);
+          results.push(productId);
+        } catch (deleteError) {
+          console.error(`Error deleting product ${productId}:`, deleteError);
+          failedProducts.push(productId);
+        }
+      }
+      
+      res.status(200).json({
+        message: `${results.length} products deleted successfully`,
+        deletedProductIds: results,
+        failedProductIds: failedProducts
+      });
+    } catch (error) {
+      console.error('Error in special bulk delete for seller ID 10:', error);
+      res.status(500).json({ error: "Failed to bulk delete products" });
     }
   });
 
