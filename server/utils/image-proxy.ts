@@ -16,6 +16,7 @@ export async function handleImageProxy(req: Request, res: Response) {
     const url = new URL(imageUrl);
     // Only allow specific domains
     if (!url.hostname.includes('flixcart.com') && 
+        !url.hostname.includes('lelekart.com') &&
         !url.hostname.includes('flipkart.com')) {
       return res.status(403).send('Unauthorized domain');
     }
@@ -26,7 +27,7 @@ export async function handleImageProxy(req: Request, res: Response) {
         responseType: 'arraybuffer',
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-          'Referer': 'https://www.flipkart.com/'
+          'Referer': 'https://www.lelekart.com/'
         },
         timeout: 5000 // 5-second timeout
       });

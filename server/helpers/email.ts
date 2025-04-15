@@ -9,7 +9,7 @@ const EMAIL_HOST = process.env.EMAIL_HOST || '';
 const EMAIL_PORT = process.env.EMAIL_PORT ? parseInt(process.env.EMAIL_PORT) : 587;
 const EMAIL_USER = process.env.EMAIL_USER || '';
 const EMAIL_PASS = process.env.EMAIL_PASS || '';
-const EMAIL_FROM = process.env.EMAIL_FROM || 'noreply@flipkart-clone.com';
+const EMAIL_FROM = process.env.EMAIL_FROM || 'noreply@lelekart.com';
 
 // Log email configuration (without exposing password)
 console.log(`Email configuration: HOST=${EMAIL_HOST}, PORT=${EMAIL_PORT}, USER=${EMAIL_USER}, FROM=${EMAIL_FROM}`);
@@ -111,17 +111,17 @@ export async function sendOTPEmail(email: string, otp: string): Promise<void> {
     const info = await transporter.sendMail({
       from: EMAIL_FROM,
       to: email,
-      subject: 'Your Flipkart Clone Login OTP',
+      subject: 'Your Lelekart Login OTP',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
           <div style="text-align: center; margin-bottom: 20px;">
-            <h1 style="color: #2874f0; margin-bottom: 10px;">Flipkart Clone</h1>
+            <h1 style="color: #2874f0; margin-bottom: 10px;">Lelekart</h1>
             <p style="font-size: 18px; font-weight: bold;">Your One-Time Password (OTP)</p>
           </div>
           <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; text-align: center; margin-bottom: 20px;">
             <p style="font-size: 24px; font-weight: bold; letter-spacing: 5px; margin: 0;">${otp}</p>
           </div>
-          <p>Use this OTP to login to your Flipkart Clone account. This OTP is valid for 10 minutes.</p>
+          <p>Use this OTP to login to your Lelekart account. This OTP is valid for 10 minutes.</p>
           <p>If you didn't request this OTP, please ignore this email.</p>
           <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center; color: #888;">
             <p>This is an automated email, please do not reply.</p>
