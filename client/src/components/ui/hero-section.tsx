@@ -107,23 +107,26 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
 
   // Set up autoplay
   useEffect(() => {
-    const startAutoplay = () => {
-      intervalRef.current = window.setInterval(() => {
-        goToSlide(currentSlide + 1);
-      }, 5000);
+    // Function to advance to the next slide
+    const advanceSlide = () => {
+      setCurrentSlide(prevSlide => {
+        const nextSlide = prevSlide + 1 >= sliderImages.length ? 0 : prevSlide + 1;
+        
+        // Update the transform directly
+        if (sliderRef.current) {
+          sliderRef.current.style.transform = `translateX(-${nextSlide * 100}%)`;
+        }
+        
+        return nextSlide;
+      });
     };
 
-    const stopAutoplay = () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-
-    startAutoplay();
-
-    return () => stopAutoplay();
-  }, [currentSlide]);
+    // Start autoplay with 5 second intervals
+    const autoplayInterval = setInterval(advanceSlide, 5000);
+    
+    // Clear interval on component unmount
+    return () => clearInterval(autoplayInterval);
+  }, [sliderImages.length]); // Only re-run if the number of slides changes
 
   // Pause autoplay on hover
   const handleMouseEnter = () => {
@@ -134,9 +137,13 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
   };
 
   const handleMouseLeave = () => {
-    intervalRef.current = window.setInterval(() => {
-      goToSlide(currentSlide + 1);
-    }, 5000);
+    // Restart the autoplay when mouse leaves
+    if (!intervalRef.current) {
+      intervalRef.current = window.setInterval(() => {
+        const nextSlide = currentSlide + 1 >= sliderImages.length ? 0 : currentSlide + 1;
+        goToSlide(nextSlide);
+      }, 5000);
+    }
   };
 
   return (
