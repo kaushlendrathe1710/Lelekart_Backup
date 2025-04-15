@@ -449,52 +449,104 @@ export class DatabaseStorage implements IStorage {
         throw new Error('This is a special admin user that cannot be deleted');
       }
       
-      // First, handle foreign key constraints by deleting dependent records
+      // Helper function to safely delete records from a table
+      const safeDelete = async (tableName: string, action: () => Promise<any>) => {
+        try {
+          await action();
+        } catch (error) {
+          // If the table doesn't exist, log it but continue
+          if ((error as any).code === '42P01') {
+            console.log(`Table ${tableName} doesn't exist, skipping deletion`);
+          } else {
+            // For other errors, log but continue with the deletion process
+            console.error(`Error deleting from ${tableName}:`, error);
+          }
+        }
+      };
+      
       // 1. Delete user's products
-      await db.delete(products).where(eq(products.sellerId, id));
+      await safeDelete('products', () => 
+        db.delete(products).where(eq(products.sellerId, id))
+      );
       
       // 2. Delete user's carts
-      await db.delete(carts).where(eq(carts.userId, id));
+      await safeDelete('carts', () => 
+        db.delete(carts).where(eq(carts.userId, id))
+      );
       
-      // 3. Delete user's orders
-      const userOrders = await db.select({ id: orders.id }).from(orders).where(eq(orders.userId, id));
-      for (const order of userOrders) {
-        // Delete order items first
-        await db.delete(orderItems).where(eq(orderItems.orderId, order.id));
+      // 3. Delete user's orders and order items
+      try {
+        const userOrders = await db.select({ id: orders.id }).from(orders).where(eq(orders.userId, id));
+        for (const order of userOrders) {
+          await safeDelete('order_items', () => 
+            db.delete(orderItems).where(eq(orderItems.orderId, order.id))
+          );
+        }
+        await safeDelete('orders', () => 
+          db.delete(orders).where(eq(orders.userId, id))
+        );
+      } catch (error) {
+        // If orders table doesn't exist, just continue
+        console.log('Orders table might not exist, skipping order deletion');
       }
-      await db.delete(orders).where(eq(orders.userId, id));
       
-      // 4. Delete user's reviews
-      const userReviews = await db.select({ id: reviews.id }).from(reviews).where(eq(reviews.userId, id));
-      for (const review of userReviews) {
-        // Delete review images and helpful marks first
-        await db.delete(reviewImages).where(eq(reviewImages.reviewId, review.id));
-        await db.delete(reviewHelpful).where(eq(reviewHelpful.reviewId, review.id));
+      // 4. Delete user's reviews and related data
+      try {
+        const userReviews = await db.select({ id: reviews.id }).from(reviews).where(eq(reviews.userId, id));
+        for (const review of userReviews) {
+          await safeDelete('review_images', () => 
+            db.delete(reviewImages).where(eq(reviewImages.reviewId, review.id))
+          );
+          await safeDelete('review_helpful', () => 
+            db.delete(reviewHelpful).where(eq(reviewHelpful.reviewId, review.id))
+          );
+        }
+        await safeDelete('reviews', () => 
+          db.delete(reviews).where(eq(reviews.userId, id))
+        );
+      } catch (error) {
+        // If reviews table doesn't exist, just continue
+        console.log('Reviews table might not exist, skipping review deletion');
       }
-      await db.delete(reviews).where(eq(reviews.userId, id));
       
-      // 5. Delete user's wishlists
-      await db.delete(wishlists).where(eq(wishlists.userId, id));
+      // 5. Delete user's addresses
+      await safeDelete('user_addresses', () => 
+        db.delete(userAddresses).where(eq(userAddresses.userId, id))
+      );
       
-      // 6. Delete user's addresses
-      await db.delete(userAddresses).where(eq(userAddresses.userId, id));
-      
-      // 7. Delete seller-specific data
+      // 6. Delete seller-specific data if user is a seller
       if (user.role === 'seller') {
-        await db.delete(salesHistory).where(eq(salesHistory.sellerId, id));
-        await db.delete(demandForecasts).where(eq(demandForecasts.sellerId, id));
-        await db.delete(priceOptimizations).where(eq(priceOptimizations.sellerId, id));
-        await db.delete(inventoryOptimizations).where(eq(inventoryOptimizations.sellerId, id));
-        await db.delete(sellerDocuments).where(eq(sellerDocuments.sellerId, id));
-        await db.delete(businessDetails).where(eq(businessDetails.sellerId, id));
-        await db.delete(bankingInformation).where(eq(bankingInformation.sellerId, id));
+        await safeDelete('sales_history', () => 
+          db.delete(salesHistory).where(eq(salesHistory.sellerId, id))
+        );
+        await safeDelete('demand_forecasts', () => 
+          db.delete(demandForecasts).where(eq(demandForecasts.sellerId, id))
+        );
+        await safeDelete('price_optimizations', () => 
+          db.delete(priceOptimizations).where(eq(priceOptimizations.sellerId, id))
+        );
+        await safeDelete('inventory_optimizations', () => 
+          db.delete(inventoryOptimizations).where(eq(inventoryOptimizations.sellerId, id))
+        );
+        await safeDelete('seller_documents', () => 
+          db.delete(sellerDocuments).where(eq(sellerDocuments.sellerId, id))
+        );
+        await safeDelete('business_details', () => 
+          db.delete(businessDetails).where(eq(businessDetails.sellerId, id))
+        );
+        await safeDelete('banking_information', () => 
+          db.delete(bankingInformation).where(eq(bankingInformation.sellerId, id))
+        );
       }
       
-      // 8. Delete AI-generated content
-      await db.delete(aiGeneratedContent).where(eq(aiGeneratedContent.userId, id));
+      // 7. Delete AI-generated content
+      await safeDelete('ai_generated_content', () => 
+        db.delete(aiGeneratedContent).where(eq(aiGeneratedContent.userId, id))
+      );
       
       // Finally, delete the user
       await db.delete(users).where(eq(users.id, id));
+      
     } catch (error) {
       console.error(`Error deleting user with ID ${id}:`, error);
       throw new Error(`Failed to delete user: ${(error as Error).message}`);
