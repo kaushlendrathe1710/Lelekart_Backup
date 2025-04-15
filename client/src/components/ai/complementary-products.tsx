@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { useAIAssistant } from "@/context/ai-assistant-context";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Loader2, Package, Plus } from "lucide-react";
-import { useCart } from "@/context/cart-context";
+import { CartContext, CartProvider } from "@/context/cart-context";
 import { useToast } from "@/hooks/use-toast";
 import { formatPrice } from "@/lib/utils";
 
@@ -21,7 +21,7 @@ export const ComplementaryProducts: React.FC<ComplementaryProductsProps> = ({
   productPrice,
 }) => {
   const { getComplementaryProducts } = useAIAssistant();
-  const { addToCart } = useCart();
+  const cartContext = useContext(CartContext);
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [complementaryProducts, setComplementaryProducts] = useState<any[]>([]);
@@ -62,18 +62,30 @@ export const ComplementaryProducts: React.FC<ComplementaryProductsProps> = ({
   };
 
   const addAllToCart = () => {
+    if (!cartContext) {
+      toast({
+        title: "Error",
+        description: "Cart functionality is not available",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Add main product
-    addToCart(productId, 1);
+    cartContext.addToCart({ id: productId }, 1);
 
     // Add selected complementary products
     selectedProducts.forEach((id) => {
-      addToCart(id, 1);
+      const product = complementaryProducts.find(p => p.id === id);
+      if (product) {
+        cartContext.addToCart(product, 1);
+      }
     });
 
     toast({
       title: "Items added to cart",
       description: `Added ${1 + selectedProducts.length} items to your cart`,
-      variant: "success",
+      variant: "default",
     });
   };
 
