@@ -18,7 +18,8 @@ import {
   sellerDocuments, SellerDocument, InsertSellerDocument,
   businessDetails, BusinessDetails, InsertBusinessDetails,
   bankingInformation, BankingInformation, InsertBankingInformation,
-  banners, Banner, InsertBanner
+  banners, Banner, InsertBanner,
+  footerContent, FooterContent, InsertFooterContent
 } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";

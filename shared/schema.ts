@@ -749,6 +749,26 @@ export const aiGeneratedContentRelations = relations(aiGeneratedContent, ({ one 
   }),
 }));
 
+// Footer Content schema
+export const footerContent = pgTable("footer_content", {
+  id: serial("id").primaryKey(),
+  section: text("section").notNull(), // 'about', 'help', 'policy', 'social', 'mail_us'
+  title: text("title").notNull(),     // e.g. 'About Us', 'Contact Us', etc.
+  content: text("content").notNull(), // HTML or Markdown content
+  order: integer("order").notNull().default(0),
+  url: text("url"),                   // Optional URL for links
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  isActive: boolean("is_active").notNull().default(true),
+});
+
+export const insertFooterContentSchema = createInsertSchema(footerContent).omit({
+  id: true,
+  lastUpdated: true,
+});
+
+export type FooterContent = typeof footerContent.$inferSelect;
+export type InsertFooterContent = z.infer<typeof insertFooterContentSchema>;
+
 // Type exports for Smart Inventory & Price Management
 export type SalesHistory = typeof salesHistory.$inferSelect;
 export type InsertSalesHistory = z.infer<typeof insertSalesHistorySchema>;
