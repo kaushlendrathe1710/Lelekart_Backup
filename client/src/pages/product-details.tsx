@@ -171,11 +171,19 @@ function ProductImageSlider({ images, name }: { images: string[], name: string }
           
           {viewMode === 'zoom' && (
             <div className="w-full h-96 border border-gray-100 bg-white">
-              <div className="h-full">
-                <ImageZoom {...getZoomProps()} />
+              <div className="h-full relative">
+                <Zoom>
+                  <img 
+                    src={images[activeImage]} 
+                    alt={name} 
+                    className="max-w-full max-h-full object-contain"
+                    onError={handleImageError}
+                    style={{ maxHeight: '384px', margin: '0 auto' }}
+                  />
+                </Zoom>
               </div>
               <div className="mt-2 text-center text-xs text-gray-500">
-                Hover over the image to zoom in
+                Click on the image to zoom in and out
               </div>
             </div>
           )}
@@ -244,8 +252,8 @@ function ProductImageSlider({ images, name }: { images: string[], name: string }
         <p className="font-medium">Interactive view options:</p>
         <ul className="list-disc pl-5 mt-1">
           <li>Normal: Click to enlarge the image</li>
-          <li>Zoom: Hover over the image to see magnified details</li>
-          <li>360° View: Simulated view that displays the product image in a special viewer</li>
+          <li>Zoom: Click on the image to zoom in and out</li>
+          <li>360° View: Move your mouse left and right to rotate the product</li>
         </ul>
       </div>
     </div>
