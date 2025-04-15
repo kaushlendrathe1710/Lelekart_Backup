@@ -902,34 +902,15 @@ export default function BulkUploadPage() {
                 <p className="text-xs text-muted-foreground">Download our pre-configured product template</p>
               </div>
               
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex items-center gap-1">
-                    Download Template
-                    <ChevronDown className="h-3 w-3 opacity-70" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-48 p-0">
-                  <div className="flex flex-col">
-                    <Button 
-                      variant="ghost" 
-                      className="w-full justify-start rounded-none px-4 py-2"
-                      onClick={() => setFileFormat('CSV')}
-                    >
-                      {fileFormat === 'CSV' && <Check className="h-4 w-4 mr-2" />}
-                      CSV
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      className="w-full justify-start rounded-none px-4 py-2"
-                      onClick={() => setFileFormat('Excel')}
-                    >
-                      {fileFormat === 'Excel' && <Check className="h-4 w-4 mr-2" />}
-                      Excel
-                    </Button>
-                  </div>
-                </PopoverContent>
-              </Popover>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex items-center gap-1"
+                onClick={downloadTemplate}
+              >
+                <DownloadCloud className="h-4 w-4 mr-1" />
+                Download Template
+              </Button>
             </div>
           </div>
         ) : (
