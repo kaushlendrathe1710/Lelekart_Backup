@@ -15,6 +15,8 @@ export const users = pgTable("users", {
   address: text("address"),
   approved: boolean("approved").notNull().default(false), // Sellers need admin approval
   rejected: boolean("rejected").notNull().default(false), // For rejected sellers
+  isCoAdmin: boolean("is_co_admin").default(false), // Designates a user as a co-admin
+  permissions: jsonb("permissions").default("{}"), // JSON object containing permission settings
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -27,6 +29,8 @@ export const insertUserSchema = createInsertSchema(users).pick({
   address: true,
   approved: true,
   rejected: true,
+  isCoAdmin: true,
+  permissions: true,
 });
 
 // Product schema
