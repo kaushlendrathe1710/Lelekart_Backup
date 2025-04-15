@@ -816,8 +816,11 @@ export default function AddProductPage() {
                                 Warranty Period
                               </FormLabel>
                               <FormControl>
-                                <Input placeholder="e.g. 1 Year Manufacturer Warranty" {...field} />
+                                <Input placeholder="e.g. 12 (warranty in months)" {...field} />
                               </FormControl>
+                              <FormDescription>
+                                Enter warranty period in months (e.g. 12 for 1 year)
+                              </FormDescription>
                               <FormMessage />
                             </FormItem>
                           )}
