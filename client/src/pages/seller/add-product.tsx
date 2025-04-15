@@ -14,7 +14,9 @@ import {
   CheckCircle,
   PackageCheck,
   Heading,
-  ShieldCheck
+  ShieldCheck,
+  Loader2,
+  Check
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -92,6 +94,7 @@ export default function AddProductPage() {
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const queryClient = useQueryClient();
 
   // Query to fetch categories
   const { data: categories } = useQuery({
