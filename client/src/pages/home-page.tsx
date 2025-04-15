@@ -151,7 +151,7 @@ export default function HomePage() {
           dealOfTheDay={dealOfTheDay || {
             title: "Deal of the Day: Limited Time Offer",
             subtitle: "Shop our amazing deals before they're gone",
-            image: "https://rukminim1.flixcart.com/image/416/416/l31x2fk0/headphone/a/s/h/-original-image9ehehz8amg2.jpeg",
+            image: "/images/electronics.svg",
             originalPrice: 129.99,
             discountPrice: 99.99,
             discountPercentage: 23,

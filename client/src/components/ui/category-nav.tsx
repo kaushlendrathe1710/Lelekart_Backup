@@ -56,7 +56,7 @@ export function CategoryNav() {
                         // Use a fallback image on error
                         const target = e.target as HTMLImageElement;
                         target.onerror = null; // Prevent infinite loop
-                        target.src = "https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/placeholder_9951d0.svg";
+                        target.src = "/images/placeholder.svg";
                       }}
                     />
                   ) : (

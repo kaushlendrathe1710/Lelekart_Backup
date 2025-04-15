@@ -336,7 +336,7 @@ export default function SellerProductsPage() {
                             // Then fall back to other properties
                             (product.image_url || product.image || product.imageUrl) && 
                             ((product.image_url || product.image || product.imageUrl)?.includes('flixcart.com') || 
-                             (product.image_url || product.image || product.imageUrl)?.includes('flipkart.com'))
+                             (product.image_url || product.image || product.imageUrl)?.includes('lelekart.com'))
                               ? `/api/image-proxy?url=${encodeURIComponent(product.image_url || product.image || product.imageUrl || '')}&category=${encodeURIComponent(product.category || '')}`
                               : (product.image_url || product.image || product.imageUrl)
                           } 
