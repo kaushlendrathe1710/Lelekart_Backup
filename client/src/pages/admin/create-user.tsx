@@ -55,8 +55,22 @@ export default function CreateUserPage() {
   // Create user mutation
   const createUserMutation = useMutation({
     mutationFn: async (data: CreateUserData) => {
-      const res = await apiRequest("POST", "/api/users", data);
-      return res.json();
+      try {
+        const res = await apiRequest("POST", "/api/users", data);
+        
+        if (!res.ok) {
+          const errorData = await res.json();
+          // Handle 400 error for duplicate email
+          if (res.status === 400 && errorData.error?.includes("already exists")) {
+            throw new Error("User with this email already exists");
+          }
+          throw new Error(errorData.error || "Failed to create user");
+        }
+        
+        return await res.json();
+      } catch (err: any) {
+        throw new Error(err.message);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
