@@ -434,6 +434,87 @@ export class DatabaseStorage implements IStorage {
     return updatedUser;
   }
   
+  // Co-Admin Management Methods
+  async getCoAdmins(): Promise<User[]> {
+    try {
+      const coAdmins = await db
+        .select()
+        .from(users)
+        .where(
+          and(
+            eq(users.role, 'admin'),
+            eq(users.isCoAdmin, true)
+          )
+        );
+      
+      return coAdmins;
+    } catch (error) {
+      console.error('Error fetching co-admins:', error);
+      return [];
+    }
+  }
+  
+  async getCoAdminById(id: number): Promise<User | undefined> {
+    try {
+      const [coAdmin] = await db
+        .select()
+        .from(users)
+        .where(
+          and(
+            eq(users.id, id),
+            eq(users.role, 'admin'),
+            eq(users.isCoAdmin, true)
+          )
+        );
+      
+      return coAdmin;
+    } catch (error) {
+      console.error(`Error fetching co-admin with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+  
+  async updateCoAdminPermissions(id: number, permissions: any): Promise<User | undefined> {
+    try {
+      // First check if the user is a co-admin
+      const coAdmin = await this.getCoAdminById(id);
+      
+      if (!coAdmin) {
+        return undefined;
+      }
+      
+      // Update permissions
+      const [updatedCoAdmin] = await db
+        .update(users)
+        .set({ permissions })
+        .where(eq(users.id, id))
+        .returning();
+      
+      return updatedCoAdmin;
+    } catch (error) {
+      console.error(`Error updating co-admin permissions for ID ${id}:`, error);
+      return undefined;
+    }
+  }
+  
+  async deleteCoAdmin(id: number): Promise<void> {
+    try {
+      // Verify that the user is a co-admin before deletion
+      const coAdmin = await this.getCoAdminById(id);
+      
+      if (!coAdmin) {
+        throw new Error(`Co-admin with ID ${id} not found`);
+      }
+      
+      await db
+        .delete(users)
+        .where(eq(users.id, id));
+    } catch (error) {
+      console.error(`Error deleting co-admin with ID ${id}:`, error);
+      throw new Error(`Failed to delete co-admin: ${(error as Error).message}`);
+    }
+  }
+  
   async getSellers(approved?: boolean, rejected?: boolean): Promise<User[]> {
     try {
       let query = db.select().from(users).where(eq(users.role, 'seller'));

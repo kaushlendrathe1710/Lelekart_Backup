@@ -1141,6 +1141,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to update user role" });
     }
   });
+  
+  // Co-Admin Management
+  
+  // Get all co-admins
+  app.get("/api/co-admins", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin" || req.user.isCoAdmin) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+    
+    try {
+      const coAdmins = await storage.getCoAdmins();
+      res.json(coAdmins);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch co-admins" });
+    }
+  });
+  
+  // Get a single co-admin
+  app.get("/api/co-admins/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+    
+    try {
+      const id = parseInt(req.params.id);
+      const coAdmin = await storage.getCoAdminById(id);
+      
+      if (!coAdmin) {
+        return res.status(404).json({ error: "Co-admin not found" });
+      }
+      
+      res.json(coAdmin);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch co-admin" });
+    }
+  });
+  
+  // Create a new co-admin
+  app.post("/api/co-admins", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin" || req.user.isCoAdmin) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+    
+    try {
+      const { email, username, password, permissions } = req.body;
+      
+      if (!email || !username || !password) {
+        return res.status(400).json({ error: "Email, username and password are required" });
+      }
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ error: "User with this email already exists" });
+      }
+      
+      // Create the co-admin
+      const newCoAdmin = await storage.createUser({
+        email,
+        username,
+        password,
+        role: "admin",
+        isCoAdmin: true,
+        permissions: permissions || {},
+        approved: true,
+        rejected: false
+      });
+      
+      res.status(201).json(newCoAdmin);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create co-admin" });
+    }
+  });
+  
+  // Update co-admin permissions
+  app.put("/api/co-admins/:id/permissions", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin" || req.user.isCoAdmin) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+    
+    try {
+      const id = parseInt(req.params.id);
+      const { permissions } = req.body;
+      
+      if (!permissions) {
+        return res.status(400).json({ error: "Permissions are required" });
+      }
+      
+      const updatedCoAdmin = await storage.updateCoAdminPermissions(id, permissions);
+      
+      if (!updatedCoAdmin) {
+        return res.status(404).json({ error: "Co-admin not found" });
+      }
+      
+      res.json(updatedCoAdmin);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update co-admin permissions" });
+    }
+  });
+  
+  // Delete a co-admin
+  app.delete("/api/co-admins/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin" || req.user.isCoAdmin) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+    
+    try {
+      const id = parseInt(req.params.id);
+      
+      await storage.deleteCoAdmin(id);
+      res.sendStatus(204);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete co-admin" });
+    }
+  });
 
   // File Upload endpoint for images
   const imageUpload = multer({
