@@ -33,6 +33,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, RefreshCw, UserPlus, Loader2, Trash2 } from "lucide-react";
+import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -328,10 +329,12 @@ export default function AdminUsers() {
                   )}
                   Refresh
                 </Button>
-                <Button size="sm" onClick={() => window.location.href = "/admin/create-user"}>
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  Add User
-                </Button>
+                <Link href="/admin/create-user">
+                  <Button size="sm">
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Add User
+                  </Button>
+                </Link>
               </div>
             </div>
 
