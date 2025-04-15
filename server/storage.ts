@@ -42,6 +42,12 @@ export interface IStorage {
   updateSellerApproval(id: number, approved: boolean, rejected?: boolean): Promise<User>;
   updateSellerProfile(id: number, profileData: Partial<User>): Promise<User>;
   
+  // Co-Admin Management
+  getCoAdmins(): Promise<User[]>;
+  getCoAdminById(id: number): Promise<User | undefined>;
+  updateCoAdminPermissions(id: number, permissions: any): Promise<User | undefined>;
+  deleteCoAdmin(id: number): Promise<void>;
+  
   // Seller Document operations
   getSellerDocuments(sellerId: number): Promise<SellerDocument[]>;
   getSellerDocumentById(id: number): Promise<SellerDocument | undefined>;
