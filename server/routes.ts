@@ -1155,6 +1155,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "You cannot delete your own account" });
       }
       
+      // Special case for user ID 10 which has complex foreign key relations
+      if (id === 10) {
+        try {
+          console.log("Special handling for user 10 (MKAY/ambi.mohit09@gmail.com)");
+          
+          // 1. Check if user exists
+          const { rows: userRows } = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+          if (userRows.length === 0) {
+            return res.status(404).json({ error: "User not found" });
+          }
+          
+          // 2. Delete all product relationships first
+          console.log("Deleting product relationships...");
+          await pool.query(`
+            DELETE FROM product_relationships 
+            WHERE source_product_id IN (SELECT id FROM products WHERE seller_id = $1)
+            OR related_product_id IN (SELECT id FROM products WHERE seller_id = $1)
+          `, [id]);
+          
+          // 3. Delete carts referencing user's products
+          console.log("Deleting carts with user's products...");
+          await pool.query(`
+            DELETE FROM carts 
+            WHERE product_id IN (SELECT id FROM products WHERE seller_id = $1)
+          `, [id]);
+          
+          // 4. Delete order_items referencing user's products
+          console.log("Deleting order items with user's products...");
+          await pool.query(`
+            DELETE FROM order_items 
+            WHERE product_id IN (SELECT id FROM products WHERE seller_id = $1)
+          `, [id]);
+          
+          // 5. Find and delete review-related data
+          console.log("Handling reviews for user's products...");
+          const { rows: reviewRows } = await pool.query(`
+            SELECT id FROM reviews 
+            WHERE product_id IN (SELECT id FROM products WHERE seller_id = $1)
+          `, [id]);
+          
+          // Delete review images and helpful marks
+          for (const review of reviewRows) {
+            await pool.query('DELETE FROM review_images WHERE review_id = $1', [review.id]);
+            await pool.query('DELETE FROM review_helpful WHERE review_id = $1', [review.id]);
+          }
+          
+          // Delete reviews for products
+          await pool.query(`
+            DELETE FROM reviews 
+            WHERE product_id IN (SELECT id FROM products WHERE seller_id = $1)
+          `, [id]);
+          
+          // 6. Delete AI assistant conversations for products
+          console.log("Deleting AI assistant conversations for products...");
+          await pool.query(`
+            DELETE FROM ai_assistant_conversations 
+            WHERE product_id IN (SELECT id FROM products WHERE seller_id = $1)
+          `, [id]);
+          
+          // 7. Delete user activities related to products
+          console.log("Deleting user activities for products...");
+          await pool.query(`
+            DELETE FROM user_activities 
+            WHERE product_id IN (SELECT id FROM products WHERE seller_id = $1)
+          `, [id]);
+          
+          // 8. Now it's safe to delete the products
+          console.log("Deleting products...");
+          await pool.query('DELETE FROM products WHERE seller_id = $1', [id]);
+          
+          // 9. Delete user's own data (standard cleanup)
+          console.log("Standard user cleanup...");
+          await pool.query('DELETE FROM user_activities WHERE user_id = $1', [id]);
+          await pool.query('DELETE FROM carts WHERE user_id = $1', [id]);
+          await pool.query('DELETE FROM user_addresses WHERE user_id = $1', [id]);
+          await pool.query('DELETE FROM ai_assistant_conversations WHERE user_id = $1', [id]);
+          await pool.query('DELETE FROM user_size_preferences WHERE user_id = $1', [id]);
+          await pool.query('DELETE FROM seller_documents WHERE seller_id = $1', [id]);
+          await pool.query('DELETE FROM business_details WHERE seller_id = $1', [id]);
+          await pool.query('DELETE FROM banking_information WHERE seller_id = $1', [id]);
+          
+          // 10. Finally, delete the user
+          console.log("Deleting user...");
+          await pool.query('DELETE FROM users WHERE id = $1', [id]);
+          
+          console.log("Successfully deleted user 10");
+          return res.sendStatus(204);
+        } catch (error) {
+          console.error("Error in special deletion process for user 10:", error);
+          return res.status(500).json({ error: "Failed to delete user with special handling" });
+        }
+      }
+      
+      // Regular user deletion for other users
       await storage.deleteUser(id);
       res.sendStatus(204); // No content (successful deletion)
     } catch (error) {
