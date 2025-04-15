@@ -35,6 +35,7 @@ import ProductApproval from './pages/admin/product-approval';
 import BannerManagement from './pages/admin/banner-management-new';
 import DesignHero from './pages/admin/design-hero';
 import FooterManagement from './pages/admin/footer-management';
+import ManageAdmins from './pages/admin/manage-admins';
 
 // Seller pages
 import SellerDashboardPage from './pages/seller/dashboard';
@@ -297,6 +298,15 @@ function App() {
                         path="/admin/footer-management" 
                         role="admin" 
                         component={FooterManagement} 
+                      />
+                    )}
+                  </Route>
+                  <Route path="/admin/manage-admins">
+                    {() => (
+                      <ProtectedRoute 
+                        path="/admin/manage-admins" 
+                        role="admin" 
+                        component={ManageAdmins} 
                       />
                     )}
                   </Route>
