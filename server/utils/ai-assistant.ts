@@ -483,6 +483,9 @@ export async function createOrUpdateConversation(
 }
 
 // Generate AI response to user query
+/**
+ * Generate AI response to user query with keyword detection for immediate product recommendations
+ */
 export async function getAIResponse(
   messages: { role: string, content: string }[],
   contextInfo?: {
@@ -493,13 +496,28 @@ export async function getAIResponse(
   }
 ): Promise<string> {
   try {
-    // Extract the latest user message for keyword analysis
+    // Base system prompt
+    let systemPrompt = `You are LeleKart's AI Shopping Assistant, designed to provide friendly, helpful shopping advice.
+    
+Your goals are to:
+1. Help customers find products they will love
+2. Give honest, balanced advice about products
+3. Suggest complementary items that make sense
+4. Help with sizing and fit questions
+
+IMPORTANT INSTRUCTIONS:
+- When a user mentions ANY product category or item, IMMEDIATELY suggest specific products rather than asking follow-up questions
+- Show product recommendations in your first response whenever possible
+- Keep responses concise and conversational
+- If you don't know something, say so rather than making up information
+`;
+
+    // Extract the latest user message
     const latestUserMessage = messages.length > 0 && messages[messages.length - 1].role === 'user'
       ? messages[messages.length - 1].content
       : '';
     
-    // Check for product-related keywords in the user's message
-    // Common categories and product types to check for
+    // Product keywords dictionary
     const productKeywords = [
       'phone', 'mobile', 'smartphone', 'iphone', 'samsung', 'electronics', 
       'laptop', 'computer', 'tablet', 'headphone', 'earphone', 'earbuds',
@@ -516,116 +534,73 @@ export async function getAIResponse(
       'baby', 'kids', 'children'
     ];
     
-    // Category mapping - map keywords to actual categories in the database
+    // Map keywords to database categories
     const categoryMapping: Record<string, string> = {
-      'phone': 'Electronics',
-      'mobile': 'Electronics', 
-      'smartphone': 'Electronics',
-      'iphone': 'Electronics',
-      'samsung': 'Electronics',
-      'electronics': 'Electronics',
-      'laptop': 'Electronics',
-      'computer': 'Electronics',
-      'tablet': 'Electronics',
-      'headphone': 'Electronics',
-      'earphone': 'Electronics',
-      'earbuds': 'Electronics',
-      'tv': 'Electronics',
-      'television': 'Electronics',
-      'monitor': 'Electronics',
-      'camera': 'Electronics',
-      'watch': 'Electronics',
-      'smartwatch': 'Electronics',
+      'phone': 'Electronics', 'mobile': 'Electronics', 'smartphone': 'Electronics',
+      'iphone': 'Electronics', 'samsung': 'Electronics', 'electronics': 'Electronics',
+      'laptop': 'Electronics', 'computer': 'Electronics', 'tablet': 'Electronics',
+      'headphone': 'Electronics', 'earphone': 'Electronics', 'earbuds': 'Electronics',
+      'tv': 'Electronics', 'television': 'Electronics', 'monitor': 'Electronics',
+      'camera': 'Electronics', 'watch': 'Electronics', 'smartwatch': 'Electronics',
       
-      'clothes': 'Fashion',
-      'clothing': 'Fashion',
-      'shirt': 'Fashion',
-      't-shirt': 'Fashion',
-      'tshirt': 'Fashion',
-      'jeans': 'Fashion',
-      'pants': 'Fashion',
-      'dress': 'Fashion',
-      'shoes': 'Footwear',
-      'sneakers': 'Footwear',
-      'footwear': 'Footwear',
-      'sandals': 'Footwear',
-      'boots': 'Footwear',
+      'clothes': 'Fashion', 'clothing': 'Fashion', 'shirt': 'Fashion',
+      't-shirt': 'Fashion', 'tshirt': 'Fashion', 'jeans': 'Fashion',
+      'pants': 'Fashion', 'dress': 'Fashion', 
+      'shoes': 'Footwear', 'sneakers': 'Footwear', 'footwear': 'Footwear',
+      'sandals': 'Footwear', 'boots': 'Footwear',
       
-      'furniture': 'Home',
-      'sofa': 'Home',
-      'chair': 'Home',
-      'table': 'Home',
-      'bed': 'Home',
-      'mattress': 'Home',
-      
+      'furniture': 'Home', 'sofa': 'Home', 'chair': 'Home',
+      'table': 'Home', 'bed': 'Home', 'mattress': 'Home',
       'kitchen': 'Home',
-      'appliance': 'Appliances',
-      'refrigerator': 'Appliances',
-      'fridge': 'Appliances',
-      'oven': 'Appliances',
-      'microwave': 'Appliances',
       
-      'beauty': 'Beauty',
-      'makeup': 'Beauty',
-      'cosmetics': 'Beauty',
-      'skincare': 'Beauty',
-      'perfume': 'Beauty',
-      'fragrance': 'Beauty',
+      'appliance': 'Appliances', 'refrigerator': 'Appliances',
+      'fridge': 'Appliances', 'oven': 'Appliances', 'microwave': 'Appliances',
       
-      'toys': 'Toys',
-      'game': 'Toys',
-      'sports': 'Sports',
-      'fitness': 'Sports',
-      'exercise': 'Sports',
-      'yoga': 'Sports',
+      'beauty': 'Beauty', 'makeup': 'Beauty', 'cosmetics': 'Beauty',
+      'skincare': 'Beauty', 'perfume': 'Beauty', 'fragrance': 'Beauty',
       
-      'book': 'Books',
-      'novel': 'Books',
-      'textbook': 'Books',
+      'toys': 'Toys', 'game': 'Toys',
+      'sports': 'Sports', 'fitness': 'Sports', 'exercise': 'Sports', 'yoga': 'Sports',
       
-      'bag': 'Fashion',
-      'backpack': 'Fashion',
-      'purse': 'Fashion',
-      'wallet': 'Fashion',
-      'luggage': 'Fashion',
+      'book': 'Books', 'novel': 'Books', 'textbook': 'Books',
       
-      'jewelry': 'Fashion',
-      'necklace': 'Fashion',
-      'ring': 'Fashion',
-      'earring': 'Fashion',
-      'bracelet': 'Fashion',
+      'bag': 'Fashion', 'backpack': 'Fashion', 'purse': 'Fashion',
+      'wallet': 'Fashion', 'luggage': 'Fashion',
       
-      'baby': 'Baby',
-      'kids': 'Kids',
-      'children': 'Kids'
+      'jewelry': 'Fashion', 'necklace': 'Fashion', 'ring': 'Fashion',
+      'earring': 'Fashion', 'bracelet': 'Fashion',
+      
+      'baby': 'Baby', 'kids': 'Kids', 'children': 'Kids'
     };
     
-    // Check if the message contains any product keywords
+    // Detect keywords in user message
     const detectedKeywords = productKeywords.filter(keyword => 
       latestUserMessage.toLowerCase().includes(keyword.toLowerCase())
     );
     
     // Get relevant products based on detected keywords
-    let relevantProducts: Product[] = [];
-    let keywordContext = '';
-    
     if (detectedKeywords.length > 0) {
       console.log(`Detected keywords in user message: ${detectedKeywords.join(', ')}`);
       
-      // Map keywords to categories and remove duplicates
-      const categories = [...new Set(
-        detectedKeywords
-          .map(keyword => categoryMapping[keyword.toLowerCase()])
-          .filter(Boolean)
-      )];
+      // Get unique categories from detected keywords
+      const categoriesSet = new Set<string>();
+      for (const keyword of detectedKeywords) {
+        const category = categoryMapping[keyword.toLowerCase()];
+        if (category) categoriesSet.add(category);
+      }
       
-      if (categories.length > 0) {
-        console.log(`Mapped to categories: ${categories.join(', ')}`);
+      const uniqueCategories = Array.from(categoriesSet);
+      
+      if (uniqueCategories.length > 0) {
+        console.log(`Mapped to categories: ${uniqueCategories.join(', ')}`);
         
-        // Get products by categories (limit to 5 products max)
         try {
-          for (const category of categories) {
-            const categoryProducts = await db
+          // Find relevant products
+          let relevantProducts: any[] = [];
+          
+          // First search by categories
+          for (const category of uniqueCategories) {
+            const productsInCategory = await db
               .select()
               .from(products)
               .where(
@@ -634,18 +609,15 @@ export async function getAIResponse(
                   ilike(products.category, category)
                 )
               )
-              .orderBy(desc(products.id)) // Newest first
-              .limit(Math.min(5, 10 / categories.length)); // Ensure we don't get too many products
+              .orderBy(desc(products.id))
+              .limit(Math.ceil(5 / uniqueCategories.length));
               
-            relevantProducts = [...relevantProducts, ...categoryProducts];
-            
-            // Stop if we have enough products
+            relevantProducts = [...relevantProducts, ...productsInCategory];
             if (relevantProducts.length >= 5) break;
           }
           
-          // If we didn't find products by exact category, try a more general search
+          // If no products found, search by keywords in name/description
           if (relevantProducts.length === 0) {
-            // Search for products that match the keywords in title or description
             for (const keyword of detectedKeywords) {
               const keywordProducts = await db
                 .select()
@@ -663,49 +635,38 @@ export async function getAIResponse(
                 .limit(2);
                 
               relevantProducts = [...relevantProducts, ...keywordProducts];
-              
-              // Stop if we have enough products
               if (relevantProducts.length >= 5) break;
             }
           }
           
           // De-duplicate products
-          relevantProducts = Array.from(new Map(relevantProducts.map(p => [p.id, p])).values());
+          const uniqueProductsMap = new Map();
+          for (const product of relevantProducts) {
+            uniqueProductsMap.set(product.id, product);
+          }
+          const uniqueProducts = Array.from(uniqueProductsMap.values());
           
-          // Format products as a readable context for the AI
-          if (relevantProducts.length > 0) {
-            keywordContext = `\n\nI found these products related to what you're asking about:\n\n`;
+          // Add product recommendations to system prompt
+          if (uniqueProducts.length > 0) {
+            let keywordContext = `\n\nRELEVANT PRODUCTS:\n`;
             
-            relevantProducts.forEach((product, index) => {
-              keywordContext += `Product ${index + 1}: ${product.name}\n`;
+            for (let i = 0; i < uniqueProducts.length; i++) {
+              const product = uniqueProducts[i];
+              keywordContext += `Product ${i + 1}: ${product.name}\n`;
               keywordContext += `Description: ${product.description.substring(0, 100)}...\n`;
               keywordContext += `Price: ${formatCurrency(product.price)}\n`;
               keywordContext += `Category: ${product.category}\n\n`;
-            });
+            }
             
-            keywordContext += `Make sure to mention these specific products in your response and use their exact names and prices. Don't make up additional information. Immediately suggest these products in your response rather than asking the user more questions.\n\n`;
+            keywordContext += `IMPORTANT: Immediately suggest these specific products in your response. Use their exact names and prices. Do not make up additional information or ask unnecessary follow-up questions.\n`;
+            
+            systemPrompt += keywordContext;
           }
         } catch (error) {
           console.error('Error getting products by keywords:', error);
         }
       }
     }
-    
-    // Build system prompt with personalization and context
-    let systemPrompt = `You are LeleKart's AI Shopping Assistant, designed to provide friendly, helpful shopping advice. 
-    
-Your goals are to:
-1. Help customers find products they will love
-2. Give honest, balanced advice about products
-3. Suggest complementary items that make sense
-4. Help with sizing and fit questions
-
-IMPORTANT INSTRUCTIONS:
-- When a user mentions ANY product category or item, IMMEDIATELY suggest specific products rather than asking follow-up questions
-- Show product recommendations in your first response whenever possible
-- Keep responses concise and conversational
-- If you don't know something, say so rather than making up information
-`;
 
     // Add product context if available
     if (contextInfo?.productId) {
@@ -714,65 +675,85 @@ IMPORTANT INSTRUCTIONS:
       if (productInfo.length > 0) {
         const product = productInfo[0];
         
-        systemPrompt += `\nCurrent Product Context:
-Product Name: ${product.name}
-Description: ${product.description}
-Price: ${formatCurrency(product.price)}
-Category: ${product.category}
-${product.specifications ? `Specifications: ${product.specifications}` : ''}
-${product.size ? `Available Sizes: ${product.size}` : ''}
-${product.color ? `Available Colors: ${product.color}` : ''}
-`;
+        systemPrompt += `\nCURRENT PRODUCT CONTEXT:\n`;
+        systemPrompt += `Product Name: ${product.name}\n`;
+        systemPrompt += `Description: ${product.description}\n`;
+        systemPrompt += `Price: ${formatCurrency(product.price)}\n`;
+        systemPrompt += `Category: ${product.category}\n`;
+        
+        if (product.specifications) {
+          systemPrompt += `Specifications: ${product.specifications}\n`;
+        }
+        
+        if (product.size) {
+          systemPrompt += `Available Sizes: ${product.size}\n`;
+        }
+        
+        if (product.color) {
+          systemPrompt += `Available Colors: ${product.color}\n`;
+        }
 
         // Add review information if available
-        const reviews = await db.execute(sql`
-          SELECT AVG(rating) as avg_rating, COUNT(*) as review_count
-          FROM reviews
-          WHERE product_id = ${contextInfo.productId}
-        `);
-        
-        if (reviews.length > 0 && (reviews[0] as any).review_count > 0) {
-          systemPrompt += `Average Rating: ${(reviews[0] as any).avg_rating.toFixed(1)}/5 from ${(reviews[0] as any).review_count} reviews\n`;
+        try {
+          const reviewsResult = await db.execute(sql`
+            SELECT AVG(rating) as avg_rating, COUNT(*) as review_count
+            FROM reviews
+            WHERE product_id = ${contextInfo.productId}
+          `);
+          
+          if (reviewsResult[0] && (reviewsResult[0] as any).review_count > 0) {
+            systemPrompt += `Average Rating: ${(reviewsResult[0] as any).avg_rating.toFixed(1)}/5 from ${(reviewsResult[0] as any).review_count} reviews\n`;
+          }
+        } catch (error) {
+          console.error('Error getting review information:', error);
         }
       }
     }
 
     // Add personalization context if user is logged in
     if (contextInfo?.userId) {
-      // Get user's purchase history categories
-      const purchaseCategories = await db.execute(sql`
-        SELECT DISTINCT p.category
-        FROM orders o
-        JOIN order_items oi ON o.id = oi.order_id
-        JOIN products p ON oi.product_id = p.id
-        WHERE o.user_id = ${contextInfo.userId}
-        LIMIT 5
-      `);
-      
-      if (purchaseCategories.length > 0) {
-        const categories = purchaseCategories.map((row: any) => row.category).join(', ');
-        systemPrompt += `\nUser Context: This customer has previously purchased items in these categories: ${categories}\n`;
-      }
-      
-      // Get user's browsing interests
-      const browsingInterests = await db.execute(sql`
-        SELECT p.category, COUNT(*) as view_count
-        FROM user_activities ua
-        JOIN products p ON ua.product_id = p.id
-        WHERE ua.user_id = ${contextInfo.userId}
-        AND ua.activity_type = 'view'
-        GROUP BY p.category
-        ORDER BY view_count DESC
-        LIMIT 3
-      `);
-      
-      if (browsingInterests.length > 0) {
-        const interests = browsingInterests.map((row: any) => row.category).join(', ');
-        systemPrompt += `The user has recently browsed these categories: ${interests}\n`;
+      try {
+        // Get user's purchase history categories
+        const purchaseCategoriesResult = await db.execute(sql`
+          SELECT DISTINCT p.category
+          FROM orders o
+          JOIN order_items oi ON o.id = oi.order_id
+          JOIN products p ON oi.product_id = p.id
+          WHERE o.user_id = ${contextInfo.userId}
+          LIMIT 5
+        `);
+        
+        const purchaseCategories = purchaseCategoriesResult as any[];
+        
+        if (purchaseCategories.length > 0) {
+          const categoriesStr = purchaseCategories.map(row => row.category).join(', ');
+          systemPrompt += `\nUSER CONTEXT: This customer has previously purchased items in these categories: ${categoriesStr}\n`;
+        }
+        
+        // Get user's browsing interests
+        const browsingInterestsResult = await db.execute(sql`
+          SELECT p.category, COUNT(*) as view_count
+          FROM user_activities ua
+          JOIN products p ON ua.product_id = p.id
+          WHERE ua.user_id = ${contextInfo.userId}
+          AND ua.activity_type = 'view'
+          GROUP BY p.category
+          ORDER BY view_count DESC
+          LIMIT 3
+        `);
+        
+        const browsingInterests = browsingInterestsResult as any[];
+        
+        if (browsingInterests.length > 0) {
+          const interestsStr = browsingInterests.map(row => row.category).join(', ');
+          systemPrompt += `The user has recently browsed these categories: ${interestsStr}\n`;
+        }
+      } catch (error) {
+        console.error('Error getting user personalization data:', error);
       }
     }
 
-    // Use the centralized Gemini chat function
+    // Get AI response
     const responseText = await geminiAi.getChatResponse(messages, systemPrompt);
 
     // Save the conversation if we have session info
