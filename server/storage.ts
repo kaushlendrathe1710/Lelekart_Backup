@@ -1291,14 +1291,16 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
-  // Reject a product (keeping it as false but marking it somehow)
+  // Reject a product (marking it as rejected)
   async rejectProduct(id: number): Promise<Product> {
     try {
-      // Here we're just marking it as not approved
-      // You could add a 'rejected' field to the schema if you want to track rejected products separately
+      // Mark as not approved and explicitly rejected
       const [updatedProduct] = await db
         .update(products)
-        .set({ approved: false })
+        .set({ 
+          approved: false,
+          rejected: true  // Set the rejected flag
+        })
         .where(eq(products.id, id))
         .returning();
       

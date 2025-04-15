@@ -51,6 +51,7 @@ export const products = pgTable("products", {
   sellerId: integer("seller_id").notNull().references(() => users.id),
   stock: integer("stock").notNull().default(0),
   approved: boolean("approved").notNull().default(false),
+  rejected: boolean("rejected").notNull().default(false), // Flag to mark explicitly rejected products
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
