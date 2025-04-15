@@ -46,8 +46,30 @@ import {
   Check,
   Filter,
   Clock,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react";
 import { ProductImageGallery } from "@/components/ui/product-image-gallery";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+// Define interface for paginated API response
+interface PaginatedResponse {
+  products: Product[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
 
 export default function ProductApproval() {
   return <ProductApprovalContent />;
@@ -58,19 +80,26 @@ function ProductApprovalContent() {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [viewProduct, setViewProduct] = useState<Product | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
-  // Fetch pending products
+  // Fetch pending products with pagination
   const {
     data: pendingProductsData,
     isLoading,
     isError,
     refetch,
-  } = useQuery<Product[]>({
-    queryKey: ["/api/products/pending"],
+  } = useQuery<PaginatedResponse>({
+    queryKey: ["/api/products/pending", { page, limit: pageSize }],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/products/pending?page=${page}&limit=${pageSize}`);
+      return res.json();
+    },
   });
   
-  // Extract products array from response
-  const products = pendingProductsData || [];
+  // Extract products array and pagination info from response
+  const products = pendingProductsData?.products || [];
+  const pagination = pendingProductsData?.pagination;
 
   // Approve product mutation
   const approveMutation = useMutation({
@@ -501,6 +530,84 @@ function ProductApprovalContent() {
                   ))}
                 </TableBody>
               </Table>
+              
+              {/* Pagination Controls */}
+              {pagination && (
+                <div className="px-4 py-4 sm:px-6 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
+                  {/* Page Size Selector */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500">Rows per page</span>
+                    <Select 
+                      value={String(pageSize)} 
+                      onValueChange={(value) => {
+                        setPageSize(Number(value));
+                        setPage(1); // Reset to first page when changing page size
+                      }}
+                    >
+                      <SelectTrigger className="h-8 w-[70px]">
+                        <SelectValue placeholder="10" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                        <SelectItem value="500">500</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {/* Page Status Information */}
+                  <div className="text-sm text-gray-500">
+                    Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} products
+                  </div>
+                  
+                  {/* Pagination Buttons */}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(1)}
+                      disabled={page === 1 || isLoading}
+                    >
+                      <ChevronsLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(page - 1)}
+                      disabled={page === 1 || isLoading}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm">
+                      Page {pagination.page} of {pagination.totalPages || 1}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(page + 1)}
+                      disabled={
+                        page === pagination.totalPages || 
+                        pagination.totalPages === 0 || 
+                        isLoading
+                      }
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(pagination.totalPages)}
+                      disabled={
+                        page === pagination.totalPages || 
+                        pagination.totalPages === 0 || 
+                        isLoading
+                      }
+                    >
+                      <ChevronsRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="rounded-md border bg-white p-12 text-center">
