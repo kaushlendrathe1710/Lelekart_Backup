@@ -28,6 +28,8 @@ import {
   CheckSquare,
   Image,
   LayoutGrid,
+  FileText,
+  FileEdit,
   LayoutDashboardIcon,
 } from "lucide-react";
 import { useState } from "react";

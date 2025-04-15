@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import AdminLayout from "@/components/layout/admin-layout";
+import { AdminLayout } from "@/components/layout/admin-layout";
 import {
   Card,
   CardContent,
@@ -333,7 +333,7 @@ export default function FooterManagement() {
                                     variant="ghost"
                                     size="icon"
                                     onClick={() => {
-                                      if (content.order > 0) {
+                                      if (content.order > 0 && content.id !== undefined) {
                                         updateOrderMutation.mutate({
                                           id: content.id,
                                           order: content.order - 1,
@@ -351,7 +351,9 @@ export default function FooterManagement() {
                                 <Switch
                                   checked={content.isActive}
                                   onCheckedChange={() => {
-                                    toggleActiveMutation.mutate(content.id);
+                                    if (content.id !== undefined) {
+                                      toggleActiveMutation.mutate(content.id);
+                                    }
                                   }}
                                 />
                               </TableCell>

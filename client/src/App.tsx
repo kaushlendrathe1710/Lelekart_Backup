@@ -291,6 +291,15 @@ function App() {
                       />
                     )}
                   </Route>
+                  <Route path="/admin/footer-management">
+                    {() => (
+                      <ProtectedRoute 
+                        path="/admin/footer-management" 
+                        role="admin" 
+                        component={FooterManagement} 
+                      />
+                    )}
+                  </Route>
                   {/* Seller route with nested paths to use the same layout */}
                   <Route path="/seller/dashboard">
                     {() => (
