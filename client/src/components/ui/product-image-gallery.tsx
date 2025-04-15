@@ -167,7 +167,7 @@ export function ProductImageGallery({ imageUrl, additionalImages, productName = 
             <SwiperSlide key={`slide-${idx}`}>
               <div className="aspect-[4/3] flex items-center justify-center bg-white">
                 <img 
-                  src={image.includes('flixcart.com') || image.includes('flipkart.com') 
+                  src={image.includes('flixcart.com') || image.includes('lelekart.com') 
                     ? `/api/image-proxy?url=${encodeURIComponent(image)}&category=${encodeURIComponent(category || '')}` 
                     : image}
                   alt={`${productName} - Image ${idx + 1}`} 
@@ -245,7 +245,7 @@ export function ProductImageGallery({ imageUrl, additionalImages, productName = 
                   }}
                 >
                   <img 
-                    src={image.includes('flixcart.com') || image.includes('flipkart.com') 
+                    src={image.includes('flixcart.com') || image.includes('lelekart.com') 
                       ? `/api/image-proxy?url=${encodeURIComponent(image)}&category=${encodeURIComponent(category || '')}` 
                       : image}
                     alt={`Thumbnail ${idx + 1}`} 

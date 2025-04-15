@@ -625,7 +625,7 @@ export default function ProductDetailsPage() {
                     <li className="flex">
                       <span className="text-green-600 mr-2">•</span>
                       <span className="text-sm">
-                        <span className="font-medium">Partner Offer:</span> Sign up for Flipkart Pay Later and get Flipkart Gift Card worth up to ₹1000
+                        <span className="font-medium">Partner Offer:</span> Sign up for Lelekart Pay Later and get Lelekart Gift Card worth up to ₹1000
                       </span>
                     </li>
                   </ul>

@@ -116,7 +116,7 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
                 // Get the image URL, checking all possible sources
                 (product.image_url || product.image || product.imageUrl) && 
                 ((product.image_url || product.image || product.imageUrl)?.includes('flixcart.com') || 
-                 (product.image_url || product.image || product.imageUrl)?.includes('flipkart.com'))
+                 (product.image_url || product.image || product.imageUrl)?.includes('lelekart.com'))
                   ? `/api/image-proxy?url=${encodeURIComponent(product.image_url || product.image || product.imageUrl || '')}&category=${encodeURIComponent(product.category || '')}`
                   : (product.image_url || product.image || product.imageUrl)
               }

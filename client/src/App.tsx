@@ -78,7 +78,7 @@ function App() {
                       </Layout>
                     )}
                   </Route>
-                  {/* New Flipkart-style product details page */}
+                  {/* New Lelekart-style product details page */}
                   <Route path="/product/:id">
                     {(params) => {
                       console.log("App router matched product page with params:", params);
