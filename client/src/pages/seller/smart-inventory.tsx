@@ -132,13 +132,49 @@ export default function SmartInventory() {
                           <div className="flex items-center gap-3">
                             <div className="h-16 w-16 rounded-md overflow-hidden border">
                               <img 
-                                src={product.imageUrl || product.images?.[0] || '/images/placeholder.svg'} 
+                                src={(() => {
+                                  // Try to get imageUrl first (camelCase)
+                                  if (product.imageUrl) {
+                                    return product.imageUrl;
+                                  }
+                                  
+                                  // Try image_url (snake_case) next
+                                  if (product.image_url) {
+                                    return product.image_url;
+                                  }
+                                  
+                                  // Try to parse images if it's a string
+                                  if (product.images) {
+                                    if (typeof product.images === 'string') {
+                                      try {
+                                        const parsedImages = JSON.parse(product.images);
+                                        if (Array.isArray(parsedImages) && parsedImages.length > 0) {
+                                          return parsedImages[0];
+                                        }
+                                      } catch (e) {
+                                        console.log("Error parsing images JSON:", e);
+                                        // If it's a single image URL string, return it directly
+                                        if (typeof product.images === 'string' && 
+                                            (product.images.startsWith('http') || product.images.startsWith('/'))) {
+                                          return product.images;
+                                        }
+                                      }
+                                    } else if (Array.isArray(product.images) && product.images.length > 0) {
+                                      // If it's already an array, use first item
+                                      return product.images[0];
+                                    }
+                                  }
+                                  
+                                  // Default placeholder
+                                  return '/images/placeholder.svg';
+                                })()} 
                                 alt={product.name} 
                                 className="h-full w-full object-cover"
                                 onError={(e) => {
                                   const target = e.target as HTMLImageElement;
                                   target.onerror = null;
                                   target.src = '/images/placeholder.svg';
+                                  console.log(`Image load error for product: ${product.name}`);
                                 }}
                               />
                             </div>
