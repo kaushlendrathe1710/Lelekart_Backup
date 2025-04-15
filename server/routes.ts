@@ -21,24 +21,15 @@ const s3Client = new S3Client({
   }
 });
 
-// Function to upload file to S3
+// Function to upload file to S3 - using the helper from s3.ts
 const uploadFileToS3 = async (file: Express.Multer.File) => {
   try {
-    const fileName = `${Date.now()}-${file.originalname}`;
+    // Call the unified helper function to upload
+    const url = await uploadFile(file.buffer, file.originalname, file.mimetype);
     
-    const params = {
-      Bucket: process.env.AWS_BUCKET_NAME!,
-      Key: fileName,
-      Body: file.buffer,
-      ContentType: file.mimetype
-    };
-    
-    const command = new PutObjectCommand(params);
-    await s3Client.send(command);
-    
-    // Return the URL of the uploaded file
+    // Return in the format expected by existing code
     return {
-      Location: `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`
+      Location: url
     };
   } catch (error) {
     console.error("Error uploading file to S3:", error);
@@ -1442,7 +1433,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cb(null, true);
       } else {
         cb(null, false);
-        return new Error(`Unsupported file type: ${file.mimetype}. Only images are allowed.`);
+        return cb(new Error(`Unsupported file type: ${file.mimetype}. Only images are allowed.`));
       }
     }
   });
@@ -1487,7 +1478,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fileName = req.file.originalname;
       const fileType = req.file.mimetype;
       
-      // Upload file to S3 and get URL
+      // Using the common uploadFile function from s3.ts helper
       const fileUrl = await uploadFile(fileBuffer, fileName, fileType);
       console.log(`File uploaded successfully to S3: ${fileUrl}`);
       
