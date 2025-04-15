@@ -36,6 +36,7 @@ import BannerManagement from './pages/admin/banner-management-new';
 import DesignHero from './pages/admin/design-hero';
 import FooterManagement from './pages/admin/footer-management';
 import ManageAdmins from './pages/admin/manage-admins';
+import CreateUser from './pages/admin/create-user';
 
 // Seller pages
 import SellerDashboardPage from './pages/seller/dashboard';
@@ -307,6 +308,15 @@ function App() {
                         path="/admin/manage-admins" 
                         role="admin" 
                         component={ManageAdmins} 
+                      />
+                    )}
+                  </Route>
+                  <Route path="/admin/create-user">
+                    {() => (
+                      <ProtectedRoute 
+                        path="/admin/create-user" 
+                        role="admin" 
+                        component={CreateUser} 
                       />
                     )}
                   </Route>
