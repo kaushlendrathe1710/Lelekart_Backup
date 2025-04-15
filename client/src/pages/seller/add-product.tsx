@@ -239,7 +239,29 @@ export default function AddProductPage() {
       return;
     }
 
-    createProductMutation.mutate(data);
+    // Check for required fields explicitly
+    if (!data.name || !data.description || !data.price || !data.category) {
+      toast({
+        title: "Missing required fields",
+        description: "Please fill in all required fields (name, description, price, category)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Make sure all required fields are included and properly formatted
+    const productData = {
+      ...data,
+      imageUrl: uploadedImages[0], // First image as the main image
+      images: JSON.stringify(uploadedImages), // All uploaded images as JSON string
+      sellerId: 5, // Current logged in seller ID
+      stock: data.stock || 0, // Default stock to 0 if not provided
+      approved: false, // New products start as unapproved
+      brand: data.brand || "Generic" // Default brand if not provided
+    };
+
+    console.log("Submitting product data:", productData);
+    createProductMutation.mutate(productData);
   };
 
   return (
