@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
-import { useAuth } from "@/hooks/use-auth";
+import { useEffect, useState, useContext } from "react";
+import { AuthContext } from "@/hooks/use-auth";
 import { useCoAdmins, CoAdminPermissions, CreateCoAdminData } from "@/hooks/use-co-admins";
+import { useQuery } from "@tanstack/react-query";
+import { User } from "@shared/schema";
 import { AdminLayout } from "@/components/layout/admin-layout";
 import {
   Card,
@@ -57,7 +59,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { User } from "@shared/schema";
 
 const createCoAdminSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
@@ -97,11 +98,35 @@ const permissionDisplayNames = {
 };
 
 export default function ManageAdminsPage() {
-  const { user } = useAuth();
+  // Try to use context first if available
+  const authContext = useContext(AuthContext);
+  
+  // Get user data from direct API if context is not available
+  const { data: apiUser, isLoading: apiLoading } = useQuery<User | null>({
+    queryKey: ['/api/user'],
+    queryFn: async () => {
+      const res = await fetch('/api/user', {
+        credentials: 'include',
+      });
+      
+      if (!res.ok) {
+        if (res.status === 401) return null;
+        throw new Error('Failed to fetch user');
+      }
+      
+      return res.json();
+    },
+    staleTime: 60000, // 1 minute
+  });
+  
+  // Use context user if available, otherwise use query user
+  const user = authContext?.user || apiUser;
+  const authLoading = authContext ? authContext.isLoading : apiLoading;
+  
   const { toast } = useToast();
   const {
     coAdmins,
-    isLoading,
+    isLoading: coAdminsLoading,
     createCoAdmin,
     isCreating,
     updatePermissions,
