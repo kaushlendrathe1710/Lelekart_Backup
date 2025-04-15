@@ -59,18 +59,18 @@ function ProductApprovalContent() {
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [viewProduct, setViewProduct] = useState<Product | null>(null);
 
-  // Fetch products
+  // Fetch pending products
   const {
-    data: productsData,
+    data: pendingProductsData,
     isLoading,
     isError,
     refetch,
-  } = useQuery<{ products: Product[] }>({
-    queryKey: ["/api/products"],
+  } = useQuery<Product[]>({
+    queryKey: ["/api/products/pending"],
   });
   
   // Extract products array from response
-  const products = productsData?.products || [];
+  const products = pendingProductsData || [];
 
   // Approve product mutation
   const approveMutation = useMutation({
@@ -79,6 +79,7 @@ function ProductApprovalContent() {
       return res.json();
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products/pending"] });
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       toast({
         title: "Product approved",
@@ -101,6 +102,7 @@ function ProductApprovalContent() {
       return res.json();
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products/pending"] });
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       toast({
         title: "Product rejected",
@@ -463,7 +465,7 @@ function ProductApprovalContent() {
                       <TableCell>{product.category}</TableCell>
                       <TableCell>₹{Number(product.price).toFixed(2)}</TableCell>
                       <TableCell>
-                        {product.sellerName || 'Unknown'}
+                        {product.seller?.username || product.sellerName || 'Unknown'}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
@@ -567,7 +569,7 @@ function ProductApprovalContent() {
                 <div className="mt-1">
                   <div className="text-sm font-medium text-gray-500">Seller Information</div>
                   <div className="mt-1 text-sm">
-                    {viewProduct.sellerName || 'Unknown Seller'}
+                    {viewProduct.seller?.username || viewProduct.sellerName || 'Unknown Seller'}
                   </div>
                 </div>
                 
