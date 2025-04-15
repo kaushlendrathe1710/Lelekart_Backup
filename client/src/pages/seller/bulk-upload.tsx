@@ -379,244 +379,88 @@ export default function BulkUploadPage() {
     
     toast({
       title: "Template downloaded",
-      description: "CSV template has been downloaded successfully.",
+      description: "CSV template has been downloaded to your device.",
+      variant: "default",
     });
   };
 
-  // Handle the preview process
-  const handlePreviewAction = async () => {
-    if (!file) {
+  // Function to submit products to server
+  const submitProducts = async () => {
+    if (previewProducts.length === 0 || validRows === 0) {
       toast({
-        title: "No file selected",
-        description: "Please select a CSV file to upload.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Reset states
-    setShowPreview(false);
-    setPreviewProducts([]);
-    setUploadErrors([]);
-    
-    // First notify server about preview mode (for logging/analytics purposes)
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      // Use query parameter to indicate preview mode
-      await fetch('/api/products/bulk-upload?preview=true', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include'
-      });
-    } catch (error) {
-      // Just log the error but continue with local processing
-      console.error("Error notifying server about preview mode:", error);
-    }
-    
-    // Process the file for preview locally
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (!event.target?.result) return;
-      processCSVForPreview(event.target.result as string);
-    };
-    reader.readAsText(file);
-    
-    toast({
-      title: "Generating preview",
-      description: "Analyzing your data to check for any issues...",
-    });
-  };
-
-  // Handle the upload process with previously validated preview data
-  const handleUpload = async () => {
-    if (!file || !showPreview) {
-      toast({
-        title: "No preview available",
-        description: "Please select a file and generate a preview before uploading.",
+        title: "No valid products to upload",
+        description: "Please upload a valid CSV file with product data.",
         variant: "destructive",
       });
       return;
     }
     
-    // Check if there are invalid products
+    // If there are validation errors, ask for confirmation
     if (invalidRows > 0) {
-      toast({
-        title: "Cannot upload with errors",
-        description: `There are ${invalidRows} products with validation errors. Please fix them before uploading.`,
-        variant: "destructive",
-      });
-      // Show error details automatically if there are errors
-      setShowErrorDetails(true);
-      return;
+      const confirmResult = window.confirm(`${invalidRows} products have validation errors. Only ${validRows} valid products will be uploaded. Continue?`);
+      if (!confirmResult) return;
     }
 
     setIsUploading(true);
 
+    // Filter to only include valid products
+    const validProducts = previewProducts.filter(p => p.isValid);
+    
     try {
-      // Track successful uploads and errors
-      let successCount = 0;
-      let errorCount = 0;
-      const currentErrors: UploadError[] = [];
+      const response = await fetch('/api/products/bulk-upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ products: validProducts }),
+      });
+
+      const result = await response.json();
       
-      // Upload each valid product from the preview
-      for (const product of previewProducts) {
-        if (!product.isValid) {
-          errorCount++;
-          continue;
-        }
-        
-        try {
-          // Prepare product data for API
-          const productData = { ...product };
-          
-          // Ensure we have seller ID
-          if (!productData.sellerId && user?.id) {
-            productData.sellerId = user.id;
-          }
-          
-          // Handle color field - ensure it's properly formatted
-          if (productData.color && typeof productData.color === 'string') {
-            // Keep as comma-separated string for database storage
-            productData.color = productData.color.split(',').map(c => c.trim()).filter(Boolean).join(', ');
-          }
-          
-          // Handle size field - ensure it's properly formatted
-          if (productData.size && typeof productData.size === 'string') {
-            // Keep as comma-separated string for database storage
-            productData.size = productData.size.split(',').map(s => s.trim()).filter(Boolean).join(', ');
-          }
-          
-          // Convert any array properties to JSON strings
-          if (productData.images && Array.isArray(productData.images)) {
-            productData.images = JSON.stringify(productData.images);
-          }
-          
-          // Remove preview-specific properties that shouldn't be sent to API
-          const { isValid, errors, rowIndex, ...apiProductData } = productData;
-          
-          const createResponse = await fetch('/api/products', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(apiProductData),
-            credentials: 'include'
-          });
-          
-          if (createResponse.ok) {
-            successCount++;
-          } else {
-            const errorData = await createResponse.json();
-            errorCount++;
-            currentErrors.push({
-              rowIndex: product.rowIndex,
-              productName: product.name,
-              errors: [errorData.error || 'API error']
-            });
-            console.error(`Error creating product (row ${product.rowIndex}):`, errorData);
-          }
-        } catch (error: any) {
-          errorCount++;
-          currentErrors.push({
-            rowIndex: product.rowIndex,
-            productName: product.name,
-            errors: [error.message || 'Unknown error']
-          });
-          console.error(`Error creating product (row ${product.rowIndex}):`, error);
-        }
+      if (!response.ok) {
+        throw new Error(result.error || 'Error uploading products');
       }
       
-      setIsUploading(false);
       setUploadSuccess(true);
-      
-      // Update the upload errors for detailed reporting
-      if (currentErrors.length > 0) {
-        setUploadErrors(currentErrors);
-        setShowErrorDetails(true);
-      }
-      
-      // Update the upload stats for displaying results
-      setUploadStats({
-        total: successCount + errorCount,
-        success: successCount,
-        failed: errorCount,
-        showResults: true
+      toast({
+        title: "Upload successful",
+        description: `${result.uploaded} products have been uploaded successfully.`,
+        variant: "default",
       });
       
-      if (errorCount > 0) {
-        toast({
-          title: "Upload partially successful",
-          description: `${successCount} products uploaded successfully. ${errorCount} products failed.`,
-          variant: "default",
-        });
-      } else {
-        toast({
-          title: "Upload successful",
-          description: `${successCount} products have been uploaded and are pending approval.`,
-        });
-      }
+      // Reset form state and keep success message
+      setFile(null);
+      setShowPreview(false);
+      setPreviewProducts([]);
+      setUploadErrors([]);
+      
+      // Show upload stats
+      setUploadStats({
+        showResults: true,
+        totalUploaded: result.uploaded,
+        successful: result.successful || [],
+        failed: result.failed || [],
+      });
+      
     } catch (error: any) {
-      setIsUploading(false);
       toast({
         title: "Upload failed",
-        description: error.message || "Failed to upload products. Please try again.",
+        description: error.message || "There was an error uploading the products.",
         variant: "destructive",
       });
+    } finally {
+      setIsUploading(false);
     }
   };
 
-  // Reset the upload process
-  const resetUpload = () => {
-    setFile(null);
-    setUploadSuccess(false);
-    setShowPreview(false);
-    setPreviewProducts([]);
-    setTotalRows(0);
-    setValidRows(0);
-    setInvalidRows(0);
-    setUploadErrors([]);
-    setShowErrorDetails(false);
-    setUploadStats({
-      total: 0,
-      success: 0,
-      failed: 0,
-      showResults: false
-    });
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  // Show loading state while fetching user data
-  if (authContext?.isLoading || isUserLoading) {
-    return (
-      <SellerDashboardLayout>
-        <div className="h-screen flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="ml-2">Loading user data...</span>
-        </div>
-      </SellerDashboardLayout>
-    );
-  }
+  // Upload stats tracking
+  const [uploadStats, setUploadStats] = useState({
+    showResults: false,
+    totalUploaded: 0,
+    successful: [] as any[],
+    failed: [] as any[],
+  });
   
-  // If no user is found, show error
-  if (!user) {
-    return (
-      <SellerDashboardLayout>
-        <div className="flex flex-col items-center justify-center h-[50vh]">
-          <div className="text-destructive mb-4">
-            <span className="text-lg font-medium">Authentication required</span>
-          </div>
-          <p className="text-muted-foreground text-center max-w-md mb-4">
-            You need to be logged in to upload products.
-          </p>
-        </div>
-      </SellerDashboardLayout>
-    );
-  }
-
   // State for UI tabs
   const [activeTab, setActiveTab] = useState<'upload' | 'help'>('upload');
   
@@ -624,18 +468,12 @@ export default function BulkUploadPage() {
   const [fileFormat, setFileFormat] = useState<'CSV' | 'Excel'>('CSV');
   
   // Dummy state for upload results tracking
-  const [uploadStats, setUploadStats] = useState<{
-    total: number;
-    success: number;
-    failed: number;
-    showResults: boolean;
-  }>({
-    total: 0,
+  const [uploadResult, setUploadResult] = useState({
     success: 0,
     failed: 0,
-    showResults: false
+    skipped: 0,
   });
-  
+
   return (
     <SellerDashboardLayout>
       <div className="space-y-6">
@@ -684,200 +522,242 @@ export default function BulkUploadPage() {
                 if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
                   const droppedFile = e.dataTransfer.files[0];
                   
-                  // Check if it's a CSV or Excel file
-                  if (!droppedFile.name.endsWith('.csv') && 
-                      !droppedFile.name.endsWith('.xlsx') && 
-                      !droppedFile.name.endsWith('.xls')) {
+                  // Check file extension and handle accordingly
+                  if (droppedFile.name.endsWith('.csv') || 
+                      droppedFile.name.endsWith('.xlsx') || 
+                      droppedFile.name.endsWith('.xls')) {
+                    // Create a new event and pass it to the handler
+                    const input = fileInputRef.current;
+                    if (input) {
+                      const dataTransfer = new DataTransfer();
+                      dataTransfer.items.add(droppedFile);
+                      input.files = dataTransfer.files;
+                      
+                      // Set file details and generate preview
+                      handleFileSelect({ target: { files: dataTransfer.files }} as any);
+                    }
+                  } else {
                     toast({
                       title: "Invalid file format",
                       description: "Please upload a CSV or Excel file.",
                       variant: "destructive",
                     });
-                    return;
                   }
-                  
-                  // Update file format based on extension
-                  if (droppedFile.name.endsWith('.csv')) {
-                    setFileFormat('CSV');
-                  } else {
-                    setFileFormat('Excel');
-                  }
-                  
-                  setFile(droppedFile);
                 }
               }}
             >
-              {!file && !uploadSuccess ? (
-                <div className="flex flex-col items-center justify-center">
-                  <div className="text-gray-400 mb-4">
-                    <FileText className="h-16 w-16" />
+              <div className="text-center">
+                {uploadSuccess ? (
+                  <div className="flex flex-col items-center">
+                    <CheckCircle className="h-16 w-16 text-green-500 mb-2" />
+                    <h3 className="text-xl font-medium">Upload Successful!</h3>
+                    <p className="text-muted-foreground mt-2">Your products have been uploaded successfully.</p>
+                    <Button
+                      onClick={() => {
+                        setFile(null);
+                        setUploadSuccess(false);
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = '';
+                        }
+                      }}
+                      className="mt-4"
+                      variant="outline"
+                    >
+                      Upload Another File
+                    </Button>
                   </div>
-                  <h3 className="text-lg font-medium mb-3">Drag & drop your file here or click to browse</h3>
-                  <p className="text-muted-foreground text-center mb-6">
-                    Supports CSV and Excel formats only (max 10MB)
-                  </p>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".csv,.xlsx,.xls"
-                    onChange={handleFileSelect}
-                    className="hidden"
-                    id="csv-upload"
-                  />
-                  <Button 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-2"
-                  >
-                    <Upload className="h-4 w-4" />
-                    Select File
-                  </Button>
-                </div>
-              ) : uploadSuccess && uploadStats.showResults ? (
-                // Show results after upload
-                <div className="flex flex-col items-center">
-                  <div className="text-green-500 mb-4">
-                    <CheckCircle className="h-16 w-16" />
-                  </div>
-                  <div className="text-center">
-                    <h3 className="text-lg font-medium mb-2">File selected: {file?.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      {file ? `${(file.size / 1024).toFixed(2)} KB` : ""}
-                    </p>
-                    <div className="flex gap-3 mb-6">
-                      <Button 
-                        variant="outline" 
-                        onClick={resetUpload}
-                        className="flex items-center gap-1"
-                      >
-                        <X className="h-4 w-4" />
-                        Remove
-                      </Button>
-                      <Button
-                        onClick={resetUpload}
-                        variant="outline"
-                      >
-                        Upload Another File
-                      </Button>
+                ) : (
+                  <>
+                    <div className="mb-4">
+                      {file ? (
+                        <div className="flex items-center justify-center mb-2">
+                          <FileText className="h-12 w-12 text-blue-500" />
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center mb-2">
+                          <Upload className="h-12 w-12 text-gray-400" />
+                        </div>
+                      )}
                     </div>
-                  </div>
-                </div>
-              ) : (
-                // Show file selected before processing upload
-                <div className="flex flex-col items-center">
-                  <div className="text-green-500 mb-4">
-                    <CheckCircle className="h-16 w-16" />
-                  </div>
-                  <div className="text-center">
-                    <h3 className="text-lg font-medium mb-2">File selected: {file?.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      {file ? `${(file.size / 1024).toFixed(2)} KB` : ""}
+                    
+                    {file ? (
+                      <div>
+                        <h3 className="text-lg font-medium">{file.name}</h3>
+                        <p className="text-sm text-muted-foreground mt-1">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                        <div className="flex items-center justify-center mt-4 gap-3">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setFile(null);
+                              if (fileInputRef.current) {
+                                fileInputRef.current.value = '';
+                              }
+                              setShowPreview(false);
+                              setPreviewProducts([]);
+                            }}
+                            className="flex items-center gap-1"
+                          >
+                            <X className="h-4 w-4" />
+                            Remove
+                          </Button>
+                          
+                          {!showPreview && (
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                if (file && file.name.endsWith('.csv')) {
+                                  const reader = new FileReader();
+                                  reader.onload = (event) => {
+                                    if (!event.target?.result) return;
+                                    processCSVForPreview(event.target.result as string);
+                                  };
+                                  reader.readAsText(file);
+                                } else {
+                                  // For Excel, we'd need SheetJS integration
+                                  toast({
+                                    title: "Excel processing",
+                                    description: "Excel processing would need additional libraries.",
+                                    variant: "default",
+                                  });
+                                }
+                              }}
+                              className="flex items-center gap-1"
+                            >
+                              Preview Products
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <h3 className="text-lg font-medium">Drag & Drop your file here</h3>
+                        <p className="text-sm text-muted-foreground mt-1 mb-4">or click to browse</p>
+                        <Button
+                          variant="outline"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="flex items-center gap-2"
+                        >
+                          <Upload className="h-4 w-4" />
+                          Select File
+                        </Button>
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          className="hidden"
+                          accept=".csv,.xlsx,.xls"
+                          onChange={handleFileSelect}
+                        />
+                      </div>
+                    )}
+                    
+                    <p className="text-xs text-muted-foreground mt-4">
+                      Supported formats: .CSV, .XLSX, .XLS (max 10MB)
                     </p>
-                    <div className="flex gap-3 mb-6">
-                      <Button 
-                        variant="outline" 
-                        onClick={resetUpload}
-                        disabled={isUploading}
-                        className="flex items-center gap-1"
-                      >
-                        <X className="h-4 w-4" />
-                        Remove
-                      </Button>
-                      <Button
-                        onClick={showPreview ? handleUpload : handlePreviewAction}
-                        disabled={isUploading}
-                        className="bg-blue-500 hover:bg-blue-600 text-white"
-                      >
-                        {isUploading ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Processing...
-                          </>
-                        ) : showPreview ? (
-                          <>
-                            <Upload className="h-4 w-4 mr-2" />
-                            Confirm & Upload
-                          </>
-                        ) : (
-                          <>
-                            <FileText className="h-4 w-4 mr-2" />
-                            Preview Products
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
+                  </>
+                )}
+              </div>
             </div>
             
             {/* Preview Section */}
-            {showPreview && previewProducts.length > 0 && (
-              <div className="mt-6 border rounded-md p-4">
-                <h3 className="font-medium text-lg mb-4">Product Preview</h3>
-                
-                <div className="grid grid-cols-3 gap-4 mb-4">
-                  <div className="bg-green-50 border border-green-100 rounded-md p-4 flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <div>
-                      <div className="text-green-600 font-medium">Valid Products</div>
-                      <div className="text-xl font-bold text-green-700">{validRows}</div>
+            {showPreview && (
+              <div className="mt-8">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-xl font-semibold">Product Preview</h3>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm bg-blue-50 text-blue-600 px-2 py-0.5 rounded">
+                        {totalRows} Products
+                      </span>
+                      <span className="text-sm bg-green-50 text-green-600 px-2 py-0.5 rounded">
+                        {validRows} Valid
+                      </span>
+                      {invalidRows > 0 && (
+                        <span className="text-sm bg-red-50 text-red-600 px-2 py-0.5 rounded">
+                          {invalidRows} Invalid
+                        </span>
+                      )}
                     </div>
                   </div>
-                  
-                  <div className="bg-red-50 border border-red-100 rounded-md p-4 flex items-center">
-                    <AlertCircle className="h-5 w-5 text-red-500 mr-3" />
-                    <div>
-                      <div className="text-red-600 font-medium">Products with Errors</div>
-                      <div className="text-xl font-bold text-red-700">{invalidRows}</div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-blue-50 border border-blue-100 rounded-md p-4 flex items-center">
-                    <InfoIcon className="h-5 w-5 text-blue-500 mr-3" />
-                    <div>
-                      <div className="text-blue-600 font-medium">Total Products</div>
-                      <div className="text-xl font-bold text-blue-700">{totalRows}</div>
-                    </div>
-                  </div>
+                  <Button
+                    onClick={() => submitProducts()}
+                    disabled={validRows === 0 || isUploading}
+                    className="flex items-center gap-2"
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="h-4 w-4" />
+                        Upload Products
+                      </>
+                    )}
+                  </Button>
                 </div>
                 
-                {/* Preview Table */}
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse table-auto">
-                    <thead>
-                      <tr className="bg-muted">
-                        <th className="px-4 py-2 text-left">Row</th>
-                        <th className="px-4 py-2 text-left">Name</th>
-                        <th className="px-4 py-2 text-left">Category</th>
-                        <th className="px-4 py-2 text-right">Price</th>
-                        <th className="px-4 py-2 text-right">MRP</th>
-                        <th className="px-4 py-2 text-center">Stock</th>
-                        <th className="px-4 py-2 text-center">Status</th>
+                <div className="border rounded-md overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-muted/50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-sm font-medium">#</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium">Product Name</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium">Category</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium">Price</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium">Stock</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium"></th>
                       </tr>
                     </thead>
-                    <tbody>
-                      {previewProducts.slice(0, 5).map((product) => (
-                        <tr 
-                          key={product.rowIndex} 
-                          className={`border-b ${product.isValid ? '' : 'bg-red-50'}`}
-                        >
-                          <td className="px-4 py-3">{product.rowIndex}</td>
-                          <td className="px-4 py-3 font-medium">{product.name}</td>
-                          <td className="px-4 py-3">{product.category}</td>
-                          <td className="px-4 py-3 text-right">₹{product.price?.toLocaleString('en-IN')}</td>
-                          <td className="px-4 py-3 text-right">{product.mrp ? `₹${product.mrp?.toLocaleString('en-IN')}` : '-'}</td>
-                          <td className="px-4 py-3 text-center">{product.stock}</td>
-                          <td className="px-4 py-3 text-center">
+                    <tbody className="divide-y">
+                      {previewProducts.slice(0, 5).map((product, index) => (
+                        <tr key={index} className={`${!product.isValid ? 'bg-red-50' : ''}`}>
+                          <td className="px-4 py-3 text-sm">{product.rowIndex}</td>
+                          <td className="px-4 py-3 text-sm font-medium">{product.name}</td>
+                          <td className="px-4 py-3 text-sm text-muted-foreground">{product.category}</td>
+                          <td className="px-4 py-3 text-sm">${product.price}</td>
+                          <td className="px-4 py-3 text-sm">{product.stock}</td>
+                          <td className="px-4 py-3 text-sm">
                             {product.isValid ? (
-                              <span className="inline-flex items-center bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                                <Check className="h-3 w-3 mr-1" />
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700">
+                                <Check className="mr-1 h-3 w-3" />
                                 Valid
                               </span>
                             ) : (
-                              <span className="inline-flex items-center bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">
-                                <X className="h-3 w-3 mr-1" />
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700">
+                                <AlertCircle className="mr-1 h-3 w-3" />
                                 Error
                               </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {!product.isValid && (
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    className="h-7 text-xs"
+                                  >
+                                    View Errors
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-80">
+                                  <div className="space-y-2">
+                                    <h4 className="font-medium">Validation Errors</h4>
+                                    <ul className="text-sm space-y-1 text-red-600">
+                                      {product.errors?.map((err, i) => (
+                                        <li key={i} className="flex items-start gap-2">
+                                          <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                                          <span>{err}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
                             )}
                           </td>
                         </tr>
@@ -885,7 +765,7 @@ export default function BulkUploadPage() {
                       {previewProducts.length > 5 && (
                         <tr>
                           <td colSpan={7} className="px-4 py-3 text-center text-muted-foreground">
-                            Showing 5 of {previewProducts.length} products...
+                            And {previewProducts.length - 5} more products...
                           </td>
                         </tr>
                       )}
@@ -893,61 +773,63 @@ export default function BulkUploadPage() {
                   </table>
                 </div>
                 
-                {/* Error Details Section */}
-                {invalidRows > 0 && (
-                  <div className="mt-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-medium text-lg">Error Details</h3>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => setShowErrorDetails(!showErrorDetails)}
-                        className="text-sm flex items-center gap-1"
-                      >
-                        {showErrorDetails ? 'Hide Details' : 'Show Details'}
-                        {showErrorDetails ? (
-                          <ChevronDown className="h-4 w-4" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4 transform -rotate-90" />
-                        )}
-                      </Button>
-                    </div>
-                    
-                    {showErrorDetails && (
-                      <div className="border rounded-md overflow-hidden">
-                        {uploadErrors.map((error, index) => (
-                          <div 
-                            key={index} 
-                            className={`border-b last:border-0 p-3 ${index % 2 === 0 ? 'bg-muted/20' : ''}`}
-                          >
-                            <div className="flex items-start">
-                              <div className="bg-red-100 text-red-800 text-xs font-medium px-2 py-1 rounded mr-2">
-                                Row {error.rowIndex}
-                              </div>
-                              <div>
-                                <div className="font-medium">{error.productName || `Row ${error.rowIndex}`}</div>
-                                <ul className="mt-1 space-y-1 text-sm text-muted-foreground">
-                                  {error.errors.map((err, i) => (
-                                    <li key={i} className="flex items-start">
-                                      <span className="text-red-500 mr-1">•</span> {err}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
+                <div className="mt-6 flex justify-between items-center">
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      setShowPreview(false);
+                      setFile(null);
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = '';
+                      }
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back
+                  </Button>
+                  
+                  <Button
+                    onClick={() => setShowErrorDetails(!showErrorDetails)}
+                    className="text-sm flex items-center gap-1"
+                  >
+                    {showErrorDetails ? 'Hide Details' : 'Show Details'}
+                    <ChevronDown className={`h-4 w-4 transition-transform ${showErrorDetails ? 'rotate-180' : ''}`} />
+                  </Button>
+                </div>
+                
+                {showErrorDetails && invalidRows > 0 && (
+                  <div className="mt-4">
+                    <h4 className="font-medium mb-2">Error Details</h4>
+                    <div className="space-y-3">
+                      {uploadErrors.map((error, idx) => (
+                        <div key={idx} className="bg-red-50 border border-red-100 rounded p-3">
+                          <div className="flex justify-between">
+                            <div className="font-medium text-red-800">
+                              {error.productName}
+                            </div>
+                            <div className="text-sm text-red-600">
+                              Row {error.rowIndex}
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    )}
+                          <div className="mt-2">
+                            <ul className="list-disc pl-5 space-y-1 text-sm text-red-700">
+                              {error.errors.map((err, i) => (
+                                <li key={i}>{err}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
                 
                 {invalidRows > 0 && (
                   <div className="mt-4 p-3 bg-orange-50 border border-orange-100 rounded text-sm flex items-start">
-                    <AlertCircle className="h-5 w-5 text-orange-500 mr-2 flex-shrink-0 mt-0.5" />
+                    <AlertCircle className="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5 mr-2" />
                     <div>
-                      <span className="font-medium">Action Required:</span> Please fix the errors in your CSV file and reupload. 
-                      Products with errors will not be included in the upload.
+                      <p><strong>Note:</strong> Products with validation errors will be skipped during upload. Only valid products will be imported into your inventory.</p>
                     </div>
                   </div>
                 )}
@@ -956,71 +838,55 @@ export default function BulkUploadPage() {
 
             {/* Upload Progress and Stats (when applicable) */}
             {uploadSuccess && uploadStats.showResults && (
-              <div className="mt-6">
-                <div className="mb-2 flex justify-between items-center">
-                  <div>Upload Progress</div>
-                  <div>{uploadStats.total} of {uploadStats.total} products</div>
+              <div className="mt-8">
+                <div className="flex items-center gap-2 mb-4">
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                  <h3 className="text-xl font-semibold">Upload Results</h3>
                 </div>
-                <div className="w-full bg-blue-100 rounded-full h-2.5 mb-4">
-                  <div className="bg-blue-500 h-2.5 rounded-full" style={{ width: '100%' }}></div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-green-50 border border-green-100 rounded-md p-4 flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <div>
-                      <div className="text-green-600 font-medium">Successfully Processed</div>
-                      <div className="text-xl font-bold text-green-700">{uploadStats.success}</div>
+
+                <Card className="mb-4">
+                  <CardContent className="p-6">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold">{totalRows}</div>
+                        <div className="text-sm text-muted-foreground">Total Products</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-600">{uploadStats.totalUploaded}</div>
+                        <div className="text-sm text-muted-foreground">Successfully Uploaded</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-orange-500">{uploadStats.failed.length}</div>
+                        <div className="text-sm text-muted-foreground">Failed to Upload</div>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="bg-red-50 border border-red-100 rounded-md p-4 flex items-center">
-                    <AlertCircle className="h-5 w-5 text-red-500 mr-3" />
-                    <div>
-                      <div className="text-red-600 font-medium">Failed Records</div>
-                      <div className="text-xl font-bold text-red-700">{uploadStats.failed}</div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Error Details */}
-                {uploadStats.failed > 0 && uploadErrors.length > 0 && (
+                  </CardContent>
+                </Card>
+
+                {uploadStats.failed.length > 0 && (
                   <div className="mt-4">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setShowErrorDetails(!showErrorDetails)} 
-                      className="flex items-center"
-                    >
-                      {showErrorDetails ? 'Hide Error Details' : 'Show Error Details'}
-                      <ChevronDown className={`ml-2 h-4 w-4 transition-transform ${showErrorDetails ? 'rotate-180' : ''}`} />
-                    </Button>
-                    
-                    {showErrorDetails && (
-                      <div className="mt-3 border rounded-md">
-                        {uploadErrors.map((error, index) => (
-                          <div 
-                            key={index} 
-                            className={`border-t first:border-t-0 p-3 ${index % 2 === 0 ? 'bg-muted/20' : ''}`}
-                          >
-                            <div className="flex items-start">
-                              <div className="bg-red-100 text-red-800 text-xs font-medium px-2 py-1 rounded mr-2">
-                                Row {error.rowIndex}
-                              </div>
-                              <div>
-                                <div className="font-medium">{error.productName || `Row ${error.rowIndex}`}</div>
-                                <ul className="mt-1 space-y-1 text-sm text-muted-foreground">
-                                  {error.errors.map((err, i) => (
-                                    <li key={i} className="flex items-start">
-                                      <span className="text-red-500 mr-1">•</span> {err}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
+                    <h4 className="font-medium mb-2">Upload Failures</h4>
+                    <div className="space-y-3">
+                      {uploadStats.failed.map((error, idx) => (
+                        <div key={idx} className="bg-red-50 border border-red-100 rounded p-3">
+                          <div className="flex justify-between">
+                            <div className="font-medium text-red-800">
+                              {error.name || `Product ${idx + 1}`}
+                            </div>
+                            <div className="text-sm text-red-600">
+                              Row {error.rowIndex}
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    )}
+                          <div className="mt-2">
+                            <ul className="list-disc pl-5 space-y-1 text-sm text-red-700">
+                              {error.errors.map((err, i) => (
+                                <li key={i}>{err}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -1028,102 +894,238 @@ export default function BulkUploadPage() {
             
             {/* Template Download Section */}
             <div className="flex justify-between items-center mt-6">
-              <Button 
-                variant="outline" 
-                onClick={downloadTemplate}
-                className="flex items-center gap-2"
-              >
-                <DownloadCloud className="h-4 w-4" />
-                Download Template
-              </Button>
-              
-              <div className="relative">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="flex items-center gap-2">
-                      {fileFormat}
-                      <ChevronDown className="h-4 w-4" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="end">
-                    <div className="p-0">
-                      <Button 
-                        variant="ghost" 
-                        className="w-full justify-start rounded-none px-4 py-2"
-                        onClick={() => setFileFormat('CSV')}
-                      >
-                        {fileFormat === 'CSV' && <Check className="h-4 w-4 mr-2" />}
-                        CSV
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        className="w-full justify-start rounded-none px-4 py-2"
-                        onClick={() => setFileFormat('Excel')}
-                      >
-                        {fileFormat === 'Excel' && <Check className="h-4 w-4 mr-2" />}
-                        Excel
-                      </Button>
-                    </div>
-                  </PopoverContent>
-                </Popover>
+              <div>
+                <h3 className="flex items-center gap-2 text-sm font-medium mb-1">
+                  <DownloadCloud className="h-4 w-4" />
+                  Need a template?
+                </h3>
+                <p className="text-xs text-muted-foreground">Download our pre-configured product template</p>
               </div>
+              
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex items-center gap-1">
+                    Download Template
+                    <ChevronDown className="h-3 w-3 opacity-70" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-48 p-0">
+                  <div className="flex flex-col">
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start rounded-none px-4 py-2"
+                      onClick={() => setFileFormat('CSV')}
+                    >
+                      {fileFormat === 'CSV' && <Check className="h-4 w-4 mr-2" />}
+                      CSV
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start rounded-none px-4 py-2"
+                      onClick={() => setFileFormat('Excel')}
+                    >
+                      {fileFormat === 'Excel' && <Check className="h-4 w-4 mr-2" />}
+                      Excel
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
         ) : (
           <div className="bg-white rounded-md border p-6">
             <div className="mb-6">
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-2">
                 <HelpCircle className="h-5 w-5" />
-                <h2 className="text-xl font-semibold">How to Use Bulk Upload</h2>
+                <h2 className="text-xl font-semibold">Help & Guidelines</h2>
               </div>
-              <p className="text-muted-foreground mb-6">Step-by-step instructions to prepare and upload your product data.</p>
+              <p className="text-muted-foreground">Comprehensive guide to successfully uploading product data.</p>
             </div>
             
-            <div className="space-y-6">
+            <div className="space-y-8">
+              {/* CSV Structure Section */}
               <div>
-                <h3 className="text-lg font-medium mb-3">Step 1: Prepare Your Data</h3>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li>Download our product template using the "Download Template" button</li>
-                  <li>Fill in your product details in the spreadsheet</li>
-                  <li>Required fields: name, description, price, category</li>
-                  <li>Save your file as CSV or Excel format</li>
-                </ul>
+                <h3 className="text-lg font-medium mb-3">CSV File Structure</h3>
+                <div className="bg-muted/30 border rounded-md p-4">
+                  <p className="mb-3">Your CSV file should have the following column headers (fields marked with * are required):</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <div className="flex gap-2 items-center">
+                      <span className="font-semibold">name*</span>
+                      <span className="text-xs text-muted-foreground">(Product Name)</span>
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <span className="font-semibold">description*</span>
+                      <span className="text-xs text-muted-foreground">(Product Description)</span>
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <span className="font-semibold">price*</span>
+                      <span className="text-xs text-muted-foreground">(Selling Price)</span>
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <span className="font-semibold">category*</span>
+                      <span className="text-xs text-muted-foreground">(Product Category)</span>
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <span className="font-semibold">imageUrl1*</span>
+                      <span className="text-xs text-muted-foreground">(Main Image URL)</span>
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <span className="font-semibold">stock*</span>
+                      <span className="text-xs text-muted-foreground">(Quantity Available)</span>
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <span className="font-semibold">mrp</span>
+                      <span className="text-xs text-muted-foreground">(Maximum Retail Price)</span>
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <span className="font-semibold">purchasePrice</span>
+                      <span className="text-xs text-muted-foreground">(Cost Price)</span>
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <span className="font-semibold">sku</span>
+                      <span className="text-xs text-muted-foreground">(Stock Keeping Unit)</span>
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <span className="font-semibold">brand</span>
+                      <span className="text-xs text-muted-foreground">(Brand Name)</span>
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <span className="font-semibold">color</span>
+                      <span className="text-xs text-muted-foreground">(Comma-separated values)</span>
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <span className="font-semibold">size</span>
+                      <span className="text-xs text-muted-foreground">(Comma-separated values)</span>
+                    </div>
+                  </div>
+                </div>
               </div>
               
+              {/* Data Format Section */}
               <div>
-                <h3 className="text-lg font-medium mb-3">Step 2: Upload Your File</h3>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li>Click on the upload area to select your file</li>
-                  <li>Verify that your file appears with a green checkmark</li>
-                  <li>Click "Process Upload" to begin importing</li>
-                  <li>Wait for the upload to complete</li>
-                </ul>
+                <h3 className="text-lg font-medium mb-3">Data Format Guidelines</h3>
+                <div className="space-y-4">
+                  {/* Colors and Sizes */}
+                  <div className="bg-muted/30 border rounded-md p-4">
+                    <h4 className="font-medium mb-2">Colors and Sizes</h4>
+                    <p className="mb-2">Format these fields as comma-separated values without quotation marks:</p>
+                    <div className="bg-white p-3 rounded border mb-2">
+                      <div className="mb-2">
+                        <span className="font-mono text-sm">color:</span>
+                        <span className="font-mono text-sm ml-2 text-green-600">Red,Blue,Green</span>
+                      </div>
+                      <div>
+                        <span className="font-mono text-sm">size:</span>
+                        <span className="font-mono text-sm ml-2 text-green-600">S,M,L,XL</span>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Each color/size value will be displayed as a separate option to customers.</p>
+                  </div>
+                  
+                  {/* Images */}
+                  <div className="bg-muted/30 border rounded-md p-4">
+                    <h4 className="font-medium mb-2">Product Images</h4>
+                    <p className="mb-2">Use separate columns for additional product images:</p>
+                    <div className="bg-white p-3 rounded border mb-2">
+                      <div className="mb-2">
+                        <span className="font-mono text-sm">imageUrl1:</span>
+                        <span className="font-mono text-sm ml-2 text-green-600">https://example.com/images/product-front.jpg</span>
+                      </div>
+                      <div className="mb-2">
+                        <span className="font-mono text-sm">imageUrl2:</span>
+                        <span className="font-mono text-sm ml-2 text-green-600">https://example.com/images/product-back.jpg</span>
+                      </div>
+                      <div>
+                        <span className="font-mono text-sm">imageUrl3:</span>
+                        <span className="font-mono text-sm ml-2 text-green-600">https://example.com/images/product-side.jpg</span>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">All images must be accessible public URLs. Do not use commas to separate multiple URLs in a single column.</p>
+                  </div>
+                  
+                  {/* Dimensions and Measurements */}
+                  <div className="bg-muted/30 border rounded-md p-4">
+                    <h4 className="font-medium mb-2">Dimensions and Measurements</h4>
+                    <p className="mb-2">Use consistent units for all measurements:</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-2">
+                      <div className="bg-white p-3 rounded border">
+                        <div className="mb-1">
+                          <span className="font-mono text-sm">weight:</span>
+                          <span className="font-mono text-sm ml-2 text-green-600">500</span>
+                          <span className="text-xs text-muted-foreground ml-1">(in grams)</span>
+                        </div>
+                        <div>
+                          <span className="font-mono text-sm">warranty_months:</span>
+                          <span className="font-mono text-sm ml-2 text-green-600">12</span>
+                          <span className="text-xs text-muted-foreground ml-1">(1 year)</span>
+                        </div>
+                      </div>
+                      <div className="bg-white p-3 rounded border">
+                        <div className="mb-1">
+                          <span className="font-mono text-sm">length:</span>
+                          <span className="font-mono text-sm ml-2 text-green-600">25</span>
+                          <span className="text-xs text-muted-foreground ml-1">(in cm)</span>
+                        </div>
+                        <div>
+                          <span className="font-mono text-sm">width:</span>
+                          <span className="font-mono text-sm ml-2 text-green-600">15</span>
+                          <span className="text-xs text-muted-foreground ml-1">(in cm)</span>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">All dimensions should be in centimeters, weight in grams, and warranty in months.</p>
+                  </div>
+                </div>
               </div>
               
+              {/* Common Errors Section */}
               <div>
-                <h3 className="text-lg font-medium mb-3">Step 3: Review Results</h3>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li>Check the number of successfully imported products</li>
-                  <li>Review any errors that occurred during import</li>
-                  <li>Go to your Products page to see the newly added items</li>
-                </ul>
+                <h3 className="text-lg font-medium mb-3">Common Errors and Solutions</h3>
+                <div className="bg-muted/30 border rounded-md p-4">
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                      <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Mismatched Categories</p>
+                        <p className="text-sm text-muted-foreground">Ensure your category matches the available categories in your store. Typos or non-existent categories will cause validation errors.</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Invalid Image URLs</p>
+                        <p className="text-sm text-muted-foreground">All image URLs must start with http:// or https:// and point to publicly accessible images. Private URLs or incorrect formats will fail validation.</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Price Logic Errors</p>
+                        <p className="text-sm text-muted-foreground">The selling price cannot be greater than the MRP (Maximum Retail Price). This is a common validation error.</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Incorrectly Formatted Colors/Sizes</p>
+                        <p className="text-sm text-muted-foreground">Use comma-separated values without additional quotation marks or brackets. Example: Red,Blue,Green</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              
-              <div className="bg-muted/30 border rounded-md p-4">
-                <h4 className="flex items-center gap-2 font-medium mb-3">
-                  <InfoIcon className="h-5 w-5" />
-                  Tips for Success
-                </h4>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li>Ensure your category values match existing categories in your store</li>
-                  <li>For image URLs, use publicly accessible links</li>
-                  <li>Use the <span className="font-semibold">imageUrl1</span>, <span className="font-semibold">imageUrl2</span>, and <span className="font-semibold">imageUrl3</span> fields to add additional product images</li>
-                  <li>Each image URL should be placed in its own column - do not use commas to separate them</li>
-                  <li>Format <span className="font-semibold">colors</span> and <span className="font-semibold">sizes</span> as comma-separated values (Example: Red,Blue,Green)</li>
-                  <li>Use consistent formatting for prices (numbers only, no currency symbols)</li>
-                  <li>The <span className="font-semibold">warranty_months</span> field should specify warranty duration in months (Example: 12 for 1 year, 24 for 2 years)</li>
-                  <li>Maximum file size is 10MB</li>
-                </ul>
+
+              {/* Download Template Button */}
+              <div className="border-t pt-6">
+                <Button
+                  variant="outline"
+                  onClick={downloadTemplate}
+                  className="flex items-center gap-2"
+                >
+                  <DownloadCloud className="h-4 w-4" />
+                  Download CSV Template
+                </Button>
+                <p className="text-sm text-muted-foreground mt-2">Download our pre-configured template with all required fields and example data.</p>
               </div>
             </div>
           </div>
