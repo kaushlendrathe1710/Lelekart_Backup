@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 
 // Schema for creating a new user
 const createUserSchema = z.object({
@@ -103,6 +103,9 @@ export default function CreateUserPage() {
     createUserMutation.mutateAsync(data);
   };
   
+  // Check if email error exists
+  const hasEmailError = form.formState.errors.email?.message?.includes("already exists");
+  
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -159,12 +162,23 @@ export default function CreateUserPage() {
                           <FormItem>
                             <FormLabel>Email</FormLabel>
                             <FormControl>
-                              <Input type="email" placeholder="email@example.com" {...field} />
+                              <Input 
+                                type="email" 
+                                placeholder="email@example.com" 
+                                className={hasEmailError ? "border-red-500 focus-visible:ring-red-500" : ""} 
+                                {...field} 
+                              />
                             </FormControl>
                             <FormDescription>
                               User will use email OTP verification to login
                             </FormDescription>
                             <FormMessage />
+                            {hasEmailError && (
+                              <div className="flex items-center gap-1 text-sm font-medium text-destructive mt-1">
+                                <AlertCircle className="h-4 w-4" />
+                                <span>This email is already registered in the system.</span>
+                              </div>
+                            )}
                           </FormItem>
                         )}
                       />
@@ -242,12 +256,23 @@ export default function CreateUserPage() {
                           <FormItem>
                             <FormLabel>Email</FormLabel>
                             <FormControl>
-                              <Input type="email" placeholder="email@example.com" {...field} />
+                              <Input 
+                                type="email" 
+                                placeholder="email@example.com" 
+                                className={hasEmailError ? "border-red-500 focus-visible:ring-red-500" : ""} 
+                                {...field} 
+                              />
                             </FormControl>
                             <FormDescription>
                               User will use email OTP verification to login
                             </FormDescription>
                             <FormMessage />
+                            {hasEmailError && (
+                              <div className="flex items-center gap-1 text-sm font-medium text-destructive mt-1">
+                                <AlertCircle className="h-4 w-4" />
+                                <span>This email is already registered in the system.</span>
+                              </div>
+                            )}
                           </FormItem>
                         )}
                       />
@@ -300,9 +325,9 @@ export default function CreateUserPage() {
             <p>Sellers will need to be approved before they can access seller features.</p>
           </div>
           
-          {form.formState.errors.email && form.formState.errors.email.message?.includes("already exists") && (
+          {hasEmailError && (
             <div className="p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm">
-              <strong>Note:</strong> {form.formState.errors.email.message}. Please use a different email address or check if this user already exists in the system.
+              <strong>Error:</strong> A user with this email already exists in the system. Please try with a different email address.
             </div>
           )}
         </div>
