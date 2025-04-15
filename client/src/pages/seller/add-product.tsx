@@ -942,6 +942,19 @@ export default function AddProductPage() {
                 </Button>
                 <p className="text-sm text-muted-foreground text-center md:text-right">
                   Your product will be reviewed by our team before being published.
+              
+              {/* Standalone submit button at the bottom */}
+              <div className="fixed bottom-10 right-10">
+                <Button 
+                  size="lg" 
+                  className="bg-green-600 hover:bg-green-700 text-white rounded-md shadow-md w-48"
+                  onClick={form.handleSubmit(onSubmit)}
+                  disabled={createProductMutation.isPending}
+                >
+                  <CheckCircle className="mr-2 h-5 w-5" />
+                  Submit Product
+                </Button>
+              </div>
                 </p>
               </div>
             </Form>
