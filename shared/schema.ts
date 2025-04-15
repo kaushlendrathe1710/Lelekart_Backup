@@ -71,6 +71,7 @@ export const insertProductSchema = createInsertSchema(products).pick({
   sellerId: true,
   stock: true,
   approved: true,
+  rejected: true,
 });
 
 // Cart schema
