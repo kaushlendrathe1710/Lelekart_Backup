@@ -27,7 +27,6 @@ export interface CoAdminPermissions {
 export interface CreateCoAdminData {
   username: string;
   email: string;
-  password: string;
   permissions: CoAdminPermissions;
 }
 

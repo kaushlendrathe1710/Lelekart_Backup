@@ -1188,10 +1188,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     try {
-      const { email, username, password, permissions } = req.body;
+      const { email, username, permissions } = req.body;
       
-      if (!email || !username || !password) {
-        return res.status(400).json({ error: "Email, username and password are required" });
+      if (!email || !username) {
+        return res.status(400).json({ error: "Email and username are required" });
       }
       
       // Check if user already exists
@@ -1200,11 +1200,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "User with this email already exists" });
       }
       
+      // Create the co-admin with a random password since we're using OTP
+      const randomPassword = require('crypto').randomBytes(16).toString('hex');
+      
       // Create the co-admin
       const newCoAdmin = await storage.createUser({
         email,
         username,
-        password,
+        password: randomPassword, // Use random password since authentication is via OTP
         role: "admin",
         isCoAdmin: true,
         permissions: permissions || {},
