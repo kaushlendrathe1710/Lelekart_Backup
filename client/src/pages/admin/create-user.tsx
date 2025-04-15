@@ -77,11 +77,24 @@ export default function CreateUserPage() {
       }, 2000);
     },
     onError: (error: Error) => {
-      toast({
-        title: "Failed to create user",
-        description: error.message,
-        variant: "destructive",
-      });
+      // Check if it's a "User already exists" error
+      if (error.message.includes("User with this email already exists")) {
+        form.setError("email", { 
+          type: "manual", 
+          message: "User with this email already exists"
+        });
+        toast({
+          title: "Email already in use",
+          description: "A user with this email address already exists. Please use a different email.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Failed to create user",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     },
   });
   
@@ -280,10 +293,18 @@ export default function CreateUserPage() {
           </CardContent>
         </Card>
         
-        <div className="mt-6 text-sm text-muted-foreground">
-          <p>Users will be created with a basic account.</p>
-          <p>They will use email OTP verification to login - no password is required.</p>
-          <p>Sellers will need to be approved before they can access seller features.</p>
+        <div className="mt-6 space-y-2">
+          <div className="text-sm text-muted-foreground">
+            <p>Users will be created with a basic account.</p>
+            <p>They will use email OTP verification to login - no password is required.</p>
+            <p>Sellers will need to be approved before they can access seller features.</p>
+          </div>
+          
+          {form.formState.errors.email && form.formState.errors.email.message?.includes("already exists") && (
+            <div className="p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm">
+              <strong>Note:</strong> {form.formState.errors.email.message}. Please use a different email address or check if this user already exists in the system.
+            </div>
+          )}
         </div>
       </div>
     </AdminLayout>
