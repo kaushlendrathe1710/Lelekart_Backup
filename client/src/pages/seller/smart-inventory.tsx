@@ -53,12 +53,25 @@ export default function SmartInventory() {
         console.log(`Fetching products for seller ID: ${user?.id}`);
         const res = await apiRequest("GET", `/api/products?sellerId=${user?.id}`);
         const data = await res.json();
-        console.log("Fetched products:", data);
+        console.log("Fetched products:", JSON.stringify(data, null, 2));
         
         if (!data.products || !Array.isArray(data.products)) {
           console.error("Invalid products data structure:", data);
           throw new Error("Invalid products data received");
         }
+        
+        // Log each product to see their structure and image URLs
+        data.products.forEach((product: any, index: number) => {
+          console.log(`Product ${index + 1} (${product.name}) image data:`, 
+            JSON.stringify({
+              id: product.id,
+              name: product.name,
+              imageUrl: product.imageUrl,
+              image_url: product.image_url,
+              images: product.images,
+            }, null, 2)
+          );
+        });
         
         return data.products;
       } catch (error) {
