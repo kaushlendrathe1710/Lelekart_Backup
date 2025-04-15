@@ -27,7 +27,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AuthContext } from "@/hooks/use-auth";
+import { AuthContext, AuthProvider } from "@/hooks/use-auth";
 import { useContext } from "react";
 import { User as UserType } from "@shared/schema";
 import { 
@@ -130,10 +130,11 @@ export function SellerDashboardLayout({ children }: SellerDashboardLayoutProps) 
   };
 
   return (
-    <SidebarProvider defaultOpen={true}>
-      <div className="flex min-h-screen flex-col bg-gray-50">
-        {/* Top Navigation Bar - fixed height of 56px (h-14) */}
-        <header className="fixed top-0 left-0 right-0 z-50 h-14 border-b bg-primary px-4 shadow-md">
+    <AuthProvider>
+      <SidebarProvider defaultOpen={true}>
+        <div className="flex min-h-screen flex-col bg-gray-50">
+          {/* Top Navigation Bar - fixed height of 56px (h-14) */}
+          <header className="fixed top-0 left-0 right-0 z-50 h-14 border-b bg-primary px-4 shadow-md">
           <div className="flex h-full items-center justify-between">
             <div className="flex items-center gap-4">
               <SidebarTrigger className="text-white hover:bg-primary-foreground/10 hover:text-white" />
@@ -439,5 +440,6 @@ export function SellerDashboardLayout({ children }: SellerDashboardLayoutProps) 
         </div>
       </div>
     </SidebarProvider>
+  </AuthProvider>
   );
 }
