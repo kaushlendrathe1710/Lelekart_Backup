@@ -639,11 +639,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userProducts = [];
       const isAdmin = req.user.role === "admin";
       
+      // Add more detailed logging to help debug the issue
+      console.log(`Processing bulk delete request from user ${req.user.id} (${req.user.username}, ${req.user.email}), role: ${req.user.role}`);
+      
       for (const productId of productIds) {
         const product = await storage.getProduct(productId);
         
-        if (product && (product.sellerId === req.user.id || isAdmin)) {
-          userProducts.push(productId);
+        // More detailed logging to track product ownership
+        if (product) {
+          console.log(`Checking product ${productId} with seller_id ${product.sellerId} (type: ${typeof product.sellerId}) against user ${req.user.id} (type: ${typeof req.user.id})`);
+          
+          // Enhanced comparison with improved error handling
+          try {
+            const productSellerId = Number(product.sellerId);
+            const userId = Number(req.user.id);
+            
+            // Log the converted values to help debug type conversion issues
+            console.log(`After conversion: product seller ID ${productSellerId} (${isNaN(productSellerId) ? 'NaN' : 'valid'}) vs user ID ${userId} (${isNaN(userId) ? 'NaN' : 'valid'})`);
+            
+            // Check for NaN to prevent invalid comparisons
+            if ((productSellerId === userId || isAdmin) && !isNaN(productSellerId) && !isNaN(userId)) {
+              userProducts.push(productId);
+              console.log(`User owns product ${productId} or is admin, adding to delete list`);
+            } else {
+              console.log(`User does NOT own product ${productId} and is not admin, skipping`);
+            }
+          } catch (conversionError) {
+            console.error(`Error comparing IDs for product ${productId}:`, conversionError);
+            // If admin, still allow deleting despite conversion error
+            if (isAdmin) {
+              userProducts.push(productId);
+              console.log(`Admin user, bypassing ownership check for product ${productId}`);
+            }
+          }
         }
       }
       
