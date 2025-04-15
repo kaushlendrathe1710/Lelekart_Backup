@@ -188,28 +188,34 @@ export default function AddProductPage() {
   // Create product mutation
   const createProductMutation = useMutation({
     mutationFn: async (data: z.infer<typeof productSchema>) => {
-      // Create a new FormData instance
-      const formData = new FormData();
-
-      // Append JSON data
-      formData.append(
-        "productData",
-        JSON.stringify({
-          ...data,
-          images: uploadedImages,
-        })
-      );
-
-      const response = await apiRequest("POST", "/api/products", formData, {
-        isFormData: true,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create product");
+      try {
+        // Use direct JSON data instead of FormData for better validation handling
+        const response = await apiRequest("POST", "/api/products", data);
+        
+        if (!response.ok) {
+          // Try to parse the error response
+          const errorData = await response.json().catch(() => null);
+          
+          if (errorData && errorData.error) {
+            // Check if it's a validation error
+            if (Array.isArray(errorData.error)) {
+              const errorMessages = errorData.error.map((err: any) => {
+                return `${err.path?.[0] || 'Field'}: ${err.message}`;
+              }).join(', ');
+              throw new Error(`Validation failed: ${errorMessages}`);
+            } else if (typeof errorData.error === 'string') {
+              throw new Error(errorData.error);
+            }
+          }
+          
+          throw new Error("Failed to create product. Please check all required fields.");
+        }
+        
+        return await response.json();
+      } catch (error: any) {
+        console.error("Product creation error:", error);
+        throw new Error(error.message || "Failed to create product");
       }
-
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
@@ -249,15 +255,37 @@ export default function AddProductPage() {
       return;
     }
 
+    // Convert numeric fields to ensure they're numbers not strings
+    const numericPrice = parseFloat(data.price.toString());
+    const numericStock = data.stock ? parseInt(data.stock.toString()) : 0;
+    const numericMrp = data.mrp ? parseFloat(data.mrp.toString()) : null;
+    const numericPurchasePrice = data.purchasePrice ? parseFloat(data.purchasePrice.toString()) : null;
+    const numericWarranty = data.warranty ? parseInt(data.warranty.toString()) : null;
+    
+    // Make dimensional fields numbers
+    const numericWeight = data.weight ? parseFloat(data.weight.toString()) : null;
+    const numericLength = data.length ? parseFloat(data.length.toString()) : null;
+    const numericWidth = data.width ? parseFloat(data.width.toString()) : null;
+    const numericHeight = data.height ? parseFloat(data.height.toString()) : null;
+
     // Make sure all required fields are included and properly formatted
     const productData = {
       ...data,
+      price: numericPrice,
+      stock: numericStock,
+      mrp: numericMrp,
+      purchasePrice: numericPurchasePrice,
+      warranty: numericWarranty,
+      weight: numericWeight,
+      length: numericLength,
+      width: numericWidth, 
+      height: numericHeight,
       imageUrl: uploadedImages[0], // First image as the main image
       images: JSON.stringify(uploadedImages), // All uploaded images as JSON string
       sellerId: 5, // Current logged in seller ID
-      stock: data.stock || 0, // Default stock to 0 if not provided
       approved: false, // New products start as unapproved
-      brand: data.brand || "Generic" // Default brand if not provided
+      brand: data.brand || "Generic", // Default brand if not provided
+      sku: data.sku || `SKU-${Date.now()}` // Generate a SKU if not provided
     };
 
     console.log("Submitting product data:", productData);
