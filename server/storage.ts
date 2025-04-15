@@ -23,7 +23,7 @@ import {
 } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
-import { and, eq, desc, sql } from "drizzle-orm";
+import { and, eq, desc, sql, ilike, or } from "drizzle-orm";
 import { db } from "./db";
 import { pool } from "./db";
 
@@ -1243,18 +1243,42 @@ export class DatabaseStorage implements IStorage {
   }
   
   // Get products that are pending approval (where approved=false and rejected=false) with pagination
-  async getPendingProducts(page: number = 1, limit: number = 10): Promise<{products: any[], total: number}> {
+  async getPendingProducts(
+    page: number = 1, 
+    limit: number = 10, 
+    search?: string, 
+    category?: string
+  ): Promise<{products: any[], total: number}> {
     try {
-      console.log(`Getting pending products with seller information (page ${page}, limit ${limit})`);
+      console.log(`Getting pending products with filters: page=${page}, limit=${limit}, search=${search || 'none'}, category=${category || 'none'}`);
       
-      // First get the total count
+      // Build search conditions
+      const conditions = [
+        eq(products.approved, false),
+        eq(products.rejected, false)
+      ];
+      
+      // Add category filter if provided
+      if (category) {
+        conditions.push(ilike(products.category, `%${category}%`));
+      }
+      
+      // Add search filter if provided
+      if (search) {
+        conditions.push(
+          or(
+            ilike(products.name, `%${search}%`),
+            ilike(products.description, `%${search}%`),
+            ilike(products.sku, `%${search}%`)
+          )
+        );
+      }
+      
+      // First get the total count with filters applied
       const countResult = await db
         .select({ count: sql`count(*)` })
         .from(products)
-        .where(and(
-          eq(products.approved, false),
-          eq(products.rejected, false)
-        ));
+        .where(and(...conditions));
       
       const total = Number(countResult[0].count);
       
@@ -1274,15 +1298,12 @@ export class DatabaseStorage implements IStorage {
         })
         .from(products)
         .leftJoin(users, eq(products.sellerId, users.id))
-        .where(and(
-          eq(products.approved, false),
-          eq(products.rejected, false)
-        ))
+        .where(and(...conditions))
         .orderBy(desc(products.createdAt))
         .limit(limit)
         .offset(offset);
       
-      console.log(`Found ${result.length} pending products (page ${page}/${Math.ceil(total/limit)})`);
+      console.log(`Found ${result.length} pending products (page ${page}/${Math.ceil(total/limit) || 1})`);
       return {
         products: result,
         total

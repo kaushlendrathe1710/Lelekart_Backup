@@ -383,13 +383,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get pagination parameters from query string
       const page = req.query.page ? parseInt(req.query.page as string) : 1;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const search = req.query.search as string || undefined;
+      const category = req.query.category as string || undefined;
       
       // Validate pagination parameters
       const validatedPage = Math.max(1, page);
       const validatedLimit = [10, 100, 500].includes(limit) ? limit : 10;
       
-      // Get products with pagination
-      const result = await storage.getPendingProducts(validatedPage, validatedLimit);
+      console.log(`Fetching pending products with filters: page=${validatedPage}, limit=${validatedLimit}, search=${search || 'none'}, category=${category || 'none'}`);
+      
+      // Get products with pagination, search and category filter
+      const result = await storage.getPendingProducts(validatedPage, validatedLimit, search, category);
       res.json({
         products: result.products,
         pagination: {
