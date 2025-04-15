@@ -435,7 +435,7 @@ export default function ProductDetailsPage() {
                      
     if (mainImage) {
       const imageUrl = typeof mainImage === 'string' && 
-                      (mainImage.includes('flixcart.com') || mainImage.includes('flipkart.com'))
+                      (mainImage.includes('flixcart.com') || mainImage.includes('lelekart.com'))
         ? `/api/image-proxy?url=${encodeURIComponent(mainImage)}&category=${encodeURIComponent(product.category || 'general')}`
         : mainImage;
       images.push(imageUrl);
@@ -453,7 +453,7 @@ export default function ProductDetailsPage() {
             if (!img) return;
             
             const imageUrl = typeof img === 'string' && 
-                            (img.includes('flixcart.com') || img.includes('flipkart.com'))
+                            (img.includes('flixcart.com') || img.includes('lelekart.com'))
               ? `/api/image-proxy?url=${encodeURIComponent(img)}&category=${encodeURIComponent(product.category || 'general')}`
               : img;
             

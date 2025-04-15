@@ -162,7 +162,7 @@ export default function CartPage() {
                           // Get the image URL, checking all possible sources
                           (item.product.image_url || item.product.image || item.product.imageUrl) && 
                           ((item.product.image_url || item.product.image || item.product.imageUrl)?.includes('flixcart.com') || 
-                           (item.product.image_url || item.product.image || item.product.imageUrl)?.includes('flipkart.com'))
+                           (item.product.image_url || item.product.image || item.product.imageUrl)?.includes('lelekart.com'))
                             ? `/api/image-proxy?url=${encodeURIComponent(item.product.image_url || item.product.image || item.product.imageUrl || '')}&category=${encodeURIComponent(item.product.category || '')}`
                             : (item.product.image_url || item.product.image || item.product.imageUrl)
                         }
