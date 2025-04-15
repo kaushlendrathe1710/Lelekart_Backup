@@ -23,7 +23,7 @@ import {
 } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
-import { and, eq, desc } from "drizzle-orm";
+import { and, eq, desc, sql } from "drizzle-orm";
 import { db } from "./db";
 import { pool } from "./db";
 
@@ -1242,10 +1242,24 @@ export class DatabaseStorage implements IStorage {
     return updatedProduct;
   }
   
-  // Get products that are pending approval (where approved=false and rejected=false)
-  async getPendingProducts(): Promise<any[]> {
+  // Get products that are pending approval (where approved=false and rejected=false) with pagination
+  async getPendingProducts(page: number = 1, limit: number = 10): Promise<{products: any[], total: number}> {
     try {
-      console.log('Getting pending products with seller information');
+      console.log(`Getting pending products with seller information (page ${page}, limit ${limit})`);
+      
+      // First get the total count
+      const countResult = await db
+        .select({ count: sql`count(*)` })
+        .from(products)
+        .where(and(
+          eq(products.approved, false),
+          eq(products.rejected, false)
+        ));
+      
+      const total = Number(countResult[0].count);
+      
+      // Calculate offset
+      const offset = (page - 1) * limit;
       
       // Join with users table to get seller information
       const result = await db
@@ -1264,13 +1278,21 @@ export class DatabaseStorage implements IStorage {
           eq(products.approved, false),
           eq(products.rejected, false)
         ))
-        .orderBy(desc(products.createdAt));
+        .orderBy(desc(products.createdAt))
+        .limit(limit)
+        .offset(offset);
       
-      console.log(`Found ${result.length} pending products`);
-      return result;
+      console.log(`Found ${result.length} pending products (page ${page}/${Math.ceil(total/limit)})`);
+      return {
+        products: result,
+        total
+      };
     } catch (error) {
       console.error("Error in getPendingProducts:", error);
-      return [];
+      return {
+        products: [],
+        total: 0
+      };
     }
   }
   

@@ -374,14 +374,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Product approval routes
   
-  // Get pending products (admin only)
+  // Get pending products (admin only) with pagination
   app.get("/api/products/pending", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
     
     try {
-      const pendingProducts = await storage.getPendingProducts();
-      res.json(pendingProducts);
+      // Get pagination parameters from query string
+      const page = req.query.page ? parseInt(req.query.page as string) : 1;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      
+      // Validate pagination parameters
+      const validatedPage = Math.max(1, page);
+      const validatedLimit = [10, 100, 500].includes(limit) ? limit : 10;
+      
+      // Get products with pagination
+      const result = await storage.getPendingProducts(validatedPage, validatedLimit);
+      res.json({
+        products: result.products,
+        pagination: {
+          page: validatedPage,
+          limit: validatedLimit,
+          total: result.total,
+          totalPages: Math.ceil(result.total / validatedLimit)
+        }
+      });
     } catch (error) {
       console.error("Error fetching pending products:", error);
       res.status(500).json({ error: "Failed to fetch pending products" });
