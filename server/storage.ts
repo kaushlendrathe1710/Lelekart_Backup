@@ -435,6 +435,29 @@ export class DatabaseStorage implements IStorage {
     return updatedUser;
   }
   
+  async deleteUser(id: number): Promise<void> {
+    try {
+      // Check for special admin user that cannot be deleted
+      const user = await this.getUser(id);
+      
+      if (!user) {
+        throw new Error(`User with ID ${id} not found`);
+      }
+      
+      // Special admin with email kaushlendra.k12@fms.edu cannot be deleted
+      if (user.email === 'kaushlendra.k12@fms.edu') {
+        throw new Error('This is a special admin user that cannot be deleted');
+      }
+      
+      await db
+        .delete(users)
+        .where(eq(users.id, id));
+    } catch (error) {
+      console.error(`Error deleting user with ID ${id}:`, error);
+      throw new Error(`Failed to delete user: ${(error as Error).message}`);
+    }
+  }
+  
   // Co-Admin Management Methods
   async getCoAdmins(): Promise<User[]> {
     try {

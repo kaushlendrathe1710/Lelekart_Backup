@@ -28,10 +28,11 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, RefreshCw, UserPlus, Loader2 } from "lucide-react";
+import { Search, RefreshCw, UserPlus, Loader2, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,6 +50,17 @@ export default function AdminUsers() {
     userId: null,
     currentRole: "",
     newRole: "",
+  });
+  
+  // State for delete user confirmation
+  const [confirmDelete, setConfirmDelete] = useState<{
+    open: boolean;
+    userId: number | null;
+    username: string;
+  }>({
+    open: false,
+    userId: null,
+    username: "",
   });
 
   // Fetch users data
@@ -92,6 +104,27 @@ export default function AdminUsers() {
       });
     },
   });
+  
+  // Delete user mutation
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      await apiRequest("DELETE", `/api/users/${userId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({
+        title: "User deleted",
+        description: "User has been deleted successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to delete user",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   // Handle role change confirmation
   const handleRoleChange = (userId: number, currentRole: string, newRole: string) => {
@@ -117,6 +150,37 @@ export default function AdminUsers() {
       currentRole: "",
       newRole: "",
     });
+  };
+  
+  // Handle delete user confirmation
+  const handleDeleteUser = (userId: number, username: string) => {
+    setConfirmDelete({
+      open: true,
+      userId,
+      username,
+    });
+  };
+  
+  // Confirm delete user
+  const confirmDeleteUser = async () => {
+    const { userId } = confirmDelete;
+    if (userId !== null) {
+      try {
+        await deleteUserMutation.mutateAsync(userId);
+        setConfirmDelete({
+          open: false,
+          userId: null,
+          username: "",
+        });
+      } catch (error) {
+        // Error handling is done in the mutation
+        setConfirmDelete({
+          open: false,
+          userId: null,
+          username: "",
+        });
+      }
+    }
   };
 
   // Filter users by search term

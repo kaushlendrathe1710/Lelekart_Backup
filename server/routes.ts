@@ -1142,6 +1142,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Delete a user (admin only)
+  app.delete("/api/users/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Don't allow admins to delete themselves
+      if (id === req.user.id) {
+        return res.status(400).json({ error: "You cannot delete your own account" });
+      }
+      
+      await storage.deleteUser(id);
+      res.sendStatus(204); // No content (successful deletion)
+    } catch (error) {
+      if ((error as Error).message.includes('special admin user')) {
+        return res.status(403).json({ error: (error as Error).message });
+      }
+      res.status(500).json({ error: "Failed to delete user" });
+    }
+  });
+  
   // Co-Admin Management
   
   // Get all co-admins
