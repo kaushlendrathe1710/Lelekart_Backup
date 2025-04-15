@@ -179,6 +179,15 @@ export interface IStorage {
   updateBannerPosition(id: number, position: number): Promise<Banner>;
   toggleBannerActive(id: number): Promise<Banner>;
   
+  // Footer Content operations
+  getFooterContents(section?: string, isActive?: boolean): Promise<FooterContent[]>;
+  getFooterContentById(id: number): Promise<FooterContent | undefined>;
+  createFooterContent(content: InsertFooterContent): Promise<FooterContent>;
+  updateFooterContent(id: number, content: Partial<FooterContent>): Promise<FooterContent>;
+  deleteFooterContent(id: number): Promise<void>;
+  toggleFooterContentActive(id: number): Promise<FooterContent>;
+  updateFooterContentOrder(id: number, order: number): Promise<FooterContent>;
+  
   // Session store
   sessionStore: session.SessionStore;
 }
