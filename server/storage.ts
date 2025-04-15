@@ -35,6 +35,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   getUsers(): Promise<User[]>;
   updateUserRole(id: number, role: string): Promise<User>;
+  deleteUser(id: number): Promise<void>;
   getSellers(approved?: boolean, rejected?: boolean): Promise<User[]>;
   getPendingSellers(): Promise<User[]>;
   getApprovedSellers(): Promise<User[]>;
