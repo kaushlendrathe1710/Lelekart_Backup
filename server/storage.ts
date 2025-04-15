@@ -1243,12 +1243,23 @@ export class DatabaseStorage implements IStorage {
   }
   
   // Get products that are pending approval (where approved=false)
-  async getPendingProducts(): Promise<Product[]> {
+  async getPendingProducts(): Promise<any[]> {
     try {
-      console.log('Getting pending products');
+      console.log('Getting pending products with seller information');
+      
+      // Join with users table to get seller information
       const result = await db
-        .select()
+        .select({
+          ...products,
+          seller: {
+            id: users.id,
+            username: users.username,
+            email: users.email,
+            role: users.role
+          }
+        })
         .from(products)
+        .leftJoin(users, eq(products.sellerId, users.id))
         .where(eq(products.approved, false))
         .orderBy(desc(products.createdAt));
       
