@@ -463,7 +463,7 @@ function ProductApprovalContent() {
                       <TableCell>{product.category}</TableCell>
                       <TableCell>₹{Number(product.price).toFixed(2)}</TableCell>
                       <TableCell>
-                        {product.seller ? product.seller.username : 'Unknown'}
+                        {product.sellerName || 'Unknown'}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
@@ -567,7 +567,7 @@ function ProductApprovalContent() {
                 <div className="mt-1">
                   <div className="text-sm font-medium text-gray-500">Seller Information</div>
                   <div className="mt-1 text-sm">
-                    {viewProduct.seller ? viewProduct.seller.username : 'Unknown Seller'}
+                    {viewProduct.sellerName || 'Unknown Seller'}
                   </div>
                 </div>
                 
