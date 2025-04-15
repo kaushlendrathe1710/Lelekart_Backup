@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Product } from "@shared/schema";
@@ -78,21 +78,48 @@ export default function ProductApproval() {
 function ProductApprovalContent() {
   const { toast } = useToast();
   const [search, setSearch] = useState("");
+  const [searchValue, setSearchValue] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  
+  // Debounce search to prevent too many API calls
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchValue);
+    }, 500); // 500ms debounce
+    
+    return () => clearTimeout(timer);
+  }, [searchValue]);
+  
+  // Reset to page 1 when search or filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [search, categoryFilter]);
   const [viewProduct, setViewProduct] = useState<Product | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  // Fetch pending products with pagination
+  // Fetch pending products with pagination, search, and category filter
   const {
     data: pendingProductsData,
     isLoading,
     isError,
     refetch,
   } = useQuery<PaginatedResponse>({
-    queryKey: ["/api/products/pending", { page, limit: pageSize }],
+    queryKey: ["/api/products/pending", { page, limit: pageSize, search, category: categoryFilter }],
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/products/pending?page=${page}&limit=${pageSize}`);
+      let url = `/api/products/pending?page=${page}&limit=${pageSize}`;
+      
+      // Add search parameter if provided
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
+      }
+      
+      // Add category filter if provided
+      if (categoryFilter) {
+        url += `&category=${encodeURIComponent(categoryFilter)}`;
+      }
+      
+      const res = await apiRequest("GET", url);
       return res.json();
     },
   });
@@ -157,12 +184,10 @@ function ProductApprovalContent() {
     await rejectMutation.mutateAsync(product.id);
   };
 
-  // Filter for pending products only and sort by newest first
+  // Client-side filtering for search and category
+  // Note: The backend already filters for pending products only (not approved and not rejected)
   const pendingProducts = products
     ?.filter((product) => {
-      // Only include pending products (not approved and not rejected)
-      const isPending = !product.approved && !product.rejected;
-      
       // Text search
       const matchesSearch = !search
         ? true
@@ -174,9 +199,9 @@ function ProductApprovalContent() {
         ? true
         : product.category === categoryFilter;
 
-      return isPending && matchesSearch && matchesCategory;
-    })
-    .sort((a, b) => b.id - a.id); // Sort by newest first
+      return matchesSearch && matchesCategory;
+    }); 
+    // Note: Sorting is handled by the backend with ORDER BY
 
   // Extract unique categories for filtering
   const categories = [
@@ -276,8 +301,8 @@ function ProductApprovalContent() {
                 type="search"
                 placeholder="Search pending products..."
                 className="pl-8 w-full"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
               />
             </div>
 
