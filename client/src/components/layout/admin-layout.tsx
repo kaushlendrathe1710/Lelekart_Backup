@@ -31,6 +31,7 @@ import {
   FileText,
   FileEdit,
   LayoutDashboardIcon,
+  UserCog,
 } from "lucide-react";
 import { useState } from "react";
 import {
@@ -75,6 +76,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       title: "Users",
       href: "/admin/users",
       icon: <Users className="h-5 w-5" />,
+    },
+    {
+      title: "Manage Admins",
+      href: "/admin/manage-admins",
+      icon: <UserCog className="h-5 w-5" />,
     },
     {
       title: "Seller Approval",
