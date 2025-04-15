@@ -464,88 +464,229 @@ export class DatabaseStorage implements IStorage {
         }
       };
       
-      // 1. Delete user's products
-      await safeDelete('products', () => 
-        db.delete(products).where(eq(products.sellerId, id))
-      );
+      // Handle foreign key constraints by checking if tables exist and then deleting records
+      try {
+        // First, directly check if products table exists and if user has products
+        const productQuery = `
+          SELECT EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name = 'products'
+          ) as exists
+        `;
+        const { rows: tableExists } = await pool.query(productQuery);
+        
+        if (tableExists[0].exists) {
+          // If products table exists, check if user has products
+          const { rows: productCount } = await pool.query(
+            `SELECT COUNT(*) FROM products WHERE seller_id = $1`, 
+            [id]
+          );
+          
+          if (parseInt(productCount[0].count) > 0) {
+            // User has products - we need to handle this first
+            await pool.query(
+              `DELETE FROM products WHERE seller_id = $1`,
+              [id]
+            );
+          }
+        }
+      } catch (error) {
+        console.error("Error checking for products:", error);
+        // Continue with deletion anyway
+      }
       
-      // 2. Delete user's carts
-      await safeDelete('carts', () => 
-        db.delete(carts).where(eq(carts.userId, id))
-      );
+      // Try a direct SQL approach for cart deletion to avoid Drizzle issues
+      try {
+        await pool.query(
+          `DELETE FROM carts WHERE user_id = $1`,
+          [id]
+        );
+      } catch (error) {
+        // If table doesn't exist, just continue
+        console.log("Carts might not exist, skipping cart deletion");
+      }
       
       // 3. Delete user's orders and order items
       try {
-        const userOrders = await db.select({ id: orders.id }).from(orders).where(eq(orders.userId, id));
-        for (const order of userOrders) {
-          await safeDelete('order_items', () => 
-            db.delete(orderItems).where(eq(orderItems.orderId, order.id))
+        // Check if orders table exists
+        const { rows: orderExists } = await pool.query(`
+          SELECT EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name = 'orders'
+          ) as exists
+        `);
+        
+        if (orderExists[0].exists) {
+          // Get all orders for the user
+          const { rows: userOrders } = await pool.query(
+            `SELECT id FROM orders WHERE user_id = $1`,
+            [id]
+          );
+          
+          // Delete order items first if they exist
+          const { rows: orderItemsExist } = await pool.query(`
+            SELECT EXISTS (
+              SELECT FROM information_schema.tables 
+              WHERE table_schema = 'public' 
+              AND table_name = 'order_items'
+            ) as exists
+          `);
+          
+          if (orderItemsExist[0].exists && userOrders.length > 0) {
+            for (const order of userOrders) {
+              await pool.query(
+                `DELETE FROM order_items WHERE order_id = $1`,
+                [order.id]
+              );
+            }
+          }
+          
+          // Then delete the orders
+          await pool.query(
+            `DELETE FROM orders WHERE user_id = $1`,
+            [id]
           );
         }
-        await safeDelete('orders', () => 
-          db.delete(orders).where(eq(orders.userId, id))
-        );
       } catch (error) {
-        // If orders table doesn't exist, just continue
-        console.log('Orders table might not exist, skipping order deletion');
+        console.log('Error handling orders:', error);
       }
       
-      // 4. Delete user's reviews and related data
+      // 4. Delete user's reviews and related data - similar approach with direct SQL
       try {
-        const userReviews = await db.select({ id: reviews.id }).from(reviews).where(eq(reviews.userId, id));
-        for (const review of userReviews) {
-          await safeDelete('review_images', () => 
-            db.delete(reviewImages).where(eq(reviewImages.reviewId, review.id))
+        // Check if reviews table exists
+        const { rows: reviewsExist } = await pool.query(`
+          SELECT EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name = 'reviews'
+          ) as exists
+        `);
+        
+        if (reviewsExist[0].exists) {
+          // Get all reviews for the user
+          const { rows: userReviews } = await pool.query(
+            `SELECT id FROM reviews WHERE user_id = $1`,
+            [id]
           );
-          await safeDelete('review_helpful', () => 
-            db.delete(reviewHelpful).where(eq(reviewHelpful.reviewId, review.id))
+          
+          if (userReviews.length > 0) {
+            // Check and delete review images if they exist
+            try {
+              const { rows: imagesExist } = await pool.query(`
+                SELECT EXISTS (
+                  SELECT FROM information_schema.tables 
+                  WHERE table_schema = 'public' 
+                  AND table_name = 'review_images'
+                ) as exists
+              `);
+              
+              if (imagesExist[0].exists) {
+                for (const review of userReviews) {
+                  await pool.query(
+                    `DELETE FROM review_images WHERE review_id = $1`,
+                    [review.id]
+                  );
+                }
+              }
+            } catch (error) {
+              console.log('Review images table might not exist');
+            }
+            
+            // Check and delete review helpful marks if they exist
+            try {
+              const { rows: helpfulExist } = await pool.query(`
+                SELECT EXISTS (
+                  SELECT FROM information_schema.tables 
+                  WHERE table_schema = 'public' 
+                  AND table_name = 'review_helpful'
+                ) as exists
+              `);
+              
+              if (helpfulExist[0].exists) {
+                for (const review of userReviews) {
+                  await pool.query(
+                    `DELETE FROM review_helpful WHERE review_id = $1`,
+                    [review.id]
+                  );
+                }
+              }
+            } catch (error) {
+              console.log('Review helpful table might not exist');
+            }
+          }
+          
+          // Then delete the reviews
+          await pool.query(
+            `DELETE FROM reviews WHERE user_id = $1`,
+            [id]
           );
         }
-        await safeDelete('reviews', () => 
-          db.delete(reviews).where(eq(reviews.userId, id))
-        );
       } catch (error) {
-        // If reviews table doesn't exist, just continue
-        console.log('Reviews table might not exist, skipping review deletion');
+        console.log('Error handling reviews:', error);
       }
       
-      // 5. Delete user's addresses
-      await safeDelete('user_addresses', () => 
-        db.delete(userAddresses).where(eq(userAddresses.userId, id))
-      );
+      // 5. Delete user's addresses with direct SQL
+      try {
+        await pool.query(
+          `DELETE FROM user_addresses WHERE user_id = $1`,
+          [id]
+        );
+      } catch (error) {
+        console.log('User addresses table might not exist');
+      }
       
       // 6. Delete seller-specific data if user is a seller
       if (user.role === 'seller') {
-        await safeDelete('sales_history', () => 
-          db.delete(salesHistory).where(eq(salesHistory.sellerId, id))
-        );
-        await safeDelete('demand_forecasts', () => 
-          db.delete(demandForecasts).where(eq(demandForecasts.sellerId, id))
-        );
-        await safeDelete('price_optimizations', () => 
-          db.delete(priceOptimizations).where(eq(priceOptimizations.sellerId, id))
-        );
-        await safeDelete('inventory_optimizations', () => 
-          db.delete(inventoryOptimizations).where(eq(inventoryOptimizations.sellerId, id))
-        );
-        await safeDelete('seller_documents', () => 
-          db.delete(sellerDocuments).where(eq(sellerDocuments.sellerId, id))
-        );
-        await safeDelete('business_details', () => 
-          db.delete(businessDetails).where(eq(businessDetails.sellerId, id))
-        );
-        await safeDelete('banking_information', () => 
-          db.delete(bankingInformation).where(eq(bankingInformation.sellerId, id))
-        );
+        const sellerTables = [
+          'sales_history',
+          'demand_forecasts',
+          'price_optimizations',
+          'inventory_optimizations',
+          'seller_documents',
+          'business_details',
+          'banking_information'
+        ];
+        
+        for (const table of sellerTables) {
+          try {
+            // Check if table exists
+            const { rows: tableExists } = await pool.query(`
+              SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name = $1
+              ) as exists
+            `, [table]);
+            
+            if (tableExists[0].exists) {
+              await pool.query(
+                `DELETE FROM ${table} WHERE seller_id = $1`,
+                [id]
+              );
+            }
+          } catch (error) {
+            console.log(`${table} might not exist or can't be deleted`);
+          }
+        }
       }
       
-      // 7. Delete AI-generated content
-      await safeDelete('ai_generated_content', () => 
-        db.delete(aiGeneratedContent).where(eq(aiGeneratedContent.userId, id))
-      );
+      // 7. Delete AI-generated content with direct SQL
+      try {
+        await pool.query(
+          `DELETE FROM ai_generated_content WHERE user_id = $1`,
+          [id]
+        );
+      } catch (error) {
+        console.log('AI-generated content table might not exist');
+      }
       
       // Finally, delete the user
-      await db.delete(users).where(eq(users.id, id));
+      await pool.query(
+        `DELETE FROM users WHERE id = $1`,
+        [id]
+      );
       
     } catch (error) {
       console.error(`Error deleting user with ID ${id}:`, error);
