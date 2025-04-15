@@ -94,22 +94,23 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
     }
   };
 
-  if (featured) {
-    return (
-      <div className="relative">
-        <Card 
-          className="product-card p-3 flex flex-col items-center rounded transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1"
-          onClick={() => {
-            try {
-              console.log(`Navigating to product details page: /product/${product.id}`);
-              // Use SPA routing for better performance
-              window.location.href = `/product/${product.id}`;
-            } catch (e) {
-              console.error('Navigation error:', e);
-            }
-          }}
-        >
-          <CardContent className="p-0 flex flex-col items-center">
+  // Use the same dimensions and styling for all product cards regardless of featured status
+  return (
+    <div className="relative">
+      <Card 
+        className="product-card h-full flex flex-col items-center p-3 transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1"
+        onClick={() => {
+          try {
+            console.log(`Navigating to product details page: /product/${product.id}`);
+            // Use SPA routing for better performance
+            window.location.href = `/product/${product.id}`;
+          } catch (e) {
+            console.error('Navigation error:', e);
+          }
+        }}
+      >
+        <CardContent className="p-0 w-full flex flex-col items-center h-full">
+          <div className="w-full flex-shrink-0 h-40 flex items-center justify-center mb-3">
             <img 
               src={
                 // Get the image URL, checking all possible sources
@@ -120,7 +121,7 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
                   : (product.image_url || product.image || product.imageUrl)
               }
               alt={product.name} 
-              className="w-32 h-40 object-contain mb-3"
+              className="max-w-full max-h-full object-contain"
               onError={(e) => {
                 // Use a fallback image on error
                 const target = e.target as HTMLImageElement;
@@ -142,80 +143,21 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
                 }
               }}
             />
-            <h3 className="font-medium text-center text-sm">{product.name}</h3>
-            <div className="text-green-600 font-medium mt-1">{formatPrice(product.price)}</div>
-            <div className="text-xs text-gray-500 mt-1">{product.description.slice(0, 30)}...</div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="mt-2 w-full border-primary text-primary hover:bg-primary hover:text-white"
-              onClick={handleAddToCart}
-            >
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              Add to Cart
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative">
-      <Card 
-        className="product-card flex flex-col items-center p-3 transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1"
-        onClick={() => {
-          try {
-            console.log(`Navigating to product details page: /product/${product.id}`);
-            // Use SPA routing for better performance
-            window.location.href = `/product/${product.id}`;
-          } catch (e) {
-            console.error('Navigation error:', e);
-          }
-        }}
-      >
-        <CardContent className="p-0 flex flex-col items-center">
-          <img 
-            src={
-              // Get the image URL, checking all possible sources
-              (product.image_url || product.image || product.imageUrl) && 
-              ((product.image_url || product.image || product.imageUrl)?.includes('flixcart.com') || 
-               (product.image_url || product.image || product.imageUrl)?.includes('flipkart.com'))
-                ? `/api/image-proxy?url=${encodeURIComponent(product.image_url || product.image || product.imageUrl || '')}&category=${encodeURIComponent(product.category || '')}`
-                : (product.image_url || product.image || product.imageUrl)
-            }
-            alt={product.name} 
-            className="w-28 h-32 object-contain mb-2"
-            onError={(e) => {
-              // Use a fallback image on error
-              const target = e.target as HTMLImageElement;
-              target.onerror = null; // Prevent infinite loop
-              
-              console.log('Image load error for product:', product.name, 'URLs:', {
-                image_url: product.image_url,
-                image: product.image,
-                imageUrl: product.imageUrl
-              });
-              
-              // Use category-specific placeholder or default placeholder
-              if (product.category) {
-                // Convert to lowercase and use direct category images from client/public/images
-                const categoryLower = product.category.toLowerCase();
-                target.src = `../images/${categoryLower}.svg`;
-              } else {
-                target.src = "../images/placeholder.svg";
-              }
-            }}
-          />
-          <h3 className="font-medium text-center text-sm">{product.name}</h3>
-          <div className="text-green-600 text-sm mt-1">From {formatPrice(product.price)}</div>
+          </div>
+          
+          <div className="flex flex-col flex-grow w-full">
+            <h3 className="font-medium text-center text-sm line-clamp-2 h-10">{product.name}</h3>
+            <div className="text-green-600 font-medium mt-1 text-center">{formatPrice(product.price)}</div>
+            <div className="text-xs text-gray-500 mt-1 text-center line-clamp-1">{product.description.slice(0, 30)}...</div>
+          </div>
+          
           <Button 
-            variant="ghost" 
+            variant={featured ? "outline" : "ghost"}
             size="sm" 
-            className="mt-2 w-full text-primary hover:bg-primary/10"
+            className={`mt-2 w-full ${featured ? 'border-primary text-primary hover:bg-primary hover:text-white' : 'text-primary hover:bg-primary/10'}`}
             onClick={handleAddToCart}
           >
-            <ShoppingCart className="h-3 w-3 mr-1" />
+            <ShoppingCart className="h-4 w-4 mr-2" />
             Add to Cart
           </Button>
         </CardContent>
