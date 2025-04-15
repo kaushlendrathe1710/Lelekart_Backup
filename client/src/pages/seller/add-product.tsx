@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SellerDashboardLayout } from "@/components/layout/seller-dashboard-layout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,8 @@ import {
   Heading,
   ShieldCheck,
   Loader2,
-  Check
+  Check,
+  X
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -509,38 +510,125 @@ export default function AddProductPage() {
                     <FormField
                       control={form.control}
                       name="color"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Color</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="e.g. Red, Blue, Black" 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Enter the color of your product
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                      render={({ field }) => {
+                        const [inputValue, setInputValue] = useState("");
+                        const [colors, setColors] = useState<string[]>(field.value ? field.value.split(",").map(c => c.trim()).filter(Boolean) : []);
+                        
+                        // Update the form field when colors change
+                        useEffect(() => {
+                          field.onChange(colors.join(", "));
+                        }, [colors, field]);
+                        
+                        const handleKeyDown = (e: React.KeyboardEvent) => {
+                          if (e.key === 'Enter' && inputValue.trim()) {
+                            e.preventDefault();
+                            const newColor = inputValue.trim();
+                            if (!colors.includes(newColor)) {
+                              setColors([...colors, newColor]);
+                            }
+                            setInputValue("");
+                          }
+                        };
+                        
+                        const handleRemoveColor = (colorToRemove: string) => {
+                          setColors(colors.filter(c => c !== colorToRemove));
+                        };
+                        
+                        return (
+                          <FormItem>
+                            <FormLabel>Color</FormLabel>
+                            <FormControl>
+                              <div className="space-y-2">
+                                <Input 
+                                  placeholder="e.g. Red, Blue, Black (press Enter to add)" 
+                                  value={inputValue}
+                                  onChange={(e) => setInputValue(e.target.value)}
+                                  onKeyDown={handleKeyDown}
+                                />
+                                {colors.length > 0 && (
+                                  <div className="flex flex-wrap gap-2 mt-2">
+                                    {colors.map((color, index) => (
+                                      <Badge key={index} className="bg-primary text-white pl-2 pr-1 flex items-center gap-1">
+                                        {color}
+                                        <X 
+                                          className="h-3 w-3 cursor-pointer" 
+                                          onClick={() => handleRemoveColor(color)}
+                                        />
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </FormControl>
+                            <FormDescription>
+                              Enter color and press Enter to add. You can add multiple colors.
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )
+                      }}
                     />
                     
                     <FormField
                       control={form.control}
                       name="size"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Size</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g. S, M, L, XL, 256GB, etc." {...field} />
-                          </FormControl>
-                          <FormDescription>
-                            Product size, capacity, or dimensions
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                      render={({ field }) => {
+                        const [inputValue, setInputValue] = useState("");
+                        const [sizes, setSizes] = useState<string[]>(field.value ? field.value.split(",").map(s => s.trim()).filter(Boolean) : []);
+                        
+                        // Update the form field when sizes change
+                        useEffect(() => {
+                          field.onChange(sizes.join(", "));
+                        }, [sizes, field]);
+                        
+                        const handleKeyDown = (e: React.KeyboardEvent) => {
+                          if (e.key === 'Enter' && inputValue.trim()) {
+                            e.preventDefault();
+                            const newSize = inputValue.trim();
+                            if (!sizes.includes(newSize)) {
+                              setSizes([...sizes, newSize]);
+                            }
+                            setInputValue("");
+                          }
+                        };
+                        
+                        const handleRemoveSize = (sizeToRemove: string) => {
+                          setSizes(sizes.filter(s => s !== sizeToRemove));
+                        };
+                        
+                        return (
+                          <FormItem>
+                            <FormLabel>Size</FormLabel>
+                            <FormControl>
+                              <div className="space-y-2">
+                                <Input 
+                                  placeholder="e.g. S, M, L, XL (press Enter to add)" 
+                                  value={inputValue}
+                                  onChange={(e) => setInputValue(e.target.value)}
+                                  onKeyDown={handleKeyDown}
+                                />
+                                {sizes.length > 0 && (
+                                  <div className="flex flex-wrap gap-2 mt-2">
+                                    {sizes.map((size, index) => (
+                                      <Badge key={index} className="bg-primary text-white pl-2 pr-1 flex items-center gap-1">
+                                        {size}
+                                        <X 
+                                          className="h-3 w-3 cursor-pointer" 
+                                          onClick={() => handleRemoveSize(size)}
+                                        />
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </FormControl>
+                            <FormDescription>
+                              Enter size and press Enter to add. You can add multiple sizes.
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )
+                      }}
                     />
                   </div>
                   
