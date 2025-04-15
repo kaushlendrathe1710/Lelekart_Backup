@@ -55,7 +55,8 @@ export async function uploadFile(
     Key: fileKey,
     Body: fileBuffer,
     ContentType: contentType,
-    ACL: 'public-read', // Make the file publicly accessible
+    // ACL removed due to 'AccessControlListNotSupported' error
+    // AWS S3 buckets now use bucket policies instead of ACLs
   };
 
   try {
