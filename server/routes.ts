@@ -1517,11 +1517,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
       
-      // For actual submissions, the client will handle the product creation
-      // one by one with detailed error tracking
+      // Process products for actual submission
+      const { products } = req.body;
+      
+      if (!products || !Array.isArray(products) || products.length === 0) {
+        return res.status(400).json({ 
+          error: "No valid products to upload",
+        });
+      }
+      
+      console.log(`Bulk uploading ${products.length} products for seller ${sellerId}`);
+      
+      // Process each product
+      const results = {
+        uploaded: 0,
+        successful: [],
+        failed: []
+      };
+      
+      for (const product of products) {
+        try {
+          // Set the seller ID for the product
+          product.sellerId = sellerId;
+          
+          // Set as pending for approval by default
+          product.approved = false; 
+          
+          // Create the product in the database
+          const createdProduct = await storage.createProduct(product);
+          
+          results.successful.push(createdProduct);
+          results.uploaded++;
+          
+          console.log(`Successfully created product: ${createdProduct.name}`);
+        } catch (err) {
+          console.error(`Error creating product ${product.name || 'unknown'}:`, err);
+          
+          // Add to failed list
+          results.failed.push({
+            name: product.name,
+            errors: [err.message || 'Unknown error'],
+            rowIndex: products.indexOf(product) + 1
+          });
+        }
+      }
+      
       res.status(200).json({ 
-        message: "Upload received and ready for processing",
-        sellerId: sellerId
+        message: `Successfully uploaded ${results.uploaded} products`,
+        uploaded: results.uploaded,
+        successful: results.successful,
+        failed: results.failed
       });
     } catch (error) {
       console.error("Bulk upload error:", error);
