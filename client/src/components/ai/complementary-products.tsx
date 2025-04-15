@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState } from "react";
 import { useAIAssistant } from "@/context/ai-assistant-context";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { Loader2, Package, Plus } from "lucide-react";
-import { CartContext, CartProvider } from "@/context/cart-context";
+import { Loader2, Package, Plus, ShoppingCart } from "lucide-react";
+import { useCart } from "@/context/cart-context";
 import { useToast } from "@/hooks/use-toast";
 import { formatPrice } from "@/lib/utils";
 
@@ -14,14 +14,30 @@ interface ComplementaryProductsProps {
   productPrice: number;
 }
 
-export const ComplementaryProducts: React.FC<ComplementaryProductsProps> = ({
+// Safe wrapper component that handles cart context errors gracefully
+export const ComplementaryProducts: React.FC<ComplementaryProductsProps> = (props) => {
+  try {
+    return <ComplementaryProductsInner {...props} />;
+  } catch (error) {
+    // Fallback UI when cart context is not available
+    return (
+      <div className="p-4 border rounded bg-gray-50">
+        <h2 className="font-medium text-xl mb-2">Frequently Bought Together</h2>
+        <p className="text-gray-500 text-sm">Loading product recommendations...</p>
+      </div>
+    );
+  }
+};
+
+// Inner component that uses cart context
+const ComplementaryProductsInner: React.FC<ComplementaryProductsProps> = ({
   productId,
   productName,
   productImage,
   productPrice,
 }) => {
   const { getComplementaryProducts } = useAIAssistant();
-  const cartContext = useContext(CartContext);
+  const cart = useCart();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [complementaryProducts, setComplementaryProducts] = useState<any[]>([]);
@@ -62,23 +78,34 @@ export const ComplementaryProducts: React.FC<ComplementaryProductsProps> = ({
   };
 
   const addAllToCart = () => {
-    if (!cartContext) {
-      toast({
-        title: "Error",
-        description: "Cart functionality is not available",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Add main product
-    cartContext.addToCart({ id: productId }, 1);
+    // Add main product - create minimal product object with required fields
+    const mainProduct = {
+      id: productId,
+      name: productName,
+      price: productPrice,
+      // Include other required fields with default values
+      color: null,
+      size: null,
+      description: "",
+      specifications: null,
+      sku: null,
+      mrp: null,
+      purchasePrice: null,
+      imageUrl: productImage,
+      images: null,
+      category: "",
+      sellerId: 0,
+      approved: true,
+      createdAt: new Date()
+    };
+    
+    cart.addToCart(mainProduct, 1);
 
     // Add selected complementary products
     selectedProducts.forEach((id) => {
       const product = complementaryProducts.find(p => p.id === id);
       if (product) {
-        cartContext.addToCart(product, 1);
+        cart.addToCart(product, 1);
       }
     });
 
