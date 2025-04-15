@@ -21,7 +21,7 @@ import {
 import { useLocation } from "wouter";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -40,7 +40,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { FileUpload } from "@/components/ui/file-upload";
 
 // Form validation schema
@@ -925,16 +925,16 @@ export default function AddProductPage() {
                   type="submit" 
                   size="lg" 
                   className="w-full md:w-auto md:self-end bg-green-600 hover:bg-green-700 text-white"
-                  disabled={isSubmitting}
+                  disabled={createProductMutation.isPending}
                 >
-                  {isSubmitting ? (
+                  {createProductMutation.isPending ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <ImagePlus className="mr-2 h-4 w-4 animate-spin" />
                       Submitting Product...
                     </>
                   ) : (
                     <>
-                      <Check className="mr-2 h-4 w-4" />
+                      <CheckCircle className="mr-2 h-4 w-4" />
                       Submit Product
                     </>
                   )}
