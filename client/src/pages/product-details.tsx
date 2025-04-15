@@ -783,7 +783,8 @@ export default function ProductDetailsPage() {
           </div>
           
           {/* AI-powered Complementary Products */}
-          <div className="bg-white rounded shadow-sm mb-3 p-4">
+          {/* Skip complementary products for now - it requires cart context */}
+          {/* <div className="bg-white rounded shadow-sm mb-3 p-4">
             {product && (
               <ComplementaryProducts
                 productId={product.id}
@@ -792,7 +793,7 @@ export default function ProductDetailsPage() {
                 productPrice={price}
               />
             )}
-          </div>
+          </div> */}
           
           {/* Similar Products Recommendation Carousel */}
           <div className="bg-white rounded shadow-sm mb-3 p-4">

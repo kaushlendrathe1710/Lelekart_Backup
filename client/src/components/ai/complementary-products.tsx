@@ -16,10 +16,26 @@ interface ComplementaryProductsProps {
 
 // Safe wrapper component that handles cart context errors gracefully
 export const ComplementaryProducts: React.FC<ComplementaryProductsProps> = (props) => {
+  const [hasError, setHasError] = useState(false);
+  
+  // If we already detected an error with the cart context, show fallback UI
+  if (hasError) {
+    return (
+      <div className="p-4 border rounded bg-gray-50">
+        <h2 className="font-medium text-xl mb-2">Frequently Bought Together</h2>
+        <p className="text-gray-500 text-sm">Loading product recommendations...</p>
+      </div>
+    );
+  }
+  
+  // Try to render the inner component, but catch any errors that occur
   try {
-    return <ComplementaryProductsInner {...props} />;
+    return <ComplementaryProductsInner {...props} onError={() => setHasError(true)} />;
   } catch (error) {
-    // Fallback UI when cart context is not available
+    // If an error occurs during render, update state and show fallback
+    console.error("Error rendering ComplementaryProducts:", error);
+    setHasError(true);
+    
     return (
       <div className="p-4 border rounded bg-gray-50">
         <h2 className="font-medium text-xl mb-2">Frequently Bought Together</h2>
@@ -30,14 +46,31 @@ export const ComplementaryProducts: React.FC<ComplementaryProductsProps> = (prop
 };
 
 // Inner component that uses cart context
-const ComplementaryProductsInner: React.FC<ComplementaryProductsProps> = ({
+interface ComplementaryProductsInnerProps extends ComplementaryProductsProps {
+  onError?: () => void;
+}
+
+const ComplementaryProductsInner: React.FC<ComplementaryProductsInnerProps> = ({
   productId,
   productName,
   productImage,
   productPrice,
+  onError,
 }) => {
   const { getComplementaryProducts } = useAIAssistant();
-  const cart = useCart();
+  
+  // Try to use cart context, but handle errors gracefully
+  let cart;
+  try {
+    cart = useCart();
+  } catch (error) {
+    console.error("Error accessing cart context:", error);
+    // Call onError to trigger fallback UI
+    if (onError) onError();
+    // Return null to prevent further rendering
+    return null;
+  }
+  
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [complementaryProducts, setComplementaryProducts] = useState<any[]>([]);
