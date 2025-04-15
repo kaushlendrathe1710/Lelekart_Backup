@@ -926,6 +926,7 @@ export default function AddProductPage() {
                   size="lg" 
                   className="w-full md:w-auto md:self-end bg-green-600 hover:bg-green-700 text-white"
                   disabled={createProductMutation.isPending}
+                  onClick={form.handleSubmit(onSubmit)}
                 >
                   {createProductMutation.isPending ? (
                     <>
