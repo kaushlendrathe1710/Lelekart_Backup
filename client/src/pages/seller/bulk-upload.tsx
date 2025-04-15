@@ -476,6 +476,18 @@ export default function BulkUploadPage() {
             productData.sellerId = user.id;
           }
           
+          // Handle color field - ensure it's properly formatted
+          if (productData.color && typeof productData.color === 'string') {
+            // Keep as comma-separated string for database storage
+            productData.color = productData.color.split(',').map(c => c.trim()).filter(Boolean).join(', ');
+          }
+          
+          // Handle size field - ensure it's properly formatted
+          if (productData.size && typeof productData.size === 'string') {
+            // Keep as comma-separated string for database storage
+            productData.size = productData.size.split(',').map(s => s.trim()).filter(Boolean).join(', ');
+          }
+          
           // Convert any array properties to JSON strings
           if (productData.images && Array.isArray(productData.images)) {
             productData.images = JSON.stringify(productData.images);
