@@ -96,7 +96,8 @@ const ComplementaryProductsInner: React.FC<ComplementaryProductsProps> = ({
       category: "",
       sellerId: 0,
       approved: true,
-      createdAt: new Date()
+      createdAt: new Date(),
+      stock: 100 // Add missing stock field
     };
     
     cart.addToCart(mainProduct, 1);
