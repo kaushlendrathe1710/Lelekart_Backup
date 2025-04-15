@@ -493,6 +493,204 @@ export async function getAIResponse(
   }
 ): Promise<string> {
   try {
+    // Extract the latest user message for keyword analysis
+    const latestUserMessage = messages.length > 0 && messages[messages.length - 1].role === 'user'
+      ? messages[messages.length - 1].content
+      : '';
+    
+    // Check for product-related keywords in the user's message
+    // Common categories and product types to check for
+    const productKeywords = [
+      'phone', 'mobile', 'smartphone', 'iphone', 'samsung', 'electronics', 
+      'laptop', 'computer', 'tablet', 'headphone', 'earphone', 'earbuds',
+      'tv', 'television', 'monitor', 'camera', 'watch', 'smartwatch',
+      'clothes', 'clothing', 'shirt', 't-shirt', 'tshirt', 'jeans', 'pants', 'dress',
+      'shoes', 'sneakers', 'footwear', 'sandals', 'boots',
+      'furniture', 'sofa', 'chair', 'table', 'bed', 'mattress',
+      'kitchen', 'appliance', 'refrigerator', 'fridge', 'oven', 'microwave',
+      'beauty', 'makeup', 'cosmetics', 'skincare', 'perfume', 'fragrance',
+      'toys', 'game', 'sports', 'fitness', 'exercise', 'yoga',
+      'book', 'novel', 'textbook',
+      'bag', 'backpack', 'purse', 'wallet', 'luggage',
+      'jewelry', 'necklace', 'ring', 'earring', 'bracelet',
+      'baby', 'kids', 'children'
+    ];
+    
+    // Category mapping - map keywords to actual categories in the database
+    const categoryMapping: Record<string, string> = {
+      'phone': 'Electronics',
+      'mobile': 'Electronics', 
+      'smartphone': 'Electronics',
+      'iphone': 'Electronics',
+      'samsung': 'Electronics',
+      'electronics': 'Electronics',
+      'laptop': 'Electronics',
+      'computer': 'Electronics',
+      'tablet': 'Electronics',
+      'headphone': 'Electronics',
+      'earphone': 'Electronics',
+      'earbuds': 'Electronics',
+      'tv': 'Electronics',
+      'television': 'Electronics',
+      'monitor': 'Electronics',
+      'camera': 'Electronics',
+      'watch': 'Electronics',
+      'smartwatch': 'Electronics',
+      
+      'clothes': 'Fashion',
+      'clothing': 'Fashion',
+      'shirt': 'Fashion',
+      't-shirt': 'Fashion',
+      'tshirt': 'Fashion',
+      'jeans': 'Fashion',
+      'pants': 'Fashion',
+      'dress': 'Fashion',
+      'shoes': 'Footwear',
+      'sneakers': 'Footwear',
+      'footwear': 'Footwear',
+      'sandals': 'Footwear',
+      'boots': 'Footwear',
+      
+      'furniture': 'Home',
+      'sofa': 'Home',
+      'chair': 'Home',
+      'table': 'Home',
+      'bed': 'Home',
+      'mattress': 'Home',
+      
+      'kitchen': 'Home',
+      'appliance': 'Appliances',
+      'refrigerator': 'Appliances',
+      'fridge': 'Appliances',
+      'oven': 'Appliances',
+      'microwave': 'Appliances',
+      
+      'beauty': 'Beauty',
+      'makeup': 'Beauty',
+      'cosmetics': 'Beauty',
+      'skincare': 'Beauty',
+      'perfume': 'Beauty',
+      'fragrance': 'Beauty',
+      
+      'toys': 'Toys',
+      'game': 'Toys',
+      'sports': 'Sports',
+      'fitness': 'Sports',
+      'exercise': 'Sports',
+      'yoga': 'Sports',
+      
+      'book': 'Books',
+      'novel': 'Books',
+      'textbook': 'Books',
+      
+      'bag': 'Fashion',
+      'backpack': 'Fashion',
+      'purse': 'Fashion',
+      'wallet': 'Fashion',
+      'luggage': 'Fashion',
+      
+      'jewelry': 'Fashion',
+      'necklace': 'Fashion',
+      'ring': 'Fashion',
+      'earring': 'Fashion',
+      'bracelet': 'Fashion',
+      
+      'baby': 'Baby',
+      'kids': 'Kids',
+      'children': 'Kids'
+    };
+    
+    // Check if the message contains any product keywords
+    const detectedKeywords = productKeywords.filter(keyword => 
+      latestUserMessage.toLowerCase().includes(keyword.toLowerCase())
+    );
+    
+    // Get relevant products based on detected keywords
+    let relevantProducts: Product[] = [];
+    let keywordContext = '';
+    
+    if (detectedKeywords.length > 0) {
+      console.log(`Detected keywords in user message: ${detectedKeywords.join(', ')}`);
+      
+      // Map keywords to categories and remove duplicates
+      const categories = [...new Set(
+        detectedKeywords
+          .map(keyword => categoryMapping[keyword.toLowerCase()])
+          .filter(Boolean)
+      )];
+      
+      if (categories.length > 0) {
+        console.log(`Mapped to categories: ${categories.join(', ')}`);
+        
+        // Get products by categories (limit to 5 products max)
+        try {
+          for (const category of categories) {
+            const categoryProducts = await db
+              .select()
+              .from(products)
+              .where(
+                and(
+                  eq(products.approved, true),
+                  ilike(products.category, category)
+                )
+              )
+              .orderBy(desc(products.id)) // Newest first
+              .limit(Math.min(5, 10 / categories.length)); // Ensure we don't get too many products
+              
+            relevantProducts = [...relevantProducts, ...categoryProducts];
+            
+            // Stop if we have enough products
+            if (relevantProducts.length >= 5) break;
+          }
+          
+          // If we didn't find products by exact category, try a more general search
+          if (relevantProducts.length === 0) {
+            // Search for products that match the keywords in title or description
+            for (const keyword of detectedKeywords) {
+              const keywordProducts = await db
+                .select()
+                .from(products)
+                .where(
+                  and(
+                    eq(products.approved, true),
+                    or(
+                      ilike(products.name, `%${keyword}%`),
+                      ilike(products.description, `%${keyword}%`)
+                    )
+                  )
+                )
+                .orderBy(desc(products.id))
+                .limit(2);
+                
+              relevantProducts = [...relevantProducts, ...keywordProducts];
+              
+              // Stop if we have enough products
+              if (relevantProducts.length >= 5) break;
+            }
+          }
+          
+          // De-duplicate products
+          relevantProducts = Array.from(new Map(relevantProducts.map(p => [p.id, p])).values());
+          
+          // Format products as a readable context for the AI
+          if (relevantProducts.length > 0) {
+            keywordContext = `\n\nI found these products related to what you're asking about:\n\n`;
+            
+            relevantProducts.forEach((product, index) => {
+              keywordContext += `Product ${index + 1}: ${product.name}\n`;
+              keywordContext += `Description: ${product.description.substring(0, 100)}...\n`;
+              keywordContext += `Price: ${formatCurrency(product.price)}\n`;
+              keywordContext += `Category: ${product.category}\n\n`;
+            });
+            
+            keywordContext += `Make sure to mention these specific products in your response and use their exact names and prices. Don't make up additional information. Immediately suggest these products in your response rather than asking the user more questions.\n\n`;
+          }
+        } catch (error) {
+          console.error('Error getting products by keywords:', error);
+        }
+      }
+    }
+    
     // Build system prompt with personalization and context
     let systemPrompt = `You are LeleKart's AI Shopping Assistant, designed to provide friendly, helpful shopping advice. 
     
@@ -502,7 +700,11 @@ Your goals are to:
 3. Suggest complementary items that make sense
 4. Help with sizing and fit questions
 
-Keep responses concise and conversational. If you don't know something, say so rather than making up information.
+IMPORTANT INSTRUCTIONS:
+- When a user mentions ANY product category or item, IMMEDIATELY suggest specific products rather than asking follow-up questions
+- Show product recommendations in your first response whenever possible
+- Keep responses concise and conversational
+- If you don't know something, say so rather than making up information
 `;
 
     // Add product context if available
