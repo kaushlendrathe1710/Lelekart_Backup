@@ -280,7 +280,7 @@ export default function AddProductPage() {
                       <Tag className="h-5 w-5 text-primary" />
                       <CardTitle>Basic Information</CardTitle>
                     </div>
-                    <Badge variant={completionStatus.basicComplete ? "success" : "outline"} className={completionStatus.basicComplete ? "bg-green-100 text-green-800 hover:bg-green-100" : ""}>
+                    <Badge variant="outline" className={completionStatus.basicComplete ? "bg-green-100 text-green-800 hover:bg-green-100" : ""}>
                       {completionStatus.basicComplete ? "Complete" : "Required"}
                     </Badge>
                   </div>
@@ -459,12 +459,14 @@ export default function AddProductPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Color</FormLabel>
-                          <ColorSelector
-                            value={field.value || ""}
-                            onChange={field.onChange}
-                          />
+                          <FormControl>
+                            <Input 
+                              placeholder="e.g. Red, Blue, Black" 
+                              {...field} 
+                            />
+                          </FormControl>
                           <FormDescription>
-                            Select or enter a color value
+                            Enter the color of your product
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -543,7 +545,7 @@ export default function AddProductPage() {
                       <Heading className="h-5 w-5 text-primary" />
                       <CardTitle>Product Description</CardTitle>
                     </div>
-                    <Badge variant={completionStatus.descriptionComplete ? "success" : "outline"} className={completionStatus.descriptionComplete ? "bg-green-100 text-green-800 hover:bg-green-100" : ""}>
+                    <Badge variant="outline" className={completionStatus.descriptionComplete ? "bg-green-100 text-green-800 hover:bg-green-100" : ""}>
                       {completionStatus.descriptionComplete ? "Complete" : "Required"}
                     </Badge>
                   </div>
@@ -623,7 +625,7 @@ export default function AddProductPage() {
                       <ImagePlus className="h-5 w-5 text-primary" />
                       <CardTitle>Product Images</CardTitle>
                     </div>
-                    <Badge variant={completionStatus.imagesComplete ? "success" : "outline"} className={completionStatus.imagesComplete ? "bg-green-100 text-green-800 hover:bg-green-100" : ""}>
+                    <Badge variant="outline" className={completionStatus.imagesComplete ? "bg-green-100 text-green-800 hover:bg-green-100" : ""}>
                       {completionStatus.imagesComplete ? "Complete" : "Required"}
                     </Badge>
                   </div>
@@ -754,7 +756,7 @@ export default function AddProductPage() {
                       <PackageCheck className="h-5 w-5 text-primary" />
                       <CardTitle>Inventory Management</CardTitle>
                     </div>
-                    <Badge variant={completionStatus.inventoryComplete ? "success" : "outline"} className={completionStatus.inventoryComplete ? "bg-green-100 text-green-800 hover:bg-green-100" : ""}>
+                    <Badge variant="outline" className={completionStatus.inventoryComplete ? "bg-green-100 text-green-800 hover:bg-green-100" : ""}>
                       {completionStatus.inventoryComplete ? "Complete" : "Required"}
                     </Badge>
                   </div>
