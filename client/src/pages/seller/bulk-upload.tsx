@@ -27,12 +27,12 @@ import {
 
 // Complete template with all possible product fields - matches the exact schema requirements
 const EXAMPLE_CSV = `name,description,price,purchasePrice,mrp,category,brand,color,size,imageUrl1,imageUrl2,imageUrl3,imageUrl4,stock,sku,hsn,weight,length,width,height,warranty_months,returnPolicy,tax,specifications,productType
-Premium T-Shirt,High quality cotton t-shirt for daily wear,499,350,599,Fashion,FashionBrand,"Black,White,Blue","S,M,L,XL",https://example.com/images/tshirt-front.jpg,https://example.com/images/tshirt-back.jpg,https://example.com/images/tshirt-detail.jpg,,100,TS-001,6109,200,60,45,3,12,15,5,100% cotton with premium stitching,Apparel
-Wireless Headphones,Bluetooth 5.0 noise-cancelling headphones with 20h battery,2999,2200,3499,Electronics,AudioTech,Black,Universal,https://example.com/images/headphones-1.jpg,https://example.com/images/headphones-2.jpg,https://example.com/images/headphones-3.jpg,,50,HP-100,8518,300,18,8,7,24,30,18,Active noise cancellation with 30dB reduction,Electronics
-Kitchen Knife Set,Professional 5-piece stainless steel knife set,1499,1100,1999,Home,HomeChef,Silver,Standard,https://example.com/images/knives-set.jpg,https://example.com/images/knife-detail.jpg,https://example.com/images/knife-block.jpg,,30,KS-200,8211,1200,35,25,10,24,30,12,5-piece set with wooden storage block,Kitchenware
-Samsung Galaxy S21,Latest flagship smartphone with high-performance features,99999,89999,109999,Electronics,Samsung,Black,6.5 inch,https://example.com/smartphone.jpg,https://example.com/smartphone-back.jpg,https://example.com/smartphone-side.jpg,https://example.com/smartphone-box.jpg,100,SM-G991,85171290,180,150,72,8,12,15,18,"Display: AMOLED|RAM: 8GB|Storage: 128GB|Battery: 5000mAh",physical
-Apple AirPods Pro,Wireless earbuds with active noise cancellation,29999,19999,34999,Electronics,Apple,White,One Size,https://example.com/earbuds.jpg,https://example.com/earbuds-case.jpg,https://example.com/earbuds-open.jpg,https://example.com/earbuds-charging.jpg,200,APP-123,85183000,50,52,48,23,12,7,18,"Battery Life: 6 hours|Water Resistant: Yes|ANC: Yes|Wireless Charging: Yes",physical
-Nike Air Zoom,Comfortable sports shoes for daily runners,4999,3999,5999,Fashion,Nike,Blue,"UK 9, US 10",https://example.com/shoes.jpg,https://example.com/shoes-side.jpg,https://example.com/shoes-sole.jpg,https://example.com/shoes-box.jpg,50,NK-AZ-10,64021990,290,285,105,110,6,30,12,"Material: Mesh|Sole: Rubber|Weight: 290g|Cushioning: React Foam",physical`;
+Premium T-Shirt,High quality cotton t-shirt for daily wear,499,350,599,Fashion,FashionBrand,"Black, White, Blue","S, M, L, XL",https://example.com/images/tshirt-front.jpg,https://example.com/images/tshirt-back.jpg,https://example.com/images/tshirt-detail.jpg,,100,TS-001,6109,200,60,45,3,12,15,5,"100% cotton with premium stitching, Soft touch fabric",Apparel
+Wireless Headphones,Bluetooth 5.0 noise-cancelling headphones with 20h battery life,2999,2200,3499,Electronics,AudioTech,"Black, Silver",Universal,https://example.com/images/headphones-1.jpg,https://example.com/images/headphones-2.jpg,https://example.com/images/headphones-3.jpg,,50,HP-100,8518,300,18,8,7,24,30,18,"Active noise cancellation with 30dB reduction, Bluetooth 5.0, 20 hours battery life",Electronics
+Kitchen Knife Set,Professional 5-piece stainless steel knife set with ergonomic handles,1499,1100,1999,Home,HomeChef,"Silver, Black","Standard, Professional",https://example.com/images/knives-set.jpg,https://example.com/images/knife-detail.jpg,https://example.com/images/knife-block.jpg,,30,KS-200,8211,1200,35,25,10,24,30,12,"5-piece set with wooden storage block, High-carbon stainless steel, Ergonomic handles",Kitchenware
+Samsung Galaxy S21,Latest flagship smartphone with high-performance features and premium camera,99999,89999,109999,Electronics,Samsung,"Black, White, Phantom Gray","128GB, 256GB",https://example.com/smartphone.jpg,https://example.com/smartphone-back.jpg,https://example.com/smartphone-side.jpg,https://example.com/smartphone-box.jpg,100,SM-G991,85171290,180,150,72,8,12,15,18,"Display: 6.2-inch Dynamic AMOLED 2X, RAM: 8GB, Storage: 128GB/256GB, Battery: 4000mAh, Camera: 12MP+12MP+64MP",physical
+Apple AirPods Pro,Wireless earbuds with active noise cancellation and transparency mode,29999,19999,34999,Electronics,Apple,White,One Size,https://example.com/earbuds.jpg,https://example.com/earbuds-case.jpg,https://example.com/earbuds-open.jpg,https://example.com/earbuds-charging.jpg,200,APP-123,85183000,50,52,48,23,12,7,18,"Battery Life: 6 hours, Water Resistant: Yes, ANC: Yes, Wireless Charging: Yes, Transparency mode, Adaptive EQ",physical
+Nike Air Zoom,Comfortable sports shoes for daily runners with responsive cushioning,4999,3999,5999,Fashion,Nike,"Blue, Black, Red","UK 7, UK 8, UK 9, UK 10",https://example.com/shoes.jpg,https://example.com/shoes-side.jpg,https://example.com/shoes-sole.jpg,https://example.com/shoes-box.jpg,50,NK-AZ-10,64021990,290,285,105,110,6,30,12,"Material: Breathable mesh, Sole: Rubber, Weight: 290g, Cushioning: React Foam, Responsive Zoom Air unit",physical`;
 
 // Helper function to parse CSV lines, properly handling quoted fields
 // This handles fields with commas inside quoted strings
@@ -143,10 +143,35 @@ export default function BulkUploadPage() {
     if (product.stock && isNaN(Number(product.stock))) errors.push(`Stock must be a number`);
     if (product.mrp && isNaN(Number(product.mrp))) errors.push(`MRP must be a number`);
     if (product.purchasePrice && isNaN(Number(product.purchasePrice))) errors.push(`Purchase price must be a number`);
+    if (product.warranty_months && isNaN(Number(product.warranty_months))) errors.push(`Warranty period must be a number (in months)`);
+    if (product.weight && isNaN(Number(product.weight))) errors.push(`Weight must be a number`);
+    if (product.length && isNaN(Number(product.length))) errors.push(`Length must be a number`);
+    if (product.width && isNaN(Number(product.width))) errors.push(`Width must be a number`);
+    if (product.height && isNaN(Number(product.height))) errors.push(`Height must be a number`);
 
     // Validate price logic
     if (product.price && product.mrp && Number(product.price) > Number(product.mrp)) {
       errors.push(`Selling price (${product.price}) cannot be greater than MRP (${product.mrp})`);
+    }
+    
+    // Validate URLs in image fields
+    if (product.imageUrl && !product.imageUrl.match(/^https?:\/\/.+/)) {
+      errors.push(`Main image URL must be a valid URL starting with http:// or https://`);
+    }
+    
+    // If colors or sizes are provided, check if they are in the correct format
+    if (product.color && typeof product.color === 'string') {
+      const colors = product.color.split(',').map((c: string) => c.trim()).filter(Boolean);
+      if (colors.length === 0 && product.color.trim() !== '') {
+        errors.push(`Color format is invalid. Use comma-separated values like "Red, Blue, Green"`);
+      }
+    }
+    
+    if (product.size && typeof product.size === 'string') {
+      const sizes = product.size.split(',').map((s: string) => s.trim()).filter(Boolean);
+      if (sizes.length === 0 && product.size.trim() !== '') {
+        errors.push(`Size format is invalid. Use comma-separated values like "S, M, L, XL"`);
+      }
     }
     
     return { isValid: errors.length === 0, errors };
@@ -199,6 +224,18 @@ export default function BulkUploadPage() {
         // Handle boolean fields
         else if (header === 'approved') {
           productData[header] = value.toLowerCase() === 'true';
+        }
+        // Handle color field - convert to array for database but keep as string for display
+        else if (header === 'color') {
+          // Split by comma and trim each value
+          const colors = value.split(',').map(c => c.trim()).filter(Boolean);
+          productData.color = colors.join(', ');
+        }
+        // Handle size field - convert to array for database but keep as string for display
+        else if (header === 'size') {
+          // Split by comma and trim each value
+          const sizes = value.split(',').map(s => s.trim()).filter(Boolean);
+          productData.size = sizes.join(', ');
         }
         // Handle image fields mapping - use the first one as the main image
         else if (header === 'imageUrl1') {
