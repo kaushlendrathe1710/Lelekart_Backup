@@ -265,16 +265,27 @@ export default function AddProductPage() {
       const productData = {
         name: data.name,
         description: data.description,
-        specifications: data.specifications, // Add specifications field
-        purchasePrice: parseInt(data.purchasePrice), // Purchase Price (cost price)
-        price: parseInt(data.price), // Selling Price (convert to number)
+        specifications: data.specifications || "", // Add specifications field
+        purchasePrice: parseFloat(data.purchasePrice), // Purchase Price (cost price)
+        price: parseFloat(data.price), // Selling Price (convert to number)
+        mrp: parseFloat(data.mrp), // MRP (Maximum Retail Price)
         category: data.category,
-        color: data.color, // Add color field
-        size: data.size, // Add size field
+        brand: data.brand, // Include brand
+        color: data.color || "", // Add color field
+        size: data.size || "", // Add size field
+        sku: data.sku, // Include SKU
+        warranty: data.warranty || "", // Include warranty
+        hsn: data.hsn || "", // Include HSN code
         imageUrl: imageUrl, // Main image (first in the array)
-        image: imageUrl, // For compatibility with schema
-        images: uploadedImages.length > 1 ? JSON.stringify(uploadedImages) : undefined, // Additional images as JSON string
+        images: uploadedImages.length > 0 ? JSON.stringify(uploadedImages) : "[]", // Additional images as JSON string
         stock: parseInt(data.stock), // Convert to number
+        weight: data.weight ? parseFloat(data.weight) : null, // Include weight
+        height: data.height ? parseFloat(data.height) : null, // Include height
+        width: data.width ? parseFloat(data.width) : null, // Include width
+        length: data.length ? parseFloat(data.length) : null, // Include length
+        tax: parseFloat(data.tax), // Include tax rate
+        returnPolicy: parseInt(data.returnPolicy), // Include return policy
+        productType: data.productType, // Include product type
         approved: false, // New products require approval
       };
       
