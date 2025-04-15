@@ -952,7 +952,7 @@ export default function AddProductPage() {
                 >
                   {createProductMutation.isPending ? (
                     <>
-                      <ImagePlus className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Submitting Product...
                     </>
                   ) : (
@@ -964,20 +964,29 @@ export default function AddProductPage() {
                 </Button>
                 <p className="text-sm text-muted-foreground text-center md:text-right">
                   Your product will be reviewed by our team before being published.
-              
-              {/* Standalone submit button at the bottom */}
-              <div className="fixed bottom-10 right-10">
+                </p>
+              </div>
+
+              {/* Large green submit button */}
+              <div className="flex flex-col items-center mt-8 border-t pt-6">
                 <Button 
                   size="lg" 
-                  className="bg-green-600 hover:bg-green-700 text-white rounded-md shadow-md w-48"
+                  className="bg-green-600 hover:bg-green-700 text-white rounded-md shadow-md w-full max-w-md py-6"
                   onClick={form.handleSubmit(onSubmit)}
                   disabled={createProductMutation.isPending}
                 >
-                  <CheckCircle className="mr-2 h-5 w-5" />
-                  Submit Product
+                  {createProductMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Submitting Product...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="mr-2 h-5 w-5" />
+                      Submit Product
+                    </>
+                  )}
                 </Button>
-              </div>
-                </p>
               </div>
             </Form>
           </div>
