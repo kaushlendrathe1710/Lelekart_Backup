@@ -1217,6 +1217,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(201).json(newCoAdmin);
     } catch (error) {
+      console.error("Error creating co-admin:", error);
       res.status(500).json({ error: "Failed to create co-admin" });
     }
   });
