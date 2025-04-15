@@ -48,6 +48,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     location.includes("/admin/categories") || 
     location.includes("/admin/design-hero")
   );
+  
+  const [footerMenuOpen, setFooterMenuOpen] = useState(
+    location.includes("/admin/footer-management")
+  );
 
   const navItems = [
     {
@@ -269,6 +273,51 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                     >
                       <LayoutDashboardIcon className="h-5 w-5" />
                       <span>Design Hero</span>
+                    </div>
+                  </Link>
+                </CollapsibleContent>
+              </Collapsible>
+              
+              {/* Footer Management Dropdown */}
+              <Collapsible
+                open={footerMenuOpen}
+                onOpenChange={setFooterMenuOpen}
+                className="w-full"
+              >
+                <CollapsibleTrigger asChild>
+                  <div
+                    className={cn(
+                      "flex items-center justify-between rounded-lg px-3 py-2 cursor-pointer transition-all hover:bg-gray-100",
+                      location.includes("/admin/footer-management")
+                        ? "bg-primary/10 text-primary font-medium"
+                        : "text-gray-700"
+                    )}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <FileText className="h-5 w-5" />
+                      <span>Footer Management</span>
+                    </div>
+                    <div>
+                      {footerMenuOpen ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </div>
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pl-6 pt-1">
+                  <Link href="/admin/footer-management">
+                    <div
+                      className={cn(
+                        "flex items-center space-x-3 rounded-lg px-3 py-2 transition-all hover:bg-gray-100",
+                        location === "/admin/footer-management"
+                          ? "bg-primary/10 text-primary font-medium"
+                          : "text-gray-700"
+                      )}
+                    >
+                      <FileEdit className="h-5 w-5" />
+                      <span>Edit Footer Content</span>
                     </div>
                   </Link>
                 </CollapsibleContent>

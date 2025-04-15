@@ -34,6 +34,7 @@ import SellerApproval from './pages/admin/seller-approval';
 import ProductApproval from './pages/admin/product-approval';
 import BannerManagement from './pages/admin/banner-management-new';
 import DesignHero from './pages/admin/design-hero';
+import FooterManagement from './pages/admin/footer-management';
 
 // Seller pages
 import SellerDashboardPage from './pages/seller/dashboard';

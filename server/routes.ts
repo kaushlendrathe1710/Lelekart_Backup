@@ -2916,6 +2916,142 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Footer Content APIs
+  app.get("/api/footer-content", async (req, res) => {
+    try {
+      const { section, isActive } = req.query;
+      const isActiveBoolean = isActive === 'true' ? true : 
+                             isActive === 'false' ? false : undefined;
+      
+      const contents = await storage.getFooterContents(
+        section as string | undefined, 
+        isActiveBoolean
+      );
+      res.json(contents);
+    } catch (error) {
+      console.error("Error getting footer contents:", error);
+      res.status(500).json({ error: "Failed to get footer contents" });
+    }
+  });
+  
+  app.get("/api/footer-content/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const content = await storage.getFooterContentById(id);
+      
+      if (!content) {
+        return res.status(404).json({ error: "Footer content not found" });
+      }
+      
+      res.json(content);
+    } catch (error) {
+      console.error(`Error getting footer content ${req.params.id}:`, error);
+      res.status(500).json({ error: "Failed to get footer content" });
+    }
+  });
+  
+  app.post("/api/admin/footer-content", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const { section, title, content, order } = req.body;
+      
+      if (!section || !title || !content) {
+        return res.status(400).json({ error: "Section, title, and content are required" });
+      }
+      
+      const footerContent = await storage.createFooterContent({
+        section,
+        title,
+        content,
+        order: order || 0,
+        isActive: true
+      });
+      
+      res.status(201).json(footerContent);
+    } catch (error) {
+      console.error("Error creating footer content:", error);
+      res.status(500).json({ error: "Failed to create footer content" });
+    }
+  });
+  
+  app.put("/api/admin/footer-content/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const id = parseInt(req.params.id);
+      const { section, title, content, order } = req.body;
+      
+      // Get existing content
+      const existingContent = await storage.getFooterContentById(id);
+      if (!existingContent) {
+        return res.status(404).json({ error: "Footer content not found" });
+      }
+      
+      const updatedContent = await storage.updateFooterContent(id, {
+        section: section || existingContent.section,
+        title: title || existingContent.title,
+        content: content !== undefined ? content : existingContent.content,
+        order: order !== undefined ? order : existingContent.order
+      });
+      
+      res.json(updatedContent);
+    } catch (error) {
+      console.error(`Error updating footer content ${req.params.id}:`, error);
+      res.status(500).json({ error: "Failed to update footer content" });
+    }
+  });
+  
+  app.delete("/api/admin/footer-content/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteFooterContent(id);
+      res.status(204).end();
+    } catch (error) {
+      console.error(`Error deleting footer content ${req.params.id}:`, error);
+      res.status(500).json({ error: "Failed to delete footer content" });
+    }
+  });
+  
+  app.put("/api/admin/footer-content/:id/toggle", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const id = parseInt(req.params.id);
+      const content = await storage.toggleFooterContentActive(id);
+      res.json(content);
+    } catch (error) {
+      console.error(`Error toggling footer content status ${req.params.id}:`, error);
+      res.status(500).json({ error: "Failed to toggle footer content status" });
+    }
+  });
+  
+  app.put("/api/admin/footer-content/:id/order", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    try {
+      const id = parseInt(req.params.id);
+      const { order } = req.body;
+      
+      if (typeof order !== 'number' || order < 0) {
+        return res.status(400).json({ error: "Order must be a non-negative number" });
+      }
+      
+      const content = await storage.updateFooterContentOrder(id, order);
+      res.json(content);
+    } catch (error) {
+      console.error(`Error updating footer content order ${req.params.id}:`, error);
+      res.status(500).json({ error: "Failed to update footer content order" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
