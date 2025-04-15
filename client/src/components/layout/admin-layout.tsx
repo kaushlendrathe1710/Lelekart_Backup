@@ -32,6 +32,7 @@ import {
   FileEdit,
   LayoutDashboardIcon,
   UserCog,
+  UserPlus,
 } from "lucide-react";
 import { useState } from "react";
 import {
@@ -56,6 +57,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     location.includes("/admin/footer-management")
   );
 
+  const [usersMenuOpen, setUsersMenuOpen] = useState(
+    location.includes("/admin/users") || 
+    location.includes("/admin/create-user")
+  );
+
   const navItems = [
     {
       title: "Dashboard",
@@ -73,9 +79,23 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       icon: <CheckSquare className="h-5 w-5" />,
     },
     {
+      collapsible: true,
       title: "Users",
-      href: "/admin/users",
       icon: <Users className="h-5 w-5" />,
+      open: usersMenuOpen,
+      onOpenChange: setUsersMenuOpen,
+      items: [
+        {
+          title: "Manage Users",
+          href: "/admin/users",
+          icon: <Users className="h-5 w-5" />,
+        },
+        {
+          title: "Create User",
+          href: "/admin/create-user",
+          icon: <UserPlus className="h-5 w-5" />,
+        },
+      ],
     },
     {
       title: "Manage Admins",
@@ -332,21 +352,70 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               </Collapsible>
               
               {/* Regular Nav Items */}
-              {navItems.map((item) => (
-                <Link key={item.href} href={item.href}>
-                  <div
-                    className={cn(
-                      "flex items-center space-x-3 rounded-lg px-3 py-2 transition-all hover:bg-gray-100",
-                      location === item.href
-                        ? "bg-primary/10 text-primary font-medium"
-                        : "text-gray-700"
-                    )}
+              {navItems.map((item, index) => 
+                item.collapsible ? (
+                  <Collapsible
+                    key={`collapsible-${index}`}
+                    open={item.open}
+                    onOpenChange={item.onOpenChange}
+                    className="w-full"
                   >
-                    {item.icon}
-                    <span>{item.title}</span>
-                  </div>
-                </Link>
-              ))}
+                    <CollapsibleTrigger asChild>
+                      <div
+                        className={cn(
+                          "flex items-center justify-between rounded-lg px-3 py-2 cursor-pointer transition-all hover:bg-gray-100",
+                          (location.includes(`/admin/${item.title.toLowerCase().replace(/\s+/g, '-')}`))
+                            ? "bg-primary/10 text-primary font-medium"
+                            : "text-gray-700"
+                        )}
+                      >
+                        <div className="flex items-center space-x-3">
+                          {item.icon}
+                          <span>{item.title}</span>
+                        </div>
+                        <div>
+                          {item.open ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </div>
+                      </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="pl-6 pt-1">
+                      {item.items?.map((subItem, subIndex) => (
+                        <Link key={`${subItem.href}-${subIndex}`} href={subItem.href || ""}>
+                          <div
+                            className={cn(
+                              "flex items-center space-x-3 rounded-lg px-3 py-2 transition-all hover:bg-gray-100",
+                              location === subItem.href
+                                ? "bg-primary/10 text-primary font-medium"
+                                : "text-gray-700"
+                            )}
+                          >
+                            {subItem.icon}
+                            <span>{subItem.title}</span>
+                          </div>
+                        </Link>
+                      ))}
+                    </CollapsibleContent>
+                  </Collapsible>
+                ) : (
+                  <Link key={`link-${index}`} href={item.href || ""}>
+                    <div
+                      className={cn(
+                        "flex items-center space-x-3 rounded-lg px-3 py-2 transition-all hover:bg-gray-100",
+                        location === item.href
+                          ? "bg-primary/10 text-primary font-medium"
+                          : "text-gray-700"
+                      )}
+                    >
+                      {item.icon}
+                      <span>{item.title}</span>
+                    </div>
+                  </Link>
+                )
+              )}
             </nav>
           </div>
         </aside>
