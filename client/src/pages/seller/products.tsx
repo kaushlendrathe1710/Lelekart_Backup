@@ -137,7 +137,15 @@ export default function SellerProductsPage() {
   // Bulk delete mutation
   const bulkDeleteMutation = useMutation({
     mutationFn: async (productIds: number[]) => {
-      const response = await fetch(`/api/products/bulk-delete`, {
+      // Check if this is seller ID 10 (ambi.mohit09@gmail.com) to use special endpoint
+      const isSpecialSeller = user?.id === 10 || user?.email === "ambi.mohit09@gmail.com";
+      const endpoint = isSpecialSeller 
+        ? `/api/seller/10/bulk-delete-products` 
+        : `/api/products/bulk-delete`;
+      
+      console.log(`Using ${isSpecialSeller ? 'SPECIAL' : 'standard'} bulk delete endpoint for user:`, user?.id, user?.email);
+      
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
