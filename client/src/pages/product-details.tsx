@@ -441,30 +441,51 @@ export default function ProductDetailsPage() {
       images.push(imageUrl);
     }
     
+    // Helper function to safely parse JSON
+    const safeJsonParse = (jsonString: string) => {
+      try {
+        return JSON.parse(jsonString);
+      } catch (e) {
+        console.error("Error parsing JSON:", e);
+        return null;
+      }
+    };
+    
     // Additional images from the images array - without filtering duplicates
-    try {
-      if (product.images) {
-        const additionalImages = typeof product.images === 'string' 
-          ? JSON.parse(product.images)
-          : product.images;
-        
-        if (Array.isArray(additionalImages)) {
-          additionalImages.forEach(img => {
-            if (!img) return;
-            
-            const imageUrl = typeof img === 'string' && 
-                            (img.includes('flixcart.com') || img.includes('lelekart.com'))
+    if (product.images) {
+      let additionalImages;
+      
+      // Safely handle various data formats
+      if (typeof product.images === 'string') {
+        // Check if it's a JSON string before attempting to parse
+        if (product.images.trim().startsWith('[') && product.images.trim().endsWith(']')) {
+          additionalImages = safeJsonParse(product.images);
+        } else {
+          // Not a JSON array, treat as a single image URL
+          additionalImages = [product.images];
+        }
+      } else {
+        // Already an array or object
+        additionalImages = product.images;
+      }
+      
+      // Process the additional images if we have a valid array
+      if (Array.isArray(additionalImages)) {
+        additionalImages.forEach(img => {
+          if (!img) return;
+          
+          // Only process string values
+          if (typeof img === 'string') {
+            const imageUrl = (img.includes('flixcart.com') || img.includes('lelekart.com'))
               ? `/api/image-proxy?url=${encodeURIComponent(img)}&category=${encodeURIComponent(product.category || 'general')}`
               : img;
             
             // Include all images, even if they appear to be duplicates
             // This ensures we show exactly the number of images that exist in the database
             images.push(imageUrl);
-          });
-        }
+          }
+        });
       }
-    } catch (e) {
-      console.error("Error parsing additional images:", e);
     }
     
     // If no images, use a placeholder based on category
