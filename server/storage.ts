@@ -449,9 +449,52 @@ export class DatabaseStorage implements IStorage {
         throw new Error('This is a special admin user that cannot be deleted');
       }
       
-      await db
-        .delete(users)
-        .where(eq(users.id, id));
+      // First, handle foreign key constraints by deleting dependent records
+      // 1. Delete user's products
+      await db.delete(products).where(eq(products.sellerId, id));
+      
+      // 2. Delete user's carts
+      await db.delete(carts).where(eq(carts.userId, id));
+      
+      // 3. Delete user's orders
+      const userOrders = await db.select({ id: orders.id }).from(orders).where(eq(orders.userId, id));
+      for (const order of userOrders) {
+        // Delete order items first
+        await db.delete(orderItems).where(eq(orderItems.orderId, order.id));
+      }
+      await db.delete(orders).where(eq(orders.userId, id));
+      
+      // 4. Delete user's reviews
+      const userReviews = await db.select({ id: reviews.id }).from(reviews).where(eq(reviews.userId, id));
+      for (const review of userReviews) {
+        // Delete review images and helpful marks first
+        await db.delete(reviewImages).where(eq(reviewImages.reviewId, review.id));
+        await db.delete(reviewHelpful).where(eq(reviewHelpful.reviewId, review.id));
+      }
+      await db.delete(reviews).where(eq(reviews.userId, id));
+      
+      // 5. Delete user's wishlists
+      await db.delete(wishlists).where(eq(wishlists.userId, id));
+      
+      // 6. Delete user's addresses
+      await db.delete(userAddresses).where(eq(userAddresses.userId, id));
+      
+      // 7. Delete seller-specific data
+      if (user.role === 'seller') {
+        await db.delete(salesHistory).where(eq(salesHistory.sellerId, id));
+        await db.delete(demandForecasts).where(eq(demandForecasts.sellerId, id));
+        await db.delete(priceOptimizations).where(eq(priceOptimizations.sellerId, id));
+        await db.delete(inventoryOptimizations).where(eq(inventoryOptimizations.sellerId, id));
+        await db.delete(sellerDocuments).where(eq(sellerDocuments.sellerId, id));
+        await db.delete(businessDetails).where(eq(businessDetails.sellerId, id));
+        await db.delete(bankingInformation).where(eq(bankingInformation.sellerId, id));
+      }
+      
+      // 8. Delete AI-generated content
+      await db.delete(aiGeneratedContent).where(eq(aiGeneratedContent.userId, id));
+      
+      // Finally, delete the user
+      await db.delete(users).where(eq(users.id, id));
     } catch (error) {
       console.error(`Error deleting user with ID ${id}:`, error);
       throw new Error(`Failed to delete user: ${(error as Error).message}`);

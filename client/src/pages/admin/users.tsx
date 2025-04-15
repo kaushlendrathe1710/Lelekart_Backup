@@ -367,22 +367,40 @@ export default function AdminUsers() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Select
-                            value={user.role}
-                            onValueChange={(value) =>
-                              handleRoleChange(user.id, user.role, value)
-                            }
-                            disabled={updateRoleMutation.isPending}
-                          >
-                            <SelectTrigger className="w-28 h-8">
-                              <SelectValue placeholder="Change role" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="admin">Admin</SelectItem>
-                              <SelectItem value="seller">Seller</SelectItem>
-                              <SelectItem value="buyer">Buyer</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <div className="flex items-center justify-end gap-2">
+                            <Select
+                              value={user.role}
+                              onValueChange={(value) =>
+                                handleRoleChange(user.id, user.role, value)
+                              }
+                              disabled={updateRoleMutation.isPending}
+                            >
+                              <SelectTrigger className="w-28 h-8">
+                                <SelectValue placeholder="Change role" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="admin">Admin</SelectItem>
+                                <SelectItem value="seller">Seller</SelectItem>
+                                <SelectItem value="buyer">Buyer</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="h-8 px-2 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                  onClick={(e) => {
+                                    e.preventDefault(); // Prevent triggering the dialog twice
+                                    handleDeleteUser(user.id, user.username);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                            </AlertDialog>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
@@ -444,6 +462,44 @@ export default function AdminUsers() {
                 </>
               ) : (
                 "Confirm"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Confirmation Dialog for Delete User */}
+      <AlertDialog
+        open={confirmDelete.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmDelete((prev) => ({ ...prev, open: false }));
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the user <strong>{confirmDelete.username}</strong>?
+              <br />
+              <br />
+              This action cannot be undone. All data associated with this user will be permanently deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteUser}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {deleteUserMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
