@@ -63,7 +63,6 @@ import { Label } from "@/components/ui/label";
 const createCoAdminSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
   email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
   permissions: z.object({
     canCreateProducts: z.boolean().default(false),
     canEditProducts: z.boolean().default(false),
@@ -167,7 +166,6 @@ export default function ManageAdminsPage() {
     defaultValues: {
       username: "",
       email: "",
-      password: "",
       permissions: {
         canCreateProducts: false,
         canEditProducts: false,
@@ -297,19 +295,10 @@ export default function ManageAdminsPage() {
                         )}
                       />
                       
-                      <FormField
-                        control={form.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Password</FormLabel>
-                            <FormControl>
-                              <Input type="password" placeholder="••••••••" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      <div className="text-sm text-muted-foreground mt-2">
+                        <p>Co-admin will use email OTP verification to login</p>
+                        <p>No password is required</p>
+                      </div>
                     </div>
                     
                     <div className="border rounded-md p-4">
