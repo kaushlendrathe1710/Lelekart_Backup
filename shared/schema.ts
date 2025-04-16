@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, foreignKey, doublePrecision, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, foreignKey, doublePrecision, jsonb, decimal } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -875,3 +875,215 @@ export const insertBannerSchema = createInsertSchema(banners).omit({
 
 export type Banner = typeof banners.$inferSelect;
 export type InsertBanner = z.infer<typeof insertBannerSchema>;
+
+// Shipping Methods table
+export const shippingMethods = pgTable("shipping_methods", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  price: integer("price").notNull(), // Base price in paise/cents
+  estimatedDays: text("estimated_days").notNull(), // e.g., "3-5 days"
+  isActive: boolean("is_active").notNull().default(true),
+  icon: text("icon"), // Icon for the shipping method
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertShippingMethodSchema = createInsertSchema(shippingMethods).pick({
+  name: true,
+  description: true,
+  price: true,
+  estimatedDays: true,
+  isActive: true,
+  icon: true,
+});
+
+// Shipping Zones table
+export const shippingZones = pgTable("shipping_zones", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(), // e.g., "North India", "Metro Cities"
+  description: text("description"),
+  countries: text("countries").notNull(), // Comma-separated list or JSON string
+  states: text("states"), // Comma-separated list or JSON string
+  cities: text("cities"), // Comma-separated list or JSON string
+  zipCodes: text("zip_codes"), // Comma-separated list or JSON string
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertShippingZoneSchema = createInsertSchema(shippingZones).pick({
+  name: true,
+  description: true,
+  countries: true,
+  states: true,
+  cities: true,
+  zipCodes: true,
+  isActive: true,
+});
+
+// Shipping Rules table (connects methods to zones with specific pricing)
+export const shippingRules = pgTable("shipping_rules", {
+  id: serial("id").primaryKey(),
+  zoneId: integer("zone_id").notNull().references(() => shippingZones.id),
+  methodId: integer("method_id").notNull().references(() => shippingMethods.id),
+  price: integer("price"), // Override price for this zone-method combination (optional)
+  freeShippingThreshold: integer("free_shipping_threshold"), // Minimum order amount for free shipping
+  additionalDays: integer("additional_days").default(0), // Additional days for this zone
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertShippingRuleSchema = createInsertSchema(shippingRules).pick({
+  zoneId: true,
+  methodId: true,
+  price: true,
+  freeShippingThreshold: true,
+  additionalDays: true,
+  isActive: true,
+});
+
+// Seller Shipping Settings table
+export const sellerShippingSettings = pgTable("seller_shipping_settings", {
+  id: serial("id").primaryKey(),
+  sellerId: integer("seller_id").notNull().references(() => users.id),
+  enableCustomShipping: boolean("enable_custom_shipping").notNull().default(false),
+  defaultShippingMethodId: integer("default_shipping_method_id").references(() => shippingMethods.id),
+  freeShippingThreshold: integer("free_shipping_threshold"), // Minimum order amount for free shipping
+  processingTime: text("processing_time"), // e.g., "1-2 business days"
+  shippingPolicy: text("shipping_policy"), // Text description of shipping policy
+  returnPolicy: text("return_policy"), // Text description of return policy
+  internationalShipping: boolean("international_shipping").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertSellerShippingSettingsSchema = createInsertSchema(sellerShippingSettings).pick({
+  sellerId: true,
+  enableCustomShipping: true,
+  defaultShippingMethodId: true,
+  freeShippingThreshold: true,
+  processingTime: true,
+  shippingPolicy: true,
+  returnPolicy: true,
+  internationalShipping: true,
+});
+
+// Product Shipping Overrides table
+export const productShippingOverrides = pgTable("product_shipping_overrides", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").notNull().references(() => products.id),
+  customPrice: integer("custom_price"), // Custom shipping price
+  freeShipping: boolean("free_shipping").notNull().default(false),
+  additionalProcessingDays: integer("additional_processing_days").default(0),
+  shippingRestrictions: text("shipping_restrictions"), // JSON with restricted locations
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertProductShippingOverrideSchema = createInsertSchema(productShippingOverrides).pick({
+  productId: true,
+  customPrice: true,
+  freeShipping: true,
+  additionalProcessingDays: true,
+  shippingRestrictions: true,
+});
+
+// Shipping Tracking table
+export const shippingTracking = pgTable("shipping_tracking", {
+  id: serial("id").primaryKey(),
+  orderId: integer("order_id").notNull().references(() => orders.id),
+  carrier: text("carrier"), // Shipping carrier name
+  trackingNumber: text("tracking_number"),
+  trackingUrl: text("tracking_url"),
+  shippedDate: timestamp("shipped_date"),
+  estimatedDeliveryDate: timestamp("estimated_delivery_date"),
+  deliveredDate: timestamp("delivered_date"),
+  status: text("status").notNull().default("pending"), // pending, shipped, out_for_delivery, delivered, etc.
+  statusUpdates: text("status_updates"), // JSON array of status updates with timestamps
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertShippingTrackingSchema = createInsertSchema(shippingTracking).pick({
+  orderId: true,
+  carrier: true,
+  trackingNumber: true,
+  trackingUrl: true,
+  shippedDate: true,
+  estimatedDeliveryDate: true,
+  deliveredDate: true,
+  status: true,
+  statusUpdates: true,
+});
+
+// Relations
+export const shippingMethodsRelations = relations(shippingMethods, ({ many }) => ({
+  rules: many(shippingRules),
+  sellerSettings: many(sellerShippingSettings),
+}));
+
+export const shippingZonesRelations = relations(shippingZones, ({ many }) => ({
+  rules: many(shippingRules),
+}));
+
+export const shippingRulesRelations = relations(shippingRules, ({ one }) => ({
+  zone: one(shippingZones, {
+    fields: [shippingRules.zoneId],
+    references: [shippingZones.id],
+  }),
+  method: one(shippingMethods, {
+    fields: [shippingRules.methodId],
+    references: [shippingMethods.id],
+  }),
+}));
+
+export const sellerShippingSettingsRelations = relations(sellerShippingSettings, ({ one }) => ({
+  seller: one(users, {
+    fields: [sellerShippingSettings.sellerId],
+    references: [users.id],
+  }),
+  defaultMethod: one(shippingMethods, {
+    fields: [sellerShippingSettings.defaultShippingMethodId],
+    references: [shippingMethods.id],
+  }),
+}));
+
+export const productShippingOverridesRelations = relations(productShippingOverrides, ({ one }) => ({
+  product: one(products, {
+    fields: [productShippingOverrides.productId],
+    references: [products.id],
+  }),
+}));
+
+export const shippingTrackingRelations = relations(shippingTracking, ({ one }) => ({
+  order: one(orders, {
+    fields: [shippingTracking.orderId],
+    references: [orders.id],
+  }),
+}));
+
+// Extend orders relations to include tracking
+export const ordersTrackingRelations = relations(orders, ({ one }) => ({
+  tracking: one(shippingTracking),
+}));
+
+// Type exports for shipping tables
+export type ShippingMethod = typeof shippingMethods.$inferSelect;
+export type InsertShippingMethod = z.infer<typeof insertShippingMethodSchema>;
+
+export type ShippingZone = typeof shippingZones.$inferSelect;
+export type InsertShippingZone = z.infer<typeof insertShippingZoneSchema>;
+
+export type ShippingRule = typeof shippingRules.$inferSelect;
+export type InsertShippingRule = z.infer<typeof insertShippingRuleSchema>;
+
+export type SellerShippingSetting = typeof sellerShippingSettings.$inferSelect;
+export type InsertSellerShippingSetting = z.infer<typeof insertSellerShippingSettingsSchema>;
+
+export type ProductShippingOverride = typeof productShippingOverrides.$inferSelect;
+export type InsertProductShippingOverride = z.infer<typeof insertProductShippingOverrideSchema>;
+
+export type ShippingTracking = typeof shippingTracking.$inferSelect;
+export type InsertShippingTracking = z.infer<typeof insertShippingTrackingSchema>;
