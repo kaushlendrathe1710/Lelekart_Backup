@@ -69,10 +69,42 @@ Make sure the response is valid JSON.
 `;
     
     // Get response from Gemini API
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    // Store the response text from either primary or fallback model
+    let text = '';
+    
+    // Try primary model first - gemini-1.5-pro
+    try {
+      const primaryModelName = "gemini-1.5-pro";
+      const model = genAI.getGenerativeModel({ model: primaryModelName });
+      console.log('Using primary Gemini model:', primaryModelName);
+      
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      text = response.text();
+      console.log('Successfully got response from primary model');
+    } catch (modelError) {
+      console.error('Error with primary model, trying fallback model:', modelError);
+      
+      try {
+        // Fallback to alternative model if primary fails
+        const fallbackModelName = "gemini-pro";
+        const fallbackModel = genAI.getGenerativeModel({ model: fallbackModelName });
+        console.log('Using fallback Gemini model:', fallbackModelName);
+        
+        const fallbackResult = await fallbackModel.generateContent(prompt);
+        const fallbackResponse = await fallbackResult.response;
+        text = fallbackResponse.text();
+        console.log('Successfully got response from fallback model');
+      } catch (fallbackError) {
+        console.error('Both models failed:', fallbackError);
+        throw new Error('Failed to get response from any AI model');
+      }
+    }
+    
+    // If we reach here without text, something went wrong
+    if (!text) {
+      throw new Error('No response received from AI models');
+    }
     
     // Parse the JSON response
     let parsedResponse;
