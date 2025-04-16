@@ -46,7 +46,7 @@ interface AdminLayoutProps {
   children: ReactNode;
 }
 
-export function AdminLayout({ children }: AdminLayoutProps) {
+function AdminLayout({ children }: AdminLayoutProps) {
   const [location] = useLocation();
   const [heroMenuOpen, setHeroMenuOpen] = useState(
     location.includes("/admin/banner-management") || 

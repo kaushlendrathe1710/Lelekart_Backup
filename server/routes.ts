@@ -6,6 +6,8 @@ import { setupAuth } from "./auth";
 import multer from "multer";
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import * as rewardsHandlers from "./handlers/rewards-handlers";
+import * as giftCardsHandlers from "./handlers/gift-cards-handlers";
 
 // Configure multer for file uploads
 const upload = multer({ 
@@ -3717,6 +3719,216 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     await supportHandlers.addSupportMessageHandler(req, res);
+  });
+
+  // ========== Rewards System Routes ==========
+  
+  // Get user rewards - allows both user to view their own rewards and admin to view any user's rewards
+  app.get("/api/rewards/:userId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    const requestedUserId = parseInt(req.params.userId);
+    
+    // Authorization check - only allow users to view their own rewards or admins to view any user's rewards
+    if (req.user.id !== requestedUserId && req.user.role !== "admin" && req.user.role !== "co-admin") {
+      return res.status(403).json({ error: "Not authorized to view these rewards" });
+    }
+    
+    await rewardsHandlers.getUserRewards(req, res);
+  });
+  
+  // Get user reward transactions - with pagination
+  app.get("/api/rewards/:userId/transactions", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    const requestedUserId = parseInt(req.params.userId);
+    
+    // Authorization check
+    if (req.user.id !== requestedUserId && req.user.role !== "admin" && req.user.role !== "co-admin") {
+      return res.status(403).json({ error: "Not authorized to view these transactions" });
+    }
+    
+    await rewardsHandlers.getUserRewardTransactions(req, res);
+  });
+  
+  // Add reward points (admin only)
+  app.post("/api/rewards/add", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin" && req.user.role !== "co-admin") {
+      return res.status(403).json({ error: "Only admins can add reward points" });
+    }
+    
+    await rewardsHandlers.addRewardPoints(req, res);
+  });
+  
+  // Redeem reward points (user or admin)
+  app.post("/api/rewards/redeem", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    // If user is trying to redeem points for another user, check if they're admin
+    if (req.body.userId !== req.user.id && req.user.role !== "admin" && req.user.role !== "co-admin") {
+      return res.status(403).json({ error: "Not authorized to redeem points for another user" });
+    }
+    
+    await rewardsHandlers.redeemRewardPoints(req, res);
+  });
+  
+  // Get all reward rules (admin only)
+  app.get("/api/rewards/rules", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin" && req.user.role !== "co-admin") {
+      return res.status(403).json({ error: "Not authorized to view reward rules" });
+    }
+    
+    await rewardsHandlers.getRewardRules(req, res);
+  });
+  
+  // Create a new reward rule (admin only)
+  app.post("/api/rewards/rules", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin" && req.user.role !== "co-admin") {
+      return res.status(403).json({ error: "Not authorized to create reward rules" });
+    }
+    
+    await rewardsHandlers.createRewardRule(req, res);
+  });
+  
+  // Update a reward rule (admin only)
+  app.put("/api/rewards/rules/:ruleId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin" && req.user.role !== "co-admin") {
+      return res.status(403).json({ error: "Not authorized to update reward rules" });
+    }
+    
+    // Set the rule ID from the URL parameter
+    req.params.ruleId = req.params.ruleId;
+    
+    await rewardsHandlers.updateRewardRule(req, res);
+  });
+  
+  // Delete a reward rule (admin only)
+  app.delete("/api/rewards/rules/:ruleId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Only admins can delete reward rules" });
+    }
+    
+    await rewardsHandlers.deleteRewardRule(req, res);
+  });
+  
+  // Get reward statistics (admin only)
+  app.get("/api/rewards/statistics", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin" && req.user.role !== "co-admin") {
+      return res.status(403).json({ error: "Not authorized to view reward statistics" });
+    }
+    
+    await rewardsHandlers.getRewardStatistics(req, res);
+  });
+
+  // ========== Gift Cards System Routes ==========
+  
+  // Get all gift cards (admin only) with pagination
+  app.get("/api/gift-cards", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin" && req.user.role !== "co-admin") {
+      return res.status(403).json({ error: "Not authorized to view all gift cards" });
+    }
+    
+    await giftCardsHandlers.getAllGiftCards(req, res);
+  });
+  
+  // Get user's gift cards
+  app.get("/api/gift-cards/user/:userId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    const requestedUserId = parseInt(req.params.userId);
+    
+    // Authorization check
+    if (req.user.id !== requestedUserId && req.user.role !== "admin" && req.user.role !== "co-admin") {
+      return res.status(403).json({ error: "Not authorized to view these gift cards" });
+    }
+    
+    await giftCardsHandlers.getUserGiftCards(req, res);
+  });
+  
+  // Get a single gift card by ID
+  app.get("/api/gift-cards/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    // The card ownership check will be done in the handler
+    await giftCardsHandlers.getGiftCard(req, res);
+  });
+  
+  // Check gift card balance by code (public)
+  app.post("/api/gift-cards/check-balance", async (req, res) => {
+    await giftCardsHandlers.checkGiftCardBalance(req, res);
+  });
+  
+  // Create a new gift card (admin or user)
+  app.post("/api/gift-cards", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    // Set the purchasedBy field to the current user's ID
+    req.body.purchasedBy = req.user.id;
+    
+    await giftCardsHandlers.createGiftCard(req, res);
+  });
+  
+  // Apply gift card to an order
+  app.post("/api/gift-cards/apply", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    // Set the user ID from the authenticated user
+    req.body.userId = req.user.id;
+    
+    await giftCardsHandlers.applyGiftCard(req, res);
+  });
+  
+  // Deactivate/reactivate a gift card (admin only)
+  app.put("/api/gift-cards/:id/toggle-status", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin" && req.user.role !== "co-admin") {
+      return res.status(403).json({ error: "Not authorized to toggle gift card status" });
+    }
+    
+    await giftCardsHandlers.toggleGiftCardStatus(req, res);
+  });
+  
+  // Get all gift card templates
+  app.get("/api/gift-cards/templates", async (req, res) => {
+    // Anyone can view gift card templates
+    await giftCardsHandlers.getGiftCardTemplates(req, res);
+  });
+  
+  // Create a new gift card template (admin only)
+  app.post("/api/gift-cards/templates", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin" && req.user.role !== "co-admin") {
+      return res.status(403).json({ error: "Not authorized to create gift card templates" });
+    }
+    
+    await giftCardsHandlers.createGiftCardTemplate(req, res);
+  });
+  
+  // Update a gift card template (admin only)
+  app.put("/api/gift-cards/templates/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin" && req.user.role !== "co-admin") {
+      return res.status(403).json({ error: "Not authorized to update gift card templates" });
+    }
+    
+    await giftCardsHandlers.updateGiftCardTemplate(req, res);
+  });
+  
+  // Delete a gift card template (admin only)
+  app.delete("/api/gift-cards/templates/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Only admins can delete gift card templates" });
+    }
+    
+    await giftCardsHandlers.deleteGiftCardTemplate(req, res);
   });
 
   const httpServer = createServer(app);

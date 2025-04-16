@@ -1,11 +1,8 @@
-import pg from 'pg';
-import fs from 'fs/promises';
-import dotenv from 'dotenv';
-
-// Load environment variables
-dotenv.config();
-
-const { Pool } = pg;
+const { Pool } = require('pg');
+const fs = require('fs');
+const { promisify } = require('util');
+const readFile = promisify(fs.readFile);
+require('dotenv').config();
 
 async function createRewardsAndGiftCardsTables() {
   try {

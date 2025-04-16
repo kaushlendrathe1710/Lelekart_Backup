@@ -38,6 +38,8 @@ import FooterManagement from './pages/admin/footer-management';
 import ManageAdmins from './pages/admin/manage-admins';
 import CreateUser from './pages/admin/create-user';
 import AdminShippingManagement from './pages/admin/shipping-management';
+import RewardsManagement from './pages/admin/rewards-management';
+import GiftCardsManagement from './pages/admin/gift-cards-management';
 
 // Seller pages
 import SellerDashboardPage from './pages/seller/dashboard';
@@ -333,6 +335,24 @@ function App() {
                         path="/admin/create-user" 
                         role="admin" 
                         component={CreateUser} 
+                      />
+                    )}
+                  </Route>
+                  <Route path="/admin/rewards-management">
+                    {() => (
+                      <ProtectedRoute 
+                        path="/admin/rewards-management" 
+                        role="admin" 
+                        component={RewardsManagement} 
+                      />
+                    )}
+                  </Route>
+                  <Route path="/admin/gift-cards-management">
+                    {() => (
+                      <ProtectedRoute 
+                        path="/admin/gift-cards-management" 
+                        role="admin" 
+                        component={GiftCardsManagement} 
                       />
                     )}
                   </Route>
