@@ -25,7 +25,14 @@ import {
   shippingRules, ShippingRule, InsertShippingRule,
   sellerShippingSettings, SellerShippingSetting, InsertSellerShippingSetting,
   productShippingOverrides, ProductShippingOverride, InsertProductShippingOverride,
-  shippingTracking, ShippingTracking, InsertShippingTracking
+  shippingTracking, ShippingTracking, InsertShippingTracking,
+  // New imports
+  returns, Return, InsertReturn,
+  sellerAnalytics, SellerAnalytic, InsertSellerAnalytic,
+  sellerPayments, SellerPayment, InsertSellerPayment,
+  sellerSettings, SellerSetting, InsertSellerSetting,
+  supportTickets, SupportTicket, InsertSupportTicket,
+  supportMessages, SupportMessage, InsertSupportMessage
 } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
@@ -241,6 +248,34 @@ export interface IStorage {
   getShippingTracking(orderId: number): Promise<ShippingTracking | undefined>;
   createShippingTracking(tracking: InsertShippingTracking): Promise<ShippingTracking>;
   updateShippingTracking(id: number, tracking: Partial<ShippingTracking>): Promise<ShippingTracking>;
+  
+  // Returns Management operations
+  getReturnsForSeller(sellerId: number): Promise<Return[]>;
+  getReturnById(id: number): Promise<Return | undefined>;
+  createReturn(returnData: InsertReturn): Promise<Return>;
+  updateReturnStatus(id: number, returnStatus: string, refundStatus?: string): Promise<Return>;
+  
+  // Analytics Management operations
+  getSellerAnalytics(sellerId: number, startDate?: Date, endDate?: Date): Promise<SellerAnalytic[]>;
+  createOrUpdateSellerAnalytics(data: InsertSellerAnalytic): Promise<SellerAnalytic>;
+  
+  // Payments Management operations
+  getSellerPayments(sellerId: number): Promise<SellerPayment[]>;
+  getSellerPaymentById(id: number): Promise<SellerPayment | undefined>;
+  createSellerPayment(paymentData: InsertSellerPayment): Promise<SellerPayment>;
+  updateSellerPayment(id: number, paymentData: Partial<InsertSellerPayment>): Promise<SellerPayment>;
+  
+  // Settings Management operations
+  getSellerSettings(sellerId: number): Promise<SellerSetting | undefined>;
+  createOrUpdateSellerSettings(sellerId: number, settingsData: Partial<InsertSellerSetting>): Promise<SellerSetting>;
+  
+  // Support Management operations
+  getSellerSupportTickets(userId: number): Promise<SupportTicket[]>;
+  getSupportTicketById(id: number): Promise<SupportTicket | undefined>;
+  createSupportTicket(ticketData: InsertSupportTicket): Promise<SupportTicket>;
+  updateSupportTicket(id: number, ticketData: Partial<InsertSupportTicket>): Promise<SupportTicket>;
+  getSupportMessages(ticketId: number): Promise<SupportMessage[]>;
+  createSupportMessage(messageData: InsertSupportMessage): Promise<SupportMessage>;
   
   // Session store
   sessionStore: session.SessionStore;
@@ -3566,6 +3601,331 @@ export class DatabaseStorage implements IStorage {
 
   async updateOrderShippingTracking(id: number, tracking: Partial<ShippingTracking>): Promise<ShippingTracking> {
     return this.updateShippingTracking(id, tracking);
+  }
+
+  // Returns Management
+  async getReturnsForSeller(sellerId: number): Promise<Return[]> {
+    try {
+      return await db.select().from(returns).where(eq(returns.sellerId, sellerId))
+        .orderBy(desc(returns.returnDate));
+    } catch (error) {
+      console.error(`Error getting returns for seller ID ${sellerId}:`, error);
+      return [];
+    }
+  }
+
+  async getReturnById(id: number): Promise<Return | undefined> {
+    try {
+      const [returnData] = await db.select().from(returns).where(eq(returns.id, id));
+      return returnData;
+    } catch (error) {
+      console.error(`Error getting return with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async createReturn(returnData: InsertReturn): Promise<Return> {
+    try {
+      const [newReturn] = await db.insert(returns).values(returnData).returning();
+      return newReturn;
+    } catch (error) {
+      console.error("Error creating return:", error);
+      throw new Error("Failed to create return");
+    }
+  }
+
+  async updateReturnStatus(id: number, returnStatus: string, refundStatus?: string): Promise<Return> {
+    try {
+      const updateData: any = { returnStatus, updatedAt: new Date() };
+      if (refundStatus) {
+        updateData.refundStatus = refundStatus;
+        if (refundStatus === "processed") {
+          updateData.refundDate = new Date();
+        }
+      }
+
+      const [updatedReturn] = await db
+        .update(returns)
+        .set(updateData)
+        .where(eq(returns.id, id))
+        .returning();
+      
+      if (!updatedReturn) {
+        throw new Error(`Return with ID ${id} not found`);
+      }
+      
+      return updatedReturn;
+    } catch (error) {
+      console.error(`Error updating return status for ID ${id}:`, error);
+      throw new Error("Failed to update return status");
+    }
+  }
+
+  // Analytics Management
+  async getSellerAnalytics(sellerId: number, startDate?: Date, endDate?: Date): Promise<SellerAnalytic[]> {
+    try {
+      let query = db.select().from(sellerAnalytics).where(eq(sellerAnalytics.sellerId, sellerId));
+      
+      if (startDate) {
+        query = query.where(sql`${sellerAnalytics.date} >= ${startDate}`);
+      }
+      
+      if (endDate) {
+        query = query.where(sql`${sellerAnalytics.date} <= ${endDate}`);
+      }
+      
+      return await query.orderBy(sellerAnalytics.date);
+    } catch (error) {
+      console.error(`Error getting analytics for seller ID ${sellerId}:`, error);
+      return [];
+    }
+  }
+
+  async createOrUpdateSellerAnalytics(data: InsertSellerAnalytic): Promise<SellerAnalytic> {
+    try {
+      // Check if there's an existing record for this date
+      const [existing] = await db
+        .select()
+        .from(sellerAnalytics)
+        .where(eq(sellerAnalytics.sellerId, data.sellerId))
+        .where(sql`${sellerAnalytics.date} = ${data.date}`);
+      
+      if (existing) {
+        // Update existing record
+        const [updated] = await db
+          .update(sellerAnalytics)
+          .set({
+            ...data,
+            updatedAt: new Date()
+          })
+          .where(eq(sellerAnalytics.id, existing.id))
+          .returning();
+        
+        return updated;
+      } else {
+        // Create new record
+        const [newRecord] = await db
+          .insert(sellerAnalytics)
+          .values(data)
+          .returning();
+        
+        return newRecord;
+      }
+    } catch (error) {
+      console.error("Error creating/updating analytics:", error);
+      throw new Error("Failed to create/update analytics");
+    }
+  }
+
+  // Payments Management
+  async getSellerPayments(sellerId: number): Promise<SellerPayment[]> {
+    try {
+      return await db
+        .select()
+        .from(sellerPayments)
+        .where(eq(sellerPayments.sellerId, sellerId))
+        .orderBy(desc(sellerPayments.createdAt));
+    } catch (error) {
+      console.error(`Error getting payments for seller ID ${sellerId}:`, error);
+      return [];
+    }
+  }
+
+  async getSellerPaymentById(id: number): Promise<SellerPayment | undefined> {
+    try {
+      const [payment] = await db
+        .select()
+        .from(sellerPayments)
+        .where(eq(sellerPayments.id, id));
+      
+      return payment;
+    } catch (error) {
+      console.error(`Error getting payment with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async createSellerPayment(paymentData: InsertSellerPayment): Promise<SellerPayment> {
+    try {
+      const [newPayment] = await db
+        .insert(sellerPayments)
+        .values(paymentData)
+        .returning();
+      
+      return newPayment;
+    } catch (error) {
+      console.error("Error creating payment:", error);
+      throw new Error("Failed to create payment");
+    }
+  }
+
+  async updateSellerPayment(id: number, paymentData: Partial<InsertSellerPayment>): Promise<SellerPayment> {
+    try {
+      const [updatedPayment] = await db
+        .update(sellerPayments)
+        .set({
+          ...paymentData,
+          updatedAt: new Date()
+        })
+        .where(eq(sellerPayments.id, id))
+        .returning();
+      
+      if (!updatedPayment) {
+        throw new Error(`Payment with ID ${id} not found`);
+      }
+      
+      return updatedPayment;
+    } catch (error) {
+      console.error(`Error updating payment with ID ${id}:`, error);
+      throw new Error("Failed to update payment");
+    }
+  }
+
+  // Settings Management
+  async getSellerSettings(sellerId: number): Promise<SellerSetting | undefined> {
+    try {
+      const [settings] = await db
+        .select()
+        .from(sellerSettings)
+        .where(eq(sellerSettings.sellerId, sellerId));
+      
+      return settings;
+    } catch (error) {
+      console.error(`Error getting settings for seller ID ${sellerId}:`, error);
+      return undefined;
+    }
+  }
+
+  async createOrUpdateSellerSettings(sellerId: number, settingsData: Partial<InsertSellerSetting>): Promise<SellerSetting> {
+    try {
+      // Check if settings exist
+      const existingSettings = await this.getSellerSettings(sellerId);
+      
+      if (existingSettings) {
+        // Update existing settings
+        const [updatedSettings] = await db
+          .update(sellerSettings)
+          .set({
+            ...settingsData,
+            updatedAt: new Date()
+          })
+          .where(eq(sellerSettings.id, existingSettings.id))
+          .returning();
+        
+        return updatedSettings;
+      } else {
+        // Create new settings
+        const [newSettings] = await db
+          .insert(sellerSettings)
+          .values({
+            sellerId,
+            ...settingsData
+          })
+          .returning();
+        
+        return newSettings;
+      }
+    } catch (error) {
+      console.error(`Error creating/updating settings for seller ID ${sellerId}:`, error);
+      throw new Error("Failed to create/update settings");
+    }
+  }
+
+  // Support Management
+  async getSellerSupportTickets(userId: number): Promise<SupportTicket[]> {
+    try {
+      return await db
+        .select()
+        .from(supportTickets)
+        .where(eq(supportTickets.userId, userId))
+        .orderBy(desc(supportTickets.createdAt));
+    } catch (error) {
+      console.error(`Error getting support tickets for user ID ${userId}:`, error);
+      return [];
+    }
+  }
+
+  async getSupportTicketById(id: number): Promise<SupportTicket | undefined> {
+    try {
+      const [ticket] = await db
+        .select()
+        .from(supportTickets)
+        .where(eq(supportTickets.id, id));
+      
+      return ticket;
+    } catch (error) {
+      console.error(`Error getting support ticket with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async createSupportTicket(ticketData: InsertSupportTicket): Promise<SupportTicket> {
+    try {
+      const [newTicket] = await db
+        .insert(supportTickets)
+        .values(ticketData)
+        .returning();
+      
+      return newTicket;
+    } catch (error) {
+      console.error("Error creating support ticket:", error);
+      throw new Error("Failed to create support ticket");
+    }
+  }
+
+  async updateSupportTicket(id: number, ticketData: Partial<InsertSupportTicket>): Promise<SupportTicket> {
+    try {
+      const [updatedTicket] = await db
+        .update(supportTickets)
+        .set({
+          ...ticketData,
+          updatedAt: new Date()
+        })
+        .where(eq(supportTickets.id, id))
+        .returning();
+      
+      if (!updatedTicket) {
+        throw new Error(`Support ticket with ID ${id} not found`);
+      }
+      
+      return updatedTicket;
+    } catch (error) {
+      console.error(`Error updating support ticket with ID ${id}:`, error);
+      throw new Error("Failed to update support ticket");
+    }
+  }
+
+  async getSupportMessages(ticketId: number): Promise<SupportMessage[]> {
+    try {
+      return await db
+        .select()
+        .from(supportMessages)
+        .where(eq(supportMessages.ticketId, ticketId))
+        .orderBy(supportMessages.createdAt);
+    } catch (error) {
+      console.error(`Error getting support messages for ticket ID ${ticketId}:`, error);
+      return [];
+    }
+  }
+
+  async createSupportMessage(messageData: InsertSupportMessage): Promise<SupportMessage> {
+    try {
+      const [newMessage] = await db
+        .insert(supportMessages)
+        .values(messageData)
+        .returning();
+      
+      // Update the ticket's updatedAt time
+      await db
+        .update(supportTickets)
+        .set({ updatedAt: new Date() })
+        .where(eq(supportTickets.id, messageData.ticketId));
+      
+      return newMessage;
+    } catch (error) {
+      console.error("Error creating support message:", error);
+      throw new Error("Failed to create support message");
+    }
   }
 }
 

@@ -1093,3 +1093,203 @@ export type InsertProductShippingOverride = z.infer<typeof insertProductShipping
 
 export type ShippingTracking = typeof shippingTracking.$inferSelect;
 export type InsertShippingTracking = z.infer<typeof insertShippingTrackingSchema>;
+
+// ====================== RETURNS SCHEMA ======================
+export const returns = pgTable("returns", {
+  id: serial("id").primaryKey(),
+  orderId: integer("order_id").notNull().references(() => orders.id),
+  productId: integer("product_id").notNull().references(() => products.id),
+  sellerId: integer("seller_id").notNull().references(() => users.id),
+  returnReason: text("return_reason").notNull(),
+  returnStatus: text("return_status").notNull().default("requested"), // requested, approved, rejected, completed
+  returnDate: timestamp("return_date").notNull().defaultNow(),
+  comments: text("comments"),
+  refundAmount: decimal("refund_amount", { precision: 10, scale: 2 }),
+  refundStatus: text("refund_status").default("pending"), // pending, processed, rejected
+  refundDate: timestamp("refund_date"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertReturnSchema = createInsertSchema(returns).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const returnsRelations = relations(returns, ({ one }) => ({
+  order: one(orders, {
+    fields: [returns.orderId],
+    references: [orders.id],
+  }),
+  product: one(products, {
+    fields: [returns.productId],
+    references: [products.id],
+  }),
+  seller: one(users, {
+    fields: [returns.sellerId],
+    references: [users.id],
+  }),
+}));
+
+// ====================== ANALYTICS SCHEMA ======================
+export const sellerAnalytics = pgTable("seller_analytics", {
+  id: serial("id").primaryKey(),
+  sellerId: integer("seller_id").notNull().references(() => users.id),
+  date: timestamp("date").notNull(),
+  totalOrders: integer("total_orders").notNull().default(0),
+  totalRevenue: decimal("total_revenue", { precision: 10, scale: 2 }).notNull().default("0"),
+  averageOrderValue: decimal("average_order_value", { precision: 10, scale: 2 }),
+  totalVisitors: integer("total_visitors").default(0),
+  conversionRate: decimal("conversion_rate", { precision: 5, scale: 2 }),
+  topProducts: text("top_products"), // JSON array of top product IDs
+  categoryBreakdown: text("category_breakdown"), // JSON object of category sales
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertSellerAnalyticsSchema = createInsertSchema(sellerAnalytics).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const sellerAnalyticsRelations = relations(sellerAnalytics, ({ one }) => ({
+  seller: one(users, {
+    fields: [sellerAnalytics.sellerId],
+    references: [users.id],
+  }),
+}));
+
+// ====================== PAYMENTS SCHEMA ======================
+export const sellerPayments = pgTable("seller_payments", {
+  id: serial("id").primaryKey(),
+  sellerId: integer("seller_id").notNull().references(() => users.id),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  status: text("status").notNull().default("pending"), // pending, processing, completed, failed
+  paymentDate: timestamp("payment_date"),
+  referenceId: text("reference_id"), // Bank or payment processor reference
+  paymentMethod: text("payment_method"), // bank_transfer, upi, etc.
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertSellerPaymentSchema = createInsertSchema(sellerPayments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const sellerPaymentsRelations = relations(sellerPayments, ({ one }) => ({
+  seller: one(users, {
+    fields: [sellerPayments.sellerId],
+    references: [users.id],
+  }),
+}));
+
+// ====================== SETTINGS SCHEMA ======================
+export const sellerSettings = pgTable("seller_settings", {
+  id: serial("id").primaryKey(),
+  sellerId: integer("seller_id").notNull().references(() => users.id).unique(),
+  notificationPreferences: text("notification_preferences"), // JSON object of notification settings
+  taxInformation: text("tax_information"), // JSON object with tax details
+  returnPolicy: text("return_policy"), // Store return policy text
+  autoAcceptOrders: boolean("auto_accept_orders").default(false),
+  holidayMode: boolean("holiday_mode").default(false),
+  holidayModeEndDate: timestamp("holiday_mode_end_date"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertSellerSettingsSchema = createInsertSchema(sellerSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const sellerSettingsRelations = relations(sellerSettings, ({ one }) => ({
+  seller: one(users, {
+    fields: [sellerSettings.sellerId],
+    references: [users.id],
+  }),
+}));
+
+// ====================== HELP AND SUPPORT SCHEMA ======================
+export const supportTickets = pgTable("support_tickets", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  subject: text("subject").notNull(),
+  description: text("description").notNull(),
+  status: text("status").notNull().default("open"), // open, in_progress, resolved, closed
+  priority: text("priority").notNull().default("medium"), // low, medium, high, urgent
+  assignedTo: integer("assigned_to").references(() => users.id),
+  category: text("category").notNull(), // orders, payments, shipping, technical, etc.
+  attachments: text("attachments"), // JSON array of attachment URLs
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  resolvedDate: timestamp("resolved_date"),
+});
+
+export const insertSupportTicketSchema = createInsertSchema(supportTickets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  resolvedDate: true,
+});
+
+export const supportMessages = pgTable("support_messages", {
+  id: serial("id").primaryKey(),
+  ticketId: integer("ticket_id").notNull().references(() => supportTickets.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  message: text("message").notNull(),
+  attachments: text("attachments"), // JSON array of attachment URLs
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertSupportMessageSchema = createInsertSchema(supportMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const supportTicketsRelations = relations(supportTickets, ({ one, many }) => ({
+  user: one(users, {
+    fields: [supportTickets.userId],
+    references: [users.id],
+  }),
+  assignedToUser: one(users, {
+    fields: [supportTickets.assignedTo],
+    references: [users.id],
+  }),
+  messages: many(supportMessages),
+}));
+
+export const supportMessagesRelations = relations(supportMessages, ({ one }) => ({
+  ticket: one(supportTickets, {
+    fields: [supportMessages.ticketId],
+    references: [supportTickets.id],
+  }),
+  user: one(users, {
+    fields: [supportMessages.userId],
+    references: [users.id],
+  }),
+}));
+
+// Type exports for new schemas
+export type Return = typeof returns.$inferSelect;
+export type InsertReturn = z.infer<typeof insertReturnSchema>;
+
+export type SellerAnalytic = typeof sellerAnalytics.$inferSelect;
+export type InsertSellerAnalytic = z.infer<typeof insertSellerAnalyticsSchema>;
+
+export type SellerPayment = typeof sellerPayments.$inferSelect;
+export type InsertSellerPayment = z.infer<typeof insertSellerPaymentSchema>;
+
+export type SellerSetting = typeof sellerSettings.$inferSelect;
+export type InsertSellerSetting = z.infer<typeof insertSellerSettingsSchema>;
+
+export type SupportTicket = typeof supportTickets.$inferSelect;
+export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
+
+export type SupportMessage = typeof supportMessages.$inferSelect;
+export type InsertSupportMessage = z.infer<typeof insertSupportMessageSchema>;
