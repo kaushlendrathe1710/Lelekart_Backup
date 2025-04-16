@@ -3493,6 +3493,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Shipping API routes
+  // Shipping Methods
+  app.get("/api/shipping/methods", getShippingMethods);
+  app.get("/api/shipping/methods/:id", getShippingMethod);
+  app.post("/api/shipping/methods", createShippingMethod);
+  app.put("/api/shipping/methods/:id", updateShippingMethod);
+  app.delete("/api/shipping/methods/:id", deleteShippingMethod);
+  
+  // Shipping Zones
+  app.get("/api/shipping/zones", getShippingZones);
+  app.get("/api/shipping/zones/:id", getShippingZone);
+  app.post("/api/shipping/zones", createShippingZone);
+  app.put("/api/shipping/zones/:id", updateShippingZone);
+  app.delete("/api/shipping/zones/:id", deleteShippingZone);
+  
+  // Shipping Rules
+  app.get("/api/shipping/rules", getShippingRules);
+  app.get("/api/shipping/rules/:id", getShippingRule);
+  app.post("/api/shipping/rules", createShippingRule);
+  app.put("/api/shipping/rules/:id", updateShippingRule);
+  app.delete("/api/shipping/rules/:id", deleteShippingRule);
+  
+  // Seller Shipping Settings
+  app.get("/api/seller/shipping-settings", getSellerShippingSettings);
+  app.post("/api/seller/shipping-settings", createOrUpdateSellerShippingSettings);
+  
+  // Product Shipping Overrides
+  app.get("/api/seller/product-shipping-overrides", getProductShippingOverrides);
+  app.get("/api/seller/product-shipping-override/:productId", getProductShippingOverride);
+  app.post("/api/seller/product-shipping-override", createOrUpdateProductShippingOverride);
+  app.delete("/api/seller/product-shipping-override/:productId", deleteProductShippingOverride);
+  
+  // Order Shipping Tracking
+  app.get("/api/orders/:orderId/shipping-tracking", getOrderShippingTracking);
+  app.post("/api/orders/:orderId/shipping-tracking", createOrUpdateOrderShippingTracking);
+
   const httpServer = createServer(app);
   return httpServer;
 }
