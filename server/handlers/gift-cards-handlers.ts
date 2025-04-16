@@ -1,511 +1,231 @@
-import { Request, Response } from 'express';
-import { storage } from '../storage';
-import { z } from 'zod';
-import { insertGiftCardSchema, insertGiftCardTemplateSchema } from '@shared/schema';
-import crypto from 'crypto';
+import { Request, Response } from "express";
+import { storage } from "../storage";
+import { z } from "zod";
+import { randomBytes } from "crypto";
 
-// Admin: Get all gift cards with optional filtering
-export async function getAllGiftCards(req: Request, res: Response) {
+// Validate gift card request
+const giftCardSchema = z.object({
+  initialValue: z.number().min(100),
+  senderUserId: z.number().optional(),
+  recipientEmail: z.string().email().optional(),
+  recipientName: z.string().optional(),
+  expiryDate: z.date().optional(),
+  templateId: z.number().optional(),
+  message: z.string().optional(),
+});
+
+// Generate a random gift card code
+function generateGiftCardCode(): string {
+  // Format: XXXX-XXXX-XXXX-XXXX where X is alphanumeric
+  const buffer = randomBytes(8);
+  const hex = buffer.toString('hex').toUpperCase();
+  
+  // Format into groups of 4 chars
+  return `${hex.slice(0, 4)}-${hex.slice(4, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}`;
+}
+
+// Get gift cards for the logged-in user
+export async function getUserGiftCards(req: Request, res: Response) {
   try {
-    if (!req.isAuthenticated() || req.user!.role !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden. Requires admin privileges.' });
-    }
-
-    // Parse query parameters for filtering
-    const filters: Record<string, any> = {};
-    if (req.query.isActive !== undefined) {
-      filters.isActive = req.query.isActive === 'true';
-    }
-    if (req.query.code) {
-      filters.code = req.query.code as string;
-    }
-    if (req.query.recipientEmail) {
-      filters.recipientEmail = req.query.recipientEmail as string;
-    }
-
-    // Get pagination parameters
-    const page = parseInt(req.query.page as string || '1', 10);
-    const limit = parseInt(req.query.limit as string || '10', 10);
-    const offset = (page - 1) * limit;
-
-    const giftCards = await storage.getAllGiftCards(filters, offset, limit);
-    const totalCount = await storage.getAllGiftCardsCount(filters);
-
-    return res.json({
-      giftCards,
-      pagination: {
-        page,
-        limit,
-        totalCount,
-        totalPages: Math.ceil(totalCount / limit)
-      }
-    });
+    const userId = req.user!.id;
+    const giftCards = await storage.getUserGiftCards(userId);
+    
+    return res.json(giftCards);
   } catch (error) {
-    console.error('Error getting gift cards:', error);
-    return res.status(500).json({ message: 'Server error', error: (error as Error).message });
+    console.error('Error fetching user gift cards:', error);
+    return res.status(500).json({ error: 'Failed to fetch gift cards' });
   }
 }
 
-// Admin: Create a new gift card
+// Create a new gift card
 export async function createGiftCard(req: Request, res: Response) {
   try {
-    if (!req.isAuthenticated() || req.user!.role !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden. Requires admin privileges.' });
-    }
-
-    // Extend the gift card schema to handle the code generation
-    const createGiftCardSchema = insertGiftCardSchema.extend({
-      code: z.string().optional(), // If not provided, we'll generate one
-      initialValue: z.number().int().positive(),
-      expiryMonths: z.number().int().min(1).optional(), // Optional number of months until expiry
-    }).omit({ createdAt: true, lastUsed: true });
-
-    const result = createGiftCardSchema.safeParse(req.body);
-    if (!result.success) {
-      return res.status(400).json({ message: 'Invalid gift card data', errors: result.error.format() });
-    }
-
-    let { code, expiryMonths, ...giftCardData } = result.data;
+    // Validate request
+    const validatedData = await giftCardSchema.parseAsync(req.body);
     
-    // Generate a unique code if not provided
-    if (!code) {
-      code = await generateUniqueGiftCardCode();
-    }
-
-    // Calculate expiry date if months are provided
-    let expiryDate = undefined;
-    if (expiryMonths) {
-      expiryDate = new Date();
-      expiryDate.setMonth(expiryDate.getMonth() + expiryMonths);
-    }
-
-    // Create the gift card
-    const newGiftCard = await storage.createGiftCard({
-      ...giftCardData,
+    // Generate a unique code
+    const code = generateGiftCardCode();
+    
+    // Calculate expiry date (1 year by default if not provided)
+    const expiryDate = validatedData.expiryDate || 
+      new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+    
+    // Create gift card
+    const giftCard = await storage.createGiftCard({
       code,
-      currentBalance: giftCardData.initialValue, // Initialize current balance to initial value
+      initialValue: validatedData.initialValue,
+      currentBalance: validatedData.initialValue,
+      senderUserId: validatedData.senderUserId || (req.user?.id || null),
+      recipientEmail: validatedData.recipientEmail || null,
+      recipientName: validatedData.recipientName || null,
       expiryDate,
-      createdAt: new Date()
+      status: 'active',
+      templateId: validatedData.templateId || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
-
-    return res.status(201).json(newGiftCard);
+    
+    // If the gift card is being purchased by a user, associate it with their account
+    if (req.user && !validatedData.recipientEmail) {
+      // Update the gift card to associate it with the user
+      await storage.updateGiftCard(giftCard.id, {
+        userId: req.user.id
+      });
+    }
+    
+    // TODO: If recipientEmail is provided, send email with gift card details
+    
+    return res.status(201).json(giftCard);
   } catch (error) {
     console.error('Error creating gift card:', error);
-    return res.status(500).json({ message: 'Server error', error: (error as Error).message });
+    return res.status(500).json({ error: 'Failed to create gift card' });
   }
 }
 
-// Generate a unique gift card code
-async function generateUniqueGiftCardCode(): Promise<string> {
-  // Generate a random alphanumeric code
-  const generateCode = () => {
-    const randomBytes = crypto.randomBytes(6);
-    return randomBytes.toString('hex').toUpperCase();
-  };
-
-  // Format the code with hyphens for readability
-  const formatCode = (code: string) => {
-    const parts = [];
-    for (let i = 0; i < code.length; i += 4) {
-      parts.push(code.substring(i, i + 4));
-    }
-    return parts.join('-');
-  };
-
-  // Try to generate a unique code, retrying if there's a collision
-  let isUnique = false;
-  let code = '';
-  
-  while (!isUnique) {
-    code = formatCode(generateCode());
-    const existing = await storage.getGiftCardByCode(code);
-    isUnique = !existing;
-  }
-  
-  return code;
-}
-
-// Admin: Update a gift card
-export async function updateGiftCard(req: Request, res: Response) {
+// Check gift card balance
+export async function checkGiftCardBalance(req: Request, res: Response) {
   try {
-    if (!req.isAuthenticated() || req.user!.role !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden. Requires admin privileges.' });
-    }
-
-    const giftCardId = parseInt(req.params.id, 10);
-    if (isNaN(giftCardId)) {
-      return res.status(400).json({ message: 'Invalid gift card ID' });
-    }
-
-    // Only allow updating certain fields
-    const updateSchema = z.object({
-      isActive: z.boolean().optional(),
-      recipientEmail: z.string().email().optional().nullable(),
-      recipientName: z.string().optional().nullable(),
-      message: z.string().optional().nullable(),
-      designTemplate: z.string().optional(),
-      expiryDate: z.string().optional().nullable(), // ISO date string
-    });
-
-    const result = updateSchema.safeParse(req.body);
-    if (!result.success) {
-      return res.status(400).json({ message: 'Invalid update data', errors: result.error.format() });
-    }
-
-    const updateData = result.data;
+    const { code } = req.body;
     
-    // Convert ISO date string to Date object if provided
-    if (updateData.expiryDate) {
-      updateData.expiryDate = new Date(updateData.expiryDate);
+    if (!code) {
+      return res.status(400).json({ error: 'Gift card code is required' });
     }
-    
-    const updatedGiftCard = await storage.updateGiftCard(giftCardId, updateData);
-    if (!updatedGiftCard) {
-      return res.status(404).json({ message: 'Gift card not found' });
-    }
-
-    return res.json(updatedGiftCard);
-  } catch (error) {
-    console.error('Error updating gift card:', error);
-    return res.status(500).json({ message: 'Server error', error: (error as Error).message });
-  }
-}
-
-// Admin: Delete a gift card
-export async function deleteGiftCard(req: Request, res: Response) {
-  try {
-    if (!req.isAuthenticated() || req.user!.role !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden. Requires admin privileges.' });
-    }
-
-    const giftCardId = parseInt(req.params.id, 10);
-    if (isNaN(giftCardId)) {
-      return res.status(400).json({ message: 'Invalid gift card ID' });
-    }
-
-    const success = await storage.deleteGiftCard(giftCardId);
-    if (!success) {
-      return res.status(404).json({ message: 'Gift card not found' });
-    }
-
-    return res.json({ message: 'Gift card deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting gift card:', error);
-    return res.status(500).json({ message: 'Server error', error: (error as Error).message });
-  }
-}
-
-// Get gift card transactions
-export async function getGiftCardTransactions(req: Request, res: Response) {
-  try {
-    if (!req.isAuthenticated() || req.user!.role !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden. Requires admin privileges.' });
-    }
-
-    const giftCardId = parseInt(req.params.id, 10);
-    if (isNaN(giftCardId)) {
-      return res.status(400).json({ message: 'Invalid gift card ID' });
-    }
-
-    // Get pagination parameters
-    const page = parseInt(req.query.page as string || '1', 10);
-    const limit = parseInt(req.query.limit as string || '10', 10);
-    const offset = (page - 1) * limit;
-
-    const transactions = await storage.getGiftCardTransactions(giftCardId, offset, limit);
-    const totalCount = await storage.getGiftCardTransactionsCount(giftCardId);
-
-    return res.json({
-      transactions,
-      pagination: {
-        page,
-        limit,
-        totalCount,
-        totalPages: Math.ceil(totalCount / limit)
-      }
-    });
-  } catch (error) {
-    console.error('Error getting gift card transactions:', error);
-    return res.status(500).json({ message: 'Server error', error: (error as Error).message });
-  }
-}
-
-// User: Verify and get gift card balance
-export async function verifyGiftCard(req: Request, res: Response) {
-  try {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
-
-    const schema = z.object({
-      code: z.string()
-    });
-
-    const result = schema.safeParse(req.body);
-    if (!result.success) {
-      return res.status(400).json({ message: 'Invalid input data', errors: result.error.format() });
-    }
-
-    const { code } = result.data;
     
     const giftCard = await storage.getGiftCardByCode(code);
+    
     if (!giftCard) {
-      return res.status(404).json({ message: 'Gift card not found' });
+      return res.status(404).json({ error: 'Gift card not found' });
     }
     
-    // Check if the gift card is active
-    if (!giftCard.isActive) {
-      return res.status(400).json({ message: 'Gift card is inactive' });
-    }
-    
-    // Check if the gift card has expired
-    if (giftCard.expiryDate && new Date(giftCard.expiryDate) < new Date()) {
-      return res.status(400).json({ message: 'Gift card has expired' });
-    }
-    
-    // Check if the gift card has a balance
-    if (giftCard.currentBalance <= 0) {
-      return res.status(400).json({ message: 'Gift card has no remaining balance' });
-    }
-    
+    // Don't return all the gift card details, just the necessary info
     return res.json({
-      isValid: true,
+      code: giftCard.code,
+      initialValue: giftCard.initialValue,
       currentBalance: giftCard.currentBalance,
       expiryDate: giftCard.expiryDate,
-      initialValue: giftCard.initialValue
+      status: giftCard.status
     });
   } catch (error) {
-    console.error('Error verifying gift card:', error);
-    return res.status(500).json({ message: 'Server error', error: (error as Error).message });
+    console.error('Error checking gift card balance:', error);
+    return res.status(500).json({ error: 'Failed to check gift card balance' });
   }
 }
 
-// Apply gift card to an order (partial or full payment)
-export async function applyGiftCard(req: Request, res: Response) {
+// Apply gift card to an order
+export async function applyGiftCardToOrder(req: Request, res: Response) {
   try {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
-
-    const schema = z.object({
-      code: z.string(),
-      orderId: z.number().int().positive(),
-      amount: z.number().int().positive()
-    });
-
-    const result = schema.safeParse(req.body);
-    if (!result.success) {
-      return res.status(400).json({ message: 'Invalid input data', errors: result.error.format() });
-    }
-
-    const { code, orderId, amount } = result.data;
-    const userId = req.user!.id;
+    const { code, orderId, amount } = req.body;
     
-    // Get the gift card
-    const giftCard = await storage.getGiftCardByCode(code);
-    if (!giftCard) {
-      return res.status(404).json({ message: 'Gift card not found' });
-    }
-    
-    // Validate the gift card
-    if (!giftCard.isActive) {
-      return res.status(400).json({ message: 'Gift card is inactive' });
-    }
-    
-    if (giftCard.expiryDate && new Date(giftCard.expiryDate) < new Date()) {
-      return res.status(400).json({ message: 'Gift card has expired' });
-    }
-    
-    if (giftCard.currentBalance <= 0) {
-      return res.status(400).json({ message: 'Gift card has no remaining balance' });
-    }
-    
-    if (amount > giftCard.currentBalance) {
+    if (!code || !orderId || !amount) {
       return res.status(400).json({ 
-        message: 'Requested amount exceeds gift card balance',
+        error: 'Gift card code, order ID, and amount are required' 
+      });
+    }
+    
+    const giftCard = await storage.getGiftCardByCode(code);
+    
+    if (!giftCard) {
+      return res.status(404).json({ error: 'Gift card not found' });
+    }
+    
+    // Check if gift card is valid
+    if (giftCard.status !== 'active') {
+      return res.status(400).json({ 
+        error: `Gift card is ${giftCard.status}` 
+      });
+    }
+    
+    // Check if gift card has expired
+    if (giftCard.expiryDate && new Date(giftCard.expiryDate) < new Date()) {
+      await storage.updateGiftCard(giftCard.id, { status: 'expired' });
+      return res.status(400).json({ error: 'Gift card has expired' });
+    }
+    
+    // Check if gift card has sufficient balance
+    if (giftCard.currentBalance < amount) {
+      return res.status(400).json({ 
+        error: 'Insufficient balance on gift card',
         availableBalance: giftCard.currentBalance
       });
     }
     
-    // Create a transaction record
-    const transaction = await storage.createGiftCardTransaction({
-      giftCardId: giftCard.id,
-      userId,
-      orderId,
-      amount: -amount, // Negative amount for redemption
-      type: 'redemption',
-      transactionDate: new Date(),
-      note: `Applied to order #${orderId}`
+    // Update gift card balance
+    const newBalance = giftCard.currentBalance - amount;
+    const updatedCard = await storage.updateGiftCard(giftCard.id, {
+      currentBalance: newBalance,
+      status: newBalance === 0 ? 'used' : 'active',
+      updatedAt: new Date()
     });
     
-    // Update the gift card balance
-    const newBalance = giftCard.currentBalance - amount;
-    const updatedGiftCard = await storage.updateGiftCardBalance(giftCard.id, newBalance);
+    // Create transaction record
+    const transaction = await storage.createGiftCardTransaction({
+      giftCardId: giftCard.id,
+      orderId,
+      amount,
+      transactionDate: new Date(),
+      description: `Applied to order #${orderId}`
+    });
     
-    return res.status(200).json({
+    return res.json({
       message: 'Gift card applied successfully',
       amountApplied: amount,
-      remainingBalance: newBalance,
+      remainingBalance: updatedCard.currentBalance,
       transaction
     });
   } catch (error) {
-    console.error('Error applying gift card:', error);
-    return res.status(500).json({ message: 'Server error', error: (error as Error).message });
+    console.error('Error applying gift card to order:', error);
+    return res.status(500).json({ error: 'Failed to apply gift card' });
   }
 }
 
-// User: Purchase a gift card
-export async function purchaseGiftCard(req: Request, res: Response) {
+// Admin handlers
+export async function getAllGiftCards(req: Request, res: Response) {
   try {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
-
-    const schema = z.object({
-      initialValue: z.number().int().positive(),
-      recipientEmail: z.string().email(),
-      recipientName: z.string().optional(),
-      message: z.string().optional(),
-      designTemplate: z.string().optional(),
-      expiryMonths: z.number().int().min(1).optional(), // Optional number of months until expiry
-    });
-
-    const result = schema.safeParse(req.body);
-    if (!result.success) {
-      return res.status(400).json({ message: 'Invalid input data', errors: result.error.format() });
-    }
-
-    const { initialValue, recipientEmail, recipientName, message, designTemplate, expiryMonths } = result.data;
-    const userId = req.user!.id;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
     
-    // Generate a unique code
-    const code = await generateUniqueGiftCardCode();
+    const result = await storage.getAllGiftCards(page, limit);
     
-    // Calculate expiry date if months are provided
-    let expiryDate = undefined;
-    if (expiryMonths) {
-      expiryDate = new Date();
-      expiryDate.setMonth(expiryDate.getMonth() + expiryMonths);
-    }
-    
-    // Create the gift card
-    const newGiftCard = await storage.createGiftCard({
-      code,
-      initialValue,
-      currentBalance: initialValue,
-      purchasedBy: userId,
-      isActive: true,
-      expiryDate,
-      createdAt: new Date(),
-      recipientEmail,
-      recipientName: recipientName || null,
-      message: message || null,
-      designTemplate: designTemplate || 'default'
-    });
-    
-    // Create a purchase transaction
-    await storage.createGiftCardTransaction({
-      giftCardId: newGiftCard.id,
-      userId,
-      amount: initialValue,
-      type: 'purchase',
-      transactionDate: new Date(),
-      note: `Gift card purchased for ${recipientEmail}`
-    });
-    
-    // TODO: Send an email to the recipient with the gift card details
-    
-    return res.status(201).json({
-      message: 'Gift card purchased successfully',
-      giftCard: newGiftCard
+    return res.json({
+      giftCards: result.giftCards,
+      total: result.total,
+      page,
+      limit,
+      totalPages: Math.ceil(result.total / limit)
     });
   } catch (error) {
-    console.error('Error purchasing gift card:', error);
-    return res.status(500).json({ message: 'Server error', error: (error as Error).message });
+    console.error('Error fetching all gift cards:', error);
+    return res.status(500).json({ error: 'Failed to fetch gift cards' });
   }
 }
 
-// Admin: Manage gift card templates
-export async function getAllGiftCardTemplates(req: Request, res: Response) {
+export async function getGiftCard(req: Request, res: Response) {
   try {
-    if (!req.isAuthenticated() || req.user!.role !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden. Requires admin privileges.' });
+    const id = parseInt(req.params.id);
+    const giftCard = await storage.getGiftCard(id);
+    
+    if (!giftCard) {
+      return res.status(404).json({ error: 'Gift card not found' });
     }
-
-    const templates = await storage.getAllGiftCardTemplates();
-    return res.json(templates);
+    
+    return res.json(giftCard);
   } catch (error) {
-    console.error('Error getting gift card templates:', error);
-    return res.status(500).json({ message: 'Server error', error: (error as Error).message });
+    console.error('Error fetching gift card:', error);
+    return res.status(500).json({ error: 'Failed to fetch gift card' });
   }
 }
 
-export async function createGiftCardTemplate(req: Request, res: Response) {
+export async function updateGiftCard(req: Request, res: Response) {
   try {
-    if (!req.isAuthenticated() || req.user!.role !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden. Requires admin privileges.' });
-    }
-
-    const templateData = insertGiftCardTemplateSchema.safeParse(req.body);
-    if (!templateData.success) {
-      return res.status(400).json({ message: 'Invalid template data', errors: templateData.error.format() });
-    }
-
-    const newTemplate = await storage.createGiftCardTemplate(templateData.data);
-    return res.status(201).json(newTemplate);
+    const id = parseInt(req.params.id);
+    const giftCard = await storage.updateGiftCard(id, {
+      ...req.body,
+      updatedAt: new Date()
+    });
+    
+    return res.json(giftCard);
   } catch (error) {
-    console.error('Error creating gift card template:', error);
-    return res.status(500).json({ message: 'Server error', error: (error as Error).message });
-  }
-}
-
-export async function updateGiftCardTemplate(req: Request, res: Response) {
-  try {
-    if (!req.isAuthenticated() || req.user!.role !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden. Requires admin privileges.' });
-    }
-
-    const templateId = parseInt(req.params.id, 10);
-    if (isNaN(templateId)) {
-      return res.status(400).json({ message: 'Invalid template ID' });
-    }
-
-    const templateData = insertGiftCardTemplateSchema.partial().safeParse(req.body);
-    if (!templateData.success) {
-      return res.status(400).json({ message: 'Invalid template data', errors: templateData.error.format() });
-    }
-
-    const updatedTemplate = await storage.updateGiftCardTemplate(templateId, templateData.data);
-    if (!updatedTemplate) {
-      return res.status(404).json({ message: 'Gift card template not found' });
-    }
-
-    return res.json(updatedTemplate);
-  } catch (error) {
-    console.error('Error updating gift card template:', error);
-    return res.status(500).json({ message: 'Server error', error: (error as Error).message });
-  }
-}
-
-export async function deleteGiftCardTemplate(req: Request, res: Response) {
-  try {
-    if (!req.isAuthenticated() || req.user!.role !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden. Requires admin privileges.' });
-    }
-
-    const templateId = parseInt(req.params.id, 10);
-    if (isNaN(templateId)) {
-      return res.status(400).json({ message: 'Invalid template ID' });
-    }
-
-    const success = await storage.deleteGiftCardTemplate(templateId);
-    if (!success) {
-      return res.status(404).json({ message: 'Gift card template not found' });
-    }
-
-    return res.json({ message: 'Gift card template deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting gift card template:', error);
-    return res.status(500).json({ message: 'Server error', error: (error as Error).message });
+    console.error('Error updating gift card:', error);
+    return res.status(500).json({ error: 'Failed to update gift card' });
   }
 }

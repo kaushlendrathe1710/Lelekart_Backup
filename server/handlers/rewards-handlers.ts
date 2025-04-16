@@ -1,290 +1,27 @@
-import { Request, Response } from 'express';
-import { storage } from '../storage';
-import { z } from 'zod';
-import { insertRewardRuleSchema, insertRewardTransactionSchema } from '@shared/schema';
-import crypto from 'crypto';
+import { Request, Response } from "express";
+import { storage } from "../storage";
+import { z } from "zod";
 
-// Get user rewards summary
-export async function getUserRewardsSummary(req: Request, res: Response) {
+// Validate user reward points transaction request
+const rewardTransactionSchema = z.object({
+  userId: z.number(),
+  points: z.number(),
+  type: z.string(),
+  description: z.string().optional(),
+  orderId: z.number().optional(),
+  productId: z.number().optional(),
+});
+
+// Process point award for a purchase
+export async function processOrderReward(req: Request, res: Response) {
   try {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
-
-    const userId = parseInt(req.params.userId || req.user?.id.toString() || '0', 10);
+    // Validate request
+    const result = await z.object({
+      orderId: z.number(),
+      orderTotal: z.number(),
+    }).parseAsync(req.body);
     
-    // Check if user is trying to access another user's rewards and is not an admin
-    if (userId !== req.user!.id && req.user!.role !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden' });
-    }
-
-    const rewardsSummary = await storage.getUserRewardsSummary(userId);
-    if (!rewardsSummary) {
-      // If user has no reward record yet, initialize one with zero points
-      const newRewardsSummary = await storage.initializeUserRewards(userId);
-      return res.json(newRewardsSummary);
-    }
-
-    return res.json(rewardsSummary);
-  } catch (error) {
-    console.error('Error getting user rewards summary:', error);
-    return res.status(500).json({ message: 'Server error', error: (error as Error).message });
-  }
-}
-
-// Get user reward transactions history
-export async function getUserRewardTransactions(req: Request, res: Response) {
-  try {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
-
-    const userId = parseInt(req.params.userId || req.user?.id.toString() || '0', 10);
-    
-    // Check if user is trying to access another user's transactions and is not an admin
-    if (userId !== req.user!.id && req.user!.role !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden' });
-    }
-
-    // Get pagination parameters
-    const page = parseInt(req.query.page as string || '1', 10);
-    const limit = parseInt(req.query.limit as string || '10', 10);
-    const offset = (page - 1) * limit;
-
-    const transactions = await storage.getUserRewardTransactions(userId, offset, limit);
-    const totalCount = await storage.getUserRewardTransactionsCount(userId);
-    
-    return res.json({
-      transactions,
-      pagination: {
-        page,
-        limit,
-        totalCount,
-        totalPages: Math.ceil(totalCount / limit)
-      }
-    });
-  } catch (error) {
-    console.error('Error getting user reward transactions:', error);
-    return res.status(500).json({ message: 'Server error', error: (error as Error).message });
-  }
-}
-
-// Add reward points to a user
-export async function addRewardPoints(req: Request, res: Response) {
-  try {
-    if (!req.isAuthenticated() || req.user!.role !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden. Requires admin privileges.' });
-    }
-
-    const schema = z.object({
-      userId: z.number().int().positive(),
-      points: z.number().int().positive(),
-      type: z.string(),
-      description: z.string().optional(),
-      orderId: z.number().int().positive().optional(),
-      productId: z.number().int().positive().optional(),
-      expiryDate: z.string().optional(), // ISO date string
-    });
-
-    const result = schema.safeParse(req.body);
-    if (!result.success) {
-      return res.status(400).json({ message: 'Invalid input data', errors: result.error.format() });
-    }
-
-    const { userId, points, type, description, orderId, productId, expiryDate } = result.data;
-
-    // Create transaction record
-    const transaction = await storage.createRewardTransaction({
-      userId,
-      points,
-      type,
-      description: description || '',
-      orderId,
-      productId,
-      expiryDate: expiryDate ? new Date(expiryDate) : undefined,
-      transactionDate: new Date(),
-      status: 'active'
-    });
-
-    // Update user's rewards balance
-    const updatedRewards = await storage.updateUserRewardPoints(userId, points);
-
-    return res.status(201).json({ transaction, updatedRewards });
-  } catch (error) {
-    console.error('Error adding reward points:', error);
-    return res.status(500).json({ message: 'Server error', error: (error as Error).message });
-  }
-}
-
-// Redeem reward points
-export async function redeemRewardPoints(req: Request, res: Response) {
-  try {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
-
-    const schema = z.object({
-      points: z.number().int().positive(),
-      orderId: z.number().int().positive().optional(),
-      description: z.string().optional(),
-    });
-
-    const result = schema.safeParse(req.body);
-    if (!result.success) {
-      return res.status(400).json({ message: 'Invalid input data', errors: result.error.format() });
-    }
-
-    const { points, orderId, description } = result.data;
-    const userId = req.user!.id;
-
-    // Get current rewards balance
-    const rewardsSummary = await storage.getUserRewardsSummary(userId);
-    if (!rewardsSummary || rewardsSummary.points < points) {
-      return res.status(400).json({ message: 'Insufficient reward points' });
-    }
-
-    // Create redemption transaction
-    const transaction = await storage.createRewardTransaction({
-      userId,
-      points: -points, // Negative value for redemption
-      type: 'redeem',
-      description: description || 'Points redemption',
-      orderId,
-      transactionDate: new Date(),
-      status: 'used'
-    });
-
-    // Update user's rewards balance
-    const updatedRewards = await storage.updateUserRewardPoints(userId, -points);
-
-    return res.status(200).json({ transaction, updatedRewards });
-  } catch (error) {
-    console.error('Error redeeming reward points:', error);
-    return res.status(500).json({ message: 'Server error', error: (error as Error).message });
-  }
-}
-
-// Admin: Get all reward rules
-export async function getAllRewardRules(req: Request, res: Response) {
-  try {
-    if (!req.isAuthenticated() || req.user!.role !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden. Requires admin privileges.' });
-    }
-
-    const rules = await storage.getAllRewardRules();
-    return res.json(rules);
-  } catch (error) {
-    console.error('Error getting reward rules:', error);
-    return res.status(500).json({ message: 'Server error', error: (error as Error).message });
-  }
-}
-
-// Admin: Create reward rule
-export async function createRewardRule(req: Request, res: Response) {
-  try {
-    if (!req.isAuthenticated() || req.user!.role !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden. Requires admin privileges.' });
-    }
-
-    const ruleData = insertRewardRuleSchema.safeParse(req.body);
-    if (!ruleData.success) {
-      return res.status(400).json({ message: 'Invalid rule data', errors: ruleData.error.format() });
-    }
-
-    const newRule = await storage.createRewardRule(ruleData.data);
-    return res.status(201).json(newRule);
-  } catch (error) {
-    console.error('Error creating reward rule:', error);
-    return res.status(500).json({ message: 'Server error', error: (error as Error).message });
-  }
-}
-
-// Admin: Update reward rule
-export async function updateRewardRule(req: Request, res: Response) {
-  try {
-    if (!req.isAuthenticated() || req.user!.role !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden. Requires admin privileges.' });
-    }
-
-    const ruleId = parseInt(req.params.id, 10);
-    if (isNaN(ruleId)) {
-      return res.status(400).json({ message: 'Invalid rule ID' });
-    }
-
-    const ruleData = insertRewardRuleSchema.partial().safeParse(req.body);
-    if (!ruleData.success) {
-      return res.status(400).json({ message: 'Invalid rule data', errors: ruleData.error.format() });
-    }
-
-    const updatedRule = await storage.updateRewardRule(ruleId, ruleData.data);
-    if (!updatedRule) {
-      return res.status(404).json({ message: 'Reward rule not found' });
-    }
-
-    return res.json(updatedRule);
-  } catch (error) {
-    console.error('Error updating reward rule:', error);
-    return res.status(500).json({ message: 'Server error', error: (error as Error).message });
-  }
-}
-
-// Admin: Delete reward rule
-export async function deleteRewardRule(req: Request, res: Response) {
-  try {
-    if (!req.isAuthenticated() || req.user!.role !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden. Requires admin privileges.' });
-    }
-
-    const ruleId = parseInt(req.params.id, 10);
-    if (isNaN(ruleId)) {
-      return res.status(400).json({ message: 'Invalid rule ID' });
-    }
-
-    const success = await storage.deleteRewardRule(ruleId);
-    if (!success) {
-      return res.status(404).json({ message: 'Reward rule not found' });
-    }
-
-    return res.json({ message: 'Reward rule deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting reward rule:', error);
-    return res.status(500).json({ message: 'Server error', error: (error as Error).message });
-  }
-}
-
-// Admin: Get reward statistics
-export async function getRewardStatistics(req: Request, res: Response) {
-  try {
-    if (!req.isAuthenticated() || req.user!.role !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden. Requires admin privileges.' });
-    }
-
-    const statistics = await storage.getRewardStatistics();
-    return res.json(statistics);
-  } catch (error) {
-    console.error('Error getting reward statistics:', error);
-    return res.status(500).json({ message: 'Server error', error: (error as Error).message });
-  }
-}
-
-// Award points automatically based on order completion
-export async function awardOrderCompletionPoints(req: Request, res: Response) {
-  try {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
-
-    const schema = z.object({
-      orderId: z.number().int().positive(),
-      orderTotal: z.number().positive(),
-    });
-
-    const result = schema.safeParse(req.body);
-    if (!result.success) {
-      return res.status(400).json({ message: 'Invalid input data', errors: result.error.format() });
-    }
-
-    const { orderId, orderTotal } = result.data;
+    const { orderId, orderTotal } = result;
     const userId = req.user!.id;
 
     // Get applicable rules for purchase
@@ -327,178 +64,171 @@ export async function awardOrderCompletionPoints(req: Request, res: Response) {
       status: 'active'
     });
 
-    // Update user's rewards balance
-    const updatedRewards = await storage.updateUserRewardPoints(userId, pointsToAward);
+    // Update user rewards balance
+    let userRewards = await storage.getUserRewards(userId);
+    if (!userRewards) {
+      userRewards = await storage.createUserRewards({
+        userId,
+        availablePoints: pointsToAward,
+        lifetimePoints: pointsToAward,
+        redeemedPoints: 0,
+        lastUpdated: new Date()
+      });
+    } else {
+      userRewards = await storage.updateUserRewards(userId, {
+        availablePoints: userRewards.availablePoints + pointsToAward,
+        lifetimePoints: userRewards.lifetimePoints + pointsToAward,
+        lastUpdated: new Date()
+      });
+    }
 
-    return res.status(200).json({ 
-      message: 'Points awarded successfully', 
+    return res.json({
+      message: 'Points awarded successfully',
       pointsAwarded: pointsToAward,
-      transaction, 
-      updatedRewards 
+      transaction,
+      rewards: userRewards
     });
   } catch (error) {
-    console.error('Error awarding order completion points:', error);
-    return res.status(500).json({ message: 'Server error', error: (error as Error).message });
+    console.error('Error processing reward points for order:', error);
+    return res.status(500).json({ error: 'Failed to process reward points' });
   }
 }
 
-// Award points for product review
-export async function awardReviewPoints(req: Request, res: Response) {
+// Get user rewards data
+export async function getUserRewards(req: Request, res: Response) {
   try {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
-
-    const schema = z.object({
-      productId: z.number().int().positive(),
-    });
-
-    const result = schema.safeParse(req.body);
-    if (!result.success) {
-      return res.status(400).json({ message: 'Invalid input data', errors: result.error.format() });
-    }
-
-    const { productId } = result.data;
     const userId = req.user!.id;
-
-    // Check if user has already received points for reviewing this product
-    const existingTransaction = await storage.getRewardTransactionByUserAndProductForType(userId, productId, 'review');
-    if (existingTransaction) {
-      return res.status(400).json({ message: 'Points already awarded for reviewing this product' });
-    }
-
-    // Get applicable rule for review
-    const reviewRules = await storage.getActiveRewardRulesByType('review');
-    if (!reviewRules.length) {
-      return res.status(404).json({ message: 'No active reward rule found for product reviews' });
+    const rewards = await storage.getUserRewards(userId);
+    
+    if (!rewards) {
+      // Create a new rewards record if one doesn't exist
+      const newRewards = await storage.createUserRewards({
+        userId,
+        availablePoints: 0,
+        lifetimePoints: 0,
+        redeemedPoints: 0,
+        lastUpdated: new Date()
+      });
+      
+      return res.json(newRewards);
     }
     
-    // Use the first applicable rule
-    const rule = reviewRules[0];
-    const pointsToAward = rule.pointsAwarded;
+    return res.json(rewards);
+  } catch (error) {
+    console.error('Error fetching user rewards:', error);
+    return res.status(500).json({ error: 'Failed to fetch rewards data' });
+  }
+}
+
+// Get user reward transactions
+export async function getUserTransactions(req: Request, res: Response) {
+  try {
+    const userId = req.user!.id;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
     
-    // Create transaction record
+    const result = await storage.getUserRewardTransactions(userId, page, limit);
+    
+    return res.json(result.transactions);
+  } catch (error) {
+    console.error('Error fetching user reward transactions:', error);
+    return res.status(500).json({ error: 'Failed to fetch transactions' });
+  }
+}
+
+// Admin handlers
+export async function getRewardRules(req: Request, res: Response) {
+  try {
+    const rules = await storage.getRewardRules();
+    return res.json(rules);
+  } catch (error) {
+    console.error('Error fetching reward rules:', error);
+    return res.status(500).json({ error: 'Failed to fetch reward rules' });
+  }
+}
+
+export async function createRewardRule(req: Request, res: Response) {
+  try {
+    const rule = await storage.createRewardRule(req.body);
+    return res.status(201).json(rule);
+  } catch (error) {
+    console.error('Error creating reward rule:', error);
+    return res.status(500).json({ error: 'Failed to create reward rule' });
+  }
+}
+
+export async function updateRewardRule(req: Request, res: Response) {
+  try {
+    const id = parseInt(req.params.id);
+    const rule = await storage.updateRewardRule(id, req.body);
+    return res.json(rule);
+  } catch (error) {
+    console.error('Error updating reward rule:', error);
+    return res.status(500).json({ error: 'Failed to update reward rule' });
+  }
+}
+
+export async function deleteRewardRule(req: Request, res: Response) {
+  try {
+    const id = parseInt(req.params.id);
+    await storage.deleteRewardRule(id);
+    return res.status(204).end();
+  } catch (error) {
+    console.error('Error deleting reward rule:', error);
+    return res.status(500).json({ error: 'Failed to delete reward rule' });
+  }
+}
+
+export async function getRewardStatistics(req: Request, res: Response) {
+  try {
+    const stats = await storage.getRewardStatistics();
+    return res.json(stats);
+  } catch (error) {
+    console.error('Error fetching reward statistics:', error);
+    return res.status(500).json({ error: 'Failed to fetch statistics' });
+  }
+}
+
+// Add points to user
+export async function addPointsToUser(req: Request, res: Response) {
+  try {
+    const { userId, points, type, description } = req.body;
+    
+    // Create transaction
     const transaction = await storage.createRewardTransaction({
       userId,
-      points: pointsToAward,
-      type: 'review',
-      description: `${pointsToAward} points for product review`,
-      productId,
-      transactionDate: new Date(),
-      status: 'active'
-    });
-
-    // Update user's rewards balance
-    const updatedRewards = await storage.updateUserRewardPoints(userId, pointsToAward);
-
-    return res.status(200).json({ 
-      message: 'Points awarded successfully for product review', 
-      pointsAwarded: pointsToAward,
-      transaction, 
-      updatedRewards 
-    });
-  } catch (error) {
-    console.error('Error awarding review points:', error);
-    return res.status(500).json({ message: 'Server error', error: (error as Error).message });
-  }
-}
-
-// Generate a referral code for a user
-export async function generateReferralCode(req: Request, res: Response) {
-  try {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
-
-    const userId = req.user!.id;
-    
-    // Check if user already has a referral code
-    let referralCode = await storage.getUserReferralCode(userId);
-    
-    if (!referralCode) {
-      // Generate a new referral code
-      const uniqueCode = crypto.randomBytes(4).toString('hex').toUpperCase();
-      referralCode = `${req.user!.username.substring(0, 3).toUpperCase()}-${uniqueCode}`;
-      
-      // Save the referral code
-      await storage.saveUserReferralCode(userId, referralCode);
-    }
-    
-    return res.json({ referralCode });
-  } catch (error) {
-    console.error('Error generating referral code:', error);
-    return res.status(500).json({ message: 'Server error', error: (error as Error).message });
-  }
-}
-
-// Process a referral
-export async function processReferral(req: Request, res: Response) {
-  try {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
-
-    const schema = z.object({
-      referralCode: z.string()
-    });
-
-    const result = schema.safeParse(req.body);
-    if (!result.success) {
-      return res.status(400).json({ message: 'Invalid input data', errors: result.error.format() });
-    }
-
-    const { referralCode } = result.data;
-    const newUserId = req.user!.id;
-    
-    // Find the user who owns this referral code
-    const referringUser = await storage.getUserByReferralCode(referralCode);
-    if (!referringUser) {
-      return res.status(404).json({ message: 'Invalid referral code' });
-    }
-    
-    // Make sure a user isn't referring themselves
-    if (referringUser.id === newUserId) {
-      return res.status(400).json({ message: 'You cannot refer yourself' });
-    }
-    
-    // Check if this new user has already used a referral code
-    const existingReferral = await storage.getUserReferralUsage(newUserId);
-    if (existingReferral) {
-      return res.status(400).json({ message: 'You have already used a referral code' });
-    }
-    
-    // Get the referral reward rule
-    const referralRules = await storage.getActiveRewardRulesByType('referral');
-    if (!referralRules.length) {
-      return res.status(404).json({ message: 'No active reward rule found for referrals' });
-    }
-    
-    const rule = referralRules[0];
-    const pointsToAward = rule.pointsAwarded;
-    
-    // Save the referral usage
-    await storage.saveReferralUsage(newUserId, referringUser.id, referralCode);
-    
-    // Award points to the referring user
-    const transaction = await storage.createRewardTransaction({
-      userId: referringUser.id,
-      points: pointsToAward,
-      type: 'referral',
-      description: `${pointsToAward} points for referring a new user`,
+      points,
+      type,
+      description,
       transactionDate: new Date(),
       status: 'active'
     });
     
-    // Update the referring user's rewards balance
-    const updatedRewards = await storage.updateUserRewardPoints(referringUser.id, pointsToAward);
+    // Update user rewards balance
+    let userRewards = await storage.getUserRewards(userId);
+    if (!userRewards) {
+      userRewards = await storage.createUserRewards({
+        userId,
+        availablePoints: points,
+        lifetimePoints: points,
+        redeemedPoints: 0,
+        lastUpdated: new Date()
+      });
+    } else {
+      userRewards = await storage.updateUserRewards(userId, {
+        availablePoints: userRewards.availablePoints + points,
+        lifetimePoints: userRewards.lifetimePoints + points,
+        lastUpdated: new Date()
+      });
+    }
     
-    return res.status(200).json({ 
-      message: 'Referral processed successfully', 
-      referringUser: referringUser.username,
-      pointsAwarded: pointsToAward
+    return res.json({
+      message: 'Points added successfully',
+      transaction,
+      rewards: userRewards
     });
   } catch (error) {
-    console.error('Error processing referral:', error);
-    return res.status(500).json({ message: 'Server error', error: (error as Error).message });
+    console.error('Error adding points to user:', error);
+    return res.status(500).json({ error: 'Failed to add points' });
   }
 }

@@ -61,6 +61,8 @@ import BuyerDashboardPage from './pages/buyer/dashboard';
 import BuyerWishlistPage from './pages/buyer/wishlist';
 import BuyerSettingsPage from './pages/buyer/settings';
 import AddressManagementPage from './pages/buyer/address-management';
+import BuyerRewardsPage from './pages/buyer/rewards';
+import BuyerGiftCardsPage from './pages/buyer/gift-cards';
 
 function App() {
   return (
@@ -536,6 +538,24 @@ function App() {
                         path="/buyer/addresses" 
                         role="buyer" 
                         component={AddressManagementPage} 
+                      />
+                    )}
+                  </Route>
+                  <Route path="/buyer/rewards">
+                    {() => (
+                      <ProtectedRoute 
+                        path="/buyer/rewards" 
+                        role="buyer" 
+                        component={BuyerRewardsPage} 
+                      />
+                    )}
+                  </Route>
+                  <Route path="/buyer/gift-cards">
+                    {() => (
+                      <ProtectedRoute 
+                        path="/buyer/gift-cards" 
+                        role="buyer" 
+                        component={BuyerGiftCardsPage} 
                       />
                     )}
                   </Route>
