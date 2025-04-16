@@ -84,37 +84,37 @@ export const AISearchService = {
   buildSearchUrl: (filters: SearchResult['filters'], enhancedQuery: string): string => {
     const params = new URLSearchParams();
     
-    // Add the main search query
-    if (enhancedQuery) {
+    // Add the main search query with validation
+    if (enhancedQuery && typeof enhancedQuery === 'string') {
       params.append('q', enhancedQuery);
     }
     
     // Add filters as query parameters
-    if (filters.category) {
+    if (filters.category && typeof filters.category === 'string') {
       params.append('category', filters.category);
     }
     
-    if (filters.priceMin !== undefined) {
-      params.append('minPrice', filters.priceMin.toString());
+    if (filters.priceMin !== undefined && filters.priceMin !== null) {
+      params.append('minPrice', String(filters.priceMin));
     }
     
-    if (filters.priceMax !== undefined) {
-      params.append('maxPrice', filters.priceMax.toString());
+    if (filters.priceMax !== undefined && filters.priceMax !== null) {
+      params.append('maxPrice', String(filters.priceMax));
     }
     
-    if (filters.brand) {
+    if (filters.brand && typeof filters.brand === 'string') {
       params.append('brand', filters.brand);
     }
     
-    if (filters.color) {
+    if (filters.color && typeof filters.color === 'string') {
       params.append('color', filters.color);
     }
     
-    if (filters.size) {
+    if (filters.size && typeof filters.size === 'string') {
       params.append('size', filters.size);
     }
     
-    if (filters.sortBy) {
+    if (filters.sortBy && typeof filters.sortBy === 'string') {
       params.append('sort', filters.sortBy);
     }
     

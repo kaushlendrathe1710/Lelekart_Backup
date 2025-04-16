@@ -16,7 +16,7 @@ export async function handleAISearch(req: Request, res: Response) {
     
     const { query } = req.body;
     
-    if (!query || typeof query !== 'string') {
+    if (!query || typeof query !== 'string' || query.trim() === '') {
       console.error('Missing or invalid query parameter:', req.body);
       return res.status(400).json({ 
         success: false, 
@@ -24,7 +24,10 @@ export async function handleAISearch(req: Request, res: Response) {
       });
     }
     
-    console.log('Processing AI search query:', query);
+    // Sanitize the query to remove any problematic characters
+    const sanitizedQuery = query.trim();
+    
+    console.log('Processing AI search query:', sanitizedQuery);
     
     // Get all available categories from the database for context
     const categories = await db.select({ name: products.category })
@@ -40,7 +43,7 @@ Your task is to extract structured search parameters from this query.
 
 Available product categories: ${availableCategories.join(', ')}
 
-User query: "${query}"
+User query: "${sanitizedQuery}"
 
 Analyze this query and extract the following information:
 1. The main product category they're looking for
