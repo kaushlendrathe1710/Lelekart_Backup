@@ -1657,31 +1657,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
         failed: []
       };
       
-      for (const product of products) {
-        try {
-          // Set the seller ID for the product
-          product.sellerId = sellerId;
-          
-          // Set as pending for approval by default
-          product.approved = false; 
-          
-          // Create the product in the database
-          const createdProduct = await storage.createProduct(product);
-          
-          results.successful.push(createdProduct);
-          results.uploaded++;
-          
-          console.log(`Successfully created product: ${createdProduct.name}`);
-        } catch (err) {
-          console.error(`Error creating product ${product.name || 'unknown'}:`, err);
-          
-          // Add to failed list
-          results.failed.push({
-            name: product.name,
-            errors: [err.message || 'Unknown error'],
-            rowIndex: products.indexOf(product) + 1
-          });
+      // Define batch size to prevent overloading the database
+      const BATCH_SIZE = 100;
+      
+      // Process products in batches to prevent timeout and memory issues
+      for (let i = 0; i < products.length; i += BATCH_SIZE) {
+        const batch = products.slice(i, i + BATCH_SIZE);
+        console.log(`Processing batch ${Math.floor(i/BATCH_SIZE) + 1} of ${Math.ceil(products.length/BATCH_SIZE)} (${batch.length} products)`);
+        
+        // Process each product in the current batch
+        const batchPromises = batch.map(async (product, batchIndex) => {
+          const productIndex = i + batchIndex;
+          try {
+            // Set the seller ID for the product
+            product.sellerId = sellerId;
+            
+            // Set as pending for approval by default
+            product.approved = false; 
+            
+            // Create the product in the database
+            const createdProduct = await storage.createProduct(product);
+            
+            return {
+              success: true,
+              product: createdProduct,
+              index: productIndex
+            };
+          } catch (err) {
+            console.error(`Error creating product ${product.name || 'unknown'} (index ${productIndex}):`, err);
+            
+            return {
+              success: false,
+              name: product.name,
+              errors: [err.message || 'Unknown error'],
+              index: productIndex
+            };
+          }
+        });
+        
+        // Wait for all products in the batch to be processed
+        const batchResults = await Promise.all(batchPromises);
+        
+        // Update results
+        for (const result of batchResults) {
+          if (result.success) {
+            results.successful.push(result.product);
+            results.uploaded++;
+          } else {
+            results.failed.push({
+              name: result.name,
+              errors: result.errors,
+              rowIndex: result.index + 1
+            });
+          }
         }
+        
+        // Log progress after each batch
+        console.log(`Batch progress: ${results.uploaded} successful, ${results.failed.length} failed`);
       }
       
       res.status(200).json({ 

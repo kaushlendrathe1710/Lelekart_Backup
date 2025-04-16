@@ -395,6 +395,15 @@ export default function BulkUploadPage() {
       return;
     }
     
+    // Display upload size warning for large batches
+    if (previewProducts.length > 100) {
+      toast({
+        title: "Large Upload Detected",
+        description: `You're uploading ${previewProducts.length} products. This may take a few minutes to complete.`,
+        variant: "default",
+      });
+    }
+    
     // If there are validation errors, ask for confirmation
     if (invalidRows > 0) {
       const confirmResult = window.confirm(`${invalidRows} products have validation errors. Only ${validRows} valid products will be uploaded. Continue?`);
@@ -407,18 +416,38 @@ export default function BulkUploadPage() {
     const validProducts = previewProducts.filter(p => p.isValid);
     
     try {
+      // Show progress notification for large batches
+      const largeUpload = validProducts.length > 50;
+      
+      if (largeUpload) {
+        // Set initial progress notification
+        toast({
+          title: "Upload in Progress",
+          description: `Starting upload of ${validProducts.length} products. This may take a few minutes.`,
+          variant: "default",
+        });
+      }
+      
+      // Set a longer timeout for large uploads (5 minutes)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes timeout
+      
       const response = await fetch('/api/products/bulk-upload', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ products: validProducts }),
+        signal: controller.signal
       });
+
+      // Clear the timeout
+      clearTimeout(timeoutId);
 
       const result = await response.json();
       
       if (!response.ok) {
-        throw new Error(result.error || 'Error uploading products');
+        throw new Error(result.error || result.details || 'Error uploading products');
       }
       
       setUploadSuccess(true);
@@ -442,11 +471,62 @@ export default function BulkUploadPage() {
         failed: result.failed || [],
       });
       
+      // For large uploads, make data more manageable in the results view
+      if (largeUpload && result.successful && result.successful.length > 100) {
+        // Keep only essential data for display to prevent UI slowdown
+        const trimmedSuccessful = result.successful.map((product: any) => ({
+          id: product.id,
+          name: product.name,
+          category: product.category,
+          price: product.price
+        }));
+        
+        setUploadResult({
+          success: true,
+          uploadCount: result.uploaded,
+          failCount: result.failed ? result.failed.length : 0,
+          message: `Successfully uploaded ${result.uploaded} products. ${result.failed ? result.failed.length : 0} products failed.`,
+          successful: trimmedSuccessful,
+          failed: result.failed || []
+        });
+      } else {
+        setUploadResult({
+          success: true,
+          uploadCount: result.uploaded,
+          failCount: result.failed ? result.failed.length : 0,
+          message: `Successfully uploaded ${result.uploaded} products. ${result.failed ? result.failed.length : 0} products failed.`,
+          successful: result.successful || [],
+          failed: result.failed || []
+        });
+      }
+      
     } catch (error: any) {
-      toast({
-        title: "Upload failed",
-        description: error.message || "There was an error uploading the products.",
-        variant: "destructive",
+      // Handle timeout error specifically
+      if (error.name === 'AbortError') {
+        toast({
+          title: "Upload timeout",
+          description: "The upload is taking longer than expected. Please try with fewer products or contact support.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Upload failed",
+          description: error.message || "There was an error uploading the products.",
+          variant: "destructive",
+        });
+      }
+      
+      setUploadResult({
+        success: false,
+        uploadCount: 0,
+        failCount: validProducts.length,
+        message: error.message || "Upload failed due to a server error",
+        successful: [],
+        failed: validProducts.map((p, i) => ({
+          name: p.name,
+          errors: [error.message || "Server error"],
+          rowIndex: i + 1
+        }))
       });
     } finally {
       setIsUploading(false);
@@ -467,11 +547,14 @@ export default function BulkUploadPage() {
   // Format support state
   const [fileFormat, setFileFormat] = useState<'CSV' | 'Excel'>('CSV');
   
-  // Dummy state for upload results tracking
+  // State for detailed upload results tracking
   const [uploadResult, setUploadResult] = useState({
-    success: 0,
-    failed: 0,
-    skipped: 0,
+    success: false,
+    uploadCount: 0,
+    failCount: 0,
+    message: '',
+    successful: [] as any[],
+    failed: [] as any[]
   });
 
   return (
