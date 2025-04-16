@@ -78,6 +78,7 @@ import {
   updateInventoryOptimizationStatus,
   updateAIContentStatus
 } from "./utils/ml-inventory-manager";
+import { handleAISearch } from "./handlers/ai-search-handler";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes with OTP-based authentication
@@ -369,6 +370,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error in search endpoint:", error);
       return res.status(500).json({ error: "Failed to perform search" });
+    }
+  });
+  
+  // AI-powered search endpoint for natural language processing
+  app.post("/api/ai/search", async (req, res) => {
+    try {
+      console.log("Received AI search request:", req.body);
+      await handleAISearch(req, res);
+    } catch (error) {
+      console.error("Error in AI search endpoint:", error);
+      return res.status(500).json({ 
+        success: false, 
+        error: "Failed to process AI search query" 
+      });
     }
   });
   

@@ -1,18 +1,69 @@
-import { Search, X } from 'lucide-react';
+import { Search, X, Mic } from 'lucide-react';
 import { useState, FormEvent, useRef, useEffect } from 'react';
 import { useNavigate } from 'wouter';
 import { Button } from './button';
+import { VoiceSearchDialog } from '@/components/search/voice-search-dialog';
+import { cn } from '@/lib/utils';
+import { AISearchService } from '@/services/ai-search-service';
+import { useToast } from '@/hooks/use-toast';
 
-export function SimpleSearch() {
+interface SimpleSearchProps {
+  className?: string;
+}
+
+export function SimpleSearch({ className }: SimpleSearchProps = {}) {
   const [query, setQuery] = useState('');
+  const [isAiSearching, setIsAiSearching] = useState(false);
   const navigate = useNavigate();
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
   
-  const handleSearch = (e: FormEvent) => {
+  const handleSearch = async (e: FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
       console.log('Search for:', query);
       navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+    }
+  };
+
+  // Handle voice search query
+  const handleVoiceSearch = async (voiceQuery: string) => {
+    if (!voiceQuery.trim()) return;
+    
+    setIsAiSearching(true);
+    
+    try {
+      // Process the query using AI to extract structured search parameters
+      const result = await AISearchService.processQuery(voiceQuery);
+      
+      if (result.success) {
+        // Build a search URL from the extracted parameters
+        const searchUrl = AISearchService.buildSearchUrl(result.filters, result.enhancedQuery);
+        
+        // Navigate to the search page
+        navigate(searchUrl);
+        
+        toast({
+          title: 'Voice Search',
+          description: `Searching for "${result.enhancedQuery}"`,
+          duration: 3000
+        });
+      } else {
+        throw new Error(result.error || 'Failed to process search query');
+      }
+    } catch (error) {
+      console.error('Error processing voice search:', error);
+      
+      toast({
+        title: 'Voice Search Error',
+        description: error instanceof Error ? error.message : 'Failed to process your search',
+        variant: 'destructive'
+      });
+      
+      // Fall back to simple search with the original voice query
+      navigate(`/search?q=${encodeURIComponent(voiceQuery.trim())}`);
+    } finally {
+      setIsAiSearching(false);
     }
   };
 
@@ -32,37 +83,53 @@ export function SimpleSearch() {
   }, []);
 
   return (
-    <form onSubmit={handleSearch} className="relative w-full max-w-xl">
-      <div className="flex items-center border-2 border-white/30 hover:border-white/50 focus-within:border-white rounded-lg px-4 py-2.5 bg-white/10 backdrop-blur-sm shadow-lg transition-all">
-        <Search className="h-5 w-5 mr-3 text-white" />
-        <input
-          ref={searchInputRef}
-          type="text"
-          placeholder="Search for products, brands and more..."
-          className="flex-1 outline-none bg-transparent text-white placeholder-white/70 text-base"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        {query && (
-          <button 
-            type="button"
-            className="text-white/80 hover:text-white"
-            onClick={clearSearch}
+    <div className={cn("relative", className)}>
+      <form onSubmit={handleSearch} className="relative w-full max-w-xl">
+        <div className="flex items-center border-2 border-white/30 hover:border-white/50 focus-within:border-white rounded-lg px-4 py-2.5 bg-white/10 backdrop-blur-sm shadow-lg transition-all">
+          <Search className="h-5 w-5 mr-3 text-white" />
+          <input
+            ref={searchInputRef}
+            type="text"
+            placeholder="Search for products, brands and more..."
+            className="flex-1 outline-none bg-transparent text-white placeholder-white/70 text-base"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            disabled={isAiSearching}
+          />
+          {query && (
+            <button 
+              type="button"
+              className="text-white/80 hover:text-white"
+              onClick={clearSearch}
+              disabled={isAiSearching}
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
+          
+          {/* Voice search button */}
+          <VoiceSearchDialog 
+            className="ml-2 text-white/80 hover:text-white"
+            buttonVariant="ghost"
+            buttonSize="icon"
+            buttonText=""
+            showIcon={true}
+            onSearch={handleVoiceSearch}
+          />
+          
+          <Button 
+            type="submit" 
+            className="ml-3 bg-white text-primary hover:bg-white/90 font-medium rounded-md"
+            size="sm"
+            disabled={isAiSearching}
           >
-            <X className="h-5 w-5" />
-          </button>
-        )}
-        <Button 
-          type="submit" 
-          className="ml-3 bg-white text-primary hover:bg-white/90 font-medium rounded-md"
-          size="sm"
-        >
-          Search
-        </Button>
-      </div>
-      <div className="hidden md:flex absolute -bottom-6 left-4 text-xs text-white/70">
-        Press <kbd className="px-1.5 py-0.5 bg-white/20 rounded mx-1 font-mono">/</kbd> to search
-      </div>
-    </form>
+            Search
+          </Button>
+        </div>
+        <div className="hidden md:flex absolute -bottom-6 left-4 text-xs text-white/70">
+          Press <kbd className="px-1.5 py-0.5 bg-white/20 rounded mx-1 font-mono">/</kbd> to search
+        </div>
+      </form>
+    </div>
   );
 }
