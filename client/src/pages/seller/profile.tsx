@@ -93,6 +93,15 @@ const SellerProfilePage = () => {
     ifscCode: ""
   });
   
+  // Query for seller status to check if approved
+  const { data: sellerStatus, isLoading: isLoadingStatus } = useQuery({
+    queryKey: ['/api/seller/status'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/seller/status');
+      return await res.json();
+    }
+  });
+  
   // Query for seller documents
   const { data: documents, isLoading: isLoadingDocuments } = useQuery({
     queryKey: ['/api/seller/documents'],
@@ -705,14 +714,17 @@ const SellerProfilePage = () => {
                               >
                                 <FileText className="h-4 w-4" /> Download
                               </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="h-8 gap-1 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                onClick={() => handleDeleteDocument(doc.id)}
-                              >
-                                <X className="h-4 w-4" /> Delete
-                              </Button>
+                              {/* Only show Delete button if seller is not approved */}
+                              {(!sellerStatus || !sellerStatus.approved) && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="h-8 gap-1 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => handleDeleteDocument(doc.id)}
+                                >
+                                  <X className="h-4 w-4" /> Delete
+                                </Button>
+                              )}
                             </div>
                           </div>
                         </div>
