@@ -37,9 +37,9 @@ export default function RewardsPage() {
   
   // Fetch user rewards data
   const { data: rewardsData, isLoading: isLoadingRewards } = useQuery({
-    queryKey: ['/api/rewards/user'],
+    queryKey: [`/api/rewards/${userId}`],
     queryFn: async () => {
-      const response = await fetch('/api/rewards/user', {
+      const response = await fetch(`/api/rewards/${userId}`, {
         credentials: 'include'
       });
       if (!response.ok) {
@@ -52,9 +52,9 @@ export default function RewardsPage() {
   
   // Fetch reward transactions
   const { data: transactions = [], isLoading: isLoadingTransactions } = useQuery({
-    queryKey: ['/api/rewards/transactions'],
+    queryKey: [`/api/rewards/${userId}/transactions`],
     queryFn: async () => {
-      const response = await fetch('/api/rewards/transactions', {
+      const response = await fetch(`/api/rewards/${userId}/transactions`, {
         credentials: 'include'
       });
       if (!response.ok) {

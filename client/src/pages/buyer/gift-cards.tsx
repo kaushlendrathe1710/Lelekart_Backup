@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { AlertCircle, CreditCard, Check, Copy, Gift, Clock, CopyCheck } from "lucide-react";
+import { AlertCircle, CreditCard, Check, Copy, Gift, Clock, CopyCheck, ShoppingCart } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
@@ -50,9 +50,9 @@ export default function GiftCardsPage() {
   
   // Fetch user gift cards
   const { data: giftCards = [], isLoading: isLoadingGiftCards } = useQuery({
-    queryKey: ['/api/gift-cards/user'],
+    queryKey: [`/api/gift-cards/user/${userId}`],
     queryFn: async () => {
-      const response = await fetch('/api/gift-cards/user', {
+      const response = await fetch(`/api/gift-cards/user/${userId}`, {
         credentials: 'include'
       });
       if (!response.ok) {
@@ -84,33 +84,52 @@ export default function GiftCardsPage() {
     }
     
     try {
+      // Loading toast
       toast({
         title: "Checking Balance",
-        description: "This is a demo feature. In a real implementation, this would verify the gift card.",
+        description: "Verifying gift card code...",
       });
       
-      // In a real implementation, this would be an API call
-      const mockCard: GiftCard = {
-        id: 12345,
+      // Call the actual API endpoint
+      const response = await fetch('/api/gift-cards/check-balance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code: giftCardCode }),
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to check gift card balance');
+      }
+      
+      const cardData = await response.json();
+      
+      // Create a card object from the API response
+      const card: GiftCard = {
+        id: 0, // The API doesn't return the ID for security
         code: giftCardCode,
-        initialValue: 1000,
-        currentBalance: 750,
+        initialValue: cardData.initialValue,
+        currentBalance: cardData.currentBalance,
         userId: null,
         senderUserId: null,
-        recipientEmail: user?.email || null,
-        recipientName: user?.name || null,
-        expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-        status: "active",
-        templateId: 1,
+        recipientEmail: null,
+        recipientName: null,
+        expiryDate: cardData.expiryDate,
+        status: cardData.status,
+        templateId: null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
       
-      setCheckedCard(mockCard);
+      setCheckedCard(card);
     } catch (error) {
+      console.error('Error checking balance:', error);
       toast({
         title: "Error",
-        description: "Failed to check gift card balance",
+        description: error.message || "Failed to check gift card balance",
         variant: "destructive",
       });
     }
