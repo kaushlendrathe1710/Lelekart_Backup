@@ -1,0 +1,186 @@
+import { Request, Response } from "express";
+import { storage } from "../storage";
+import { InsertSellerSetting } from "@shared/schema";
+import { z } from "zod";
+
+// Get settings for a seller
+export async function getSellerSettingsHandler(req: Request, res: Response) {
+  try {
+    const sellerId = parseInt(req.params.sellerId || req.user?.id?.toString() || "0");
+    
+    if (!sellerId) {
+      return res.status(400).json({ error: 'Seller ID is required' });
+    }
+    
+    // If this is not an admin or the seller themselves, deny access
+    if (req.user?.role !== 'admin' && req.user?.id !== sellerId) {
+      return res.status(403).json({ error: 'You do not have permission to view these settings' });
+    }
+    
+    const settings = await storage.getSellerSettings(sellerId);
+    
+    if (!settings) {
+      // If no settings exist yet, return default settings
+      return res.status(200).json({
+        sellerId,
+        notificationPreferences: JSON.stringify({
+          email: true,
+          sms: false,
+          push: true,
+          orderNotifications: true,
+          paymentNotifications: true,
+          promotionNotifications: false
+        }),
+        returnPolicy: "Standard 7-day return policy",
+        autoAcceptOrders: false,
+        holidayMode: false
+      });
+    }
+    
+    return res.status(200).json(settings);
+  } catch (error) {
+    console.error("Error fetching seller settings:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+// Create or update settings for a seller
+export async function updateSellerSettingsHandler(req: Request, res: Response) {
+  try {
+    const sellerId = parseInt(req.params.sellerId || req.user?.id?.toString() || "0");
+    
+    if (!sellerId) {
+      return res.status(400).json({ error: 'Seller ID is required' });
+    }
+    
+    // If this is not an admin or the seller themselves, deny access
+    if (req.user?.role !== 'admin' && req.user?.id !== sellerId) {
+      return res.status(403).json({ error: 'You do not have permission to update these settings' });
+    }
+    
+    const settingsSchema = z.object({
+      notificationPreferences: z.string().optional(),
+      taxInformation: z.string().optional(),
+      returnPolicy: z.string().optional(),
+      autoAcceptOrders: z.boolean().optional(),
+      holidayMode: z.boolean().optional(),
+      holidayModeEndDate: z.string().optional().transform(val => val ? new Date(val) : undefined),
+    });
+    
+    const validatedData = settingsSchema.parse(req.body);
+    
+    const updatedSettings = await storage.createOrUpdateSellerSettings(sellerId, validatedData as Partial<InsertSellerSetting>);
+    
+    return res.status(200).json(updatedSettings);
+  } catch (error) {
+    console.error("Error updating seller settings:", error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+// Toggle holiday mode
+export async function toggleHolidayModeHandler(req: Request, res: Response) {
+  try {
+    const sellerId = parseInt(req.params.sellerId || req.user?.id?.toString() || "0");
+    
+    if (!sellerId) {
+      return res.status(400).json({ error: 'Seller ID is required' });
+    }
+    
+    // If this is not the seller themselves, deny access (even admins shouldn't toggle this)
+    if (req.user?.id !== sellerId) {
+      return res.status(403).json({ error: 'You do not have permission to toggle holiday mode' });
+    }
+    
+    const settings = await storage.getSellerSettings(sellerId);
+    
+    const holidayMode = !settings?.holidayMode;
+    let holidayModeEndDate = settings?.holidayModeEndDate;
+    
+    // If enabling holiday mode and no end date is set, default to 7 days from now
+    if (holidayMode && !req.body.holidayModeEndDate && !holidayModeEndDate) {
+      holidayModeEndDate = new Date();
+      holidayModeEndDate.setDate(holidayModeEndDate.getDate() + 7);
+    } else if (req.body.holidayModeEndDate) {
+      holidayModeEndDate = new Date(req.body.holidayModeEndDate);
+    }
+    
+    // If disabling holiday mode, clear the end date
+    if (!holidayMode) {
+      holidayModeEndDate = undefined;
+    }
+    
+    const updatedSettings = await storage.createOrUpdateSellerSettings(sellerId, {
+      holidayMode,
+      holidayModeEndDate
+    });
+    
+    return res.status(200).json(updatedSettings);
+  } catch (error) {
+    console.error("Error toggling holiday mode:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+// Update notification preferences
+export async function updateNotificationPreferencesHandler(req: Request, res: Response) {
+  try {
+    const sellerId = parseInt(req.params.sellerId || req.user?.id?.toString() || "0");
+    
+    if (!sellerId) {
+      return res.status(400).json({ error: 'Seller ID is required' });
+    }
+    
+    // If this is not the seller themselves, deny access
+    if (req.user?.id !== sellerId) {
+      return res.status(403).json({ error: 'You do not have permission to update notification preferences' });
+    }
+    
+    const preferencesSchema = z.object({
+      email: z.boolean().optional(),
+      sms: z.boolean().optional(),
+      push: z.boolean().optional(),
+      orderNotifications: z.boolean().optional(),
+      paymentNotifications: z.boolean().optional(),
+      promotionNotifications: z.boolean().optional(),
+      returnNotifications: z.boolean().optional(),
+    });
+    
+    const validatedPreferences = preferencesSchema.parse(req.body);
+    
+    // Get current settings
+    const currentSettings = await storage.getSellerSettings(sellerId);
+    
+    // Parse current preferences or create default if none exist
+    let currentPreferences = {};
+    if (currentSettings?.notificationPreferences) {
+      try {
+        currentPreferences = JSON.parse(currentSettings.notificationPreferences);
+      } catch (e) {
+        console.error("Error parsing existing notification preferences:", e);
+      }
+    }
+    
+    // Merge with new preferences
+    const updatedPreferences = {
+      ...currentPreferences,
+      ...validatedPreferences
+    };
+    
+    // Update settings
+    const updatedSettings = await storage.createOrUpdateSellerSettings(sellerId, {
+      notificationPreferences: JSON.stringify(updatedPreferences)
+    });
+    
+    return res.status(200).json(updatedSettings);
+  } catch (error) {
+    console.error("Error updating notification preferences:", error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
