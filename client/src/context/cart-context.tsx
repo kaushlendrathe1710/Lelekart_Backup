@@ -41,11 +41,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const { data: cartItems = [] } = useQuery<CartItem[]>({
     queryKey: ['/api/cart'],
     enabled: !!user,
-    staleTime: 0, // Always fetch fresh data
+    staleTime: 30000, // 30 seconds
     refetchOnWindowFocus: true,
     refetchOnMount: true,
-    refetchInterval: 2000, // Poll every 2 seconds
-    refetchIntervalInBackground: false
+    // Removed frequent polling to avoid performance issues
   });
 
   // Add to cart API mutation

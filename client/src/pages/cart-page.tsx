@@ -61,10 +61,10 @@ export default function CartPage() {
   const { data: cartItems = [], isLoading: cartLoading } = useQuery<CartItem[]>({
     queryKey: ['/api/cart'],
     enabled: !!user,
-    staleTime: 0, // Always fetch fresh data
+    staleTime: 30000, // 30 seconds
     refetchOnWindowFocus: true,
     refetchOnMount: true,
-    refetchInterval: 2000, // Poll every 2 seconds for real-time updates
+    // Removed frequent polling to avoid performance issues
   });
   
   // Combine loading states
