@@ -1,22 +1,25 @@
-import { db } from './server/db.js';
+// CommonJS version of the migration script
+const { Pool, neonConfig } = require('@neondatabase/serverless');
+const ws = require('ws');
+const dotenv = require('dotenv');
 
-// Fix: Add this fallback if ESM import fails
-const importDb = async () => {
-  try {
-    return { db } = await import('./server/db.js');
-  } catch (error) {
-    const { db } = await import('./server/db.ts');
-    return { db };
-  }
-};
-import { sql } from 'drizzle-orm';
+dotenv.config();
+
+// Configure WebSocket for Neon
+neonConfig.webSocketConstructor = ws;
+
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL environment variable is required");
+}
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 async function createWalletTables() {
   try {
     console.log('Starting wallet schema creation...');
     
     // Create wallet_settings table
-    await db.execute(sql`
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS wallet_settings (
         id SERIAL PRIMARY KEY,
         first_purchase_coins INTEGER NOT NULL DEFAULT 500,
@@ -32,7 +35,7 @@ async function createWalletTables() {
     console.log('wallet_settings table created or already exists');
 
     // Create wallets table
-    await db.execute(sql`
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS wallets (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL UNIQUE,
@@ -47,7 +50,7 @@ async function createWalletTables() {
     console.log('wallets table created or already exists');
 
     // Create wallet_transactions table
-    await db.execute(sql`
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS wallet_transactions (
         id SERIAL PRIMARY KEY,
         wallet_id INTEGER NOT NULL,
@@ -64,9 +67,9 @@ async function createWalletTables() {
     console.log('wallet_transactions table created or already exists');
 
     // Create a default wallet_settings record if none exists
-    const settingsCount = await db.execute(sql`SELECT COUNT(*) FROM wallet_settings`);
-    if (settingsCount.rows[0].count === '0') {
-      await db.execute(sql`
+    const settingsCountResult = await pool.query(`SELECT COUNT(*) FROM wallet_settings`);
+    if (parseInt(settingsCountResult.rows[0].count) === 0) {
+      await pool.query(`
         INSERT INTO wallet_settings (
           first_purchase_coins, 
           coin_to_currency_ratio, 
@@ -85,6 +88,9 @@ async function createWalletTables() {
   } catch (error) {
     console.error('Error creating wallet schema:', error);
     throw error;
+  } finally {
+    // Close pool
+    await pool.end();
   }
 }
 

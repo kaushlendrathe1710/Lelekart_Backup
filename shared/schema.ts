@@ -1449,3 +1449,69 @@ export type InsertGiftCardTransaction = z.infer<typeof insertGiftCardTransaction
 
 export type SelectGiftCardTemplate = typeof giftCardTemplates.$inferSelect;
 export type InsertGiftCardTemplate = z.infer<typeof insertGiftCardTemplateSchema>;
+
+// Wallet System Schema
+export const walletSettings = pgTable("wallet_settings", {
+  id: serial("id").primaryKey(),
+  firstPurchaseCoins: integer("first_purchase_coins").notNull().default(500),
+  coinToCurrencyRatio: decimal("coin_to_currency_ratio").notNull().default("0.10"),
+  minOrderValue: decimal("min_order_value").notNull().default("500.00"),
+  maxRedeemableCoins: integer("max_redeemable_coins").notNull().default(200),
+  coinExpiryDays: integer("coin_expiry_days").notNull().default(90),
+  isEnabled: boolean("is_enabled").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+});
+
+export const wallets = pgTable("wallets", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }).unique(),
+  balance: integer("balance").notNull().default(0),
+  lifetimeEarned: integer("lifetime_earned").notNull().default(0),
+  lifetimeRedeemed: integer("lifetime_redeemed").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+});
+
+export const walletTransactions = pgTable("wallet_transactions", {
+  id: serial("id").primaryKey(),
+  walletId: integer("wallet_id").notNull().references(() => wallets.id, { onDelete: "cascade" }),
+  amount: integer("amount").notNull(),
+  transactionType: text("transaction_type").notNull(), // 'CREDIT', 'DEBIT', 'EXPIRED'
+  referenceType: text("reference_type"), // 'ORDER', 'REFUND', 'ADJUSTMENT', etc.
+  referenceId: integer("reference_id"), // ID of the referenced entity
+  description: text("description"),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow()
+});
+
+// Relations
+export const walletsRelations = relations(wallets, ({ one, many }) => ({
+  user: one(users, {
+    fields: [wallets.userId],
+    references: [users.id]
+  }),
+  transactions: many(walletTransactions)
+}));
+
+export const walletTransactionsRelations = relations(walletTransactions, ({ one }) => ({
+  wallet: one(wallets, {
+    fields: [walletTransactions.walletId],
+    references: [wallets.id]
+  })
+}));
+
+// Insert Schemas
+export const insertWalletSettingsSchema = createInsertSchema(walletSettings);
+export const insertWalletSchema = createInsertSchema(wallets);
+export const insertWalletTransactionSchema = createInsertSchema(walletTransactions);
+
+// Types
+export type SelectWalletSettings = typeof walletSettings.$inferSelect;
+export type InsertWalletSettings = z.infer<typeof insertWalletSettingsSchema>;
+
+export type SelectWallet = typeof wallets.$inferSelect;
+export type InsertWallet = z.infer<typeof insertWalletSchema>;
+
+export type SelectWalletTransaction = typeof walletTransactions.$inferSelect;
+export type InsertWalletTransaction = z.infer<typeof insertWalletTransactionSchema>;
