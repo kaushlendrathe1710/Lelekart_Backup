@@ -195,9 +195,12 @@ export default function WalletManagementPage() {
     if (settings && !settingsForm.formState.isDirty) {
       settingsForm.reset({
         firstPurchaseCoins: settings.firstPurchaseCoins,
-        expiryDays: settings.expiryDays,
-        conversionRate: settings.conversionRate,
-        isActive: settings.isActive,
+        expiryDays: settings.coinExpiryDays,
+        conversionRate: Number(settings.coinToCurrencyRatio),
+        maxUsagePercentage: settings.maxUsagePercentage ? Number(settings.maxUsagePercentage) : 20,
+        minCartValue: settings.minCartValue ? Number(settings.minCartValue) : 0,
+        applicableCategories: settings.applicableCategories || "",
+        isActive: settings.isEnabled,
       });
     }
   }, [settings, settingsForm]);
@@ -306,6 +309,57 @@ export default function WalletManagementPage() {
                             </FormControl>
                             <FormDescription>
                               How many coins equal ₹1 when redeeming
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={settingsForm.control}
+                        name="maxUsagePercentage"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Max Usage Percentage (%)</FormLabel>
+                            <FormControl>
+                              <Input type="number" {...field} min="0" max="100" />
+                            </FormControl>
+                            <FormDescription>
+                              Maximum percentage of order value that can be paid with coins
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={settingsForm.control}
+                        name="minCartValue"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Minimum Cart Value (₹)</FormLabel>
+                            <FormControl>
+                              <Input type="number" {...field} min="0" />
+                            </FormControl>
+                            <FormDescription>
+                              Minimum cart value required to use coins
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={settingsForm.control}
+                        name="applicableCategories"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Applicable Categories</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormDescription>
+                              Comma-separated list of categories where coins can be applied (leave empty for all categories)
                             </FormDescription>
                             <FormMessage />
                           </FormItem>

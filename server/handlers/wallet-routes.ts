@@ -9,6 +9,9 @@ const walletSettingsSchema = z.object({
   minOrderValue: z.number().int().min(0, "Minimum order value must be a positive number"),
   maxRedeemableCoins: z.number().int().min(1, "Maximum redeemable coins must be at least 1"),
   coinExpiryDays: z.number().int().min(1, "Coin expiry days must be at least 1"),
+  maxUsagePercentage: z.number().min(0).max(100, "Must be between 0 and 100"),
+  minCartValue: z.number().min(0, "Must be a non-negative value"),
+  applicableCategories: z.string().optional(),
   isEnabled: z.boolean()
 });
 
@@ -16,7 +19,9 @@ const redeemCoinsSchema = z.object({
   amount: z.number().int().positive("Amount must be a positive number"),
   referenceType: z.string().optional(),
   referenceId: z.number().int().optional(),
-  description: z.string().optional()
+  description: z.string().optional(),
+  orderValue: z.number().optional(),
+  category: z.string().optional()
 });
 
 const adjustWalletSchema = z.object({
@@ -143,6 +148,49 @@ export async function redeemCoins(req: Request, res: Response) {
       return res.status(400).json({ 
         error: `Cannot redeem more than ${settings.maxRedeemableCoins} coins at once` 
       });
+    }
+    
+    // Check if there's a reference to an order or cart (for validation with new fields)
+    if (referenceType === 'ORDER' || referenceType === 'CART') {
+      // Get the order or cart value if provided
+      let orderValue = 0;
+      if (referenceId) {
+        // In a real implementation, we would fetch the actual order/cart value
+        // For now, let's assume we have it from the request
+        orderValue = req.body.orderValue ? Number(req.body.orderValue) : 0;
+        
+        // Check minimum cart value requirement
+        if (settings.minCartValue > 0 && orderValue < settings.minCartValue) {
+          return res.status(400).json({
+            error: `Order value must be at least ₹${settings.minCartValue} to use coins`
+          });
+        }
+        
+        // Check if the category is applicable (if categories are restricted)
+        if (settings.applicableCategories) {
+          const categories = settings.applicableCategories.split(',').map(c => c.trim().toLowerCase());
+          const orderCategory = req.body.category ? req.body.category.toLowerCase() : '';
+          
+          if (categories.length > 0 && orderCategory && !categories.includes(orderCategory)) {
+            return res.status(400).json({
+              error: `Coins cannot be used for this product category`
+            });
+          }
+        }
+        
+        // Check maximum usage percentage
+        if (settings.maxUsagePercentage > 0) {
+          const discountAmount = amount * settings.coinToCurrencyRatio;
+          const maxDiscount = (orderValue * settings.maxUsagePercentage) / 100;
+          
+          if (discountAmount > maxDiscount) {
+            const maxCoins = Math.floor(maxDiscount / settings.coinToCurrencyRatio);
+            return res.status(400).json({
+              error: `You can use a maximum of ${maxCoins} coins (${settings.maxUsagePercentage}% of order value) for this order`
+            });
+          }
+        }
+      }
     }
     
     // Process the redemption
