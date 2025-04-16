@@ -130,6 +130,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       href: "/admin/gift-cards-management",
       icon: <Gift className="h-5 w-5" />,
     },
+    {
+      title: "Wallet Management",
+      href: "/admin/wallet-management",
+      icon: <CreditCard className="h-5 w-5" />,
+    },
   ];
 
   const handleLogout = async () => {

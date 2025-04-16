@@ -381,6 +381,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     </Link>
                   </Button>
                 </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <Button
+                    variant="ghost"
+                    asChild
+                    className={`w-full justify-start ${isActive('/buyer/wallet') ? 'bg-primary/10 text-primary' : ''}`}
+                  >
+                    <Link href="/buyer/wallet">
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      <span>My Wallet</span>
+                    </Link>
+                  </Button>
+                </SidebarMenuItem>
               </SidebarMenu>
               <SidebarSeparator />
               <SidebarMenu>
@@ -434,3 +446,5 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     </SidebarProvider>
   );
 }
+
+export default DashboardLayout;

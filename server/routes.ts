@@ -3945,6 +3945,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await giftCardsHandlers.deleteGiftCardTemplate(req, res);
   });
 
+  // ========== Wallet System Routes ==========
+  
+  // Get wallet settings
+  app.get("/api/wallet/settings", async (req, res) => {
+    await walletRoutes.getWalletSettings(req, res);
+  });
+  
+  // Update wallet settings (admin only)
+  app.put("/api/wallet/settings", async (req, res) => {
+    await walletRoutes.updateWalletSettings(req, res);
+  });
+  
+  // Get user wallet
+  app.get("/api/wallet", async (req, res) => {
+    await walletRoutes.getUserWallet(req, res);
+  });
+  
+  // Get user wallet transactions
+  app.get("/api/wallet/transactions", async (req, res) => {
+    await walletRoutes.getUserWalletTransactions(req, res);
+  });
+  
+  // Redeem coins from wallet
+  app.post("/api/wallet/redeem", async (req, res) => {
+    await walletRoutes.redeemCoins(req, res);
+  });
+  
+  // Process expired coins (admin only)
+  app.post("/api/wallet/process-expired", async (req, res) => {
+    await walletRoutes.processExpiredCoins(req, res);
+  });
+  
+  // Manual wallet adjustment (admin only)
+  app.post("/api/wallet/adjust", async (req, res) => {
+    await walletRoutes.manualWalletAdjustment(req, res);
+  });
+  
+  // Get user wallet by ID (admin only)
+  app.get("/api/wallet/user/:userId", async (req, res) => {
+    await walletRoutes.getWalletByUserId(req, res);
+  });
+  
+  // Get wallet transactions by user ID (admin only)
+  app.get("/api/wallet/user/:userId/transactions", async (req, res) => {
+    await walletRoutes.getWalletTransactionsByUserId(req, res);
+  });
+  
+  // Get users with wallets (admin only)
+  app.get("/api/wallet/users", async (req, res) => {
+    await walletRoutes.getUsersWithWallets(req, res);
+  });
+  
   const httpServer = createServer(app);
   return httpServer;
 }

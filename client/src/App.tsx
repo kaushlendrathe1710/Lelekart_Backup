@@ -21,6 +21,7 @@ import { ProtectedRoute } from './lib/protected-route';
 import { AuthProvider } from './hooks/use-auth';
 import { CartProvider } from './context/cart-context';
 import { AIAssistantProvider } from './context/ai-assistant-context';
+import { WalletProvider } from './context/wallet-context';
 import { AIAssistantButton } from './components/ai/ai-assistant-button';
 import { AIShoppingAssistant } from './components/ai/ai-shopping-assistant';
 
@@ -63,6 +64,8 @@ import BuyerSettingsPage from './pages/buyer/settings';
 import AddressManagementPage from './pages/buyer/address-management';
 import BuyerRewardsPage from './pages/buyer/rewards';
 import BuyerGiftCardsPage from './pages/buyer/gift-cards';
+import BuyerWalletPage from './pages/buyer/wallet';
+import WalletManagementPage from './pages/admin/wallet-management';
 
 function App() {
   return (
@@ -70,7 +73,8 @@ function App() {
       <AuthProvider>
         <AIAssistantProvider>
           <CartProvider>
-            <TooltipProvider>
+            <WalletProvider>
+              <TooltipProvider>
               <div className="app">
                 <AIAssistantButton />
                 <AIShoppingAssistant />
@@ -560,6 +564,26 @@ function App() {
                     )}
                   </Route>
                   
+                  <Route path="/buyer/wallet">
+                    {() => (
+                      <ProtectedRoute 
+                        path="/buyer/wallet" 
+                        role="buyer" 
+                        component={BuyerWalletPage} 
+                      />
+                    )}
+                  </Route>
+                  
+                  <Route path="/admin/wallet-management">
+                    {() => (
+                      <ProtectedRoute 
+                        path="/admin/wallet-management" 
+                        role="admin" 
+                        component={WalletManagementPage} 
+                      />
+                    )}
+                  </Route>
+                  
                   <Route>
                     {() => (
                       <Layout>
@@ -571,6 +595,7 @@ function App() {
                 <Toaster />
               </div>
             </TooltipProvider>
+            </WalletProvider>
           </CartProvider>
         </AIAssistantProvider>
       </AuthProvider>
