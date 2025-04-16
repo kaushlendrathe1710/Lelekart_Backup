@@ -19,7 +19,13 @@ import {
   businessDetails, BusinessDetails, InsertBusinessDetails,
   bankingInformation, BankingInformation, InsertBankingInformation,
   banners, Banner, InsertBanner,
-  footerContent, FooterContent, InsertFooterContent
+  footerContent, FooterContent, InsertFooterContent,
+  shippingMethods, ShippingMethod, InsertShippingMethod,
+  shippingZones, ShippingZone, InsertShippingZone,
+  shippingRules, ShippingRule, InsertShippingRule,
+  sellerShippingSettings, SellerShippingSettings, InsertSellerShippingSettings,
+  productShippingOverrides, ProductShippingOverride, InsertProductShippingOverride,
+  orderShippingTracking, OrderShippingTracking, InsertOrderShippingTracking
 } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
@@ -194,6 +200,47 @@ export interface IStorage {
   deleteFooterContent(id: number): Promise<void>;
   toggleFooterContentActive(id: number): Promise<FooterContent>;
   updateFooterContentOrder(id: number, order: number): Promise<FooterContent>;
+  
+  // Shipping Methods operations
+  getShippingMethods(): Promise<ShippingMethod[]>;
+  getShippingMethodById(id: number): Promise<ShippingMethod | undefined>;
+  createShippingMethod(method: InsertShippingMethod): Promise<ShippingMethod>;
+  updateShippingMethod(id: number, method: Partial<ShippingMethod>): Promise<ShippingMethod>;
+  deleteShippingMethod(id: number): Promise<void>;
+  
+  // Shipping Zones operations
+  getShippingZones(): Promise<ShippingZone[]>;
+  getShippingZoneById(id: number): Promise<ShippingZone | undefined>;
+  createShippingZone(zone: InsertShippingZone): Promise<ShippingZone>;
+  updateShippingZone(id: number, zone: Partial<ShippingZone>): Promise<ShippingZone>;
+  deleteShippingZone(id: number): Promise<void>;
+  
+  // Shipping Rules operations
+  getShippingRules(): Promise<ShippingRule[]>;
+  getShippingRuleById(id: number): Promise<ShippingRule | undefined>;
+  getShippingRulesByMethod(methodId: number): Promise<ShippingRule[]>;
+  getShippingRulesByZone(zoneId: number): Promise<ShippingRule[]>;
+  createShippingRule(rule: InsertShippingRule): Promise<ShippingRule>;
+  updateShippingRule(id: number, rule: Partial<ShippingRule>): Promise<ShippingRule>;
+  deleteShippingRule(id: number): Promise<void>;
+  
+  // Seller Shipping Settings operations
+  getSellerShippingSettings(sellerId: number): Promise<SellerShippingSettings | undefined>;
+  createSellerShippingSettings(settings: InsertSellerShippingSettings): Promise<SellerShippingSettings>;
+  updateSellerShippingSettings(sellerId: number, settings: Partial<SellerShippingSettings>): Promise<SellerShippingSettings>;
+  
+  // Product Shipping Overrides operations
+  getProductShippingOverrides(sellerId: number): Promise<ProductShippingOverride[]>;
+  getProductShippingOverrideById(id: number): Promise<ProductShippingOverride | undefined>;
+  getProductShippingOverrideByProduct(productId: number): Promise<ProductShippingOverride | undefined>;
+  createProductShippingOverride(override: InsertProductShippingOverride): Promise<ProductShippingOverride>;
+  updateProductShippingOverride(id: number, override: Partial<ProductShippingOverride>): Promise<ProductShippingOverride>;
+  deleteProductShippingOverride(id: number): Promise<void>;
+  
+  // Order Shipping Tracking operations
+  getOrderShippingTracking(orderId: number): Promise<OrderShippingTracking | undefined>;
+  createOrderShippingTracking(tracking: InsertOrderShippingTracking): Promise<OrderShippingTracking>;
+  updateOrderShippingTracking(id: number, tracking: Partial<OrderShippingTracking>): Promise<OrderShippingTracking>;
   
   // Session store
   sessionStore: session.SessionStore;
