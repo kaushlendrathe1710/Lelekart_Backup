@@ -1,400 +1,434 @@
-import React, { useState } from 'react';
-import { useWallet } from '@/context/wallet-context';
-import { useAuth } from '@/hooks/use-auth';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { Loader2, HelpCircle, TrendingUp, ArrowDownUp, AlertCircle } from 'lucide-react';
-import DashboardLayout from '@/components/layout/dashboard-layout';
-import { formatDistanceToNow } from 'date-fns';
-import { useToast } from '@/hooks/use-toast';
+import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useWallet } from "@/context/wallet-context";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import { 
+  Table, 
+  TableBody, 
+  TableCaption, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import { Loader2, CreditCard, Coins, ArrowDown, ArrowUp, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
+import { format } from "date-fns";
+
+// Schema for redeeming coins
+const redeemFormSchema = z.object({
+  amount: z.coerce
+    .number()
+    .int()
+    .positive("Amount must be a positive number")
+});
+
+type RedeemFormValues = z.infer<typeof redeemFormSchema>;
 
 export default function WalletPage() {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const {
-    wallet,
-    walletSettings,
-    transactions,
-    isLoadingWallet,
-    isLoadingTransactions,
-    isLoadingSettings,
-    redeemCoinsMutation,
+  const { 
+    wallet, 
+    transactions, 
+    settings,
+    isLoading, 
+    isTransactionsLoading,
+    isSettingsLoading,
+    redeemCoins 
   } = useWallet();
   
-  const [redeemAmount, setRedeemAmount] = useState<number>(0);
-  const [isRedeeming, setIsRedeeming] = useState<boolean>(false);
-  
-  if (isLoadingWallet || isLoadingSettings) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[80vh]">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-      </DashboardLayout>
-    );
-  }
-  
-  if (!wallet || !walletSettings) {
-    return (
-      <DashboardLayout>
-        <div className="container mx-auto py-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>My Wallet</CardTitle>
-              <CardDescription>Your wallet information is not available.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>There was an error loading your wallet information. Please try again later.</p>
-            </CardContent>
-          </Card>
-        </div>
-      </DashboardLayout>
-    );
-  }
-  
-  const handleRedeemCoins = async () => {
-    if (redeemAmount <= 0) {
-      toast({
-        title: "Invalid amount",
-        description: "Please enter a valid amount of coins to redeem.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (redeemAmount > wallet.balance) {
-      toast({
-        title: "Insufficient balance",
-        description: "You don't have enough coins in your wallet.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (redeemAmount > walletSettings.maxRedeemableCoins) {
-      toast({
-        title: "Maximum limit exceeded",
-        description: `You can redeem up to ${walletSettings.maxRedeemableCoins} coins at once.`,
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsRedeeming(true);
+  const [activeTab, setActiveTab] = useState("overview");
+
+  // Set up form with validation
+  const form = useForm<RedeemFormValues>({
+    resolver: zodResolver(redeemFormSchema),
+    defaultValues: {
+      amount: 100,
+    },
+  });
+
+  // Handle form submission
+  async function onSubmit(data: RedeemFormValues) {
     try {
-      await redeemCoinsMutation.mutateAsync({
-        amount: redeemAmount,
-        referenceType: "MANUAL_REDEEM",
-        description: "Manual redemption by user",
-      });
-      setRedeemAmount(0);
-      setIsRedeeming(false);
+      await redeemCoins(data.amount);
+      form.reset({ amount: 100 });
     } catch (error) {
-      setIsRedeeming(false);
+      console.error("Error redeeming coins:", error);
+    }
+  }
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), "MMM dd, yyyy • HH:mm");
+    } catch (e) {
+      return "Invalid date";
     }
   };
+
+  // Check if a coin balance is about to expire
+  const getFirstExpiringTransaction = () => {
+    if (!transactions || transactions.length === 0) return null;
+    
+    const now = new Date();
+    const creditTransactions = transactions.filter(
+      t => t.type === 'credit' && t.expiresAt
+    );
+    
+    if (creditTransactions.length === 0) return null;
+    
+    // Sort by expiration date (closest first)
+    creditTransactions.sort((a, b) => {
+      const aDate = a.expiresAt ? new Date(a.expiresAt) : new Date(9999, 11, 31);
+      const bDate = b.expiresAt ? new Date(b.expiresAt) : new Date(9999, 11, 31);
+      return aDate.getTime() - bDate.getTime();
+    });
+    
+    const closest = creditTransactions[0];
+    const expiryDate = new Date(closest.expiresAt!);
+    
+    // If it's going to expire within the next 7 days
+    const daysUntilExpiry = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysUntilExpiry <= 7 && daysUntilExpiry > 0) {
+      return {
+        amount: closest.amount,
+        days: daysUntilExpiry
+      };
+    }
+    
+    return null;
+  };
+
+  const expiringCoins = getFirstExpiringTransaction();
   
-  // Calculate estimated value of current coins
-  const estimatedValue = parseFloat((wallet.balance * parseFloat(walletSettings.coinToCurrencyRatio.toString())).toFixed(2));
-  
+  // Calculate conversion to INR if settings available
+  const calculateInrValue = (coins: number) => {
+    if (!settings || !settings.conversionRate) return 0;
+    return (coins / settings.conversionRate).toFixed(2);
+  };
+
+  // Get current month's transactions
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  const currentMonthTransactions = transactions.filter(t => {
+    const date = new Date(t.createdAt);
+    return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+  });
+
+  // Calculate transactions statistics
+  const stats = {
+    credited: currentMonthTransactions
+      .filter(t => t.type === 'credit')
+      .reduce((acc, t) => acc + t.amount, 0),
+    spent: currentMonthTransactions
+      .filter(t => t.type === 'debit')
+      .reduce((acc, t) => acc + Math.abs(t.amount), 0),
+    expired: currentMonthTransactions
+      .filter(t => t.type === 'expired')
+      .reduce((acc, t) => acc + t.amount, 0)
+  };
+
+  if (isLoading || isSettingsLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex justify-center items-center h-96">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // If wallet system is disabled
+  if (settings && !settings.isActive) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-6">
+          <h1 className="text-3xl font-bold tracking-tight">My Wallet</h1>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Wallet System Disabled</AlertTitle>
+            <AlertDescription>
+              The wallet system is currently disabled by the administrator.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
-      <div className="container mx-auto py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <Card className="col-span-2">
-            <CardHeader>
-              <CardTitle>My Wallet</CardTitle>
-              <CardDescription>Manage your wallet and coins</CardDescription>
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold tracking-tight">My Wallet</h1>
+
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Available Balance</CardTitle>
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-primary/10 rounded-lg p-4">
-                  <h3 className="text-sm font-semibold text-muted-foreground mb-1">Current Balance</h3>
-                  <p className="text-3xl font-bold">{wallet.balance} <span className="text-sm font-normal">coins</span></p>
-                  <p className="text-sm text-muted-foreground">Est. value: ₹{estimatedValue}</p>
-                </div>
-                <div className="bg-green-500/10 rounded-lg p-4">
-                  <h3 className="text-sm font-semibold text-muted-foreground mb-1">Lifetime Earned</h3>
-                  <p className="text-3xl font-bold">{wallet.lifetimeEarned} <span className="text-sm font-normal">coins</span></p>
-                  <p className="text-sm text-muted-foreground">
-                    <TrendingUp className="inline-block h-4 w-4 mr-1" />
-                    Total coins earned
-                  </p>
-                </div>
-                <div className="bg-orange-500/10 rounded-lg p-4">
-                  <h3 className="text-sm font-semibold text-muted-foreground mb-1">Lifetime Redeemed</h3>
-                  <p className="text-3xl font-bold">{wallet.lifetimeRedeemed} <span className="text-sm font-normal">coins</span></p>
-                  <p className="text-sm text-muted-foreground">
-                    <ArrowDownUp className="inline-block h-4 w-4 mr-1" />
-                    Total coins spent
-                  </p>
-                </div>
-              </div>
+              <div className="text-2xl font-bold">{wallet?.balance || 0} coins</div>
+              <p className="text-xs text-muted-foreground">
+                ≈ ₹{calculateInrValue(wallet?.balance || 0)} value
+              </p>
             </CardContent>
-            <CardFooter>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button>Redeem Coins</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Redeem Coins</DialogTitle>
-                    <DialogDescription>
-                      Convert your coins to discount on your next purchase. Each coin is worth ₹{walletSettings.coinToCurrencyRatio}.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium">Your balance: {wallet.balance} coins</p>
-                      <p className="text-sm text-muted-foreground">Maximum redeemable: {walletSettings.maxRedeemableCoins} coins</p>
-                      <p className="text-sm text-muted-foreground">Minimum order value: ₹{walletSettings.minOrderValue}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        value={redeemAmount || ''}
-                        onChange={(e) => setRedeemAmount(parseInt(e.target.value) || 0)}
-                        placeholder="Enter amount of coins"
-                        min={1}
-                        max={Math.min(wallet.balance, walletSettings.maxRedeemableCoins)}
-                      />
-                      <div className="text-sm">
-                        = ₹{parseFloat((redeemAmount * parseFloat(walletSettings.coinToCurrencyRatio.toString())).toFixed(2))}
-                      </div>
-                    </div>
-                    {redeemAmount > wallet.balance && (
-                      <p className="text-sm text-red-500 flex items-center">
-                        <AlertCircle className="h-4 w-4 mr-1" />
-                        Insufficient balance
-                      </p>
-                    )}
-                    {redeemAmount > walletSettings.maxRedeemableCoins && (
-                      <p className="text-sm text-red-500 flex items-center">
-                        <AlertCircle className="h-4 w-4 mr-1" />
-                        Exceeds maximum limit
-                      </p>
-                    )}
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      onClick={handleRedeemCoins}
-                      disabled={isRedeeming || redeemAmount <= 0 || redeemAmount > wallet.balance || redeemAmount > walletSettings.maxRedeemableCoins}
-                    >
-                      {isRedeeming ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Processing...
-                        </>
-                      ) : (
-                        'Redeem Now'
-                      )}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </CardFooter>
           </Card>
           
           <Card>
-            <CardHeader>
-              <CardTitle>Wallet Information</CardTitle>
-              <CardDescription>How your wallet works</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">This Month Earned</CardTitle>
+              <ArrowUp className="h-4 w-4 text-emerald-500" />
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <h3 className="font-semibold flex items-center gap-2">
-                  Coin Value
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <HelpCircle className="h-4 w-4" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="max-w-xs">This is the value of each coin when redeemed for discounts</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </h3>
-                <p className="text-sm">1 coin = ₹{walletSettings.coinToCurrencyRatio}</p>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold flex items-center gap-2">
-                  First Purchase Bonus
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <HelpCircle className="h-4 w-4" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="max-w-xs">Coins earned on your first purchase</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </h3>
-                <p className="text-sm">{walletSettings.firstPurchaseCoins} coins</p>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold flex items-center gap-2">
-                  Maximum Redemption
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <HelpCircle className="h-4 w-4" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="max-w-xs">Maximum coins you can redeem in a single transaction</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </h3>
-                <p className="text-sm">{walletSettings.maxRedeemableCoins} coins</p>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold flex items-center gap-2">
-                  Minimum Order Value
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <HelpCircle className="h-4 w-4" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="max-w-xs">Minimum order value required to use coin redemption</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </h3>
-                <p className="text-sm">₹{walletSettings.minOrderValue}</p>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold flex items-center gap-2">
-                  Coin Expiry
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <HelpCircle className="h-4 w-4" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="max-w-xs">Coins expire after this many days from when they were earned</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </h3>
-                <p className="text-sm">{walletSettings.coinExpiryDays} days</p>
-              </div>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.credited} coins</div>
+              <p className="text-xs text-muted-foreground">
+                From {currentMonthTransactions.filter(t => t.type === 'credit').length} transactions
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">This Month Spent</CardTitle>
+              <ArrowDown className="h-4 w-4 text-rose-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.spent} coins</div>
+              <p className="text-xs text-muted-foreground">
+                From {currentMonthTransactions.filter(t => t.type === 'debit').length} redemptions
+              </p>
             </CardContent>
           </Card>
         </div>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Transaction History</CardTitle>
-            <CardDescription>Your recent wallet transactions</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoadingTransactions ? (
-              <div className="flex items-center justify-center p-6">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : transactions.length === 0 ? (
-              <div className="text-center p-6">
-                <p className="text-muted-foreground">No transactions yet</p>
-              </div>
-            ) : (
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {transactions.map((transaction) => (
-                      <TableRow key={transaction.id}>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">
-                              {new Date(transaction.createdAt).toLocaleDateString()}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {formatDistanceToNow(new Date(transaction.createdAt), { addSuffix: true })}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            transaction.transactionType === 'CREDIT' 
-                              ? 'bg-green-100 text-green-800 dark:bg-green-800/20 dark:text-green-400' 
-                              : transaction.transactionType === 'DEBIT'
-                                ? 'bg-red-100 text-red-800 dark:bg-red-800/20 dark:text-red-400'
-                                : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800/20 dark:text-yellow-400'
-                          }`}>
-                            {transaction.transactionType}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          {transaction.description || (
-                            transaction.referenceType === 'FIRST_PURCHASE' 
-                              ? 'First purchase reward' 
-                              : transaction.referenceType === 'ORDER_DISCOUNT'
-                                ? 'Order discount'
-                                : transaction.referenceType === 'MANUAL_REDEEM'
-                                  ? 'Manual redemption'
-                                  : transaction.referenceType === 'EXPIRED'
-                                    ? 'Expired coins'
-                                    : transaction.referenceType || 'Transaction'
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          <span className={transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}>
-                            {transaction.amount > 0 ? '+' : ''}{transaction.amount}
-                          </span>
-                        </TableCell>
+
+        {/* Expiring coins alert */}
+        {expiringCoins && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Coins Expiring Soon!</AlertTitle>
+            <AlertDescription>
+              {expiringCoins.amount} coins will expire in {expiringCoins.days} days. Redeem them before they expire!
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="transactions">Transactions</TabsTrigger>
+            <TabsTrigger value="redeem">Redeem Coins</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="overview" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Wallet Overview</CardTitle>
+                <CardDescription>
+                  Your wallet activity and coin statistics
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <div>Month's Activity</div>
+                    <div className="font-medium">
+                      {stats.credited - stats.spent - stats.expired} coins (net change)
+                    </div>
+                  </div>
+                  <Progress value={Math.min(stats.credited > 0 ? (stats.credited - stats.spent) / stats.credited * 100 : 0, 100)} />
+                </div>
+                
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Value</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell>Conversion Rate</TableCell>
+                        <TableCell>{settings?.conversionRate || 0} coins = ₹1</TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Coin Expiry</TableCell>
+                        <TableCell>{settings?.expiryDays || 0} days after earning</TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>First Purchase Bonus</TableCell>
+                        <TableCell>{settings?.firstPurchaseCoins || 0} coins</TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+              <CardFooter className="border-t px-6 py-4">
+                <p className="text-xs text-muted-foreground">
+                  Lelekart coins can be redeemed for discounts on your purchases. Coins expire after {settings?.expiryDays || 30} days from the date they were earned.
+                </p>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="transactions" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Transaction History</CardTitle>
+                <CardDescription>
+                  Your recent wallet transactions
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isTransactionsLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Description</TableHead>
+                          <TableHead>Expires</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {transactions.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center py-6">
+                              No transactions found
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          transactions.map((transaction) => {
+                            let typeStyle = '';
+                            if (transaction.type === 'credit') typeStyle = 'text-green-600 font-medium';
+                            if (transaction.type === 'debit') typeStyle = 'text-red-600 font-medium';
+                            if (transaction.type === 'expired') typeStyle = 'text-orange-600 font-medium';
+                            
+                            return (
+                              <TableRow key={transaction.id}>
+                                <TableCell>{formatDate(transaction.createdAt)}</TableCell>
+                                <TableCell className={typeStyle}>
+                                  {transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}
+                                </TableCell>
+                                <TableCell className={typeStyle}>
+                                  {transaction.type === 'debit' ? '-' : ''}{transaction.amount}
+                                </TableCell>
+                                <TableCell>{transaction.description}</TableCell>
+                                <TableCell>
+                                  {transaction.expiresAt ? formatDate(transaction.expiresAt) : 'N/A'}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="redeem">
+            <Card>
+              <CardHeader>
+                <CardTitle>Redeem Coins</CardTitle>
+                <CardDescription>
+                  Convert your coins into vouchers for your next purchase
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="amount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Amount to Redeem</FormLabel>
+                          <FormControl>
+                            <div className="flex items-center space-x-2">
+                              <Input type="number" {...field} />
+                              <Coins className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                          </FormControl>
+                          <FormDescription>
+                            This will generate a discount worth ₹{calculateInrValue(field.value || 0)} on your next purchase
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="space-y-1.5">
+                      <div className="text-sm font-semibold">Summary</div>
+                      <div className="rounded-lg border p-3 text-sm">
+                        <div className="flex justify-between py-1">
+                          <span>Current Balance:</span>
+                          <span>{wallet?.balance || 0} coins</span>
+                        </div>
+                        <div className="flex justify-between py-1">
+                          <span>Amount to Redeem:</span>
+                          <span>{form.watch('amount') || 0} coins</span>
+                        </div>
+                        <div className="flex justify-between py-1">
+                          <span>Conversion Value:</span>
+                          <span>₹{calculateInrValue(form.watch('amount') || 0)}</span>
+                        </div>
+                        <div className="border-t my-2" />
+                        <div className="flex justify-between font-medium py-1">
+                          <span>Remaining Balance:</span>
+                          <span>
+                            {Math.max(0, (wallet?.balance || 0) - (form.watch('amount') || 0))} coins
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <Button 
+                      type="submit" 
+                      className="w-full" 
+                      disabled={!wallet?.balance || wallet.balance < (form.watch('amount') || 0)}
+                    >
+                      Redeem Now
+                    </Button>
+                    
+                    {(!wallet?.balance || wallet.balance < (form.watch('amount') || 0)) && (
+                      <Alert variant="destructive" className="mt-2">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Insufficient Balance</AlertTitle>
+                        <AlertDescription>
+                          You don't have enough coins to redeem this amount.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </form>
+                </Form>
+              </CardContent>
+              <CardFooter className="border-t px-6 py-4">
+                <p className="text-xs text-muted-foreground">
+                  Redeemed coins will generate a voucher code that you can use during checkout. 
+                  The voucher will be applied automatically to your next order.
+                </p>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );

@@ -1,67 +1,44 @@
-import React, { createContext, useContext, ReactNode } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { queryClient, apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/use-auth';
+import { createContext, ReactNode, useContext, useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
-// Define wallet data types
-interface WalletSettings {
+interface WalletTransaction {
   id: number;
-  firstPurchaseCoins: number;
-  coinToCurrencyRatio: number;
-  minOrderValue: number;
-  maxRedeemableCoins: number;
-  coinExpiryDays: number;
-  isEnabled: boolean;
+  userId: number;
+  amount: number;
+  type: "credit" | "debit" | "expired";
+  description: string;
   createdAt: string;
-  updatedAt: string;
+  expiresAt: string | null;
 }
 
 interface Wallet {
   id: number;
   userId: number;
   balance: number;
-  lifetimeEarned: number;
-  lifetimeRedeemed: number;
-  createdAt: string;
-  updatedAt: string;
 }
 
-interface WalletTransaction {
-  id: number;
-  walletId: number;
-  amount: number;
-  transactionType: string;
-  referenceType: string | null;
-  referenceId: number | null;
-  description: string | null;
-  expiresAt: string | null;
-  createdAt: string;
+interface WalletSettings {
+  id?: number;
+  firstPurchaseCoins: number;
+  expiryDays: number;
+  conversionRate: number; // How many coins equal 1 INR
+  isActive: boolean;
 }
 
-interface RedeemCoinsData {
-  amount: number;
-  referenceType?: string;
-  referenceId?: number;
-  description?: string;
-}
-
-interface RedeemCoinsResponse {
-  wallet: Wallet;
-  discountAmount: number;
-}
-
-interface WalletContextType {
+type WalletContextType = {
   wallet: Wallet | null;
-  walletSettings: WalletSettings | null;
   transactions: WalletTransaction[];
-  isLoadingWallet: boolean;
-  isLoadingTransactions: boolean;
-  isLoadingSettings: boolean;
+  settings: WalletSettings | null;
+  isLoading: boolean;
+  isSettingsLoading: boolean;
+  isTransactionsLoading: boolean;
+  redeemCoins: (amount: number) => Promise<void>;
   refetchWallet: () => void;
   refetchTransactions: () => void;
-  redeemCoinsMutation: any;
-}
+};
 
 const WalletContext = createContext<WalletContextType | null>(null);
 
@@ -72,89 +49,115 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // Get wallet data
   const {
     data: wallet,
-    isLoading: isLoadingWallet,
-    refetch: refetchWallet,
-  } = useQuery<Wallet>({
-    queryKey: ["/api/wallet"],
+    isLoading: isWalletLoading,
+    refetch: refetchWallet
+  } = useQuery({
+    queryKey: ['/api/wallet'],
     queryFn: async () => {
       if (!user) return null;
-      const res = await apiRequest("GET", "/api/wallet");
-      if (!res.ok) throw new Error("Failed to fetch wallet");
-      return await res.json();
+      try {
+        const res = await apiRequest('GET', '/api/wallet');
+        if (!res.ok) {
+          if (res.status === 404) {
+            return null;
+          }
+          throw new Error('Failed to fetch wallet data');
+        }
+        return res.json();
+      } catch (error) {
+        console.error('Error fetching wallet:', error);
+        return null;
+      }
     },
-    enabled: !!user,
+    enabled: !!user
   });
-  
-  // Get wallet settings
-  const {
-    data: walletSettings,
-    isLoading: isLoadingSettings,
-  } = useQuery<WalletSettings>({
-    queryKey: ["/api/wallet/settings"],
-    queryFn: async () => {
-      const res = await apiRequest("GET", "/api/wallet/settings");
-      if (!res.ok) throw new Error("Failed to fetch wallet settings");
-      return await res.json();
-    },
-    enabled: !!user,
-  });
-  
+
   // Get wallet transactions
   const {
-    data: transactionsData,
-    isLoading: isLoadingTransactions,
-    refetch: refetchTransactions,
-  } = useQuery<{ transactions: WalletTransaction[], pagination: any }>({
-    queryKey: ["/api/wallet/transactions"],
+    data: transactions = [],
+    isLoading: isTransactionsLoading,
+    refetch: refetchTransactions
+  } = useQuery({
+    queryKey: ['/api/wallet/transactions'],
     queryFn: async () => {
-      if (!user) return { transactions: [], pagination: { total: 0 } };
-      const res = await apiRequest("GET", "/api/wallet/transactions");
-      if (!res.ok) throw new Error("Failed to fetch wallet transactions");
-      return await res.json();
+      if (!user) return [];
+      try {
+        const res = await apiRequest('GET', '/api/wallet/transactions');
+        if (!res.ok) {
+          throw new Error('Failed to fetch wallet transactions');
+        }
+        return res.json();
+      } catch (error) {
+        console.error('Error fetching transactions:', error);
+        return [];
+      }
     },
     enabled: !!user,
   });
-  
+
+  // Get wallet settings
+  const {
+    data: settings,
+    isLoading: isSettingsLoading,
+  } = useQuery({
+    queryKey: ['/api/wallet/settings'],
+    queryFn: async () => {
+      try {
+        const res = await apiRequest('GET', '/api/wallet/settings');
+        if (!res.ok) {
+          throw new Error('Failed to fetch wallet settings');
+        }
+        return res.json();
+      } catch (error) {
+        console.error('Error fetching wallet settings:', error);
+        return null;
+      }
+    },
+  });
+
   // Redeem coins mutation
   const redeemCoinsMutation = useMutation({
-    mutationFn: async (data: RedeemCoinsData): Promise<RedeemCoinsResponse> => {
-      const res = await apiRequest("POST", "/api/wallet/redeem", data);
+    mutationFn: async (amount: number) => {
+      const res = await apiRequest('POST', '/api/wallet/redeem', { amount });
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.error || "Failed to redeem coins");
+        throw new Error(errorData.message || 'Failed to redeem coins');
       }
-      return await res.json();
+      return res.json();
     },
     onSuccess: () => {
       toast({
-        title: "Coins redeemed successfully",
-        description: "Your wallet has been updated.",
+        title: "Coins Redeemed",
+        description: "Your coins have been successfully redeemed",
       });
-      // Refresh wallet data and transactions
-      queryClient.invalidateQueries({ queryKey: ["/api/wallet"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/wallet/transactions"] });
+      refetchWallet();
+      refetchTransactions();
     },
     onError: (error: Error) => {
       toast({
-        title: "Failed to redeem coins",
+        title: "Redemption Failed",
         description: error.message,
         variant: "destructive",
       });
     },
   });
-  
+
+  const redeemCoins = async (amount: number) => {
+    await redeemCoinsMutation.mutateAsync(amount);
+  };
+
   return (
     <WalletContext.Provider
       value={{
-        wallet: wallet || null,
-        walletSettings: walletSettings || null,
-        transactions: transactionsData?.transactions || [],
-        isLoadingWallet,
-        isLoadingTransactions,
-        isLoadingSettings,
+        wallet,
+        transactions,
+        settings,
+        isLoading: isWalletLoading,
+        isTransactionsLoading,
+        isSettingsLoading,
+        redeemCoins,
         refetchWallet,
         refetchTransactions,
-        redeemCoinsMutation,
       }}
     >
       {children}
