@@ -186,6 +186,36 @@ const SellerProfilePage = () => {
     }
   });
   
+  // Document download handler
+  const handleDownloadDocument = async (documentId: number) => {
+    try {
+      const res = await fetch(`/api/seller/documents/${documentId}/download`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      if (!res.ok) {
+        throw new Error('Failed to get download URL');
+      }
+      
+      const data = await res.json();
+      
+      if (data.downloadUrl) {
+        // Open the download URL in a new tab
+        window.open(data.downloadUrl, '_blank');
+      } else {
+        throw new Error('Download URL not found in the response');
+      }
+    } catch (error) {
+      console.error("Error downloading document:", error);
+      toast({
+        title: "Download Failed",
+        description: "Unable to download the document. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+  
   const updateBusinessDetailsMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest('PUT', '/api/seller/business-details', businessDetails);
