@@ -5,7 +5,6 @@ import { Product } from '@shared/schema';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { ProductCard } from '@/components/ui/product-card';
 import { Skeleton } from '@/components/ui/skeleton';
-// Import icons
 import { Search, AlertTriangle, Mic, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { VoiceSearchDialog } from '@/components/search/voice-search-dialog';

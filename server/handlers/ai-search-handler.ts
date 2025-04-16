@@ -72,20 +72,53 @@ Make sure the response is valid JSON.
     // Parse the JSON response
     let parsedResponse;
     try {
+      console.log('Raw AI response text:', text);
+      
       // Extract JSON if it's wrapped in markdown code blocks
-      const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || 
-                        text.match(/```\n([\s\S]*?)\n```/) ||
-                        text.match(/{[\s\S]*?}/);
-                        
-      const jsonString = jsonMatch ? jsonMatch[0] : text;
-      parsedResponse = JSON.parse(jsonString);
+      let jsonString;
+      const jsonBlockMatch = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/```\n([\s\S]*?)\n```/);
+      
+      if (jsonBlockMatch && jsonBlockMatch[1]) {
+        // Extract content between code blocks
+        jsonString = jsonBlockMatch[1];
+      } else {
+        // Try to find JSON object pattern
+        const jsonObjectMatch = text.match(/{[\s\S]*?}/);
+        jsonString = jsonObjectMatch ? jsonObjectMatch[0] : text;
+      }
+      
+      console.log('Extracted JSON string:', jsonString);
+      
+      try {
+        parsedResponse = JSON.parse(jsonString);
+      } catch (parseError) {
+        // If parsing fails, provide default values
+        console.error('JSON parse error, using fallback:', parseError);
+        parsedResponse = {
+          category: null,
+          priceMin: null,
+          priceMax: null,
+          color: null,
+          size: null,
+          brand: null,
+          sortBy: null,
+          keywords: query.split(' ')
+        };
+      }
     } catch (error) {
       console.error('Error parsing AI response as JSON:', error);
       console.log('Raw AI response:', text);
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Failed to parse AI response' 
-      });
+      // Instead of failing, provide a default response
+      parsedResponse = {
+        category: null,
+        priceMin: null,
+        priceMax: null,
+        color: null,
+        size: null,
+        brand: null,
+        sortBy: null,
+        keywords: query.split(' ')
+      };
     }
     
     // Return the processed search parameters

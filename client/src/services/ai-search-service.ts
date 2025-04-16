@@ -31,20 +31,44 @@ export const AISearchService = {
    */
   processQuery: async (query: string): Promise<SearchResult> => {
     try {
+      console.log('Processing AI search query:', query);
       const response = await apiRequest('POST', '/api/ai/search', { query });
-      const data = await response.json();
+      
+      // Log the raw response for debugging
+      const responseText = await response.text();
+      console.log('Raw AI search response:', responseText);
+      
+      // Parse the response text to JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Error parsing response JSON:', parseError);
+        throw new Error('Failed to parse search response');
+      }
       
       if (!response.ok) {
         throw new Error(data.error || 'Failed to process search query');
       }
       
-      return data;
+      // Ensure all required fields are present
+      return {
+        success: data.success || false,
+        query: data.query || query,
+        filters: data.filters || {},
+        enhancedQuery: data.enhancedQuery || query,
+        error: data.error
+      };
     } catch (error) {
       console.error('Error processing AI search query:', error);
+      
+      // Return a default search result that will still work
       return {
         success: false,
         query,
-        filters: {},
+        filters: {
+          keywords: query.split(' ')
+        },
         enhancedQuery: query,
         error: error instanceof Error ? error.message : 'Unknown error'
       };
