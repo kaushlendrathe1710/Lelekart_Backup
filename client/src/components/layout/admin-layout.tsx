@@ -34,6 +34,8 @@ import {
   UserCog,
   UserPlus,
   Truck,
+  Award,
+  Gift,
 } from "lucide-react";
 import { useState } from "react";
 import {
@@ -117,6 +119,16 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       title: "Shipping Management",
       href: "/admin/shipping-management",
       icon: <Truck className="h-5 w-5" />,
+    },
+    {
+      title: "Rewards Management",
+      href: "/admin/rewards-management",
+      icon: <Award className="h-5 w-5" />,
+    },
+    {
+      title: "Gift Cards Management",
+      href: "/admin/gift-cards-management",
+      icon: <Gift className="h-5 w-5" />,
     },
   ];
 
