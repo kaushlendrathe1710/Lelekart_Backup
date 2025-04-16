@@ -65,12 +65,10 @@ export default function HomePage() {
       if (!res.ok) throw new Error('Failed to fetch hero products');
       return res.json();
     },
-    // Refetch every 10 seconds to ensure changes from banner management are reflected quickly
-    refetchInterval: 10000,
-    // Enable refetch on window focus to update when user returns to tab
+    // Longer stale time to avoid unnecessary refetching
+    staleTime: 300000, // 5 minutes
+    // Only refetch on window focus, not continuously
     refetchOnWindowFocus: true,
-    // Ensure we always have the most up-to-date data
-    staleTime: 0
   });
   
   // Fetch deal of the day
@@ -78,8 +76,19 @@ export default function HomePage() {
     queryKey: ["/api/deal-of-the-day"],
     queryFn: async () => {
       const res = await fetch('/api/deal-of-the-day');
+      // Handle 404 gracefully
+      if (res.status === 404) {
+        return null;
+      }
       if (!res.ok) throw new Error('Failed to fetch deal of the day');
       return res.json();
+    },
+    // Cache longer to reduce requests
+    staleTime: 300000, // 5 minutes
+    // Don't retry on 404, which is expected when no deal is available
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 404) return false;
+      return failureCount < 3;
     }
   });
 
