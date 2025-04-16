@@ -366,10 +366,30 @@ export default function CheckoutPage() {
   
   // Update wallet discount state only when checkbox is checked and wallet is eligible
   useEffect(() => {
-    const isEligible = useWalletCoins && checkWalletEligibility();
-    const discountToApply = isEligible ? maxWalletDiscount : 0;
-    setWalletDiscount(discountToApply);
-  }, [useWalletCoins, maxWalletDiscount]);
+    // Only run this logic after cart items are loaded
+    if (cartItems.length === 0 || !wallet || !settings) return;
+    
+    console.log("Wallet discount calculation triggered:", {
+      useWalletCoins,
+      walletBalance: wallet?.balance,
+      subtotal
+    });
+    
+    if (useWalletCoins) {
+      // Run eligibility check and apply discount if eligible
+      if (checkWalletEligibility()) {
+        setWalletDiscount(maxWalletDiscount);
+        console.log("Wallet discount applied:", maxWalletDiscount);
+      } else {
+        setWalletDiscount(0);
+        console.log("Wallet not eligible, no discount applied");
+      }
+    } else {
+      // Reset discount if checkbox is unchecked
+      setWalletDiscount(0);
+      console.log("Wallet checkbox unchecked, no discount applied");
+    }
+  }, [useWalletCoins, wallet, settings, maxWalletDiscount, cartItems, subtotal]);
   
   const total = subtotal + shipping - walletDiscount;
 
