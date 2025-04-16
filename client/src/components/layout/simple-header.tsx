@@ -68,10 +68,10 @@ export function SimpleHeader() {
       return res.json();
     },
     enabled: !!user,
-    staleTime: 0, // Always fetch fresh data
+    staleTime: 30000, // Cache for 30 seconds
     refetchOnWindowFocus: true,
     refetchOnMount: true,
-    refetchInterval: 2000, // Refresh every 2 seconds
+    // Removed frequent polling to avoid performance issues
   });
   
   // Handle cart navigation
