@@ -126,6 +126,15 @@ function App() {
                     )}
                   </Route>
                   
+                  {/* Additional seller-profile route for the View Profile button */}
+                  <Route path="/seller-profile/:id">
+                    {() => (
+                      <Layout>
+                        <SellerPublicProfilePage />
+                      </Layout>
+                    )}
+                  </Route>
+                  
                   {/* Category page */}
                   <Route path="/category/:category">
                     {(params) => {

@@ -313,7 +313,7 @@ const SellerProfilePage = () => {
               </div>
               
               <div className="flex items-center gap-2">
-                <Link href={`/seller/${user?.id}`}>
+                <Link href={`/seller-profile/${user?.id}`}>
                   <Button variant="outline" className="gap-1">
                     <User className="h-4 w-4" /> View Profile
                   </Button>

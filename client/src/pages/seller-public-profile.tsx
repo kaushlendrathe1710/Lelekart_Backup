@@ -40,7 +40,12 @@ type Product = {
 };
 
 export default function SellerPublicProfilePage() {
-  const [_, params] = useRoute("/seller/:id");
+  // Handle both URL formats - "/seller/:id" and "/seller-profile/:id"
+  const [sellerMatch, sellerParams] = useRoute("/seller/:id");
+  const [profileMatch, profileParams] = useRoute("/seller-profile/:id");
+  
+  // Use params from whichever route matched
+  const params = sellerMatch ? sellerParams : profileParams;
   const sellerId = params?.id ? parseInt(params.id) : null;
   const [activeTab, setActiveTab] = useState("products");
   
