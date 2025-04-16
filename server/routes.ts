@@ -275,11 +275,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Generating download URL for document: ${document.documentName}, URL: ${document.documentUrl}`);
       
-      // Generate a presigned URL for temporary access to the S3 object using our updated helper
-      const url = await getPresignedDownloadUrl(document.documentUrl);
-      
-      // Return the URL to the client
-      res.json({ downloadUrl: url });
+      try {
+        // Generate a presigned URL for temporary access to the S3 object using our updated helper
+        const url = await getPresignedDownloadUrl(document.documentUrl);
+        
+        // Return the URL to the client
+        res.json({ downloadUrl: url });
+      } catch (downloadError) {
+        console.error("Failed with specific document URL, trying full URL extraction:", downloadError);
+        
+        // If the document URL is a partial path or filename, let's try to construct a full S3 URL
+        // Check if the URL already has the S3 domain
+        if (!document.documentUrl.includes('amazonaws.com')) {
+          const fullS3Url = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${document.documentUrl}`;
+          console.log(`Trying full S3 URL: ${fullS3Url}`);
+          
+          const url = await getPresignedDownloadUrl(fullS3Url);
+          return res.json({ downloadUrl: url });
+        }
+        
+        // If we got here, rethrow the original error
+        throw downloadError;
+      }
     } catch (error) {
       console.error("Error downloading document:", error);
       res.status(500).json({ error: "Failed to download document", details: error.message });

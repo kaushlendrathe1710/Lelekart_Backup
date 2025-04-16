@@ -97,41 +97,105 @@ const s3Client = new S3Client({
   }
 });
 
+// Helper to check if an object exists in S3
+async function checkIfObjectExists(bucket: string, key: string): Promise<boolean> {
+  try {
+    const command = new GetObjectCommand({
+      Bucket: bucket,
+      Key: key,
+    });
+    
+    await s3Client.send(command);
+    return true;
+  } catch (error: any) {
+    if (error.name === 'NoSuchKey') {
+      return false;
+    }
+    // For other errors, we'll assume the object might exist
+    console.warn(`Error checking if object exists (${key}):`, error);
+    return false;
+  }
+}
+
 // Generate presigned URL for downloading files
 export async function getPresignedDownloadUrl(fileUrl: string): Promise<string> {
   try {
     console.log("Generating download URL for file:", fileUrl);
     
-    // Extract S3 object key from URL
-    let fileKey = '';
+    // Possible keys to try (in order of preference)
+    const possibleKeys: string[] = [];
     
     if (fileUrl.includes('amazonaws.com')) {
-      // Handle different S3 URL formats
+      const urlObj = new URL(fileUrl);
       
-      if (fileUrl.includes('.s3.') || fileUrl.includes('.s3-') || fileUrl.includes('s3.amazonaws.com')) {
-        // Format: https://bucket-name.s3.region.amazonaws.com/key
-        // or https://s3.region.amazonaws.com/bucket-name/key
-        const url = new URL(fileUrl);
-        const pathParts = url.pathname.split('/').filter(Boolean);
-        
-        if (url.hostname.includes('s3.amazonaws.com')) {
-          // Format: https://s3.amazonaws.com/bucket-name/key
-          // Skip the first part (bucket name)
-          fileKey = pathParts.slice(1).join('/');
-        } else {
-          // Format: https://bucket-name.s3.region.amazonaws.com/key
-          fileKey = pathParts.join('/');
+      // 1. Full path after the bucket name or domain
+      possibleKeys.push(urlObj.pathname.substring(1)); // Remove leading slash
+      
+      // 2. Extract components with UUID pattern (common in S3 uploads)
+      const uuidPattern = /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[^\/]*)/i;
+      const uuidMatch = fileUrl.match(uuidPattern);
+      if (uuidMatch && uuidMatch[1]) {
+        possibleKeys.push(uuidMatch[1]);
+      }
+      
+      // 3. Get the last path segment (filename)
+      const pathParts = urlObj.pathname.split('/').filter(Boolean);
+      if (pathParts.length > 0) {
+        possibleKeys.push(pathParts[pathParts.length - 1]);
+      }
+      
+      // 4. Try extracting the key with various methods based on URL format
+      if (urlObj.hostname.includes('s3.amazonaws.com')) {
+        // Format: https://s3.amazonaws.com/bucket-name/key
+        const pathParts = urlObj.pathname.split('/').filter(Boolean);
+        if (pathParts.length > 1) {
+          // Skip bucket name, use the rest
+          possibleKeys.push(pathParts.slice(1).join('/'));
         }
-      } else {
-        // Just extract the last part as key
-        fileKey = fileUrl.split('/').pop() || '';
+      } else if (urlObj.hostname.includes('.s3.')) {
+        // Format: https://bucket-name.s3.region.amazonaws.com/key
+        possibleKeys.push(urlObj.pathname.substring(1));
       }
     } else {
-      // For direct keys or other formats
-      fileKey = fileUrl.split('/').pop() || '';
+      // For direct keys
+      possibleKeys.push(fileUrl);
+      
+      // Also try extracting filename if it appears to be a path
+      if (fileUrl.includes('/')) {
+        possibleKeys.push(fileUrl.split('/').pop() || '');
+      }
     }
     
-    console.log("Extracted S3 key:", fileKey);
+    // Filter out empty keys and decode URL encoding
+    // Use a temporary object to track uniqueness instead of Set to avoid ES2015 compatibility issues
+    const uniqueKeysObj: {[key: string]: boolean} = {};
+    possibleKeys.forEach(key => {
+      if (key.trim() !== '') {
+        uniqueKeysObj[key] = true;
+      }
+    });
+    
+    const uniqueKeys = Object.keys(uniqueKeysObj)
+      .map(key => decodeURIComponent(key));
+    
+    console.log("Potential S3 keys to try:", uniqueKeys);
+    
+    // Try each possible key until one works
+    let fileKey = '';
+    for (const key of uniqueKeys) {
+      const exists = await checkIfObjectExists(AWS_BUCKET_NAME, key);
+      if (exists) {
+        fileKey = key;
+        console.log(`Found valid S3 key: ${fileKey}`);
+        break;
+      }
+    }
+    
+    // If no key worked, use the first one as a fallback
+    if (!fileKey && uniqueKeys.length > 0) {
+      fileKey = uniqueKeys[0];
+      console.log(`No key confirmed to exist. Using best guess: ${fileKey}`);
+    }
     
     if (!fileKey) {
       throw new Error("Could not extract file key from URL");
