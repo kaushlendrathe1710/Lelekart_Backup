@@ -44,6 +44,9 @@ const walletSettingsSchema = z.object({
   firstPurchaseCoins: z.coerce.number().int().positive("Must be a positive number"),
   expiryDays: z.coerce.number().int().positive("Must be a positive number"),
   conversionRate: z.coerce.number().positive("Must be a positive number"),
+  maxUsagePercentage: z.coerce.number().min(0).max(100, "Must be between 0 and 100"),
+  minCartValue: z.coerce.number().min(0, "Must be a non-negative value"),
+  applicableCategories: z.string().optional(),
   isActive: z.boolean(),
 });
 
@@ -170,6 +173,9 @@ export default function WalletManagementPage() {
       firstPurchaseCoins: 0,
       expiryDays: 0,
       conversionRate: 0,
+      maxUsagePercentage: 20,
+      minCartValue: 0,
+      applicableCategories: "",
       isActive: false,
     },
   });

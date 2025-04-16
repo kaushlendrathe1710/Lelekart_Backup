@@ -1458,6 +1458,10 @@ export const walletSettings = pgTable("wallet_settings", {
   minOrderValue: decimal("min_order_value").notNull().default("500.00"),
   maxRedeemableCoins: integer("max_redeemable_coins").notNull().default(200),
   coinExpiryDays: integer("coin_expiry_days").notNull().default(90),
+  // New fields
+  maxUsagePercentage: decimal("max_usage_percentage").notNull().default("20.00"), // Max % of order value that can be paid with coins
+  minCartValue: decimal("min_cart_value").notNull().default("0.00"), // Minimum cart value required to use coins
+  applicableCategories: text("applicable_categories"), // Comma-separated list of category names where coins can be applied
   isEnabled: boolean("is_enabled").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
