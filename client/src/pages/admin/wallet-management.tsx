@@ -207,7 +207,20 @@ export default function WalletManagementPage() {
 
   // Handle form submissions
   const onSettingsSubmit = (data: WalletSettings) => {
-    updateSettingsMutation.mutate(data);
+    // Map client field names to server field names
+    const serverData = {
+      firstPurchaseCoins: data.firstPurchaseCoins,
+      coinToCurrencyRatio: data.conversionRate,
+      minOrderValue: 0, // Set default values for required fields
+      maxRedeemableCoins: 10000, // Set default values for required fields
+      coinExpiryDays: data.expiryDays,
+      maxUsagePercentage: data.maxUsagePercentage,
+      minCartValue: data.minCartValue,
+      applicableCategories: data.applicableCategories,
+      isEnabled: data.isActive
+    };
+    
+    updateSettingsMutation.mutate(serverData);
   };
 
   const onWalletAdjustSubmit = (data: WalletAdjustment) => {
