@@ -361,9 +361,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <Button
                     variant="ghost"
                     asChild
-                    className="w-full justify-start"
+                    className={`w-full justify-start ${isActive('/buyer/rewards') ? 'bg-primary/10 text-primary' : ''}`}
                   >
-                    <Link href="/">
+                    <Link href="/buyer/rewards">
                       <Gift className="mr-2 h-4 w-4" />
                       <span>Rewards</span>
                     </Link>
@@ -373,9 +373,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <Button
                     variant="ghost"
                     asChild
-                    className="w-full justify-start"
+                    className={`w-full justify-start ${isActive('/buyer/gift-cards') ? 'bg-primary/10 text-primary' : ''}`}
                   >
-                    <Link href="/">
+                    <Link href="/buyer/gift-cards">
                       <CreditCard className="mr-2 h-4 w-4" />
                       <span>Gift Cards</span>
                     </Link>
