@@ -32,7 +32,14 @@ import {
   sellerPayments, SellerPayment, InsertSellerPayment,
   sellerSettings, SellerSetting, InsertSellerSetting,
   supportTickets, SupportTicket, InsertSupportTicket,
-  supportMessages, SupportMessage, InsertSupportMessage
+  supportMessages, SupportMessage, InsertSupportMessage,
+  // Rewards and Gift Cards imports
+  rewards, Reward as SelectReward, InsertReward,
+  rewardTransactions, RewardTransaction as SelectRewardTransaction, InsertRewardTransaction,
+  rewardRules, RewardRule as SelectRewardRule, InsertRewardRule,
+  giftCards, GiftCard as SelectGiftCard, InsertGiftCard,
+  giftCardTransactions, GiftCardTransaction as SelectGiftCardTransaction, InsertGiftCardTransaction,
+  giftCardTemplates, GiftCardTemplate as SelectGiftCardTemplate, InsertGiftCardTemplate
 } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
