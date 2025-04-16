@@ -71,9 +71,9 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <CartProvider>
-          <AIAssistantProvider>
-            <WalletProvider>
+        <WalletProvider>
+          <CartProvider>
+            <AIAssistantProvider>
               <TooltipProvider>
               <div className="app">
                 <AIAssistantButton />
@@ -594,10 +594,10 @@ function App() {
                 </Switch>
                 <Toaster />
               </div>
-            </TooltipProvider>
-            </WalletProvider>
-          </AIAssistantProvider>
-        </CartProvider>
+              </TooltipProvider>
+            </AIAssistantProvider>
+          </CartProvider>
+        </WalletProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
