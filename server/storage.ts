@@ -41,6 +41,32 @@ import { db } from "./db";
 import { pool } from "./db";
 
 export interface IStorage {
+  // Rewards Methods
+  getUserRewards(userId: number): Promise<SelectReward | undefined>;
+  createUserRewards(data: InsertReward): Promise<SelectReward>;
+  updateUserRewards(userId: number, data: Partial<InsertReward>): Promise<SelectReward>;
+  getUserRewardTransactions(userId: number, page?: number, limit?: number): Promise<{ transactions: SelectRewardTransaction[], total: number }>;
+  createRewardTransaction(data: InsertRewardTransaction): Promise<SelectRewardTransaction>;
+  getRewardRules(): Promise<SelectRewardRule[]>;
+  getRewardRule(id: number): Promise<SelectRewardRule | undefined>;
+  createRewardRule(data: InsertRewardRule): Promise<SelectRewardRule>;
+  updateRewardRule(id: number, data: Partial<InsertRewardRule>): Promise<SelectRewardRule>;
+  deleteRewardRule(id: number): Promise<void>;
+  getRewardStatistics(): Promise<{ totalPointsIssued: number, totalPointsRedeemed: number, activeUsers: number }>;
+  
+  // Gift Card Methods
+  getAllGiftCards(page?: number, limit?: number): Promise<{ giftCards: SelectGiftCard[], total: number }>;
+  getUserGiftCards(userId: number): Promise<SelectGiftCard[]>;
+  getGiftCard(id: number): Promise<SelectGiftCard | undefined>;
+  getGiftCardByCode(code: string): Promise<SelectGiftCard | undefined>;
+  createGiftCard(data: InsertGiftCard): Promise<SelectGiftCard>;
+  updateGiftCard(id: number, data: Partial<InsertGiftCard>): Promise<SelectGiftCard>;
+  createGiftCardTransaction(data: InsertGiftCardTransaction): Promise<SelectGiftCardTransaction>;
+  getGiftCardTemplates(): Promise<SelectGiftCardTemplate[]>;
+  getGiftCardTemplate(id: number): Promise<SelectGiftCardTemplate | undefined>;
+  createGiftCardTemplate(data: InsertGiftCardTemplate): Promise<SelectGiftCardTemplate>;
+  updateGiftCardTemplate(id: number, data: Partial<InsertGiftCardTemplate>): Promise<SelectGiftCardTemplate>;
+  deleteGiftCardTemplate(id: number): Promise<void>;
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -3925,6 +3951,321 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error creating support message:", error);
       throw new Error("Failed to create support message");
+    }
+  }
+
+  // ========== Rewards Methods ==========
+  async getUserRewards(userId: number): Promise<SelectReward | undefined> {
+    try {
+      const [userRewards] = await db.select()
+        .from(rewards)
+        .where(eq(rewards.userId, userId));
+      return userRewards;
+    } catch (error) {
+      console.error(`Error getting user rewards: ${error}`);
+      throw error;
+    }
+  }
+
+  async createUserRewards(data: InsertReward): Promise<SelectReward> {
+    try {
+      const [userRewards] = await db.insert(rewards).values(data).returning();
+      return userRewards;
+    } catch (error) {
+      console.error(`Error creating user rewards: ${error}`);
+      throw error;
+    }
+  }
+
+  async updateUserRewards(userId: number, data: Partial<InsertReward>): Promise<SelectReward> {
+    try {
+      const [userRewards] = await db.update(rewards)
+        .set({
+          ...data,
+          lastUpdated: new Date()
+        })
+        .where(eq(rewards.userId, userId))
+        .returning();
+      return userRewards;
+    } catch (error) {
+      console.error(`Error updating user rewards: ${error}`);
+      throw error;
+    }
+  }
+
+  async getUserRewardTransactions(userId: number, page: number = 1, limit: number = 10): Promise<{ transactions: SelectRewardTransaction[], total: number }> {
+    try {
+      const offset = (page - 1) * limit;
+      
+      const transactions = await db.select()
+        .from(rewardTransactions)
+        .where(eq(rewardTransactions.userId, userId))
+        .orderBy(desc(rewardTransactions.transactionDate))
+        .limit(limit)
+        .offset(offset);
+      
+      const [{ count }] = await db.select({ count: sql<number>`count(*)` })
+        .from(rewardTransactions)
+        .where(eq(rewardTransactions.userId, userId));
+      
+      return {
+        transactions,
+        total: Number(count)
+      };
+    } catch (error) {
+      console.error(`Error getting user reward transactions: ${error}`);
+      throw error;
+    }
+  }
+
+  async createRewardTransaction(data: InsertRewardTransaction): Promise<SelectRewardTransaction> {
+    try {
+      const [transaction] = await db.insert(rewardTransactions).values(data).returning();
+      return transaction;
+    } catch (error) {
+      console.error(`Error creating reward transaction: ${error}`);
+      throw error;
+    }
+  }
+
+  async getRewardRules(): Promise<SelectRewardRule[]> {
+    try {
+      return await db.select().from(rewardRules);
+    } catch (error) {
+      console.error(`Error getting reward rules: ${error}`);
+      throw error;
+    }
+  }
+
+  async getRewardRule(id: number): Promise<SelectRewardRule | undefined> {
+    try {
+      const [rule] = await db.select()
+        .from(rewardRules)
+        .where(eq(rewardRules.id, id));
+      return rule;
+    } catch (error) {
+      console.error(`Error getting reward rule: ${error}`);
+      throw error;
+    }
+  }
+
+  async createRewardRule(data: InsertRewardRule): Promise<SelectRewardRule> {
+    try {
+      const [rule] = await db.insert(rewardRules).values(data).returning();
+      return rule;
+    } catch (error) {
+      console.error(`Error creating reward rule: ${error}`);
+      throw error;
+    }
+  }
+
+  async updateRewardRule(id: number, data: Partial<InsertRewardRule>): Promise<SelectRewardRule> {
+    try {
+      const [rule] = await db.update(rewardRules)
+        .set({
+          ...data,
+          updatedAt: new Date()
+        })
+        .where(eq(rewardRules.id, id))
+        .returning();
+      return rule;
+    } catch (error) {
+      console.error(`Error updating reward rule: ${error}`);
+      throw error;
+    }
+  }
+
+  async deleteRewardRule(id: number): Promise<void> {
+    try {
+      await db.delete(rewardRules).where(eq(rewardRules.id, id));
+    } catch (error) {
+      console.error(`Error deleting reward rule: ${error}`);
+      throw error;
+    }
+  }
+
+  async getRewardStatistics(): Promise<{ totalPointsIssued: number, totalPointsRedeemed: number, activeUsers: number }> {
+    try {
+      // Get total points issued (positive transactions)
+      const [issuedResult] = await db.select({
+        total: sql<number>`sum(points)`
+      })
+      .from(rewardTransactions)
+      .where(sql`points > 0`);
+      
+      // Get total points redeemed (negative transactions)
+      const [redeemedResult] = await db.select({
+        total: sql<number>`sum(abs(points))`
+      })
+      .from(rewardTransactions)
+      .where(sql`points < 0`);
+      
+      // Get count of users with reward accounts
+      const [usersResult] = await db.select({
+        count: sql<number>`count(*)`
+      })
+      .from(rewards);
+      
+      return {
+        totalPointsIssued: Number(issuedResult?.total || 0),
+        totalPointsRedeemed: Number(redeemedResult?.total || 0),
+        activeUsers: Number(usersResult?.count || 0)
+      };
+    } catch (error) {
+      console.error(`Error getting reward statistics: ${error}`);
+      throw error;
+    }
+  }
+
+  // ========== Gift Card Methods ==========
+  async getAllGiftCards(page: number = 1, limit: number = 10): Promise<{ giftCards: SelectGiftCard[], total: number }> {
+    try {
+      const offset = (page - 1) * limit;
+      
+      const giftCards = await db.select()
+        .from(giftCards)
+        .orderBy(desc(giftCards.createdAt))
+        .limit(limit)
+        .offset(offset);
+      
+      const [{ count }] = await db.select({ count: sql<number>`count(*)` })
+        .from(giftCards);
+      
+      return {
+        giftCards,
+        total: Number(count)
+      };
+    } catch (error) {
+      console.error(`Error getting all gift cards: ${error}`);
+      throw error;
+    }
+  }
+
+  async getUserGiftCards(userId: number): Promise<SelectGiftCard[]> {
+    try {
+      return await db.select()
+        .from(giftCards)
+        .where(or(
+          eq(giftCards.issuedTo, userId),
+          eq(giftCards.purchasedBy, userId)
+        ))
+        .orderBy(desc(giftCards.createdAt));
+    } catch (error) {
+      console.error(`Error getting user gift cards: ${error}`);
+      throw error;
+    }
+  }
+
+  async getGiftCard(id: number): Promise<SelectGiftCard | undefined> {
+    try {
+      const [giftCard] = await db.select()
+        .from(giftCards)
+        .where(eq(giftCards.id, id));
+      return giftCard;
+    } catch (error) {
+      console.error(`Error getting gift card: ${error}`);
+      throw error;
+    }
+  }
+
+  async getGiftCardByCode(code: string): Promise<SelectGiftCard | undefined> {
+    try {
+      const [giftCard] = await db.select()
+        .from(giftCards)
+        .where(eq(giftCards.code, code));
+      return giftCard;
+    } catch (error) {
+      console.error(`Error getting gift card by code: ${error}`);
+      throw error;
+    }
+  }
+
+  async createGiftCard(data: InsertGiftCard): Promise<SelectGiftCard> {
+    try {
+      const [giftCard] = await db.insert(giftCards).values(data).returning();
+      return giftCard;
+    } catch (error) {
+      console.error(`Error creating gift card: ${error}`);
+      throw error;
+    }
+  }
+
+  async updateGiftCard(id: number, data: Partial<InsertGiftCard>): Promise<SelectGiftCard> {
+    try {
+      const [giftCard] = await db.update(giftCards)
+        .set(data)
+        .where(eq(giftCards.id, id))
+        .returning();
+      return giftCard;
+    } catch (error) {
+      console.error(`Error updating gift card: ${error}`);
+      throw error;
+    }
+  }
+
+  async createGiftCardTransaction(data: InsertGiftCardTransaction): Promise<SelectGiftCardTransaction> {
+    try {
+      const [transaction] = await db.insert(giftCardTransactions).values(data).returning();
+      return transaction;
+    } catch (error) {
+      console.error(`Error creating gift card transaction: ${error}`);
+      throw error;
+    }
+  }
+
+  async getGiftCardTemplates(): Promise<SelectGiftCardTemplate[]> {
+    try {
+      return await db.select().from(giftCardTemplates);
+    } catch (error) {
+      console.error(`Error getting gift card templates: ${error}`);
+      throw error;
+    }
+  }
+
+  async getGiftCardTemplate(id: number): Promise<SelectGiftCardTemplate | undefined> {
+    try {
+      const [template] = await db.select()
+        .from(giftCardTemplates)
+        .where(eq(giftCardTemplates.id, id));
+      return template;
+    } catch (error) {
+      console.error(`Error getting gift card template: ${error}`);
+      throw error;
+    }
+  }
+
+  async createGiftCardTemplate(data: InsertGiftCardTemplate): Promise<SelectGiftCardTemplate> {
+    try {
+      const [template] = await db.insert(giftCardTemplates).values(data).returning();
+      return template;
+    } catch (error) {
+      console.error(`Error creating gift card template: ${error}`);
+      throw error;
+    }
+  }
+
+  async updateGiftCardTemplate(id: number, data: Partial<InsertGiftCardTemplate>): Promise<SelectGiftCardTemplate> {
+    try {
+      const [template] = await db.update(giftCardTemplates)
+        .set({
+          ...data,
+          updatedAt: new Date()
+        })
+        .where(eq(giftCardTemplates.id, id))
+        .returning();
+      return template;
+    } catch (error) {
+      console.error(`Error updating gift card template: ${error}`);
+      throw error;
+    }
+  }
+
+  async deleteGiftCardTemplate(id: number): Promise<void> {
+    try {
+      await db.delete(giftCardTemplates).where(eq(giftCardTemplates.id, id));
+    } catch (error) {
+      console.error(`Error deleting gift card template: ${error}`);
+      throw error;
     }
   }
 }
