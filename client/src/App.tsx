@@ -50,6 +50,11 @@ import BulkUploadPage from './pages/seller/bulk-upload';
 import SmartInventoryPage from './pages/seller/smart-inventory';
 import SellerProfilePage from './pages/seller/profile';
 import SellerShippingPage from './pages/seller/shipping';
+import SellerReturnsPage from './pages/seller/returns';
+import SellerAnalyticsPage from './pages/seller/analytics';
+import SellerPaymentsPage from './pages/seller/payments';
+import SellerSettingsPage from './pages/seller/settings';
+import SellerHelpPage from './pages/seller/help';
 import BuyerDashboardPage from './pages/buyer/dashboard';
 import BuyerWishlistPage from './pages/buyer/wishlist';
 import BuyerSettingsPage from './pages/buyer/settings';
@@ -429,9 +434,7 @@ function App() {
                       <ProtectedRoute 
                         path="/seller/returns" 
                         role="seller" 
-                        component={() => (
-                          <SellerDashboardPage />
-                        )} 
+                        component={SellerReturnsPage} 
                       />
                     )}
                   </Route>
@@ -440,9 +443,7 @@ function App() {
                       <ProtectedRoute 
                         path="/seller/analytics" 
                         role="seller" 
-                        component={() => (
-                          <SellerDashboardPage />
-                        )} 
+                        component={SellerAnalyticsPage} 
                       />
                     )}
                   </Route>
@@ -451,9 +452,7 @@ function App() {
                       <ProtectedRoute 
                         path="/seller/payments" 
                         role="seller" 
-                        component={() => (
-                          <SellerDashboardPage />
-                        )} 
+                        component={SellerPaymentsPage} 
                       />
                     )}
                   </Route>
@@ -462,9 +461,7 @@ function App() {
                       <ProtectedRoute 
                         path="/seller/settings" 
                         role="seller" 
-                        component={() => (
-                          <SellerDashboardPage />
-                        )} 
+                        component={SellerSettingsPage} 
                       />
                     )}
                   </Route>
@@ -473,9 +470,7 @@ function App() {
                       <ProtectedRoute 
                         path="/seller/help" 
                         role="seller" 
-                        component={() => (
-                          <SellerDashboardPage />
-                        )} 
+                        component={SellerHelpPage} 
                       />
                     )}
                   </Route>
