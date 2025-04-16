@@ -99,51 +99,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get seller public profile by ID
-  app.get("/api/users/seller/:id", async (req, res) => {
-    try {
-      const sellerId = parseInt(req.params.id);
-      if (isNaN(sellerId)) {
-        return res.status(400).json({ error: "Invalid seller ID" });
-      }
-      
-      // Get the seller with the specified ID
-      const seller = await storage.getUser(sellerId);
-      
-      if (!seller) {
-        return res.status(404).json({ error: "Seller not found" });
-      }
-      
-      if (seller.role !== "seller") {
-        return res.status(404).json({ error: "User is not a seller" });
-      }
-      
-      if (!seller.approved) {
-        return res.status(404).json({ error: "Seller is not approved" });
-      }
-      
-      // Return seller details (excluding sensitive information)
-      const { password, ...publicSellerInfo } = seller;
-      
-      // Get seller's business details to enhance the profile
-      const businessDetails = await storage.getBusinessDetails(sellerId);
-      
-      // Combine seller info with business details
-      const enhancedSellerInfo = {
-        ...publicSellerInfo,
-        businessName: businessDetails?.businessName || null,
-        businessType: businessDetails?.businessType || null,
-        // Add any additional fields you want to expose
-        joinedAt: new Date().toISOString(), // Use current date as fallback since createdAt is not available
-      };
-      
-      res.json(enhancedSellerInfo);
-    } catch (error) {
-      console.error("Error fetching seller profile:", error);
-      res.status(500).json({ error: "Failed to fetch seller profile" });
-    }
-  });
-  
   app.get("/api/sellers/rejected", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });

@@ -32,11 +32,10 @@ import {
   AlertCircle,
   FileUp,
   User,
-  X,
-  RefreshCw
+  X
 } from "lucide-react";
 import { User as UserType } from "@shared/schema";
-import { useLocation, Link } from "wouter";
+import { useLocation } from "wouter";
 
 const SellerProfilePage = () => {
   // Auth-related setup
@@ -313,11 +312,9 @@ const SellerProfilePage = () => {
               </div>
               
               <div className="flex items-center gap-2">
-                <Link href={`/seller-profile/${user?.id}`}>
-                  <Button variant="outline" className="gap-1">
-                    <User className="h-4 w-4" /> View Profile
-                  </Button>
-                </Link>
+                <Button variant="outline" className="gap-1">
+                  <User className="h-4 w-4" /> View Public Profile
+                </Button>
               </div>
             </div>
             

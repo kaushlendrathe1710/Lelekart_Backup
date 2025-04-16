@@ -15,7 +15,6 @@ import OrderDetailsPage from './pages/order-details-page';
 import OrderConfirmationPage from './pages/order-confirmation-page';
 import CategoryPage from './pages/category-page';
 import AllProductsPage from './pages/all-products-page';
-import SellerPublicProfilePage from './pages/seller-public-profile';
 import NotFound from './pages/not-found';
 import { Layout } from './components/layout/layout';
 import { ProtectedRoute } from './lib/protected-route';
@@ -113,24 +112,6 @@ function App() {
                     {() => (
                       <Layout>
                         <AllProductsPage />
-                      </Layout>
-                    )}
-                  </Route>
-                  
-                  {/* Seller public profile page */}
-                  <Route path="/seller/:id">
-                    {() => (
-                      <Layout>
-                        <SellerPublicProfilePage />
-                      </Layout>
-                    )}
-                  </Route>
-                  
-                  {/* Additional seller-profile route for the View Profile button */}
-                  <Route path="/seller-profile/:id">
-                    {() => (
-                      <Layout>
-                        <SellerPublicProfilePage />
                       </Layout>
                     )}
                   </Route>
