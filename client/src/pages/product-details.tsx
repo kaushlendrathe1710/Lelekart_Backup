@@ -457,23 +457,35 @@ export default function ProductDetailsPage() {
       
       // Safely handle various data formats
       if (typeof product.images === 'string') {
-        // Check if it's a JSON string before attempting to parse
-        if ((product.images.trim().startsWith('[') && product.images.trim().endsWith(']')) ||
-            (product.images.trim().startsWith('{') && product.images.trim().endsWith('}'))) {
-          additionalImages = safeJsonParse(product.images);
-          
-          // Handle the special format where images are stored as "{url1,url2,url3}"
-          if (additionalImages === null && product.images.includes(',')) {
-            // Try to extract URLs directly with regex if JSON parsing failed
-            const urlMatches = product.images.match(/https?:\/\/[^",\\]+/g);
+        try {
+          // First handle the common special format where images are stored as "{url1,url2,url3}"
+          if (product.images.includes(',') && product.images.includes('http')) {
+            // Try to extract URLs directly with regex
+            const urlMatches = product.images.match(/https?:\/\/[^",\\}]+/g);
             if (urlMatches && urlMatches.length > 0) {
               console.log('Extracted URLs from special format:', urlMatches);
               additionalImages = urlMatches;
             }
           }
-        } else {
-          // Not a JSON array, treat as a single image URL
-          additionalImages = [product.images];
+          // Then try normal JSON parsing if we don't have extracted URLs yet
+          else if (additionalImages === undefined && 
+              ((product.images.trim().startsWith('[') && product.images.trim().endsWith(']')) ||
+               (product.images.trim().startsWith('{') && product.images.trim().endsWith('}')))
+          ) {
+            // Safe JSON parsing - fail silently
+            try {
+              additionalImages = JSON.parse(product.images);
+            } catch (err) {
+              // If JSON parsing fails, just log it and continue
+              console.log('Failed to parse JSON, continuing with other methods');
+            }
+          } else {
+            // Not a JSON array, treat as a single image URL
+            additionalImages = [product.images];
+          }
+        } catch (err) {
+          // Fallback in case any of the above throws an error
+          console.log('Error processing image string format');
         }
       } else {
         // Already an array or object
