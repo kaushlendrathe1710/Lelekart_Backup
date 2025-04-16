@@ -219,6 +219,15 @@ export default function SellerProductsPage() {
           </div>
           <div className="flex gap-3">
             <Button 
+              className="flex items-center gap-2"
+              asChild
+            >
+              <Link href="/seller/products/add">
+                <Plus className="h-4 w-4" />
+                Add Product
+              </Link>
+            </Button>
+            <Button 
               variant="outline" 
               className="flex items-center gap-2"
               asChild
@@ -234,15 +243,6 @@ export default function SellerProductsPage() {
             >
               <Download className="h-4 w-4" />
               Export
-            </Button>
-            <Button 
-              className="flex items-center gap-2"
-              asChild
-            >
-              <Link href="/seller/products/add">
-                <Plus className="h-4 w-4" />
-                Add Product
-              </Link>
             </Button>
           </div>
         </div>
