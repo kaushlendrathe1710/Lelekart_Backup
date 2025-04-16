@@ -82,9 +82,7 @@ const SellerProfilePage = () => {
     businessName: "",
     gstNumber: "",
     panNumber: "",
-    businessType: "",
-    taxRegistrationDate: "",
-    taxFilingStatus: ""
+    businessType: ""
   });
   
   const [bankingInfo, setBankingInfo] = useState({
@@ -128,10 +126,7 @@ const SellerProfilePage = () => {
         businessName: businessData.businessName || "",
         gstNumber: businessData.gstNumber || "",
         panNumber: businessData.panNumber || "",
-        businessType: businessData.businessType || "",
-        taxRegistrationDate: businessData.taxRegistrationDate ? 
-          new Date(businessData.taxRegistrationDate).toISOString().split('T')[0] : "",
-        taxFilingStatus: businessData.taxFilingStatus || ""
+        businessType: businessData.businessType || ""
       });
     }
   }, [businessData]);
@@ -479,25 +474,7 @@ const SellerProfilePage = () => {
                         </div>
                       </div>
                       
-                      <div className="px-6 py-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground">Tax Registration Date</p>
-                          <p className="text-lg">
-                            {businessData?.taxRegistrationDate ? 
-                             new Date(businessData.taxRegistrationDate).toLocaleDateString() : 
-                             "Not provided"}
-                          </p>
-                        </div>
-                        
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground">Tax Filing Status</p>
-                          {businessData?.taxFilingStatus ? (
-                            <Badge className={`mt-1 ${businessData.taxFilingStatus === "Up to date" ? "bg-green-100 text-green-800 hover:bg-green-100" : "bg-amber-100 text-amber-800 hover:bg-amber-100"}`}>
-                              {businessData.taxFilingStatus}
-                            </Badge>
-                          ) : "Not available"}
-                        </div>
-                      </div>
+
                     </div>
                   )}
                 </div>
@@ -978,37 +955,7 @@ const SellerProfilePage = () => {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="taxRegistrationDate">Tax Registration Date</Label>
-                <Input 
-                  id="taxRegistrationDate"
-                  name="taxRegistrationDate"
-                  type="date"
-                  value={businessDetails.taxRegistrationDate}
-                  onChange={handleBusinessInputChange}
-                  className="h-11"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="taxFilingStatus">Tax Filing Status</Label>
-                <Select 
-                  value={businessDetails.taxFilingStatus} 
-                  onValueChange={(value) => setBusinessDetails(prev => ({ ...prev, taxFilingStatus: value }))}
-                >
-                  <SelectTrigger className="h-11">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Up to date">Up to date</SelectItem>
-                    <SelectItem value="Pending">Pending</SelectItem>
-                    <SelectItem value="Overdue">Overdue</SelectItem>
-                    <SelectItem value="Exempt">Exempt</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+
             
             <DialogFooter className="pt-4">
               <Button 

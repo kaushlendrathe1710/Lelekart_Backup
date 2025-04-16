@@ -821,8 +821,6 @@ export const businessDetails = pgTable("business_details", {
   gstNumber: text("gst_number"),
   panNumber: text("pan_number"),
   businessType: text("business_type"),
-  taxRegistrationDate: timestamp("tax_registration_date"),
-  taxFilingStatus: text("tax_filing_status"),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 

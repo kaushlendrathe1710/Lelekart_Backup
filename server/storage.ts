@@ -326,9 +326,7 @@ export class DatabaseStorage implements IStorage {
           businessName: details.businessName || "Default Business Name", // Required field
           gstNumber: details.gstNumber,
           panNumber: details.panNumber,
-          businessType: details.businessType,
-          taxRegistrationDate: details.taxRegistrationDate,
-          taxFilingStatus: details.taxFilingStatus
+          businessType: details.businessType
         });
       }
     } catch (error) {
