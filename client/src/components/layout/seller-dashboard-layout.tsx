@@ -130,10 +130,9 @@ export function SellerDashboardLayout({ children }: SellerDashboardLayoutProps) 
   };
 
   return (
-    <AuthProvider>
-      <SidebarProvider defaultOpen={true}>
-        <div className="flex min-h-screen flex-col bg-gray-50">
-          {/* Top Navigation Bar - fixed height of 56px (h-14) */}
+    <SidebarProvider defaultOpen={true}>
+      <div className="flex min-h-screen flex-col bg-gray-50">
+        {/* Top Navigation Bar - fixed height of 56px (h-14) */}
           <header className="fixed top-0 left-0 right-0 z-50 h-14 border-b bg-primary px-4 shadow-md">
           <div className="flex h-full items-center justify-between">
             <div className="flex items-center gap-4">
@@ -440,6 +439,5 @@ export function SellerDashboardLayout({ children }: SellerDashboardLayoutProps) 
         </div>
       </div>
     </SidebarProvider>
-  </AuthProvider>
   );
 }
