@@ -32,7 +32,8 @@ import {
   AlertCircle,
   FileUp,
   User,
-  X
+  X,
+  Loader
 } from "lucide-react";
 import { User as UserType } from "@shared/schema";
 import { useLocation } from "wouter";
@@ -292,17 +293,17 @@ const SellerProfilePage = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <Avatar className="h-20 w-20 border-2 border-primary">
-                  <AvatarImage src={user?.profileImage} alt={user?.username} />
+                  <AvatarImage src={""} alt={user?.username} />
                   <AvatarFallback className="bg-primary/10 text-primary text-xl">
                     {user?.username?.charAt(0)?.toUpperCase() || 'S'}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h1 className="text-3xl font-bold">{user?.businessName || user?.username}</h1>
+                  <h1 className="text-3xl font-bold">{user?.username}</h1>
                   <div className="flex items-center text-muted-foreground mt-1">
                     <Calendar className="h-4 w-4 mr-1" />
                     <span className="text-sm">Member since April 2023</span>
-                    {user?.isVerified && (
+                    {user?.approved && (
                       <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">
                         <Check className="h-3 w-3 mr-1" /> Verified
                       </Badge>
@@ -876,7 +877,7 @@ const SellerProfilePage = () => {
                 className="gap-2"
               >
                 {uploadDocumentMutation.isPending ? (
-                  <><RefreshCw className="h-4 w-4 animate-spin" /> Uploading...</>
+                  <><Loader className="h-4 w-4 animate-spin" /> Uploading...</>
                 ) : (
                   <><FileUp className="h-4 w-4" /> Upload Document</>
                 )}
@@ -972,7 +973,7 @@ const SellerProfilePage = () => {
                 className="gap-2"
               >
                 {updateBusinessDetailsMutation.isPending ? (
-                  <><RefreshCw className="h-4 w-4 animate-spin" /> Saving...</>
+                  <><Loader className="h-4 w-4 animate-spin" /> Saving...</>
                 ) : (
                   <><Save className="h-4 w-4" /> Save Changes</>
                 )}
@@ -1073,7 +1074,7 @@ const SellerProfilePage = () => {
                 className="gap-2"
               >
                 {updateBankingInfoMutation.isPending ? (
-                  <><RefreshCw className="h-4 w-4 animate-spin" /> Saving...</>
+                  <><Loader className="h-4 w-4 animate-spin" /> Saving...</>
                 ) : (
                   <><Save className="h-4 w-4" /> Save Changes</>
                 )}
