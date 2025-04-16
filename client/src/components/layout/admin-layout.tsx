@@ -36,6 +36,7 @@ import {
   Truck,
   Award,
   Gift,
+  CreditCard,
 } from "lucide-react";
 import { useState } from "react";
 import {
