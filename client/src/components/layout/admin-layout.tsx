@@ -112,6 +112,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       href: "/admin/orders",
       icon: <ShoppingBag className="h-5 w-5" />,
     },
+    {
+      title: "Shipping Management",
+      href: "/admin/shipping-management",
+      icon: <Truck className="h-5 w-5" />,
+    },
   ];
 
   const handleLogout = async () => {

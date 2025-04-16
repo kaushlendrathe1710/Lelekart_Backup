@@ -4,7 +4,6 @@ import { migrate } from 'drizzle-orm/neon-serverless/migrator';
 import ws from 'ws';
 import 'dotenv/config';
 
-const { neonConfig } = require('@neondatabase/serverless');
 neonConfig.webSocketConstructor = ws;
 
 async function main() {
