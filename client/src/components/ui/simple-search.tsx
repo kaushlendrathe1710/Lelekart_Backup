@@ -1,6 +1,6 @@
 import { Search, X, Mic } from 'lucide-react';
 import { useState, FormEvent, useRef, useEffect } from 'react';
-import { useNavigate } from 'wouter';
+import { useLocation } from 'wouter';
 import { Button } from './button';
 import { VoiceSearchDialog } from '@/components/search/voice-search-dialog';
 import { cn } from '@/lib/utils';
@@ -14,7 +14,7 @@ interface SimpleSearchProps {
 export function SimpleSearch({ className }: SimpleSearchProps = {}) {
   const [query, setQuery] = useState('');
   const [isAiSearching, setIsAiSearching] = useState(false);
-  const navigate = useNavigate();
+  const [, navigate] = useLocation();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   

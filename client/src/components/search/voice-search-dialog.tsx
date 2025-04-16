@@ -13,6 +13,7 @@ interface VoiceSearchDialogProps {
   buttonSize?: 'default' | 'sm' | 'lg' | 'icon';
   buttonText?: string;
   showIcon?: boolean;
+  onSearch?: (query: string) => void;
 }
 
 export function VoiceSearchDialog({
@@ -20,7 +21,8 @@ export function VoiceSearchDialog({
   buttonVariant = 'outline',
   buttonSize = 'default',
   buttonText = 'Voice Search',
-  showIcon = true
+  showIcon = true,
+  onSearch
 }: VoiceSearchDialogProps) {
   const [open, setOpen] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
@@ -33,6 +35,14 @@ export function VoiceSearchDialog({
     setIsSearching(true);
     
     try {
+      // If an external search handler is provided, use it
+      if (onSearch) {
+        onSearch(query);
+        setOpen(false);
+        return;
+      }
+      
+      // Otherwise use our default implementation
       // Process the query using AI to extract structured search parameters
       const result = await AISearchService.processQuery(query);
       
@@ -76,7 +86,7 @@ export function VoiceSearchDialog({
           className={className}
           disabled={isSearching}
         >
-          {showIcon && <Mic className="mr-2 h-4 w-4" />}
+          {showIcon && <Mic className={buttonText ? "mr-2 h-4 w-4" : "h-4 w-4"} />}
           {buttonText}
         </Button>
       </DialogTrigger>

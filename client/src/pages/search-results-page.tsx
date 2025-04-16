@@ -5,16 +5,29 @@ import { Product } from '@shared/schema';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { ProductCard } from '@/components/ui/product-card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, AlertTriangle } from 'lucide-react';
+import { Search, AlertTriangle, Mic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { VoiceSearchDialog } from '@/components/search/voice-search-dialog';
+import { AISearchService } from '@/services/ai-search-service';
+import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function SearchResultsPage() {
-  const [location] = useLocation();
-  const searchParams = new URLSearchParams(location.split('?')[1]);
+  const [location, navigate] = useLocation();
+  const searchParams = new URLSearchParams(location.split('?')[1] || '');
   const queryParam = searchParams.get('q') || '';
+  const categoryParam = searchParams.get('category');
+  const minPriceParam = searchParams.get('minPrice');
+  const maxPriceParam = searchParams.get('maxPrice');
+  const brandParam = searchParams.get('brand');
+  const colorParam = searchParams.get('color');
+  const sizeParam = searchParams.get('size');
+  const sortParam = searchParams.get('sort');
   
   const [searchQuery, setSearchQuery] = useState(queryParam);
   const [debouncedQuery, setDebouncedQuery] = useState(queryParam);
+  const [isVoiceSearching, setIsVoiceSearching] = useState(false);
+  const { toast } = useToast();
   
   // Debounce search query
   useEffect(() => {
@@ -29,29 +42,105 @@ export default function SearchResultsPage() {
   
   // Fetch search results
   const { data: results, isLoading, isError } = useQuery<Product[]>({
-    queryKey: ['/api/search', debouncedQuery],
+    queryKey: ['/api/search', debouncedQuery, categoryParam, minPriceParam, maxPriceParam, brandParam, colorParam, sizeParam, sortParam],
     queryFn: async () => {
-      if (!debouncedQuery.trim()) {
+      if (!debouncedQuery.trim() && !categoryParam && !brandParam && !colorParam && !sizeParam) {
         return [];
       }
-      const response = await fetch(`/api/search?q=${encodeURIComponent(debouncedQuery)}`);
+      
+      // Build query string with all parameters
+      const params = new URLSearchParams();
+      if (debouncedQuery.trim()) params.append('q', debouncedQuery.trim());
+      if (categoryParam) params.append('category', categoryParam);
+      if (minPriceParam) params.append('minPrice', minPriceParam);
+      if (maxPriceParam) params.append('maxPrice', maxPriceParam);
+      if (brandParam) params.append('brand', brandParam);
+      if (colorParam) params.append('color', colorParam);
+      if (sizeParam) params.append('size', sizeParam);
+      if (sortParam) params.append('sort', sortParam);
+      
+      const response = await fetch(`/api/search?${params.toString()}`);
       if (!response.ok) {
         throw new Error('Failed to fetch search results');
       }
       return await response.json();
     },
-    enabled: debouncedQuery.trim().length > 0,
+    enabled: Boolean(debouncedQuery.trim() || categoryParam || brandParam || colorParam || sizeParam),
   });
+  
+  // Handle voice search
+  const handleVoiceSearch = async (voiceQuery: string) => {
+    if (!voiceQuery.trim()) return;
+    
+    setIsVoiceSearching(true);
+    
+    try {
+      // Process the query using AI to extract structured search parameters
+      const result = await AISearchService.processQuery(voiceQuery);
+      
+      if (result.success) {
+        // Build a search URL from the extracted parameters
+        const searchUrl = AISearchService.buildSearchUrl(result.filters, result.enhancedQuery);
+        
+        // Navigate to the search page
+        navigate(searchUrl);
+        
+        toast({
+          title: 'Voice Search',
+          description: `Searching for "${result.enhancedQuery}"`,
+          duration: 3000
+        });
+        
+        // Update search query for display
+        setSearchQuery(result.enhancedQuery);
+      } else {
+        throw new Error(result.error || 'Failed to process search query');
+      }
+    } catch (error) {
+      console.error('Error processing voice search:', error);
+      
+      toast({
+        title: 'Voice Search Error',
+        description: error instanceof Error ? error.message : 'Failed to process your search',
+        variant: 'destructive'
+      });
+      
+      // Fall back to simple search with the original voice query
+      navigate(`/search?q=${encodeURIComponent(voiceQuery.trim())}`);
+      setSearchQuery(voiceQuery.trim());
+    } finally {
+      setIsVoiceSearching(false);
+    }
+  };
   
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setDebouncedQuery(searchQuery);
+    
+    // Update URL with new search query
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('q', searchQuery);
+    navigate(`/search?${newParams.toString()}`);
   };
   
   // Build page title based on search query
-  const pageTitle = queryParam 
+  let pageTitle = queryParam 
     ? `Search results for "${queryParam}"` 
     : 'Product Search';
+    
+  // If we have structured filters, make a more descriptive title
+  if (categoryParam || brandParam || colorParam || sizeParam) {
+    const filters = [];
+    if (colorParam) filters.push(`${colorParam}`);
+    if (sizeParam) filters.push(`size ${sizeParam}`);
+    if (brandParam) filters.push(`${brandParam}`);
+    if (categoryParam) filters.push(`in ${categoryParam}`);
+    
+    if (filters.length > 0) {
+      pageTitle = `Search results for ${filters.join(' ')}`;
+      if (queryParam) pageTitle += ` matching "${queryParam}"`;
+    }
+  }
   
   const renderContent = () => {
     if (isLoading) {
@@ -115,25 +204,148 @@ export default function SearchResultsPage() {
         <div className="mb-8">
           <h1 className="text-2xl font-bold mb-4">{pageTitle}</h1>
           
-          <form onSubmit={handleSearch} className="flex gap-2 mb-6">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Search products..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                autoFocus
+          <div className="mb-6">
+            <form onSubmit={handleSearch} className="flex gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  autoFocus
+                  disabled={isVoiceSearching}
+                />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+              </div>
+              <VoiceSearchDialog 
+                buttonVariant="secondary"
+                buttonSize="default"
+                buttonText="Voice Search"
+                showIcon={true}
+                onSearch={handleVoiceSearch}
               />
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
-            </div>
-            <Button type="submit">Search</Button>
-          </form>
+              <Button type="submit" disabled={isVoiceSearching}>Search</Button>
+            </form>
+            
+            {/* Display active filters */}
+            {(categoryParam || minPriceParam || maxPriceParam || brandParam || colorParam || sizeParam) && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="text-sm text-gray-500 pt-1">Active filters:</span>
+                {categoryParam && (
+                  <Card className="bg-blue-50 border-blue-200">
+                    <CardContent className="py-1 px-3 flex items-center">
+                      <span className="text-sm">Category: {categoryParam}</span>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-5 w-5 ml-1 text-gray-500"
+                        onClick={() => {
+                          const newParams = new URLSearchParams(searchParams);
+                          newParams.delete('category');
+                          navigate(`/search?${newParams.toString()}`);
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+                {colorParam && (
+                  <Card className="bg-blue-50 border-blue-200">
+                    <CardContent className="py-1 px-3 flex items-center">
+                      <span className="text-sm">Color: {colorParam}</span>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-5 w-5 ml-1 text-gray-500"
+                        onClick={() => {
+                          const newParams = new URLSearchParams(searchParams);
+                          newParams.delete('color');
+                          navigate(`/search?${newParams.toString()}`);
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+                {brandParam && (
+                  <Card className="bg-blue-50 border-blue-200">
+                    <CardContent className="py-1 px-3 flex items-center">
+                      <span className="text-sm">Brand: {brandParam}</span>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-5 w-5 ml-1 text-gray-500"
+                        onClick={() => {
+                          const newParams = new URLSearchParams(searchParams);
+                          newParams.delete('brand');
+                          navigate(`/search?${newParams.toString()}`);
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+                {(minPriceParam || maxPriceParam) && (
+                  <Card className="bg-blue-50 border-blue-200">
+                    <CardContent className="py-1 px-3 flex items-center">
+                      <span className="text-sm">
+                        Price: {minPriceParam ? `₹${minPriceParam}` : ''}
+                        {minPriceParam && maxPriceParam ? ' - ' : ''}
+                        {maxPriceParam ? `₹${maxPriceParam}` : ''}
+                      </span>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-5 w-5 ml-1 text-gray-500"
+                        onClick={() => {
+                          const newParams = new URLSearchParams(searchParams);
+                          newParams.delete('minPrice');
+                          newParams.delete('maxPrice');
+                          navigate(`/search?${newParams.toString()}`);
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+          </div>
           
           {results && results.length > 0 && (
-            <p className="text-sm text-gray-500">
-              Found {results.length} result{results.length !== 1 ? 's' : ''}
-            </p>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm text-gray-500">
+                Found {results.length} result{results.length !== 1 ? 's' : ''}
+              </p>
+              
+              {/* Sort options */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">Sort by:</span>
+                <select 
+                  className="text-sm border rounded px-2 py-1"
+                  value={sortParam || 'relevance'}
+                  onChange={(e) => {
+                    const newParams = new URLSearchParams(searchParams);
+                    if (e.target.value === 'relevance') {
+                      newParams.delete('sort');
+                    } else {
+                      newParams.set('sort', e.target.value);
+                    }
+                    navigate(`/search?${newParams.toString()}`);
+                  }}
+                >
+                  <option value="relevance">Relevance</option>
+                  <option value="price_asc">Price: Low to High</option>
+                  <option value="price_desc">Price: High to Low</option>
+                  <option value="newest">Newest</option>
+                </select>
+              </div>
+            </div>
           )}
         </div>
         
