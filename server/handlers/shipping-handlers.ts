@@ -642,10 +642,20 @@ export async function createOrUpdateProductShippingOverride(req: Request, res: R
       return res.status(403).json({ error: "Not authorized to modify this product" });
     }
 
-    const override = await storage.createOrUpdateProductShippingOverride(
-      validationResult.data.productId,
-      validationResult.data
-    );
+    // Check if an override already exists
+    const existingOverride = await storage.getProductShippingOverrideByProduct(validationResult.data.productId);
+    
+    let override;
+    if (existingOverride) {
+      // Update existing override
+      override = await storage.updateProductShippingOverride(existingOverride.id, validationResult.data);
+    } else {
+      // Create new override
+      override = await storage.createProductShippingOverride({
+        ...validationResult.data,
+        sellerId: req.user.id
+      });
+    }
     
     res.json(override);
   } catch (error) {
@@ -676,7 +686,13 @@ export async function deleteProductShippingOverride(req: Request, res: Response)
       return res.status(403).json({ error: "Not authorized to modify this product" });
     }
 
-    await storage.deleteProductShippingOverride(productId);
+    // First get the override to get its ID
+    const override = await storage.getProductShippingOverrideByProduct(productId);
+    if (!override) {
+      return res.status(404).json({ error: "Product shipping override not found" });
+    }
+    
+    await storage.deleteProductShippingOverride(override.id);
     res.sendStatus(204);
   } catch (error) {
     console.error("Error deleting product shipping override:", error);
@@ -695,7 +711,7 @@ export async function getOrderShippingTracking(req: Request, res: Response) {
     }
 
     // Get the order
-    const order = await storage.getOrderById(orderId);
+    const order = await storage.getOrder(orderId);
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
     }
@@ -720,7 +736,7 @@ export async function getOrderShippingTracking(req: Request, res: Response) {
       }
     }
 
-    const tracking = await storage.getOrderShippingTracking(orderId);
+    const tracking = await storage.getShippingTracking(orderId);
     if (!tracking) {
       return res.status(404).json({ error: "Order shipping tracking not found" });
     }
@@ -773,7 +789,23 @@ export async function createOrUpdateOrderShippingTracking(req: Request, res: Res
       }
     }
 
-    const tracking = await storage.createOrUpdateOrderShippingTracking(orderId, validationResult.data);
+    // Check if tracking already exists
+    const existingTracking = await storage.getShippingTracking(orderId);
+    
+    let tracking;
+    if (existingTracking) {
+      // Update existing tracking
+      tracking = await storage.updateShippingTracking(existingTracking.id, validationResult.data);
+    } else {
+      // Create new tracking
+      tracking = await storage.createShippingTracking({
+        ...validationResult.data,
+        orderId,
+        status: validationResult.data.status || "Pending",
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+    }
     res.json(tracking);
   } catch (error) {
     console.error("Error creating/updating order shipping tracking:", error);
