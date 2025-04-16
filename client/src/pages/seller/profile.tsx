@@ -973,7 +973,19 @@ const SellerProfilePage = () => {
               </Button>
               <Button 
                 type="submit" 
-                disabled={!businessDetails.businessName || updateBusinessDetailsMutation.isPending}
+                disabled={
+                  !businessDetails.businessName || 
+                  updateBusinessDetailsMutation.isPending ||
+                  (businessData && 
+                    businessDetails.businessName === businessData.businessName &&
+                    businessDetails.gstNumber === businessData.gstNumber &&
+                    businessDetails.panNumber === businessData.panNumber &&
+                    businessDetails.businessType === businessData.businessType &&
+                    businessDetails.taxFilingStatus === businessData.taxFilingStatus &&
+                    (businessDetails.taxRegistrationDate === 
+                      (businessData.taxRegistrationDate ? new Date(businessData.taxRegistrationDate).toISOString().split('T')[0] : ""))
+                  )
+                }
               >
                 {updateBusinessDetailsMutation.isPending && <RefreshCw className="mr-2 h-4 w-4 animate-spin" />}
                 Save Changes
@@ -1045,7 +1057,13 @@ const SellerProfilePage = () => {
                   !bankingInfo.accountNumber || 
                   !bankingInfo.bankName || 
                   !bankingInfo.ifscCode ||
-                  updateBankingInfoMutation.isPending
+                  updateBankingInfoMutation.isPending ||
+                  (bankingData && 
+                    bankingInfo.accountHolderName === bankingData.accountHolderName &&
+                    bankingInfo.accountNumber === bankingData.accountNumber &&
+                    bankingInfo.bankName === bankingData.bankName &&
+                    bankingInfo.ifscCode === bankingData.ifscCode
+                  )
                 }
               >
                 {updateBankingInfoMutation.isPending && <RefreshCw className="mr-2 h-4 w-4 animate-spin" />}
