@@ -313,7 +313,7 @@ const SellerProfilePage = () => {
               </div>
               
               <div className="flex items-center gap-2">
-                <Button variant="outline" className="gap-1" onClick={() => window.open(`/seller/${user?.id}`, '_blank')}>
+                <Button variant="outline" className="gap-1" onClick={() => window.location.href = `/seller/${user?.id}`}>
                   <User className="h-4 w-4" /> View Profile
                 </Button>
               </div>
