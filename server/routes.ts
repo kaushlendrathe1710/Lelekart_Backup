@@ -4,7 +4,8 @@ import { storage } from "./storage";
 import { pool } from "./db"; // Import pool for direct SQL queries
 import { setupAuth } from "./auth";
 import multer from "multer";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 // Configure multer for file uploads
 const upload = multer({ 
@@ -34,6 +35,35 @@ const uploadFileToS3 = async (file: Express.Multer.File) => {
   } catch (error) {
     console.error("Error uploading file to S3:", error);
     throw new Error("Failed to upload file to S3");
+  }
+};
+
+// Function to generate a download URL for S3 objects
+const getDownloadUrl = async (fileUrl: string): Promise<string> => {
+  try {
+    // Extract the key from the full URL
+    // The fileUrl could be a full URL like https://bucket-name.s3.region.amazonaws.com/path/to/file
+    // or just the path like seller-documents/123/document-name
+    let key = fileUrl;
+    
+    // If it's a full URL, extract the path part
+    if (fileUrl.startsWith('http')) {
+      const url = new URL(fileUrl);
+      key = url.pathname.substring(1); // Remove the leading slash
+    }
+    
+    // Create a command to get the object
+    const command = new GetObjectCommand({
+      Bucket: process.env.AWS_BUCKET_NAME!,
+      Key: key,
+    });
+    
+    // Generate a presigned URL with 15-minute expiry
+    const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 900 });
+    return presignedUrl;
+  } catch (error) {
+    console.error("Error generating download URL:", error);
+    throw new Error("Failed to generate download URL");
   }
 };
 import { 
@@ -246,6 +276,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error uploading seller document:", error);
       res.status(500).json({ error: "Failed to upload seller document" });
+    }
+  });
+  
+  // Download a seller document
+  app.get("/api/seller/documents/:id/download", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller") return res.status(403).json({ error: "Not a seller account" });
+    
+    try {
+      const documentId = parseInt(req.params.id);
+      
+      // Get document from database
+      const document = await storage.getSellerDocumentById(documentId);
+      
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      // Security check - ensure user can only download their own documents
+      if (document.sellerId !== req.user.id) {
+        return res.status(403).json({ error: "Unauthorized access to document" });
+      }
+      
+      // Generate a presigned URL for temporary access to the S3 object
+      const url = await getDownloadUrl(document.documentUrl);
+      
+      // Return the URL to the client
+      res.json({ downloadUrl: url });
+    } catch (error) {
+      console.error("Error downloading document:", error);
+      res.status(500).json({ error: "Failed to download document" });
     }
   });
   

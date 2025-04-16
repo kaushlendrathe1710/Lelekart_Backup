@@ -630,8 +630,13 @@ const SellerProfilePage = () => {
                                     "bg-amber-100 text-amber-800 hover:bg-amber-100"}>
                               {doc.status || "Pending"}
                             </Badge>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <ChevronRight className="h-4 w-4" />
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-8 gap-1"
+                              onClick={() => handleDownloadDocument(doc.id)}
+                            >
+                              <FileText className="h-4 w-4" /> Download
                             </Button>
                           </div>
                         </div>
