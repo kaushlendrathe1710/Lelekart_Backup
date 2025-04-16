@@ -23,9 +23,9 @@ import {
   shippingMethods, ShippingMethod, InsertShippingMethod,
   shippingZones, ShippingZone, InsertShippingZone,
   shippingRules, ShippingRule, InsertShippingRule,
-  sellerShippingSettings, SellerShippingSettings, InsertSellerShippingSettings,
+  sellerShippingSettings, SellerShippingSetting, InsertSellerShippingSetting,
   productShippingOverrides, ProductShippingOverride, InsertProductShippingOverride,
-  orderShippingTracking, OrderShippingTracking, InsertOrderShippingTracking
+  shippingTracking, ShippingTracking, InsertShippingTracking
 } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
@@ -225,9 +225,9 @@ export interface IStorage {
   deleteShippingRule(id: number): Promise<void>;
   
   // Seller Shipping Settings operations
-  getSellerShippingSettings(sellerId: number): Promise<SellerShippingSettings | undefined>;
-  createSellerShippingSettings(settings: InsertSellerShippingSettings): Promise<SellerShippingSettings>;
-  updateSellerShippingSettings(sellerId: number, settings: Partial<SellerShippingSettings>): Promise<SellerShippingSettings>;
+  getSellerShippingSettings(sellerId: number): Promise<SellerShippingSetting | undefined>;
+  createSellerShippingSettings(settings: InsertSellerShippingSetting): Promise<SellerShippingSetting>;
+  updateSellerShippingSettings(sellerId: number, settings: Partial<SellerShippingSetting>): Promise<SellerShippingSetting>;
   
   // Product Shipping Overrides operations
   getProductShippingOverrides(sellerId: number): Promise<ProductShippingOverride[]>;
@@ -237,10 +237,10 @@ export interface IStorage {
   updateProductShippingOverride(id: number, override: Partial<ProductShippingOverride>): Promise<ProductShippingOverride>;
   deleteProductShippingOverride(id: number): Promise<void>;
   
-  // Order Shipping Tracking operations
-  getOrderShippingTracking(orderId: number): Promise<OrderShippingTracking | undefined>;
-  createOrderShippingTracking(tracking: InsertOrderShippingTracking): Promise<OrderShippingTracking>;
-  updateOrderShippingTracking(id: number, tracking: Partial<OrderShippingTracking>): Promise<OrderShippingTracking>;
+  // Shipping Tracking operations
+  getShippingTracking(orderId: number): Promise<ShippingTracking | undefined>;
+  createShippingTracking(tracking: InsertShippingTracking): Promise<ShippingTracking>;
+  updateShippingTracking(id: number, tracking: Partial<ShippingTracking>): Promise<ShippingTracking>;
   
   // Session store
   sessionStore: session.SessionStore;
@@ -3160,6 +3160,11 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // For compatibility with shipping handlers
+  async getShippingRulesByMethodId(methodId: number): Promise<ShippingRule[]> {
+    return this.getShippingRulesByMethod(methodId);
+  }
+
   async getShippingRulesByZone(zoneId: number): Promise<ShippingRule[]> {
     try {
       return await db.select()
@@ -3167,6 +3172,26 @@ export class DatabaseStorage implements IStorage {
         .where(eq(shippingRules.zoneId, zoneId));
     } catch (error) {
       console.error(`Error getting shipping rules for zone ID ${zoneId}:`, error);
+      return [];
+    }
+  }
+  
+  // For compatibility with shipping handlers
+  async getShippingRulesByZoneId(zoneId: number): Promise<ShippingRule[]> {
+    return this.getShippingRulesByZone(zoneId);
+  }
+  
+  // For compatibility with shipping handlers
+  async getShippingRulesByMethodAndZone(methodId: number, zoneId: number): Promise<ShippingRule[]> {
+    try {
+      return await db.select()
+        .from(shippingRules)
+        .where(and(
+          eq(shippingRules.methodId, methodId),
+          eq(shippingRules.zoneId, zoneId)
+        ));
+    } catch (error) {
+      console.error(`Error getting shipping rules for method ID ${methodId} and zone ID ${zoneId}:`, error);
       return [];
     }
   }
@@ -3265,7 +3290,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Seller Shipping Settings methods
-  async getSellerShippingSettings(sellerId: number): Promise<SellerShippingSettings | undefined> {
+  async getSellerShippingSettings(sellerId: number): Promise<SellerShippingSetting | undefined> {
     try {
       const [settings] = await db.select()
         .from(sellerShippingSettings)
@@ -3277,7 +3302,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async createSellerShippingSettings(settings: InsertSellerShippingSettings): Promise<SellerShippingSettings> {
+  async createSellerShippingSettings(settings: InsertSellerShippingSetting): Promise<SellerShippingSetting> {
     try {
       // Validate that the default shipping method exists if provided
       if (settings.defaultShippingMethodId) {
@@ -3303,7 +3328,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async updateSellerShippingSettings(sellerId: number, settings: Partial<SellerShippingSettings>): Promise<SellerShippingSettings> {
+  async updateSellerShippingSettings(sellerId: number, settings: Partial<SellerShippingSetting>): Promise<SellerShippingSetting> {
     try {
       // Validate that the default shipping method exists if provided
       if (settings.defaultShippingMethodId) {
