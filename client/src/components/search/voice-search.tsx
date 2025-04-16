@@ -203,6 +203,17 @@ export function VoiceSearch({ onSearch, className }: VoiceSearchProps) {
         exit="exit"
         className="flex flex-col items-center"
       >
+        {/* Test button in development - only visible in development */}
+        {process.env.NODE_ENV === 'development' && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="absolute top-0 right-0 bg-yellow-100 text-yellow-800 border-yellow-300 text-xs"
+            onClick={() => processVoiceQuery("show me red dresses under 2000 rupees")}
+          >
+            Test AI Search
+          </Button>
+        )}
         {/* Voice button */}
         <motion.div
           variants={pulseVariants}

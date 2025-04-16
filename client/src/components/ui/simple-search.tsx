@@ -18,23 +18,15 @@ export function SimpleSearch({ className }: SimpleSearchProps = {}) {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   
-  const handleSearch = async (e: FormEvent) => {
-    e.preventDefault();
-    if (query.trim()) {
-      console.log('Search for:', query);
-      navigate(`/search?q=${encodeURIComponent(query.trim())}`);
-    }
-  };
-
-  // Handle voice search query
-  const handleVoiceSearch = async (voiceQuery: string) => {
-    if (!voiceQuery.trim()) return;
+  // Handle AI search - used by both voice and text when appropriate
+  const handleAISearch = async (searchQuery: string) => {
+    if (!searchQuery.trim()) return;
     
     setIsAiSearching(true);
     
     try {
       // Process the query using AI to extract structured search parameters
-      const result = await AISearchService.processQuery(voiceQuery);
+      const result = await AISearchService.processQuery(searchQuery);
       
       if (result.success) {
         // Build a search URL from the extracted parameters
@@ -44,7 +36,7 @@ export function SimpleSearch({ className }: SimpleSearchProps = {}) {
         navigate(searchUrl);
         
         toast({
-          title: 'Voice Search',
+          title: 'AI Search',
           description: `Searching for "${result.enhancedQuery}"`,
           duration: 3000
         });
@@ -52,19 +44,43 @@ export function SimpleSearch({ className }: SimpleSearchProps = {}) {
         throw new Error(result.error || 'Failed to process search query');
       }
     } catch (error) {
-      console.error('Error processing voice search:', error);
+      console.error('Error processing AI search:', error);
       
       toast({
-        title: 'Voice Search Error',
+        title: 'Search Error',
         description: error instanceof Error ? error.message : 'Failed to process your search',
         variant: 'destructive'
       });
       
-      // Fall back to simple search with the original voice query
-      navigate(`/search?q=${encodeURIComponent(voiceQuery.trim())}`);
+      // Fall back to simple search with the original query
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
     } finally {
       setIsAiSearching(false);
     }
+  };
+
+  const handleSearch = async (e: FormEvent) => {
+    e.preventDefault();
+    if (query.trim()) {
+      console.log('Search for:', query);
+      
+      // For direct queries longer than 6 words, use AI search processing
+      if (query.trim().split(' ').length > 6) {
+        console.log('Using AI search processing for long query');
+        await handleAISearch(query);
+      } else {
+        // Use simple search for shorter queries
+        navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+      }
+    }
+  };
+
+  // Handle voice search query - uses handleAISearch
+  const handleVoiceSearch = async (voiceQuery: string) => {
+    if (!voiceQuery.trim()) return;
+    
+    console.log('Processing voice search query:', voiceQuery);
+    await handleAISearch(voiceQuery);
   };
 
   const clearSearch = () => setQuery('');

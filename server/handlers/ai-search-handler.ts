@@ -12,14 +12,19 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY as string);
  */
 export async function handleAISearch(req: Request, res: Response) {
   try {
+    console.log('AI Search handler received request:', req.body);
+    
     const { query } = req.body;
     
     if (!query || typeof query !== 'string') {
+      console.error('Missing or invalid query parameter:', req.body);
       return res.status(400).json({ 
         success: false, 
         error: 'Missing or invalid query parameter' 
       });
     }
+    
+    console.log('Processing AI search query:', query);
     
     // Get all available categories from the database for context
     const categories = await db.select({ name: products.category })
