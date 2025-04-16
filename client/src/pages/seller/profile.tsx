@@ -4,33 +4,41 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { SellerDashboardLayout } from "@/components/layout/seller-dashboard-layout";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
-  Share2, 
   Upload, 
-  Edit, 
+  Edit2, 
   FileText, 
-  RefreshCw, 
-  Building, 
+  ChevronRight, 
+  Building2, 
   CreditCard, 
   Shield, 
   TrendingUp,
   Clock,
-  Award
+  Award,
+  Save,
+  Calendar,
+  Clipboard,
+  Briefcase,
+  Check,
+  AlertCircle,
+  FileUp,
+  User,
+  X
 } from "lucide-react";
 import { User as UserType } from "@shared/schema";
 import { useLocation } from "wouter";
 
 const SellerProfilePage = () => {
-  // Try to use context first if available
+  // Auth-related setup
   const authContext = useContext(AuthContext);
   const [location, setLocation] = useLocation();
   
@@ -56,6 +64,7 @@ const SellerProfilePage = () => {
   const user = authContext?.user || apiUser;
   const isLoadingUser = authContext ? authContext.isLoading : apiLoading;
   
+  // UI state and utilities
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("business-details");
@@ -281,601 +290,621 @@ const SellerProfilePage = () => {
   
   return (
     <SellerDashboardLayout>
-      <div className="container py-6">
-        <header className="mb-8">
-          <h1 className="text-3xl font-bold">Seller Profile</h1>
-          <p className="text-muted-foreground">Member since April 2023</p>
-        </header>
+      <div className="min-h-screen bg-background">
+        {/* Header with profile summary */}
+        <div className="bg-primary/5 border-b">
+          <div className="container py-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-20 w-20 border-2 border-primary">
+                  <AvatarImage src={user?.profileImage} alt={user?.username} />
+                  <AvatarFallback className="bg-primary/10 text-primary text-xl">
+                    {user?.username?.charAt(0)?.toUpperCase() || 'S'}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h1 className="text-3xl font-bold">{user?.businessName || user?.username}</h1>
+                  <div className="flex items-center text-muted-foreground mt-1">
+                    <Calendar className="h-4 w-4 mr-1" />
+                    <span className="text-sm">Member since April 2023</span>
+                    {user?.isVerified && (
+                      <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">
+                        <Check className="h-3 w-3 mr-1" /> Verified
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Button variant="outline" className="gap-1">
+                  <User className="h-4 w-4" /> View Public Profile
+                </Button>
+              </div>
+            </div>
+            
+            {/* Navigation tabs */}
+            <div className="mt-6 flex space-x-1 overflow-x-auto pb-1">
+              <Button 
+                variant={activeTab === "business-details" ? "default" : "ghost"} 
+                className="rounded-full gap-2 font-medium"
+                onClick={() => setActiveTab("business-details")}
+              >
+                <Building2 className="h-4 w-4" />
+                Business Details
+              </Button>
+              <Button 
+                variant={activeTab === "banking" ? "default" : "ghost"} 
+                className="rounded-full gap-2 font-medium"
+                onClick={() => setActiveTab("banking")}
+              >
+                <CreditCard className="h-4 w-4" />
+                Banking Information
+              </Button>
+              <Button 
+                variant={activeTab === "documents" ? "default" : "ghost"} 
+                className="rounded-full gap-2 font-medium"
+                onClick={() => setActiveTab("documents")}
+              >
+                <FileText className="h-4 w-4" />
+                Documents
+              </Button>
+              <Button 
+                variant={activeTab === "performance" ? "default" : "ghost"} 
+                className="rounded-full gap-2 font-medium"
+                onClick={() => setActiveTab("performance")}
+              >
+                <TrendingUp className="h-4 w-4" />
+                Performance
+              </Button>
+              <Button 
+                variant={activeTab === "compliance" ? "default" : "ghost"} 
+                className="rounded-full gap-2 font-medium"
+                onClick={() => setActiveTab("compliance")}
+              >
+                <Shield className="h-4 w-4" />
+                Compliance
+              </Button>
+            </div>
+          </div>
+        </div>
         
-        <Tabs defaultValue="business-details" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-6">
-            <TabsTrigger value="business-details">Business Details</TabsTrigger>
-            <TabsTrigger value="performance">Performance</TabsTrigger>
-            <TabsTrigger value="documents">Documents</TabsTrigger>
-            <TabsTrigger value="payments">Payments</TabsTrigger>
-            <TabsTrigger value="compliance">Compliance</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="business-details">
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex justify-between items-center">
-                    <span className="flex items-center">
-                      <Building className="mr-2 h-5 w-5" /> Business Details
-                    </span>
-                    <Button variant="outline" size="sm" onClick={() => setIsEditBusinessOpen(true)}>
-                      <Edit className="h-4 w-4 mr-2" /> Edit
-                    </Button>
-                  </CardTitle>
-                  <CardDescription>Your business registration information</CardDescription>
-                </CardHeader>
-                <CardContent>
+        {/* Content area */}
+        <div className="container py-8">
+          {/* Business Details Section */}
+          {activeTab === "business-details" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-semibold flex items-center">
+                    <Building2 className="h-5 w-5 mr-2 text-primary" /> 
+                    Business Details
+                  </h2>
+                  <p className="text-muted-foreground mt-1">Manage your business registration information</p>
+                </div>
+                <Button 
+                  onClick={() => setIsEditBusinessOpen(true)} 
+                  variant="outline" 
+                  className="gap-2"
+                >
+                  <Edit2 className="h-4 w-4" /> Edit Details
+                </Button>
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+                  <div className="bg-muted/50 px-6 py-4 border-b flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Briefcase className="h-5 w-5 mr-2 text-primary" />
+                      <h3 className="font-medium">Business Information</h3>
+                    </div>
+                    <Badge variant="outline" className="bg-primary/5 text-primary">
+                      Essential
+                    </Badge>
+                  </div>
+                  
                   {isLoadingBusiness ? (
-                    <div className="animate-pulse space-y-3">
-                      <div className="h-4 bg-muted rounded w-3/4"></div>
-                      <div className="h-4 bg-muted rounded w-1/2"></div>
-                      <div className="h-4 bg-muted rounded w-5/6"></div>
-                      <div className="h-4 bg-muted rounded w-2/3"></div>
+                    <div className="px-6 py-4 space-y-4">
+                      <div className="animate-pulse space-y-2">
+                        <div className="h-4 bg-muted rounded w-1/4"></div>
+                        <div className="h-6 bg-muted rounded w-3/4"></div>
+                      </div>
+                      <div className="animate-pulse space-y-2">
+                        <div className="h-4 bg-muted rounded w-1/4"></div>
+                        <div className="h-6 bg-muted rounded w-2/3"></div>
+                      </div>
+                      <div className="animate-pulse space-y-2">
+                        <div className="h-4 bg-muted rounded w-1/4"></div>
+                        <div className="h-6 bg-muted rounded w-1/2"></div>
+                      </div>
                     </div>
                   ) : (
-                    <dl className="space-y-4">
-                      <div>
-                        <dt className="text-sm font-medium text-muted-foreground">GST Number</dt>
-                        <dd className="text-base">{businessData?.gstNumber || "Not provided"}</dd>
+                    <div className="divide-y">
+                      <div className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Business Name</p>
+                          <p className="text-lg">{businessData?.businessName || "Not provided"}</p>
+                        </div>
                       </div>
-                      <div>
-                        <dt className="text-sm font-medium text-muted-foreground">PAN Number</dt>
-                        <dd className="text-base">{businessData?.panNumber || "Not provided"}</dd>
+                      
+                      <div className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Business Type</p>
+                          <p className="text-lg">{businessData?.businessType || "Not specified"}</p>
+                        </div>
                       </div>
-                      <div>
-                        <dt className="text-sm font-medium text-muted-foreground">Business Type</dt>
-                        <dd className="text-base">{businessData?.businessType || "Not specified"}</dd>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+                  <div className="bg-muted/50 px-6 py-4 border-b flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Clipboard className="h-5 w-5 mr-2 text-primary" />
+                      <h3 className="font-medium">Tax Information</h3>
+                    </div>
+                    <Badge variant="outline" className="bg-primary/5 text-primary">
+                      Required
+                    </Badge>
+                  </div>
+                  
+                  {isLoadingBusiness ? (
+                    <div className="px-6 py-4 space-y-4">
+                      <div className="animate-pulse space-y-2">
+                        <div className="h-4 bg-muted rounded w-1/4"></div>
+                        <div className="h-6 bg-muted rounded w-3/4"></div>
                       </div>
-                      <div>
-                        <dt className="text-sm font-medium text-muted-foreground">Tax Registration Date</dt>
-                        <dd className="text-base">
-                          {businessData?.taxRegistrationDate ? 
-                           new Date(businessData.taxRegistrationDate).toLocaleDateString() : 
-                           "Not provided"}
-                        </dd>
+                      <div className="animate-pulse space-y-2">
+                        <div className="h-4 bg-muted rounded w-1/4"></div>
+                        <div className="h-6 bg-muted rounded w-2/3"></div>
                       </div>
-                      <div>
-                        <dt className="text-sm font-medium text-muted-foreground">Tax Filing Status</dt>
-                        <dd className="text-base">
+                      <div className="animate-pulse space-y-2">
+                        <div className="h-4 bg-muted rounded w-1/4"></div>
+                        <div className="h-6 bg-muted rounded w-1/2"></div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="divide-y">
+                      <div className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">GST Number</p>
+                          <p className="text-lg">{businessData?.gstNumber || "Not provided"}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">PAN Number</p>
+                          <p className="text-lg">{businessData?.panNumber || "Not provided"}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="px-6 py-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Tax Registration Date</p>
+                          <p className="text-lg">
+                            {businessData?.taxRegistrationDate ? 
+                             new Date(businessData.taxRegistrationDate).toLocaleDateString() : 
+                             "Not provided"}
+                          </p>
+                        </div>
+                        
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Tax Filing Status</p>
                           {businessData?.taxFilingStatus ? (
-                            <Badge variant={businessData.taxFilingStatus === "Up to date" ? "default" : "secondary"}>
+                            <Badge className={`mt-1 ${businessData.taxFilingStatus === "Up to date" ? "bg-green-100 text-green-800 hover:bg-green-100" : "bg-amber-100 text-amber-800 hover:bg-amber-100"}`}>
                               {businessData.taxFilingStatus}
                             </Badge>
                           ) : "Not available"}
-                        </dd>
+                        </div>
                       </div>
-                    </dl>
+                    </div>
                   )}
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex justify-between items-center">
-                    <span className="flex items-center">
-                      <CreditCard className="mr-2 h-5 w-5" /> Banking Information
-                    </span>
-                    <Button variant="outline" size="sm" onClick={() => setIsEditBankingOpen(true)}>
-                      <Edit className="h-4 w-4 mr-2" /> Edit
-                    </Button>
-                  </CardTitle>
-                  <CardDescription>Your payment processing details</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {isLoadingBanking ? (
-                    <div className="animate-pulse space-y-3">
-                      <div className="h-4 bg-muted rounded w-3/4"></div>
-                      <div className="h-4 bg-muted rounded w-1/2"></div>
-                      <div className="h-4 bg-muted rounded w-5/6"></div>
-                      <div className="h-4 bg-muted rounded w-2/3"></div>
-                    </div>
-                  ) : (
-                    <dl className="space-y-4">
-                      <div>
-                        <dt className="text-sm font-medium text-muted-foreground">Bank Account</dt>
-                        <dd className="text-base">
-                          {bankingData?.accountNumber ? 
-                           `XXXX XXXX XXXX ${bankingData.accountNumber.slice(-4)}` : 
-                           "Not provided"}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-sm font-medium text-muted-foreground">Bank Name</dt>
-                        <dd className="text-base">{bankingData?.bankName || "Not provided"}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-sm font-medium text-muted-foreground">IFSC Code</dt>
-                        <dd className="text-base">{bankingData?.ifscCode || "Not provided"}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-sm font-medium text-muted-foreground">Account Holder Name</dt>
-                        <dd className="text-base">{bankingData?.accountHolderName || "Not provided"}</dd>
-                      </div>
-                    </dl>
-                  )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </div>
-          </TabsContent>
+          )}
           
-          <TabsContent value="performance">
-            <div className="grid md:grid-cols-3 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <TrendingUp className="mr-2 h-5 w-5" /> Sales Overview
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="text-2xl font-bold">₹3,21,450</div>
-                      <p className="text-sm text-muted-foreground">Total Sales (Last 30 days)</p>
-                    </div>
-                    <div>
-                      <div className="text-xl font-bold">432</div>
-                      <p className="text-sm text-muted-foreground">Orders Fulfilled</p>
-                    </div>
-                    <div>
-                      <div className="text-xl font-bold text-green-600">+15.3%</div>
-                      <p className="text-sm text-muted-foreground">Growth Rate (vs. Last Month)</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <RefreshCw className="mr-2 h-5 w-5" /> Return Metrics
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="text-2xl font-bold">3.2%</div>
-                      <p className="text-sm text-muted-foreground">Return Rate</p>
-                    </div>
-                    <div>
-                      <div className="text-xl font-bold">21</div>
-                      <p className="text-sm text-muted-foreground">Pending Returns</p>
-                    </div>
-                    <div>
-                      <div className="text-xl font-bold">92%</div>
-                      <p className="text-sm text-muted-foreground">Customer Satisfaction</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Award className="mr-2 h-5 w-5" /> Seller Rating
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="text-2xl font-bold">4.7/5.0</div>
-                      <p className="text-sm text-muted-foreground">Overall Rating</p>
-                    </div>
-                    <div>
-                      <div className="text-xl font-bold">356</div>
-                      <p className="text-sm text-muted-foreground">Total Reviews</p>
-                    </div>
-                    <div>
-                      <div className="text-xl font-bold text-green-600">A+</div>
-                      <p className="text-sm text-muted-foreground">Seller Performance Grade</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="documents">
+          {/* Banking Information Section */}
+          {activeTab === "banking" && (
             <div className="space-y-6">
-              <div className="flex items-center space-x-4 border-b pb-4">
-                <Button variant="outline" className="bg-primary text-primary-foreground">
-                  Business Info
-                </Button>
-                <Button variant="outline">
-                  Address
-                </Button>
-                <Button variant="outline">
-                  Banking Details
-                </Button>
-                <Button variant="outline">
-                  Documents
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-semibold flex items-center">
+                    <CreditCard className="h-5 w-5 mr-2 text-primary" /> 
+                    Banking Information
+                  </h2>
+                  <p className="text-muted-foreground mt-1">Manage your payment processing details</p>
+                </div>
+                <Button 
+                  onClick={() => setIsEditBankingOpen(true)} 
+                  variant="outline" 
+                  className="gap-2"
+                >
+                  <Edit2 className="h-4 w-4" /> Edit Details
                 </Button>
               </div>
               
-              <div className="space-y-4">
-                <h2 className="text-xl font-semibold">Verification Documents</h2>
-                <p className="text-muted-foreground">Upload documents to verify your business. These documents will be reviewed by our team as part of the verification process.</p>
+              <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+                <div className="bg-muted/50 px-6 py-4 border-b flex items-center justify-between">
+                  <div className="flex items-center">
+                    <CreditCard className="h-5 w-5 mr-2 text-primary" />
+                    <h3 className="font-medium">Account Information</h3>
+                  </div>
+                  <Badge variant="outline" className="bg-primary/5 text-primary">
+                    Confidential
+                  </Badge>
+                </div>
                 
-                <div className="grid md:grid-cols-2 gap-6 mt-6">
-                  {/* GST Certificate Card */}
-                  <div className="border rounded-md">
-                    <div className="p-4 border-b">
-                      <h3 className="font-medium">GST Certificate</h3>
-                      <p className="text-sm text-muted-foreground mt-1">Upload your GST Certificate for tax verification</p>
+                {isLoadingBanking ? (
+                  <div className="px-6 py-4 space-y-4">
+                    <div className="animate-pulse space-y-2">
+                      <div className="h-4 bg-muted rounded w-1/4"></div>
+                      <div className="h-6 bg-muted rounded w-3/4"></div>
                     </div>
-                    
-                    <div className="p-8 flex flex-col items-center justify-center">
-                      <div 
-                        className="h-12 w-12 flex items-center justify-center rounded-full border-2 border-blue-500 mb-4 cursor-pointer hover:bg-blue-50"
-                        onClick={() => {
-                          setDocumentType("GST Certificate");
-                          setIsUploadDocumentOpen(true);
-                        }}
-                      >
-                        <Upload className="h-6 w-6 text-blue-500" />
-                      </div>
-                      <div 
-                        className="text-blue-500 font-medium cursor-pointer hover:underline"
-                        onClick={() => {
-                          setDocumentType("GST Certificate");
-                          setIsUploadDocumentOpen(true);
-                        }}
-                      >
-                        Click to upload
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">PDF, JPG or PNG (max. 5MB)</p>
+                    <div className="animate-pulse space-y-2">
+                      <div className="h-4 bg-muted rounded w-1/4"></div>
+                      <div className="h-6 bg-muted rounded w-2/3"></div>
+                    </div>
+                    <div className="animate-pulse space-y-2">
+                      <div className="h-4 bg-muted rounded w-1/4"></div>
+                      <div className="h-6 bg-muted rounded w-1/2"></div>
                     </div>
                   </div>
-                  
-                  {/* PAN Card */}
-                  <div className="border rounded-md">
-                    <div className="p-4 border-b">
-                      <h3 className="font-medium">PAN Card</h3>
-                      <p className="text-sm text-muted-foreground mt-1">Upload your PAN Card for identity verification</p>
+                ) : (
+                  <div className="divide-y">
+                    <div className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Account Holder Name</p>
+                        <p className="text-lg">{bankingData?.accountHolderName || "Not provided"}</p>
+                      </div>
                     </div>
                     
-                    <div className="p-8 flex flex-col items-center justify-center">
-                      <div 
-                        className="h-12 w-12 flex items-center justify-center rounded-full border-2 border-blue-500 mb-4 cursor-pointer hover:bg-blue-50"
-                        onClick={() => {
-                          setDocumentType("PAN Card");
-                          setIsUploadDocumentOpen(true);
-                        }}
-                      >
-                        <Upload className="h-6 w-6 text-blue-500" />
+                    <div className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Bank Name</p>
+                        <p className="text-lg">{bankingData?.bankName || "Not provided"}</p>
                       </div>
-                      <div 
-                        className="text-blue-500 font-medium cursor-pointer hover:underline"
-                        onClick={() => {
-                          setDocumentType("PAN Card");
-                          setIsUploadDocumentOpen(true);
-                        }}
-                      >
-                        Click to upload
+                    </div>
+                    
+                    <div className="px-6 py-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Account Number</p>
+                        <p className="text-lg">
+                          {bankingData?.accountNumber ? 
+                           `••••••••${bankingData.accountNumber.slice(-4)}` : 
+                           "Not provided"}
+                        </p>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">PDF, JPG or PNG (max. 5MB)</p>
+                      
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">IFSC Code</p>
+                        <p className="text-lg">{bankingData?.ifscCode || "Not provided"}</p>
+                      </div>
                     </div>
                   </div>
-                  
-                  {/* Address Proof */}
-                  <div className="border rounded-md">
-                    <div className="p-4 border-b">
-                      <h3 className="font-medium">Address Proof</h3>
-                      <p className="text-sm text-muted-foreground mt-1">Upload a document as proof of your business address</p>
+                )}
+              </div>
+              
+              <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
+                  <div>
+                    <h4 className="font-medium">Security Notice</h4>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Your banking information is encrypted and securely stored. We never share these details with third parties.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Documents Section */}
+          {activeTab === "documents" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-semibold flex items-center">
+                    <FileText className="h-5 w-5 mr-2 text-primary" /> 
+                    Documents
+                  </h2>
+                  <p className="text-muted-foreground mt-1">Upload and manage verification documents</p>
+                </div>
+                <Button 
+                  onClick={() => setIsUploadDocumentOpen(true)} 
+                  variant="outline" 
+                  className="gap-2"
+                >
+                  <FileUp className="h-4 w-4" /> Upload Document
+                </Button>
+              </div>
+              
+              <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+                {isLoadingDocuments ? (
+                  <div className="p-6 space-y-4">
+                    <div className="animate-pulse space-y-2">
+                      <div className="h-10 bg-muted rounded"></div>
                     </div>
-                    
-                    <div className="p-8 flex flex-col items-center justify-center">
-                      <div 
-                        className="h-12 w-12 flex items-center justify-center rounded-full border-2 border-blue-500 mb-4 cursor-pointer hover:bg-blue-50"
-                        onClick={() => {
-                          setDocumentType("Address Proof");
-                          setIsUploadDocumentOpen(true);
-                        }}
-                      >
-                        <Upload className="h-6 w-6 text-blue-500" />
-                      </div>
-                      <div 
-                        className="text-blue-500 font-medium cursor-pointer hover:underline"
-                        onClick={() => {
-                          setDocumentType("Address Proof");
-                          setIsUploadDocumentOpen(true);
-                        }}
-                      >
-                        Click to upload
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">PDF, JPG or PNG (max. 5MB)</p>
+                    <div className="animate-pulse space-y-2">
+                      <div className="h-10 bg-muted rounded"></div>
                     </div>
                   </div>
-                  
-                  {/* Letter of Incorporation */}
-                  <div className="border rounded-md">
-                    <div className="p-4 border-b">
-                      <h3 className="font-medium">Letter of Incorporation</h3>
-                      <p className="text-sm text-muted-foreground mt-1">Upload your company's Letter of Incorporation (Optional)</p>
+                ) : documents && documents.length > 0 ? (
+                  <div className="divide-y">
+                    {documents.map((doc: any, index: number) => (
+                      <div key={doc.id} className="p-4 hover:bg-muted/30 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center">
+                              <FileText className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium">{doc.documentType}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {new Date(doc.uploadedAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge className={doc.status === "Verified" ? 
+                                    "bg-green-100 text-green-800 hover:bg-green-100" : 
+                                    "bg-amber-100 text-amber-800 hover:bg-amber-100"}>
+                              {doc.status || "Pending"}
+                            </Badge>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-12 px-6 text-center">
+                    <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                      <FileText className="h-6 w-6 text-primary" />
                     </div>
-                    
-                    <div className="p-8 flex flex-col items-center justify-center">
-                      <div 
-                        className="h-12 w-12 flex items-center justify-center rounded-full border-2 border-blue-500 mb-4 cursor-pointer hover:bg-blue-50"
-                        onClick={() => {
-                          setDocumentType("Letter of Incorporation");
-                          setIsUploadDocumentOpen(true);
-                        }}
-                      >
-                        <Upload className="h-6 w-6 text-blue-500" />
-                      </div>
-                      <div 
-                        className="text-blue-500 font-medium cursor-pointer hover:underline"
-                        onClick={() => {
-                          setDocumentType("Letter of Incorporation");
-                          setIsUploadDocumentOpen(true);
-                        }}
-                      >
-                        Click to upload
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">PDF, JPG or PNG (max. 5MB)</p>
+                    <h3 className="text-lg font-medium mb-2">No Documents</h3>
+                    <p className="text-muted-foreground max-w-md mx-auto mb-6">
+                      You haven't uploaded any documents yet. Documents are required for seller verification.
+                    </p>
+                    <Button 
+                      onClick={() => setIsUploadDocumentOpen(true)}
+                      className="gap-2"
+                    >
+                      <FileUp className="h-4 w-4" /> Upload Your First Document
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* Performance Section */}
+          {activeTab === "performance" && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-semibold flex items-center">
+                  <TrendingUp className="h-5 w-5 mr-2 text-primary" /> 
+                  Performance Analytics
+                </h2>
+                <p className="text-muted-foreground mt-1">View your seller performance metrics</p>
+              </div>
+              
+              <div className="grid md:grid-cols-3 gap-6">
+                <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+                  <div className="bg-muted/50 px-6 py-4 border-b">
+                    <h3 className="font-medium flex items-center">
+                      <TrendingUp className="h-4 w-4 mr-1.5 text-primary" /> Sales Overview
+                    </h3>
+                  </div>
+                  <div className="divide-y">
+                    <div className="px-6 py-3 flex justify-between items-center">
+                      <span className="text-muted-foreground">Total Sales</span>
+                      <span className="font-medium">₹24,500</span>
+                    </div>
+                    <div className="px-6 py-3 flex justify-between items-center">
+                      <span className="text-muted-foreground">Orders</span>
+                      <span className="font-medium">43</span>
+                    </div>
+                    <div className="px-6 py-3 flex justify-between items-center">
+                      <span className="text-muted-foreground">Return Rate</span>
+                      <span className="font-medium">2.3%</span>
                     </div>
                   </div>
                 </div>
                 
-                <div className="flex justify-end gap-2 mt-8">
-                  <Button variant="outline" className="px-6">Cancel</Button>
-                  <Button variant="default" className="bg-blue-500 hover:bg-blue-600 px-6">Save Profile</Button>
+                <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+                  <div className="bg-muted/50 px-6 py-4 border-b">
+                    <h3 className="font-medium flex items-center">
+                      <Award className="h-4 w-4 mr-1.5 text-primary" /> Seller Rating
+                    </h3>
+                  </div>
+                  <div className="divide-y">
+                    <div className="px-6 py-3 flex justify-between items-center">
+                      <span className="text-muted-foreground">Overall Rating</span>
+                      <span className="font-medium">4.7/5</span>
+                    </div>
+                    <div className="px-6 py-3 flex justify-between items-center">
+                      <span className="text-muted-foreground">Reviews</span>
+                      <span className="font-medium">32</span>
+                    </div>
+                    <div className="px-6 py-3 flex justify-between items-center">
+                      <span className="text-muted-foreground">Response Rate</span>
+                      <span className="font-medium">98%</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+                  <div className="bg-muted/50 px-6 py-4 border-b">
+                    <h3 className="font-medium flex items-center">
+                      <Clock className="h-4 w-4 mr-1.5 text-primary" /> Processing Time
+                    </h3>
+                  </div>
+                  <div className="divide-y">
+                    <div className="px-6 py-3 flex justify-between items-center">
+                      <span className="text-muted-foreground">Order Processing</span>
+                      <span className="font-medium">1.2 days</span>
+                    </div>
+                    <div className="px-6 py-3 flex justify-between items-center">
+                      <span className="text-muted-foreground">Shipping Time</span>
+                      <span className="font-medium">2.4 days</span>
+                    </div>
+                    <div className="px-6 py-3 flex justify-between items-center">
+                      <span className="text-muted-foreground">Return Processing</span>
+                      <span className="font-medium">1.8 days</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </TabsContent>
+          )}
           
-          <TabsContent value="payments">
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <CreditCard className="mr-2 h-5 w-5" /> Payment Information
-                  </CardTitle>
-                  <CardDescription>Your banking and payment details</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <dl className="space-y-4">
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">Bank Account</dt>
-                      <dd className="text-base">
-                        {bankingData?.accountNumber ? 
-                         `XXXX XXXX XXXX ${bankingData.accountNumber.slice(-4)}` : 
-                         "Not provided"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">Bank Name</dt>
-                      <dd className="text-base">{bankingData?.bankName || "Not provided"}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">IFSC Code</dt>
-                      <dd className="text-base">{bankingData?.ifscCode || "Not provided"}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">Account Holder Name</dt>
-                      <dd className="text-base">{bankingData?.accountHolderName || "Not provided"}</dd>
-                    </div>
-                    
-                    <div className="pt-2">
-                      <Button variant="outline" size="sm" onClick={() => setIsEditBankingOpen(true)}>
-                        <Edit className="h-4 w-4 mr-2" /> Update Banking Information
-                      </Button>
-                    </div>
-                  </dl>
-                </CardContent>
-              </Card>
+          {/* Compliance Section */}
+          {activeTab === "compliance" && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-semibold flex items-center">
+                  <Shield className="h-5 w-5 mr-2 text-primary" /> 
+                  Compliance Status
+                </h2>
+                <p className="text-muted-foreground mt-1">Your compliance with platform policies</p>
+              </div>
               
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <TrendingUp className="mr-2 h-5 w-5" /> Payment Statistics
-                  </CardTitle>
-                  <CardDescription>Your payment processing metrics</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                      <div className="text-blue-600 text-sm font-medium mb-1">PENDING</div>
-                      <div className="text-2xl font-bold">₹48,550</div>
+              <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+                <div className="divide-y">
+                  <div className="p-5 flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                        <Check className="h-5 w-5 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium">Tax Compliance</p>
+                        <p className="text-sm text-muted-foreground">
+                          Valid through December 31, 2024
+                        </p>
+                      </div>
                     </div>
-                    <div className="bg-green-50 p-4 rounded-lg">
-                      <div className="text-green-600 text-sm font-medium mb-1">PROCESSED</div>
-                      <div className="text-2xl font-bold">₹2,35,640</div>
-                    </div>
-                    <div className="bg-amber-50 p-4 rounded-lg">
-                      <div className="text-amber-600 text-sm font-medium mb-1">ON HOLD</div>
-                      <div className="text-2xl font-bold">₹12,500</div>
-                    </div>
-                    <div className="bg-purple-50 p-4 rounded-lg">
-                      <div className="text-purple-600 text-sm font-medium mb-1">NEXT PAYOUT</div>
-                      <div className="text-2xl font-bold">Apr 18</div>
-                    </div>
+                    <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                      Compliant
+                    </Badge>
                   </div>
                   
-                  <Button variant="outline" className="w-full">
-                    View Payment History
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="compliance">
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Shield className="mr-2 h-5 w-5" /> Compliance Status
-                  </CardTitle>
-                  <CardDescription>Your account compliance details</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <dl className="space-y-4">
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">Seller Verification</dt>
-                      <dd className="flex items-center">
-                        <Badge variant="default" className="mr-2">Complete</Badge>
-                        <span className="text-sm text-muted-foreground">Verified on Apr 12, 2023</span>
-                      </dd>
+                  <div className="p-5 flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                        <Check className="h-5 w-5 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium">Seller Agreement</p>
+                        <p className="text-sm text-muted-foreground">
+                          Accepted on April 15, 2023
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">GST Compliance</dt>
-                      <dd className="flex items-center">
-                        <Badge variant="default" className="mr-2">Complete</Badge>
-                        <span className="text-sm text-muted-foreground">Last updated Jan 15, 2024</span>
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">Tax Filing Status</dt>
-                      <dd className="flex items-center">
-                        <Badge variant="default" className="mr-2">Current</Badge>
-                        <span className="text-sm text-muted-foreground">Next due Jun 30, 2024</span>
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">Policy Agreement</dt>
-                      <dd className="flex items-center">
-                        <Badge variant="default" className="mr-2">Accepted</Badge>
-                        <span className="text-sm text-muted-foreground">Seller Policy v3.2</span>
-                      </dd>
-                    </div>
-                  </dl>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <RefreshCw className="mr-2 h-5 w-5" /> Compliance Requirements
-                  </CardTitle>
-                  <CardDescription>Required actions and documents</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="p-4 border rounded-lg">
-                      <h3 className="font-medium mb-2">Document Requirements</h3>
-                      <ul className="space-y-2">
-                        <li className="flex items-center text-sm">
-                          <div className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 mr-2">✓</div>
-                          GST Certificate
-                        </li>
-                        <li className="flex items-center text-sm">
-                          <div className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 mr-2">✓</div>
-                          PAN Card
-                        </li>
-                        <li className="flex items-center text-sm">
-                          <div className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 mr-2">✓</div>
-                          Business Registration
-                        </li>
-                        <li className="flex items-center text-sm">
-                          <div className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 mr-2">✓</div>
-                          Bank Statement
-                        </li>
-                        <li className="flex items-center text-sm">
-                          <div className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 mr-2">✓</div>
-                          Address Proof
-                        </li>
-                      </ul>
-                    </div>
-                    
-                    <div className="p-4 border rounded-lg">
-                      <h3 className="font-medium mb-2">Policy Compliance</h3>
-                      <ul className="space-y-2">
-                        <li className="flex items-center text-sm">
-                          <div className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 mr-2">✓</div>
-                          Seller Policy Agreement
-                        </li>
-                        <li className="flex items-center text-sm">
-                          <div className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 mr-2">✓</div>
-                          Return & Refund Policy
-                        </li>
-                        <li className="flex items-center text-sm">
-                          <div className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 mr-2">✓</div>
-                          Shipping & Delivery Terms
-                        </li>
-                      </ul>
-                    </div>
+                    <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                      Accepted
+                    </Badge>
                   </div>
-                </CardContent>
-              </Card>
+                  
+                  <div className="p-5 flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                        <Check className="h-5 w-5 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium">Product Quality Guidelines</p>
+                        <p className="text-sm text-muted-foreground">
+                          Last reviewed on January 10, 2024
+                        </p>
+                      </div>
+                    </div>
+                    <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                      Compliant
+                    </Badge>
+                  </div>
+                </div>
+              </div>
             </div>
-          </TabsContent>
-        </Tabs>
+          )}
+        </div>
       </div>
       
       {/* Upload Document Dialog */}
       <Dialog open={isUploadDocumentOpen} onOpenChange={setIsUploadDocumentOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Upload Document</DialogTitle>
+            <DialogTitle>Upload Verification Document</DialogTitle>
+            <DialogDescription>
+              Upload documents to verify your seller account. Verification typically takes 1-2 business days.
+            </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleUploadDocument} className="space-y-4">
+          
+          <form onSubmit={handleUploadDocument} className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="documentType">Document Type</Label>
-              <Select 
-                value={documentType} 
-                onValueChange={setDocumentType}
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select document type" />
+              <Label htmlFor="documentType">Document Type*</Label>
+              <Select value={documentType} onValueChange={setDocumentType} required>
+                <SelectTrigger className="h-11">
+                  <SelectValue placeholder="Choose document type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="GST Certificate">GST Certificate</SelectItem>
                   <SelectItem value="PAN Card">PAN Card</SelectItem>
-                  <SelectItem value="Business Registration">Business Registration</SelectItem>
+                  <SelectItem value="Business License">Business License</SelectItem>
                   <SelectItem value="Bank Statement">Bank Statement</SelectItem>
-                  <SelectItem value="Address Proof">Address Proof</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
+                  <SelectItem value="Other">Other Document</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="document">Document File</Label>
-              <div className="border-dashed border-2 rounded-md p-4 text-center cursor-pointer" onClick={() => document.getElementById('document')?.click()}>
-                <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground mb-1">
-                  Click to upload or drag and drop
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  PDF, PNG, JPG up to 10MB
-                </p>
-                <input
-                  id="document"
-                  type="file"
-                  className="hidden"
-                  accept=".pdf,.png,.jpg,.jpeg"
+              <Label htmlFor="document">Upload File*</Label>
+              <div className="border border-dashed rounded-lg p-4 text-center bg-muted/50">
+                <Input 
+                  id="document" 
+                  type="file" 
                   onChange={handleFileChange}
+                  accept=".pdf,.jpg,.jpeg,.png"
                   required
+                  className="hidden"
                 />
+                <label htmlFor="document" className="cursor-pointer flex flex-col items-center">
+                  <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                  {documentFile ? (
+                    <p className="text-sm font-medium">{documentFile.name}</p>
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium mb-1">Click to select a file</p>
+                      <p className="text-xs text-muted-foreground">PDF, JPG, JPEG, PNG (5MB max)</p>
+                    </>
+                  )}
+                </label>
               </div>
-              {documentFile && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  Selected: {documentFile.name}
-                </p>
-              )}
             </div>
             
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setIsUploadDocumentOpen(false)}>
-                Cancel
+            <DialogFooter className="pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsUploadDocumentOpen(false)}
+                className="gap-2"
+              >
+                <X className="h-4 w-4" /> Cancel
               </Button>
               <Button 
                 type="submit" 
                 disabled={!documentFile || !documentType || uploadDocumentMutation.isPending}
+                className="gap-2"
               >
-                {uploadDocumentMutation.isPending && <RefreshCw className="mr-2 h-4 w-4 animate-spin" />}
-                Upload Document
+                {uploadDocumentMutation.isPending ? (
+                  <><RefreshCw className="h-4 w-4 animate-spin" /> Uploading...</>
+                ) : (
+                  <><FileUp className="h-4 w-4" /> Upload Document</>
+                )}
               </Button>
-            </div>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
@@ -885,36 +914,22 @@ const SellerProfilePage = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Update Business Details</DialogTitle>
+            <DialogDescription>
+              Provide accurate information about your business to comply with regulations.
+            </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleUpdateBusinessDetails} className="space-y-4">
+          
+          <form onSubmit={handleUpdateBusinessDetails} className="space-y-4 py-2">
             <div className="space-y-2">
               <Label htmlFor="businessName">Business Name*</Label>
               <Input 
                 id="businessName"
                 name="businessName"
+                placeholder="Enter your official business name"
                 value={businessDetails.businessName}
                 onChange={handleBusinessInputChange}
+                className="h-11"
                 required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="gstNumber">GST Number</Label>
-              <Input 
-                id="gstNumber"
-                name="gstNumber"
-                value={businessDetails.gstNumber}
-                onChange={handleBusinessInputChange}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="panNumber">PAN Number</Label>
-              <Input 
-                id="panNumber"
-                name="panNumber"
-                value={businessDetails.panNumber}
-                onChange={handleBusinessInputChange}
               />
             </div>
             
@@ -924,73 +939,98 @@ const SellerProfilePage = () => {
                 value={businessDetails.businessType} 
                 onValueChange={(value) => setBusinessDetails(prev => ({ ...prev, businessType: value }))}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select business type" />
+                <SelectTrigger className="h-11">
+                  <SelectValue placeholder="Select business structure" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Sole Proprietorship">Sole Proprietorship</SelectItem>
                   <SelectItem value="Partnership">Partnership</SelectItem>
-                  <SelectItem value="Private Limited Company">Private Limited Company</SelectItem>
-                  <SelectItem value="Limited Liability Partnership">Limited Liability Partnership</SelectItem>
-                  <SelectItem value="Public Limited Company">Public Limited Company</SelectItem>
+                  <SelectItem value="Limited Liability Company">Limited Liability Company</SelectItem>
+                  <SelectItem value="Corporation">Corporation</SelectItem>
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="taxRegistrationDate">Tax Registration Date</Label>
-              <Input 
-                id="taxRegistrationDate"
-                name="taxRegistrationDate"
-                type="date"
-                value={businessDetails.taxRegistrationDate}
-                onChange={handleBusinessInputChange}
-              />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="gstNumber">GST Number</Label>
+                <Input 
+                  id="gstNumber"
+                  name="gstNumber"
+                  placeholder="e.g. 22AAAAA0000A1Z5"
+                  value={businessDetails.gstNumber}
+                  onChange={handleBusinessInputChange}
+                  className="h-11"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="panNumber">PAN Number</Label>
+                <Input 
+                  id="panNumber"
+                  name="panNumber"
+                  placeholder="e.g. ABCDE1234F"
+                  value={businessDetails.panNumber}
+                  onChange={handleBusinessInputChange}
+                  className="h-11"
+                />
+              </div>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="taxFilingStatus">Tax Filing Status</Label>
-              <Select 
-                value={businessDetails.taxFilingStatus} 
-                onValueChange={(value) => setBusinessDetails(prev => ({ ...prev, taxFilingStatus: value }))}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="taxRegistrationDate">Tax Registration Date</Label>
+                <Input 
+                  id="taxRegistrationDate"
+                  name="taxRegistrationDate"
+                  type="date"
+                  value={businessDetails.taxRegistrationDate}
+                  onChange={handleBusinessInputChange}
+                  className="h-11"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="taxFilingStatus">Tax Filing Status</Label>
+                <Select 
+                  value={businessDetails.taxFilingStatus} 
+                  onValueChange={(value) => setBusinessDetails(prev => ({ ...prev, taxFilingStatus: value }))}
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Up to date">Up to date</SelectItem>
+                    <SelectItem value="Pending">Pending</SelectItem>
+                    <SelectItem value="Overdue">Overdue</SelectItem>
+                    <SelectItem value="Exempt">Exempt</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <DialogFooter className="pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsEditBusinessOpen(false)}
+                className="gap-2"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Up to date">Up to date</SelectItem>
-                  <SelectItem value="Pending">Pending</SelectItem>
-                  <SelectItem value="Overdue">Overdue</SelectItem>
-                  <SelectItem value="Exempt">Exempt</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setIsEditBusinessOpen(false)}>
-                Cancel
+                <X className="h-4 w-4" /> Cancel
               </Button>
               <Button 
                 type="submit" 
-                disabled={
-                  !businessDetails.businessName || 
-                  updateBusinessDetailsMutation.isPending ||
-                  (businessData && 
-                    businessDetails.businessName === businessData.businessName &&
-                    businessDetails.gstNumber === businessData.gstNumber &&
-                    businessDetails.panNumber === businessData.panNumber &&
-                    businessDetails.businessType === businessData.businessType &&
-                    businessDetails.taxFilingStatus === businessData.taxFilingStatus &&
-                    (businessDetails.taxRegistrationDate === 
-                      (businessData.taxRegistrationDate ? new Date(businessData.taxRegistrationDate).toISOString().split('T')[0] : ""))
-                  )
-                }
+                disabled={!businessDetails.businessName || updateBusinessDetailsMutation.isPending}
+                className="gap-2"
               >
-                {updateBusinessDetailsMutation.isPending && <RefreshCw className="mr-2 h-4 w-4 animate-spin" />}
-                Save Changes
+                {updateBusinessDetailsMutation.isPending ? (
+                  <><RefreshCw className="h-4 w-4 animate-spin" /> Saving...</>
+                ) : (
+                  <><Save className="h-4 w-4" /> Save Changes</>
+                )}
               </Button>
-            </div>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
@@ -1000,26 +1040,21 @@ const SellerProfilePage = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Update Banking Information</DialogTitle>
+            <DialogDescription>
+              This information is used for payments and settlement of your sales.
+            </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleUpdateBankingInfo} className="space-y-4">
+          
+          <form onSubmit={handleUpdateBankingInfo} className="space-y-4 py-2">
             <div className="space-y-2">
               <Label htmlFor="accountHolderName">Account Holder Name*</Label>
               <Input 
                 id="accountHolderName"
                 name="accountHolderName"
+                placeholder="Name as it appears on bank account"
                 value={bankingInfo.accountHolderName}
                 onChange={handleBankingInputChange}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="accountNumber">Account Number*</Label>
-              <Input 
-                id="accountNumber"
-                name="accountNumber"
-                value={bankingInfo.accountNumber}
-                onChange={handleBankingInputChange}
+                className="h-11"
                 required
               />
             </div>
@@ -1029,26 +1064,55 @@ const SellerProfilePage = () => {
               <Input 
                 id="bankName"
                 name="bankName"
+                placeholder="e.g. State Bank of India"
                 value={bankingInfo.bankName}
                 onChange={handleBankingInputChange}
+                className="h-11"
                 required
               />
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="ifscCode">IFSC Code*</Label>
-              <Input 
-                id="ifscCode"
-                name="ifscCode"
-                value={bankingInfo.ifscCode}
-                onChange={handleBankingInputChange}
-                required
-              />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="accountNumber">Account Number*</Label>
+                <Input 
+                  id="accountNumber"
+                  name="accountNumber"
+                  placeholder="Enter account number"
+                  value={bankingInfo.accountNumber}
+                  onChange={handleBankingInputChange}
+                  className="h-11"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="ifscCode">IFSC Code*</Label>
+                <Input 
+                  id="ifscCode"
+                  name="ifscCode"
+                  placeholder="e.g. SBIN0000123"
+                  value={bankingInfo.ifscCode}
+                  onChange={handleBankingInputChange}
+                  className="h-11"
+                  required
+                />
+              </div>
             </div>
             
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setIsEditBankingOpen(false)}>
-                Cancel
+            <div className="bg-amber-50 text-amber-800 p-3 rounded-md text-sm border border-amber-200 flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              <p>For security reasons, please verify that all banking details are accurate. Incorrect details may lead to payment failures.</p>
+            </div>
+            
+            <DialogFooter className="pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsEditBankingOpen(false)}
+                className="gap-2"
+              >
+                <X className="h-4 w-4" /> Cancel
               </Button>
               <Button 
                 type="submit" 
@@ -1057,19 +1121,17 @@ const SellerProfilePage = () => {
                   !bankingInfo.accountNumber || 
                   !bankingInfo.bankName || 
                   !bankingInfo.ifscCode ||
-                  updateBankingInfoMutation.isPending ||
-                  (bankingData && 
-                    bankingInfo.accountHolderName === bankingData.accountHolderName &&
-                    bankingInfo.accountNumber === bankingData.accountNumber &&
-                    bankingInfo.bankName === bankingData.bankName &&
-                    bankingInfo.ifscCode === bankingData.ifscCode
-                  )
+                  updateBankingInfoMutation.isPending
                 }
+                className="gap-2"
               >
-                {updateBankingInfoMutation.isPending && <RefreshCw className="mr-2 h-4 w-4 animate-spin" />}
-                Save Changes
+                {updateBankingInfoMutation.isPending ? (
+                  <><RefreshCw className="h-4 w-4 animate-spin" /> Saving...</>
+                ) : (
+                  <><Save className="h-4 w-4" /> Save Changes</>
+                )}
               </Button>
-            </div>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
