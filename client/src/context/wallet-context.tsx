@@ -25,8 +25,19 @@ interface WalletSettings {
   firstPurchaseCoins: number;
   expiryDays: number;
   conversionRate: number; // How many coins equal 1 INR
+  maxUsagePercentage: number; // Maximum percentage of order value that can be paid with coins
+  minCartValue: number; // Minimum cart value required to use coins
+  applicableCategories: string; // Comma-separated list of categories where coins can be applied
   isActive: boolean;
 }
+
+type RedeemCoinsOptions = {
+  referenceType?: string;
+  referenceId?: number;
+  description?: string;
+  orderValue?: number;
+  category?: string;
+};
 
 type WalletContextType = {
   wallet: Wallet | null;
@@ -35,7 +46,7 @@ type WalletContextType = {
   isLoading: boolean;
   isSettingsLoading: boolean;
   isTransactionsLoading: boolean;
-  redeemCoins: (amount: number) => Promise<void>;
+  redeemCoins: (amount: number, options?: RedeemCoinsOptions) => Promise<void>;
   refetchWallet: () => void;
   refetchTransactions: () => void;
 };
@@ -117,11 +128,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   // Redeem coins mutation
   const redeemCoinsMutation = useMutation({
-    mutationFn: async (amount: number) => {
-      const res = await apiRequest('POST', '/api/wallet/redeem', { amount });
+    mutationFn: async (params: {
+      amount: number;
+    } & RedeemCoinsOptions) => {
+      const res = await apiRequest('POST', '/api/wallet/redeem', params);
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.message || 'Failed to redeem coins');
+        throw new Error(errorData.error || 'Failed to redeem coins');
       }
       return res.json();
     },
@@ -142,8 +155,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  const redeemCoins = async (amount: number) => {
-    await redeemCoinsMutation.mutateAsync(amount);
+  const redeemCoins = async (amount: number, options?: RedeemCoinsOptions) => {
+    await redeemCoinsMutation.mutateAsync({
+      amount,
+      ...options
+    });
   };
 
   return (
