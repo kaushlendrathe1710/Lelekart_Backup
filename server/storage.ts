@@ -2977,6 +2977,558 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Failed to update footer content order");
     }
   }
+
+  // Shipping Methods methods
+  async getShippingMethods(): Promise<ShippingMethod[]> {
+    try {
+      return await db.select().from(shippingMethods);
+    } catch (error) {
+      console.error('Error getting shipping methods:', error);
+      return [];
+    }
+  }
+
+  async getShippingMethodById(id: number): Promise<ShippingMethod | undefined> {
+    try {
+      const [method] = await db.select()
+        .from(shippingMethods)
+        .where(eq(shippingMethods.id, id));
+      return method;
+    } catch (error) {
+      console.error(`Error getting shipping method with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async createShippingMethod(method: InsertShippingMethod): Promise<ShippingMethod> {
+    try {
+      const [newMethod] = await db.insert(shippingMethods)
+        .values(method)
+        .returning();
+      return newMethod;
+    } catch (error) {
+      console.error('Error creating shipping method:', error);
+      throw new Error('Failed to create shipping method');
+    }
+  }
+
+  async updateShippingMethod(id: number, method: Partial<ShippingMethod>): Promise<ShippingMethod> {
+    try {
+      const [updatedMethod] = await db.update(shippingMethods)
+        .set(method)
+        .where(eq(shippingMethods.id, id))
+        .returning();
+      
+      if (!updatedMethod) {
+        throw new Error(`Shipping method with ID ${id} not found`);
+      }
+      
+      return updatedMethod;
+    } catch (error) {
+      console.error(`Error updating shipping method with ID ${id}:`, error);
+      throw new Error('Failed to update shipping method');
+    }
+  }
+
+  async deleteShippingMethod(id: number): Promise<void> {
+    try {
+      // Check if there are any shipping rules using this method
+      const rules = await this.getShippingRulesByMethod(id);
+      if (rules.length > 0) {
+        throw new Error('Cannot delete shipping method that is in use by shipping rules');
+      }
+
+      // Check if there are any seller settings using this method
+      const query = `
+        SELECT EXISTS (
+          SELECT 1 FROM seller_shipping_settings
+          WHERE default_shipping_method_id = $1
+        ) as exists
+      `;
+      
+      const { rows } = await pool.query(query, [id]);
+      if (rows[0].exists) {
+        throw new Error('Cannot delete shipping method that is in use in seller settings');
+      }
+
+      await db.delete(shippingMethods)
+        .where(eq(shippingMethods.id, id));
+    } catch (error) {
+      console.error(`Error deleting shipping method with ID ${id}:`, error);
+      throw new Error(error instanceof Error ? error.message : 'Failed to delete shipping method');
+    }
+  }
+
+  // Shipping Zones methods
+  async getShippingZones(): Promise<ShippingZone[]> {
+    try {
+      return await db.select().from(shippingZones);
+    } catch (error) {
+      console.error('Error getting shipping zones:', error);
+      return [];
+    }
+  }
+
+  async getShippingZoneById(id: number): Promise<ShippingZone | undefined> {
+    try {
+      const [zone] = await db.select()
+        .from(shippingZones)
+        .where(eq(shippingZones.id, id));
+      return zone;
+    } catch (error) {
+      console.error(`Error getting shipping zone with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async createShippingZone(zone: InsertShippingZone): Promise<ShippingZone> {
+    try {
+      const [newZone] = await db.insert(shippingZones)
+        .values(zone)
+        .returning();
+      return newZone;
+    } catch (error) {
+      console.error('Error creating shipping zone:', error);
+      throw new Error('Failed to create shipping zone');
+    }
+  }
+
+  async updateShippingZone(id: number, zone: Partial<ShippingZone>): Promise<ShippingZone> {
+    try {
+      const [updatedZone] = await db.update(shippingZones)
+        .set(zone)
+        .where(eq(shippingZones.id, id))
+        .returning();
+      
+      if (!updatedZone) {
+        throw new Error(`Shipping zone with ID ${id} not found`);
+      }
+      
+      return updatedZone;
+    } catch (error) {
+      console.error(`Error updating shipping zone with ID ${id}:`, error);
+      throw new Error('Failed to update shipping zone');
+    }
+  }
+
+  async deleteShippingZone(id: number): Promise<void> {
+    try {
+      // Check if there are any shipping rules using this zone
+      const rules = await this.getShippingRulesByZone(id);
+      if (rules.length > 0) {
+        throw new Error('Cannot delete shipping zone that is in use by shipping rules');
+      }
+
+      await db.delete(shippingZones)
+        .where(eq(shippingZones.id, id));
+    } catch (error) {
+      console.error(`Error deleting shipping zone with ID ${id}:`, error);
+      throw new Error(error instanceof Error ? error.message : 'Failed to delete shipping zone');
+    }
+  }
+
+  // Shipping Rules methods
+  async getShippingRules(): Promise<ShippingRule[]> {
+    try {
+      return await db.select().from(shippingRules);
+    } catch (error) {
+      console.error('Error getting shipping rules:', error);
+      return [];
+    }
+  }
+
+  async getShippingRuleById(id: number): Promise<ShippingRule | undefined> {
+    try {
+      const [rule] = await db.select()
+        .from(shippingRules)
+        .where(eq(shippingRules.id, id));
+      return rule;
+    } catch (error) {
+      console.error(`Error getting shipping rule with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async getShippingRulesByMethod(methodId: number): Promise<ShippingRule[]> {
+    try {
+      return await db.select()
+        .from(shippingRules)
+        .where(eq(shippingRules.methodId, methodId));
+    } catch (error) {
+      console.error(`Error getting shipping rules for method ID ${methodId}:`, error);
+      return [];
+    }
+  }
+
+  async getShippingRulesByZone(zoneId: number): Promise<ShippingRule[]> {
+    try {
+      return await db.select()
+        .from(shippingRules)
+        .where(eq(shippingRules.zoneId, zoneId));
+    } catch (error) {
+      console.error(`Error getting shipping rules for zone ID ${zoneId}:`, error);
+      return [];
+    }
+  }
+
+  async createShippingRule(rule: InsertShippingRule): Promise<ShippingRule> {
+    try {
+      // Validate that the method and zone exist
+      const method = await this.getShippingMethodById(rule.methodId);
+      if (!method) {
+        throw new Error(`Shipping method with ID ${rule.methodId} not found`);
+      }
+
+      const zone = await this.getShippingZoneById(rule.zoneId);
+      if (!zone) {
+        throw new Error(`Shipping zone with ID ${rule.zoneId} not found`);
+      }
+
+      // Check for duplicates
+      const existingRules = await db.select()
+        .from(shippingRules)
+        .where(and(
+          eq(shippingRules.methodId, rule.methodId),
+          eq(shippingRules.zoneId, rule.zoneId)
+        ));
+
+      if (existingRules.length > 0) {
+        throw new Error(`A shipping rule for method ID ${rule.methodId} and zone ID ${rule.zoneId} already exists`);
+      }
+
+      const [newRule] = await db.insert(shippingRules)
+        .values(rule)
+        .returning();
+      return newRule;
+    } catch (error) {
+      console.error('Error creating shipping rule:', error);
+      throw new Error(error instanceof Error ? error.message : 'Failed to create shipping rule');
+    }
+  }
+
+  async updateShippingRule(id: number, rule: Partial<ShippingRule>): Promise<ShippingRule> {
+    try {
+      // If updating methodId or zoneId, validate they exist
+      if (rule.methodId) {
+        const method = await this.getShippingMethodById(rule.methodId);
+        if (!method) {
+          throw new Error(`Shipping method with ID ${rule.methodId} not found`);
+        }
+      }
+
+      if (rule.zoneId) {
+        const zone = await this.getShippingZoneById(rule.zoneId);
+        if (!zone) {
+          throw new Error(`Shipping zone with ID ${rule.zoneId} not found`);
+        }
+      }
+
+      // If updating both methodId and zoneId, check for duplicates
+      if (rule.methodId && rule.zoneId) {
+        const existingRules = await db.select()
+          .from(shippingRules)
+          .where(and(
+            eq(shippingRules.methodId, rule.methodId),
+            eq(shippingRules.zoneId, rule.zoneId),
+            sql`${shippingRules.id} != ${id}`
+          ));
+
+        if (existingRules.length > 0) {
+          throw new Error(`A shipping rule for method ID ${rule.methodId} and zone ID ${rule.zoneId} already exists`);
+        }
+      }
+
+      const [updatedRule] = await db.update(shippingRules)
+        .set(rule)
+        .where(eq(shippingRules.id, id))
+        .returning();
+      
+      if (!updatedRule) {
+        throw new Error(`Shipping rule with ID ${id} not found`);
+      }
+      
+      return updatedRule;
+    } catch (error) {
+      console.error(`Error updating shipping rule with ID ${id}:`, error);
+      throw new Error(error instanceof Error ? error.message : 'Failed to update shipping rule');
+    }
+  }
+
+  async deleteShippingRule(id: number): Promise<void> {
+    try {
+      await db.delete(shippingRules)
+        .where(eq(shippingRules.id, id));
+    } catch (error) {
+      console.error(`Error deleting shipping rule with ID ${id}:`, error);
+      throw new Error('Failed to delete shipping rule');
+    }
+  }
+
+  // Seller Shipping Settings methods
+  async getSellerShippingSettings(sellerId: number): Promise<SellerShippingSettings | undefined> {
+    try {
+      const [settings] = await db.select()
+        .from(sellerShippingSettings)
+        .where(eq(sellerShippingSettings.sellerId, sellerId));
+      return settings;
+    } catch (error) {
+      console.error(`Error getting shipping settings for seller ID ${sellerId}:`, error);
+      return undefined;
+    }
+  }
+
+  async createSellerShippingSettings(settings: InsertSellerShippingSettings): Promise<SellerShippingSettings> {
+    try {
+      // Validate that the default shipping method exists if provided
+      if (settings.defaultShippingMethodId) {
+        const method = await this.getShippingMethodById(settings.defaultShippingMethodId);
+        if (!method) {
+          throw new Error(`Shipping method with ID ${settings.defaultShippingMethodId} not found`);
+        }
+      }
+
+      // Check if settings already exist for this seller
+      const existingSettings = await this.getSellerShippingSettings(settings.sellerId);
+      if (existingSettings) {
+        throw new Error(`Shipping settings for seller ID ${settings.sellerId} already exist`);
+      }
+
+      const [newSettings] = await db.insert(sellerShippingSettings)
+        .values(settings)
+        .returning();
+      return newSettings;
+    } catch (error) {
+      console.error('Error creating seller shipping settings:', error);
+      throw new Error(error instanceof Error ? error.message : 'Failed to create seller shipping settings');
+    }
+  }
+
+  async updateSellerShippingSettings(sellerId: number, settings: Partial<SellerShippingSettings>): Promise<SellerShippingSettings> {
+    try {
+      // Validate that the default shipping method exists if provided
+      if (settings.defaultShippingMethodId) {
+        const method = await this.getShippingMethodById(settings.defaultShippingMethodId);
+        if (!method) {
+          throw new Error(`Shipping method with ID ${settings.defaultShippingMethodId} not found`);
+        }
+      }
+
+      // Check if settings exist for this seller
+      const existingSettings = await this.getSellerShippingSettings(sellerId);
+      if (!existingSettings) {
+        // Create new settings if they don't exist
+        return await this.createSellerShippingSettings({
+          sellerId,
+          enableCustomShipping: settings.enableCustomShipping ?? false,
+          defaultShippingMethodId: settings.defaultShippingMethodId,
+          freeShippingThreshold: settings.freeShippingThreshold,
+          processingTime: settings.processingTime || "1-2 business days",
+          shippingPolicy: settings.shippingPolicy,
+          returnPolicy: settings.returnPolicy,
+          internationalShipping: settings.internationalShipping ?? false
+        });
+      }
+
+      // Update existing settings
+      const [updatedSettings] = await db.update(sellerShippingSettings)
+        .set(settings)
+        .where(eq(sellerShippingSettings.sellerId, sellerId))
+        .returning();
+      
+      if (!updatedSettings) {
+        throw new Error(`Failed to update shipping settings for seller ID ${sellerId}`);
+      }
+      
+      return updatedSettings;
+    } catch (error) {
+      console.error(`Error updating shipping settings for seller ID ${sellerId}:`, error);
+      throw new Error(error instanceof Error ? error.message : 'Failed to update seller shipping settings');
+    }
+  }
+
+  // Product Shipping Overrides methods
+  async getProductShippingOverrides(sellerId: number): Promise<ProductShippingOverride[]> {
+    try {
+      return await db.select()
+        .from(productShippingOverrides)
+        .where(eq(productShippingOverrides.sellerId, sellerId));
+    } catch (error) {
+      console.error(`Error getting product shipping overrides for seller ID ${sellerId}:`, error);
+      return [];
+    }
+  }
+
+  async getProductShippingOverrideById(id: number): Promise<ProductShippingOverride | undefined> {
+    try {
+      const [override] = await db.select()
+        .from(productShippingOverrides)
+        .where(eq(productShippingOverrides.id, id));
+      return override;
+    } catch (error) {
+      console.error(`Error getting product shipping override with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async getProductShippingOverrideByProduct(productId: number): Promise<ProductShippingOverride | undefined> {
+    try {
+      const [override] = await db.select()
+        .from(productShippingOverrides)
+        .where(eq(productShippingOverrides.productId, productId));
+      return override;
+    } catch (error) {
+      console.error(`Error getting product shipping override for product ID ${productId}:`, error);
+      return undefined;
+    }
+  }
+
+  async createProductShippingOverride(override: InsertProductShippingOverride): Promise<ProductShippingOverride> {
+    try {
+      // Validate that the product exists
+      const product = await this.getProduct(override.productId);
+      if (!product) {
+        throw new Error(`Product with ID ${override.productId} not found`);
+      }
+
+      // Check if the seller owns the product
+      if (product.sellerId !== override.sellerId) {
+        throw new Error(`Seller ID ${override.sellerId} does not own product ID ${override.productId}`);
+      }
+
+      // Check if an override already exists for this product
+      const existingOverride = await this.getProductShippingOverrideByProduct(override.productId);
+      if (existingOverride) {
+        throw new Error(`Shipping override for product ID ${override.productId} already exists`);
+      }
+
+      const [newOverride] = await db.insert(productShippingOverrides)
+        .values(override)
+        .returning();
+      return newOverride;
+    } catch (error) {
+      console.error('Error creating product shipping override:', error);
+      throw new Error(error instanceof Error ? error.message : 'Failed to create product shipping override');
+    }
+  }
+
+  async updateProductShippingOverride(id: number, override: Partial<ProductShippingOverride>): Promise<ProductShippingOverride> {
+    try {
+      // Validate product ID if provided
+      if (override.productId) {
+        const product = await this.getProduct(override.productId);
+        if (!product) {
+          throw new Error(`Product with ID ${override.productId} not found`);
+        }
+
+        // If sellerId is provided, check that seller owns the product
+        if (override.sellerId && product.sellerId !== override.sellerId) {
+          throw new Error(`Seller ID ${override.sellerId} does not own product ID ${override.productId}`);
+        }
+
+        // If seller ID isn't being updated, ensure seller still owns the product
+        const existingOverride = await this.getProductShippingOverrideById(id);
+        if (existingOverride && !override.sellerId && product.sellerId !== existingOverride.sellerId) {
+          throw new Error(`Current seller (ID ${existingOverride.sellerId}) does not own product ID ${override.productId}`);
+        }
+      }
+
+      const [updatedOverride] = await db.update(productShippingOverrides)
+        .set(override)
+        .where(eq(productShippingOverrides.id, id))
+        .returning();
+      
+      if (!updatedOverride) {
+        throw new Error(`Product shipping override with ID ${id} not found`);
+      }
+      
+      return updatedOverride;
+    } catch (error) {
+      console.error(`Error updating product shipping override with ID ${id}:`, error);
+      throw new Error(error instanceof Error ? error.message : 'Failed to update product shipping override');
+    }
+  }
+
+  async deleteProductShippingOverride(id: number): Promise<void> {
+    try {
+      await db.delete(productShippingOverrides)
+        .where(eq(productShippingOverrides.id, id));
+    } catch (error) {
+      console.error(`Error deleting product shipping override with ID ${id}:`, error);
+      throw new Error('Failed to delete product shipping override');
+    }
+  }
+
+  // Order Shipping Tracking methods
+  async getOrderShippingTracking(orderId: number): Promise<OrderShippingTracking | undefined> {
+    try {
+      const [tracking] = await db.select()
+        .from(orderShippingTracking)
+        .where(eq(orderShippingTracking.orderId, orderId));
+      return tracking;
+    } catch (error) {
+      console.error(`Error getting shipping tracking for order ID ${orderId}:`, error);
+      return undefined;
+    }
+  }
+
+  async createOrderShippingTracking(tracking: InsertOrderShippingTracking): Promise<OrderShippingTracking> {
+    try {
+      // Validate that the order exists
+      const order = await this.getOrder(tracking.orderId);
+      if (!order) {
+        throw new Error(`Order with ID ${tracking.orderId} not found`);
+      }
+
+      // Check if tracking already exists for this order
+      const existingTracking = await this.getOrderShippingTracking(tracking.orderId);
+      if (existingTracking) {
+        throw new Error(`Shipping tracking for order ID ${tracking.orderId} already exists`);
+      }
+
+      const [newTracking] = await db.insert(orderShippingTracking)
+        .values(tracking)
+        .returning();
+      return newTracking;
+    } catch (error) {
+      console.error('Error creating order shipping tracking:', error);
+      throw new Error(error instanceof Error ? error.message : 'Failed to create order shipping tracking');
+    }
+  }
+
+  async updateOrderShippingTracking(id: number, tracking: Partial<OrderShippingTracking>): Promise<OrderShippingTracking> {
+    try {
+      // If orderId is being updated, validate that the order exists
+      if (tracking.orderId) {
+        const order = await this.getOrder(tracking.orderId);
+        if (!order) {
+          throw new Error(`Order with ID ${tracking.orderId} not found`);
+        }
+        
+        // Check if tracking already exists for the new order
+        const existingTracking = await this.getOrderShippingTracking(tracking.orderId);
+        if (existingTracking && existingTracking.id !== id) {
+          throw new Error(`Shipping tracking for order ID ${tracking.orderId} already exists`);
+        }
+      }
+
+      const [updatedTracking] = await db.update(orderShippingTracking)
+        .set({
+          ...tracking,
+          updatedAt: new Date()
+        })
+        .where(eq(orderShippingTracking.id, id))
+        .returning();
+      
+      if (!updatedTracking) {
+        throw new Error(`Order shipping tracking with ID ${id} not found`);
+      }
+      
+      return updatedTracking;
+    } catch (error) {
+      console.error(`Error updating order shipping tracking with ID ${id}:`, error);
+      throw new Error(error instanceof Error ? error.message : 'Failed to update order shipping tracking');
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();
