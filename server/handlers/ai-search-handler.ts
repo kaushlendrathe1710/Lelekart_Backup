@@ -142,7 +142,7 @@ Make sure the response is valid JSON.
           size: null,
           brand: null,
           sortBy: null,
-          keywords: query.split(' ')
+          keywords: sanitizedQuery.split(' ')
         };
       }
     } catch (error) {
@@ -157,14 +157,14 @@ Make sure the response is valid JSON.
         size: null,
         brand: null,
         sortBy: null,
-        keywords: query.split(' ')
+        keywords: sanitizedQuery.split(' ')
       };
     }
     
     // Return the processed search parameters
     return res.json({
       success: true,
-      query,
+      query: sanitizedQuery,
       filters: {
         category: parsedResponse.category,
         priceMin: parsedResponse.priceMin,
@@ -175,7 +175,7 @@ Make sure the response is valid JSON.
         sortBy: parsedResponse.sortBy,
         keywords: parsedResponse.keywords || []
       },
-      enhancedQuery: parsedResponse.enhancedQuery || query,
+      enhancedQuery: parsedResponse.enhancedQuery || sanitizedQuery,
     });
   } catch (error) {
     console.error('Error processing AI search:', error);

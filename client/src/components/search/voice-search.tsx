@@ -218,7 +218,7 @@ export function VoiceSearch({ onSearch, className }: VoiceSearchProps) {
             variant="outline" 
             size="sm" 
             className="absolute top-0 right-0 bg-yellow-100 text-yellow-800 border-yellow-300 text-xs"
-            onClick={() => processVoiceQuery("show me red dresses under 2000 rupees")}
+            onClick={() => processVoiceQuery("show me women clothes under 1000 rupees")}
           >
             Test AI Search
           </Button>
