@@ -38,56 +38,7 @@ const uploadFileToS3 = async (file: Express.Multer.File) => {
   }
 };
 
-// Function to generate a download URL for S3 objects
-const getDownloadUrl = async (fileUrl: string): Promise<string> => {
-  try {
-    console.log("Generating download URL for:", fileUrl);
-    
-    // Extract the key from the full S3 URL
-    let key = fileUrl;
-    
-    // Extract the object key from various URL formats
-    if (fileUrl.includes('amazonaws.com')) {
-      // For URLs like https://bucket-name.s3.region.amazonaws.com/path/to/file
-      // or https://s3.region.amazonaws.com/bucket-name/path/to/file
-      
-      // First, check if it's the bucket-in-path format
-      if (fileUrl.includes('s3.amazonaws.com/')) {
-        // Format: https://s3.amazonaws.com/bucket-name/path/to/file
-        const parts = fileUrl.split('s3.amazonaws.com/')[1];
-        // Skip the bucket name part
-        key = parts.substring(parts.indexOf('/') + 1);
-      } else {
-        // Format: https://bucket-name.s3.region.amazonaws.com/path/to/file
-        const urlObj = new URL(fileUrl);
-        key = urlObj.pathname.substring(1); // Remove leading slash
-      }
-    } else if (fileUrl.startsWith('http')) {
-      // For other URL formats, parse the pathname
-      const urlObj = new URL(fileUrl);
-      key = urlObj.pathname.substring(1);
-    }
-    
-    console.log("Extracted S3 object key:", key);
-    
-    // Create a command to get the object
-    const command = new GetObjectCommand({
-      Bucket: process.env.AWS_BUCKET_NAME!,
-      Key: key,
-    });
-    
-    // Generate a presigned URL with 15-minute expiry
-    const presignedUrl = await getSignedUrl(s3Client, command, { 
-      expiresIn: 900 
-    });
-    
-    console.log("Generated presigned URL successfully");
-    return presignedUrl;
-  } catch (error) {
-    console.error("Error generating download URL:", error);
-    throw new Error("Failed to generate download URL");
-  }
-};
+// We now use getPresignedDownloadUrl from s3.ts instead of this function
 import { 
   insertProductSchema, 
   insertCartSchema, 
@@ -107,7 +58,7 @@ import {
   insertWishlistSchema
 } from "@shared/schema";
 import { z } from "zod";
-import { uploadFile } from "./helpers/s3";
+import { uploadFile, getPresignedDownloadUrl } from "./helpers/s3";
 import { handleImageProxy } from "./utils/image-proxy";
 import { RecommendationEngine } from "./utils/recommendation-engine";
 import { createRazorpayOrder, handleSuccessfulPayment, generateReceiptId, getRazorpayKeyId } from "./utils/razorpay";
