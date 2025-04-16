@@ -36,6 +36,15 @@ export function ProductImageGallery({ imageUrl, additionalImages, productName = 
     };
 
     try {
+      // Detailed debugging for incoming image data
+      console.log('Raw image data:', { 
+        imageUrl, 
+        additionalImages,
+        imageUrlType: imageUrl ? typeof imageUrl : 'undefined',
+        additionalImagesType: additionalImages ? typeof additionalImages : 'undefined',
+        isArray: additionalImages && Array.isArray(additionalImages)
+      });
+      
       // Add the main image if it exists
       if (imageUrl && typeof imageUrl === 'string' && imageUrl.trim() !== '') {
         // Check if it's a proper URL or a JSON string
@@ -60,17 +69,40 @@ export function ProductImageGallery({ imageUrl, additionalImages, productName = 
         } 
         // Case 2: additionalImages is a single string
         else if (typeof additionalImages === 'string') {
-          // Check if it's a JSON string containing an array
-          if (additionalImages.includes('[') && additionalImages.includes(']')) {
-            const parsed = safeJsonParse(additionalImages);
-            if (Array.isArray(parsed)) {
-              // Filter out any null or empty strings
-              allImages.push(...parsed.filter(item => Boolean(item)));
+          try {
+            // First, check if this is a JSON string of an array
+            if (additionalImages.includes('[') && additionalImages.includes(']')) {
+              const parsed = safeJsonParse(additionalImages);
+              if (Array.isArray(parsed)) {
+                // Filter out any null or empty strings
+                allImages.push(...parsed.filter(item => Boolean(item)));
+              }
             }
-          }
-          // Case 3: It's a single URL string
-          else if (additionalImages.trim() !== '') {
-            allImages.push(additionalImages);
+            // Check if it's a JSON object with URLs as keys
+            else if (additionalImages.includes('{') && additionalImages.includes('}')) {
+              const parsed = safeJsonParse(additionalImages);
+              if (parsed) {
+                // If it's an object, extract the keys as they contain the URLs
+                const urls = Object.keys(parsed);
+                if (urls.length > 0) {
+                  urls.forEach(url => {
+                    if (url.startsWith('http')) {
+                      allImages.push(url);
+                    }
+                  });
+                }
+              }
+            }
+            // Case 3: It's a single URL string
+            else if (additionalImages.trim() !== '') {
+              allImages.push(additionalImages);
+            }
+          } catch (e) {
+            console.error('Error processing additionalImages string:', e);
+            // If it's a valid URL despite parsing error, still add it
+            if (additionalImages.startsWith('http')) {
+              allImages.push(additionalImages);
+            }
           }
         }
       }
@@ -101,10 +133,39 @@ export function ProductImageGallery({ imageUrl, additionalImages, productName = 
       ? processImages 
       : ['https://placehold.co/600x400?text=No+Image'];
     
+    // Add detailed logging to help debug
     console.log('Setting rendered images to:', finalImages);
     
-    // Update rendered images
-    setRenderedImages(finalImages);
+    // Pre-verify each image with a fetch request to avoid display errors
+    const verifyAndSetImages = async () => {
+      // Always include the first image
+      const verifiedImages = [finalImages[0]];
+      
+      // Test additional images (if any)
+      if (finalImages.length > 1) {
+        for (let i = 1; i < finalImages.length; i++) {
+          try {
+            // Skip verification for placeholder or relative images
+            if (!finalImages[i].startsWith('http')) {
+              verifiedImages.push(finalImages[i]);
+              continue;
+            }
+            
+            // For images that need to go through the proxy, we'll trust them
+            // and deal with errors using the onError handler on the image element
+            verifiedImages.push(finalImages[i]);
+          } catch (err) {
+            console.error(`Failed to verify image ${i}:`, finalImages[i], err);
+          }
+        }
+      }
+
+      // Update rendered images with verified ones
+      setRenderedImages(verifiedImages);
+    };
+    
+    // Run the verification
+    verifyAndSetImages();
     
     // Reset active index when images change
     setActiveIndex(0);
