@@ -39,7 +39,11 @@ import {
   rewardRules, RewardRule as SelectRewardRule, InsertRewardRule,
   giftCards, GiftCard as SelectGiftCard, InsertGiftCard,
   giftCardTransactions, GiftCardTransaction as SelectGiftCardTransaction, InsertGiftCardTransaction,
-  giftCardTemplates, GiftCardTemplate as SelectGiftCardTemplate, InsertGiftCardTemplate
+  giftCardTemplates, GiftCardTemplate as SelectGiftCardTemplate, InsertGiftCardTemplate,
+  // Wallet imports
+  wallets, Wallet as SelectWallet, InsertWallet,
+  walletTransactions, WalletTransaction as SelectWalletTransaction, InsertWalletTransaction,
+  walletSettings, WalletSettings as SelectWalletSettings, InsertWalletSettings
 } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
