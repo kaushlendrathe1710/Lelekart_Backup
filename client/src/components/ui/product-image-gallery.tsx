@@ -34,6 +34,52 @@ export function ProductImageGallery({ imageUrl, additionalImages, productName = 
         return null;
       }
     };
+    
+    // Special handling for additionalImages when stored in bulk upload format
+    const extractImagesFromBulkFormat = (jsonString: string) => {
+      try {
+        // This is a debugging step to check the exact format of additionalImages
+        console.log('Bulk format string to parse:', jsonString);
+        
+        // First try to directly extract URLs with regex to handle the strange format we're seeing
+        // This matches URLs that appear at the beginning of a line followed by a comma or quote
+        // It's designed specifically for the format we're encountering in bulk uploads
+        const directUrlMatches = jsonString.match(/https?:\/\/[^",\\]+/g);
+        if (directUrlMatches && directUrlMatches.length > 0) {
+          console.log('Directly extracted URL matches from string:', directUrlMatches);
+          return directUrlMatches;
+        }
+        
+        // If direct extraction failed, try JSON parsing
+        try {
+          const parsed = safeJsonParse(jsonString);
+          if (!parsed) {
+            return [];
+          }
+          
+          // Check if we got an array directly
+          if (Array.isArray(parsed)) {
+            return parsed.filter(Boolean);
+          }
+          
+          // Extract keys from the object which should be URLs based on what we're seeing
+          if (typeof parsed === 'object' && parsed !== null) {
+            const urls = Object.keys(parsed).filter(key => key.startsWith('http'));
+            if (urls.length > 0) {
+              console.log('Extracted URL keys from JSON object:', urls);
+              return urls;
+            }
+          }
+        } catch (parseErr) {
+          console.error('Error during JSON parsing in extractImagesFromBulkFormat:', parseErr);
+        }
+        
+        return [];
+      } catch (e) {
+        console.error('Error extracting images from bulk format:', e);
+        return [];
+      }
+    };
 
     try {
       // Detailed debugging for incoming image data
@@ -75,21 +121,34 @@ export function ProductImageGallery({ imageUrl, additionalImages, productName = 
               const parsed = safeJsonParse(additionalImages);
               if (Array.isArray(parsed)) {
                 // Filter out any null or empty strings
-                allImages.push(...parsed.filter(item => Boolean(item)));
+                allImages.push(...parsed.filter((item: unknown) => Boolean(item)));
               }
             }
-            // Check if it's a JSON object with URLs as keys
+            // Check if it's a JSON object with URLs as keys - this is the bulk upload format
             else if (additionalImages.includes('{') && additionalImages.includes('}')) {
-              const parsed = safeJsonParse(additionalImages);
-              if (parsed) {
-                // If it's an object, extract the keys as they contain the URLs
-                const urls = Object.keys(parsed);
-                if (urls.length > 0) {
-                  urls.forEach(url => {
-                    if (url.startsWith('http')) {
-                      allImages.push(url);
-                    }
-                  });
+              try {
+                console.log('Attempting to parse additionalImages as JSON object:', additionalImages);
+                
+                // Try the special extract function for bulk upload format
+                const extractedUrls = extractImagesFromBulkFormat(additionalImages);
+                if (extractedUrls.length > 0) {
+                  allImages.push(...extractedUrls);
+                } else {
+                  // Fallback to direct regex extraction from the string
+                  const urlMatches = additionalImages.match(/https?:\/\/[^",\\]+/g);
+                  if (urlMatches && urlMatches.length > 0) {
+                    console.log('Extracted URL matches from string:', urlMatches);
+                    allImages.push(...urlMatches);
+                  }
+                }
+              } catch (parseErr) {
+                console.error('Error parsing additionalImages as JSON object:', parseErr);
+                
+                // Last resort: direct regex extraction from the string
+                const urlMatches = additionalImages.match(/https?:\/\/[^",\\]+/g);
+                if (urlMatches && urlMatches.length > 0) {
+                  console.log('Last resort - extracted URL matches from string:', urlMatches);
+                  allImages.push(...urlMatches);
                 }
               }
             }
@@ -102,6 +161,12 @@ export function ProductImageGallery({ imageUrl, additionalImages, productName = 
             // If it's a valid URL despite parsing error, still add it
             if (additionalImages.startsWith('http')) {
               allImages.push(additionalImages);
+            } else {
+              // Last resort: try to extract URLs with regex
+              const urlMatches = additionalImages.match(/https?:\/\/[^",\\]+/g);
+              if (urlMatches && urlMatches.length > 0) {
+                allImages.push(...urlMatches);
+              }
             }
           }
         }
