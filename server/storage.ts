@@ -326,6 +326,7 @@ export interface IStorage {
   processFirstPurchaseReward(userId: number, orderId: number): Promise<SelectWallet | null>;
   processExpiredCoins(): Promise<number>;
   manualAdjustWallet(userId: number, amount: number, description: string): Promise<SelectWallet>;
+  getUsersWithWallets(): Promise<Array<{id: number; username: string; balance: number;}>>;
   
   // Session store
   sessionStore: session.SessionStore;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { z } from "zod";
@@ -185,14 +185,16 @@ export default function WalletManagementPage() {
   });
 
   // Update form when settings data is loaded
-  if (settings && !settingsForm.formState.isDirty) {
-    settingsForm.reset({
-      firstPurchaseCoins: settings.firstPurchaseCoins,
-      expiryDays: settings.expiryDays,
-      conversionRate: settings.conversionRate,
-      isActive: settings.isActive,
-    });
-  }
+  useEffect(() => {
+    if (settings && !settingsForm.formState.isDirty) {
+      settingsForm.reset({
+        firstPurchaseCoins: settings.firstPurchaseCoins,
+        expiryDays: settings.expiryDays,
+        conversionRate: settings.conversionRate,
+        isActive: settings.isActive,
+      });
+    }
+  }, [settings, settingsForm]);
 
   // Handle form submissions
   const onSettingsSubmit = (data: WalletSettings) => {
