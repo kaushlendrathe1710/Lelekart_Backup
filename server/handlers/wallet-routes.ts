@@ -87,14 +87,15 @@ export async function getUserWalletTransactions(req: Request, res: Response) {
     const page = req.query.page ? parseInt(req.query.page as string) : 1;
     const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
     
-    // Get wallet first to ensure it exists
-    const wallet = await storage.getUserWallet(req.user.id);
-    if (!wallet) {
+    // Try to create the wallet if it doesn't exist
+    try {
+      const wallet = await storage.createUserWalletIfNotExists(req.user.id);
+      const result = await storage.getUserWalletTransactions(req.user.id, page, limit);
+      return res.json(result);
+    } catch (err) {
+      console.error("Error with wallet:", err);
       return res.status(404).json({ error: "Wallet not found" });
     }
-    
-    const result = await storage.getWalletTransactions(wallet.id, page, limit);
-    return res.json(result);
   } catch (error) {
     console.error("Error fetching wallet transactions:", error);
     return res.status(500).json({ error: "Failed to fetch wallet transactions" });
@@ -123,9 +124,12 @@ export async function redeemCoins(req: Request, res: Response) {
       return res.status(400).json({ error: "Wallet system is currently disabled" });
     }
     
-    // Get user wallet
-    const wallet = await storage.getUserWallet(req.user.id);
-    if (!wallet) {
+    // Get or create user wallet
+    let wallet;
+    try {
+      wallet = await storage.createUserWalletIfNotExists(req.user.id);
+    } catch (err) {
+      console.error("Error creating wallet:", err);
       return res.status(404).json({ error: "Wallet not found" });
     }
     
@@ -245,12 +249,13 @@ export async function getWalletByUserId(req: Request, res: Response) {
       return res.status(404).json({ error: "User not found" });
     }
     
-    const wallet = await storage.getUserWallet(userId);
-    if (!wallet) {
+    try {
+      const wallet = await storage.createUserWalletIfNotExists(userId);
+      return res.json(wallet);
+    } catch (err) {
+      console.error("Error creating/fetching wallet:", err);
       return res.status(404).json({ error: "Wallet not found" });
     }
-    
-    return res.json(wallet);
   } catch (error) {
     console.error("Error fetching wallet by user ID:", error);
     return res.status(500).json({ error: "Failed to fetch wallet" });
@@ -278,14 +283,15 @@ export async function getWalletTransactionsByUserId(req: Request, res: Response)
       return res.status(404).json({ error: "User not found" });
     }
     
-    // Get wallet
-    const wallet = await storage.getUserWallet(userId);
-    if (!wallet) {
+    // Try to create wallet if it doesn't exist
+    try {
+      const wallet = await storage.createUserWalletIfNotExists(userId);
+      const result = await storage.getUserWalletTransactions(userId, page, limit);
+      return res.json(result);
+    } catch (err) {
+      console.error("Error with wallet:", err);
       return res.status(404).json({ error: "Wallet not found" });
     }
-    
-    const result = await storage.getWalletTransactions(wallet.id, page, limit);
-    return res.json(result);
   } catch (error) {
     console.error("Error fetching wallet transactions by user ID:", error);
     return res.status(500).json({ error: "Failed to fetch wallet transactions" });
