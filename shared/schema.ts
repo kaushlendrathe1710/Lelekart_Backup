@@ -1293,3 +1293,159 @@ export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
 
 export type SupportMessage = typeof supportMessages.$inferSelect;
 export type InsertSupportMessage = z.infer<typeof insertSupportMessageSchema>;
+
+// Rewards system schema
+export const rewards = pgTable("rewards", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
+  points: integer("points").notNull().default(0),
+  lifetimePoints: integer("lifetime_points").notNull().default(0),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const rewardTransactions = pgTable("reward_transactions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  orderId: integer("order_id").references(() => orders.id, { onDelete: "set null" }),
+  productId: integer("product_id").references(() => products.id, { onDelete: "set null" }),
+  points: integer("points").notNull(),
+  type: text("type").notNull(), // earn, redeem, expire, bonus, referral
+  description: text("description"),
+  transactionDate: timestamp("transaction_date").defaultNow(),
+  expiryDate: timestamp("expiry_date"),
+  status: text("status").notNull().default("active"), // active, used, expired
+});
+
+export const rewardRules = pgTable("reward_rules", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  type: text("type").notNull(), // purchase, signup, review, referral, birthday
+  pointsAwarded: integer("points_awarded").notNull(),
+  minimumOrderValue: integer("minimum_order_value"),
+  percentageValue: decimal("percentage_value"), // For purchase-based rewards
+  categoryId: integer("category_id").references(() => categories.id, { onDelete: "set null" }),
+  validFrom: timestamp("valid_from"),
+  validTo: timestamp("valid_to"),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Gift Cards schema
+export const giftCards = pgTable("gift_cards", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  initialValue: integer("initial_value").notNull(),
+  currentBalance: integer("current_balance").notNull(),
+  issuedTo: integer("issued_to").references(() => users.id, { onDelete: "set null" }),
+  purchasedBy: integer("purchased_by").references(() => users.id, { onDelete: "set null" }),
+  isActive: boolean("is_active").notNull().default(true),
+  expiryDate: timestamp("expiry_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+  lastUsed: timestamp("last_used"),
+  recipientEmail: text("recipient_email"),
+  recipientName: text("recipient_name"),
+  message: text("message"),
+  designTemplate: text("design_template").default("default"),
+});
+
+export const giftCardTransactions = pgTable("gift_card_transactions", {
+  id: serial("id").primaryKey(),
+  giftCardId: integer("gift_card_id").references(() => giftCards.id, { onDelete: "cascade" }).notNull(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "set null" }),
+  orderId: integer("order_id").references(() => orders.id, { onDelete: "set null" }),
+  amount: integer("amount").notNull(),
+  type: text("type").notNull(), // purchase, redemption, refund
+  transactionDate: timestamp("transaction_date").defaultNow(),
+  note: text("note"),
+});
+
+// Gift Card Templates for admin to manage
+export const giftCardTemplates = pgTable("gift_card_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  imageUrl: text("image_url"),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Define relationships
+export const rewardsRelations = relations(rewards, ({ one }) => ({
+  user: one(users, {
+    fields: [rewards.userId],
+    references: [users.id],
+  }),
+}));
+
+export const rewardTransactionsRelations = relations(rewardTransactions, ({ one }) => ({
+  user: one(users, {
+    fields: [rewardTransactions.userId],
+    references: [users.id],
+  }),
+  order: one(orders, {
+    fields: [rewardTransactions.orderId],
+    references: [orders.id],
+  }),
+  product: one(products, {
+    fields: [rewardTransactions.productId],
+    references: [products.id],
+  }),
+}));
+
+export const giftCardsRelations = relations(giftCards, ({ one, many }) => ({
+  issuedToUser: one(users, {
+    fields: [giftCards.issuedTo],
+    references: [users.id],
+  }),
+  purchasedByUser: one(users, {
+    fields: [giftCards.purchasedBy],
+    references: [users.id],
+  }),
+  transactions: many(giftCardTransactions),
+}));
+
+export const giftCardTransactionsRelations = relations(giftCardTransactions, ({ one }) => ({
+  giftCard: one(giftCards, {
+    fields: [giftCardTransactions.giftCardId],
+    references: [giftCards.id],
+  }),
+  user: one(users, {
+    fields: [giftCardTransactions.userId],
+    references: [users.id],
+  }),
+  order: one(orders, {
+    fields: [giftCardTransactions.orderId],
+    references: [orders.id],
+  }),
+}));
+
+// Create insert schemas
+export const insertRewardSchema = createInsertSchema(rewards);
+export const insertRewardTransactionSchema = createInsertSchema(rewardTransactions);
+export const insertRewardRuleSchema = createInsertSchema(rewardRules);
+export const insertGiftCardSchema = createInsertSchema(giftCards);
+export const insertGiftCardTransactionSchema = createInsertSchema(giftCardTransactions);
+export const insertGiftCardTemplateSchema = createInsertSchema(giftCardTemplates);
+
+// Types
+export type SelectReward = typeof rewards.$inferSelect;
+export type InsertReward = z.infer<typeof insertRewardSchema>;
+
+export type SelectRewardTransaction = typeof rewardTransactions.$inferSelect;
+export type InsertRewardTransaction = z.infer<typeof insertRewardTransactionSchema>;
+
+export type SelectRewardRule = typeof rewardRules.$inferSelect;
+export type InsertRewardRule = z.infer<typeof insertRewardRuleSchema>;
+
+export type SelectGiftCard = typeof giftCards.$inferSelect;
+export type InsertGiftCard = z.infer<typeof insertGiftCardSchema>;
+
+export type SelectGiftCardTransaction = typeof giftCardTransactions.$inferSelect;
+export type InsertGiftCardTransaction = z.infer<typeof insertGiftCardTransactionSchema>;
+
+export type SelectGiftCardTemplate = typeof giftCardTemplates.$inferSelect;
+export type InsertGiftCardTemplate = z.infer<typeof insertGiftCardTemplateSchema>;
