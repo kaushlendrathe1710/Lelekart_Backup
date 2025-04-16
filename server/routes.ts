@@ -342,9 +342,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const documentId = parseInt(req.params.id);
       
-      // Check if seller is approved
-      const sellerStatus = await storage.getSellerStatus(req.user.id);
-      if (sellerStatus && sellerStatus.approved) {
+      // Check if seller is approved by getting user data
+      const seller = await storage.getUser(req.user.id);
+      if (seller && seller.approved) {
         return res.status(403).json({ 
           error: "You cannot delete verification documents after your seller account has been approved" 
         });
