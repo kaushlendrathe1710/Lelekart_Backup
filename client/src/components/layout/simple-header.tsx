@@ -7,7 +7,8 @@ import {
   ShoppingCart, 
   User,
   LogOut,
-  ChevronDown
+  ChevronDown,
+  Mic
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { SimpleSearch } from "@/components/ui/simple-search";
+import { VoiceSearchDialog } from "@/components/search/voice-search-dialog";
+import { AISearchService } from "@/services/ai-search-service";
+import { useToast } from "@/hooks/use-toast";
 
 export function SimpleHeader() {
   const queryClient = useQueryClient();
@@ -116,23 +121,9 @@ export function SimpleHeader() {
               <div className="text-2xl font-bold pt-0.5">Lelekart</div>
             </Link>
 
-            <form onSubmit={handleSearch} className="flex-grow max-w-xl">
-              <div className="relative flex items-center">
-                <Input
-                  type="text"
-                  placeholder="Search for products, brands and more"
-                  className="w-full bg-white text-black pr-12 h-10"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                <button
-                  type="submit"
-                  className="absolute right-0 h-full px-3 bg-transparent text-gray-500 hover:text-gray-700"
-                >
-                  <Search size={20} />
-                </button>
-              </div>
-            </form>
+            <div className="flex-grow max-w-xl">
+              <SimpleSearch className="z-20" />
+            </div>
           </div>
 
           <div className="flex items-center space-x-5">
@@ -224,23 +215,7 @@ export function SimpleHeader() {
       
       {/* Mobile Search - in a separate fixed position below the header */}
       <div className="md:hidden fixed top-14 left-0 right-0 bg-primary px-4 pb-3 pt-1 z-40 shadow-md">
-        <form onSubmit={handleSearch}>
-          <div className="relative flex items-center">
-            <Input
-              type="text"
-              placeholder="Search products..."
-              className="w-full bg-white text-black pr-12 h-10"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <button
-              type="submit"
-              className="absolute right-0 h-full px-3 bg-transparent text-gray-500 hover:text-gray-700"
-            >
-              <Search size={20} />
-            </button>
-          </div>
-        </form>
+        <SimpleSearch />
       </div>
 
       {/* Mobile Menu */}
