@@ -36,7 +36,7 @@ import {
   RefreshCw
 } from "lucide-react";
 import { User as UserType } from "@shared/schema";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 
 const SellerProfilePage = () => {
   // Auth-related setup
@@ -313,9 +313,11 @@ const SellerProfilePage = () => {
               </div>
               
               <div className="flex items-center gap-2">
-                <Button variant="outline" className="gap-1" onClick={() => window.location.href = `/seller/${user?.id}`}>
-                  <User className="h-4 w-4" /> View Profile
-                </Button>
+                <Link href={`/seller/${user?.id}`}>
+                  <Button variant="outline" className="gap-1">
+                    <User className="h-4 w-4" /> View Profile
+                  </Button>
+                </Link>
               </div>
             </div>
             

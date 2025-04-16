@@ -126,7 +126,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { password, ...publicSellerInfo } = seller;
       
       // Get seller's business details to enhance the profile
-      const businessDetails = await storage.getSellerBusinessDetails(sellerId);
+      const businessDetails = await storage.getBusinessDetails(sellerId);
       
       // Combine seller info with business details
       const enhancedSellerInfo = {
@@ -134,7 +134,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         businessName: businessDetails?.businessName || null,
         businessType: businessDetails?.businessType || null,
         // Add any additional fields you want to expose
-        joinedAt: seller.createdAt || new Date().toISOString(),
+        joinedAt: new Date().toISOString(), // Use current date as fallback since createdAt is not available
       };
       
       res.json(enhancedSellerInfo);
