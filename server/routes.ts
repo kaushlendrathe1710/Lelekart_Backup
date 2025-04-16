@@ -1028,8 +1028,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Cart is empty" });
       }
       
-      // Calculate total
-      const total = cartItems.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
+      // Calculate subtotal from cart items
+      const subtotal = cartItems.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
+      
+      // Add standard shipping cost
+      const shipping = 40; // Standard shipping cost
+      
+      // Check if wallet discount was applied
+      let walletDiscount = 0;
+      let walletDetails = null;
+      
+      if (req.body.walletDetails) {
+        console.log("Processing order with wallet redemption:", req.body.walletDetails);
+        walletDiscount = req.body.walletDetails.discountAmount || 0;
+        walletDetails = req.body.walletDetails;
+        
+        // Validate wallet usage by checking if user has enough coins
+        if (walletDetails.walletId) {
+          const wallet = await storage.getWalletById(walletDetails.walletId);
+          if (!wallet || wallet.balance < walletDetails.coinsUsed) {
+            return res.status(400).json({ error: "Insufficient wallet balance" });
+          }
+        }
+      }
+      
+      // Calculate final total with all adjustments
+      const total = req.body.total || (subtotal + shipping - walletDiscount);
       
       // Create order with shipping details from request body
       const { shippingDetails, paymentMethod } = req.body;
@@ -1043,6 +1067,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         shippingDetails: typeof shippingDetails === 'string' ? shippingDetails : JSON.stringify(shippingDetails || {}),
         paymentMethod: paymentMethod || "cod",
       };
+      
+      // Add wallet information if wallet redemption was applied
+      if (walletDetails) {
+        orderData.walletDiscount = walletDiscount;
+        orderData.walletCoinsUsed = walletDetails.coinsUsed;
+      }
       
       // Add address ID if provided
       if (req.body.addressId) {

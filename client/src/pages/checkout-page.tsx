@@ -35,8 +35,11 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import RazorpayPayment from "@/components/payment/razorpay-payment";
-import { Home, Building2, MapPin, Phone, User, Plus } from "lucide-react";
+import { Home, Building2, MapPin, Phone, User, Plus, Coins, AlertCircle } from "lucide-react";
 import { UserAddress } from "@shared/schema";
+import { useWallet } from "@/context/wallet-context";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Define form schema with Zod
 const checkoutSchema = z.object({
@@ -86,8 +89,12 @@ export default function CheckoutPage() {
   const [addresses, setAddresses] = useState<UserAddress[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
   const [showAddressForm, setShowAddressForm] = useState(true);
+  const [useWalletCoins, setUseWalletCoins] = useState(false);
+  const [walletDiscount, setWalletDiscount] = useState(0);
+  const [walletError, setWalletError] = useState<string | null>(null);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { wallet, settings, isLoading: isWalletLoading } = useWallet();
 
   // Initialize form with default values
   const form = useForm<CheckoutFormValues>({
@@ -277,17 +284,97 @@ export default function CheckoutPage() {
     });
   }
 
+  // Check if wallet can be applied to this order 
+  const checkWalletEligibility = () => {
+    if (!wallet || !settings) return false;
+    
+    // Check if wallet system is active
+    if (!settings.isActive) {
+      setWalletError("Wallet system is currently disabled");
+      return false;
+    }
+    
+    // Check if user has any coins
+    if (!wallet.balance || wallet.balance <= 0) {
+      setWalletError("You don't have any coins in your wallet");
+      return false;
+    }
+    
+    // Check if cart meets minimum order value
+    if (settings.minCartValue && subtotal < settings.minCartValue) {
+      setWalletError(`Wallet coins can only be used on orders worth ₹${settings.minCartValue} or more`);
+      return false;
+    }
+    
+    // Check if all products are in applicable categories
+    if (settings.applicableCategories && settings.applicableCategories.trim() !== '') {
+      const applicableCategories = settings.applicableCategories.split(',').map(cat => cat.trim().toLowerCase());
+      
+      // Check if at least one product is in applicable categories
+      const hasEligibleProduct = cartItems.some(item => 
+        applicableCategories.includes(item.product.category.toLowerCase())
+      );
+      
+      if (!hasEligibleProduct) {
+        setWalletError(`Wallet coins can only be used on these categories: ${settings.applicableCategories}`);
+        return false;
+      }
+    }
+    
+    setWalletError(null);
+    return true;
+  };
+  
+  // Calculate maximum allowed wallet discount
+  const calculateMaxWalletDiscount = () => {
+    if (!wallet || !settings || !settings.isActive || wallet.balance <= 0) return 0;
+    
+    // Convert coins to currency
+    const maxCoinValue = wallet.balance * (settings.coinToCurrencyRatio || 0.1);
+    
+    // Apply percentage limit if set
+    if (settings.maxUsagePercentage && settings.maxUsagePercentage > 0) {
+      const maxPercentageDiscount = subtotal * (settings.maxUsagePercentage / 100);
+      return Math.min(maxCoinValue, maxPercentageDiscount);
+    }
+    
+    return maxCoinValue;
+  };
+  
   // Calculate totals
   const subtotal = cartItems.reduce((total, item) => 
     total + (item.product.price * item.quantity), 0);
   const shipping = subtotal > 0 ? 40 : 0;
-  const total = subtotal + shipping;
+  
+  // Calculate wallet discount only when checkbox is checked and wallet is eligible
+  const maxWalletDiscount = calculateMaxWalletDiscount();
+  const actualWalletDiscount = useWalletCoins && checkWalletEligibility() ? maxWalletDiscount : 0;
+  
+  // Update wallet discount state for display and order processing
+  useEffect(() => {
+    setWalletDiscount(actualWalletDiscount);
+  }, [useWalletCoins, maxWalletDiscount]);
+  
+  const total = subtotal + shipping - walletDiscount;
 
   // Handle form submission
   const onSubmit = async (values: CheckoutFormValues) => {
     setProcessingOrder(true);
     
     try {
+      // Validate wallet usage if attempting to use wallet coins
+      if (useWalletCoins && wallet) {
+        if (!checkWalletEligibility()) {
+          toast({
+            title: "Wallet Error",
+            description: walletError || "Unable to apply wallet discount. Please check requirements.",
+            variant: "destructive",
+          });
+          setProcessingOrder(false);
+          return;
+        }
+      }
+      
       // Prepare order data
       const orderData: any = {
         userId: user.id,
@@ -309,6 +396,18 @@ export default function CheckoutPage() {
       // Add address ID if using saved address
       if (addresses.length > 0 && selectedAddressId && !showAddressForm) {
         orderData.addressId = parseInt(selectedAddressId);
+      }
+      
+      // Add wallet discount information if applicable
+      if (useWalletCoins && walletDiscount > 0) {
+        // Calculate coins used based on the discount amount
+        const coinsUsed = Math.ceil(walletDiscount / (settings?.coinToCurrencyRatio || 0.1));
+        
+        orderData.walletDetails = {
+          coinsUsed,
+          discountAmount: walletDiscount,
+          walletId: wallet.id
+        };
       }
       
       // Log order data before submission
@@ -333,6 +432,33 @@ export default function CheckoutPage() {
       }
       
       const order = await orderResponse.json();
+      
+      // If wallet coins were used, process the redemption
+      if (useWalletCoins && walletDiscount > 0 && wallet) {
+        const coinsUsed = Math.ceil(walletDiscount / (settings?.coinToCurrencyRatio || 0.1));
+        
+        try {
+          // Make API call to redeem coins
+          await fetch('/api/wallet/redeem', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+              amount: coinsUsed,
+              referenceType: 'ORDER',
+              referenceId: order.id.toString(),
+              description: `Used for order #${order.id}`
+            }),
+          });
+          
+          console.log(`Successfully redeemed ${coinsUsed} coins for order #${order.id}`);
+        } catch (err) {
+          console.error("Error redeeming wallet coins:", err);
+          // We still proceed with the order even if coin redemption fails
+        }
+      }
       
       // Clear cart
       await fetch('/api/cart/clear', {
@@ -691,6 +817,54 @@ export default function CheckoutPage() {
               <span className="text-gray-600">Shipping</span>
               <span className="font-medium">₹{shipping.toFixed(2)}</span>
             </div>
+            
+            {/* Wallet integration */}
+            {!isWalletLoading && wallet && settings?.isActive && (
+              <div className="my-4 border rounded-md p-3 bg-gray-50">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="use-wallet" 
+                      checked={useWalletCoins}
+                      onCheckedChange={(checked) => setUseWalletCoins(checked === true)}
+                      disabled={!wallet.balance || wallet.balance <= 0}
+                    />
+                    <label 
+                      htmlFor="use-wallet" 
+                      className="text-sm font-medium flex items-center cursor-pointer"
+                    >
+                      <Coins className="h-4 w-4 mr-1 text-primary" />
+                      Use Wallet Balance ({wallet.balance} coins)
+                    </label>
+                  </div>
+                  {maxWalletDiscount > 0 && (
+                    <span className="text-xs text-green-600 font-medium">
+                      Up to ₹{maxWalletDiscount.toFixed(2)} off
+                    </span>
+                  )}
+                </div>
+                
+                {walletError && (
+                  <div className="text-xs text-red-500 mt-1">
+                    {walletError}
+                  </div>
+                )}
+                
+                {wallet.balance <= 0 && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    No coins available in your wallet
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {useWalletCoins && walletDiscount > 0 && (
+              <div className="flex justify-between mb-2 text-green-600">
+                <span className="font-medium">Wallet Discount</span>
+                <span className="font-medium">-₹{walletDiscount.toFixed(2)}</span>
+              </div>
+            )}
+            
             <hr className="my-4" />
             <div className="flex justify-between mb-6">
               <span className="text-lg font-semibold">Total</span>
