@@ -4678,6 +4678,25 @@ export class DatabaseStorage implements IStorage {
       throw error;
     }
   }
+  
+  async getUsersWithWallets(): Promise<Array<{id: number; username: string; balance: number;}>> {
+    try {
+      const result = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          balance: wallets.balance,
+        })
+        .from(wallets)
+        .innerJoin(users, eq(wallets.userId, users.id))
+        .orderBy(users.id);
+        
+      return result;
+    } catch (error) {
+      console.error('Error fetching users with wallets:', error);
+      throw new Error('Failed to fetch users with wallets');
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();
