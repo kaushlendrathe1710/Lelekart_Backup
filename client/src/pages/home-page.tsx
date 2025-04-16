@@ -8,7 +8,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { HeroSection } from "@/components/ui/hero-section";
 import { ShopByCategory } from "@/components/ui/shop-by-category";
 import { Loader2 } from "lucide-react";
-import TestNavigation from "@/components/test-navigation";
 import { Pagination } from "@/components/ui/pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProductRecommendationCarousel from "@/components/ui/product-recommendation-carousel";
@@ -157,17 +156,7 @@ export default function HomePage() {
       ) : heroProducts && heroProducts.length > 0 ? (
         <HeroSection 
           sliderImages={heroProducts} 
-          dealOfTheDay={dealOfTheDay || {
-            title: "Deal of the Day: Limited Time Offer",
-            subtitle: "Shop our amazing deals before they're gone",
-            image: "/images/electronics.svg",
-            originalPrice: 129.99,
-            discountPrice: 99.99,
-            discountPercentage: 23,
-            hours: 24,
-            minutes: 0,
-            seconds: 0
-          }}
+          dealOfTheDay={dealOfTheDay}
         />
       ) : (
         // Show loading state if no banners exist
@@ -179,11 +168,6 @@ export default function HomePage() {
 
       {/* Shop by Category */}
       <ShopByCategory />
-      
-      {/* Test Navigation - for debugging product navigation */}
-      <div className="container mx-auto px-4 py-2">
-        <TestNavigation />
-      </div>
       
       {/* Featured Deals */}
       <div className="container mx-auto px-4 py-6">

@@ -37,15 +37,18 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
   const intervalRef = useRef<number | null>(null);
   const [, navigate] = useLocation();
   
-  // Deal of the day countdown
+  // Deal of the day countdown - only initialize if we have a deal
   const [countdown, setCountdown] = useState({
-    hours: dealOfTheDay?.hours || 47,
-    minutes: dealOfTheDay?.minutes || 53,
-    seconds: dealOfTheDay?.seconds || 41,
+    hours: dealOfTheDay?.hours || 0,
+    minutes: dealOfTheDay?.minutes || 0,
+    seconds: dealOfTheDay?.seconds || 0,
   });
 
-  // Update countdown timer
+  // Update countdown timer - only if we have a deal of the day
   useEffect(() => {
+    // Only start countdown if dealOfTheDay exists
+    if (!dealOfTheDay) return;
+    
     const timer = setInterval(() => {
       setCountdown(prev => {
         let newSeconds = prev.seconds - 1;
@@ -72,7 +75,7 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [dealOfTheDay]);
 
   const goToSlide = (slideIndex: number) => {
     let newIndex = slideIndex;
@@ -274,7 +277,7 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
         </div>
       </div>
 
-      {/* Deal of the Day Section */}
+      {/* Deal of the Day Section - only show if we have deal data */}
       {dealOfTheDay && (
         <div className="bg-gray-50 py-6">
           <div className="container mx-auto px-4">
