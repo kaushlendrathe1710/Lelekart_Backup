@@ -1,4 +1,13 @@
-import { db, pool } from './server/db.js';
+import { Pool, neonConfig } from '@neondatabase/serverless';
+import ws from 'ws';
+
+// Configure neon to use ws
+neonConfig.webSocketConstructor = ws;
+
+// Use the DATABASE_URL environment variable directly
+const pool = new Pool({ 
+  connectionString: process.env.DATABASE_URL
+});
 
 async function addSellerIdToProductShippingOverrides() {
   try {
@@ -14,13 +23,14 @@ async function addSellerIdToProductShippingOverrides() {
     const columnExists = await pool.query(checkColumnSQL);
     
     if (columnExists.rows.length === 0) {
-      // Add the seller_id column
+      // Add the seller_id column with DEFAULT NULL initially to avoid constraint errors
       const addColumnSQL = `
         ALTER TABLE product_shipping_overrides 
-        ADD COLUMN seller_id INTEGER NOT NULL REFERENCES users(id)
+        ADD COLUMN seller_id INTEGER
       `;
       
       await pool.query(addColumnSQL);
+      console.log('Added seller_id column');
       
       // For existing records, we need to set a value for seller_id
       // We can get this from the products table
@@ -32,6 +42,18 @@ async function addSellerIdToProductShippingOverrides() {
       `;
       
       await pool.query(updateRecordsSQL);
+      console.log('Updated existing records with seller_id values');
+      
+      // Now add the NOT NULL constraint and foreign key
+      const addConstraintsSQL = `
+        ALTER TABLE product_shipping_overrides 
+        ALTER COLUMN seller_id SET NOT NULL,
+        ADD CONSTRAINT fk_product_shipping_overrides_seller 
+        FOREIGN KEY (seller_id) REFERENCES users(id)
+      `;
+      
+      await pool.query(addConstraintsSQL);
+      console.log('Added NOT NULL constraint and foreign key');
       
       console.log('Successfully added and populated seller_id column');
     } else {
