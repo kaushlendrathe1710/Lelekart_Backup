@@ -170,8 +170,10 @@ export function VoiceSearch({ onSearch, className }: VoiceSearchProps) {
     setIsProcessing(true);
     
     try {
+      console.log('Processing voice query:', query.trim());
+      
       // Call the onSearch callback to handle the search
-      onSearch(query.trim());
+      await onSearch(query.trim());
       
       // Show toast notification
       toast({
@@ -182,6 +184,13 @@ export function VoiceSearch({ onSearch, className }: VoiceSearchProps) {
     } catch (error) {
       console.error('Error processing voice query', error);
       setErrorMessage('Failed to process your search. Please try again.');
+      
+      toast({
+        title: 'Voice Search Error',
+        description: error instanceof Error ? error.message : 'Failed to process your search query',
+        variant: 'destructive',
+        duration: 5000
+      });
     } finally {
       setIsProcessing(false);
     }

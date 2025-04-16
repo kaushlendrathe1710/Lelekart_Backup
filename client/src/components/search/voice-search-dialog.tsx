@@ -43,6 +43,8 @@ export function VoiceSearchDialog({
       }
       
       // Otherwise use our default implementation
+      console.log('Processing voice search query:', query);
+      
       // Process the query using AI to extract structured search parameters
       const result = await AISearchService.processQuery(query);
       
@@ -72,6 +74,10 @@ export function VoiceSearchDialog({
         description: error instanceof Error ? error.message : 'Failed to process your search',
         variant: 'destructive'
       });
+      
+      // Fall back to simple search with the original voice query
+      navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+      setOpen(false);
     } finally {
       setIsSearching(false);
     }

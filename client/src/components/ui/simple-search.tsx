@@ -18,14 +18,15 @@ export function SimpleSearch({ className }: SimpleSearchProps = {}) {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   
-  // Handle AI search - used by both voice and text when appropriate
-  const handleAISearch = async (searchQuery: string) => {
+  // Process search with AI
+  const processAiSearch = async (searchQuery: string) => {
     if (!searchQuery.trim()) return;
     
     setIsAiSearching(true);
     
     try {
       // Process the query using AI to extract structured search parameters
+      console.log('Processing AI search query:', searchQuery);
       const result = await AISearchService.processQuery(searchQuery);
       
       if (result.success) {
@@ -59,6 +60,7 @@ export function SimpleSearch({ className }: SimpleSearchProps = {}) {
     }
   };
 
+  // Handle form submission
   const handleSearch = async (e: FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
@@ -67,20 +69,20 @@ export function SimpleSearch({ className }: SimpleSearchProps = {}) {
       // For direct queries longer than 6 words, use AI search processing
       if (query.trim().split(' ').length > 6) {
         console.log('Using AI search processing for long query');
-        await handleAISearch(query);
+        await processAiSearch(query);
       } else {
         // Use simple search for shorter queries
         navigate(`/search?q=${encodeURIComponent(query.trim())}`);
       }
     }
   };
-
-  // Handle voice search query - uses handleAISearch
+  
+  // Handle voice search query
   const handleVoiceSearch = async (voiceQuery: string) => {
     if (!voiceQuery.trim()) return;
     
     console.log('Processing voice search query:', voiceQuery);
-    await handleAISearch(voiceQuery);
+    await processAiSearch(voiceQuery);
   };
 
   const clearSearch = () => setQuery('');
