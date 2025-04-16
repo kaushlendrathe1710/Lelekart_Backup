@@ -37,6 +37,7 @@ import DesignHero from './pages/admin/design-hero';
 import FooterManagement from './pages/admin/footer-management';
 import ManageAdmins from './pages/admin/manage-admins';
 import CreateUser from './pages/admin/create-user';
+import AdminShippingManagement from './pages/admin/shipping-management';
 
 // Seller pages
 import SellerDashboardPage from './pages/seller/dashboard';
@@ -48,6 +49,7 @@ import SellerOrdersPage from './pages/seller/orders';
 import BulkUploadPage from './pages/seller/bulk-upload';
 import SmartInventoryPage from './pages/seller/smart-inventory';
 import SellerProfilePage from './pages/seller/profile';
+import SellerShippingPage from './pages/seller/shipping';
 import BuyerDashboardPage from './pages/buyer/dashboard';
 import BuyerWishlistPage from './pages/buyer/wishlist';
 import BuyerSettingsPage from './pages/buyer/settings';
@@ -302,6 +304,15 @@ function App() {
                       />
                     )}
                   </Route>
+                  <Route path="/admin/shipping-management">
+                    {() => (
+                      <ProtectedRoute 
+                        path="/admin/shipping-management" 
+                        role="admin" 
+                        component={AdminShippingManagement} 
+                      />
+                    )}
+                  </Route>
                   <Route path="/admin/manage-admins">
                     {() => (
                       <ProtectedRoute 
@@ -409,9 +420,7 @@ function App() {
                       <ProtectedRoute 
                         path="/seller/shipping" 
                         role="seller" 
-                        component={() => (
-                          <SellerDashboardPage />
-                        )} 
+                        component={SellerShippingPage} 
                       />
                     )}
                   </Route>
