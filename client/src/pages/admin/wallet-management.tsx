@@ -36,6 +36,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 
@@ -379,29 +380,40 @@ export default function WalletManagementPage() {
                         )}
                       />
 
-                      <FormField
-                        control={settingsForm.control}
-                        name="isActive"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>
-                                Enable Wallet System
-                              </FormLabel>
-                              <FormDescription>
-                                When disabled, users cannot earn or redeem coins
-                              </FormDescription>
-                            </div>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      {/* Make the wallet enable/disable option more prominent */}
+                      <Card className="border-2 border-primary/20 mt-6 mb-2">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base">Wallet System Status</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <FormField
+                            control={settingsForm.control}
+                            name="isActive"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                                <FormControl>
+                                  <div className="flex items-center space-x-2">
+                                    <Switch
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                      className="data-[state=checked]:bg-green-500"
+                                    />
+                                    <span className={`font-semibold ${field.value ? 'text-green-500' : 'text-red-500'}`}>
+                                      {field.value ? 'ENABLED' : 'DISABLED'}
+                                    </span>
+                                  </div>
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormDescription>
+                                    When disabled, users cannot earn or redeem coins throughout the platform
+                                  </FormDescription>
+                                </div>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </CardContent>
+                      </Card>
 
                       <Button 
                         type="submit"
