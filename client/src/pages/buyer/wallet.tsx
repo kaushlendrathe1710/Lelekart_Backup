@@ -18,6 +18,13 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Loader2, CreditCard, Coins, ArrowDown, ArrowUp, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
@@ -28,7 +35,12 @@ const redeemFormSchema = z.object({
   amount: z.coerce
     .number()
     .int()
-    .positive("Amount must be a positive number")
+    .positive("Amount must be a positive number"),
+  orderValue: z.coerce
+    .number()
+    .optional(),
+  category: z.string().optional(),
+  description: z.string().optional()
 });
 
 type RedeemFormValues = z.infer<typeof redeemFormSchema>;
@@ -57,7 +69,12 @@ export default function WalletPage() {
   // Handle form submission
   async function onSubmit(data: RedeemFormValues) {
     try {
-      await redeemCoins(data.amount);
+      await redeemCoins(data.amount, {
+        referenceType: 'MANUAL',
+        description: data.description || 'Manual redemption',
+        orderValue: data.orderValue,
+        category: data.category
+      });
       form.reset({ amount: 100 });
     } catch (error) {
       console.error("Error redeeming coins:", error);
@@ -268,6 +285,18 @@ export default function WalletPage() {
                         <TableCell>First Purchase Bonus</TableCell>
                         <TableCell>{settings?.firstPurchaseCoins || 0} coins</TableCell>
                       </TableRow>
+                      {settings?.maxUsagePercentage > 0 && (
+                        <TableRow>
+                          <TableCell>Maximum Usage</TableCell>
+                          <TableCell>{settings.maxUsagePercentage}% of order value</TableCell>
+                        </TableRow>
+                      )}
+                      {settings?.minCartValue > 0 && (
+                        <TableRow>
+                          <TableCell>Minimum Order Value</TableCell>
+                          <TableCell>₹{settings.minCartValue}</TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 </div>
@@ -375,6 +404,56 @@ export default function WalletPage() {
                       )}
                     />
                     
+                    {settings?.minCartValue > 0 && (
+                      <FormField
+                        control={form.control}
+                        name="orderValue"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Test Order Value (₹)</FormLabel>
+                            <FormControl>
+                              <Input type="number" {...field} defaultValue={settings.minCartValue} />
+                            </FormControl>
+                            <FormDescription>
+                              For testing purposes only - enter an order value to validate the minimum cart value restriction
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                    
+                    {settings?.applicableCategories && (
+                      <FormField
+                        control={form.control}
+                        name="category"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Test Product Category</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select a category" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {settings.applicableCategories.split(",").map((category) => (
+                                  <SelectItem key={category.trim()} value={category.trim()}>
+                                    {category.trim()}
+                                  </SelectItem>
+                                ))}
+                                <SelectItem value="Other">Other (Not applicable)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormDescription>
+                              For testing purposes - select a category to validate category restrictions
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                    
                     <div className="space-y-1.5">
                       <div className="text-sm font-semibold">Summary</div>
                       <div className="rounded-lg border p-3 text-sm">
@@ -421,10 +500,30 @@ export default function WalletPage() {
                 </Form>
               </CardContent>
               <CardFooter className="border-t px-6 py-4">
-                <p className="text-xs text-muted-foreground">
-                  Redeemed coins will generate a voucher code that you can use during checkout. 
-                  The voucher will be applied automatically to your next order.
-                </p>
+                <div className="space-y-2 text-xs text-muted-foreground">
+                  <p>
+                    Redeemed coins will generate a voucher code that you can use during checkout. 
+                    The voucher will be applied automatically to your next order.
+                  </p>
+                  
+                  {settings?.maxUsagePercentage > 0 && (
+                    <p>
+                      <span className="font-medium">Usage limit:</span> You can use coins for up to {settings.maxUsagePercentage}% of your order value.
+                    </p>
+                  )}
+                  
+                  {settings?.minCartValue > 0 && (
+                    <p>
+                      <span className="font-medium">Minimum order:</span> Coins can only be used on orders worth ₹{settings.minCartValue} or more.
+                    </p>
+                  )}
+                  
+                  {settings?.applicableCategories && (
+                    <p>
+                      <span className="font-medium">Applicable categories:</span> Coins can only be used on products in these categories: {settings.applicableCategories}.
+                    </p>
+                  )}
+                </div>
               </CardFooter>
             </Card>
           </TabsContent>
