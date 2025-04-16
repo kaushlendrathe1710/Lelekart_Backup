@@ -88,6 +88,7 @@ import * as settingsHandlers from "./handlers/settings-handlers";
 import * as supportHandlers from "./handlers/support-handlers";
 import * as rewardsHandlers from "./handlers/rewards-handlers";
 import * as giftCardsHandlers from "./handlers/gift-cards-handlers";
+import * as walletRoutes from "./handlers/wallet-routes";
 import {
   getShippingMethods,
   getShippingMethod,
