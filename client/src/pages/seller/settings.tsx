@@ -263,12 +263,13 @@ export default function SellerSettingsPage() {
           </div>
 
           <div className="md:w-3/4">
-            <TabsContent value="account" className="space-y-6 mt-0">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Personal Information</CardTitle>
-                  <CardDescription>Update your personal details</CardDescription>
-                </CardHeader>
+            <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
+              <TabsContent value="account" className="space-y-6 mt-0">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Personal Information</CardTitle>
+                    <CardDescription>Update your personal details</CardDescription>
+                  </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -786,6 +787,7 @@ export default function SellerSettingsPage() {
                 </CardContent>
               </Card>
             </TabsContent>
+            </Tabs>
           </div>
         </div>
       </div>
