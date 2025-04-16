@@ -3987,6 +3987,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await walletRoutes.updateWalletSettings(req, res);
   });
   
+  // Additional POST route for wallet settings to maintain compatibility with client
+  app.post("/api/wallet/settings", async (req, res) => {
+    await walletRoutes.updateWalletSettings(req, res);
+  });
+  
   // Get user wallet
   app.get("/api/wallet", async (req, res) => {
     await walletRoutes.getUserWallet(req, res);

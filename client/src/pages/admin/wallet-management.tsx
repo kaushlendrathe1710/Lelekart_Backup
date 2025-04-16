@@ -111,7 +111,7 @@ export default function WalletManagementPage() {
   // Mutation for updating wallet settings
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: WalletSettings) => {
-      const res = await apiRequest('POST', '/api/wallet/settings', data);
+      const res = await apiRequest('PUT', '/api/wallet/settings', data);
       if (!res.ok) {
         throw new Error('Failed to update wallet settings');
       }
