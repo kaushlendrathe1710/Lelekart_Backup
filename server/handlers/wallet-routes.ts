@@ -64,14 +64,14 @@ export async function getUserWallet(req: Request, res: Response) {
   try {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
-    const wallet = await storage.getUserWallet(req.user.id);
-    if (!wallet) {
-      // Create a wallet if it doesn't exist
-      const newWallet = await storage.createUserWallet(req.user.id);
-      return res.json(newWallet);
+    try {
+      // Create wallet if it doesn't exist and return it
+      const wallet = await storage.createUserWalletIfNotExists(req.user.id);
+      return res.json(wallet);
+    } catch (err) {
+      console.error("Error creating/fetching wallet:", err);
+      return res.status(404).json({ error: "Wallet not found" });
     }
-    
-    return res.json(wallet);
   } catch (error) {
     console.error("Error fetching user wallet:", error);
     return res.status(500).json({ error: "Failed to fetch user wallet" });
@@ -205,10 +205,7 @@ export async function manualWalletAdjustment(req: Request, res: Response) {
     }
     
     // Get or create user wallet
-    let wallet = await storage.getUserWallet(userId);
-    if (!wallet) {
-      wallet = await storage.createUserWallet(userId);
-    }
+    const wallet = await storage.createUserWalletIfNotExists(userId);
     
     // For negative adjustments, check balance
     if (amount < 0 && wallet.balance < Math.abs(amount)) {
