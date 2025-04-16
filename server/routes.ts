@@ -82,6 +82,31 @@ import {
   updateAIContentStatus
 } from "./utils/ml-inventory-manager";
 import { handleAISearch } from "./handlers/ai-search-handler";
+import {
+  getShippingMethods,
+  getShippingMethod,
+  createShippingMethod,
+  updateShippingMethod,
+  deleteShippingMethod,
+  getShippingZones,
+  getShippingZone,
+  createShippingZone,
+  updateShippingZone,
+  deleteShippingZone,
+  getShippingRules,
+  getShippingRule,
+  createShippingRule,
+  updateShippingRule,
+  deleteShippingRule,
+  getSellerShippingSettings,
+  createOrUpdateSellerShippingSettings,
+  getProductShippingOverrides,
+  getProductShippingOverride,
+  createOrUpdateProductShippingOverride,
+  deleteProductShippingOverride,
+  getOrderShippingTracking,
+  createOrUpdateOrderShippingTracking
+} from "./handlers/shipping-handlers";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes with OTP-based authentication

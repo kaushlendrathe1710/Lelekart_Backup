@@ -53,164 +53,122 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  CheckCircle,
-  Loader2,
-  MapPin,
-  Package,
   PlusCircle,
-  Truck,
-  Edit,
-  Settings,
-  Info,
-  HelpCircle,
-  Globe,
-  AlertTriangle,
-  TruckIcon,
   Trash2,
-  ChevronDown,
-  Search,
-  Filter,
+  Edit,
+  MapPin,
+  Globe,
+  Settings,
+  Truck,
+  Info,
+  AlertCircle,
+  TruckIcon,
+  CheckCircle,
+  Package,
+  DollarSign,
+  Loader2,
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 
 // Define validation schema for shipping method
 const shippingMethodSchema = z.object({
-  id: z.number().optional(),
-  name: z.string().min(1, "Name is required"),
+  name: z.string().min(3, { message: "Name must be at least 3 characters" }),
   description: z.string().optional(),
-  price: z.number().min(0, "Price must be non-negative"),
-  estimatedDays: z.string().min(1, "Estimated delivery time is required"),
+  price: z.coerce.number().min(0, { message: "Price must be a positive number" }),
+  estimatedDays: z.string().min(1, { message: "Estimated days is required" }),
   isActive: z.boolean().default(true),
   icon: z.string().optional(),
+  priority: z.coerce.number().default(0),
 });
 
 // Define validation schema for shipping zone
 const shippingZoneSchema = z.object({
-  id: z.number().optional(),
-  name: z.string().min(1, "Name is required"),
+  name: z.string().min(3, { message: "Name must be at least 3 characters" }),
   description: z.string().optional(),
-  countries: z.string().min(1, "At least one country is required"),
-  states: z.string().optional(),
-  cities: z.string().optional(),
-  zipCodes: z.string().optional(),
+  regions: z.string().min(1, { message: "Regions list is required" }),
   isActive: z.boolean().default(true),
 });
 
 // Define validation schema for shipping rule
 const shippingRuleSchema = z.object({
-  id: z.number().optional(),
-  zoneId: z.number().min(1, "Shipping zone is required"),
-  methodId: z.number().min(1, "Shipping method is required"),
-  price: z.number().nullable().optional(),
-  freeShippingThreshold: z.number().nullable().optional(),
-  additionalDays: z.number().default(0),
+  methodId: z.coerce.number().min(1, { message: "Shipping method is required" }),
+  zoneId: z.coerce.number().min(1, { message: "Shipping zone is required" }),
+  price: z.coerce.number().min(0, { message: "Price must be a positive number" }),
+  minOrderValue: z.coerce.number().default(0),
+  maxOrderValue: z.coerce.number().optional(),
+  minWeight: z.coerce.number().default(0),
+  maxWeight: z.coerce.number().optional(),
+  additionalDays: z.coerce.number().default(0),
+  notes: z.string().optional(),
   isActive: z.boolean().default(true),
 });
 
-export default function AdminShippingManagementPage() {
+export default function AdminShippingManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("methods");
-  const [methodDialogOpen, setMethodDialogOpen] = useState(false);
-  const [zoneDialogOpen, setZoneDialogOpen] = useState(false);
-  const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
+  
+  // Dialog states
+  const [isMethodDialogOpen, setIsMethodDialogOpen] = useState(false);
+  const [isZoneDialogOpen, setIsZoneDialogOpen] = useState(false);
+  const [isRuleDialogOpen, setIsRuleDialogOpen] = useState(false);
+  
+  // Selected item states for editing
   const [selectedMethod, setSelectedMethod] = useState<any>(null);
   const [selectedZone, setSelectedZone] = useState<any>(null);
   const [selectedRule, setSelectedRule] = useState<any>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<{type: string; id: number | null}>({
-    type: '',
-    id: null
-  });
+  
+  // Delete confirmation dialog states
+  const [isMethodDeleteDialogOpen, setIsMethodDeleteDialogOpen] = useState(false);
+  const [isZoneDeleteDialogOpen, setIsZoneDeleteDialogOpen] = useState(false);
+  const [isRuleDeleteDialogOpen, setIsRuleDeleteDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<number | null>(null);
 
   // Fetch shipping methods
-  const { data: shippingMethods, isLoading: isLoadingMethods } = useQuery({
+  const {
+    data: shippingMethods,
+    isLoading: isLoadingMethods,
+    isError: isErrorMethods,
+  } = useQuery({
     queryKey: ['/api/shipping/methods'],
     queryFn: async () => {
-      try {
-        const res = await fetch('/api/shipping/methods');
-        if (!res.ok) {
-          throw new Error('Failed to fetch shipping methods');
-        }
-        return res.json();
-      } catch (error) {
-        console.error('Error fetching shipping methods:', error);
-        return [
-          { id: 1, name: "Standard Shipping", price: 4000, estimatedDays: "3-5 business days", icon: "truck", isActive: true },
-          { id: 2, name: "Express Shipping", price: 9000, estimatedDays: "1-2 business days", icon: "truck-fast", isActive: true },
-          { id: 3, name: "Economy Shipping", price: 2900, estimatedDays: "5-8 business days", icon: "truck-slow", isActive: true },
-        ];
+      const res = await fetch('/api/shipping/methods');
+      if (!res.ok) {
+        throw new Error('Failed to fetch shipping methods');
       }
-    }
+      return res.json();
+    },
   });
 
   // Fetch shipping zones
-  const { data: shippingZones, isLoading: isLoadingZones } = useQuery({
+  const {
+    data: shippingZones,
+    isLoading: isLoadingZones,
+    isError: isErrorZones,
+  } = useQuery({
     queryKey: ['/api/shipping/zones'],
     queryFn: async () => {
-      try {
-        const res = await fetch('/api/shipping/zones');
-        if (!res.ok) {
-          throw new Error('Failed to fetch shipping zones');
-        }
-        return res.json();
-      } catch (error) {
-        console.error('Error fetching shipping zones:', error);
-        return [
-          { id: 1, name: "All India", description: "All regions across India", countries: "India", isActive: true },
-          { id: 2, name: "North India", description: "Northern states of India", countries: "India", states: "Delhi,Haryana,Punjab,Uttar Pradesh,Himachal Pradesh", isActive: true },
-          { id: 3, name: "South India", description: "Southern states of India", countries: "India", states: "Tamil Nadu,Kerala,Karnataka,Andhra Pradesh,Telangana", isActive: true },
-          { id: 4, name: "Metro Cities", description: "Major metropolitan cities", countries: "India", cities: "Delhi,Mumbai,Chennai,Kolkata,Bangalore,Hyderabad", isActive: true },
-        ];
+      const res = await fetch('/api/shipping/zones');
+      if (!res.ok) {
+        throw new Error('Failed to fetch shipping zones');
       }
-    }
+      return res.json();
+    },
   });
 
   // Fetch shipping rules
-  const { data: shippingRules, isLoading: isLoadingRules } = useQuery({
+  const {
+    data: shippingRules,
+    isLoading: isLoadingRules,
+    isError: isErrorRules,
+  } = useQuery({
     queryKey: ['/api/shipping/rules'],
     queryFn: async () => {
-      try {
-        const res = await fetch('/api/shipping/rules');
-        if (!res.ok) {
-          throw new Error('Failed to fetch shipping rules');
-        }
-        return res.json();
-      } catch (error) {
-        console.error('Error fetching shipping rules:', error);
-        return [
-          { id: 1, zoneId: 1, methodId: 1, price: 4000, additionalDays: 0, isActive: true },
-          { id: 2, zoneId: 1, methodId: 2, price: 9000, additionalDays: 0, isActive: true },
-          { id: 3, zoneId: 2, methodId: 1, price: 4500, additionalDays: 1, isActive: true },
-          { id: 4, zoneId: 3, methodId: 1, price: 4200, additionalDays: 1, isActive: true },
-          { id: 5, zoneId: 4, methodId: 1, price: 3500, freeShippingThreshold: 50000, isActive: true },
-        ];
+      const res = await fetch('/api/shipping/rules');
+      if (!res.ok) {
+        throw new Error('Failed to fetch shipping rules');
       }
-    }
+      return res.json();
+    },
   });
 
   // Form setup for shipping method
@@ -223,6 +181,7 @@ export default function AdminShippingManagementPage() {
       estimatedDays: "",
       isActive: true,
       icon: "",
+      priority: 0,
     },
   });
 
@@ -232,10 +191,7 @@ export default function AdminShippingManagementPage() {
     defaultValues: {
       name: "",
       description: "",
-      countries: "India",
-      states: "",
-      cities: "",
-      zipCodes: "",
+      regions: "",
       isActive: true,
     },
   });
@@ -244,244 +200,324 @@ export default function AdminShippingManagementPage() {
   const ruleForm = useForm<z.infer<typeof shippingRuleSchema>>({
     resolver: zodResolver(shippingRuleSchema),
     defaultValues: {
-      zoneId: 0,
       methodId: 0,
-      price: null,
-      freeShippingThreshold: null,
+      zoneId: 0,
+      price: 0,
+      minOrderValue: 0,
+      maxOrderValue: undefined,
+      minWeight: 0,
+      maxWeight: undefined,
       additionalDays: 0,
+      notes: "",
       isActive: true,
     },
   });
 
-  // Update form values when editing an existing method
-  React.useEffect(() => {
-    if (selectedMethod) {
-      methodForm.reset({
-        id: selectedMethod.id,
-        name: selectedMethod.name,
-        description: selectedMethod.description || "",
-        price: selectedMethod.price,
-        estimatedDays: selectedMethod.estimatedDays,
-        isActive: selectedMethod.isActive !== false,
-        icon: selectedMethod.icon || "",
-      });
-    } else {
-      methodForm.reset({
-        name: "",
-        description: "",
-        price: 0,
-        estimatedDays: "",
-        isActive: true,
-        icon: "",
-      });
-    }
-  }, [selectedMethod, methodForm]);
+  // Reset method form when selected method changes
+  const resetMethodForm = (method: any = null) => {
+    methodForm.reset(
+      method
+        ? {
+            name: method.name,
+            description: method.description || "",
+            price: method.price,
+            estimatedDays: method.estimatedDays,
+            isActive: method.isActive,
+            icon: method.icon || "",
+            priority: method.priority || 0,
+          }
+        : {
+            name: "",
+            description: "",
+            price: 0,
+            estimatedDays: "",
+            isActive: true,
+            icon: "",
+            priority: 0,
+          }
+    );
+  };
 
-  // Update form values when editing an existing zone
-  React.useEffect(() => {
-    if (selectedZone) {
-      zoneForm.reset({
-        id: selectedZone.id,
-        name: selectedZone.name,
-        description: selectedZone.description || "",
-        countries: selectedZone.countries,
-        states: selectedZone.states || "",
-        cities: selectedZone.cities || "",
-        zipCodes: selectedZone.zipCodes || "",
-        isActive: selectedZone.isActive !== false,
-      });
-    } else {
-      zoneForm.reset({
-        name: "",
-        description: "",
-        countries: "India",
-        states: "",
-        cities: "",
-        zipCodes: "",
-        isActive: true,
-      });
-    }
-  }, [selectedZone, zoneForm]);
+  // Reset zone form when selected zone changes
+  const resetZoneForm = (zone: any = null) => {
+    zoneForm.reset(
+      zone
+        ? {
+            name: zone.name,
+            description: zone.description || "",
+            regions: zone.regions,
+            isActive: zone.isActive,
+          }
+        : {
+            name: "",
+            description: "",
+            regions: "",
+            isActive: true,
+          }
+    );
+  };
 
-  // Update form values when editing an existing rule
-  React.useEffect(() => {
-    if (selectedRule) {
-      ruleForm.reset({
-        id: selectedRule.id,
-        zoneId: selectedRule.zoneId,
-        methodId: selectedRule.methodId,
-        price: selectedRule.price,
-        freeShippingThreshold: selectedRule.freeShippingThreshold || null,
-        additionalDays: selectedRule.additionalDays || 0,
-        isActive: selectedRule.isActive !== false,
-      });
-    } else {
-      ruleForm.reset({
-        zoneId: 0,
-        methodId: 0,
-        price: null,
-        freeShippingThreshold: null,
-        additionalDays: 0,
-        isActive: true,
-      });
-    }
-  }, [selectedRule, ruleForm]);
+  // Reset rule form when selected rule changes
+  const resetRuleForm = (rule: any = null) => {
+    ruleForm.reset(
+      rule
+        ? {
+            methodId: rule.methodId,
+            zoneId: rule.zoneId,
+            price: rule.price,
+            minOrderValue: rule.minOrderValue || 0,
+            maxOrderValue: rule.maxOrderValue || undefined,
+            minWeight: rule.minWeight || 0,
+            maxWeight: rule.maxWeight || undefined,
+            additionalDays: rule.additionalDays || 0,
+            notes: rule.notes || "",
+            isActive: rule.isActive,
+          }
+        : {
+            methodId: 0,
+            zoneId: 0,
+            price: 0,
+            minOrderValue: 0,
+            maxOrderValue: undefined,
+            minWeight: 0,
+            maxWeight: undefined,
+            additionalDays: 0,
+            notes: "",
+            isActive: true,
+          }
+    );
+  };
 
-  // Mutation for saving shipping method
-  const saveMethodMutation = useMutation({
+  // Mutation for creating/updating shipping method
+  const shippingMethodMutation = useMutation({
     mutationFn: async (data: z.infer<typeof shippingMethodSchema>) => {
-      const response = await fetch('/api/shipping/methods', {
-        method: data.id ? 'PUT' : 'POST',
+      const url = selectedMethod
+        ? `/api/shipping/methods/${selectedMethod.id}`
+        : '/api/shipping/methods';
+      const method = selectedMethod ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(data),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to save shipping method');
+      if (!res.ok) {
+        throw new Error(`Failed to ${selectedMethod ? 'update' : 'create'} shipping method`);
       }
 
-      return response.json();
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/shipping/methods'] });
       toast({
-        title: "Success",
-        description: "Shipping method saved successfully.",
+        title: `Shipping method ${selectedMethod ? 'updated' : 'created'}`,
+        description: `Shipping method has been successfully ${selectedMethod ? 'updated' : 'created'}.`,
       });
-      setMethodDialogOpen(false);
+      setIsMethodDialogOpen(false);
       setSelectedMethod(null);
     },
     onError: (error) => {
       toast({
-        title: "Error",
-        description: `Failed to save shipping method: ${error.message}`,
-        variant: "destructive",
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
       });
     },
   });
 
-  // Mutation for saving shipping zone
-  const saveZoneMutation = useMutation({
+  // Mutation for creating/updating shipping zone
+  const shippingZoneMutation = useMutation({
     mutationFn: async (data: z.infer<typeof shippingZoneSchema>) => {
-      const response = await fetch('/api/shipping/zones', {
-        method: data.id ? 'PUT' : 'POST',
+      const url = selectedZone
+        ? `/api/shipping/zones/${selectedZone.id}`
+        : '/api/shipping/zones';
+      const method = selectedZone ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(data),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to save shipping zone');
+      if (!res.ok) {
+        throw new Error(`Failed to ${selectedZone ? 'update' : 'create'} shipping zone`);
       }
 
-      return response.json();
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/shipping/zones'] });
       toast({
-        title: "Success",
-        description: "Shipping zone saved successfully.",
+        title: `Shipping zone ${selectedZone ? 'updated' : 'created'}`,
+        description: `Shipping zone has been successfully ${selectedZone ? 'updated' : 'created'}.`,
       });
-      setZoneDialogOpen(false);
+      setIsZoneDialogOpen(false);
       setSelectedZone(null);
     },
     onError: (error) => {
       toast({
-        title: "Error",
-        description: `Failed to save shipping zone: ${error.message}`,
-        variant: "destructive",
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
       });
     },
   });
 
-  // Mutation for saving shipping rule
-  const saveRuleMutation = useMutation({
+  // Mutation for creating/updating shipping rule
+  const shippingRuleMutation = useMutation({
     mutationFn: async (data: z.infer<typeof shippingRuleSchema>) => {
-      const response = await fetch('/api/shipping/rules', {
-        method: data.id ? 'PUT' : 'POST',
+      const url = selectedRule
+        ? `/api/shipping/rules/${selectedRule.id}`
+        : '/api/shipping/rules';
+      const method = selectedRule ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(data),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to save shipping rule');
+      if (!res.ok) {
+        throw new Error(`Failed to ${selectedRule ? 'update' : 'create'} shipping rule`);
       }
 
-      return response.json();
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/shipping/rules'] });
       toast({
-        title: "Success",
-        description: "Shipping rule saved successfully.",
+        title: `Shipping rule ${selectedRule ? 'updated' : 'created'}`,
+        description: `Shipping rule has been successfully ${selectedRule ? 'updated' : 'created'}.`,
       });
-      setRuleDialogOpen(false);
+      setIsRuleDialogOpen(false);
       setSelectedRule(null);
     },
     onError: (error) => {
       toast({
-        title: "Error",
-        description: `Failed to save shipping rule: ${error.message}`,
-        variant: "destructive",
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
       });
     },
   });
 
-  // Mutation for deleting items
-  const deleteMutation = useMutation({
-    mutationFn: async ({ type, id }: { type: string; id: number }) => {
-      const response = await fetch(`/api/shipping/${type}/${id}`, {
+  // Mutation for deleting shipping method
+  const deleteMethodMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/shipping/methods/${id}`, {
         method: 'DELETE',
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to delete ${type}`);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to delete shipping method');
       }
 
-      return response.json();
+      return res.json();
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: [`/api/shipping/${variables.type}`] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/shipping/methods'] });
       toast({
-        title: "Success",
-        description: `Item deleted successfully.`,
+        title: 'Shipping method deleted',
+        description: 'Shipping method has been successfully deleted.',
       });
-      setDeleteDialogOpen(false);
+      setIsMethodDeleteDialogOpen(false);
+      setItemToDelete(null);
     },
     onError: (error) => {
       toast({
-        title: "Error",
-        description: `Failed to delete item: ${error.message}`,
-        variant: "destructive",
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
       });
+      setIsMethodDeleteDialogOpen(false);
     },
   });
 
-  // Handle method form submission
+  // Mutation for deleting shipping zone
+  const deleteZoneMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/shipping/zones/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to delete shipping zone');
+      }
+
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/shipping/zones'] });
+      toast({
+        title: 'Shipping zone deleted',
+        description: 'Shipping zone has been successfully deleted.',
+      });
+      setIsZoneDeleteDialogOpen(false);
+      setItemToDelete(null);
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+      setIsZoneDeleteDialogOpen(false);
+    },
+  });
+
+  // Mutation for deleting shipping rule
+  const deleteRuleMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/shipping/rules/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to delete shipping rule');
+      }
+
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/shipping/rules'] });
+      toast({
+        title: 'Shipping rule deleted',
+        description: 'Shipping rule has been successfully deleted.',
+      });
+      setIsRuleDeleteDialogOpen(false);
+      setItemToDelete(null);
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+      setIsRuleDeleteDialogOpen(false);
+    },
+  });
+
+  // Handle form submissions
   const onSubmitMethod = (values: z.infer<typeof shippingMethodSchema>) => {
-    saveMethodMutation.mutate(values);
+    shippingMethodMutation.mutate(values);
   };
 
-  // Handle zone form submission
   const onSubmitZone = (values: z.infer<typeof shippingZoneSchema>) => {
-    saveZoneMutation.mutate(values);
+    shippingZoneMutation.mutate(values);
   };
 
-  // Handle rule form submission
   const onSubmitRule = (values: z.infer<typeof shippingRuleSchema>) => {
-    saveRuleMutation.mutate(values);
-  };
-
-  // Handle delete confirmation
-  const handleDelete = () => {
-    if (itemToDelete.id) {
-      deleteMutation.mutate(itemToDelete);
-    }
+    shippingRuleMutation.mutate(values);
   };
 
   // Format price from paise/cents to rupees/dollars with currency symbol
@@ -489,14 +525,53 @@ export default function AdminShippingManagementPage() {
     return `₹${(price / 100).toFixed(2)}`;
   };
 
-  // Find shipping method by ID
-  const findShippingMethod = (methodId: number) => {
-    return shippingMethods?.find((method: any) => method.id === methodId);
+  // Handle opening method dialog for create/edit
+  const handleOpenMethodDialog = (method: any = null) => {
+    setSelectedMethod(method);
+    resetMethodForm(method);
+    setIsMethodDialogOpen(true);
   };
 
-  // Find shipping zone by ID
-  const findShippingZone = (zoneId: number) => {
-    return shippingZones?.find((zone: any) => zone.id === zoneId);
+  // Handle opening zone dialog for create/edit
+  const handleOpenZoneDialog = (zone: any = null) => {
+    setSelectedZone(zone);
+    resetZoneForm(zone);
+    setIsZoneDialogOpen(true);
+  };
+
+  // Handle opening rule dialog for create/edit
+  const handleOpenRuleDialog = (rule: any = null) => {
+    setSelectedRule(rule);
+    resetRuleForm(rule);
+    setIsRuleDialogOpen(true);
+  };
+
+  // Handle opening delete confirmation dialogs
+  const handleOpenDeleteMethodDialog = (id: number) => {
+    setItemToDelete(id);
+    setIsMethodDeleteDialogOpen(true);
+  };
+
+  const handleOpenDeleteZoneDialog = (id: number) => {
+    setItemToDelete(id);
+    setIsZoneDeleteDialogOpen(true);
+  };
+
+  const handleOpenDeleteRuleDialog = (id: number) => {
+    setItemToDelete(id);
+    setIsRuleDeleteDialogOpen(true);
+  };
+
+  // Find shipping method name by ID
+  const getMethodName = (id: number) => {
+    const method = shippingMethods?.find((m: any) => m.id === id);
+    return method ? method.name : `Method #${id}`;
+  };
+
+  // Find shipping zone name by ID
+  const getZoneName = (id: number) => {
+    const zone = shippingZones?.find((z: any) => z.id === id);
+    return zone ? zone.name : `Zone #${id}`;
   };
 
   return (
@@ -506,13 +581,13 @@ export default function AdminShippingManagementPage() {
           <div>
             <h1 className="text-2xl font-bold">Shipping Management</h1>
             <p className="text-muted-foreground">
-              Configure global shipping methods, zones, and rules
+              Configure shipping methods, zones, and rules for the marketplace
             </p>
           </div>
         </div>
 
         <Tabs defaultValue="methods" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-3 w-full max-w-2xl">
+          <TabsList className="grid grid-cols-3 w-full max-w-md">
             <TabsTrigger value="methods">Methods</TabsTrigger>
             <TabsTrigger value="zones">Zones</TabsTrigger>
             <TabsTrigger value="rules">Rules</TabsTrigger>
@@ -525,16 +600,14 @@ export default function AdminShippingManagementPage() {
                 <div>
                   <CardTitle>Shipping Methods</CardTitle>
                   <CardDescription>
-                    Configure available shipping methods across your platform
+                    Manage available shipping methods for the marketplace
                   </CardDescription>
                 </div>
-                <Button
-                  onClick={() => {
-                    setSelectedMethod(null);
-                    setMethodDialogOpen(true);
-                  }}
+                <Button 
+                  onClick={() => handleOpenMethodDialog()}
+                  className="flex items-center gap-2"
                 >
-                  <PlusCircle className="mr-2 h-4 w-4" />
+                  <PlusCircle className="h-4 w-4" />
                   Add Method
                 </Button>
               </CardHeader>
@@ -543,96 +616,85 @@ export default function AdminShippingManagementPage() {
                   <div className="flex justify-center py-8">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="border rounded-md">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Description</TableHead>
-                            <TableHead>Price</TableHead>
-                            <TableHead>Delivery Time</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
+                ) : isErrorMethods ? (
+                  <div className="bg-red-50 border border-red-200 rounded-md p-4 flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h3 className="font-medium text-red-700">Error Loading Methods</h3>
+                      <p className="text-sm text-red-600 mt-1">
+                        There was an error loading shipping methods. Please try refreshing the page.
+                      </p>
+                    </div>
+                  </div>
+                ) : shippingMethods?.length > 0 ? (
+                  <div className="border rounded-md">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Price</TableHead>
+                          <TableHead>Delivery Time</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {shippingMethods.map((method: any) => (
+                          <TableRow key={method.id}>
+                            <TableCell className="font-medium">{method.name}</TableCell>
+                            <TableCell>{formatPrice(method.price)}</TableCell>
+                            <TableCell>{method.estimatedDays}</TableCell>
+                            <TableCell>
+                              {method.isActive ? (
+                                <span className="flex items-center text-green-600">
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                  Active
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">Inactive</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex space-x-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleOpenMethodDialog(method)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                  <span className="sr-only">Edit</span>
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleOpenDeleteMethodDialog(method.id)}
+                                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  <span className="sr-only">Delete</span>
+                                </Button>
+                              </div>
+                            </TableCell>
                           </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {shippingMethods?.map((method: any) => (
-                            <TableRow key={method.id}>
-                              <TableCell className="font-medium">
-                                <div className="flex items-center gap-2">
-                                  <Truck className="h-4 w-4 text-primary" />
-                                  {method.name}
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                {method.description || <span className="text-muted-foreground italic">No description</span>}
-                              </TableCell>
-                              <TableCell>{formatPrice(method.price)}</TableCell>
-                              <TableCell>{method.estimatedDays}</TableCell>
-                              <TableCell>
-                                {method.isActive !== false ? (
-                                  <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-50 border-green-200">
-                                    Active
-                                  </Badge>
-                                ) : (
-                                  <Badge variant="outline" className="bg-gray-100 text-gray-500 hover:bg-gray-100 border-gray-200">
-                                    Inactive
-                                  </Badge>
-                                )}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex justify-end gap-2">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => {
-                                      setSelectedMethod(method);
-                                      setMethodDialogOpen(true);
-                                    }}
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                    <span className="sr-only">Edit</span>
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="text-red-500"
-                                    onClick={() => {
-                                      setItemToDelete({ type: 'methods', id: method.id });
-                                      setDeleteDialogOpen(true);
-                                    }}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                    <span className="sr-only">Delete</span>
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                          {shippingMethods?.length === 0 && (
-                            <TableRow>
-                              <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
-                                No shipping methods found. Add your first shipping method.
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </TableBody>
-                      </Table>
-                    </div>
-
-                    <div className="bg-blue-50 border border-blue-100 rounded-md p-4 flex items-start gap-3">
-                      <Info className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <h3 className="font-medium text-blue-700">About Shipping Methods</h3>
-                        <p className="mt-1 text-sm text-blue-600">
-                          Shipping methods define the different delivery options available to customers during checkout.
-                          You should provide a variety of shipping methods with different speeds and price points to
-                          give customers flexibility in their delivery choices.
-                        </p>
-                      </div>
-                    </div>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 border rounded-md bg-muted/40">
+                    <Truck className="h-8 w-8 mx-auto text-muted-foreground" />
+                    <h3 className="mt-4 font-medium">No Shipping Methods</h3>
+                    <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
+                      You haven't created any shipping methods yet. Add a method to get started.
+                    </p>
+                    <Button 
+                      onClick={() => handleOpenMethodDialog()}
+                      className="mt-4 flex items-center gap-2"
+                      variant="outline"
+                    >
+                      <PlusCircle className="h-4 w-4" />
+                      Add Shipping Method
+                    </Button>
                   </div>
                 )}
               </CardContent>
@@ -646,16 +708,14 @@ export default function AdminShippingManagementPage() {
                 <div>
                   <CardTitle>Shipping Zones</CardTitle>
                   <CardDescription>
-                    Define geographic regions for shipping calculation
+                    Manage geographic shipping zones for different pricing
                   </CardDescription>
                 </div>
-                <Button
-                  onClick={() => {
-                    setSelectedZone(null);
-                    setZoneDialogOpen(true);
-                  }}
+                <Button 
+                  onClick={() => handleOpenZoneDialog()}
+                  className="flex items-center gap-2"
                 >
-                  <PlusCircle className="mr-2 h-4 w-4" />
+                  <PlusCircle className="h-4 w-4" />
                   Add Zone
                 </Button>
               </CardHeader>
@@ -664,107 +724,87 @@ export default function AdminShippingManagementPage() {
                   <div className="flex justify-center py-8">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="border rounded-md">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Description</TableHead>
-                            <TableHead>Countries</TableHead>
-                            <TableHead>States/Cities</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
+                ) : isErrorZones ? (
+                  <div className="bg-red-50 border border-red-200 rounded-md p-4 flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h3 className="font-medium text-red-700">Error Loading Zones</h3>
+                      <p className="text-sm text-red-600 mt-1">
+                        There was an error loading shipping zones. Please try refreshing the page.
+                      </p>
+                    </div>
+                  </div>
+                ) : shippingZones?.length > 0 ? (
+                  <div className="border rounded-md">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Regions</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {shippingZones.map((zone: any) => (
+                          <TableRow key={zone.id}>
+                            <TableCell className="font-medium">{zone.name}</TableCell>
+                            <TableCell>
+                              {zone.regions && zone.regions.length > 80
+                                ? `${zone.regions.substring(0, 80)}...`
+                                : zone.regions}
+                            </TableCell>
+                            <TableCell>
+                              {zone.isActive ? (
+                                <span className="flex items-center text-green-600">
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                  Active
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">Inactive</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex space-x-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleOpenZoneDialog(zone)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                  <span className="sr-only">Edit</span>
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleOpenDeleteZoneDialog(zone.id)}
+                                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  <span className="sr-only">Delete</span>
+                                </Button>
+                              </div>
+                            </TableCell>
                           </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {shippingZones?.map((zone: any) => (
-                            <TableRow key={zone.id}>
-                              <TableCell className="font-medium">
-                                <div className="flex items-center gap-2">
-                                  <MapPin className="h-4 w-4 text-primary" />
-                                  {zone.name}
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                {zone.description || <span className="text-muted-foreground italic">No description</span>}
-                              </TableCell>
-                              <TableCell>{zone.countries}</TableCell>
-                              <TableCell>
-                                {zone.states ? (
-                                  <span className="text-xs">
-                                    States: {zone.states}
-                                    {zone.cities && <><br />Cities: {zone.cities}</>}
-                                  </span>
-                                ) : zone.cities ? (
-                                  <span className="text-xs">Cities: {zone.cities}</span>
-                                ) : (
-                                  <span className="text-muted-foreground italic">All</span>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {zone.isActive !== false ? (
-                                  <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-50 border-green-200">
-                                    Active
-                                  </Badge>
-                                ) : (
-                                  <Badge variant="outline" className="bg-gray-100 text-gray-500 hover:bg-gray-100 border-gray-200">
-                                    Inactive
-                                  </Badge>
-                                )}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex justify-end gap-2">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => {
-                                      setSelectedZone(zone);
-                                      setZoneDialogOpen(true);
-                                    }}
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                    <span className="sr-only">Edit</span>
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="text-red-500"
-                                    onClick={() => {
-                                      setItemToDelete({ type: 'zones', id: zone.id });
-                                      setDeleteDialogOpen(true);
-                                    }}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                    <span className="sr-only">Delete</span>
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                          {shippingZones?.length === 0 && (
-                            <TableRow>
-                              <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
-                                No shipping zones found. Add your first shipping zone.
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </TableBody>
-                      </Table>
-                    </div>
-
-                    <div className="bg-purple-50 border border-purple-100 rounded-md p-4 flex items-start gap-3">
-                      <Globe className="h-5 w-5 text-purple-500 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <h3 className="font-medium text-purple-700">About Shipping Zones</h3>
-                        <p className="mt-1 text-sm text-purple-600">
-                          Shipping zones allow you to define different shipping rates based on geographic regions.
-                          You can create zones for different countries, states, or cities to provide accurate shipping
-                          costs based on customer location. Start with broader zones and refine as needed.
-                        </p>
-                      </div>
-                    </div>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 border rounded-md bg-muted/40">
+                    <MapPin className="h-8 w-8 mx-auto text-muted-foreground" />
+                    <h3 className="mt-4 font-medium">No Shipping Zones</h3>
+                    <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
+                      You haven't created any shipping zones yet. Add a zone to get started.
+                    </p>
+                    <Button 
+                      onClick={() => handleOpenZoneDialog()}
+                      className="mt-4 flex items-center gap-2"
+                      variant="outline"
+                    >
+                      <PlusCircle className="h-4 w-4" />
+                      Add Shipping Zone
+                    </Button>
                   </div>
                 )}
               </CardContent>
@@ -778,16 +818,15 @@ export default function AdminShippingManagementPage() {
                 <div>
                   <CardTitle>Shipping Rules</CardTitle>
                   <CardDescription>
-                    Connect shipping methods to zones with specific pricing
+                    Set pricing rules for method and zone combinations
                   </CardDescription>
                 </div>
-                <Button
-                  onClick={() => {
-                    setSelectedRule(null);
-                    setRuleDialogOpen(true);
-                  }}
+                <Button 
+                  onClick={() => handleOpenRuleDialog()}
+                  className="flex items-center gap-2"
+                  disabled={!shippingMethods?.length || !shippingZones?.length}
                 >
-                  <PlusCircle className="mr-2 h-4 w-4" />
+                  <PlusCircle className="h-4 w-4" />
                   Add Rule
                 </Button>
               </CardHeader>
@@ -796,101 +835,114 @@ export default function AdminShippingManagementPage() {
                   <div className="flex justify-center py-8">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="border rounded-md">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Zone</TableHead>
-                            <TableHead>Method</TableHead>
-                            <TableHead>Price</TableHead>
-                            <TableHead>Free Shipping Threshold</TableHead>
-                            <TableHead>Additional Days</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {shippingRules?.map((rule: any) => {
-                            const method = findShippingMethod(rule.methodId);
-                            const zone = findShippingZone(rule.zoneId);
-                            
-                            return (
-                              <TableRow key={rule.id}>
-                                <TableCell>
-                                  {zone ? zone.name : `Zone #${rule.zoneId}`}
-                                </TableCell>
-                                <TableCell>
-                                  {method ? method.name : `Method #${rule.methodId}`}
-                                </TableCell>
-                                <TableCell>
-                                  {rule.price !== null ? formatPrice(rule.price) : "Default"}
-                                </TableCell>
-                                <TableCell>
-                                  {rule.freeShippingThreshold ? (
-                                    formatPrice(rule.freeShippingThreshold)
-                                  ) : (
-                                    <span className="text-muted-foreground">None</span>
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  {rule.additionalDays > 0 ? `+${rule.additionalDays} days` : "None"}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <div className="flex justify-end gap-2">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => {
-                                        setSelectedRule(rule);
-                                        setRuleDialogOpen(true);
-                                      }}
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                      <span className="sr-only">Edit</span>
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="text-red-500"
-                                      onClick={() => {
-                                        setItemToDelete({ type: 'rules', id: rule.id });
-                                        setDeleteDialogOpen(true);
-                                      }}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                      <span className="sr-only">Delete</span>
-                                    </Button>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                          {shippingRules?.length === 0 && (
-                            <TableRow>
-                              <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
-                                No shipping rules found. Add your first shipping rule.
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </TableBody>
-                      </Table>
+                ) : isErrorRules ? (
+                  <div className="bg-red-50 border border-red-200 rounded-md p-4 flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h3 className="font-medium text-red-700">Error Loading Rules</h3>
+                      <p className="text-sm text-red-600 mt-1">
+                        There was an error loading shipping rules. Please try refreshing the page.
+                      </p>
                     </div>
-
-                    <div className="bg-amber-50 border border-amber-100 rounded-md p-4 flex items-start gap-3">
-                      <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <h3 className="font-medium text-amber-700">About Shipping Rules</h3>
-                        <p className="mt-1 text-sm text-amber-600">
-                          Shipping rules connect shipping methods to specific zones, allowing you to override
-                          the default pricing for each method based on the delivery location. You can also set
-                          free shipping thresholds and additional delivery days for specific zone-method combinations.
-                        </p>
-                        <p className="mt-2 text-sm text-amber-600">
-                          <strong>Note:</strong> You must create shipping methods and zones before creating rules.
-                        </p>
+                  </div>
+                ) : !shippingMethods?.length || !shippingZones?.length ? (
+                  <div className="bg-amber-50 border border-amber-200 rounded-md p-4 flex items-start gap-3">
+                    <Info className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h3 className="font-medium text-amber-700">Cannot Create Rules Yet</h3>
+                      <p className="text-sm text-amber-600 mt-1">
+                        You need to create at least one shipping method and one shipping zone before you can create rules.
+                      </p>
+                      <div className="mt-4 flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => setActiveTab("methods")}
+                          className="text-amber-600 border-amber-200 hover:bg-amber-50"
+                        >
+                          <Truck className="h-4 w-4 mr-2" />
+                          Add Method
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => setActiveTab("zones")}
+                          className="text-amber-600 border-amber-200 hover:bg-amber-50"
+                        >
+                          <MapPin className="h-4 w-4 mr-2" />
+                          Add Zone
+                        </Button>
                       </div>
                     </div>
+                  </div>
+                ) : shippingRules?.length > 0 ? (
+                  <div className="border rounded-md">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Method</TableHead>
+                          <TableHead>Zone</TableHead>
+                          <TableHead>Price</TableHead>
+                          <TableHead>Order Range</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {shippingRules.map((rule: any) => (
+                          <TableRow key={rule.id}>
+                            <TableCell className="font-medium">
+                              {getMethodName(rule.methodId)}
+                            </TableCell>
+                            <TableCell>{getZoneName(rule.zoneId)}</TableCell>
+                            <TableCell>{formatPrice(rule.price)}</TableCell>
+                            <TableCell>
+                              {rule.minOrderValue > 0 && rule.maxOrderValue
+                                ? `${formatPrice(rule.minOrderValue)} - ${formatPrice(rule.maxOrderValue)}`
+                                : rule.minOrderValue > 0
+                                ? `Min: ${formatPrice(rule.minOrderValue)}`
+                                : rule.maxOrderValue
+                                ? `Max: ${formatPrice(rule.maxOrderValue)}`
+                                : "Any"}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex space-x-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleOpenRuleDialog(rule)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                  <span className="sr-only">Edit</span>
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleOpenDeleteRuleDialog(rule.id)}
+                                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  <span className="sr-only">Delete</span>
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 border rounded-md bg-muted/40">
+                    <Settings className="h-8 w-8 mx-auto text-muted-foreground" />
+                    <h3 className="mt-4 font-medium">No Shipping Rules</h3>
+                    <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
+                      You haven't created any shipping rules yet. Rules connect methods to zones with specific pricing.
+                    </p>
+                    <Button 
+                      onClick={() => handleOpenRuleDialog()}
+                      className="mt-4 flex items-center gap-2"
+                      variant="outline"
+                    >
+                      <PlusCircle className="h-4 w-4" />
+                      Add Shipping Rule
+                    </Button>
                   </div>
                 )}
               </CardContent>
@@ -898,9 +950,9 @@ export default function AdminShippingManagementPage() {
           </TabsContent>
         </Tabs>
 
-        {/* Method Dialog */}
-        <Dialog open={methodDialogOpen} onOpenChange={setMethodDialogOpen}>
-          <DialogContent className="max-w-md">
+        {/* Shipping Method Dialog */}
+        <Dialog open={isMethodDialogOpen} onOpenChange={setIsMethodDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>
                 {selectedMethod ? "Edit Shipping Method" : "Add Shipping Method"}
@@ -908,7 +960,7 @@ export default function AdminShippingManagementPage() {
               <DialogDescription>
                 {selectedMethod
                   ? "Update the details of this shipping method"
-                  : "Create a new shipping method for your platform"}
+                  : "Add a new shipping method for your marketplace"}
               </DialogDescription>
             </DialogHeader>
             <Form {...methodForm}>
@@ -918,105 +970,81 @@ export default function AdminShippingManagementPage() {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Name</FormLabel>
+                      <FormLabel>Method Name</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="e.g., Standard Shipping" />
+                        <Input placeholder="e.g., Standard Shipping" {...field} />
                       </FormControl>
-                      <FormDescription>
-                        The name displayed to customers during checkout
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={methodForm.control}
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Description (Optional)</FormLabel>
+                      <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Textarea
-                          {...field}
-                          placeholder="e.g., Regular delivery with tracking"
-                          rows={2}
-                        />
+                        <Input placeholder="Brief description of the shipping method" {...field} />
                       </FormControl>
-                      <FormDescription>
-                        Additional information about this shipping method
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={methodForm.control}
-                    name="price"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Base Price (₹ in paise/cents)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Base price in paise (1 rupee = 100 paise)
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={methodForm.control}
-                    name="estimatedDays"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Estimated Delivery Time</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="e.g., 3-5 business days" />
-                        </FormControl>
-                        <FormDescription>
-                          Expected delivery timeframe
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
                 <FormField
                   control={methodForm.control}
-                  name="icon"
+                  name="price"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Icon (Optional)</FormLabel>
+                      <FormLabel>Base Price (in paise)</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="e.g., truck, truck-fast" />
+                        <Input type="number" min="0" step="1" {...field} />
                       </FormControl>
                       <FormDescription>
-                        Icon identifier (from Lucide icons)
+                        Enter the price in paise (e.g., ₹100 = 10000 paise)
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
+                <FormField
+                  control={methodForm.control}
+                  name="estimatedDays"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Estimated Delivery Time</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., 3-5 business days" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={methodForm.control}
+                  name="priority"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Display Priority</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="0" step="1" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Higher numbers will appear first in the list (0 = lowest priority)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField
                   control={methodForm.control}
                   name="isActive"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                       <div className="space-y-0.5">
-                        <FormLabel>Active</FormLabel>
+                        <FormLabel className="text-base">Active</FormLabel>
                         <FormDescription>
-                          Enable this shipping method for customers
+                          Inactive methods will not be available to customers
                         </FormDescription>
                       </div>
                       <FormControl>
@@ -1028,21 +1056,17 @@ export default function AdminShippingManagementPage() {
                     </FormItem>
                   )}
                 />
-
                 <DialogFooter>
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setMethodDialogOpen(false)}
+                    onClick={() => setIsMethodDialogOpen(false)}
                   >
                     Cancel
                   </Button>
-                  <Button
-                    type="submit"
-                    disabled={saveMethodMutation.isPending}
-                  >
-                    {saveMethodMutation.isPending && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Button type="submit" disabled={shippingMethodMutation.isPending}>
+                    {shippingMethodMutation.isPending && (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     )}
                     {selectedMethod ? "Update Method" : "Add Method"}
                   </Button>
@@ -1052,9 +1076,9 @@ export default function AdminShippingManagementPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Zone Dialog */}
-        <Dialog open={zoneDialogOpen} onOpenChange={setZoneDialogOpen}>
-          <DialogContent className="max-w-md">
+        {/* Shipping Zone Dialog */}
+        <Dialog open={isZoneDialogOpen} onOpenChange={setIsZoneDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>
                 {selectedZone ? "Edit Shipping Zone" : "Add Shipping Zone"}
@@ -1062,7 +1086,7 @@ export default function AdminShippingManagementPage() {
               <DialogDescription>
                 {selectedZone
                   ? "Update the details of this shipping zone"
-                  : "Create a new shipping zone for your platform"}
+                  : "Add a new shipping zone for your marketplace"}
               </DialogDescription>
             </DialogHeader>
             <Form {...zoneForm}>
@@ -1072,118 +1096,56 @@ export default function AdminShippingManagementPage() {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Name</FormLabel>
+                      <FormLabel>Zone Name</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="e.g., North India" />
+                        <Input placeholder="e.g., North India" {...field} />
                       </FormControl>
-                      <FormDescription>
-                        A descriptive name for this shipping zone
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={zoneForm.control}
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Description (Optional)</FormLabel>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Brief description of the zone" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={zoneForm.control}
+                  name="regions"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Regions</FormLabel>
                       <FormControl>
                         <Textarea
+                          placeholder="List of regions, states, or pincodes covered by this zone"
                           {...field}
-                          placeholder="e.g., Northern states of India"
-                          rows={2}
+                          rows={4}
                         />
                       </FormControl>
                       <FormDescription>
-                        Additional information about this zone
+                        Enter regions, states, or pincode ranges covered by this zone, separated by commas or line breaks
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
-                <FormField
-                  control={zoneForm.control}
-                  name="countries"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Countries</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="e.g., India" />
-                      </FormControl>
-                      <FormDescription>
-                        Countries included in this zone (comma-separated)
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-1 gap-4">
-                  <FormField
-                    control={zoneForm.control}
-                    name="states"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>States (Optional)</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="e.g., Delhi,Maharashtra,Karnataka" />
-                        </FormControl>
-                        <FormDescription>
-                          States included in this zone (comma-separated)
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={zoneForm.control}
-                    name="cities"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Cities (Optional)</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="e.g., Delhi,Mumbai,Bangalore" />
-                        </FormControl>
-                        <FormDescription>
-                          Cities included in this zone (comma-separated)
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={zoneForm.control}
-                    name="zipCodes"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>ZIP/Postal Codes (Optional)</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="e.g., 110001,400001,560001" />
-                        </FormControl>
-                        <FormDescription>
-                          ZIP/Postal codes included in this zone (comma-separated)
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
                 <FormField
                   control={zoneForm.control}
                   name="isActive"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                       <div className="space-y-0.5">
-                        <FormLabel>Active</FormLabel>
+                        <FormLabel className="text-base">Active</FormLabel>
                         <FormDescription>
-                          Enable this shipping zone
+                          Inactive zones will not be used for shipping calculations
                         </FormDescription>
                       </div>
                       <FormControl>
@@ -1195,21 +1157,17 @@ export default function AdminShippingManagementPage() {
                     </FormItem>
                   )}
                 />
-
                 <DialogFooter>
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setZoneDialogOpen(false)}
+                    onClick={() => setIsZoneDialogOpen(false)}
                   >
                     Cancel
                   </Button>
-                  <Button
-                    type="submit"
-                    disabled={saveZoneMutation.isPending}
-                  >
-                    {saveZoneMutation.isPending && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Button type="submit" disabled={shippingZoneMutation.isPending}>
+                    {shippingZoneMutation.isPending && (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     )}
                     {selectedZone ? "Update Zone" : "Add Zone"}
                   </Button>
@@ -1219,9 +1177,9 @@ export default function AdminShippingManagementPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Rule Dialog */}
-        <Dialog open={ruleDialogOpen} onOpenChange={setRuleDialogOpen}>
-          <DialogContent className="max-w-md">
+        {/* Shipping Rule Dialog */}
+        <Dialog open={isRuleDialogOpen} onOpenChange={setIsRuleDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>
                 {selectedRule ? "Edit Shipping Rule" : "Add Shipping Rule"}
@@ -1229,42 +1187,11 @@ export default function AdminShippingManagementPage() {
               <DialogDescription>
                 {selectedRule
                   ? "Update the details of this shipping rule"
-                  : "Create a new shipping rule for your platform"}
+                  : "Add a new shipping rule connecting methods to zones"}
               </DialogDescription>
             </DialogHeader>
             <Form {...ruleForm}>
               <form onSubmit={ruleForm.handleSubmit(onSubmitRule)} className="space-y-4">
-                <FormField
-                  control={ruleForm.control}
-                  name="zoneId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Shipping Zone</FormLabel>
-                      <Select
-                        value={field.value ? field.value.toString() : ""}
-                        onValueChange={(value) => field.onChange(parseInt(value))}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a shipping zone" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {shippingZones?.map((zone: any) => (
-                            <SelectItem key={zone.id} value={zone.id.toString()}>
-                              {zone.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
-                        The shipping zone this rule applies to
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
                 <FormField
                   control={ruleForm.control}
                   name="methodId"
@@ -1272,8 +1199,8 @@ export default function AdminShippingManagementPage() {
                     <FormItem>
                       <FormLabel>Shipping Method</FormLabel>
                       <Select
-                        value={field.value ? field.value.toString() : ""}
                         onValueChange={(value) => field.onChange(parseInt(value))}
+                        defaultValue={field.value > 0 ? field.value.toString() : undefined}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -1288,60 +1215,90 @@ export default function AdminShippingManagementPage() {
                           ))}
                         </SelectContent>
                       </Select>
-                      <FormDescription>
-                        The shipping method this rule applies to
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
+                <FormField
+                  control={ruleForm.control}
+                  name="zoneId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Shipping Zone</FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(parseInt(value))}
+                        defaultValue={field.value > 0 ? field.value.toString() : undefined}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a shipping zone" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {shippingZones?.map((zone: any) => (
+                            <SelectItem key={zone.id} value={zone.id.toString()}>
+                              {zone.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField
                   control={ruleForm.control}
                   name="price"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Custom Price (₹ in paise/cents)</FormLabel>
+                      <FormLabel>Price (in paise)</FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
-                          {...field}
-                          value={field.value === null ? "" : field.value}
-                          onChange={(e) => field.onChange(e.target.value === "" ? null : parseInt(e.target.value))}
-                          placeholder="Leave empty to use the method's default price"
-                        />
+                        <Input type="number" min="0" step="1" {...field} />
                       </FormControl>
                       <FormDescription>
-                        Override the default price for this zone-method combination
+                        Override the base price of the shipping method for this zone
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
-                <FormField
-                  control={ruleForm.control}
-                  name="freeShippingThreshold"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Free Shipping Threshold (₹ in paise/cents)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          {...field}
-                          value={field.value === null ? "" : field.value}
-                          onChange={(e) => field.onChange(e.target.value === "" ? null : parseInt(e.target.value))}
-                          placeholder="Leave empty for no free shipping threshold"
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Orders above this amount will qualify for free shipping
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={ruleForm.control}
+                    name="minOrderValue"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Min Order Value</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="0" step="1" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={ruleForm.control}
+                    name="maxOrderValue"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Max Order Value</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={field.value === undefined ? "" : field.value}
+                            onChange={(e) => {
+                              const value = e.target.value === "" ? undefined : Number(e.target.value);
+                              field.onChange(value);
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <FormField
                   control={ruleForm.control}
                   name="additionalDays"
@@ -1349,30 +1306,41 @@ export default function AdminShippingManagementPage() {
                     <FormItem>
                       <FormLabel>Additional Processing Days</FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
-                          {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                          min={0}
-                        />
+                        <Input type="number" min="0" step="1" {...field} />
                       </FormControl>
                       <FormDescription>
-                        Extra days needed for delivery to this zone
+                        Extra days to add to the method's estimated delivery time for this zone
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
+                <FormField
+                  control={ruleForm.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Notes</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Any notes or special instructions for this rule"
+                          {...field}
+                          rows={2}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField
                   control={ruleForm.control}
                   name="isActive"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                       <div className="space-y-0.5">
-                        <FormLabel>Active</FormLabel>
+                        <FormLabel className="text-base">Active</FormLabel>
                         <FormDescription>
-                          Enable this shipping rule
+                          Inactive rules will not be used for shipping calculations
                         </FormDescription>
                       </div>
                       <FormControl>
@@ -1384,21 +1352,17 @@ export default function AdminShippingManagementPage() {
                     </FormItem>
                   )}
                 />
-
                 <DialogFooter>
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setRuleDialogOpen(false)}
+                    onClick={() => setIsRuleDialogOpen(false)}
                   >
                     Cancel
                   </Button>
-                  <Button
-                    type="submit"
-                    disabled={saveRuleMutation.isPending}
-                  >
-                    {saveRuleMutation.isPending && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Button type="submit" disabled={shippingRuleMutation.isPending}>
+                    {shippingRuleMutation.isPending && (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     )}
                     {selectedRule ? "Update Rule" : "Add Rule"}
                   </Button>
@@ -1408,33 +1372,105 @@ export default function AdminShippingManagementPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Delete Confirmation Dialog */}
-        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the selected item.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDelete}
-                className="bg-red-500 text-white hover:bg-red-600"
+        {/* Confirmation Dialogs for Delete */}
+        <Dialog open={isMethodDeleteDialogOpen} onOpenChange={setIsMethodDeleteDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Delete Shipping Method</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete this shipping method? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="border rounded-md p-4 bg-red-50 text-red-700">
+              <p className="text-sm">
+                <AlertCircle className="h-4 w-4 inline-block mr-2" />
+                Deleting a shipping method will also affect any shipping rules using this method.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsMethodDeleteDialogOpen(false)}
               >
-                {deleteMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  "Delete"
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => itemToDelete && deleteMethodMutation.mutate(itemToDelete)}
+                disabled={deleteMethodMutation.isPending}
+              >
+                {deleteMethodMutation.isPending && (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 )}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+                Delete Method
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isZoneDeleteDialogOpen} onOpenChange={setIsZoneDeleteDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Delete Shipping Zone</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete this shipping zone? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="border rounded-md p-4 bg-red-50 text-red-700">
+              <p className="text-sm">
+                <AlertCircle className="h-4 w-4 inline-block mr-2" />
+                Deleting a shipping zone will also affect any shipping rules using this zone.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsZoneDeleteDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => itemToDelete && deleteZoneMutation.mutate(itemToDelete)}
+                disabled={deleteZoneMutation.isPending}
+              >
+                {deleteZoneMutation.isPending && (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                )}
+                Delete Zone
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isRuleDeleteDialogOpen} onOpenChange={setIsRuleDeleteDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Delete Shipping Rule</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete this shipping rule? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsRuleDeleteDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => itemToDelete && deleteRuleMutation.mutate(itemToDelete)}
+                disabled={deleteRuleMutation.isPending}
+              >
+                {deleteRuleMutation.isPending && (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                )}
+                Delete Rule
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AdminLayout>
   );

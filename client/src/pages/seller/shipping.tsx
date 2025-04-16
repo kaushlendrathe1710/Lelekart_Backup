@@ -216,7 +216,7 @@ export default function SellerShippingPage() {
   });
 
   // Update form values when data is loaded
-  React.useEffect(() => {
+  useEffect(() => {
     if (shippingSettings) {
       generalForm.reset({
         enableCustomShipping: shippingSettings.enableCustomShipping,
@@ -243,7 +243,7 @@ export default function SellerShippingPage() {
   });
 
   // Update product override form when a product is selected
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectedProduct) {
       const existingOverride = productOverrides?.find(
         (override: any) => override.productId === selectedProduct.id
