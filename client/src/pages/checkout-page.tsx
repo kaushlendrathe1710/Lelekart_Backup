@@ -329,15 +329,30 @@ export default function CheckoutPage() {
   const calculateMaxWalletDiscount = () => {
     if (!wallet || !settings || !settings.isActive || wallet.balance <= 0) return 0;
     
-    // Convert coins to currency
-    const maxCoinValue = wallet.balance * (settings.coinToCurrencyRatio || 0.1);
+    // Debug outputs
+    console.log("Wallet balance:", wallet.balance);
+    console.log("Wallet settings:", settings);
+    console.log("Subtotal:", subtotal);
+    
+    // Convert coins to currency using the conversion rate from settings
+    const conversionRate = settings.coinToCurrencyRatio || 0.1;
+    console.log("Conversion rate:", conversionRate);
+    
+    const maxCoinValue = wallet.balance * conversionRate;
+    console.log("Max coin value in currency:", maxCoinValue);
     
     // Apply percentage limit if set
     if (settings.maxUsagePercentage && settings.maxUsagePercentage > 0) {
       const maxPercentageDiscount = subtotal * (settings.maxUsagePercentage / 100);
-      return Math.min(maxCoinValue, maxPercentageDiscount);
+      console.log("Max percentage discount:", maxPercentageDiscount);
+      
+      // Return the lower of the two values
+      const finalDiscount = Math.min(maxCoinValue, maxPercentageDiscount);
+      console.log("Final discount (after percentage limit):", finalDiscount);
+      return finalDiscount;
     }
     
+    console.log("Final discount (no percentage limit):", maxCoinValue);
     return maxCoinValue;
   };
   
@@ -346,13 +361,14 @@ export default function CheckoutPage() {
     total + (item.product.price * item.quantity), 0);
   const shipping = subtotal > 0 ? 40 : 0;
   
-  // Calculate wallet discount only when checkbox is checked and wallet is eligible
+  // Calculate wallet discount
   const maxWalletDiscount = calculateMaxWalletDiscount();
-  const actualWalletDiscount = useWalletCoins && checkWalletEligibility() ? maxWalletDiscount : 0;
   
-  // Update wallet discount state for display and order processing
+  // Update wallet discount state only when checkbox is checked and wallet is eligible
   useEffect(() => {
-    setWalletDiscount(actualWalletDiscount);
+    const isEligible = useWalletCoins && checkWalletEligibility();
+    const discountToApply = isEligible ? maxWalletDiscount : 0;
+    setWalletDiscount(discountToApply);
   }, [useWalletCoins, maxWalletDiscount]);
   
   const total = subtotal + shipping - walletDiscount;

@@ -85,22 +85,27 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   // Get wallet transactions
   const {
-    data: transactions = [],
+    data: transactionsData = { transactions: [], total: 0 },
     isLoading: isTransactionsLoading,
     refetch: refetchTransactions
   } = useQuery({
     queryKey: ['/api/wallet/transactions'],
     queryFn: async () => {
-      if (!user) return [];
+      if (!user) return { transactions: [], total: 0 };
       try {
         const res = await apiRequest('GET', '/api/wallet/transactions');
         if (!res.ok) {
           throw new Error('Failed to fetch wallet transactions');
         }
-        return res.json();
+        const data = await res.json();
+        // Handle both formats: either array or {transactions: array, total: number}
+        if (Array.isArray(data)) {
+          return { transactions: data, total: data.length };
+        }
+        return data;
       } catch (error) {
         console.error('Error fetching transactions:', error);
-        return [];
+        return { transactions: [], total: 0 };
       }
     },
     enabled: !!user,
@@ -161,6 +166,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       ...options
     });
   };
+
+  // Extract transactions from the data structure
+  const transactions = transactionsData?.transactions || [];
 
   return (
     <WalletContext.Provider
