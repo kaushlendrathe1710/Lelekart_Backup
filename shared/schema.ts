@@ -973,6 +973,7 @@ export const insertSellerShippingSettingsSchema = createInsertSchema(sellerShipp
 // Product Shipping Overrides table
 export const productShippingOverrides = pgTable("product_shipping_overrides", {
   id: serial("id").primaryKey(),
+  sellerId: integer("seller_id").notNull().references(() => users.id),
   productId: integer("product_id").notNull().references(() => products.id),
   customPrice: integer("custom_price"), // Custom shipping price
   freeShipping: boolean("free_shipping").notNull().default(false),
@@ -983,6 +984,7 @@ export const productShippingOverrides = pgTable("product_shipping_overrides", {
 });
 
 export const insertProductShippingOverrideSchema = createInsertSchema(productShippingOverrides).pick({
+  sellerId: true,
   productId: true,
   customPrice: true,
   freeShipping: true,
@@ -1054,6 +1056,10 @@ export const productShippingOverridesRelations = relations(productShippingOverri
   product: one(products, {
     fields: [productShippingOverrides.productId],
     references: [products.id],
+  }),
+  seller: one(users, {
+    fields: [productShippingOverrides.sellerId],
+    references: [users.id],
   }),
 }));
 
