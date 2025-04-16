@@ -82,6 +82,11 @@ import {
   updateAIContentStatus
 } from "./utils/ml-inventory-manager";
 import { handleAISearch } from "./handlers/ai-search-handler";
+import * as returnsHandlers from "./handlers/returns-handlers";
+import * as analyticsHandlers from "./handlers/analytics-handlers";
+import * as paymentsHandlers from "./handlers/payments-handlers";
+import * as settingsHandlers from "./handlers/settings-handlers";
+import * as supportHandlers from "./handlers/support-handlers";
 import {
   getShippingMethods,
   getShippingMethod,
@@ -3528,6 +3533,157 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Order Shipping Tracking
   app.get("/api/orders/:orderId/shipping-tracking", getOrderShippingTracking);
   app.post("/api/orders/:orderId/shipping-tracking", createOrUpdateOrderShippingTracking);
+
+  // New seller dashboard module routes
+  
+  // Returns Routes
+  app.get("/api/seller/returns", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" || !req.user.approved) return res.status(403).json({ error: "Not authorized" });
+    
+    await returnsHandlers.getSellerReturnsHandler(req, res);
+  });
+  
+  app.get("/api/seller/returns/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    await returnsHandlers.getReturnByIdHandler(req, res);
+  });
+  
+  app.post("/api/seller/returns", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    await returnsHandlers.createReturnHandler(req, res);
+  });
+  
+  app.put("/api/seller/returns/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    await returnsHandlers.updateReturnStatusHandler(req, res);
+  });
+  
+  // Analytics Routes
+  app.get("/api/seller/analytics", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" || !req.user.approved) return res.status(403).json({ error: "Not authorized" });
+    
+    await analyticsHandlers.getSellerAnalyticsHandler(req, res);
+  });
+  
+  app.post("/api/seller/analytics", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" || !req.user.approved) return res.status(403).json({ error: "Not authorized" });
+    
+    await analyticsHandlers.createOrUpdateAnalyticsHandler(req, res);
+  });
+  
+  app.get("/api/seller/dashboard-summary", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" || !req.user.approved) return res.status(403).json({ error: "Not authorized" });
+    
+    await analyticsHandlers.getSellerDashboardSummaryHandler(req, res);
+  });
+  
+  // Payments Routes
+  app.get("/api/seller/payments", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" || !req.user.approved) return res.status(403).json({ error: "Not authorized" });
+    
+    await paymentsHandlers.getSellerPaymentsHandler(req, res);
+  });
+  
+  app.get("/api/seller/payments/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    await paymentsHandlers.getSellerPaymentByIdHandler(req, res);
+  });
+  
+  app.post("/api/seller/payments", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    await paymentsHandlers.createSellerPaymentHandler(req, res);
+  });
+  
+  app.put("/api/seller/payments/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin") return res.status(403).json({ error: "Not authorized" });
+    
+    await paymentsHandlers.updateSellerPaymentHandler(req, res);
+  });
+  
+  app.get("/api/seller/payments-summary", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" || !req.user.approved) return res.status(403).json({ error: "Not authorized" });
+    
+    await paymentsHandlers.getSellerPaymentsSummaryHandler(req, res);
+  });
+  
+  // Settings Routes
+  app.get("/api/seller/settings", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" || !req.user.approved) return res.status(403).json({ error: "Not authorized" });
+    
+    await settingsHandlers.getSellerSettingsHandler(req, res);
+  });
+  
+  app.put("/api/seller/settings", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" || !req.user.approved) return res.status(403).json({ error: "Not authorized" });
+    
+    await settingsHandlers.updateSellerSettingsHandler(req, res);
+  });
+  
+  app.post("/api/seller/settings/holiday-mode", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" || !req.user.approved) return res.status(403).json({ error: "Not authorized" });
+    
+    await settingsHandlers.toggleHolidayModeHandler(req, res);
+  });
+  
+  app.put("/api/seller/settings/notifications", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" || !req.user.approved) return res.status(403).json({ error: "Not authorized" });
+    
+    await settingsHandlers.updateNotificationPreferencesHandler(req, res);
+  });
+  
+  // Support Routes
+  app.get("/api/support/tickets", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    await supportHandlers.getSupportTicketsHandler(req, res);
+  });
+  
+  app.get("/api/support/tickets/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    await supportHandlers.getSupportTicketByIdHandler(req, res);
+  });
+  
+  app.post("/api/support/tickets", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    await supportHandlers.createSupportTicketHandler(req, res);
+  });
+  
+  app.put("/api/support/tickets/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    await supportHandlers.updateSupportTicketHandler(req, res);
+  });
+  
+  app.get("/api/support/tickets/:id/messages", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    await supportHandlers.getSupportMessagesHandler(req, res);
+  });
+  
+  app.post("/api/support/tickets/:id/messages", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    await supportHandlers.addSupportMessageHandler(req, res);
+  });
 
   const httpServer = createServer(app);
   return httpServer;
