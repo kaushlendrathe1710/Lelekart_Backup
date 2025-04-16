@@ -41,16 +41,34 @@ const uploadFileToS3 = async (file: Express.Multer.File) => {
 // Function to generate a download URL for S3 objects
 const getDownloadUrl = async (fileUrl: string): Promise<string> => {
   try {
-    // Extract the key from the full URL
-    // The fileUrl could be a full URL like https://bucket-name.s3.region.amazonaws.com/path/to/file
-    // or just the path like seller-documents/123/document-name
+    console.log("Generating download URL for:", fileUrl);
+    
+    // Extract the key from the full S3 URL
     let key = fileUrl;
     
-    // If it's a full URL, extract the path part
-    if (fileUrl.startsWith('http')) {
-      const url = new URL(fileUrl);
-      key = url.pathname.substring(1); // Remove the leading slash
+    // Extract the object key from various URL formats
+    if (fileUrl.includes('amazonaws.com')) {
+      // For URLs like https://bucket-name.s3.region.amazonaws.com/path/to/file
+      // or https://s3.region.amazonaws.com/bucket-name/path/to/file
+      
+      // First, check if it's the bucket-in-path format
+      if (fileUrl.includes('s3.amazonaws.com/')) {
+        // Format: https://s3.amazonaws.com/bucket-name/path/to/file
+        const parts = fileUrl.split('s3.amazonaws.com/')[1];
+        // Skip the bucket name part
+        key = parts.substring(parts.indexOf('/') + 1);
+      } else {
+        // Format: https://bucket-name.s3.region.amazonaws.com/path/to/file
+        const urlObj = new URL(fileUrl);
+        key = urlObj.pathname.substring(1); // Remove leading slash
+      }
+    } else if (fileUrl.startsWith('http')) {
+      // For other URL formats, parse the pathname
+      const urlObj = new URL(fileUrl);
+      key = urlObj.pathname.substring(1);
     }
+    
+    console.log("Extracted S3 object key:", key);
     
     // Create a command to get the object
     const command = new GetObjectCommand({
@@ -59,7 +77,11 @@ const getDownloadUrl = async (fileUrl: string): Promise<string> => {
     });
     
     // Generate a presigned URL with 15-minute expiry
-    const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 900 });
+    const presignedUrl = await getSignedUrl(s3Client, command, { 
+      expiresIn: 900 
+    });
+    
+    console.log("Generated presigned URL successfully");
     return presignedUrl;
   } catch (error) {
     console.error("Error generating download URL:", error);
@@ -286,6 +308,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const documentId = parseInt(req.params.id);
+      console.log(`Document download requested for ID: ${documentId}`);
       
       // Get document from database
       const document = await storage.getSellerDocumentById(documentId);
@@ -299,14 +322,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Unauthorized access to document" });
       }
       
-      // Generate a presigned URL for temporary access to the S3 object
-      const url = await getDownloadUrl(document.documentUrl);
+      console.log(`Generating download URL for document: ${document.documentName}, URL: ${document.documentUrl}`);
+      
+      // Generate a presigned URL for temporary access to the S3 object using our updated helper
+      const url = await getPresignedDownloadUrl(document.documentUrl);
       
       // Return the URL to the client
       res.json({ downloadUrl: url });
     } catch (error) {
       console.error("Error downloading document:", error);
-      res.status(500).json({ error: "Failed to download document" });
+      res.status(500).json({ error: "Failed to download document", details: error.message });
     }
   });
   

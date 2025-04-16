@@ -1,5 +1,7 @@
 import AWS from 'aws-sdk';
 import { v4 as uuidv4 } from 'uuid';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 
 // AWS configuration
 const AWS_ACCESS_KEY = process.env.AWS_ACCESS_KEY || '';
@@ -83,5 +85,71 @@ export async function deleteFile(fileUrl: string): Promise<void> {
   } catch (error) {
     console.error('Error deleting file from S3:', error);
     throw new Error('Failed to delete file from S3');
+  }
+}
+
+// Initialize S3 client for AWS SDK v3
+const s3Client = new S3Client({
+  region: AWS_REGION,
+  credentials: {
+    accessKeyId: AWS_ACCESS_KEY,
+    secretAccessKey: AWS_SECRET_KEY
+  }
+});
+
+// Generate presigned URL for downloading files
+export async function getPresignedDownloadUrl(fileUrl: string): Promise<string> {
+  try {
+    console.log("Generating download URL for file:", fileUrl);
+    
+    // Extract S3 object key from URL
+    let fileKey = '';
+    
+    if (fileUrl.includes('amazonaws.com')) {
+      // Handle different S3 URL formats
+      
+      if (fileUrl.includes('.s3.') || fileUrl.includes('.s3-') || fileUrl.includes('s3.amazonaws.com')) {
+        // Format: https://bucket-name.s3.region.amazonaws.com/key
+        // or https://s3.region.amazonaws.com/bucket-name/key
+        const url = new URL(fileUrl);
+        const pathParts = url.pathname.split('/').filter(Boolean);
+        
+        if (url.hostname.includes('s3.amazonaws.com')) {
+          // Format: https://s3.amazonaws.com/bucket-name/key
+          // Skip the first part (bucket name)
+          fileKey = pathParts.slice(1).join('/');
+        } else {
+          // Format: https://bucket-name.s3.region.amazonaws.com/key
+          fileKey = pathParts.join('/');
+        }
+      } else {
+        // Just extract the last part as key
+        fileKey = fileUrl.split('/').pop() || '';
+      }
+    } else {
+      // For direct keys or other formats
+      fileKey = fileUrl.split('/').pop() || '';
+    }
+    
+    console.log("Extracted S3 key:", fileKey);
+    
+    if (!fileKey) {
+      throw new Error("Could not extract file key from URL");
+    }
+    
+    // Create command to get the object
+    const command = new GetObjectCommand({
+      Bucket: AWS_BUCKET_NAME,
+      Key: fileKey,
+    });
+    
+    // Generate presigned URL (valid for 15 minutes)
+    const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 900 });
+    console.log("Generated presigned URL successfully");
+    
+    return presignedUrl;
+  } catch (error) {
+    console.error("Error generating presigned download URL:", error);
+    throw new Error("Failed to generate download URL");
   }
 }
