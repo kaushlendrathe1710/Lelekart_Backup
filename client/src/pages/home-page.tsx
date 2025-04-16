@@ -75,20 +75,11 @@ export default function HomePage() {
     queryKey: ["/api/deal-of-the-day"],
     queryFn: async () => {
       const res = await fetch('/api/deal-of-the-day');
-      // Handle 404 gracefully
-      if (res.status === 404) {
-        return null;
-      }
       if (!res.ok) throw new Error('Failed to fetch deal of the day');
       return res.json();
     },
     // Cache longer to reduce requests
     staleTime: 300000, // 5 minutes
-    // Don't retry on 404, which is expected when no deal is available
-    retry: (failureCount, error: any) => {
-      if (error?.response?.status === 404) return false;
-      return failureCount < 3;
-    }
   });
 
   // Organize products by category (dynamically)

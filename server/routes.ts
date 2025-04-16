@@ -6,9 +6,6 @@ import { setupAuth } from "./auth";
 import multer from "multer";
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import * as rewardsHandlers from "./handlers/rewards-handlers";
-import * as giftCardsHandlers from "./handlers/gift-cards-handlers";
-
 // Configure multer for file uploads
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -2107,12 +2104,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (mobileProducts.length > 0) {
           dealProduct = mobileProducts[0];
         }
+        
+        // Try Fashion as a third option
+        if (!dealProduct) {
+          const fashionProducts = await storage.getProducts("Fashion", undefined, true);
+          if (fashionProducts.length > 0) {
+            dealProduct = fashionProducts[0];
+          }
+        }
       } else {
         dealProduct = products[0];
       }
       
       if (!dealProduct) {
-        return res.status(404).json({ error: "No products found for deal of the day" });
+        return res.status(200).json(null); // Return null instead of 404 to avoid error in console
       }
       
       // Get product image - use actual product images with fallback
