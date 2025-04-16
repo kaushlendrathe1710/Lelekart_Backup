@@ -215,6 +215,42 @@ const SellerProfilePage = () => {
       });
     }
   };
+
+  // Document delete mutation
+  const deleteDocumentMutation = useMutation({
+    mutationFn: async (documentId: number) => {
+      const res = await apiRequest('DELETE', `/api/seller/documents/${documentId}`);
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to delete document");
+      }
+      
+      return true;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Document Deleted",
+        description: "Your document has been deleted successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/seller/documents'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Delete Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Document delete handler with confirmation
+  const handleDeleteDocument = (documentId: number) => {
+    // Show confirmation dialog before deletion
+    if (confirm("Are you sure you want to delete this document? This action cannot be undone.")) {
+      deleteDocumentMutation.mutate(documentId);
+    }
+  };
   
   const updateBusinessDetailsMutation = useMutation({
     mutationFn: async () => {
@@ -660,14 +696,24 @@ const SellerProfilePage = () => {
                                     "bg-amber-100 text-amber-800 hover:bg-amber-100"}>
                               {doc.status || "Pending"}
                             </Badge>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="h-8 gap-1"
-                              onClick={() => handleDownloadDocument(doc.id)}
-                            >
-                              <FileText className="h-4 w-4" /> Download
-                            </Button>
+                            <div className="flex space-x-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-8 gap-1"
+                                onClick={() => handleDownloadDocument(doc.id)}
+                              >
+                                <FileText className="h-4 w-4" /> Download
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-8 gap-1 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => handleDeleteDocument(doc.id)}
+                              >
+                                <X className="h-4 w-4" /> Delete
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </div>
