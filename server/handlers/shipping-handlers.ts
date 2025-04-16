@@ -577,7 +577,7 @@ export async function getProductShippingOverrides(req: Request, res: Response) {
       return res.status(403).json({ error: "Not a seller account" });
     }
 
-    const overrides = await storage.getProductShippingOverridesBySeller(req.user.id);
+    const overrides = await storage.getProductShippingOverrides(req.user.id);
     res.json(overrides);
   } catch (error) {
     console.error("Error fetching product shipping overrides:", error);
@@ -595,7 +595,7 @@ export async function getProductShippingOverride(req: Request, res: Response) {
     }
 
     // Get the product to check ownership
-    const product = await storage.getProductById(productId);
+    const product = await storage.getProduct(productId);
     if (!product) {
       return res.status(404).json({ error: "Product not found" });
     }
@@ -633,7 +633,7 @@ export async function createOrUpdateProductShippingOverride(req: Request, res: R
     }
 
     // Check if the product exists and belongs to this seller
-    const product = await storage.getProductById(validationResult.data.productId);
+    const product = await storage.getProduct(validationResult.data.productId);
     if (!product) {
       return res.status(404).json({ error: "Product not found" });
     }
@@ -667,7 +667,7 @@ export async function deleteProductShippingOverride(req: Request, res: Response)
     }
 
     // Check if the product exists and belongs to this seller
-    const product = await storage.getProductById(productId);
+    const product = await storage.getProduct(productId);
     if (!product) {
       return res.status(404).json({ error: "Product not found" });
     }

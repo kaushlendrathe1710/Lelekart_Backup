@@ -3483,12 +3483,12 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // Order Shipping Tracking methods
-  async getOrderShippingTracking(orderId: number): Promise<OrderShippingTracking | undefined> {
+  // Shipping Tracking methods
+  async getShippingTracking(orderId: number): Promise<ShippingTracking | undefined> {
     try {
       const [tracking] = await db.select()
-        .from(orderShippingTracking)
-        .where(eq(orderShippingTracking.orderId, orderId));
+        .from(shippingTracking)
+        .where(eq(shippingTracking.orderId, orderId));
       return tracking;
     } catch (error) {
       console.error(`Error getting shipping tracking for order ID ${orderId}:`, error);
@@ -3496,7 +3496,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async createOrderShippingTracking(tracking: InsertOrderShippingTracking): Promise<OrderShippingTracking> {
+  async createShippingTracking(tracking: InsertShippingTracking): Promise<ShippingTracking> {
     try {
       // Validate that the order exists
       const order = await this.getOrder(tracking.orderId);
@@ -3505,22 +3505,22 @@ export class DatabaseStorage implements IStorage {
       }
 
       // Check if tracking already exists for this order
-      const existingTracking = await this.getOrderShippingTracking(tracking.orderId);
+      const existingTracking = await this.getShippingTracking(tracking.orderId);
       if (existingTracking) {
         throw new Error(`Shipping tracking for order ID ${tracking.orderId} already exists`);
       }
 
-      const [newTracking] = await db.insert(orderShippingTracking)
+      const [newTracking] = await db.insert(shippingTracking)
         .values(tracking)
         .returning();
       return newTracking;
     } catch (error) {
-      console.error('Error creating order shipping tracking:', error);
-      throw new Error(error instanceof Error ? error.message : 'Failed to create order shipping tracking');
+      console.error('Error creating shipping tracking:', error);
+      throw new Error(error instanceof Error ? error.message : 'Failed to create shipping tracking');
     }
   }
 
-  async updateOrderShippingTracking(id: number, tracking: Partial<OrderShippingTracking>): Promise<OrderShippingTracking> {
+  async updateShippingTracking(id: number, tracking: Partial<ShippingTracking>): Promise<ShippingTracking> {
     try {
       // If orderId is being updated, validate that the order exists
       if (tracking.orderId) {
@@ -3530,29 +3530,42 @@ export class DatabaseStorage implements IStorage {
         }
         
         // Check if tracking already exists for the new order
-        const existingTracking = await this.getOrderShippingTracking(tracking.orderId);
+        const existingTracking = await this.getShippingTracking(tracking.orderId);
         if (existingTracking && existingTracking.id !== id) {
           throw new Error(`Shipping tracking for order ID ${tracking.orderId} already exists`);
         }
       }
 
-      const [updatedTracking] = await db.update(orderShippingTracking)
+      const [updatedTracking] = await db.update(shippingTracking)
         .set({
           ...tracking,
           updatedAt: new Date()
         })
-        .where(eq(orderShippingTracking.id, id))
+        .where(eq(shippingTracking.id, id))
         .returning();
       
       if (!updatedTracking) {
-        throw new Error(`Order shipping tracking with ID ${id} not found`);
+        throw new Error(`Shipping tracking with ID ${id} not found`);
       }
       
       return updatedTracking;
     } catch (error) {
-      console.error(`Error updating order shipping tracking with ID ${id}:`, error);
-      throw new Error(error instanceof Error ? error.message : 'Failed to update order shipping tracking');
+      console.error(`Error updating shipping tracking with ID ${id}:`, error);
+      throw new Error(error instanceof Error ? error.message : 'Failed to update shipping tracking');
     }
+  }
+  
+  // For backward compatibility with existing code
+  async getOrderShippingTracking(orderId: number): Promise<ShippingTracking | undefined> {
+    return this.getShippingTracking(orderId);
+  }
+
+  async createOrderShippingTracking(tracking: InsertShippingTracking): Promise<ShippingTracking> {
+    return this.createShippingTracking(tracking);
+  }
+
+  async updateOrderShippingTracking(id: number, tracking: Partial<ShippingTracking>): Promise<ShippingTracking> {
+    return this.updateShippingTracking(id, tracking);
   }
 }
 
