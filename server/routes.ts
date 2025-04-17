@@ -1319,6 +1319,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to update order status" });
     }
   });
+  
+  // Cancel order endpoint (for buyers)
+  app.post("/api/orders/:id/cancel", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Get the order to check permissions
+      const order = await storage.getOrder(id);
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+      
+      // Only the buyer who placed the order can cancel it
+      if (req.user.role === "buyer" && order.userId !== req.user.id) {
+        return res.status(403).json({ error: "Not authorized to cancel this order" });
+      }
+      
+      // Check if order is already delivered or cancelled
+      if (order.status === "delivered" || order.status === "cancelled") {
+        return res.status(400).json({ 
+          error: `Cannot cancel order. Order is already ${order.status}.` 
+        });
+      }
+      
+      // Update the order status to cancelled
+      const updatedOrder = await storage.updateOrderStatus(id, "cancelled");
+      
+      // Log the cancellation
+      console.log(`Order #${id} cancelled by user ${req.user.id}`);
+      
+      res.json(updatedOrder);
+    } catch (error) {
+      console.error("Error cancelling order:", error);
+      res.status(500).json({ error: "Failed to cancel order" });
+    }
+  });
 
   // User roles management (admin only)
   app.get("/api/users", async (req, res) => {
