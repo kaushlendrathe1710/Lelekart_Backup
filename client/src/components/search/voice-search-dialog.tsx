@@ -45,8 +45,16 @@ export function VoiceSearchDialog({
       // Otherwise use our default implementation
       console.log('Processing voice search query:', query);
       
+      // Detect if this is just a product name without "search" keyword
+      // Add "search" to the query if it doesn't already end with it to ensure consistency
+      const processedQuery = !query.toLowerCase().includes('search') 
+        ? `${query} search` 
+        : query;
+      
+      console.log('Processing voice search query (processed):', processedQuery);
+      
       // Process the query using AI to extract structured search parameters
-      const result = await AISearchService.processQuery(query);
+      const result = await AISearchService.processQuery(processedQuery);
       
       if (result.success) {
         // Build a search URL from the extracted parameters
