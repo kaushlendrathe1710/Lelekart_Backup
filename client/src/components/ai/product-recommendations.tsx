@@ -33,15 +33,65 @@ export const ProductRecommendationCard: React.FC<ProductRecommendationCardProps>
     });
   };
 
+  // Helper function to get category-specific image
+  const getCategoryImage = () => {
+    if (product.category) {
+      const categoryLower = product.category.toLowerCase();
+      
+      // List of known categories with images
+      const knownCategories = ['electronics', 'fashion', 'mobiles', 'home', 'beauty', 'grocery', 'toys', 'appliances'];
+      if (knownCategories.includes(categoryLower)) {
+        return `/images/categories/${categoryLower}.svg`;
+      }
+    }
+    return "/images/placeholder.svg";
+  };
+
+  // Determine if a URL should be skipped (known problematic domains)
+  const shouldSkipUrl = (url: string) => {
+    return url?.includes('placeholder.com') ||
+           url?.includes('via.placeholder') ||
+           url === 'null' ||
+           url === 'undefined' ||
+           url === '';
+  };
+
+  // Get the best image URL to use
+  const getImageUrl = () => {
+    const imageUrl = product.imageUrl || product.image_url;
+    
+    if (imageUrl && !shouldSkipUrl(imageUrl)) {
+      if (imageUrl.startsWith('/')) {
+        // Local path
+        return imageUrl;
+      } else if (imageUrl.includes('flixcart.com') || imageUrl.includes('lelekart.com')) {
+        // Use proxy for external domains that need it
+        return `/api/image-proxy?url=${encodeURIComponent(imageUrl)}&category=${encodeURIComponent(product.category || '')}`;
+      } else {
+        // Try direct external URL as last resort
+        return imageUrl;
+      }
+    }
+    
+    // Go to category-specific image
+    return getCategoryImage();
+  };
+
   return (
     <Link href={`/product/${product.id}`} onClick={handleProductClick}>
       <Card className={cn("h-full cursor-pointer hover:shadow-md transition-shadow", className)}>
         <CardContent className="p-3">
-          <div className="relative aspect-square w-full overflow-hidden rounded-md mb-2">
+          <div className="relative aspect-square w-full overflow-hidden rounded-md mb-2 flex items-center justify-center bg-slate-50">
             <img
-              src={product.imageUrl || product.image_url}
+              src={getImageUrl()}
               alt={product.name}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain"
+              onError={(e) => {
+                // Use a category-specific fallback image on error
+                const target = e.target as HTMLImageElement;
+                target.onerror = null; // Prevent infinite loop
+                target.src = getCategoryImage();
+              }}
             />
           </div>
           <h3 className="text-sm font-medium line-clamp-2 mb-1">{product.name}</h3>
