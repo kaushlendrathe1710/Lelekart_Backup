@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Product, User } from "@shared/schema";
 import { CategoryNav } from "@/components/ui/category-nav";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Minus, Plus, ShoppingCart, Star, Zap, Heart, Share2, Package, Shield, TruckIcon, Award, BarChart3, ChevronDown, Maximize, RotateCw } from "lucide-react";
 import { ProductCard } from "@/components/ui/product-card";
@@ -584,10 +585,14 @@ export default function ProductDetailsPage() {
     );
   }
   
-  // Process images, specifications, price details
+  // Process images, specifications, price details, colors and sizes
   const productImages = getProductImages(product);
   const specifications = parseSpecifications(product?.specifications);
   const { price, discount, original } = getPriceDetails(product);
+  
+  // Parse color and size options
+  const colorOptions = product?.color ? product.color.split(/,\s*/).filter(Boolean) : [];
+  const sizeOptions = product?.size ? product.size.split(/,\s*/).filter(Boolean) : [];
   
   return (
     <CartProvider>
@@ -689,6 +694,25 @@ export default function ProductDetailsPage() {
                   </div>
                 </div>
                 
+                {/* Color Options - Only shown if colors are available */}
+                {colorOptions.length > 0 && (
+                  <div className="mt-6 grid grid-cols-12 gap-4">
+                    <div className="col-span-2 text-gray-600 text-sm">Color</div>
+                    <div className="col-span-10">
+                      <div className="flex flex-wrap gap-2">
+                        {colorOptions.map((color, index) => (
+                          <Badge 
+                            key={index} 
+                            className="bg-primary text-white px-3 py-1 cursor-pointer hover:bg-primary/90"
+                          >
+                            {color}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 {/* Highlights & Services */}
                 <div className="mt-4 grid grid-cols-12 gap-4">
                   <div className="col-span-2 text-gray-600 text-sm">Highlights</div>
@@ -785,16 +809,17 @@ export default function ProductDetailsPage() {
                   <h3 className="font-medium text-lg mb-3">Specifications</h3>
                   
                   {/* AI-Powered Size Recommendation */}
-                  {product?.category?.toLowerCase().includes('fashion') || 
+                  {(product?.category?.toLowerCase().includes('fashion') || 
                    product?.category?.toLowerCase().includes('clothing') || 
                    product?.name?.toLowerCase().includes('shirt') || 
                    product?.name?.toLowerCase().includes('pant') || 
-                   product?.name?.toLowerCase().includes('shoe') ? (
+                   product?.name?.toLowerCase().includes('shoe')) && 
+                   sizeOptions.length > 0 ? (
                     <div className="mb-5">
                       <SizeRecommendation 
                         productId={product.id} 
                         category={product.category}
-                        availableSizes={['XS', 'S', 'M', 'L', 'XL', 'XXL']}
+                        availableSizes={sizeOptions}
                       />
                       <Separator className="my-4" />
                     </div>
