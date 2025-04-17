@@ -50,6 +50,21 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
     return "/images/placeholder.svg";
   };
   
+  // Helper function to get deal of the day category image
+  const getDealCategory = () => {
+    // Extract category from subtitle if available
+    const category = dealOfTheDay?.subtitle.includes('Electronics') ? 'electronics' :
+                    dealOfTheDay?.subtitle.includes('Fashion') ? 'fashion' :
+                    dealOfTheDay?.subtitle.includes('Home') ? 'home' :
+                    dealOfTheDay?.subtitle.includes('Appliances') ? 'appliances' :
+                    dealOfTheDay?.subtitle.includes('Mobiles') ? 'mobiles' :
+                    dealOfTheDay?.subtitle.includes('Beauty') ? 'beauty' :
+                    dealOfTheDay?.subtitle.includes('Toys') ? 'toys' :
+                    dealOfTheDay?.subtitle.includes('Grocery') ? 'grocery' : 'general';
+    
+    return `/images/categories/${category}.svg`;
+  };
+  
   // Deal of the day countdown - only initialize if we have a deal
   const [countdown, setCountdown] = useState({
     hours: dealOfTheDay?.hours || 0,

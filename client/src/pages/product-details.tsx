@@ -28,6 +28,8 @@ function ProductImageSlider({ images, name }: { images: string[], name: string }
   const [activeImage, setActiveImage] = useState(0);
   const [viewMode, setViewMode] = useState<'normal' | 'zoom' | '360'>('normal');
   const [isZoomed, setIsZoomed] = useState(false);
+  // Track filtered images
+  const [validImages, setValidImages] = useState<string[]>([]);
   
   // Container ref for calculating zoom dimensions
   const containerRef = useRef<HTMLDivElement>(null);
@@ -35,12 +37,31 @@ function ProductImageSlider({ images, name }: { images: string[], name: string }
   // Default placeholder image based on category
   const defaultImage = "../images/placeholder.svg";
   
+  // Helper function to check problematic URLs
+  const isProblematicUrl = (url: string) => {
+    return !url || 
+           url.includes('placeholder.com') ||
+           url.includes('via.placeholder') ||
+           url === 'null' ||
+           url === 'undefined' ||
+           url === '';
+  };
+  
   // Handle image loading error
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const target = e.target as HTMLImageElement;
     target.onerror = null; // Prevent infinite loop
     target.src = defaultImage;
   };
+  
+  // Filter images once on mount
+  useEffect(() => {
+    // Filter out problematic images
+    const filtered = images.filter(img => !isProblematicUrl(img));
+    // If no valid images, use placeholder
+    const final = filtered.length > 0 ? filtered : [defaultImage];
+    setValidImages(final);
+  }, [images]);
   
   // Create a simulated 360° rotation effect using the available product images
   const get360Images = () => {
@@ -133,7 +154,7 @@ function ProductImageSlider({ images, name }: { images: string[], name: string }
       <div className="flex">
         {/* Thumbnails on the left - always visible regardless of view mode */}
         <div className="flex flex-col gap-2 mr-4">
-          {images.map((image, index) => (
+          {validImages.map((image, index) => (
             <div 
               key={index}
               className={`w-16 h-16 border cursor-pointer hover:border-primary ${index === activeImage ? 'border-primary' : 'border-gray-200'}`}
@@ -159,7 +180,7 @@ function ProductImageSlider({ images, name }: { images: string[], name: string }
             <div className="w-full h-96 border border-gray-100 flex items-center justify-center bg-white">
               {/* Use simple clickable image that expands to full screen on click */}
               <img 
-                src={images[activeImage]} 
+                src={validImages[activeImage]} 
                 alt={name} 
                 className="max-w-full max-h-full object-contain cursor-zoom-in"
                 onError={handleImageError}
@@ -176,7 +197,7 @@ function ProductImageSlider({ images, name }: { images: string[], name: string }
               <div className="h-full relative">
                 <Zoom>
                   <img 
-                    src={images[activeImage]} 
+                    src={validImages[activeImage]} 
                     alt={name} 
                     className="max-w-full max-h-full object-contain"
                     onError={handleImageError}
