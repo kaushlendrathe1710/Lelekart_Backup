@@ -184,3 +184,120 @@ export async function updateNotificationPreferencesHandler(req: Request, res: Re
     return res.status(500).json({ error: "Internal server error" });
   }
 }
+
+// Update personal information
+export async function updatePersonalInfoHandler(req: Request, res: Response) {
+  try {
+    const sellerId = parseInt(req.params.sellerId || req.user?.id?.toString() || "0");
+    
+    if (!sellerId) {
+      return res.status(400).json({ error: 'Seller ID is required' });
+    }
+    
+    // If this is not the seller themselves, deny access (even admins shouldn't update this)
+    if (req.user?.id !== sellerId) {
+      return res.status(403).json({ error: 'You do not have permission to update personal information' });
+    }
+    
+    // Validate the personal info data
+    const personalInfoSchema = z.object({
+      name: z.string().optional(),
+      email: z.string().email().optional(),
+      phone: z.string().optional(),
+      alternatePhone: z.string().optional(),
+    });
+    
+    const validatedPersonalInfo = personalInfoSchema.parse(req.body);
+    
+    // Get current settings
+    const currentSettings = await storage.getSellerSettings(sellerId);
+    
+    // Parse current personal info or create default if none exist
+    let currentPersonalInfo = {};
+    if (currentSettings?.personalInfo) {
+      try {
+        currentPersonalInfo = JSON.parse(currentSettings.personalInfo);
+      } catch (e) {
+        console.error("Error parsing existing personal info:", e);
+      }
+    }
+    
+    // Merge with new personal info
+    const updatedPersonalInfo = {
+      ...currentPersonalInfo,
+      ...validatedPersonalInfo
+    };
+    
+    // Update settings
+    const updatedSettings = await storage.createOrUpdateSellerSettings(sellerId, {
+      personalInfo: JSON.stringify(updatedPersonalInfo)
+    });
+    
+    return res.status(200).json(updatedSettings);
+  } catch (error) {
+    console.error("Error updating personal information:", error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+// Update address information
+export async function updateAddressHandler(req: Request, res: Response) {
+  try {
+    const sellerId = parseInt(req.params.sellerId || req.user?.id?.toString() || "0");
+    
+    if (!sellerId) {
+      return res.status(400).json({ error: 'Seller ID is required' });
+    }
+    
+    // If this is not the seller themselves, deny access
+    if (req.user?.id !== sellerId) {
+      return res.status(403).json({ error: 'You do not have permission to update address information' });
+    }
+    
+    // Validate the address data
+    const addressSchema = z.object({
+      line1: z.string().optional(),
+      line2: z.string().optional(),
+      city: z.string().optional(),
+      state: z.string().optional(),
+      pincode: z.string().optional(),
+    });
+    
+    const validatedAddress = addressSchema.parse(req.body);
+    
+    // Get current settings
+    const currentSettings = await storage.getSellerSettings(sellerId);
+    
+    // Parse current address or create default if none exist
+    let currentAddress = {};
+    if (currentSettings?.address) {
+      try {
+        currentAddress = JSON.parse(currentSettings.address);
+      } catch (e) {
+        console.error("Error parsing existing address:", e);
+      }
+    }
+    
+    // Merge with new address
+    const updatedAddress = {
+      ...currentAddress,
+      ...validatedAddress
+    };
+    
+    // Update settings
+    const updatedSettings = await storage.createOrUpdateSellerSettings(sellerId, {
+      address: JSON.stringify(updatedAddress)
+    });
+    
+    return res.status(200).json(updatedSettings);
+  } catch (error) {
+    console.error("Error updating address information:", error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}

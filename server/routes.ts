@@ -3783,6 +3783,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await settingsHandlers.updateNotificationPreferencesHandler(req, res);
   });
   
+  app.put("/api/seller/settings/personal-info", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller") return res.status(403).json({ error: "Not authorized" });
+    
+    await settingsHandlers.updatePersonalInfoHandler(req, res);
+  });
+  
+  app.put("/api/seller/settings/address", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller") return res.status(403).json({ error: "Not authorized" });
+    
+    await settingsHandlers.updateAddressHandler(req, res);
+  });
+  
   // Support Routes
   app.get("/api/support/tickets", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

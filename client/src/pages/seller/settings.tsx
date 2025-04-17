@@ -60,6 +60,26 @@ export default function SellerSettingsPage() {
   const [holidayMode, setHolidayMode] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSavingPersonalInfo, setIsSavingPersonalInfo] = useState(false);
+  const [isSavingAddress, setIsSavingAddress] = useState(false);
+  
+  // Personal information state
+  const [personalInfo, setPersonalInfo] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    alternatePhone: ""
+  });
+  
+  // Address information state
+  const [address, setAddress] = useState({
+    line1: "",
+    line2: "",
+    city: "",
+    state: "",
+    pincode: ""
+  });
+  
   const [notificationSettings, setNotificationSettings] = useState({
     email: {
       orders: true,
@@ -96,15 +116,52 @@ export default function SellerSettingsPage() {
       }
       return res.json();
     },
-    onSuccess: (data) => {
-      if (data) {
-        setHolidayMode(data.holidayMode || false);
-        if (data.notificationPreferences) {
-          setNotificationSettings(data.notificationPreferences);
+  });
+  
+  // Process settings data when it changes
+  useEffect(() => {
+    if (settings) {
+      setHolidayMode(settings.holidayMode || false);
+      if (settings.notificationPreferences) {
+        try {
+          setNotificationSettings(JSON.parse(settings.notificationPreferences));
+        } catch (e) {
+          console.error("Error parsing notification preferences:", e);
         }
       }
-    },
-  });
+      
+      // Parse and set personal info
+      if (settings.personalInfo) {
+        try {
+          const parsedPersonalInfo = JSON.parse(settings.personalInfo);
+          setPersonalInfo({
+            name: parsedPersonalInfo.name || "",
+            email: parsedPersonalInfo.email || "",
+            phone: parsedPersonalInfo.phone || "",
+            alternatePhone: parsedPersonalInfo.alternatePhone || ""
+          });
+        } catch (e) {
+          console.error("Error parsing personal info:", e);
+        }
+      }
+      
+      // Parse and set address
+      if (settings.address) {
+        try {
+          const parsedAddress = JSON.parse(settings.address);
+          setAddress({
+            line1: parsedAddress.line1 || "",
+            line2: parsedAddress.line2 || "",
+            city: parsedAddress.city || "",
+            state: parsedAddress.state || "",
+            pincode: parsedAddress.pincode || ""
+          });
+        } catch (e) {
+          console.error("Error parsing address:", e);
+        }
+      }
+    }
+  }, [settings]);
 
   const toggleHolidayMode = async () => {
     setIsLoading(true);
@@ -181,6 +238,68 @@ export default function SellerSettingsPage() {
         [setting]: checked,
       },
     }));
+  };
+
+  const savePersonalInfo = async () => {
+    setIsSavingPersonalInfo(true);
+    try {
+      const response = await fetch('/api/seller/settings/personal-info', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(personalInfo),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update personal information');
+      }
+      
+      toast({
+        title: "Personal Information Saved",
+        description: "Your personal information has been updated successfully.",
+      });
+    } catch (error) {
+      console.error('Error saving personal information:', error);
+      toast({
+        title: "Save Failed",
+        description: "Could not update personal information. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingPersonalInfo(false);
+    }
+  };
+  
+  const saveAddress = async () => {
+    setIsSavingAddress(true);
+    try {
+      const response = await fetch('/api/seller/settings/address', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(address),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update address information');
+      }
+      
+      toast({
+        title: "Address Information Saved",
+        description: "Your address information has been updated successfully.",
+      });
+    } catch (error) {
+      console.error('Error saving address information:', error);
+      toast({
+        title: "Save Failed",
+        description: "Could not update address information. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingAddress(false);
+    }
   };
 
   const changePassword = async (oldPassword: string, newPassword: string) => {
@@ -274,26 +393,55 @@ export default function SellerSettingsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="name">Full Name</Label>
-                      <Input id="name" defaultValue={settings?.personalInfo?.name || ""} />
+                      <Input 
+                        id="name" 
+                        value={personalInfo.name}
+                        onChange={(e) => setPersonalInfo({...personalInfo, name: e.target.value})}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="email">Email Address</Label>
-                      <Input id="email" type="email" defaultValue={settings?.personalInfo?.email || ""} />
+                      <Input 
+                        id="email" 
+                        type="email" 
+                        value={personalInfo.email}
+                        onChange={(e) => setPersonalInfo({...personalInfo, email: e.target.value})}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="phone">Phone Number</Label>
-                      <Input id="phone" defaultValue={settings?.personalInfo?.phone || ""} />
+                      <Input 
+                        id="phone" 
+                        value={personalInfo.phone}
+                        onChange={(e) => setPersonalInfo({...personalInfo, phone: e.target.value})}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="alternatePhone">Alternate Phone (Optional)</Label>
-                      <Input id="alternatePhone" defaultValue={settings?.personalInfo?.alternatePhone || ""} />
+                      <Input 
+                        id="alternatePhone" 
+                        value={personalInfo.alternatePhone}
+                        onChange={(e) => setPersonalInfo({...personalInfo, alternatePhone: e.target.value})}
+                      />
                     </div>
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                  <Button>
-                    <Save className="mr-2 h-4 w-4" />
-                    Save Changes
+                  <Button 
+                    onClick={savePersonalInfo} 
+                    disabled={isSavingPersonalInfo}
+                  >
+                    {isSavingPersonalInfo ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save Changes
+                      </>
+                    )}
                   </Button>
                 </CardFooter>
               </Card>
@@ -306,31 +454,63 @@ export default function SellerSettingsPage() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="addressLine1">Address Line 1</Label>
-                    <Input id="addressLine1" defaultValue={settings?.address?.line1 || ""} />
+                    <Input 
+                      id="addressLine1" 
+                      value={address.line1}
+                      onChange={(e) => setAddress({...address, line1: e.target.value})}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="addressLine2">Address Line 2 (Optional)</Label>
-                    <Input id="addressLine2" defaultValue={settings?.address?.line2 || ""} />
+                    <Input 
+                      id="addressLine2" 
+                      value={address.line2}
+                      onChange={(e) => setAddress({...address, line2: e.target.value})}
+                    />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="city">City</Label>
-                      <Input id="city" defaultValue={settings?.address?.city || ""} />
+                      <Input 
+                        id="city" 
+                        value={address.city}
+                        onChange={(e) => setAddress({...address, city: e.target.value})}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="state">State</Label>
-                      <Input id="state" defaultValue={settings?.address?.state || ""} />
+                      <Input 
+                        id="state" 
+                        value={address.state}
+                        onChange={(e) => setAddress({...address, state: e.target.value})}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="pincode">Pincode</Label>
-                      <Input id="pincode" defaultValue={settings?.address?.pincode || ""} />
+                      <Input 
+                        id="pincode" 
+                        value={address.pincode}
+                        onChange={(e) => setAddress({...address, pincode: e.target.value})}
+                      />
                     </div>
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                  <Button>
-                    <Save className="mr-2 h-4 w-4" />
-                    Save Changes
+                  <Button 
+                    onClick={saveAddress} 
+                    disabled={isSavingAddress}
+                  >
+                    {isSavingAddress ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save Changes
+                      </>
+                    )}
                   </Button>
                 </CardFooter>
               </Card>
