@@ -165,8 +165,6 @@ const TrackingManagementPage = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Order ID</TableHead>
-                      <TableHead>Customer</TableHead>
                       <TableHead>Carrier</TableHead>
                       <TableHead>Tracking Number</TableHead>
                       <TableHead>Status</TableHead>
@@ -178,8 +176,6 @@ const TrackingManagementPage = () => {
                   <TableBody>
                     {activeTrackings.map((tracking) => (
                       <TableRow key={tracking.id}>
-                        <TableCell className="font-medium">{tracking.orderId}</TableCell>
-                        <TableCell>{tracking.customer}</TableCell>
                         <TableCell>{tracking.carrier}</TableCell>
                         <TableCell>{tracking.trackingNumber}</TableCell>
                         <TableCell>
@@ -195,7 +191,11 @@ const TrackingManagementPage = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="sm">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => window.location.href = `/admin/tracking-details/${tracking.trackingNumber}`}
+                          >
                             <Eye className="h-4 w-4 mr-1" />
                             View
                           </Button>
@@ -219,8 +219,6 @@ const TrackingManagementPage = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Order ID</TableHead>
-                      <TableHead>Customer</TableHead>
                       <TableHead>Carrier</TableHead>
                       <TableHead>Tracking Number</TableHead>
                       <TableHead>Status</TableHead>
@@ -232,8 +230,6 @@ const TrackingManagementPage = () => {
                   <TableBody>
                     {deliveredTrackings.map((tracking) => (
                       <TableRow key={tracking.id}>
-                        <TableCell className="font-medium">{tracking.orderId}</TableCell>
-                        <TableCell>{tracking.customer}</TableCell>
                         <TableCell>{tracking.carrier}</TableCell>
                         <TableCell>{tracking.trackingNumber}</TableCell>
                         <TableCell>
@@ -249,7 +245,11 @@ const TrackingManagementPage = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="sm">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => window.location.href = `/admin/tracking-details/${tracking.trackingNumber}`}
+                          >
                             <Eye className="h-4 w-4 mr-1" />
                             View
                           </Button>
