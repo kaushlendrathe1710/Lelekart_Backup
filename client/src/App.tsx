@@ -53,7 +53,7 @@ import SellerOrdersPage from './pages/seller/orders';
 import BulkUploadPage from './pages/seller/bulk-upload';
 import SmartInventoryPage from './pages/seller/smart-inventory';
 import SellerProfilePage from './pages/seller/profile';
-import SellerShippingPage from './pages/seller/shipping';
+// Shipping page removed - shipping is managed at admin level only
 import SellerReturnsPage from './pages/seller/returns';
 import SellerAnalyticsPage from './pages/seller/analytics';
 import SellerPaymentsPage from './pages/seller/payments';
@@ -467,15 +467,7 @@ function App() {
                               />
                             )}
                           </Route>
-                          <Route path="/seller/shipping">
-                            {() => (
-                              <ProtectedRoute 
-                                path="/seller/shipping" 
-                                role="seller" 
-                                component={SellerShippingPage} 
-                              />
-                            )}
-                          </Route>
+                          {/* Shipping route removed - shipping is managed at admin level only */}
                           <Route path="/seller/returns">
                             {() => (
                               <ProtectedRoute 
