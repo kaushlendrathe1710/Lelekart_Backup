@@ -578,15 +578,7 @@ export default function SellerOrdersPage() {
                   {getStatusBadge(selectedOrder.status)}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-1"
-                    onClick={() => openStatusUpdateDialog(selectedOrder)}
-                  >
-                    <Package className="h-4 w-4" />
-                    Update Status
-                  </Button>
+                  {/* Update Status button removed - only admins can update order status */}
                   <Button
                     variant="outline"
                     size="sm"
