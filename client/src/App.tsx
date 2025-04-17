@@ -67,548 +67,554 @@ import BuyerRewardsPage from './pages/buyer/rewards';
 import BuyerGiftCardsPage from './pages/buyer/gift-cards';
 import BuyerWalletPage from './pages/buyer/wallet';
 import WalletManagementPage from './pages/admin/wallet-management';
+import PublicSellerProfileWrapper from './pages/seller/public-profile-wrapper';
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <WalletProvider>
-          <CartProvider>
-            <AIAssistantProvider>
-              <TooltipProvider>
-              <div className="app">
-                <AIAssistantButton />
-                <AIShoppingAssistant />
-                <Switch>
-                  <Route path="/">
-                    {() => (
-                      <Layout>
-                        <HomePage />
-                      </Layout>
-                    )}
-                  </Route>
-                  <Route path="/auth">
-                    {() => (
-                      <Layout>
-                        <AuthPage />
-                      </Layout>
-                    )}
-                  </Route>
-                  {/* New Lelekart-style product details page */}
-                  <Route path="/product/:id">
-                    {(params) => {
-                      console.log("App router matched product page with params:", params);
-                      return (
-                        <Layout>
-                          <ProductDetailsPage />
-                        </Layout>
-                      );
-                    }}
-                  </Route>
-                  
-                  {/* Search Results Page */}
-                  <Route path="/search">
-                    {() => (
-                      <Layout>
-                        <SearchResultsPage />
-                      </Layout>
-                    )}
-                  </Route>
-                  
-                  {/* All Products Page with pagination */}
-                  <Route path="/products">
-                    {() => (
-                      <Layout>
-                        <AllProductsPage />
-                      </Layout>
-                    )}
-                  </Route>
-                  
-                  <Route path="/products/page/:page">
-                    {() => (
-                      <Layout>
-                        <AllProductsPage />
-                      </Layout>
-                    )}
-                  </Route>
-                  
-                  {/* Category page */}
-                  <Route path="/category/:category">
-                    {(params) => {
-                      const category = params?.category;
-                      
-                      if (!category) {
-                        return (
-                          <Layout>
-                            <NotFound />
-                          </Layout>
-                        );
-                      }
-                      
-                      // Use unique key that includes route path to force complete remounting
-                      const componentKey = `category-${category}-${Date.now()}`;
-                      return (
-                        <Layout>
-                          <div className="category-page-container" key={componentKey}>
-                            <CategoryPage />
-                          </div>
-                        </Layout>
-                      );
-                    }}
-                  </Route>
-                  
-                  {/* Cart, Checkout, and Order routes - restricted to buyers */}
-                  <Route path="/cart">
-                    {() => (
-                      <Layout>
-                        <ProtectedRoute 
-                          path="/cart" 
-                          role="buyer" 
-                          component={() => <CartPage />} 
-                        />
-                      </Layout>
-                    )}
-                  </Route>
-                  <Route path="/checkout">
-                    {() => (
-                      <Layout>
-                        <ProtectedRoute 
-                          path="/checkout" 
-                          role="buyer" 
-                          component={() => <CheckoutPage />} 
-                        />
-                      </Layout>
-                    )}
-                  </Route>
-                  <Route path="/order-confirmation/:id">
-                    {() => (
-                      <Layout>
-                        <ProtectedRoute 
-                          path="/order-confirmation/:id" 
-                          role="buyer" 
-                          component={() => <OrderConfirmationPage />} 
-                        />
-                      </Layout>
-                    )}
-                  </Route>
-                  <Route path="/orders">
-                    {() => (
-                      <Layout>
-                        <ProtectedRoute 
-                          path="/orders" 
-                          role="buyer" 
-                          component={() => <OrdersPage />} 
-                        />
-                      </Layout>
-                    )}
-                  </Route>
-                  <Route path="/order/:id">
-                    {() => (
-                      <Layout>
-                        <ProtectedRoute 
-                          path="/order/:id" 
-                          role="buyer" 
-                          component={() => <OrderDetailsPage />} 
-                        />
-                      </Layout>
-                    )}
-                  </Route>
-                  
-                  {/* Admin Routes */}
-                  <Route path="/admin">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/admin" 
-                        role="admin" 
-                        component={AdminDashboard} 
-                      />
-                    )}
-                  </Route>
-                  {/* Redirect for old dashboard URL to new URL */}
-                  <Route path="/admin/dashboard">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/admin/dashboard" 
-                        role="admin" 
-                        component={() => {
-                          window.location.href = "/admin";
-                          return null;
-                        }} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/admin/products">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/admin/products" 
-                        role="admin" 
-                        component={AdminProducts} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/admin/users">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/admin/users" 
-                        role="admin" 
-                        component={AdminUsers} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/admin/orders">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/admin/orders" 
-                        role="admin" 
-                        component={AdminOrders} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/admin/categories">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/admin/categories" 
-                        role="admin" 
-                        component={AdminCategories} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/admin/seller-approval">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/admin/seller-approval" 
-                        role="admin" 
-                        component={SellerApproval} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/admin/product-approval">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/admin/product-approval" 
-                        role="admin" 
-                        component={ProductApproval} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/admin/banner-management">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/admin/banner-management" 
-                        role="admin" 
-                        component={BannerManagement} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/admin/design-hero">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/admin/design-hero" 
-                        role="admin" 
-                        component={DesignHero} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/admin/footer-management">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/admin/footer-management" 
-                        role="admin" 
-                        component={FooterManagement} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/admin/shipping-management">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/admin/shipping-management" 
-                        role="admin" 
-                        component={AdminShippingManagement} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/admin/manage-admins">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/admin/manage-admins" 
-                        role="admin" 
-                        component={ManageAdmins} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/admin/create-user">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/admin/create-user" 
-                        role="admin" 
-                        component={CreateUser} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/admin/rewards-management">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/admin/rewards-management" 
-                        role="admin" 
-                        component={RewardsManagement} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/admin/gift-cards-management">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/admin/gift-cards-management" 
-                        role="admin" 
-                        component={GiftCardsManagement} 
-                      />
-                    )}
-                  </Route>
-                  {/* Seller route with nested paths to use the same layout */}
-                  <Route path="/seller/dashboard">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/seller/dashboard" 
-                        role="seller" 
-                        component={SellerDashboardPage} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/seller/products">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/seller/products" 
-                        role="seller" 
-                        component={SellerProductsPage} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/seller/products/add">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/seller/products/add" 
-                        role="seller" 
-                        component={AddProductPage} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/seller/products/edit/:id">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/seller/products/edit/:id" 
-                        role="seller" 
-                        component={EditProductPage} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/seller/products/preview/:id">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/seller/products/preview/:id" 
-                        role="seller" 
-                        component={ProductPreviewPage} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/seller/products/bulk-upload">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/seller/products/bulk-upload" 
-                        role="seller" 
-                        component={BulkUploadPage} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/seller/smart-inventory">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/seller/smart-inventory" 
-                        role="seller" 
-                        component={SmartInventoryPage} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/seller/inventory">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/seller/inventory" 
-                        role="seller" 
-                        component={() => (
-                          <SellerDashboardPage />
-                        )} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/seller/orders">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/seller/orders" 
-                        role="seller" 
-                        component={SellerOrdersPage} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/seller/shipping">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/seller/shipping" 
-                        role="seller" 
-                        component={SellerShippingPage} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/seller/returns">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/seller/returns" 
-                        role="seller" 
-                        component={SellerReturnsPage} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/seller/analytics">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/seller/analytics" 
-                        role="seller" 
-                        component={SellerAnalyticsPage} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/seller/payments">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/seller/payments" 
-                        role="seller" 
-                        component={SellerPaymentsPage} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/seller/settings">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/seller/settings" 
-                        role="seller" 
-                        component={SellerSettingsPage} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/seller/help">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/seller/help" 
-                        role="seller" 
-                        component={SellerHelpPage} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/seller/profile">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/seller/profile" 
-                        role="seller" 
-                        component={SellerProfilePage} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/buyer/dashboard">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/buyer/dashboard" 
-                        role="buyer" 
-                        component={BuyerDashboardPage} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/buyer/wishlist">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/buyer/wishlist" 
-                        role="buyer" 
-                        component={BuyerWishlistPage} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/buyer/settings">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/buyer/settings" 
-                        role="buyer" 
-                        component={BuyerSettingsPage} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/buyer/addresses">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/buyer/addresses" 
-                        role="buyer" 
-                        component={AddressManagementPage} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/buyer/rewards">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/buyer/rewards" 
-                        role="buyer" 
-                        component={BuyerRewardsPage} 
-                      />
-                    )}
-                  </Route>
-                  <Route path="/buyer/gift-cards">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/buyer/gift-cards" 
-                        role="buyer" 
-                        component={BuyerGiftCardsPage} 
-                      />
-                    )}
-                  </Route>
-                  
-                  <Route path="/buyer/wallet">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/buyer/wallet" 
-                        role="buyer" 
-                        component={BuyerWalletPage} 
-                      />
-                    )}
-                  </Route>
-                  
-                  <Route path="/admin/wallet-management">
-                    {() => (
-                      <ProtectedRoute 
-                        path="/admin/wallet-management" 
-                        role="admin" 
-                        component={WalletManagementPage} 
-                      />
-                    )}
-                  </Route>
-                  
-                  {/* Public routes that don't require authentication */}
-                  <Route path="/seller/public-profile/:id">
-                    {(params) => (
-                      <Layout>
-                        <PublicSellerProfilePage />
-                      </Layout>
-                    )}
-                  </Route>
-                  
-                  <Route>
-                    {() => (
-                      <Layout>
-                        <NotFound />
-                      </Layout>
-                    )}
-                  </Route>
-                </Switch>
-                <Toaster />
-              </div>
-              </TooltipProvider>
-            </AIAssistantProvider>
-          </CartProvider>
-        </WalletProvider>
-      </AuthProvider>
+      <Switch>
+        {/* Public seller profile route with its own isolated context */}
+        <Route path="/seller/public-profile/:id">
+          {(params) => <PublicSellerProfileWrapper />}
+        </Route>
+        
+        {/* All other routes with full authentication context */}
+        <Route>
+          {() => (
+            <AuthProvider>
+              <WalletProvider>
+                <CartProvider>
+                  <AIAssistantProvider>
+                    <TooltipProvider>
+                      <div className="app">
+                        <AIAssistantButton />
+                        <AIShoppingAssistant />
+                        <Switch>
+                          <Route path="/">
+                            {() => (
+                              <Layout>
+                                <HomePage />
+                              </Layout>
+                            )}
+                          </Route>
+                          <Route path="/auth">
+                            {() => (
+                              <Layout>
+                                <AuthPage />
+                              </Layout>
+                            )}
+                          </Route>
+                          {/* New Lelekart-style product details page */}
+                          <Route path="/product/:id">
+                            {(params) => {
+                              console.log("App router matched product page with params:", params);
+                              return (
+                                <Layout>
+                                  <ProductDetailsPage />
+                                </Layout>
+                              );
+                            }}
+                          </Route>
+                          
+                          {/* Search Results Page */}
+                          <Route path="/search">
+                            {() => (
+                              <Layout>
+                                <SearchResultsPage />
+                              </Layout>
+                            )}
+                          </Route>
+                          
+                          {/* All Products Page with pagination */}
+                          <Route path="/products">
+                            {() => (
+                              <Layout>
+                                <AllProductsPage />
+                              </Layout>
+                            )}
+                          </Route>
+                          
+                          <Route path="/products/page/:page">
+                            {() => (
+                              <Layout>
+                                <AllProductsPage />
+                              </Layout>
+                            )}
+                          </Route>
+                          
+                          {/* Category page */}
+                          <Route path="/category/:category">
+                            {(params) => {
+                              const category = params?.category;
+                              
+                              if (!category) {
+                                return (
+                                  <Layout>
+                                    <NotFound />
+                                  </Layout>
+                                );
+                              }
+                              
+                              // Use unique key that includes route path to force complete remounting
+                              const componentKey = `category-${category}-${Date.now()}`;
+                              return (
+                                <Layout>
+                                  <div className="category-page-container" key={componentKey}>
+                                    <CategoryPage />
+                                  </div>
+                                </Layout>
+                              );
+                            }}
+                          </Route>
+                          
+                          {/* Cart, Checkout, and Order routes - restricted to buyers */}
+                          <Route path="/cart">
+                            {() => (
+                              <Layout>
+                                <ProtectedRoute 
+                                  path="/cart" 
+                                  role="buyer" 
+                                  component={() => <CartPage />} 
+                                />
+                              </Layout>
+                            )}
+                          </Route>
+                          <Route path="/checkout">
+                            {() => (
+                              <Layout>
+                                <ProtectedRoute 
+                                  path="/checkout" 
+                                  role="buyer" 
+                                  component={() => <CheckoutPage />} 
+                                />
+                              </Layout>
+                            )}
+                          </Route>
+                          <Route path="/order-confirmation/:id">
+                            {() => (
+                              <Layout>
+                                <ProtectedRoute 
+                                  path="/order-confirmation/:id" 
+                                  role="buyer" 
+                                  component={() => <OrderConfirmationPage />} 
+                                />
+                              </Layout>
+                            )}
+                          </Route>
+                          <Route path="/orders">
+                            {() => (
+                              <Layout>
+                                <ProtectedRoute 
+                                  path="/orders" 
+                                  role="buyer" 
+                                  component={() => <OrdersPage />} 
+                                />
+                              </Layout>
+                            )}
+                          </Route>
+                          <Route path="/order/:id">
+                            {() => (
+                              <Layout>
+                                <ProtectedRoute 
+                                  path="/order/:id" 
+                                  role="buyer" 
+                                  component={() => <OrderDetailsPage />} 
+                                />
+                              </Layout>
+                            )}
+                          </Route>
+                          
+                          {/* Admin Routes */}
+                          <Route path="/admin">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/admin" 
+                                role="admin" 
+                                component={AdminDashboard} 
+                              />
+                            )}
+                          </Route>
+                          {/* Redirect for old dashboard URL to new URL */}
+                          <Route path="/admin/dashboard">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/admin/dashboard" 
+                                role="admin" 
+                                component={() => {
+                                  window.location.href = "/admin";
+                                  return null;
+                                }} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/admin/products">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/admin/products" 
+                                role="admin" 
+                                component={AdminProducts} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/admin/users">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/admin/users" 
+                                role="admin" 
+                                component={AdminUsers} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/admin/orders">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/admin/orders" 
+                                role="admin" 
+                                component={AdminOrders} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/admin/categories">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/admin/categories" 
+                                role="admin" 
+                                component={AdminCategories} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/admin/seller-approval">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/admin/seller-approval" 
+                                role="admin" 
+                                component={SellerApproval} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/admin/product-approval">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/admin/product-approval" 
+                                role="admin" 
+                                component={ProductApproval} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/admin/banner-management">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/admin/banner-management" 
+                                role="admin" 
+                                component={BannerManagement} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/admin/design-hero">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/admin/design-hero" 
+                                role="admin" 
+                                component={DesignHero} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/admin/footer-management">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/admin/footer-management" 
+                                role="admin" 
+                                component={FooterManagement} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/admin/shipping-management">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/admin/shipping-management" 
+                                role="admin" 
+                                component={AdminShippingManagement} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/admin/manage-admins">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/admin/manage-admins" 
+                                role="admin" 
+                                component={ManageAdmins} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/admin/create-user">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/admin/create-user" 
+                                role="admin" 
+                                component={CreateUser} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/admin/rewards-management">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/admin/rewards-management" 
+                                role="admin" 
+                                component={RewardsManagement} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/admin/gift-cards-management">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/admin/gift-cards-management" 
+                                role="admin" 
+                                component={GiftCardsManagement} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/admin/wallet-management">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/admin/wallet-management" 
+                                role="admin" 
+                                component={WalletManagementPage} 
+                              />
+                            )}
+                          </Route>
+                          
+                          {/* Seller route with nested paths to use the same layout */}
+                          <Route path="/seller/dashboard">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/seller/dashboard" 
+                                role="seller" 
+                                component={SellerDashboardPage} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/seller/products">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/seller/products" 
+                                role="seller" 
+                                component={SellerProductsPage} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/seller/products/add">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/seller/products/add" 
+                                role="seller" 
+                                component={AddProductPage} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/seller/products/edit/:id">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/seller/products/edit/:id" 
+                                role="seller" 
+                                component={EditProductPage} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/seller/products/preview/:id">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/seller/products/preview/:id" 
+                                role="seller" 
+                                component={ProductPreviewPage} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/seller/products/bulk-upload">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/seller/products/bulk-upload" 
+                                role="seller" 
+                                component={BulkUploadPage} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/seller/smart-inventory">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/seller/smart-inventory" 
+                                role="seller" 
+                                component={SmartInventoryPage} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/seller/inventory">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/seller/inventory" 
+                                role="seller" 
+                                component={() => (
+                                  <SellerDashboardPage />
+                                )} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/seller/orders">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/seller/orders" 
+                                role="seller" 
+                                component={SellerOrdersPage} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/seller/shipping">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/seller/shipping" 
+                                role="seller" 
+                                component={SellerShippingPage} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/seller/returns">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/seller/returns" 
+                                role="seller" 
+                                component={SellerReturnsPage} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/seller/analytics">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/seller/analytics" 
+                                role="seller" 
+                                component={SellerAnalyticsPage} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/seller/payments">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/seller/payments" 
+                                role="seller" 
+                                component={SellerPaymentsPage} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/seller/settings">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/seller/settings" 
+                                role="seller" 
+                                component={SellerSettingsPage} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/seller/help">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/seller/help" 
+                                role="seller" 
+                                component={SellerHelpPage} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/seller/profile">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/seller/profile" 
+                                role="seller" 
+                                component={SellerProfilePage} 
+                              />
+                            )}
+                          </Route>
+                          
+                          {/* Buyer Routes */}
+                          <Route path="/buyer/dashboard">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/buyer/dashboard" 
+                                role="buyer" 
+                                component={BuyerDashboardPage} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/buyer/wishlist">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/buyer/wishlist" 
+                                role="buyer" 
+                                component={BuyerWishlistPage} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/buyer/settings">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/buyer/settings" 
+                                role="buyer" 
+                                component={BuyerSettingsPage} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/buyer/address">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/buyer/address" 
+                                role="buyer" 
+                                component={AddressManagementPage} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/buyer/rewards">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/buyer/rewards" 
+                                role="buyer" 
+                                component={BuyerRewardsPage} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/buyer/gift-cards">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/buyer/gift-cards" 
+                                role="buyer" 
+                                component={BuyerGiftCardsPage} 
+                              />
+                            )}
+                          </Route>
+                          <Route path="/buyer/wallet">
+                            {() => (
+                              <ProtectedRoute 
+                                path="/buyer/wallet" 
+                                role="buyer" 
+                                component={BuyerWalletPage} 
+                              />
+                            )}
+                          </Route>
+                          
+                          {/* 404 Page - must be the last route */}
+                          <Route>
+                            {() => (
+                              <Layout>
+                                <NotFound />
+                              </Layout>
+                            )}
+                          </Route>
+                        </Switch>
+                        <Toaster />
+                      </div>
+                    </TooltipProvider>
+                  </AIAssistantProvider>
+                </CartProvider>
+              </WalletProvider>
+            </AuthProvider>
+          )}
+        </Route>
+      </Switch>
     </QueryClientProvider>
   );
 }
