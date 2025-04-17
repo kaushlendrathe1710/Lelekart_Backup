@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface ProductImageProps {
   product: {
@@ -34,8 +34,9 @@ export function ProductImage({ product, className = "" }: ProductImageProps) {
 
   // Determine if a URL should be skipped (known problematic domains)
   const shouldSkipUrl = (url: string) => {
-    return url.includes('placeholder.com') ||
-           url.includes('via.placeholder') ||
+    return !url || 
+           url?.includes('placeholder.com') ||
+           url?.includes('via.placeholder') ||
            url === 'null' ||
            url === 'undefined' ||
            url === '';
@@ -53,8 +54,19 @@ export function ProductImage({ product, className = "" }: ProductImageProps) {
       // Use proxy for external domains that need it
       initialSrc = `/api/image-proxy?url=${encodeURIComponent(imageUrl)}&category=${encodeURIComponent(product.category || '')}`;
     } else {
-      // Try direct external URL as last resort
-      initialSrc = imageUrl;
+      // Check if it's a problematic fashion URL (Fashion products often have problematic URLs)
+      if (product.category?.toLowerCase() === 'fashion' && 
+          (imageUrl.includes('http://') || 
+           !imageUrl.includes('https://') ||
+           imageUrl.includes('bit.ly') ||
+           imageUrl.includes('cdn.dummyjson.com') ||
+           imageUrl.length < 15)) {
+        // For fashion items with problematic URLs, use category image directly
+        initialSrc = getCategoryImage();
+      } else {
+        // Try direct external URL as last resort
+        initialSrc = imageUrl;
+      }
     }
   } else {
     // Go to category-specific image
@@ -62,15 +74,19 @@ export function ProductImage({ product, className = "" }: ProductImageProps) {
   }
 
   const [imageSrc, setImageSrc] = useState<string>(initialSrc);
+  const [hasError, setHasError] = useState<boolean>(false);
   
   return (
     <img
       src={imageSrc}
       alt={product.name}
       className={`max-w-full max-h-full object-contain ${className}`}
-      onError={() => {
+      onError={(e) => {
         // Only try category-specific fallback if not already using it
-        if (imageSrc !== getCategoryImage()) {
+        if (!hasError) {
+          setHasError(true);
+          const target = e.target as HTMLImageElement;
+          target.onerror = null; // Prevent infinite loop
           setImageSrc(getCategoryImage());
         }
       }}
