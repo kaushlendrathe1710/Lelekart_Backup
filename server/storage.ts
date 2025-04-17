@@ -131,6 +131,7 @@ export interface IStorage {
   getProducts(category?: string, sellerId?: number, approved?: boolean): Promise<Product[]>;
   getProductsCount(category?: string, sellerId?: number, approved?: boolean, search?: string): Promise<number>;
   getProductsPaginated(category?: string, sellerId?: number, approved?: boolean, offset?: number, limit?: number, search?: string): Promise<Product[]>;
+  getAllProducts(filters?: { sellerId?: number, category?: string, approved?: boolean }): Promise<Product[]>;
   searchProducts(query: string, limit?: number): Promise<Product[]>;
   getProduct(id: number): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
@@ -1442,6 +1443,49 @@ export class DatabaseStorage implements IStorage {
       return rows;
     } catch (error) {
       console.error("Error in getProductsPaginated:", error);
+      return [];
+    }
+  }
+
+  async getAllProducts(filters?: { sellerId?: number, category?: string, approved?: boolean }): Promise<Product[]> {
+    try {
+      let params: any[] = [];
+      let paramIndex = 1;
+      
+      // Build query with WHERE clauses for filtering
+      let query = `
+        SELECT * FROM products 
+        WHERE 1=1
+      `;
+      
+      if (filters) {
+        if (filters.category) {
+          query += ` AND LOWER(category) = LOWER($${paramIndex++})`;
+          params.push(filters.category);
+        }
+        
+        if (filters.sellerId !== undefined) {
+          query += ` AND seller_id = $${paramIndex++}`;
+          params.push(filters.sellerId);
+        }
+        
+        if (filters.approved !== undefined) {
+          query += ` AND approved = $${paramIndex++}`;
+          params.push(filters.approved);
+        }
+      }
+      
+      // Add ORDER BY
+      query += ` ORDER BY id DESC`;
+      
+      console.log("Executing SQL query for product export:", query, "with params:", params);
+      
+      // Execute the query
+      const { rows } = await pool.query(query, params);
+      console.log(`Found ${rows.length} products for export`);
+      return rows;
+    } catch (error) {
+      console.error("Error in getAllProducts:", error);
       return [];
     }
   }
