@@ -100,8 +100,7 @@ export default function SellerOrdersPage() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-  const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
-  const [newStatus, setNewStatus] = useState("");
+  // Status dialog state removed - only admins can update order status
   const invoiceRef = useRef<HTMLDivElement>(null);
   const shippingLabelRef = useRef<HTMLDivElement>(null);
   
@@ -130,28 +129,7 @@ export default function SellerOrdersPage() {
     },
   });
   
-  // Update order status mutation
-  const updateStatusMutation = useMutation({
-    mutationFn: async ({ orderId, status }: { orderId: number; status: string }) => {
-      const response = await apiRequest('PUT', `/api/orders/${orderId}/status`, { status });
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
-      toast({
-        title: "Status Updated",
-        description: "Order status has been updated successfully.",
-      });
-      setIsStatusDialogOpen(false);
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: `Failed to update status: ${error.message}`,
-        variant: "destructive",
-      });
-    },
-  });
+  // Status update mutation removed - only admins can update order status
   
   // Filter orders by search query and status
   const filteredOrders = orders.filter(order => {
@@ -285,22 +263,7 @@ export default function SellerOrdersPage() {
     }
   };
   
-  // Open status update dialog
-  const openStatusUpdateDialog = (order: OrderWithItems) => {
-    setSelectedOrder(order);
-    setNewStatus(order.status);
-    setIsStatusDialogOpen(true);
-  };
-  
-  // Update order status
-  const handleStatusUpdate = () => {
-    if (selectedOrder && newStatus) {
-      updateStatusMutation.mutate({ 
-        orderId: selectedOrder.id, 
-        status: newStatus 
-      });
-    }
-  };
+  // Status update functions removed - only admins can update order status
   
   // Print invoice
   const printInvoice = () => {
@@ -535,7 +498,6 @@ export default function SellerOrdersPage() {
               orders={filteredOrders}
               isLoading={isLoading}
               viewOrderDetails={viewOrderDetails}
-              openStatusUpdateDialog={openStatusUpdateDialog}
               getStatusBadge={getStatusBadge}
               formatDate={formatDate}
               formatPaymentMethod={formatPaymentMethod}
@@ -549,7 +511,6 @@ export default function SellerOrdersPage() {
                 orders={filteredOrders}
                 isLoading={isLoading}
                 viewOrderDetails={viewOrderDetails}
-                openStatusUpdateDialog={openStatusUpdateDialog}
                 getStatusBadge={getStatusBadge}
                 formatDate={formatDate}
                 formatPaymentMethod={formatPaymentMethod}
@@ -859,51 +820,7 @@ export default function SellerOrdersPage() {
         </Dialog>
       )}
       
-      {/* Status Update Dialog */}
-      {selectedOrder && (
-        <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Update Order Status</DialogTitle>
-              <DialogDescription>
-                Change the status for order #{selectedOrder.id}
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-4 py-4">
-              <div className="flex flex-col space-y-1.5">
-                <label htmlFor="status" className="text-sm font-medium">
-                  Status
-                </label>
-                <select
-                  id="status"
-                  value={newStatus}
-                  onChange={(e) => setNewStatus(e.target.value)}
-                  className="border rounded-md p-2"
-                >
-                  <option value="pending">Pending</option>
-                  <option value="processing">Processing</option>
-                  <option value="shipped">Shipped</option>
-                  <option value="delivered">Delivered</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-              </div>
-            </div>
-            
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsStatusDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleStatusUpdate} disabled={updateStatusMutation.isPending}>
-                {updateStatusMutation.isPending && (
-                  <Truck className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                Update Status
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+      {/* Status Update Dialog removed - only admins can update order status */}
     </SellerDashboardLayout>
   );
 }
@@ -913,7 +830,6 @@ function OrderTable({
   orders, 
   isLoading, 
   viewOrderDetails,
-  openStatusUpdateDialog,
   getStatusBadge, 
   formatDate,
   formatPaymentMethod,
@@ -922,7 +838,6 @@ function OrderTable({
   orders: OrderWithItems[];
   isLoading: boolean;
   viewOrderDetails: (orderId: number) => void;
-  openStatusUpdateDialog: (order: OrderWithItems) => void;
   getStatusBadge: (status: string) => React.ReactNode;
   formatDate: (dateString: string) => string;
   formatPaymentMethod: (method: string) => string;
@@ -996,10 +911,7 @@ function OrderTable({
                       <Eye className="h-4 w-4 mr-2" />
                       View Details
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => openStatusUpdateDialog(order as OrderWithItems)}>
-                      <Package className="h-4 w-4 mr-2" />
-                      Update Status
-                    </DropdownMenuItem>
+                    {/* Update Status option removed - only admins can update order status */}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => viewOrderDetails(order.id)}>
                       <FileText className="h-4 w-4 mr-2" />
