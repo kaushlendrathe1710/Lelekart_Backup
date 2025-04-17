@@ -201,11 +201,12 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
                       target.onerror = null; // Prevent infinite loop
                       
                       // Use category-specific placeholders
+                      const baseUrl = import.meta.env.DEV ? '/' : '/';
                       if (image.category) {
                         const categoryLower = image.category.toLowerCase();
-                        target.src = `/images/${categoryLower}.svg`;
+                        target.src = `${baseUrl}images/${categoryLower}.svg`;
                       } else {
-                        target.src = "/images/placeholder.svg";
+                        target.src = `${baseUrl}images/placeholder.svg`;
                       }
                     }}
                   />
@@ -332,11 +333,12 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
                                         dealOfTheDay.subtitle.includes('Grocery') ? 'Grocery' : '';
                         
                         // Use appropriate placeholder based on category
+                        const baseUrl = import.meta.env.DEV ? '/' : '/';
                         if (category) {
                           const categoryLower = category.toLowerCase();
-                          target.src = `/images/${categoryLower}.svg`;
+                          target.src = `${baseUrl}images/${categoryLower}.svg`;
                         } else {
-                          target.src = "/images/placeholder.svg";
+                          target.src = `${baseUrl}images/placeholder.svg`;
                         }
                       }}
                     />

@@ -138,12 +138,13 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
                 });
                 
                 // Use category-specific placeholder or default placeholder
+                const baseUrl = import.meta.env.DEV ? '/' : '/';
                 if (product.category) {
                   // Map to our known category placeholders
                   const categoryLower = product.category.toLowerCase();
-                  target.src = `/images/${categoryLower}.svg`;
+                  target.src = `${baseUrl}images/${categoryLower}.svg`;
                 } else {
-                  target.src = "/images/placeholder.svg";
+                  target.src = `${baseUrl}images/placeholder.svg`;
                 }
               }}
             />

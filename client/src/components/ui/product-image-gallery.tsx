@@ -260,11 +260,12 @@ export function ProductImageGallery({ imageUrl, additionalImages, productName = 
 
   // Get placeholder image based on category
   const getPlaceholderImage = () => {
+    const baseUrl = import.meta.env.DEV ? '/' : '/';
     if (category) {
       const categoryLower = category.toLowerCase();
-      return `/images/${categoryLower}.svg`;
+      return `${baseUrl}images/${categoryLower}.svg`;
     }
-    return '/images/placeholder.svg';
+    return `${baseUrl}images/placeholder.svg`;
   };
 
   // Placeholder image for errors
