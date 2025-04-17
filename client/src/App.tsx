@@ -43,6 +43,11 @@ import AdminShippingManagement from './pages/admin/shipping-management';
 import RewardsManagement from './pages/admin/rewards-management';
 import GiftCardsManagement from './pages/admin/gift-cards-management';
 import WalletManagementPage from './pages/admin/wallet-management';
+// Import shipping pages dynamically
+const ShippingDashboard = lazy(() => import('./pages/admin/shipping-dashboard'));
+const PendingShipments = lazy(() => import('./pages/admin/pending-shipments'));
+const ShippingRates = lazy(() => import('./pages/admin/shipping-rates'));
+const TrackingManagement = lazy(() => import('./pages/admin/tracking-management'));
 
 // Seller pages
 import SellerDashboardPage from './pages/seller/dashboard';
@@ -360,6 +365,46 @@ function App() {
                             path="/admin/shiprocket" 
                             role="admin" 
                             component={lazy(() => import('./pages/admin/shiprocket'))}
+                          />
+                        )}
+                      </Route>
+
+                      <Route path="/admin/shipping-dashboard">
+                        {() => (
+                          <ProtectedRoute 
+                            path="/admin/shipping-dashboard" 
+                            role="admin" 
+                            component={ShippingDashboard}
+                          />
+                        )}
+                      </Route>
+
+                      <Route path="/admin/pending-shipments">
+                        {() => (
+                          <ProtectedRoute 
+                            path="/admin/pending-shipments" 
+                            role="admin" 
+                            component={PendingShipments}
+                          />
+                        )}
+                      </Route>
+
+                      <Route path="/admin/shipping-rates">
+                        {() => (
+                          <ProtectedRoute 
+                            path="/admin/shipping-rates" 
+                            role="admin" 
+                            component={ShippingRates}
+                          />
+                        )}
+                      </Route>
+
+                      <Route path="/admin/tracking-management">
+                        {() => (
+                          <ProtectedRoute 
+                            path="/admin/tracking-management" 
+                            role="admin" 
+                            component={TrackingManagement}
                           />
                         )}
                       </Route>
