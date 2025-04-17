@@ -6,7 +6,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import HomePage from './pages/home-page';
 import AuthPage from './pages/auth-page';
-import SearchResultsPage from './pages/search-results-page';
+import SearchResultsPage from './pages/search-results';
 import ProductDetailsPage from './pages/product-details';
 import CartPage from './pages/cart-page';
 import CheckoutPage from './pages/checkout-page';
