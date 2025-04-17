@@ -3,6 +3,16 @@ import { useAuth } from '@/hooks/use-auth';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
+// Try to get auth context safely
+const useSafeAuth = () => {
+  try {
+    return useAuth();
+  } catch (e) {
+    console.warn('Auth context not available, returning null');
+    return { user: null };
+  }
+};
+
 interface WishlistItem {
   id: number;
   userId: number;
@@ -30,9 +40,10 @@ const WishlistContext = createContext<WishlistContextType | undefined>(undefined
 
 export function WishlistProvider({ children }: { children: ReactNode }) {
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
-  const { user } = useAuth();
+  const auth = useSafeAuth();
+  const user = auth?.user || null;
   const { toast } = useToast();
 
   // Fetch wishlist items when user changes

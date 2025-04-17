@@ -6,7 +6,7 @@ import { ShoppingCart, Trash2, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { useCart } from "@/context/cart-context";
+import { apiRequest } from "@/lib/queryClient";
 
 // Define the product type for wishlist items
 interface WishlistProduct {
@@ -35,26 +35,22 @@ export default function BuyerWishlistPage() {
   const { data: wishlistItems = [], isLoading: isLoadingWishlist } = useQuery<WishlistProduct[]>({
     queryKey: ['/api/wishlist'],
     queryFn: async () => {
-      const res = await fetch('/api/wishlist', {
-        credentials: 'include',
-      });
-      
-      if (!res.ok) {
-        throw new Error('Failed to fetch wishlist items');
+      try {
+        const res = await apiRequest('GET', '/api/wishlist');
+        return res.json();
+      } catch (error) {
+        console.error('Error fetching wishlist:', error);
+        return [];
       }
-      
-      return res.json();
     },
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 
   // Remove item from wishlist mutation
   const removeFromWishlistMutation = useMutation({
     mutationFn: async (productId: number) => {
-      const res = await fetch(`/api/wishlist/${productId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-      
+      const res = await apiRequest('DELETE', `/api/wishlist/${productId}`);
       if (!res.ok) {
         throw new Error('Failed to remove item from wishlist');
       }
