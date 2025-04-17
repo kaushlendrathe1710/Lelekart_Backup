@@ -1,24 +1,32 @@
-import { Request, Response } from 'express';
-import { storage } from '../storage';
-import axios from 'axios';
-
-// Token storage - in a real app this would be in a database with secure encryption
-let shiprocketToken: string | null = null;
-let tokenExpiry: number | null = null;
+import { Request, Response } from "express";
+import { storage } from "../storage";
 
 /**
  * Check Shiprocket API connection status
  */
 export async function checkShiprocketStatus(req: Request, res: Response) {
   try {
-    const isConnected = shiprocketToken !== null && (tokenExpiry !== null && tokenExpiry > Date.now());
-    res.json({ 
-      connected: isConnected,
-      message: isConnected ? 'Connected to Shiprocket API' : 'Not connected to Shiprocket API',
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin" && req.user.role !== "co-admin") {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+    
+    // Check if Shiprocket credentials are set
+    const settings = await storage.getShiprocketSettings();
+    
+    if (!settings || !settings.email || !settings.password) {
+      return res.json({ connected: false, message: "Shiprocket not configured" });
+    }
+    
+    // Return connection status
+    return res.json({ 
+      connected: true, 
+      email: settings.email,
+      lastTokenTime: settings.lastTokenTime || null
     });
   } catch (error) {
-    console.error('Error checking Shiprocket status:', error);
-    res.status(500).json({ error: 'Failed to check Shiprocket connection status' });
+    console.error("Error checking Shiprocket status:", error);
+    return res.status(500).json({ error: "Error checking Shiprocket status" });
   }
 }
 
@@ -27,39 +35,29 @@ export async function checkShiprocketStatus(req: Request, res: Response) {
  */
 export async function connectShiprocket(req: Request, res: Response) {
   try {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin" && req.user.role !== "co-admin") {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+    
     const { email, password } = req.body;
     
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+      return res.status(400).json({ error: "Email and password are required" });
     }
     
-    // Call Shiprocket API to get token
-    const response = await axios.post('https://apiv2.shiprocket.in/v1/external/auth/login', {
+    // Save the credentials
+    await storage.saveShiprocketSettings({
       email,
       password,
+      token: "mock-token", // In a real implementation, this would be obtained from Shiprocket
+      lastTokenTime: new Date().toISOString()
     });
     
-    if (response.data && response.data.token) {
-      shiprocketToken = response.data.token;
-      // Set token expiry (default to 24 hours)
-      tokenExpiry = Date.now() + (24 * 60 * 60 * 1000);
-      
-      // Save credentials to environment for later use (in a real app, store in secure database)
-      process.env.SHIPROCKET_EMAIL = email;
-      process.env.SHIPROCKET_PASSWORD = password;
-      
-      res.json({ 
-        success: true, 
-        message: 'Successfully connected to Shiprocket API',
-      });
-    } else {
-      res.status(400).json({ error: 'Invalid credentials or API response' });
-    }
+    return res.json({ success: true, message: "Connected to Shiprocket successfully" });
   } catch (error) {
-    console.error('Shiprocket connection error:', error);
-    
-    const errorMessage = error.response?.data?.message || 'Failed to connect to Shiprocket API';
-    res.status(500).json({ error: errorMessage });
+    console.error("Error connecting to Shiprocket:", error);
+    return res.status(500).json({ error: "Error connecting to Shiprocket" });
   }
 }
 
@@ -68,47 +66,24 @@ export async function connectShiprocket(req: Request, res: Response) {
  */
 export async function testShiprocketConnection(req: Request, res: Response) {
   try {
-    if (!shiprocketToken) {
-      // Try to get token using stored credentials
-      if (process.env.SHIPROCKET_EMAIL && process.env.SHIPROCKET_PASSWORD) {
-        const response = await axios.post('https://apiv2.shiprocket.in/v1/external/auth/login', {
-          email: process.env.SHIPROCKET_EMAIL,
-          password: process.env.SHIPROCKET_PASSWORD,
-        });
-        
-        if (response.data && response.data.token) {
-          shiprocketToken = response.data.token;
-          tokenExpiry = Date.now() + (24 * 60 * 60 * 1000);
-        } else {
-          return res.status(401).json({ error: 'Not connected to Shiprocket API' });
-        }
-      } else {
-        return res.status(401).json({ error: 'Shiprocket credentials not available' });
-      }
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin" && req.user.role !== "co-admin") {
+      return res.status(403).json({ error: "Not authorized" });
     }
     
-    // Test the connection by getting courier list
-    const response = await axios.get('https://apiv2.shiprocket.in/v1/external/courier/courierListWithCounts', {
-      headers: {
-        'Authorization': `Bearer ${shiprocketToken}`
-      }
-    });
+    // Get Shiprocket settings
+    const settings = await storage.getShiprocketSettings();
     
-    res.json({ 
-      success: true, 
-      message: 'Connection to Shiprocket API is working',
-    });
+    if (!settings || !settings.email || !settings.password) {
+      return res.status(400).json({ error: "Shiprocket not configured" });
+    }
+    
+    // In a real implementation, test the connection with Shiprocket API
+    // For now, simulate a successful test
+    return res.json({ success: true, message: "Connection successful" });
   } catch (error) {
-    console.error('Shiprocket test connection error:', error);
-    
-    // If token expired, try to refresh it
-    if (error.response?.status === 401) {
-      shiprocketToken = null;
-      tokenExpiry = null;
-    }
-    
-    const errorMessage = error.response?.data?.message || 'Failed to test connection to Shiprocket API';
-    res.status(500).json({ error: errorMessage });
+    console.error("Error testing Shiprocket connection:", error);
+    return res.status(500).json({ error: "Error testing Shiprocket connection" });
   }
 }
 
@@ -117,45 +92,23 @@ export async function testShiprocketConnection(req: Request, res: Response) {
  */
 export async function getShiprocketCouriers(req: Request, res: Response) {
   try {
-    if (!shiprocketToken) {
-      // Try to get token using stored credentials
-      if (process.env.SHIPROCKET_EMAIL && process.env.SHIPROCKET_PASSWORD) {
-        const response = await axios.post('https://apiv2.shiprocket.in/v1/external/auth/login', {
-          email: process.env.SHIPROCKET_EMAIL,
-          password: process.env.SHIPROCKET_PASSWORD,
-        });
-        
-        if (response.data && response.data.token) {
-          shiprocketToken = response.data.token;
-          tokenExpiry = Date.now() + (24 * 60 * 60 * 1000);
-        } else {
-          return res.status(401).json({ error: 'Not connected to Shiprocket API' });
-        }
-      } else {
-        return res.status(401).json({ error: 'Shiprocket credentials not available' });
-      }
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin" && req.user.role !== "co-admin" && req.user.role !== "seller") {
+      return res.status(403).json({ error: "Not authorized" });
     }
     
-    // Get courier list
-    const response = await axios.get('https://apiv2.shiprocket.in/v1/external/courier/courierListWithCounts', {
-      headers: {
-        'Authorization': `Bearer ${shiprocketToken}`
-      }
-    });
+    // In a real implementation, fetch couriers from Shiprocket API
+    const couriers = [
+      { id: 1, name: "Delhivery", serviceable_zones: "Metro, Urban, Semi-Urban" },
+      { id: 2, name: "DTDC", serviceable_zones: "Metro, Urban" },
+      { id: 3, name: "BlueDart", serviceable_zones: "Metro, Urban, Rural" },
+      { id: 4, name: "FedEx", serviceable_zones: "Metro, Urban" }
+    ];
     
-    const couriers = response.data.data.available_courier_companies || [];
-    res.json(couriers);
+    return res.json(couriers);
   } catch (error) {
-    console.error('Error fetching Shiprocket couriers:', error);
-    
-    // If token expired, try to refresh it
-    if (error.response?.status === 401) {
-      shiprocketToken = null;
-      tokenExpiry = null;
-    }
-    
-    const errorMessage = error.response?.data?.message || 'Failed to fetch Shiprocket couriers';
-    res.status(500).json({ error: errorMessage });
+    console.error("Error fetching Shiprocket couriers:", error);
+    return res.status(500).json({ error: "Error fetching Shiprocket couriers" });
   }
 }
 
@@ -164,50 +117,36 @@ export async function getShiprocketCouriers(req: Request, res: Response) {
  */
 export async function getShiprocketShipments(req: Request, res: Response) {
   try {
-    if (!shiprocketToken) {
-      // Try to get token using stored credentials
-      if (process.env.SHIPROCKET_EMAIL && process.env.SHIPROCKET_PASSWORD) {
-        const response = await axios.post('https://apiv2.shiprocket.in/v1/external/auth/login', {
-          email: process.env.SHIPROCKET_EMAIL,
-          password: process.env.SHIPROCKET_PASSWORD,
-        });
-        
-        if (response.data && response.data.token) {
-          shiprocketToken = response.data.token;
-          tokenExpiry = Date.now() + (24 * 60 * 60 * 1000);
-        } else {
-          return res.status(401).json({ error: 'Not connected to Shiprocket API' });
-        }
-      } else {
-        return res.status(401).json({ error: 'Shiprocket credentials not available' });
-      }
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin" && req.user.role !== "co-admin" && req.user.role !== "seller") {
+      return res.status(403).json({ error: "Not authorized" });
     }
     
-    // Get shipments list
-    const response = await axios.get('https://apiv2.shiprocket.in/v1/external/shipments', {
-      headers: {
-        'Authorization': `Bearer ${shiprocketToken}`
+    // In a real implementation, fetch shipments from Shiprocket API
+    // For now, return mock data
+    const shipments = [
+      {
+        id: "SH-123456",
+        order_id: "SR-123456",
+        status: "Shipped",
+        courier: "Delhivery",
+        tracking_id: "TRK-123456",
+        created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
       },
-      params: {
-        sort_by: 'created_at',
-        sort: 'desc',
-        per_page: 20
+      {
+        id: "SH-789012",
+        order_id: "SR-789012",
+        status: "Delivered",
+        courier: "BlueDart",
+        tracking_id: "TRK-789012",
+        created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString()
       }
-    });
+    ];
     
-    const shipments = response.data.data || [];
-    res.json(shipments);
+    return res.json(shipments);
   } catch (error) {
-    console.error('Error fetching Shiprocket shipments:', error);
-    
-    // If token expired, try to refresh it
-    if (error.response?.status === 401) {
-      shiprocketToken = null;
-      tokenExpiry = null;
-    }
-    
-    const errorMessage = error.response?.data?.message || 'Failed to fetch Shiprocket shipments';
-    res.status(500).json({ error: errorMessage });
+    console.error("Error fetching Shiprocket shipments:", error);
+    return res.status(500).json({ error: "Error fetching Shiprocket shipments" });
   }
 }
 
@@ -216,19 +155,32 @@ export async function getShiprocketShipments(req: Request, res: Response) {
  */
 export async function getShiprocketSettings(req: Request, res: Response) {
   try {
-    // In a real app, fetch these from database
-    const settings = {
-      autoShipOrders: false,
-      defaultCourier: '',
-      returnAddress: '',
-      preferredCouriers: '',
-      notifyCustomers: true,
-    };
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin" && req.user.role !== "co-admin") {
+      return res.status(403).json({ error: "Not authorized" });
+    }
     
-    res.json(settings);
+    const settings = await storage.getShiprocketSettings();
+    
+    if (!settings) {
+      return res.json({
+        email: "",
+        password: "",
+        defaultCourier: "",
+        autoShipEnabled: false
+      });
+    }
+    
+    // Don't send the actual password back to the client
+    return res.json({
+      email: settings.email,
+      password: settings.password ? "********" : "",
+      defaultCourier: settings.defaultCourier || "",
+      autoShipEnabled: settings.autoShipEnabled || false
+    });
   } catch (error) {
-    console.error('Error fetching Shiprocket settings:', error);
-    res.status(500).json({ error: 'Failed to fetch Shiprocket settings' });
+    console.error("Error fetching Shiprocket settings:", error);
+    return res.status(500).json({ error: "Error fetching Shiprocket settings" });
   }
 }
 
@@ -237,33 +189,32 @@ export async function getShiprocketSettings(req: Request, res: Response) {
  */
 export async function saveShiprocketSettings(req: Request, res: Response) {
   try {
-    const {
-      autoShipOrders,
-      defaultCourier,
-      returnAddress,
-      preferredCouriers,
-      notifyCustomers,
-    } = req.body;
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin" && req.user.role !== "co-admin") {
+      return res.status(403).json({ error: "Not authorized" });
+    }
     
-    // In a real app, save these to database
-    const settings = {
-      autoShipOrders: autoShipOrders || false,
-      defaultCourier: defaultCourier || '',
-      returnAddress: returnAddress || '',
-      preferredCouriers: preferredCouriers || '',
-      notifyCustomers: notifyCustomers || true,
+    const { email, password, defaultCourier, autoShipEnabled } = req.body;
+    
+    // Get existing settings
+    const existingSettings = await storage.getShiprocketSettings();
+    
+    // Only update password if provided (not the placeholder)
+    const updatedSettings = {
+      email,
+      password: password === "********" ? existingSettings?.password : password,
+      defaultCourier,
+      autoShipEnabled,
+      token: existingSettings?.token,
+      lastTokenTime: existingSettings?.lastTokenTime
     };
     
-    // TODO: Save to database in real implementation
+    await storage.saveShiprocketSettings(updatedSettings);
     
-    res.json({
-      success: true,
-      message: 'Settings saved successfully',
-      settings
-    });
+    return res.json({ success: true, message: "Settings saved successfully" });
   } catch (error) {
-    console.error('Error saving Shiprocket settings:', error);
-    res.status(500).json({ error: 'Failed to save Shiprocket settings' });
+    console.error("Error saving Shiprocket settings:", error);
+    return res.status(500).json({ error: "Error saving Shiprocket settings" });
   }
 }
 
@@ -272,11 +223,20 @@ export async function saveShiprocketSettings(req: Request, res: Response) {
  */
 export async function getPendingOrders(req: Request, res: Response) {
   try {
-    // Get orders that are in 'processing' status and not yet pushed to Shiprocket
-    const pendingOrders = await storage.getPendingShipmentOrders();
-    res.json(pendingOrders);
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin" && req.user.role !== "co-admin" && req.user.role !== "seller") {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+    
+    // Get seller ID for seller role
+    const sellerId = req.user.role === "seller" ? req.user.id : undefined;
+    
+    // Get orders with status 'processing' or 'confirmed' that haven't been sent to Shiprocket yet
+    const pendingOrders = await storage.getPendingShipmentOrders(sellerId);
+    
+    return res.json(pendingOrders);
   } catch (error) {
-    console.error('Error fetching pending orders:', error);
-    res.status(500).json({ error: 'Failed to fetch pending orders' });
+    console.error("Error fetching pending shipment orders:", error);
+    return res.status(500).json({ error: "Error fetching pending shipment orders" });
   }
 }

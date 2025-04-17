@@ -339,6 +339,7 @@ export interface IStorage {
 const PostgresSessionStore = connectPg(session);
 
 export class DatabaseStorage implements IStorage {
+  private shiprocketSettings: any = null;
   sessionStore: session.SessionStore;
 
   constructor() {
@@ -1958,6 +1959,69 @@ export class DatabaseStorage implements IStorage {
 
   async updateOrderStatus(id: number, status: string): Promise<Order> {
     return this.updateOrder(id, { status });
+  }
+  
+  async updateOrderShipment(id: number, shipmentData: {
+    shiprocketOrderId?: string;
+    shiprocketShipmentId?: string;
+    shipmentStatus?: string;
+    courierName?: string;
+    trackingId?: string;
+    trackingUrl?: string;
+  }): Promise<Order> {
+    return this.updateOrder(id, shipmentData);
+  }
+  
+  // Shiprocket Methods
+  async getShiprocketSettings(): Promise<any> {
+    try {
+      // In a real implementation, this would fetch from a database
+      // For now, return mock data from memory
+      return this.shiprocketSettings || null;
+    } catch (error) {
+      console.error("Error getting Shiprocket settings:", error);
+      return null;
+    }
+  }
+  
+  async saveShiprocketSettings(settings: any): Promise<any> {
+    try {
+      // In a real implementation, this would save to a database
+      // For now, save to memory
+      this.shiprocketSettings = settings;
+      return settings;
+    } catch (error) {
+      console.error("Error saving Shiprocket settings:", error);
+      throw error;
+    }
+  }
+  
+  async getPendingShipmentOrders(sellerId?: number): Promise<Order[]> {
+    try {
+      // Get orders that are processing or confirmed and haven't been pushed to Shiprocket
+      let query = db
+        .select()
+        .from(orders)
+        .where(
+          and(
+            or(
+              eq(orders.status, "processing"),
+              eq(orders.status, "confirmed")
+            ),
+            isNull(orders.shiprocketOrderId)
+          )
+        );
+      
+      // Add seller filter if sellerId is provided
+      if (sellerId !== undefined) {
+        query = query.where(eq(orders.sellerId, sellerId));
+      }
+      
+      return query.orderBy(desc(orders.date));
+    } catch (error) {
+      console.error("Error getting pending shipment orders:", error);
+      return [];
+    }
   }
 
   // Category operations
