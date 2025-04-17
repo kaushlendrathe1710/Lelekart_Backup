@@ -14,6 +14,7 @@ import ProductRecommendationCarousel from "@/components/ui/product-recommendatio
 import { PersonalizedRecommendations } from "@/components/ai";
 import { ProductRecommendationCard } from "@/components/ai/product-recommendations";
 import { useAuth } from "@/hooks/use-auth";
+import { FashionProductCardFixed } from "@/components/ui/fashion-product-card-fixed";
 
 export default function HomePage() {
   const [location] = useLocation();
@@ -205,7 +206,7 @@ export default function HomePage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
                 {categoryGroup.products.map((product: Product) => (
                   categoryGroup.name === 'Fashion' ? 
-                    <ProductRecommendationCard key={product.id} product={product} className="h-full" /> :
+                    <FashionProductCardFixed key={product.id} product={product} className="h-full" /> :
                     <ProductCard key={product.id} product={product} />
                 ))}
               </div>
@@ -302,7 +303,9 @@ export default function HomePage() {
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
                 {products.map((product: Product) => (
-                  <ProductCard key={product.id} product={product} />
+                  category?.toLowerCase() === 'fashion' ? 
+                    <FashionProductCardFixed key={product.id} product={product} /> :
+                    <ProductCard key={product.id} product={product} />
                 ))}
               </div>
               
