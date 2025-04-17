@@ -64,6 +64,8 @@ export default function SellerSettingsPage() {
   const [isSavingPersonalInfo, setIsSavingPersonalInfo] = useState(false);
   const [isSavingAddress, setIsSavingAddress] = useState(false);
   const [isSavingStoreSettings, setIsSavingStoreSettings] = useState(false);
+  const [isSavingBillingInfo, setIsSavingBillingInfo] = useState(false);
+  const [isSavingBankInfo, setIsSavingBankInfo] = useState(false);
   
   // Store settings state
   const [storeSettings, setStoreSettings] = useState({
@@ -437,6 +439,77 @@ export default function SellerSettingsPage() {
       });
     } finally {
       setIsSavingStoreSettings(false);
+    }
+  };
+
+  const saveBillingInfo = async () => {
+    setIsSavingBillingInfo(true);
+    try {
+      const response = await fetch('/api/seller/settings/tax-info', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          taxInformation: JSON.stringify({
+            ...billingInfo,
+            // Don't include bank info here, as we'll send it separately
+          })
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update billing information');
+      }
+      
+      toast({
+        title: "Billing Information Saved",
+        description: "Your billing information has been updated successfully.",
+      });
+    } catch (error) {
+      console.error('Error saving billing information:', error);
+      toast({
+        title: "Save Failed",
+        description: "Could not update billing information. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingBillingInfo(false);
+    }
+  };
+
+  const saveBankInfo = async () => {
+    setIsSavingBankInfo(true);
+    try {
+      const response = await fetch('/api/seller/settings/tax-info', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          taxInformation: JSON.stringify({
+            bankInfo: bankInfo
+          })
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update bank information');
+      }
+      
+      toast({
+        title: "Bank Information Saved",
+        description: "Your bank account information has been updated successfully.",
+      });
+    } catch (error) {
+      console.error('Error saving bank information:', error);
+      toast({
+        title: "Save Failed",
+        description: "Could not update bank information. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingBankInfo(false);
     }
   };
 
@@ -1287,19 +1360,34 @@ export default function SellerSettingsPage() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="gstin">GSTIN Number</Label>
-                    <Input id="gstin" defaultValue={settings?.billing?.gstin || ""} />
+                    <Input 
+                      id="gstin" 
+                      value={billingInfo.gstin}
+                      onChange={(e) => setBillingInfo({...billingInfo, gstin: e.target.value})}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="businessName">Legal Business Name</Label>
-                    <Input id="businessName" defaultValue={settings?.billing?.businessName || ""} />
+                    <Input 
+                      id="businessName" 
+                      value={billingInfo.businessName}
+                      onChange={(e) => setBillingInfo({...billingInfo, businessName: e.target.value})}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="panNumber">PAN Number</Label>
-                    <Input id="panNumber" defaultValue={settings?.billing?.panNumber || ""} />
+                    <Input 
+                      id="panNumber" 
+                      value={billingInfo.panNumber}
+                      onChange={(e) => setBillingInfo({...billingInfo, panNumber: e.target.value})}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Business Type</Label>
-                    <RadioGroup defaultValue={settings?.billing?.businessType || "individual"}>
+                    <RadioGroup 
+                      value={billingInfo.businessType} 
+                      onValueChange={(value) => setBillingInfo({...billingInfo, businessType: value})}
+                    >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="individual" id="individual" />
                         <Label htmlFor="individual">Individual/Proprietorship</Label>
@@ -1331,25 +1419,45 @@ export default function SellerSettingsPage() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="accountName">Account Holder Name</Label>
-                    <Input id="accountName" defaultValue={settings?.bankAccount?.accountName || ""} />
+                    <Input 
+                      id="accountName" 
+                      value={bankInfo.accountName}
+                      onChange={(e) => setBankInfo({...bankInfo, accountName: e.target.value})}
+                    />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="accountNumber">Account Number</Label>
-                      <Input id="accountNumber" defaultValue={settings?.bankAccount?.accountNumber || ""} />
+                      <Input 
+                        id="accountNumber" 
+                        value={bankInfo.accountNumber}
+                        onChange={(e) => setBankInfo({...bankInfo, accountNumber: e.target.value})}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="ifscCode">IFSC Code</Label>
-                      <Input id="ifscCode" defaultValue={settings?.bankAccount?.ifscCode || ""} />
+                      <Input 
+                        id="ifscCode" 
+                        value={bankInfo.ifscCode}
+                        onChange={(e) => setBankInfo({...bankInfo, ifscCode: e.target.value})}
+                      />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="bankName">Bank Name</Label>
-                    <Input id="bankName" defaultValue={settings?.bankAccount?.bankName || ""} />
+                    <Input 
+                      id="bankName" 
+                      value={bankInfo.bankName}
+                      onChange={(e) => setBankInfo({...bankInfo, bankName: e.target.value})}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="branchName">Branch Name</Label>
-                    <Input id="branchName" defaultValue={settings?.bankAccount?.branchName || ""} />
+                    <Input 
+                      id="branchName" 
+                      value={bankInfo.branchName}
+                      onChange={(e) => setBankInfo({...bankInfo, branchName: e.target.value})}
+                    />
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
