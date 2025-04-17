@@ -62,6 +62,15 @@ export default function SellerSettingsPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSavingPersonalInfo, setIsSavingPersonalInfo] = useState(false);
   const [isSavingAddress, setIsSavingAddress] = useState(false);
+  const [isSavingStoreSettings, setIsSavingStoreSettings] = useState(false);
+  
+  // Store settings state
+  const [storeSettings, setStoreSettings] = useState({
+    name: "",
+    description: "",
+    contactEmail: "",
+    contactPhone: ""
+  });
   
   // Personal information state
   const [personalInfo, setPersonalInfo] = useState({
@@ -122,6 +131,8 @@ export default function SellerSettingsPage() {
   useEffect(() => {
     if (settings) {
       setHolidayMode(settings.holidayMode || false);
+      
+      // Parse and set notification preferences
       if (settings.notificationPreferences) {
         try {
           setNotificationSettings(JSON.parse(settings.notificationPreferences));
@@ -158,6 +169,21 @@ export default function SellerSettingsPage() {
           });
         } catch (e) {
           console.error("Error parsing address:", e);
+        }
+      }
+      
+      // Parse and set store settings
+      if (settings.store) {
+        try {
+          const parsedStoreSettings = JSON.parse(settings.store);
+          setStoreSettings({
+            name: parsedStoreSettings.name || "",
+            description: parsedStoreSettings.description || "",
+            contactEmail: parsedStoreSettings.contactEmail || "",
+            contactPhone: parsedStoreSettings.contactPhone || ""
+          });
+        } catch (e) {
+          console.error("Error parsing store settings:", e);
         }
       }
     }
@@ -299,6 +325,40 @@ export default function SellerSettingsPage() {
       });
     } finally {
       setIsSavingAddress(false);
+    }
+  };
+
+  const saveStoreSettings = async () => {
+    setIsSavingStoreSettings(true);
+    try {
+      // We'll use the general settings endpoint and store our data in a "store" field
+      const response = await fetch('/api/seller/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          store: JSON.stringify(storeSettings)
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update store settings');
+      }
+      
+      toast({
+        title: "Store Settings Saved",
+        description: "Your store settings have been updated successfully.",
+      });
+    } catch (error) {
+      console.error('Error saving store settings:', error);
+      toast({
+        title: "Save Failed",
+        description: "Could not update store settings. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingStoreSettings(false);
     }
   };
 
