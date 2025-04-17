@@ -203,7 +203,7 @@ export default function HomePage() {
               <CategoryProductsLoading />
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-                {categoryGroup.products.map(product => (
+                {categoryGroup.products.map((product: Product) => (
                   categoryGroup.name === 'Fashion' ? 
                     <ProductRecommendationCard key={product.id} product={product} className="h-full" /> :
                     <ProductCard key={product.id} product={product} />
@@ -240,7 +240,7 @@ export default function HomePage() {
               ) : products.length > 0 ? (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-                    {products.map(product => (
+                    {products.map((product: Product) => (
                       <ProductCard key={product.id} product={product} />
                     ))}
                   </div>
@@ -301,7 +301,7 @@ export default function HomePage() {
           <div className="bg-white p-4 rounded shadow-sm">
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
-                {products.map(product => (
+                {products.map((product: Product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
               </div>
