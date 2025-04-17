@@ -17,7 +17,17 @@ export function ProductImage({ product, className = "" }: ProductImageProps) {
   const getCategoryImage = () => {
     if (product.category) {
       const category = product.category.toLowerCase();
-      return `/images/categories/${category}.svg`;
+      
+      // For fashion items like shapewear, return a special fashion image
+      if (category === 'fashion' && product.name?.toLowerCase().includes('shapewear')) {
+        return `/images/categories/fashion.svg`;
+      }
+      
+      // Check if category image exists by matching against known categories
+      const knownCategories = ['electronics', 'fashion', 'mobiles', 'home', 'beauty', 'grocery', 'toys', 'appliances'];
+      if (knownCategories.includes(category)) {
+        return `/images/categories/${category}.svg`;
+      }
     }
     return "/images/placeholder.svg";
   };
