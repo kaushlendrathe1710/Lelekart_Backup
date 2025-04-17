@@ -848,6 +848,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Export products as CSV
+  app.get("/api/products/export", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      // Default to current user's seller ID
+      let sellerId = req.user.id;
+      
+      // Allow admin to export any seller's products
+      if (req.user.role === "admin" && req.query.sellerId) {
+        sellerId = parseInt(req.query.sellerId as string);
+      }
+      
+      // Get all products for the seller without pagination
+      const products = await storage.getAllProducts({ sellerId });
+      
+      // Import csv-writer to generate CSV data
+      const createCsvStringifier = require('csv-writer').createObjectCsvStringifier;
+      const csvStringifier = createCsvStringifier({
+        header: [
+          { id: 'id', title: 'ID' },
+          { id: 'name', title: 'Name' },
+          { id: 'description', title: 'Description' },
+          { id: 'price', title: 'Price' },
+          { id: 'stock', title: 'Stock' },
+          { id: 'category', title: 'Category' },
+          { id: 'sku', title: 'SKU' },
+          { id: 'approved', title: 'Approved' },
+          { id: 'imageUrl', title: 'Image URL' },
+        ]
+      });
+      
+      const records = products.map(product => ({
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        stock: product.stock,
+        category: product.category,
+        sku: product.sku || '',
+        approved: product.approved ? 'Yes' : 'No',
+        imageUrl: product.imageUrl || '',
+      }));
+      
+      const csvHeader = csvStringifier.getHeaderString();
+      const csvRows = csvStringifier.stringifyRecords(records);
+      const csvContent = csvHeader + csvRows;
+      
+      // Set response headers for CSV download
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename=products-${sellerId}-${new Date().toISOString().slice(0,10)}.csv`);
+      
+      // Send CSV content
+      res.send(csvContent);
+    } catch (error) {
+      console.error("Error exporting products:", error);
+      res.status(500).json({ error: "Failed to export products" });
+    }
+  });
+
   // Admin product approval is handled above in the Product approval routes section
 
   // Cart routes
