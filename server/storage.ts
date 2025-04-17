@@ -566,6 +566,32 @@ export class DatabaseStorage implements IStorage {
     return updatedUser;
   }
   
+  async updateUserProfile(id: number, data: Partial<User>): Promise<User> {
+    // Only allow updating these fields
+    const allowedFields: (keyof User)[] = ['username', 'email', 'phone', 'address'];
+    
+    // Filter out any fields that are not allowed
+    const filteredData: Partial<User> = {};
+    for (const key of allowedFields) {
+      if (data[key] !== undefined) {
+        filteredData[key] = data[key];
+      }
+    }
+    
+    // Update the user in the database
+    const [updatedUser] = await db
+      .update(users)
+      .set(filteredData)
+      .where(eq(users.id, id))
+      .returning();
+    
+    if (!updatedUser) {
+      throw new Error(`User with ID ${id} not found`);
+    }
+    
+    return updatedUser;
+  }
+  
   async deleteUser(id: number): Promise<void> {
     try {
       // Check for special admin user that cannot be deleted
