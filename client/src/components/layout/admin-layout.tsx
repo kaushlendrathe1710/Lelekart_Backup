@@ -68,6 +68,15 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     location.includes("/admin/users") || 
     location.includes("/admin/create-user")
   );
+  
+  const [shippingMenuOpen, setShippingMenuOpen] = useState(
+    location.includes("/admin/shipping-management") || 
+    location.includes("/admin/shiprocket") ||
+    location.includes("/admin/shipping-dashboard") ||
+    location.includes("/admin/pending-shipments") ||
+    location.includes("/admin/shipping-rates") ||
+    location.includes("/admin/tracking-management")
+  );
 
   const navItems = [
     {
@@ -123,7 +132,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       collapsible: true,
       title: "Shipping Management",
       icon: <Truck className="h-5 w-5" />,
-      open: location.includes("/admin/shipping") || location.includes("/admin/shiprocket"),
+      open: shippingMenuOpen,
+      onOpenChange: setShippingMenuOpen,
       items: [
         {
           title: "General Settings",
