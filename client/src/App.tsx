@@ -66,6 +66,7 @@ import PublicSellerProfileWrapper from './pages/seller/public-profile-wrapper';
 import BuyerDashboardPage from './pages/buyer/dashboard';
 import BuyerWishlistPage from './pages/buyer/wishlist';
 import BuyerSettingsPage from './pages/buyer/settings';
+import BuyerReviewsPage from './pages/buyer/reviews';
 import AddressManagementPage from './pages/buyer/address-management';
 import BuyerRewardsPage from './pages/buyer/rewards';
 import BuyerGiftCardsPage from './pages/buyer/gift-cards';
@@ -611,6 +612,16 @@ function App() {
                             path="/buyer/wallet" 
                             role="buyer" 
                             component={BuyerWalletPage} 
+                          />
+                        )}
+                      </Route>
+                      
+                      <Route path="/buyer/reviews">
+                        {() => (
+                          <ProtectedRoute 
+                            path="/buyer/reviews" 
+                            role="buyer" 
+                            component={BuyerReviewsPage} 
                           />
                         )}
                       </Route>
