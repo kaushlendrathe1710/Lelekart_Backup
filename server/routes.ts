@@ -89,6 +89,7 @@ import * as supportHandlers from "./handlers/support-handlers";
 import * as rewardsHandlers from "./handlers/rewards-handlers";
 import * as giftCardsHandlers from "./handlers/gift-cards-handlers";
 import * as walletRoutes from "./handlers/wallet-routes";
+import * as shiprocketRoutes from "./handlers/shiprocket-routes";
 import {
   getShippingMethods,
   getShippingMethod,
@@ -3858,6 +3859,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Order Shipping Tracking
   app.get("/api/orders/:orderId/shipping-tracking", getOrderShippingTracking);
   app.post("/api/orders/:orderId/shipping-tracking", createOrUpdateOrderShippingTracking);
+
+  // Shiprocket integration routes
+  app.post("/api/orders/:orderId/shiprocket", shiprocketRoutes.pushOrderToShiprocket);
+  app.get("/api/tracking/:trackingNumber", shiprocketRoutes.trackShiprocketOrder);
+  app.post("/api/orders/:orderId/shiprocket/cancel", shiprocketRoutes.cancelShiprocketOrder);
+  app.get("/api/shipping/rates", shiprocketRoutes.getShippingRates);
 
   // New seller dashboard module routes
   
