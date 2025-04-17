@@ -246,12 +246,12 @@ const PendingShipmentsPage = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => window.location.href = `/admin/order-details/${order.id}`}>
                             <FileText className="h-4 w-4 mr-2" />
                             View Details
                           </DropdownMenuItem>
                           {order.status.toLowerCase() === 'ready to ship' && (
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => window.location.href = `/admin/create-shipment?orderId=${order.id}`}>
                               <Truck className="h-4 w-4 mr-2" />
                               Ship Now
                             </DropdownMenuItem>

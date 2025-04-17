@@ -99,7 +99,7 @@ const ShippingDashboardPage = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold tracking-tight">Shipping Dashboard</h1>
-          <Button>
+          <Button onClick={() => window.location.href = '/admin/create-shipment'}>
             <Truck className="h-4 w-4 mr-2" />
             Create Shipment
           </Button>
