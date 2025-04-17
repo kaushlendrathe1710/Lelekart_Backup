@@ -323,18 +323,7 @@ export function SellerDashboardLayout({ children }: SellerDashboardLayoutProps) 
                     </Link>
                   </Button>
                 </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <Button
-                    variant="ghost"
-                    asChild
-                    className={`w-full justify-start ${isActive('/seller/shipping') ? 'bg-primary/10 text-primary font-medium' : ''}`}
-                  >
-                    <Link href="/seller/shipping">
-                      <Truck className="mr-2 h-4 w-4" />
-                      <span>Shipping</span>
-                    </Link>
-                  </Button>
-                </SidebarMenuItem>
+                {/* Shipping option removed as per request - shipping is only managed at admin level */}
                 <SidebarMenuItem>
                   <Button
                     variant="ghost"

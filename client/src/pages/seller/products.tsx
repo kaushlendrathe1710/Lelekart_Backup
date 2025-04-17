@@ -75,16 +75,24 @@ export default function SellerProductsPage() {
   // Use context user if available, otherwise use API user
   const user = authContext?.user || apiUser;
   
-  // State for pagination
+  // State for pagination and search
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10); // Changed default to 10 for page size selector
-
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState('');
+  
   // Fetch products for the logged-in seller with pagination
   const { data, isLoading } = useQuery({
-    queryKey: ['/api/products', { sellerId: user?.id, page: currentPage, limit: itemsPerPage }],
+    queryKey: ['/api/products', { sellerId: user?.id, page: currentPage, limit: itemsPerPage, search: searchTerm }],
     queryFn: async ({ queryKey }) => {
-      const [_, params] = queryKey as [string, { sellerId?: number, page: number, limit: number }];
-      const res = await fetch(`/api/products?sellerId=${params.sellerId || ''}&page=${params.page}&limit=${params.limit}`); 
+      const [_, params] = queryKey as [string, { sellerId?: number, page: number, limit: number, search: string }];
+      let url = `/api/products?sellerId=${params.sellerId || ''}&page=${params.page}&limit=${params.limit}`;
+      
+      // Add search parameter if it exists
+      if (params.search) {
+        url += `&search=${encodeURIComponent(params.search)}`;
+      }
+      
+      const res = await fetch(url); 
       if (!res.ok) {
         throw new Error('Failed to fetch products');
       }
@@ -261,9 +269,11 @@ export default function SellerProductsPage() {
                 <Input 
                   placeholder="Search products..." 
                   className="pl-8" 
+                  value={searchTerm}
                   onChange={(e) => {
-                    // You can implement product filtering here
-                    console.log('Searching for:', e.target.value);
+                    setSearchTerm(e.target.value);
+                    // Reset to first page when searching
+                    setCurrentPage(1);
                   }}
                 />
               </div>

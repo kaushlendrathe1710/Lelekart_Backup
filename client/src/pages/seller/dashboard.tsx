@@ -196,16 +196,7 @@ export default function SellerDashboardPage() {
                 </Link>
               </Button>
               
-              <Button 
-                variant="outline"
-                className="w-full flex items-center justify-center gap-2"
-                asChild
-              >
-                <Link href="/seller/shipping">
-                  <Truck className="h-4 w-4" />
-                  Manage Shipping
-                </Link>
-              </Button>
+              {/* Shipping management removed as per requirement - only available in admin panel */}
               
               <Button 
                 variant="outline"
