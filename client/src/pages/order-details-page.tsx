@@ -561,6 +561,46 @@ export default function OrderDetailsPage() {
     fetchOrderDetails();
   }, [id, navigate, toast]);
   
+  // Function to refresh order data
+  const refreshOrderData = async () => {
+    try {
+      setLoading(true);
+      const orderResponse = await fetch(`/api/orders/${id}`, {
+        credentials: 'include',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      
+      if (!orderResponse.ok) {
+        throw new Error("Failed to fetch order");
+      }
+      
+      const orderData = await orderResponse.json();
+      
+      // Process shipping details if it's a string
+      if (typeof orderData.shippingDetails === 'string') {
+        try {
+          orderData.shippingDetails = JSON.parse(orderData.shippingDetails);
+        } catch (e) {
+          console.error("Error parsing shipping details:", e);
+        }
+      }
+      
+      setOrder(orderData);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error refreshing order:", error);
+      toast({
+        title: "Error",
+        description: "Failed to refresh order details. Please try again.",
+        variant: "destructive",
+      });
+      setLoading(false);
+    }
+  };
+
   const renderContent = () => {
     if (loading) {
       return (
@@ -682,8 +722,11 @@ export default function OrderDetailsPage() {
           </div>
         </Card>
         
+        {/* Shiprocket Integration */}
+        <ShiprocketSection order={order} refreshOrder={refreshOrderData} />
+        
         {/* Shipping and Billing Information */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
           {/* Shipping Address */}
           <Card className="p-6">
             <h2 className="text-lg font-semibold mb-4 flex items-center">
