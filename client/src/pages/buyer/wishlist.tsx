@@ -83,8 +83,8 @@ export default function BuyerWishlistPage() {
         productId: product.id,
         quantity: 1,
         name: product.name,
-        price: product.discountPrice || product.price,
-        image: product.images?.[0] || '',
+        price: product.salePrice || product.price,
+        image: product.imageUrl || '',
       });
       
       toast({
@@ -130,9 +130,9 @@ export default function BuyerWishlistPage() {
               <Card key={item.product.id} className="overflow-hidden">
                 <div className="relative h-48 bg-slate-100">
                   <Link href={`/product/${item.product.id}`}>
-                    {item.product.images && item.product.images.length > 0 ? (
+                    {item.product.imageUrl ? (
                       <img
-                        src={item.product.images[0]}
+                        src={item.product.imageUrl}
                         alt={item.product.name}
                         className="h-full w-full object-contain object-center"
                         onError={(e) => {
@@ -152,12 +152,12 @@ export default function BuyerWishlistPage() {
                     <h3 className="font-medium line-clamp-2 hover:text-primary transition-colors">{item.product.name}</h3>
                   </Link>
                   <div className="mt-2 flex items-center space-x-2">
-                    <span className="font-semibold">₹{item.product.discountPrice || item.product.price}</span>
-                    {item.product.discountPrice && (
+                    <span className="font-semibold">₹{item.product.salePrice || item.product.price}</span>
+                    {item.product.salePrice && (
                       <>
                         <span className="text-sm text-muted-foreground line-through">₹{item.product.price}</span>
                         <span className="text-sm text-green-600">
-                          {Math.round(((item.product.price - item.product.discountPrice) / item.product.price) * 100)}% off
+                          {Math.round(((item.product.price - item.product.salePrice) / item.product.price) * 100)}% off
                         </span>
                       </>
                     )}
