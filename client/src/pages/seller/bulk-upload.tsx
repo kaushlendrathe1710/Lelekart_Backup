@@ -162,10 +162,9 @@ export default function BulkUploadPage() {
       errors.push(`Selling price (${product.price}) cannot be greater than MRP (${product.mrp})`);
     }
     
-    // Validate URLs in image fields
-    if (product.imageUrl && !product.imageUrl.match(/^https?:\/\/.+/)) {
-      errors.push(`Main image URL must be a valid URL starting with http:// or https://`);
-    }
+    // Accept any URL format for image fields - removed strict validation to be more flexible
+    // Many valid image URLs might not follow the exact pattern we're checking for
+    // This makes the bulk upload more user-friendly while still requiring an imageUrl
     
     // If colors or sizes are provided, check if they are in the correct format
     if (product.color && typeof product.color === 'string') {
@@ -236,7 +235,8 @@ export default function BulkUploadPage() {
         
         // Handle numeric fields
         if (['price', 'purchasePrice', 'stock', 'mrp', 'weight', 'length', 'width', 'height', 'warranty_months', 'returnPolicy', 'tax'].includes(header)) {
-          productData[header] = parseInt(value, 10);
+          // Use parseFloat instead of parseInt to handle decimal values properly
+          productData[header] = parseFloat(value);
         } 
         // Handle boolean fields
         else if (header === 'approved') {
