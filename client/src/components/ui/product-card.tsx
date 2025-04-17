@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useContext } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { WishlistButton } from "./wishlist-button";
+import { ProductImage } from "./product-image";
 
 // Define an extended Product interface to include image_url
 interface ExtendedProduct extends Product {
@@ -117,27 +118,7 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
       >
         <CardContent className="p-0 w-full flex flex-col items-center h-full">
           <div className="w-full flex-shrink-0 h-40 flex items-center justify-center mb-3">
-            <img 
-              src={
-                // Get the image URL, checking all possible sources
-                (product.image_url || product.image || product.imageUrl) && 
-                ((product.image_url || product.image || product.imageUrl)?.includes('flixcart.com') || 
-                 (product.image_url || product.image || product.imageUrl)?.includes('lelekart.com') || 
-                 (product.image_url || product.image || product.imageUrl)?.includes('placeholder.com'))
-                  ? "/images/placeholder.svg"  // Use placeholder for remote images
-                  : (product.image_url || product.image || product.imageUrl || "/images/placeholder.svg")
-              }
-              alt={product.name} 
-              className="max-w-full max-h-full object-contain"
-              onError={(e) => {
-                // Use a fallback image on error
-                const target = e.target as HTMLImageElement;
-                target.onerror = null; // Prevent infinite loop
-                
-                // Just use default placeholder to avoid infinite loading
-                target.src = "/images/placeholder.svg";
-              }}
-            />
+            <ProductImage product={product} />
           </div>
           
           <div className="flex flex-col flex-grow w-full">
