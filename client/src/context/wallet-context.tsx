@@ -88,9 +88,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     queryKey: ['/api/wallet'],
     queryFn: async () => {
       try {
-        const res = await apiRequest('GET', '/api/wallet');
+        const res = await fetch('/api/wallet', { 
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache",
+          }
+        });
+        
         if (!res.ok) {
           if (res.status === 404 || res.status === 401) {
+            console.warn('Wallet API returned error:', res.status);
             return null;
           }
           throw new Error('Failed to fetch wallet data');
@@ -102,7 +111,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }
     },
     // Disable the query for public routes
-    enabled: !isPublicRoute(location)
+    enabled: !isPublicRoute(location),
+    // Don't retry on 401 errors
+    retry: false,
+    // Increased staleTime to reduce number of requests
+    staleTime: 60 * 1000 // 1 minute
   });
 
   // Get wallet transactions
@@ -114,9 +127,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     queryKey: ['/api/wallet/transactions'],
     queryFn: async () => {
       try {
-        const res = await apiRequest('GET', '/api/wallet/transactions');
+        const res = await fetch('/api/wallet/transactions', { 
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache",
+          }
+        });
+        
         if (!res.ok) {
-          if (res.status === 401) {
+          if (res.status === 401 || res.status === 404) {
+            console.warn('Transactions API returned error:', res.status);
             return { transactions: [], total: 0 };
           }
           throw new Error('Failed to fetch wallet transactions');
@@ -132,7 +154,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }
     },
     // Disable the query for public routes
-    enabled: !isPublicRoute(location)
+    enabled: !isPublicRoute(location),
+    // Don't retry on error
+    retry: false,
+    // Increased staleTime to reduce number of requests
+    staleTime: 60 * 1000 // 1 minute
   });
 
   // Get wallet settings
@@ -143,8 +169,20 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     queryKey: ['/api/wallet/settings'],
     queryFn: async () => {
       try {
-        const res = await apiRequest('GET', '/api/wallet/settings');
+        const res = await fetch('/api/wallet/settings', {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache",
+          }
+        });
+        
         if (!res.ok) {
+          if (res.status === 401 || res.status === 404) {
+            console.warn('Wallet settings API returned error:', res.status);
+            return null;
+          }
           throw new Error('Failed to fetch wallet settings');
         }
         return res.json();
@@ -152,7 +190,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         console.error('Error fetching wallet settings:', error);
         return null;
       }
-    }
+    },
+    // Settings can be fetched regardless of route as they're public information
+    staleTime: 300 * 1000, // 5 minutes
+    retry: false
   });
   
   // Map server field names to client field names
