@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, queryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Bell, LockKeyhole, ShoppingBag, User as UserIcon, UserCircle, Loader2 } from "lucide-react";
+import { Bell, InfoIcon, ShoppingBag, User as UserIcon, UserCircle, Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -108,12 +108,24 @@ export default function BuyerSettingsPage() {
   const profileForm = useForm<z.infer<typeof profileFormSchema>>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      username: user?.username || "",
-      email: user?.email || "",
-      phone: user?.phone || "",
-      address: user?.address || "",
+      username: "",
+      email: "",
+      phone: "",
+      address: "",
     },
   });
+  
+  // Update form values when user data is loaded
+  useEffect(() => {
+    if (user) {
+      profileForm.reset({
+        username: user.username || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        address: user.address || "",
+      });
+    }
+  }, [user, profileForm]);
 
   // Security form setup
   const securityForm = useForm<z.infer<typeof securityFormSchema>>({
@@ -139,6 +151,51 @@ export default function BuyerSettingsPage() {
       paymentReminders: true,
     },
   });
+  
+  // Fetch user notification preferences if they exist
+  const { data: userNotificationPreferences } = useQuery({
+    queryKey: ['/api/user/notification-preferences'],
+    queryFn: async () => {
+      try {
+        const res = await fetch('/api/user/notification-preferences', {
+          credentials: 'include',
+        });
+        
+        if (!res.ok) {
+          if (res.status === 404) return null; // No preferences set yet
+          throw new Error('Failed to fetch notification preferences');
+        }
+        
+        return res.json();
+      } catch (error) {
+        console.error('Error fetching notification preferences:', error);
+        return null;
+      }
+    },
+    enabled: !!user, // Only run this query if user is logged in
+  });
+  
+  // Load user notification preferences when available
+  useEffect(() => {
+    if (userNotificationPreferences) {
+      // Set communication preference
+      if (userNotificationPreferences.communicationPreference) {
+        setCommunicationPreference(userNotificationPreferences.communicationPreference);
+      }
+      
+      // Reset form with user preferences
+      notificationForm.reset({
+        orderUpdates: userNotificationPreferences.orderUpdates ?? true,
+        promotions: userNotificationPreferences.promotions ?? true,
+        priceAlerts: userNotificationPreferences.priceAlerts ?? true,
+        stockAlerts: userNotificationPreferences.stockAlerts ?? true,
+        accountUpdates: userNotificationPreferences.accountUpdates ?? true,
+        deliveryUpdates: userNotificationPreferences.deliveryUpdates ?? true,
+        recommendationAlerts: userNotificationPreferences.recommendationAlerts ?? true,
+        paymentReminders: userNotificationPreferences.paymentReminders ?? true,
+      });
+    }
+  }, [userNotificationPreferences, notificationForm]);
 
   // Profile update mutation
   const profileMutation = useMutation({
@@ -354,68 +411,50 @@ export default function BuyerSettingsPage() {
               <CardHeader>
                 <CardTitle>Security Settings</CardTitle>
                 <CardDescription>
-                  Manage your password and account security preferences
+                  Manage your account security preferences
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <Form {...securityForm}>
-                  <form onSubmit={securityForm.handleSubmit(onSecuritySubmit)} className="space-y-6">
-                    <FormField
-                      control={securityForm.control}
-                      name="currentPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Current Password</FormLabel>
-                          <FormControl>
-                            <Input type="password" placeholder="••••••••" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={securityForm.control}
-                      name="newPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>New Password</FormLabel>
-                          <FormControl>
-                            <Input type="password" placeholder="••••••••" {...field} />
-                          </FormControl>
-                          <FormDescription>
-                            Password must be at least 8 characters long
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={securityForm.control}
-                      name="confirmPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Confirm New Password</FormLabel>
-                          <FormControl>
-                            <Input type="password" placeholder="••••••••" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <div className="flex justify-end">
-                      <Button type="submit" disabled={securityMutation.isPending}>
-                        {securityMutation.isPending ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Updating...
-                          </>
-                        ) : (
-                          "Update Password"
-                        )}
+              <CardContent className="space-y-6">
+                <div className="rounded-lg border p-6 space-y-4">
+                  <div className="flex items-start gap-4">
+                    <InfoIcon className="h-6 w-6 text-primary shrink-0 mt-1" />
+                    <div>
+                      <h3 className="text-base font-semibold">Secure Email Authentication</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Your account is secured with email OTP authentication. For account security,
+                        we send a one-time verification code to your email whenever you sign in.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-2 border-t">
+                    <h4 className="text-sm font-medium mb-2">Email Address for Authentication</h4>
+                    <div className="flex items-center gap-3">
+                      <p className="text-sm font-semibold">{user?.email}</p>
+                      <Button variant="outline" size="sm" onClick={() => setActiveTab("profile")}>
+                        Change Email
                       </Button>
                     </div>
-                  </form>
-                </Form>
+                  </div>
+                </div>
+                
+                <div className="rounded-lg border p-6">
+                  <h3 className="text-base font-semibold mb-2">Account Protection Tips</h3>
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-start gap-2">
+                      <div className="h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 mt-0.5">✓</div>
+                      <span>Keep your email account secure with a strong password</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 mt-0.5">✓</div>
+                      <span>Ensure you can always access your verification email</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 mt-0.5">✓</div>
+                      <span>Never share verification codes with anyone</span>
+                    </li>
+                  </ul>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
