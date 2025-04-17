@@ -25,6 +25,7 @@ const FASHION_IMAGES = [
   "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD//gA7Q1JFQVRPUjogZ2QtanBlZyB2MS4wICh1c2luZyBJSkcgSlBFRyB2NjIpLCBxdWFsaXR5ID0gOTAK/9sAQwADAgIDAgIDAwMDBAMDBAUIBQUEBAUKBwcGCAwKDAwLCgsLDQ4SEA0OEQ4LCxAWEBETFBUVFQwPFxgWFBgSFBUU/9sAQwEDBAQFBAUJBQUJFA0LDRQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQU/8AAEQgAZABkAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/aAAwDAQACEQMRAD8A+Y9p9KCuKUHikzXpnKNIx2oA9qRmxTc+lIB+0nvUZXnrTGkx0NRmXPemIlIx0NNzUZkpN9MQ8nNJuqMtTS1AgooooEf/2Q=="
 ];
 
+// Directly use Product from schema - it already has imageUrl defined
 interface FashionProductCardFixedProps {
   product: Product;
   className?: string;
@@ -35,11 +36,33 @@ export function FashionProductCardFixed({ product, className }: FashionProductCa
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Get the product image, using its actual imageUrl from the database
+  // Get the product image, prioritizing the database image
   const getImageSrc = () => {
-    // Check if the product has a valid imageUrl
+    // According to schema.ts, the correct field is imageUrl (even though database uses image_url)
     if (product.imageUrl && !product.imageUrl.includes('placeholder')) {
       return product.imageUrl;
+    }
+    
+    // Access raw product for any non-standard fields that might be present in the data
+    const rawProduct = product as any;
+    
+    // Try snake_case version that might be present in API responses
+    if (rawProduct.image_url && typeof rawProduct.image_url === 'string' && !rawProduct.image_url.includes('placeholder')) {
+      return rawProduct.image_url;
+    }
+    
+    // If images array is available, try to use the first image
+    if (product.images && typeof product.images === 'string') {
+      try {
+        // Parse JSON string if needed
+        const parsedImages = JSON.parse(product.images);
+        if (Array.isArray(parsedImages) && parsedImages.length > 0 && typeof parsedImages[0] === 'string') {
+          return parsedImages[0];
+        }
+      } catch (e) {
+        // If parsing fails, continue to fallback
+        console.error("Failed to parse images JSON:", e);
+      }
     }
     
     // Fallback to base64 images for consistent display
