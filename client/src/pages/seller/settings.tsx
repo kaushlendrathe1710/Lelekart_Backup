@@ -106,6 +106,23 @@ export default function SellerSettingsPage() {
     state: "",
     pincode: ""
   });
+
+  // Billing information state
+  const [billingInfo, setBillingInfo] = useState({
+    gstin: "",
+    businessName: "",
+    panNumber: "",
+    businessType: "individual"
+  });
+
+  // Bank account information state
+  const [bankInfo, setBankInfo] = useState({
+    accountName: "",
+    accountNumber: "",
+    ifscCode: "",
+    bankName: "",
+    branchName: ""
+  });
   
   const [notificationSettings, setNotificationSettings] = useState({
     email: {
@@ -187,6 +204,32 @@ export default function SellerSettingsPage() {
           });
         } catch (e) {
           console.error("Error parsing address:", e);
+        }
+      }
+      
+      // Parse and set tax information for billing
+      if (settings.taxInformation) {
+        try {
+          const parsedTaxInfo = JSON.parse(settings.taxInformation);
+          setBillingInfo({
+            gstin: parsedTaxInfo.gstin || "",
+            businessName: parsedTaxInfo.businessName || "",
+            panNumber: parsedTaxInfo.panNumber || "",
+            businessType: parsedTaxInfo.businessType || "individual"
+          });
+          
+          // Also set bank information if it's part of tax information
+          if (parsedTaxInfo.bankInfo) {
+            setBankInfo({
+              accountName: parsedTaxInfo.bankInfo.accountName || "",
+              accountNumber: parsedTaxInfo.bankInfo.accountNumber || "",
+              ifscCode: parsedTaxInfo.bankInfo.ifscCode || "",
+              bankName: parsedTaxInfo.bankInfo.bankName || "",
+              branchName: parsedTaxInfo.bankInfo.branchName || ""
+            });
+          }
+        } catch (e) {
+          console.error("Error parsing tax information:", e);
         }
       }
       
