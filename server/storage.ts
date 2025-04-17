@@ -332,6 +332,10 @@ export interface IStorage {
   manualAdjustWallet(userId: number, amount: number, description: string): Promise<SelectWallet>;
   getUsersWithWallets(): Promise<Array<{id: number; username: string; balance: number;}>>;
   
+  // Shiprocket Methods
+  getShiprocketSettings(): Promise<ShiprocketSettings | undefined>;
+  updateShiprocketSettings(settings: InsertShiprocketSettings): Promise<ShiprocketSettings>;
+  
   // Session store
   sessionStore: session.SessionStore;
 }

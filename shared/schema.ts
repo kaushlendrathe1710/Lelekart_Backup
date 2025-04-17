@@ -1539,3 +1539,18 @@ export type InsertWallet = z.infer<typeof insertWalletSchema>;
 
 export type SelectWalletTransaction = typeof walletTransactions.$inferSelect;
 export type InsertWalletTransaction = z.infer<typeof insertWalletTransactionSchema>;
+
+// Shiprocket settings
+export const shiprocketSettings = pgTable('shiprocket_settings', {
+  id: serial('id').primaryKey(),
+  email: text('email').notNull(),
+  password: text('password').notNull(),
+  token: text('token'),
+  tokenExpiry: timestamp('token_expiry'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const insertShiprocketSettingsSchema = createInsertSchema(shiprocketSettings);
+export type ShiprocketSettings = typeof shiprocketSettings.$inferSelect;
+export type InsertShiprocketSettings = z.infer<typeof insertShiprocketSettingsSchema>;
