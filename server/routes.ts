@@ -2400,6 +2400,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get user notification preferences
+  app.get("/api/user/notification-preferences", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const preferences = await storage.getUserNotificationPreferences(req.user.id);
+      
+      if (!preferences) {
+        // Return default preferences if none are set
+        return res.json({
+          orderUpdates: true,
+          promotions: true,
+          priceAlerts: true,
+          stockAlerts: true,
+          accountUpdates: true,
+          deliveryUpdates: true,
+          recommendationAlerts: true,
+          paymentReminders: true,
+          communicationPreference: "email"
+        });
+      }
+      
+      res.json(preferences);
+    } catch (error) {
+      console.error("Error getting notification preferences:", error);
+      res.status(500).json({ error: "Failed to get notification preferences" });
+    }
+  });
+  
+  // Update user notification preferences
+  app.post("/api/user/notification-preferences", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      // Validate essential preference fields
+      const requiredFields = [
+        'orderUpdates', 'promotions', 'priceAlerts', 'stockAlerts',
+        'accountUpdates', 'deliveryUpdates', 'recommendationAlerts', 'paymentReminders'
+      ];
+      
+      for (const field of requiredFields) {
+        if (typeof req.body[field] !== 'boolean') {
+          return res.status(400).json({ error: `${field} must be a boolean value` });
+        }
+      }
+      
+      // Validate communication preference
+      if (req.body.communicationPreference && 
+          !['email', 'sms', 'push'].includes(req.body.communicationPreference)) {
+        return res.status(400).json({ 
+          error: "communicationPreference must be 'email', 'sms', or 'push'" 
+        });
+      }
+      
+      // Save preferences
+      const updatedUser = await storage.updateUserNotificationPreferences(req.user.id, req.body);
+      res.json({ success: true, preferences: req.body });
+    } catch (error) {
+      console.error("Error updating notification preferences:", error);
+      res.status(500).json({ error: "Failed to update notification preferences" });
+    }
+  });
+  
   // Get reviews by a user
   app.get("/api/user/reviews", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

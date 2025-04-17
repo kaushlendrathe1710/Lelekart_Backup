@@ -86,6 +86,8 @@ export interface IStorage {
   getUsers(): Promise<User[]>;
   updateUserRole(id: number, role: string): Promise<User>;
   updateUserProfile(id: number, data: Partial<User>): Promise<User>;
+  getUserNotificationPreferences(id: number): Promise<any | null>;
+  updateUserNotificationPreferences(id: number, preferences: any): Promise<User>;
   deleteUser(id: number): Promise<void>;
   getSellers(approved?: boolean, rejected?: boolean): Promise<User[]>;
   getPendingSellers(): Promise<User[]>;
@@ -591,6 +593,63 @@ export class DatabaseStorage implements IStorage {
     }
     
     return updatedUser;
+  }
+  
+  async getUserNotificationPreferences(id: number): Promise<any | null> {
+    try {
+      // Get the user first
+      const user = await this.getUser(id);
+      
+      if (!user) {
+        throw new Error(`User with ID ${id} not found`);
+      }
+      
+      // Check if notification preferences exist
+      if (!user.notificationPreferences) {
+        return null;
+      }
+      
+      // Parse and return the notification preferences
+      try {
+        return JSON.parse(user.notificationPreferences);
+      } catch (error) {
+        console.error(`Error parsing notification preferences for user ${id}:`, error);
+        return null;
+      }
+    } catch (error) {
+      console.error(`Error getting notification preferences for user ${id}:`, error);
+      return null;
+    }
+  }
+  
+  async updateUserNotificationPreferences(id: number, preferences: any): Promise<User> {
+    try {
+      // Get the user first to ensure they exist
+      const user = await this.getUser(id);
+      
+      if (!user) {
+        throw new Error(`User with ID ${id} not found`);
+      }
+      
+      // Convert preferences to JSON string
+      const preferencesJson = JSON.stringify(preferences);
+      
+      // Update the user's notification preferences
+      const [updatedUser] = await db
+        .update(users)
+        .set({ notificationPreferences: preferencesJson })
+        .where(eq(users.id, id))
+        .returning();
+      
+      if (!updatedUser) {
+        throw new Error(`Failed to update notification preferences for user ${id}`);
+      }
+      
+      return updatedUser;
+    } catch (error) {
+      console.error(`Error updating notification preferences for user ${id}:`, error);
+      throw new Error(`Failed to update notification preferences: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
   
   async deleteUser(id: number): Promise<void> {
