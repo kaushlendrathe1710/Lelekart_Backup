@@ -2,6 +2,7 @@ import {
   users, User, InsertUser,
   products, Product, InsertProduct,
   carts, Cart, InsertCart,
+  shiprocketSettings, ShiprocketSettings, InsertShiprocketSettings,
   orders, Order, InsertOrder,
   orderItems, OrderItem, InsertOrderItem,
   categories, Category, InsertCategory,
@@ -50,6 +51,7 @@ import connectPg from "connect-pg-simple";
 import { and, eq, desc, sql, ilike, or } from "drizzle-orm";
 import { db } from "./db";
 import { pool } from "./db";
+import { shiprocketStorageMethods } from "./storage-shiprocket";
 
 export interface IStorage {
   // Rewards Methods
@@ -351,6 +353,15 @@ export class DatabaseStorage implements IStorage {
       pool, 
       createTableIfMissing: true 
     });
+  }
+
+  // Implementing Shiprocket methods
+  async getShiprocketSettings(): Promise<ShiprocketSettings | undefined> {
+    return shiprocketStorageMethods.getShiprocketSettings.call(this);
+  }
+
+  async updateShiprocketSettings(settings: InsertShiprocketSettings): Promise<ShiprocketSettings> {
+    return shiprocketStorageMethods.updateShiprocketSettings.call(this, settings);
   }
   
   // Seller Document methods
