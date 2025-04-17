@@ -2372,6 +2372,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Update user profile
+  app.patch("/api/user/profile", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      // Only allow updating certain fields
+      const allowedFields = ['username', 'email', 'phone', 'address'];
+      const updateData: Partial<User> = {};
+      
+      // Filter out any fields that shouldn't be updated
+      for (const field of allowedFields) {
+        if (req.body[field] !== undefined) {
+          updateData[field as keyof User] = req.body[field];
+        }
+      }
+      
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ error: "No valid fields to update" });
+      }
+      
+      const updatedUser = await storage.updateUserProfile(req.user.id, updateData);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ error: "Failed to update user profile" });
+    }
+  });
+  
   // Get reviews by a user
   app.get("/api/user/reviews", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
