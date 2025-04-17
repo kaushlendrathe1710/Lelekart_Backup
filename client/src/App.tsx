@@ -475,6 +475,17 @@ function App() {
                         )}
                       </Route>
                       
+                      <Route path="/seller/products/bulk-upload">
+                        {() => (
+                          <ProtectedRoute 
+                            path="/seller/products/bulk-upload" 
+                            role="seller" 
+                            component={BulkUploadPage} 
+                          />
+                        )}
+                      </Route>
+                      
+                      {/* Redirect for backward compatibility */}
                       <Route path="/seller/bulk-upload">
                         {() => (
                           <ProtectedRoute 
