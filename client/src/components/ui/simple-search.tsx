@@ -25,9 +25,16 @@ export function SimpleSearch({ className }: SimpleSearchProps = {}) {
     setIsAiSearching(true);
     
     try {
+      // Detect if this is just a product name without "search" keyword
+      // Add "search" to the query if it doesn't already include it to ensure consistency
+      const processedQuery = !searchQuery.toLowerCase().includes('search') 
+        ? `${searchQuery} search` 
+        : searchQuery;
+      
+      console.log('Processing AI search query:', processedQuery);
+      
       // Process the query using AI to extract structured search parameters
-      console.log('Processing AI search query:', searchQuery);
-      const result = await AISearchService.processQuery(searchQuery);
+      const result = await AISearchService.processQuery(processedQuery);
       
       if (result.success) {
         // Build a search URL from the extracted parameters
@@ -37,7 +44,7 @@ export function SimpleSearch({ className }: SimpleSearchProps = {}) {
         navigate(searchUrl);
         
         toast({
-          title: 'AI Search',
+          title: 'Search',
           description: `Searching for "${result.enhancedQuery}"`,
           duration: 3000
         });
@@ -65,15 +72,8 @@ export function SimpleSearch({ className }: SimpleSearchProps = {}) {
     e.preventDefault();
     if (query.trim()) {
       console.log('Search for:', query);
-      
-      // For direct queries longer than 6 words, use AI search processing
-      if (query.trim().split(' ').length > 6) {
-        console.log('Using AI search processing for long query');
-        await processAiSearch(query);
-      } else {
-        // Use simple search for shorter queries
-        navigate(`/search?q=${encodeURIComponent(query.trim())}`);
-      }
+      // Always use AI search processing to match voice search behavior
+      await processAiSearch(query);
     }
   };
   

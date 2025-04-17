@@ -3,7 +3,6 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
-import { useAuth } from "@/hooks/use-auth";
 
 // Types
 interface WalletTransaction {
@@ -75,10 +74,19 @@ function isPublicRoute(path: string): boolean {
   return path.startsWith('/search') || path.startsWith('/seller/public-profile');
 }
 
-// The actual implementation for authenticated users
-function AuthenticatedWalletProvider({ children }: { children: ReactNode }) {
+// The main provider component that decides which provider to use
+export function WalletProvider({ children }: { children: ReactNode }) {
+  const [location] = useLocation();
   const { toast } = useToast();
-  const { user } = useAuth();
+  
+  // For public routes, provide default context
+  if (isPublicRoute(location)) {
+    return (
+      <WalletContext.Provider value={defaultWalletContext}>
+        {children}
+      </WalletContext.Provider>
+    );
+  }
   
   // Get wallet data
   const {
@@ -101,8 +109,7 @@ function AuthenticatedWalletProvider({ children }: { children: ReactNode }) {
         console.error('Error fetching wallet:', error);
         return null;
       }
-    },
-    enabled: !!user
+    }
   });
 
   // Get wallet transactions
@@ -130,8 +137,7 @@ function AuthenticatedWalletProvider({ children }: { children: ReactNode }) {
         console.error('Error fetching transactions:', error);
         return { transactions: [], total: 0 };
       }
-    },
-    enabled: !!user
+    }
   });
 
   // Get wallet settings
@@ -219,23 +225,6 @@ function AuthenticatedWalletProvider({ children }: { children: ReactNode }) {
       {children}
     </WalletContext.Provider>
   );
-}
-
-// The main provider component that decides which provider to use
-export function WalletProvider({ children }: { children: ReactNode }) {
-  const [location] = useLocation();
-  
-  // For public routes, provide default context
-  if (isPublicRoute(location)) {
-    return (
-      <WalletContext.Provider value={defaultWalletContext}>
-        {children}
-      </WalletContext.Provider>
-    );
-  }
-  
-  // For authenticated routes, use the authenticated provider
-  return <AuthenticatedWalletProvider>{children}</AuthenticatedWalletProvider>;
 }
 
 // Hook to use the wallet context
