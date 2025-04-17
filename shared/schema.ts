@@ -1195,6 +1195,8 @@ export const sellerSettings = pgTable("seller_settings", {
   notificationPreferences: text("notification_preferences"), // JSON object of notification settings
   taxInformation: text("tax_information"), // JSON object with tax details
   returnPolicy: text("return_policy"), // Store return policy text
+  personalInfo: text("personal_info"), // JSON object with personal information
+  address: text("address"), // JSON object with address information
   autoAcceptOrders: boolean("auto_accept_orders").default(false),
   holidayMode: boolean("holiday_mode").default(false),
   holidayModeEndDate: timestamp("holiday_mode_end_date"),
