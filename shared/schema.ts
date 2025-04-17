@@ -1197,6 +1197,7 @@ export const sellerSettings = pgTable("seller_settings", {
   returnPolicy: text("return_policy"), // Store return policy text
   personalInfo: text("personal_info"), // JSON object with personal information
   address: text("address"), // JSON object with address information
+  store: text("store"), // JSON object with store settings (name, description, contact details, etc.)
   autoAcceptOrders: boolean("auto_accept_orders").default(false),
   holidayMode: boolean("holiday_mode").default(false),
   holidayModeEndDate: timestamp("holiday_mode_end_date"),
