@@ -118,12 +118,16 @@ export default function SearchResultsPage() {
     e.preventDefault();
     if (!searchQuery.trim()) return;
     
+    console.log('Search form submitted with query:', searchQuery);
+    
     try {
       // Process the query using AI to extract structured search parameters
       // This makes normal search consistent with voice search
       const result = await AISearchService.processQuery(searchQuery);
       
       if (result.success) {
+        console.log('AI search successful, using result:', result);
+        
         // Build a search URL from the extracted parameters
         const searchUrl = AISearchService.buildSearchUrl(result.filters, result.enhancedQuery);
         
@@ -140,6 +144,12 @@ export default function SearchResultsPage() {
       }
     } catch (error) {
       console.error('Error processing search:', error);
+      
+      toast({
+        title: 'Search',
+        description: 'Using basic search instead',
+        duration: 3000
+      });
       
       // Fall back to simple search with the original query
       setDebouncedQuery(searchQuery);
