@@ -1810,7 +1810,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Bulk upload endpoint
-  app.post("/api/products/bulk-upload", async (req, res) => {
+  app.post("/api/seller/products/bulk-upload", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Authentication required" });
     }

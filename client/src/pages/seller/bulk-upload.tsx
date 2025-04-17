@@ -41,6 +41,14 @@ function parseCsvLine(line: string): string[] {
   let current = '';
   let inQuotes = false;
   
+  // If line is empty, return empty array
+  if (!line || line.trim() === '') {
+    return [];
+  }
+  
+  // Debug log
+  console.log(`Parsing CSV line: ${line}`);
+  
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
     
@@ -179,7 +187,10 @@ export default function BulkUploadPage() {
 
   // Function to process CSV data and generate preview
   const processCSVForPreview = (csvData: string) => {
-    const lines = csvData.split('\n');
+    // Handle different line endings (CRLF, LF)
+    const normalizedCsv = csvData.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const lines = normalizedCsv.split('\n');
+    
     if (lines.length < 2) {
       toast({
         title: "Invalid CSV format",
@@ -189,7 +200,11 @@ export default function BulkUploadPage() {
       return;
     }
     
-    const headers = parseCsvLine(lines[0]).map(h => h.trim());
+    // Log for debugging
+    console.log(`Processing CSV with ${lines.length} lines`);
+    console.log(`Headers: ${lines[0]}`);
+    
+    const headers = parseCsvLine(lines[0]).map(h => h.trim().toLowerCase());
     const previews: ProductPreview[] = [];
     const errors: UploadError[] = [];
     let validCount = 0;
@@ -200,6 +215,8 @@ export default function BulkUploadPage() {
       if (!lines[i].trim()) continue; // Skip empty lines
       
       const values = parseCsvLine(lines[i]);
+      console.log(`Processing line ${i}: ${lines[i]}`);
+      console.log(`Parsed values:`, values);
       
       // Prepare the base product data with required fields
       const productData: Record<string, any> = {
@@ -209,7 +226,7 @@ export default function BulkUploadPage() {
         category: "",
         imageUrl: "",
         stock: 0,
-        sellerId: user?.id
+        sellerId: user?.id || 0 // Ensure we have a fallback
       };
       
       // Map CSV values to product schema fields
@@ -432,13 +449,14 @@ export default function BulkUploadPage() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes timeout
       
-      const response = await fetch('/api/products/bulk-upload', {
+      const response = await fetch('/api/seller/products/bulk-upload', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ products: validProducts }),
-        signal: controller.signal
+        signal: controller.signal,
+        credentials: 'include' // Important: Include credentials for authentication
       });
 
       // Clear the timeout
