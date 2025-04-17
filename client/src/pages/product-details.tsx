@@ -65,16 +65,16 @@ function ProductImageSlider({ images, name }: { images: string[], name: string }
   
   // Create a simulated 360° rotation effect using the available product images
   const get360Images = () => {
-    if (images.length === 0) return [];
+    if (validImages.length === 0) return [];
     
     // If we only have one image, use it as the base for the simulation
-    if (images.length === 1) {
-      return Array(36).fill(images[0]);
+    if (validImages.length === 1) {
+      return Array(36).fill(validImages[0]);
     }
     
     // Use all available product images and repeat them to create a circular effect
     // For example, if we have 4 images, we'll create a sequence like [0,1,2,3,2,1,0,1,2,3...] to simulate rotation
-    const allImages = [...images];
+    const allImages = [...validImages];
     
     // Create a sequence that goes forward then backward through the images
     // This creates a more natural rotation effect with limited images
@@ -106,7 +106,7 @@ function ProductImageSlider({ images, name }: { images: string[], name: string }
     const height = containerRef.current.clientHeight || 384; // Default height
     
     return {
-      img: images[activeImage],
+      img: validImages[activeImage],
       zoomPosition: 'original',
       width: width,
       height: height,
@@ -236,13 +236,13 @@ function ProductImageSlider({ images, name }: { images: string[], name: string }
                           );
                           
                           // Update active image based on mouse position
-                          if (images[frameIndex % images.length]) {
-                            setActiveImage(frameIndex % images.length);
+                          if (validImages[frameIndex % validImages.length]) {
+                            setActiveImage(frameIndex % validImages.length);
                           }
                         }}
                       >
                         <img 
-                          src={images[activeImage]} 
+                          src={validImages[activeImage]} 
                           alt={`${name} 360 view`} 
                           className="max-w-full max-h-full object-contain"
                           onError={handleImageError}
