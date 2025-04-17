@@ -357,7 +357,11 @@ function App() {
                           <ProtectedRoute 
                             path="/admin/shipping-management" 
                             role="admin" 
-                            component={AdminShippingManagement} 
+                            component={() => (
+                              <SuspenseWrapper>
+                                <AdminShippingManagement />
+                              </SuspenseWrapper>
+                            )}
                           />
                         )}
                       </Route>
@@ -367,7 +371,11 @@ function App() {
                           <ProtectedRoute 
                             path="/admin/shiprocket" 
                             role="admin" 
-                            component={lazy(() => import('./pages/admin/shiprocket'))}
+                            component={() => (
+                              <SuspenseWrapper>
+                                {React.createElement(lazy(() => import('./pages/admin/shiprocket')))}
+                              </SuspenseWrapper>
+                            )}
                           />
                         )}
                       </Route>
