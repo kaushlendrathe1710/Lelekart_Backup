@@ -126,8 +126,8 @@ export interface IStorage {
 
   // Product operations
   getProducts(category?: string, sellerId?: number, approved?: boolean): Promise<Product[]>;
-  getProductsCount(category?: string, sellerId?: number, approved?: boolean): Promise<number>;
-  getProductsPaginated(category?: string, sellerId?: number, approved?: boolean, offset?: number, limit?: number): Promise<Product[]>;
+  getProductsCount(category?: string, sellerId?: number, approved?: boolean, search?: string): Promise<number>;
+  getProductsPaginated(category?: string, sellerId?: number, approved?: boolean, offset?: number, limit?: number, search?: string): Promise<Product[]>;
   searchProducts(query: string, limit?: number): Promise<Product[]>;
   getProduct(id: number): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
@@ -1252,7 +1252,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
-  async getProductsCount(category?: string, sellerId?: number, approved?: boolean): Promise<number> {
+  async getProductsCount(category?: string, sellerId?: number, approved?: boolean, search?: string): Promise<number> {
     try {
       // Use SQL query for counting with filters
       let query = `
@@ -1279,6 +1279,17 @@ export class DatabaseStorage implements IStorage {
         params.push(approved);
       }
       
+      // Add search filter
+      if (search && search.trim() !== '') {
+        query += ` AND (
+          LOWER(name) LIKE LOWER($${params.length + 1}) OR 
+          LOWER(description) LIKE LOWER($${params.length + 1}) OR
+          LOWER(category) LIKE LOWER($${params.length + 1}) OR
+          LOWER(sku) LIKE LOWER($${params.length + 1})
+        )`;
+        params.push(`%${search}%`);
+      }
+      
       // Execute the query
       const { rows } = await pool.query(query, params);
       return parseInt(rows[0].count || '0');
@@ -1293,7 +1304,8 @@ export class DatabaseStorage implements IStorage {
     sellerId?: number, 
     approved?: boolean, 
     offset: number = 0, 
-    limit: number = 12
+    limit: number = 12,
+    search?: string
   ): Promise<Product[]> {
     try {
       // Use SQL query for pagination with filters
@@ -1319,6 +1331,17 @@ export class DatabaseStorage implements IStorage {
       if (approved !== undefined) {
         query += ` AND approved = $${params.length + 1}`;
         params.push(approved);
+      }
+      
+      // Add search filter
+      if (search && search.trim() !== '') {
+        query += ` AND (
+          LOWER(name) LIKE LOWER($${params.length + 1}) OR 
+          LOWER(description) LIKE LOWER($${params.length + 1}) OR
+          LOWER(category) LIKE LOWER($${params.length + 1}) OR
+          LOWER(sku) LIKE LOWER($${params.length + 1})
+        )`;
+        params.push(`%${search}%`);
       }
       
       // Add pagination
