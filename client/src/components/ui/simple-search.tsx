@@ -25,11 +25,13 @@ export function SimpleSearch({ className }: SimpleSearchProps = {}) {
     setIsAiSearching(true);
     
     try {
-      // Detect if this is just a product name without "search" keyword
-      // Add "search" to the query if it doesn't already include it to ensure consistency
-      const processedQuery = !searchQuery.toLowerCase().includes('search') 
-        ? `${searchQuery} search` 
-        : searchQuery;
+      // For short queries (1-2 words), don't add 'search' word to preserve exact term
+      const words = searchQuery.trim().split(/\s+/);
+      const processedQuery = words.length <= 2 
+        ? searchQuery
+        : (!searchQuery.toLowerCase().includes('search') 
+            ? `${searchQuery} search` 
+            : searchQuery);
       
       console.log('Processing AI search query:', processedQuery);
       

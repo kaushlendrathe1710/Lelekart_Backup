@@ -79,16 +79,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const { toast } = useToast();
   
-  // For public routes, provide default context
-  if (isPublicRoute(location)) {
-    return (
-      <WalletContext.Provider value={defaultWalletContext}>
-        {children}
-      </WalletContext.Provider>
-    );
-  }
-  
-  // Get wallet data
+  // Always declare all hooks regardless of conditionals
   const {
     data: wallet = null,
     isLoading: isWalletLoading,
@@ -109,7 +100,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         console.error('Error fetching wallet:', error);
         return null;
       }
-    }
+    },
+    // Disable the query for public routes
+    enabled: !isPublicRoute(location)
   });
 
   // Get wallet transactions
@@ -137,7 +130,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         console.error('Error fetching transactions:', error);
         return { transactions: [], total: 0 };
       }
-    }
+    },
+    // Disable the query for public routes
+    enabled: !isPublicRoute(location)
   });
 
   // Get wallet settings
@@ -207,6 +202,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   };
 
   const transactions = transactionsData?.transactions || [];
+  
+  // For public routes, provide default context
+  if (isPublicRoute(location)) {
+    return (
+      <WalletContext.Provider value={defaultWalletContext}>
+        {children}
+      </WalletContext.Provider>
+    );
+  }
 
   return (
     <WalletContext.Provider

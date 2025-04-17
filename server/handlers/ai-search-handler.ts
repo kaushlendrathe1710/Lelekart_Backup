@@ -67,6 +67,12 @@ Return your analysis as a valid JSON object with the following structure:
   "enhancedQuery": "An improved search query based on the user's intent"
 }
 
+IMPORTANT RULES:
+- For single-word queries (e.g., "padded", "dress", "iphone"), use the exact word as the enhancedQuery value without adding additional terms.
+- For queries with 1-2 words, keep the enhancedQuery the same as the original query.
+- Only add additional terms to more complex, multi-word queries where clarification is helpful.
+- Always include the original search term as the first keyword.
+
 Only include fields that you can confidently extract from the query. If a field is not mentioned, set it to null.
 Make sure the response is valid JSON.
 `;
