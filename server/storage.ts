@@ -1555,6 +1555,8 @@ export class DatabaseStorage implements IStorage {
 
   async addToCart(insertCart: InsertCart): Promise<Cart> {
     // First check if product already exists in cart
+    console.log(`Checking if product ${insertCart.productId} exists in cart for user ${insertCart.userId}`);
+    
     const [existingCartItem] = await db
       .select()
       .from(carts)
@@ -1567,6 +1569,9 @@ export class DatabaseStorage implements IStorage {
     
     // If exists, update quantity
     if (existingCartItem) {
+      console.log(`Found existing cart item: ${JSON.stringify(existingCartItem)}`);
+      console.log(`Updating quantity from ${existingCartItem.quantity} to ${existingCartItem.quantity + insertCart.quantity}`);
+      
       const [updatedCartItem] = await db
         .update(carts)
         .set({
@@ -1575,15 +1580,18 @@ export class DatabaseStorage implements IStorage {
         .where(eq(carts.id, existingCartItem.id))
         .returning();
       
+      console.log(`Updated cart item: ${JSON.stringify(updatedCartItem)}`);
       return updatedCartItem;
     }
     
     // Otherwise insert new cart item
+    console.log(`No existing cart item found, creating new one`);
     const [cartItem] = await db
       .insert(carts)
       .values(insertCart)
       .returning();
     
+    console.log(`Created new cart item: ${JSON.stringify(cartItem)}`);
     return cartItem;
   }
 
