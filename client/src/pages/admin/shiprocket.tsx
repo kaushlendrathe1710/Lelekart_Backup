@@ -183,6 +183,9 @@ export default function ShiprocketPage() {
       });
       refetchStatus();
       refetchSettings();
+      
+      // Redirect to the shipping dashboard after successful connection
+      window.location.href = '/admin/shipping-dashboard';
     },
     onError: (error) => {
       toast({
