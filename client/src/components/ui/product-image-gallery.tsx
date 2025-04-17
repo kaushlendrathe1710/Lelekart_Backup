@@ -262,9 +262,9 @@ export function ProductImageGallery({ imageUrl, additionalImages, productName = 
   const getPlaceholderImage = () => {
     if (category) {
       const categoryLower = category.toLowerCase();
-      return `../images/${categoryLower}.svg`;
+      return `/images/${categoryLower}.svg`;
     }
-    return '../images/placeholder.svg';
+    return '/images/placeholder.svg';
   };
 
   // Placeholder image for errors

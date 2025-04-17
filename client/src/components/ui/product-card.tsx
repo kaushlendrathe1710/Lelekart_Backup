@@ -141,9 +141,9 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
                 if (product.category) {
                   // Map to our known category placeholders
                   const categoryLower = product.category.toLowerCase();
-                  target.src = `../images/${categoryLower}.svg`;
+                  target.src = `/images/${categoryLower}.svg`;
                 } else {
-                  target.src = "../images/placeholder.svg";
+                  target.src = "/images/placeholder.svg";
                 }
               }}
             />
