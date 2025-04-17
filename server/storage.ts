@@ -1996,6 +1996,29 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
+  // Method names aligned with handlers
+  async getPendingShiprocketOrders(sellerId?: number): Promise<Order[]> {
+    return this.getPendingShipmentOrders(sellerId);
+  }
+  
+  async getOrdersWithShiprocketShipments(): Promise<Order[]> {
+    try {
+      return db
+        .select()
+        .from(orders)
+        .where(
+          and(
+            not(isNull(orders.shiprocketOrderId)),
+            not(isNull(orders.shiprocketShipmentId))
+          )
+        )
+        .orderBy(desc(orders.date));
+    } catch (error) {
+      console.error("Error getting orders with Shiprocket shipments:", error);
+      throw error;
+    }
+  }
+
   async getPendingShipmentOrders(sellerId?: number): Promise<Order[]> {
     try {
       // Get orders that are processing or confirmed and haven't been pushed to Shiprocket

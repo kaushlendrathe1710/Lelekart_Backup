@@ -432,3 +432,136 @@ export async function getShippingRates(req: Request, res: Response) {
     return res.status(500).json({ error: 'Failed to get shipping rates' });
   }
 }
+
+// Check if Shiprocket is properly configured
+export async function checkShiprocketStatus(req: Request, res: Response) {
+  try {
+    if (!req.isAuthenticated() || (req.user.role !== 'admin' && req.user.role !== 'co-admin')) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+    
+    const settings = await storage.getShiprocketSettings();
+    const isConfigured = !!settings && !!settings.email && !!settings.password;
+    
+    return res.json({
+      configured: isConfigured,
+      status: isConfigured ? 'connected' : 'not_configured'
+    });
+  } catch (error) {
+    console.error('Error checking Shiprocket status:', error);
+    return res.status(500).json({ error: 'Failed to check Shiprocket status' });
+  }
+}
+
+// Connect to Shiprocket with credentials
+export async function connectShiprocket(req: Request, res: Response) {
+  try {
+    if (!req.isAuthenticated() || (req.user.role !== 'admin' && req.user.role !== 'co-admin')) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+    
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+    
+    // Test authentication with Shiprocket
+    const service = new ShiprocketService(email, password);
+    
+    try {
+      await service.authenticate();
+      
+      // Save settings to database
+      await storage.updateShiprocketSettings({
+        email,
+        password,
+        token: service.token,
+        tokenExpiry: service.tokenExpiry
+      });
+      
+      return res.json({
+        success: true,
+        message: 'Successfully connected to Shiprocket',
+        token: service.token
+      });
+    } catch (error) {
+      console.error('Shiprocket authentication failed:', error);
+      return res.status(400).json({ error: 'Invalid Shiprocket credentials' });
+    }
+  } catch (error) {
+    console.error('Error connecting to Shiprocket:', error);
+    return res.status(500).json({ error: 'Failed to connect to Shiprocket' });
+  }
+}
+
+// Test Shiprocket connection
+export async function testShiprocketConnection(req: Request, res: Response) {
+  try {
+    if (!req.isAuthenticated() || (req.user.role !== 'admin' && req.user.role !== 'co-admin')) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+    
+    // Initialize Shiprocket service if not already initialized
+    if (!shiprocketService) {
+      const initialized = await initializeShiprocketService();
+      if (!initialized) {
+        return res.status(500).json({ 
+          error: 'Shiprocket service not configured. Please set up your Shiprocket credentials in admin settings.' 
+        });
+      }
+    }
+    
+    // Test by fetching courier companies
+    try {
+      await shiprocketService.getCourierCompanies();
+      return res.json({ success: true, message: 'Shiprocket connection is working correctly' });
+    } catch (error) {
+      console.error('Shiprocket connection test failed:', error);
+      return res.status(500).json({ 
+        error: error.response?.data?.message || 'Failed to connect to Shiprocket API' 
+      });
+    }
+  } catch (error) {
+    console.error('Error testing Shiprocket connection:', error);
+    return res.status(500).json({ error: 'Failed to test Shiprocket connection' });
+  }
+}
+
+// Get shiprocket shipments
+export async function getShiprocketShipments(req: Request, res: Response) {
+  try {
+    if (!req.isAuthenticated() || (req.user.role !== 'admin' && req.user.role !== 'co-admin')) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+    
+    // Return the list of orders that have shiprocket shipments
+    const orders = await storage.getOrdersWithShiprocketShipments();
+    return res.json(orders);
+  } catch (error) {
+    console.error('Error fetching Shiprocket shipments:', error);
+    return res.status(500).json({ error: 'Failed to fetch Shiprocket shipments' });
+  }
+}
+
+// Save Shiprocket settings
+export async function saveShiprocketSettings(req: Request, res: Response) {
+  // This is just an alias for updateShiprocketSettings for clearer API naming
+  return updateShiprocketSettings(req, res);
+}
+
+// Get pending orders that can be shipped
+export async function getPendingOrders(req: Request, res: Response) {
+  try {
+    if (!req.isAuthenticated() || (req.user.role !== 'admin' && req.user.role !== 'co-admin')) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+    
+    // Get orders that are in 'processing' status and don't have Shiprocket shipments yet
+    const orders = await storage.getPendingShiprocketOrders();
+    return res.json(orders);
+  } catch (error) {
+    console.error('Error fetching pending orders:', error);
+    return res.status(500).json({ error: 'Failed to fetch pending orders' });
+  }
+}

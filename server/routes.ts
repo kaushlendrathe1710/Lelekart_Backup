@@ -3871,7 +3871,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/shiprocket/status", shiprocketHandlers.checkShiprocketStatus);
   app.post("/api/shiprocket/connect", shiprocketHandlers.connectShiprocket);
   app.post("/api/shiprocket/test", shiprocketHandlers.testShiprocketConnection);
-  app.get("/api/shiprocket/couriers", shiprocketHandlers.getShiprocketCouriers);
+  app.get("/api/shiprocket/couriers", shiprocketHandlers.getCourierCompanies);
   app.get("/api/shiprocket/shipments", shiprocketHandlers.getShiprocketShipments);
   app.get("/api/shiprocket/settings", shiprocketHandlers.getShiprocketSettings);
   app.post("/api/shiprocket/settings", shiprocketHandlers.saveShiprocketSettings);
@@ -4454,8 +4454,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Shiprocket API Routes
   app.get('/api/shiprocket/status', shiprocketHandlers.checkShiprocketStatus);
   app.post('/api/shiprocket/connect', shiprocketHandlers.connectShiprocket);
-  app.get('/api/shiprocket/test-connection', shiprocketHandlers.testShiprocketConnection);
-  app.get('/api/shiprocket/couriers', shiprocketHandlers.getShiprocketCouriers);
+  app.post('/api/shiprocket/test-connection', shiprocketHandlers.testShiprocketConnection);
+  app.get('/api/shiprocket/couriers', shiprocketHandlers.getCourierCompanies);
   app.get('/api/shiprocket/shipments', shiprocketHandlers.getShiprocketShipments);
   app.get('/api/shiprocket/settings', shiprocketHandlers.getShiprocketSettings);
   app.post('/api/shiprocket/settings', shiprocketHandlers.saveShiprocketSettings);
