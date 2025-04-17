@@ -48,6 +48,7 @@ import SellerProductsPage from './pages/seller/products';
 import AddProductPage from './pages/seller/add-product';
 import EditProductPage from './pages/seller/edit-product';
 import ProductPreviewPage from './pages/seller/product-preview';
+import PublicSellerProfilePage from './pages/seller/public-profile';
 import SellerOrdersPage from './pages/seller/orders';
 import BulkUploadPage from './pages/seller/bulk-upload';
 import SmartInventoryPage from './pages/seller/smart-inventory';
@@ -581,6 +582,15 @@ function App() {
                         role="admin" 
                         component={WalletManagementPage} 
                       />
+                    )}
+                  </Route>
+                  
+                  {/* Public routes that don't require authentication */}
+                  <Route path="/seller/public-profile/:id">
+                    {() => (
+                      <Layout>
+                        <PublicSellerProfilePage />
+                      </Layout>
                     )}
                   </Route>
                   
