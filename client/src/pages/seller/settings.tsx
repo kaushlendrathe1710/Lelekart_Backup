@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 import { SellerDashboardLayout } from "@/components/layout/seller-dashboard-layout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,7 +33,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
 import {
   Bell,
   Calendar,
@@ -715,31 +715,57 @@ export default function SellerSettingsPage() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="storeName">Store Name</Label>
-                    <Input id="storeName" defaultValue={settings?.store?.name || ""} />
+                    <Input 
+                      id="storeName" 
+                      value={storeSettings.name}
+                      onChange={(e) => setStoreSettings({...storeSettings, name: e.target.value})}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="storeDescription">Store Description</Label>
                     <Textarea 
                       id="storeDescription" 
                       rows={4}
-                      defaultValue={settings?.store?.description || ""}
+                      value={storeSettings.description}
+                      onChange={(e) => setStoreSettings({...storeSettings, description: e.target.value})}
                     />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="contactEmail">Contact Email</Label>
-                      <Input id="contactEmail" type="email" defaultValue={settings?.store?.contactEmail || ""} />
+                      <Input 
+                        id="contactEmail" 
+                        type="email" 
+                        value={storeSettings.contactEmail}
+                        onChange={(e) => setStoreSettings({...storeSettings, contactEmail: e.target.value})}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="contactPhone">Contact Phone</Label>
-                      <Input id="contactPhone" defaultValue={settings?.store?.contactPhone || ""} />
+                      <Input 
+                        id="contactPhone" 
+                        value={storeSettings.contactPhone}
+                        onChange={(e) => setStoreSettings({...storeSettings, contactPhone: e.target.value})}
+                      />
                     </div>
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                  <Button>
-                    <Save className="mr-2 h-4 w-4" />
-                    Save Changes
+                  <Button 
+                    onClick={saveStoreSettings}
+                    disabled={isSavingStoreSettings}
+                  >
+                    {isSavingStoreSettings ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save Changes
+                      </>
+                    )}
                   </Button>
                 </CardFooter>
               </Card>
