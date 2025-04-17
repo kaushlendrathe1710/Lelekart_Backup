@@ -167,6 +167,25 @@ export default function BulkUploadPage() {
       errors.push(`Main image URL must be a valid URL starting with http:// or https://`);
     }
     
+    // Check for problematic placeholder images
+    if (product.imageUrl && (
+      product.imageUrl.includes('placeholder.com') || 
+      product.imageUrl.includes('placeholder.jpg') ||
+      product.imageUrl.includes('dummyimage.com')
+    )) {
+      errors.push(`Please use actual product images instead of placeholder images`);
+    }
+    
+    // Validate additional images if present
+    if (product.images && Array.isArray(product.images)) {
+      for (let i = 0; i < product.images.length; i++) {
+        const imgUrl = product.images[i];
+        if (!imgUrl.match(/^https?:\/\/.+/)) {
+          errors.push(`Additional image ${i+1} must be a valid URL starting with http:// or https://`);
+        }
+      }
+    }
+    
     // If colors or sizes are provided, check if they are in the correct format
     if (product.color && typeof product.color === 'string') {
       const colors = product.color.split(',').map((c: string) => c.trim()).filter(Boolean);
@@ -256,7 +275,7 @@ export default function BulkUploadPage() {
         }
         // Handle image fields mapping - use the first one as the main image
         else if (header === 'imageUrl1') {
-          // First image becomes the main imageUrl
+          // First image becomes the main imageUrl (use format matching database field 'image_url')
           productData.imageUrl = value;
           
           // Start the additional images array
@@ -269,7 +288,10 @@ export default function BulkUploadPage() {
           if (!productData.images) {
             productData.images = [];
           }
-          productData.images.push(value);
+          // Only add valid image URLs (avoid placeholders)
+          if (value && value.trim() !== '' && !value.includes('placeholder')) {
+            productData.images.push(value);
+          }
         }
         // Handle SKU directly (don't put in metadata)
         else if (header === 'sku') {
