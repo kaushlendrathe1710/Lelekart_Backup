@@ -1871,6 +1871,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Set as pending for approval by default
             product.approved = false; 
             
+            // Ensure proper field naming for images
+            if (product.imageUrl && !product.image_url) {
+              // Make sure imageUrl is also stored as image_url for consistency with database
+              product.image_url = product.imageUrl;
+            } else if (product.image_url && !product.imageUrl) {
+              // Make sure image_url is also available as imageUrl for frontend
+              product.imageUrl = product.image_url;
+            }
+            
+            // Handle additional images
+            if (product.images) {
+              // If images is a JSON string, parse it into an array
+              if (typeof product.images === 'string' && (product.images.startsWith('[') || product.images.startsWith('\"'))) {
+                try {
+                  product.images = JSON.parse(product.images);
+                } catch (err) {
+                  console.error('Error parsing images JSON:', err);
+                  // If parsing fails, treat it as a single image URL
+                  product.images = [product.images];
+                }
+              }
+              
+              // Convert to array if it's a single string that's not JSON
+              if (typeof product.images === 'string') {
+                product.images = [product.images];
+              }
+              
+              // Validate that all elements are strings
+              if (Array.isArray(product.images)) {
+                product.images = product.images.filter(url => typeof url === 'string' && url.trim() !== '');
+                // Convert back to JSON string for storage
+                product.images = JSON.stringify(product.images);
+              }
+            }
+            
             // Create the product in the database
             const createdProduct = await storage.createProduct(product);
             
