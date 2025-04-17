@@ -16,10 +16,10 @@ interface WishlistProduct {
     name: string;
     description: string;
     price: number;
-    discountPrice: number | null;
-    images: string[];
+    salePrice?: number;
+    imageUrl: string;
+    images?: string; // JSON string of images
     category: string;
-    brand: string;
     stock: number;
   };
   userId: number;
