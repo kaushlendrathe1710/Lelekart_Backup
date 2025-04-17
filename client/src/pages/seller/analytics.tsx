@@ -123,7 +123,12 @@ export default function SellerAnalyticsPage() {
             <Button variant="outline" size="icon" onClick={() => refetch()}>
               <RefreshCw className="h-4 w-4" />
             </Button>
-            <Button>
+            <Button 
+              onClick={() => {
+                const endpoint = `/api/seller/analytics/export?range=${dateRange}`;
+                window.open(endpoint, '_blank');
+              }}
+            >
               <FileDown className="mr-2 h-4 w-4" />
               Export Report
             </Button>

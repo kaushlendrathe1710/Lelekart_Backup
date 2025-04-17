@@ -3706,6 +3706,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await analyticsHandlers.getSellerAnalyticsHandler(req, res);
   });
   
+  app.get("/api/seller/analytics/export", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" || !req.user.approved) return res.status(403).json({ error: "Not authorized" });
+    
+    await analyticsHandlers.exportSellerAnalyticsHandler(req, res);
+  });
+  
   app.post("/api/seller/analytics", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     if (req.user.role !== "seller" || !req.user.approved) return res.status(403).json({ error: "Not authorized" });

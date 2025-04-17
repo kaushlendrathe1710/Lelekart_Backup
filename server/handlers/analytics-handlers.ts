@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { storage } from "../storage";
 import { InsertSellerAnalytic } from "@shared/schema";
 import { z } from "zod";
+import { format, subDays, subMonths, startOfYear } from "date-fns";
 
 // Get analytics for a seller
 export async function getSellerAnalyticsHandler(req: Request, res: Response) {
@@ -69,6 +70,157 @@ export async function createOrUpdateAnalyticsHandler(req: Request, res: Response
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors });
     }
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+// Export analytics data as CSV
+export async function exportSellerAnalyticsHandler(req: Request, res: Response) {
+  try {
+    const sellerId = parseInt(req.params.sellerId || req.user?.id?.toString() || "0");
+    
+    if (!sellerId) {
+      return res.status(400).json({ error: 'Seller ID is required' });
+    }
+    
+    // If this is not an admin or the seller themselves, deny access
+    if (req.user?.role !== 'admin' && req.user?.id !== sellerId) {
+      return res.status(403).json({ error: 'You do not have permission to export these analytics' });
+    }
+    
+    const rangeParam = req.query.range as string || 'last30';
+    let startDate: Date;
+    let endDate = new Date();
+    let periodName: string;
+    
+    // Determine date range based on parameter
+    switch (rangeParam) {
+      case 'last7':
+        startDate = subDays(new Date(), 7);
+        periodName = 'Last 7 Days';
+        break;
+      case 'last90':
+        startDate = subDays(new Date(), 90);
+        periodName = 'Last 90 Days';
+        break;
+      case 'year':
+        startDate = startOfYear(new Date());
+        periodName = 'This Year';
+        break;
+      case 'last30':
+      default:
+        startDate = subDays(new Date(), 30);
+        periodName = 'Last 30 Days';
+        break;
+    }
+    
+    // Get analytics data
+    const analytics = await storage.getSellerAnalytics(sellerId, startDate, endDate);
+    
+    // Get the seller's products
+    const products = await storage.getProducts(undefined, sellerId);
+    
+    // Get orders for the seller
+    const orders = await storage.getOrders(undefined, sellerId);
+    
+    // Get returns
+    const returns = await storage.getReturnsForSeller(sellerId);
+    
+    // Get seller info
+    const seller = await storage.getUser(sellerId);
+    
+    // Set headers for CSV download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="seller-analytics-${rangeParam}-${format(new Date(), 'yyyy-MM-dd')}.csv"`);
+    
+    // Write CSV header rows
+    res.write('LELEKART SELLER ANALYTICS REPORT\r\n');
+    res.write(`Seller: ${seller?.username}\r\n`);
+    res.write(`Period: ${periodName}\r\n`);
+    res.write(`Date Range: ${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}\r\n`);
+    res.write(`Generated: ${format(new Date(), 'yyyy-MM-dd HH:mm:ss')}\r\n\r\n`);
+    
+    // Summary metrics
+    res.write('SUMMARY METRICS\r\n');
+    
+    let totalRevenue = 0;
+    let totalOrders = 0;
+    let totalUnits = 0;
+    let avgOrderValue = 0;
+    
+    analytics.forEach(item => {
+      totalRevenue += Number(item.totalRevenue || 0);
+      totalOrders += Number(item.totalOrders || 0);
+    });
+    
+    if (totalOrders > 0) {
+      avgOrderValue = totalRevenue / totalOrders;
+    }
+    
+    // Calculate units sold from orders
+    orders.forEach(order => {
+      // Get order items for this order
+      storage.getOrderItems(order.id).then(items => {
+        items.forEach(item => {
+          totalUnits += item.quantity;
+        });
+      });
+    });
+    
+    // Output summary data
+    res.write(`Total Revenue,₹${totalRevenue.toFixed(2)}\r\n`);
+    res.write(`Total Orders,${totalOrders}\r\n`);
+    res.write(`Average Order Value,₹${avgOrderValue.toFixed(2)}\r\n`);
+    res.write(`Total Products,${products.length}\r\n`);
+    res.write(`Total Returns,${returns.length}\r\n\r\n`);
+    
+    // Daily analytics data
+    res.write('DAILY ANALYTICS\r\n');
+    res.write('Date,Orders,Revenue,Avg Order Value,Visitors,Conversion Rate\r\n');
+    
+    analytics.forEach(day => {
+      const avgOrderVal = day.totalOrders > 0 ? Number(day.totalRevenue) / Number(day.totalOrders) : 0;
+      
+      res.write(`${format(new Date(day.date), 'yyyy-MM-dd')},`);
+      res.write(`${day.totalOrders},`);
+      res.write(`₹${Number(day.totalRevenue).toFixed(2)},`);
+      res.write(`₹${avgOrderVal.toFixed(2)},`);
+      res.write(`${day.totalVisitors || 0},`);
+      res.write(`${day.conversionRate || 0}%\r\n`);
+    });
+    res.write('\r\n');
+    
+    // Products data
+    res.write('PRODUCTS\r\n');
+    res.write('ID,Name,Category,Price,Stock,Status\r\n');
+    
+    products.forEach(product => {
+      res.write(`${product.id},`);
+      res.write(`"${product.name}",`);
+      res.write(`"${product.category}",`);
+      res.write(`₹${product.price.toFixed(2)},`);
+      res.write(`${product.stock || 0},`);
+      res.write(`${product.approved ? 'Approved' : 'Pending'}\r\n`);
+    });
+    res.write('\r\n');
+    
+    // Orders data
+    res.write('RECENT ORDERS\r\n');
+    res.write('Order ID,Date,Total,Status,Payment Method\r\n');
+    
+    const recentOrders = orders.slice(0, 20); // Show only the 20 most recent orders
+    recentOrders.forEach(order => {
+      res.write(`${order.id},`);
+      res.write(`${format(new Date(order.date), 'yyyy-MM-dd')},`);
+      res.write(`₹${order.total.toFixed(2)},`);
+      res.write(`${order.status},`);
+      res.write(`${order.paymentMethod || 'N/A'}\r\n`);
+    });
+    
+    // End the response
+    res.end();
+  } catch (error) {
+    console.error("Error exporting seller analytics:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 }
