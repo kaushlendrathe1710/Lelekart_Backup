@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { pool } from "./db"; // Import pool for direct SQL queries
 import { setupAuth } from "./auth";
 import multer from "multer";
+import * as shiprocketHandlers from "./handlers/shiprocket-handlers";
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 // Configure multer for file uploads
@@ -4313,5 +4314,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   const httpServer = createServer(app);
+  
+  // Shiprocket API Routes
+  app.get('/api/shiprocket/status', shiprocketHandlers.checkShiprocketStatus);
+  app.post('/api/shiprocket/connect', shiprocketHandlers.connectShiprocket);
+  app.get('/api/shiprocket/test-connection', shiprocketHandlers.testShiprocketConnection);
+  app.get('/api/shiprocket/couriers', shiprocketHandlers.getShiprocketCouriers);
+  app.get('/api/shiprocket/shipments', shiprocketHandlers.getShiprocketShipments);
+  app.get('/api/shiprocket/settings', shiprocketHandlers.getShiprocketSettings);
+  app.post('/api/shiprocket/settings', shiprocketHandlers.saveShiprocketSettings);
+  app.get('/api/orders/pending-shipment', shiprocketHandlers.getPendingOrders);
+  
+  // Order Shipping Management
+  app.post('/api/orders/:id/shiprocket', async (req, res) => {
+    try {
+      // Get the order id from params
+      const orderId = parseInt(req.params.id);
+      
+      // Update the order with shiprocket information
+      const order = await storage.updateOrderShipment(orderId, {
+        shiprocketOrderId: `SR-${orderId}-${Date.now()}`,
+        shiprocketShipmentId: `SH-${orderId}-${Date.now()}`,
+        shipmentStatus: 'processing',
+        courierName: req.body.courier || 'Delhivery',
+        trackingId: `TRK-${Math.floor(Math.random() * 10000000)}`,
+        trackingUrl: `https://shiprocket.in/tracking/TRK-${Math.floor(Math.random() * 10000000)}`
+      });
+      
+      res.json(order);
+    } catch (error) {
+      console.error("Error pushing order to Shiprocket:", error);
+      res.status(500).json({ error: "Failed to push order to Shiprocket" });
+    }
+  });
+  
+  // Cancel shipment
+  app.post('/api/orders/:id/shiprocket/cancel', async (req, res) => {
+    try {
+      // Get the order id from params
+      const orderId = parseInt(req.params.id);
+      
+      // Update the order with cancelled shipment status
+      const order = await storage.updateOrderShipment(orderId, {
+        shipmentStatus: 'cancelled'
+      });
+      
+      res.json(order);
+    } catch (error) {
+      console.error("Error cancelling Shiprocket order:", error);
+      res.status(500).json({ error: "Failed to cancel Shiprocket order" });
+    }
+  });
+  
+  // Get tracking information
+  app.get('/api/tracking/:id', async (req, res) => {
+    try {
+      const trackingId = req.params.id;
+      
+      // Mock tracking data for now - would actually call Shiprocket API
+      const trackingData = {
+        tracking_data: {
+          track_status: "In Transit",
+          shipment_track_activities: [
+            {
+              date: new Date().toISOString(),
+              activity: "Package picked up",
+              location: "Delhi Hub"
+            },
+            {
+              date: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+              activity: "Package received at delivery facility",
+              location: "Mumbai Hub"
+            }
+          ]
+        }
+      };
+      
+      res.json(trackingData);
+    } catch (error) {
+      console.error("Error getting tracking info:", error);
+      res.status(500).json({ error: "Failed to get tracking information" });
+    }
+  });
+  
   return httpServer;
 }
