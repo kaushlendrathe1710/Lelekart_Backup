@@ -211,12 +211,31 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     mutationFn: async (params: {
       amount: number;
     } & RedeemCoinsOptions) => {
-      const res = await apiRequest('POST', '/api/wallet/redeem', params);
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to redeem coins');
+      try {
+        const res = await fetch('/api/wallet/redeem', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache",
+          },
+          body: JSON.stringify(params)
+        });
+        
+        if (!res.ok) {
+          if (res.status === 401) {
+            throw new Error('Authentication required. Please log in again.');
+          }
+          
+          const errorData = await res.json().catch(() => ({ error: 'Failed to parse error response' }));
+          throw new Error(errorData.error || 'Failed to redeem coins');
+        }
+        return res.json();
+      } catch (error) {
+        console.error('Error redeeming coins:', error);
+        throw error;
       }
-      return res.json();
     },
     onSuccess: () => {
       toast({
