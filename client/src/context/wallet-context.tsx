@@ -1,8 +1,9 @@
-import { createContext, ReactNode, useContext, useEffect } from "react";
+import { createContext, ReactNode, useContext } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useRoute, useLocation } from "wouter";
+import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 
 // Types
 interface WalletTransaction {
@@ -53,7 +54,7 @@ type WalletContextType = {
   refetchTransactions: () => void;
 };
 
-// Default mock values for public/non-authenticated routes
+// Default values for context
 const defaultWalletContext: WalletContextType = {
   wallet: null,
   transactions: [],
@@ -66,32 +67,18 @@ const defaultWalletContext: WalletContextType = {
   refetchTransactions: () => {},
 };
 
-// Create context with default values to avoid null checks
+// Create context with default values
 const WalletContext = createContext<WalletContextType>(defaultWalletContext);
 
-// Helper function to check if a route is public/non-authenticated
-function isPublicRoute(pathname: string): boolean {
-  // List of routes that don't require authentication
-  const publicRoutes = ['/search', '/seller/public-profile'];
-  return publicRoutes.some(route => pathname.startsWith(route));
+// Helper to check if route is public
+function isPublicRoute(path: string): boolean {
+  return path.startsWith('/search') || path.startsWith('/seller/public-profile');
 }
 
-// Provider component
-export function WalletProvider({ children }: { children: ReactNode }) {
+// The actual implementation for authenticated users
+function AuthenticatedWalletProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
-  const [location] = useLocation();
-  
-  // If we're on a public route, just render children with the default context
-  if (isPublicRoute(location)) {
-    return (
-      <WalletContext.Provider value={defaultWalletContext}>
-        {children}
-      </WalletContext.Provider>
-    );
-  }
-  
-  // For authenticated routes, use the actual wallet data
-  // We'll let the Auth provider handle the authentication check
+  const { user } = useAuth();
   
   // Get wallet data
   const {
@@ -104,11 +91,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       try {
         const res = await apiRequest('GET', '/api/wallet');
         if (!res.ok) {
-          if (res.status === 404) {
-            return null;
-          }
-          if (res.status === 401) {
-            // Not authenticated
+          if (res.status === 404 || res.status === 401) {
             return null;
           }
           throw new Error('Failed to fetch wallet data');
@@ -118,7 +101,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         console.error('Error fetching wallet:', error);
         return null;
       }
-    }
+    },
+    enabled: !!user
   });
 
   // Get wallet transactions
@@ -133,13 +117,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         const res = await apiRequest('GET', '/api/wallet/transactions');
         if (!res.ok) {
           if (res.status === 401) {
-            // Not authenticated
             return { transactions: [], total: 0 };
           }
           throw new Error('Failed to fetch wallet transactions');
         }
         const data = await res.json();
-        // Handle both formats: either array or {transactions: array, total: number}
         if (Array.isArray(data)) {
           return { transactions: data, total: data.length };
         }
@@ -148,7 +130,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         console.error('Error fetching transactions:', error);
         return { transactions: [], total: 0 };
       }
-    }
+    },
+    enabled: !!user
   });
 
   // Get wallet settings
@@ -168,15 +151,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         console.error('Error fetching wallet settings:', error);
         return null;
       }
-    },
+    }
   });
   
   // Map server field names to client field names
   const settings = rawSettings ? {
     ...rawSettings,
-    // Map the server's isEnabled field to our client-side isActive field
     isActive: rawSettings.isEnabled,
-    // Ensure we have the correct number formats
     conversionRate: Number(rawSettings.coinToCurrencyRatio),
     expiryDays: Number(rawSettings.coinExpiryDays),
     maxUsagePercentage: Number(rawSettings.maxUsagePercentage || 0),
@@ -219,7 +200,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  // Extract transactions from the data structure
   const transactions = transactionsData?.transactions || [];
 
   return (
@@ -241,9 +221,25 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Custom hook to use the wallet context
+// The main provider component that decides which provider to use
+export function WalletProvider({ children }: { children: ReactNode }) {
+  const [location] = useLocation();
+  
+  // For public routes, provide default context
+  if (isPublicRoute(location)) {
+    return (
+      <WalletContext.Provider value={defaultWalletContext}>
+        {children}
+      </WalletContext.Provider>
+    );
+  }
+  
+  // For authenticated routes, use the authenticated provider
+  return <AuthenticatedWalletProvider>{children}</AuthenticatedWalletProvider>;
+}
+
+// Hook to use the wallet context
 export function useWallet() {
   const context = useContext(WalletContext);
-  // The context is never null because we provide default values
   return context;
 }
