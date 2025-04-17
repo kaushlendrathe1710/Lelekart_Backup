@@ -3,6 +3,17 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
+// Import placeholder images directly
+import placeholderImage from '../../assets/placeholder.svg';
+import electronicsImage from '../../assets/electronics.svg';
+import mobilesImage from '../../assets/mobiles.svg';
+import fashionImage from '../../assets/fashion.svg';
+import homeImage from '../../assets/home.svg';
+import appliancesImage from '../../assets/appliances.svg';
+import beautyImage from '../../assets/beauty.svg';
+import toysImage from '../../assets/toys.svg';
+import groceryImage from '../../assets/grocery.svg';
+
 // Hero slider image interface
 interface SliderImage {
   url: string;
@@ -200,13 +211,31 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
                       const target = e.target as HTMLImageElement;
                       target.onerror = null; // Prevent infinite loop
                       
-                      // Use category-specific placeholders
-                      const baseUrl = import.meta.env.DEV ? '/' : '/';
+                      // Use category-specific placeholders with imported SVGs
                       if (image.category) {
                         const categoryLower = image.category.toLowerCase();
-                        target.src = `${baseUrl}images/${categoryLower}.svg`;
+                        // Select appropriate placeholder based on category
+                        if (categoryLower === 'electronics') {
+                          target.src = electronicsImage;
+                        } else if (categoryLower === 'mobiles') {
+                          target.src = mobilesImage;
+                        } else if (categoryLower === 'fashion') {
+                          target.src = fashionImage;
+                        } else if (categoryLower === 'home') {
+                          target.src = homeImage;
+                        } else if (categoryLower === 'appliances') {
+                          target.src = appliancesImage;
+                        } else if (categoryLower === 'beauty') {
+                          target.src = beautyImage;
+                        } else if (categoryLower === 'toys') {
+                          target.src = toysImage;
+                        } else if (categoryLower === 'grocery') {
+                          target.src = groceryImage;
+                        } else {
+                          target.src = placeholderImage;
+                        }
                       } else {
-                        target.src = `${baseUrl}images/placeholder.svg`;
+                        target.src = placeholderImage;
                       }
                     }}
                   />
@@ -332,13 +361,31 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
                                         dealOfTheDay.subtitle.includes('Toys') ? 'Toys' :
                                         dealOfTheDay.subtitle.includes('Grocery') ? 'Grocery' : '';
                         
-                        // Use appropriate placeholder based on category
-                        const baseUrl = import.meta.env.DEV ? '/' : '/';
+                        // Use appropriate placeholder based on category with imported SVGs
                         if (category) {
                           const categoryLower = category.toLowerCase();
-                          target.src = `${baseUrl}images/${categoryLower}.svg`;
+                          // Select appropriate placeholder based on category
+                          if (categoryLower === 'electronics') {
+                            target.src = electronicsImage;
+                          } else if (categoryLower === 'mobiles') {
+                            target.src = mobilesImage;
+                          } else if (categoryLower === 'fashion') {
+                            target.src = fashionImage;
+                          } else if (categoryLower === 'home') {
+                            target.src = homeImage;
+                          } else if (categoryLower === 'appliances') {
+                            target.src = appliancesImage;
+                          } else if (categoryLower === 'beauty') {
+                            target.src = beautyImage;
+                          } else if (categoryLower === 'toys') {
+                            target.src = toysImage;
+                          } else if (categoryLower === 'grocery') {
+                            target.src = groceryImage;
+                          } else {
+                            target.src = placeholderImage;
+                          }
                         } else {
-                          target.src = `${baseUrl}images/placeholder.svg`;
+                          target.src = placeholderImage;
                         }
                       }}
                     />

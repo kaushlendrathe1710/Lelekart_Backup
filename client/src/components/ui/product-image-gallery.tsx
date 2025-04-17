@@ -7,6 +7,17 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { Pagination, Navigation, Thumbs } from 'swiper/modules';
 import type { Swiper as SwiperType } from 'swiper';
 
+// Import placeholder images directly
+import placeholderImage from '../../assets/placeholder.svg';
+import electronicsImage from '../../assets/electronics.svg';
+import mobilesImage from '../../assets/mobiles.svg';
+import fashionImage from '../../assets/fashion.svg';
+import homeImage from '../../assets/home.svg';
+import appliancesImage from '../../assets/appliances.svg';
+import beautyImage from '../../assets/beauty.svg';
+import toysImage from '../../assets/toys.svg';
+import groceryImage from '../../assets/grocery.svg';
+
 // Import Swiper styles
 import 'swiper/css';
 import 'swiper/css/pagination';
@@ -260,16 +271,34 @@ export function ProductImageGallery({ imageUrl, additionalImages, productName = 
 
   // Get placeholder image based on category
   const getPlaceholderImage = () => {
-    const baseUrl = import.meta.env.DEV ? '/' : '/';
     if (category) {
       const categoryLower = category.toLowerCase();
-      return `${baseUrl}images/${categoryLower}.svg`;
+      // Select appropriate placeholder based on category
+      if (categoryLower === 'electronics') {
+        return electronicsImage;
+      } else if (categoryLower === 'mobiles') {
+        return mobilesImage;
+      } else if (categoryLower === 'fashion') {
+        return fashionImage;
+      } else if (categoryLower === 'home') {
+        return homeImage;
+      } else if (categoryLower === 'appliances') {
+        return appliancesImage;
+      } else if (categoryLower === 'beauty') {
+        return beautyImage;
+      } else if (categoryLower === 'toys') {
+        return toysImage;
+      } else if (categoryLower === 'grocery') {
+        return groceryImage;
+      } else {
+        return placeholderImage;
+      }
     }
-    return `${baseUrl}images/placeholder.svg`;
+    return placeholderImage;
   };
 
-  // Placeholder image for errors
-  const placeholderImage = getPlaceholderImage();
+  // Placeholder image for errors - call getPlaceholderImage to get the appropriate image
+  const categoryPlaceholderImage = getPlaceholderImage();
 
   return (
     <div className="product-gallery">
@@ -302,7 +331,7 @@ export function ProductImageGallery({ imageUrl, additionalImages, productName = 
                   loading="eager"
                   onError={(e) => {
                     console.error('Failed to load image:', image);
-                    (e.target as HTMLImageElement).src = placeholderImage;
+                    (e.target as HTMLImageElement).src = categoryPlaceholderImage;
                   }}
                 />
               </div>
@@ -379,7 +408,7 @@ export function ProductImageGallery({ imageUrl, additionalImages, productName = 
                     className="w-full h-full object-cover"
                     loading="eager"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = placeholderImage;
+                      (e.target as HTMLImageElement).src = categoryPlaceholderImage;
                     }}
                   />
                 </div>
