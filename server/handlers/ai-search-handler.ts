@@ -167,6 +167,12 @@ Make sure the response is valid JSON.
       };
     }
     
+    // For single-word or two-word queries, force the enhancedQuery to be exactly the same as input
+    const words = sanitizedQuery.trim().split(/\s+/);
+    const enhancedQuery = words.length <= 2 
+      ? sanitizedQuery 
+      : (parsedResponse.enhancedQuery || sanitizedQuery);
+    
     // Return the processed search parameters
     return res.json({
       success: true,
@@ -181,7 +187,7 @@ Make sure the response is valid JSON.
         sortBy: parsedResponse.sortBy,
         keywords: parsedResponse.keywords || []
       },
-      enhancedQuery: parsedResponse.enhancedQuery || sanitizedQuery,
+      enhancedQuery: enhancedQuery,
     });
   } catch (error) {
     console.error('Error processing AI search:', error);
