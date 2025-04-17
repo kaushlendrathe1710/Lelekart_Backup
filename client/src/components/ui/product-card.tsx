@@ -98,8 +98,10 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
   // Use the same dimensions and styling for all product cards regardless of featured status
   return (
     <div className="relative">
-      {/* Add Wishlist button on top right of card */}
-      <WishlistButton productId={product.id} variant="card" />
+      {/* Add Wishlist button on top right of card only if user is logged in */}
+      {user && (
+        <WishlistButton productId={product.id} variant="card" />
+      )}
       
       <Card 
         className="product-card h-full flex flex-col items-center p-3 transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1"
@@ -141,9 +143,9 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
                 if (product.category) {
                   // Map to our known category placeholders
                   const categoryLower = product.category.toLowerCase();
-                  target.src = `../images/${categoryLower}.svg`;
+                  target.src = `/images/categories/${categoryLower}.svg`;
                 } else {
-                  target.src = "../images/placeholder.svg";
+                  target.src = "/images/placeholder.svg";
                 }
               }}
             />
