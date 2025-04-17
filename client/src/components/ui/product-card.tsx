@@ -99,12 +99,8 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
   // Use the same dimensions and styling for all product cards regardless of featured status
   return (
     <div className="relative">
-      {/* Add Wishlist button on top right of card only if user is logged in 
-          Comment it out for now to fix error in console
-      */}
-      {/*user && (
-        <WishlistButton productId={product.id} variant="card" />
-      )*/}
+      {/* Add Wishlist button on top right of card */}
+      <WishlistButton productId={product.id} variant="card" />
       
       <Card 
         className="product-card h-full flex flex-col items-center p-3 transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1"

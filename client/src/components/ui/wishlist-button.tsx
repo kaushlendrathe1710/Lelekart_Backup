@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { useWishlist } from '@/context/wishlist-context';
-import { useAuth } from '@/hooks/use-auth';
+import { AuthContext } from '@/hooks/use-auth';
 import { Heart } from 'lucide-react';
 import { Button } from './button';
 import { cn } from '@/lib/utils';
@@ -17,8 +17,24 @@ export function WishlistButton({
   variant = 'icon',
   className = ''
 }: WishlistButtonProps) {
-  const { user } = useAuth();
-  const { isInWishlist, toggleWishlist } = useWishlist();
+  // Safely access auth context
+  const authContext = useContext(AuthContext);
+  const user = authContext?.user || null;
+  
+  // Safely access wishlist context
+  let isInWishlist = (id: number) => false;
+  let toggleWishlist = async (id: number) => {};
+  
+  try {
+    const wishlistContext = useWishlist();
+    if (wishlistContext) {
+      isInWishlist = wishlistContext.isInWishlist;
+      toggleWishlist = wishlistContext.toggleWishlist;
+    }
+  } catch (error) {
+    console.warn("Wishlist context not available, returning default state");
+  }
+  
   const [, setLocation] = useLocation();
   const inWishlist = isInWishlist(productId);
 
