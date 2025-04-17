@@ -51,6 +51,7 @@ const ShippingDashboard = lazy(() => import('./pages/admin/shipping-dashboard'))
 const PendingShipments = lazy(() => import('./pages/admin/pending-shipments'));
 const ShippingRates = lazy(() => import('./pages/admin/shipping-rates'));
 const TrackingManagement = lazy(() => import('./pages/admin/tracking-management'));
+const TrackingDetails = lazy(() => import('./pages/admin/tracking-details'));
 
 // Seller pages
 import SellerDashboardPage from './pages/seller/dashboard';
@@ -430,6 +431,20 @@ function App() {
                             component={() => (
                               <SuspenseWrapper>
                                 <TrackingManagement />
+                              </SuspenseWrapper>
+                            )}
+                          />
+                        )}
+                      </Route>
+                      
+                      <Route path="/admin/tracking-details/:trackingNumber">
+                        {() => (
+                          <ProtectedRoute 
+                            path="/admin/tracking-details/:trackingNumber" 
+                            role="admin" 
+                            component={() => (
+                              <SuspenseWrapper>
+                                <TrackingDetails />
                               </SuspenseWrapper>
                             )}
                           />
