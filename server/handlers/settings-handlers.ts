@@ -62,6 +62,9 @@ export async function updateSellerSettingsHandler(req: Request, res: Response) {
       notificationPreferences: z.string().optional(),
       taxInformation: z.string().optional(),
       returnPolicy: z.string().optional(),
+      store: z.string().optional(),
+      personalInfo: z.string().optional(),
+      address: z.string().optional(),
       autoAcceptOrders: z.boolean().optional(),
       holidayMode: z.boolean().optional(),
       holidayModeEndDate: z.string().optional().transform(val => val ? new Date(val) : undefined),
@@ -295,6 +298,80 @@ export async function updateAddressHandler(req: Request, res: Response) {
     return res.status(200).json(updatedSettings);
   } catch (error) {
     console.error("Error updating address information:", error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+// Update store information
+export async function updateStoreHandler(req: Request, res: Response) {
+  try {
+    const sellerId = parseInt(req.params.sellerId || req.user?.id?.toString() || "0");
+    
+    if (!sellerId) {
+      return res.status(400).json({ error: 'Seller ID is required' });
+    }
+    
+    // If this is not the seller themselves, deny access
+    if (req.user?.id !== sellerId) {
+      return res.status(403).json({ error: 'You do not have permission to update store information' });
+    }
+    
+    // Validate the store data
+    const storeSchema = z.object({
+      name: z.string().optional(),
+      description: z.string().optional(),
+      logo: z.string().optional(),
+      banner: z.string().optional(),
+      contactEmail: z.string().email().optional(),
+      contactPhone: z.string().optional(),
+      socialLinks: z.object({
+        facebook: z.string().optional(),
+        instagram: z.string().optional(),
+        twitter: z.string().optional(),
+        website: z.string().optional(),
+      }).optional(),
+      businessHours: z.array(
+        z.object({
+          day: z.string(),
+          open: z.boolean(),
+          openTime: z.string().optional(),
+          closeTime: z.string().optional(),
+        })
+      ).optional(),
+    });
+    
+    const validatedStore = storeSchema.parse(req.body);
+    
+    // Get current settings
+    const currentSettings = await storage.getSellerSettings(sellerId);
+    
+    // Parse current store or create default if none exist
+    let currentStore = {};
+    if (currentSettings?.store) {
+      try {
+        currentStore = JSON.parse(currentSettings.store);
+      } catch (e) {
+        console.error("Error parsing existing store:", e);
+      }
+    }
+    
+    // Merge with new store
+    const updatedStore = {
+      ...currentStore,
+      ...validatedStore
+    };
+    
+    // Update settings
+    const updatedSettings = await storage.createOrUpdateSellerSettings(sellerId, {
+      store: JSON.stringify(updatedStore)
+    });
+    
+    return res.status(200).json(updatedSettings);
+  } catch (error) {
+    console.error("Error updating store information:", error);
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors });
     }

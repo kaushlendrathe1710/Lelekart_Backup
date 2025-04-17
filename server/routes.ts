@@ -3797,6 +3797,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await settingsHandlers.updateAddressHandler(req, res);
   });
   
+  app.put("/api/seller/settings/store", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller") return res.status(403).json({ error: "Not authorized" });
+    
+    await settingsHandlers.updateStoreHandler(req, res);
+  });
+  
   // Support Routes
   app.get("/api/support/tickets", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
