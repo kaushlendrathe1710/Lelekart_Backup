@@ -40,7 +40,6 @@ import {
   Clock,
   DollarSign,
   Upload,
-  Map,
 } from "lucide-react";
 import { useState } from "react";
 import {
@@ -76,10 +75,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     location.includes("/admin/shipping-dashboard") ||
     location.includes("/admin/pending-shipments") ||
     location.includes("/admin/shipping-rates") ||
-    location.includes("/admin/tracking-management") ||
-    location.includes("/admin/tracking-details") ||
-    location.includes("/admin/create-shipment") ||
-    location.includes("/admin/order-details")
+    location.includes("/admin/tracking-management")
   );
 
   const navItems = [
@@ -168,16 +164,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           title: "Tracking Management",
           href: "/admin/tracking-management",
           icon: <Search className="h-5 w-5" />,
-        },
-        {
-          title: "Tracking Details",
-          href: "/admin/tracking-details/SR123456789",
-          icon: <Map className="h-5 w-5" />,
-        },
-        {
-          title: "Create Shipment",
-          href: "/admin/create-shipment",
-          icon: <PackagePlus className="h-5 w-5" />,
         }
       ],
     },

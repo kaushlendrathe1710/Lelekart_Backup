@@ -183,9 +183,9 @@ export default function CartPage() {
                           if (item.product.category) {
                             // Convert to lowercase and use direct category images from client/public/images
                             const categoryLower = item.product.category.toLowerCase();
-                            target.src = `/images/${categoryLower}.svg`;
+                            target.src = `../images/${categoryLower}.svg`;
                           } else {
-                            target.src = "/images/placeholder.svg";
+                            target.src = "../images/placeholder.svg";
                           }
                         }}
                       />

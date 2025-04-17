@@ -10,17 +10,6 @@ import { useContext } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { WishlistButton } from "./wishlist-button";
 
-// Import placeholder images as URLs
-import placeholderImage from '../../assets/placeholder.svg?url';
-import electronicsImage from '../../assets/electronics.svg?url';
-import mobilesImage from '../../assets/mobiles.svg?url';
-import fashionImage from '../../assets/fashion.svg?url';
-import homeImage from '../../assets/home.svg?url';
-import appliancesImage from '../../assets/appliances.svg?url';
-import beautyImage from '../../assets/beauty.svg?url';
-import toysImage from '../../assets/toys.svg?url';
-import groceryImage from '../../assets/grocery.svg?url';
-
 // Define an extended Product interface to include image_url
 interface ExtendedProduct extends Product {
   image?: string;
@@ -150,31 +139,11 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
                 
                 // Use category-specific placeholder or default placeholder
                 if (product.category) {
-                  // Map category to the imported SVG
+                  // Map to our known category placeholders
                   const categoryLower = product.category.toLowerCase();
-                  
-                  // Select the appropriate image based on category
-                  if (categoryLower === 'electronics') {
-                    target.src = electronicsImage;
-                  } else if (categoryLower === 'mobiles') {
-                    target.src = mobilesImage;
-                  } else if (categoryLower === 'fashion') {
-                    target.src = fashionImage;
-                  } else if (categoryLower === 'home') {
-                    target.src = homeImage;
-                  } else if (categoryLower === 'appliances') {
-                    target.src = appliancesImage;
-                  } else if (categoryLower === 'beauty') {
-                    target.src = beautyImage;
-                  } else if (categoryLower === 'toys') {
-                    target.src = toysImage;
-                  } else if (categoryLower === 'grocery') {
-                    target.src = groceryImage;
-                  } else {
-                    target.src = placeholderImage;
-                  }
+                  target.src = `../images/${categoryLower}.svg`;
                 } else {
-                  target.src = placeholderImage;
+                  target.src = "../images/placeholder.svg";
                 }
               }}
             />

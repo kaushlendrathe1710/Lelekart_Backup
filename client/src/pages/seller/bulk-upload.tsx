@@ -46,22 +46,15 @@ function parseCsvLine(line: string): string[] {
     return [];
   }
   
-  // Debug log (truncated to avoid console spam)
-  const truncatedLine = line.length > 100 ? line.substring(0, 100) + '...' : line;
-  console.log(`Parsing CSV line: ${truncatedLine}`);
+  // Debug log
+  console.log(`Parsing CSV line: ${line}`);
   
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
     
     if (char === '"') {
-      // Handle escaped quotes (double quotes) inside quoted fields
-      if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
-        current += '"'; // Add a single quote character
-        i++; // Skip the next quote
-      } else {
-        // Toggle the in-quotes flag
-        inQuotes = !inQuotes;
-      }
+      // Toggle the in-quotes flag when we see a quote
+      inQuotes = !inQuotes;
     } else if (char === ',' && !inQuotes) {
       // If we're not in quotes and see a comma, end the current field
       result.push(current);
@@ -75,23 +68,12 @@ function parseCsvLine(line: string): string[] {
   // Add the last field
   result.push(current);
   
-  // Clean up fields - remove quotes and normalize special characters
+  // Remove quotes from fields that were quoted
   return result.map(field => {
-    // Remove surrounding quotes if they exist
-    let cleaned = field;
     if (field.startsWith('"') && field.endsWith('"')) {
-      cleaned = field.substring(1, field.length - 1);
+      return field.substring(1, field.length - 1);
     }
-    
-    // Replace common special characters that might cause issues
-    cleaned = cleaned.replace(/[\u2018\u2019]/g, "'") // Smart single quotes
-                     .replace(/[\u201C\u201D]/g, '"') // Smart double quotes
-                     .replace(/\u2013/g, '-')         // En dash
-                     .replace(/\u2014/g, '-')         // Em dash
-                     .replace(/\u2026/g, '...')       // Ellipsis
-                     .replace(/\u00A0/g, ' ');        // Non-breaking space
-    
-    return cleaned.trim();
+    return field;
   });
 }
 
@@ -156,54 +138,47 @@ export default function BulkUploadPage() {
   const validateProduct = (product: Record<string, any>, rowIndex: number): { isValid: boolean; errors: string[] } => {
     const errors: string[] = [];
     
-    // Check if this is a special bulk import file (Flipkart/Lelekart data)
-    const isSpecialBulkImport = product.name && product.name.includes("Ahina");
+    // Required fields
+    if (!product.name) errors.push(`Name is required`);
+    if (!product.description) errors.push(`Description is required`);
+    if (!product.price) errors.push(`Price is required`);
+    if (!product.category) errors.push(`Category is required`);
+    if (!product.imageUrl) errors.push(`Image URL is required`);
+    if (!product.stock && product.stock !== 0) errors.push(`Stock quantity is required`);
     
-    // For special bulk import files, we'll use extremely lenient validation
-    if (isSpecialBulkImport) {
-      // Only require a name and make everything else optional
-      if (!product.name) errors.push(`Name is required`);
-      
-      // Set default values for any missing required fields
-      if (!product.price) product.price = 999;
-      if (!product.category) product.category = "Fashion";
-      if (!product.description) product.description = product.name;
-      if (!product.stock) product.stock = 10;
-      if (!product.imageUrl) product.imageUrl = "https://via.placeholder.com/500";
-      
-      // Convert any non-numeric values to valid numbers
-      if (product.price && isNaN(Number(product.price))) product.price = 999;
-      if (product.stock && isNaN(Number(product.stock))) product.stock = 10;
-      if (product.mrp && isNaN(Number(product.mrp))) product.mrp = Number(product.price) * 1.2;
-      
-      // Return with almost no validation for this special case
-      return { isValid: true, errors: [] };
-    } 
-    // Standard validation for normal uploads
-    else {
-      // Required fields
-      if (!product.name) errors.push(`Name is required`);
-      if (!product.description) errors.push(`Description is required`);
-      if (!product.price) errors.push(`Price is required`);
-      if (!product.category) errors.push(`Category is required`);
-      // No longer validate imageUrl format - accept any non-empty string
-      if (!product.imageUrl) errors.push(`Image URL is required`);
-      if (!product.stock && product.stock !== 0) errors.push(`Stock quantity is required`);
-      
-      // Validate numeric fields with more lenient parsing
-      if (product.price && isNaN(Number(product.price))) errors.push(`Price must be a number`);
-      if (product.stock && isNaN(Number(product.stock))) errors.push(`Stock must be a number`);
-      if (product.mrp && isNaN(Number(product.mrp))) errors.push(`MRP must be a number`);
-      if (product.purchasePrice && isNaN(Number(product.purchasePrice))) errors.push(`Purchase price must be a number`);
-      if (product.warranty_months && isNaN(Number(product.warranty_months))) errors.push(`Warranty period must be a number (in months)`);
-      if (product.weight && isNaN(Number(product.weight))) errors.push(`Weight must be a number`);
-      if (product.length && isNaN(Number(product.length))) errors.push(`Length must be a number`);
-      if (product.width && isNaN(Number(product.width))) errors.push(`Width must be a number`);
-      if (product.height && isNaN(Number(product.height))) errors.push(`Height must be a number`);
-  
-      // Validate price logic
-      if (product.price && product.mrp && Number(product.price) > Number(product.mrp)) {
-        errors.push(`Selling price (${product.price}) cannot be greater than MRP (${product.mrp})`);
+    // Validate numeric fields
+    if (product.price && isNaN(Number(product.price))) errors.push(`Price must be a number`);
+    if (product.stock && isNaN(Number(product.stock))) errors.push(`Stock must be a number`);
+    if (product.mrp && isNaN(Number(product.mrp))) errors.push(`MRP must be a number`);
+    if (product.purchasePrice && isNaN(Number(product.purchasePrice))) errors.push(`Purchase price must be a number`);
+    if (product.warranty_months && isNaN(Number(product.warranty_months))) errors.push(`Warranty period must be a number (in months)`);
+    if (product.weight && isNaN(Number(product.weight))) errors.push(`Weight must be a number`);
+    if (product.length && isNaN(Number(product.length))) errors.push(`Length must be a number`);
+    if (product.width && isNaN(Number(product.width))) errors.push(`Width must be a number`);
+    if (product.height && isNaN(Number(product.height))) errors.push(`Height must be a number`);
+
+    // Validate price logic
+    if (product.price && product.mrp && Number(product.price) > Number(product.mrp)) {
+      errors.push(`Selling price (${product.price}) cannot be greater than MRP (${product.mrp})`);
+    }
+    
+    // Validate URLs in image fields
+    if (product.imageUrl && !product.imageUrl.match(/^https?:\/\/.+/)) {
+      errors.push(`Main image URL must be a valid URL starting with http:// or https://`);
+    }
+    
+    // If colors or sizes are provided, check if they are in the correct format
+    if (product.color && typeof product.color === 'string') {
+      const colors = product.color.split(',').map((c: string) => c.trim()).filter(Boolean);
+      if (colors.length === 0 && product.color.trim() !== '') {
+        errors.push(`Color format is invalid. Use comma-separated values like "Red, Blue, Green"`);
+      }
+    }
+    
+    if (product.size && typeof product.size === 'string') {
+      const sizes = product.size.split(',').map((s: string) => s.trim()).filter(Boolean);
+      if (sizes.length === 0 && product.size.trim() !== '') {
+        errors.push(`Size format is invalid. Use comma-separated values like "S, M, L, XL"`);
       }
     }
     
@@ -212,16 +187,8 @@ export default function BulkUploadPage() {
 
   // Function to process CSV data and generate preview
   const processCSVForPreview = (csvData: string) => {
-    // Pre-process the CSV to handle any BOM markers and normalize line endings
-    let processedCsv = csvData;
-    
-    // Remove BOM if present (common in Excel-exported CSVs)
-    if (processedCsv.charCodeAt(0) === 0xFEFF) {
-      processedCsv = processedCsv.slice(1);
-    }
-    
     // Handle different line endings (CRLF, LF)
-    const normalizedCsv = processedCsv.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const normalizedCsv = csvData.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     const lines = normalizedCsv.split('\n');
     
     if (lines.length < 2) {
@@ -269,8 +236,7 @@ export default function BulkUploadPage() {
         
         // Handle numeric fields
         if (['price', 'purchasePrice', 'stock', 'mrp', 'weight', 'length', 'width', 'height', 'warranty_months', 'returnPolicy', 'tax'].includes(header)) {
-          // Use parseFloat instead of parseInt to handle decimal values properly
-          productData[header] = parseFloat(value);
+          productData[header] = parseInt(value, 10);
         } 
         // Handle boolean fields
         else if (header === 'approved') {

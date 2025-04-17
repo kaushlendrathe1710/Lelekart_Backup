@@ -367,9 +367,9 @@ export default function SellerProductsPage() {
                             if (product.category) {
                               // Convert to lowercase for category-specific image
                               const categoryLower = product.category.toLowerCase();
-                              target.src = `/images/${categoryLower}.svg`;
+                              target.src = `../images/${categoryLower}.svg`;
                             } else {
-                              target.src = "/images/placeholder.svg";
+                              target.src = "../images/placeholder.svg";
                             }
                           }}
                         />

@@ -467,7 +467,7 @@ function ProductApprovalContent() {
                               }
                               
                               // Always use category-specific fallback as default
-                              const categoryImage = `/images/${(product.category || 'general').toLowerCase()}.svg`;
+                              const categoryImage = `../images/${(product.category || 'general').toLowerCase()}.svg`;
                               const genericFallback = "https://placehold.co/100?text=No+Image";
                               
                               // If this is a Lelekart image, use our proxy

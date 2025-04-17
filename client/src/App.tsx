@@ -51,9 +51,6 @@ const ShippingDashboard = lazy(() => import('./pages/admin/shipping-dashboard'))
 const PendingShipments = lazy(() => import('./pages/admin/pending-shipments'));
 const ShippingRates = lazy(() => import('./pages/admin/shipping-rates'));
 const TrackingManagement = lazy(() => import('./pages/admin/tracking-management'));
-const TrackingDetails = lazy(() => import('./pages/admin/tracking-details'));
-const CreateShipment = lazy(() => import('./pages/admin/create-shipment'));
-const OrderDetails = lazy(() => import('./pages/admin/order-details'));
 
 // Seller pages
 import SellerDashboardPage from './pages/seller/dashboard';
@@ -439,48 +436,6 @@ function App() {
                         )}
                       </Route>
                       
-                      <Route path="/admin/create-shipment">
-                        {() => (
-                          <ProtectedRoute 
-                            path="/admin/create-shipment" 
-                            role="admin" 
-                            component={() => (
-                              <SuspenseWrapper>
-                                <CreateShipment />
-                              </SuspenseWrapper>
-                            )}
-                          />
-                        )}
-                      </Route>
-                      
-                      <Route path="/admin/order-details/:id">
-                        {() => (
-                          <ProtectedRoute 
-                            path="/admin/order-details/:id" 
-                            role="admin" 
-                            component={() => (
-                              <SuspenseWrapper>
-                                <OrderDetails />
-                              </SuspenseWrapper>
-                            )}
-                          />
-                        )}
-                      </Route>
-                      
-                      <Route path="/admin/tracking-details/:trackingNumber">
-                        {() => (
-                          <ProtectedRoute 
-                            path="/admin/tracking-details/:trackingNumber" 
-                            role="admin" 
-                            component={() => (
-                              <SuspenseWrapper>
-                                <TrackingDetails />
-                              </SuspenseWrapper>
-                            )}
-                          />
-                        )}
-                      </Route>
-                      
                       <Route path="/admin/manage-admins">
                         {() => (
                           <ProtectedRoute 
@@ -679,30 +634,6 @@ function App() {
                             path="/seller/help" 
                             role="seller" 
                             component={SellerHelpPage} 
-                          />
-                        )}
-                      </Route>
-                      
-                      {/* Add missing route for seller inventory */}
-                      <Route path="/seller/inventory">
-                        {() => (
-                          <ProtectedRoute 
-                            path="/seller/inventory" 
-                            role="seller" 
-                            component={() => (
-                              <SellerProductsPage inventoryView={true} />
-                            )} 
-                          />
-                        )}
-                      </Route>
-                      
-                      {/* Add missing route for seller payments */}
-                      <Route path="/seller/payments">
-                        {() => (
-                          <ProtectedRoute 
-                            path="/seller/payments" 
-                            role="seller" 
-                            component={SellerPaymentsPage} 
                           />
                         )}
                       </Route>

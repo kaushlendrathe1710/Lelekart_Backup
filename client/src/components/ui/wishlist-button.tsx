@@ -17,33 +17,10 @@ export function WishlistButton({
   variant = 'icon',
   className = ''
 }: WishlistButtonProps) {
-  // Try to get auth context, but handle case when it's not available
-  let user;
-  let authError = false;
-  try {
-    const auth = useAuth();
-    user = auth?.user;
-  } catch (error) {
-    console.warn("Auth context not available in WishlistButton");
-    authError = true;
-    user = null;
-  }
-
-  // Try to get wishlist context, but handle case when it's not available
-  let isInWishlist = () => false;
-  let toggleWishlist = async () => {};
-  let inWishlist = false;
-  
-  try {
-    const wishlist = useWishlist();
-    isInWishlist = wishlist.isInWishlist;
-    toggleWishlist = wishlist.toggleWishlist;
-    inWishlist = isInWishlist(productId);
-  } catch (error) {
-    console.warn("Wishlist context not available in WishlistButton");
-  }
-
+  const { user } = useAuth();
+  const { isInWishlist, toggleWishlist } = useWishlist();
   const [, setLocation] = useLocation();
+  const inWishlist = isInWishlist(productId);
 
   const handleWishlistClick = async (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent event bubbling to parent (like card clicks)
