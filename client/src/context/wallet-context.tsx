@@ -113,7 +113,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   // Get wallet settings
   const {
-    data: settings,
+    data: rawSettings,
     isLoading: isSettingsLoading,
   } = useQuery({
     queryKey: ['/api/wallet/settings'],
@@ -130,6 +130,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }
     },
   });
+  
+  // Map server field names to client field names
+  const settings = rawSettings ? {
+    ...rawSettings,
+    // Map the server's isEnabled field to our client-side isActive field
+    isActive: rawSettings.isEnabled,
+    // Ensure we have the correct number formats
+    conversionRate: Number(rawSettings.coinToCurrencyRatio),
+    expiryDays: Number(rawSettings.coinExpiryDays),
+    maxUsagePercentage: Number(rawSettings.maxUsagePercentage || 0),
+    minCartValue: Number(rawSettings.minCartValue || 0)
+  } : null;
 
   // Redeem coins mutation
   const redeemCoinsMutation = useMutation({
