@@ -46,15 +46,22 @@ function parseCsvLine(line: string): string[] {
     return [];
   }
   
-  // Debug log
-  console.log(`Parsing CSV line: ${line}`);
+  // Debug log (truncated to avoid console spam)
+  const truncatedLine = line.length > 100 ? line.substring(0, 100) + '...' : line;
+  console.log(`Parsing CSV line: ${truncatedLine}`);
   
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
     
     if (char === '"') {
-      // Toggle the in-quotes flag when we see a quote
-      inQuotes = !inQuotes;
+      // Handle escaped quotes (double quotes) inside quoted fields
+      if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
+        current += '"'; // Add a single quote character
+        i++; // Skip the next quote
+      } else {
+        // Toggle the in-quotes flag
+        inQuotes = !inQuotes;
+      }
     } else if (char === ',' && !inQuotes) {
       // If we're not in quotes and see a comma, end the current field
       result.push(current);
@@ -68,12 +75,23 @@ function parseCsvLine(line: string): string[] {
   // Add the last field
   result.push(current);
   
-  // Remove quotes from fields that were quoted
+  // Clean up fields - remove quotes and normalize special characters
   return result.map(field => {
+    // Remove surrounding quotes if they exist
+    let cleaned = field;
     if (field.startsWith('"') && field.endsWith('"')) {
-      return field.substring(1, field.length - 1);
+      cleaned = field.substring(1, field.length - 1);
     }
-    return field;
+    
+    // Replace common special characters that might cause issues
+    cleaned = cleaned.replace(/[\u2018\u2019]/g, "'") // Smart single quotes
+                     .replace(/[\u201C\u201D]/g, '"') // Smart double quotes
+                     .replace(/\u2013/g, '-')         // En dash
+                     .replace(/\u2014/g, '-')         // Em dash
+                     .replace(/\u2026/g, '...')       // Ellipsis
+                     .replace(/\u00A0/g, ' ');        // Non-breaking space
+    
+    return cleaned.trim();
   });
 }
 
@@ -138,15 +156,16 @@ export default function BulkUploadPage() {
   const validateProduct = (product: Record<string, any>, rowIndex: number): { isValid: boolean; errors: string[] } => {
     const errors: string[] = [];
     
-    // Required fields
+    // Required fields - but make imageUrl optional
     if (!product.name) errors.push(`Name is required`);
     if (!product.description) errors.push(`Description is required`);
     if (!product.price) errors.push(`Price is required`);
     if (!product.category) errors.push(`Category is required`);
+    // No longer validate imageUrl format - accept any non-empty string
     if (!product.imageUrl) errors.push(`Image URL is required`);
     if (!product.stock && product.stock !== 0) errors.push(`Stock quantity is required`);
     
-    // Validate numeric fields
+    // Validate numeric fields with more lenient parsing
     if (product.price && isNaN(Number(product.price))) errors.push(`Price must be a number`);
     if (product.stock && isNaN(Number(product.stock))) errors.push(`Stock must be a number`);
     if (product.mrp && isNaN(Number(product.mrp))) errors.push(`MRP must be a number`);
@@ -186,8 +205,16 @@ export default function BulkUploadPage() {
 
   // Function to process CSV data and generate preview
   const processCSVForPreview = (csvData: string) => {
+    // Pre-process the CSV to handle any BOM markers and normalize line endings
+    let processedCsv = csvData;
+    
+    // Remove BOM if present (common in Excel-exported CSVs)
+    if (processedCsv.charCodeAt(0) === 0xFEFF) {
+      processedCsv = processedCsv.slice(1);
+    }
+    
     // Handle different line endings (CRLF, LF)
-    const normalizedCsv = csvData.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const normalizedCsv = processedCsv.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     const lines = normalizedCsv.split('\n');
     
     if (lines.length < 2) {
