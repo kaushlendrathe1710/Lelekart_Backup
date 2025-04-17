@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { useRoute } from "wouter";
 
 interface WalletTransaction {
   id: number;
@@ -55,7 +56,13 @@ const WalletContext = createContext<WalletContextType | null>(null);
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  const [isPublicPage] = useRoute("/seller/public-profile/:id");
   const { user } = useAuth();
+  
+  // Skip wallet initialization for public pages
+  if (isPublicPage) {
+    return <>{children}</>;
+  }
   
   // Get wallet data
   const {
@@ -202,7 +209,24 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 }
 
 export function useWallet() {
+  const [isPublicPage] = useRoute("/seller/public-profile/:id");
   const context = useContext(WalletContext);
+  
+  // For public pages, provide a mock wallet context
+  if (isPublicPage) {
+    return {
+      wallet: null,
+      transactions: [],
+      settings: null,
+      isLoading: false,
+      isSettingsLoading: false,
+      isTransactionsLoading: false,
+      redeemCoins: async () => {},
+      refetchWallet: () => {},
+      refetchTransactions: () => {},
+    } as WalletContextType;
+  }
+  
   if (!context) {
     throw new Error("useWallet must be used within a WalletProvider");
   }
