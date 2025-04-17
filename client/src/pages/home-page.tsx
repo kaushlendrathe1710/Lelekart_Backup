@@ -12,6 +12,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProductRecommendationCarousel from "@/components/ui/product-recommendation-carousel";
 import { PersonalizedRecommendations } from "@/components/ai";
+import { ProductRecommendationCard } from "@/components/ai/product-recommendations";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function HomePage() {
@@ -203,7 +204,9 @@ export default function HomePage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
                 {categoryGroup.products.map(product => (
-                  <ProductCard key={product.id} product={product} />
+                  categoryGroup.name === 'Fashion' ? 
+                    <ProductRecommendationCard key={product.id} product={product} className="h-full" /> :
+                    <ProductCard key={product.id} product={product} />
                 ))}
               </div>
             )}
