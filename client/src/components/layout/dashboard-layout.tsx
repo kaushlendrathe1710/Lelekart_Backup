@@ -69,15 +69,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const user = authContext?.user || apiUser;
   const isLoading = authContext ? authContext.isLoading : apiLoading;
   
-  // Show loading state while fetching user data
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-  
+  // Always define all hooks, regardless of conditions (to satisfy React rules of hooks)
   // Use React Query to fetch cart data
   const { data: cartItems = [] } = useQuery({
     queryKey: ['/api/cart'],
@@ -99,18 +91,28 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     refetchOnWindowFocus: false,
   });
   
+  // Show loading state while fetching user data
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+  
   // Calculate cart item count
   const cartItemCount = cartItems.length > 0 
     ? cartItems.reduce((sum: number, item: { quantity: number }) => sum + (item.quantity || 0), 0)
     : 0;
+  
+  // Always define all hooks (React rules of hooks)
+  const queryClient = useQueryClient();
   
   // If no user, redirect to auth page
   if (!user) {
     setLocation('/auth');
     return null;
   }
-
-  const queryClient = useQueryClient();
   
   const handleLogout = async () => {
     try {
