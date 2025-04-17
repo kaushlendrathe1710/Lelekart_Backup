@@ -419,7 +419,11 @@ function App() {
                           <ProtectedRoute 
                             path="/admin/tracking-management" 
                             role="admin" 
-                            component={TrackingManagement}
+                            component={() => (
+                              <SuspenseWrapper>
+                                <TrackingManagement />
+                              </SuspenseWrapper>
+                            )}
                           />
                         )}
                       </Route>

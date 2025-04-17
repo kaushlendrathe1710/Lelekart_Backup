@@ -4,6 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Table,
   TableBody,
   TableCell,
@@ -11,103 +17,127 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { 
+  Search, 
+  Filter, 
   Package, 
   MoreVertical,
   Truck,
-  Search,
-  Filter,
-  Download,
-  RefreshCw,
-  AlertTriangle
+  AlertTriangle,
+  Check,
+  Calendar,
+  FileText,
+  Send,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 const PendingShipmentsPage = () => {
   // Sample data - in a real app, this would come from an API
   const pendingShipments = [
     { 
-      id: 'ORD-5823', 
-      customer: 'Rahul Verma', 
-      address: '123 Main St, New Delhi, 110001', 
+      id: 'ORD-5893', 
+      customer: 'Deepak Singh', 
       date: '2025-04-15', 
       items: 3, 
-      value: '₹4,200', 
-      status: 'Not Processed',
-      priority: 'High'
+      total: '₹4,590',
+      address: 'Mumbai, Maharashtra',
+      status: 'Ready to Ship',
+      fulfillmentStatus: 'pending',
+      paymentStatus: 'paid'
     },
     { 
-      id: 'ORD-5822', 
-      customer: 'Anjali Sharma', 
-      address: '456 Park Ave, Mumbai, 400001', 
+      id: 'ORD-5890', 
+      customer: 'Priya Sharma', 
       date: '2025-04-15', 
       items: 1, 
-      value: '₹1,500', 
+      total: '₹1,200',
+      address: 'Bangalore, Karnataka',
       status: 'Processing',
-      priority: 'Medium'
+      fulfillmentStatus: 'processing',
+      paymentStatus: 'paid'
     },
     { 
-      id: 'ORD-5821', 
-      customer: 'Vikram Singh', 
-      address: '789 Lake View, Bangalore, 560001', 
+      id: 'ORD-5885', 
+      customer: 'Rajesh Kumar', 
       date: '2025-04-14', 
       items: 2, 
-      value: '₹2,800', 
-      status: 'Ready for Pickup',
-      priority: 'Low'
+      total: '₹3,450',
+      address: 'Delhi, Delhi',
+      status: 'Ready to Ship',
+      fulfillmentStatus: 'pending',
+      paymentStatus: 'paid'
     },
     { 
-      id: 'ORD-5820', 
+      id: 'ORD-5882', 
       customer: 'Neha Patel', 
-      address: '15 Ring Road, Ahmedabad, 380001', 
       date: '2025-04-14', 
-      items: 5, 
-      value: '₹7,350', 
-      status: 'Not Processed',
-      priority: 'High'
+      items: 4, 
+      total: '₹6,700',
+      address: 'Ahmedabad, Gujarat',
+      status: 'Payment Issue',
+      fulfillmentStatus: 'pending',
+      paymentStatus: 'failed'
     },
     { 
-      id: 'ORD-5819', 
-      customer: 'Rajesh Kumar', 
-      address: '22 MG Road, Chennai, 600001', 
+      id: 'ORD-5878', 
+      customer: 'Amit Singh', 
       date: '2025-04-13', 
+      items: 2, 
+      total: '₹2,340',
+      address: 'Chennai, Tamil Nadu',
+      status: 'Ready to Ship',
+      fulfillmentStatus: 'pending',
+      paymentStatus: 'paid'
+    },
+    { 
+      id: 'ORD-5875', 
+      customer: 'Sneha Reddy', 
+      date: '2025-04-12', 
       items: 1, 
-      value: '₹990', 
+      total: '₹990',
+      address: 'Hyderabad, Telangana',
       status: 'Processing',
-      priority: 'Medium'
+      fulfillmentStatus: 'processing',
+      paymentStatus: 'paid'
+    },
+    { 
+      id: 'ORD-5870', 
+      customer: 'Vikram Malhotra', 
+      date: '2025-04-12', 
+      items: 3, 
+      total: '₹5,670',
+      address: 'Jaipur, Rajasthan',
+      status: 'Ready to Ship',
+      fulfillmentStatus: 'pending',
+      paymentStatus: 'paid'
+    },
+    { 
+      id: 'ORD-5865', 
+      customer: 'Meera Iyer', 
+      date: '2025-04-11', 
+      items: 1, 
+      total: '₹2,100',
+      address: 'Kochi, Kerala',
+      status: 'Address Issue',
+      fulfillmentStatus: 'pending',
+      paymentStatus: 'paid'
     },
   ];
 
-  const getPriorityBadgeClasses = (priority: string) => {
-    switch (priority.toLowerCase()) {
-      case 'high':
-        return 'bg-red-100 text-red-800';
-      case 'medium':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'low':
-        return 'bg-green-100 text-green-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusBadgeClasses = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'not processed':
-        return 'bg-gray-100 text-gray-800';
+  const getStatusBadge = (status: string) => {
+    switch(status.toLowerCase()) {
+      case 'ready to ship':
+        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border-transparent">Ready to Ship</Badge>;
       case 'processing':
-        return 'bg-blue-100 text-blue-800';
-      case 'ready for pickup':
-        return 'bg-purple-100 text-purple-800';
+        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 border-transparent">Processing</Badge>;
+      case 'payment issue':
+        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100 border-transparent">Payment Issue</Badge>;
+      case 'address issue':
+        return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-transparent">Address Issue</Badge>;
       default:
-        return 'bg-gray-100 text-gray-800';
+        return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100 border-transparent">{status}</Badge>;
     }
   };
 
@@ -118,22 +148,18 @@ const PendingShipmentsPage = () => {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Pending Shipments</h1>
             <p className="text-muted-foreground">
-              Manage shipments that need processing
+              Manage and process orders awaiting shipment
             </p>
           </div>
           <div className="flex space-x-2">
-            <Button variant="outline">
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
             <Button>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
+              <Send className="h-4 w-4 mr-2" />
+              Ship Selected
             </Button>
           </div>
         </div>
 
-        {/* Search and Filters */}
+        {/* Search and Filter Section */}
         <Card>
           <CardContent className="pt-6">
             <div className="flex flex-col md:flex-row gap-4">
@@ -141,117 +167,137 @@ const PendingShipmentsPage = () => {
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
-                  placeholder="Search orders..."
+                  placeholder="Search by order ID, customer name, or address..."
                   className="pl-8 w-full"
                 />
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" className="shrink-0">
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filter
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="shrink-0">
-                      Status
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem>Not Processed</DropdownMenuItem>
-                    <DropdownMenuItem>Processing</DropdownMenuItem>
-                    <DropdownMenuItem>Ready for Pickup</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="shrink-0">
-                      Priority
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Filter by Priority</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem>High</DropdownMenuItem>
-                    <DropdownMenuItem>Medium</DropdownMenuItem>
-                    <DropdownMenuItem>Low</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full md:w-auto">
+                    <Filter className="h-4 w-4 mr-2" />
+                    Filters
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuItem>Ready to Ship</DropdownMenuItem>
+                  <DropdownMenuItem>Processing</DropdownMenuItem>
+                  <DropdownMenuItem>Payment Issues</DropdownMenuItem>
+                  <DropdownMenuItem>Address Issues</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </CardContent>
         </Card>
 
-        {/* Pending Shipments Table */}
+        {/* Orders Table */}
         <Card>
           <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>Shipments Awaiting Processing</CardTitle>
-              <div className="flex items-center text-muted-foreground">
-                <AlertTriangle className="h-4 w-4 mr-1" />
-                <span className="text-sm">5 shipments need attention</span>
-              </div>
-            </div>
+            <CardTitle>Orders Awaiting Shipment</CardTitle>
             <CardDescription>
-              Process these shipments to prepare them for pickup
+              {pendingShipments.length} orders pending shipment
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">
+                    <input type="checkbox" className="h-4 w-4 rounded border-gray-300" />
+                  </TableHead>
                   <TableHead>Order ID</TableHead>
                   <TableHead>Customer</TableHead>
-                  <TableHead className="hidden md:table-cell">Date</TableHead>
-                  <TableHead className="hidden md:table-cell">Items</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Items</TableHead>
+                  <TableHead>Total</TableHead>
+                  <TableHead>Shipping Address</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Priority</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pendingShipments.map((shipment) => (
-                  <TableRow key={shipment.id}>
-                    <TableCell className="font-medium">{shipment.id}</TableCell>
-                    <TableCell>{shipment.customer}</TableCell>
-                    <TableCell className="hidden md:table-cell">{shipment.date}</TableCell>
-                    <TableCell className="hidden md:table-cell">{shipment.items}</TableCell>
+                {pendingShipments.map((order) => (
+                  <TableRow key={order.id}>
                     <TableCell>
-                      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getStatusBadgeClasses(shipment.status)}`}>
-                        {shipment.status}
-                      </span>
+                      <input 
+                        type="checkbox" 
+                        className="h-4 w-4 rounded border-gray-300"
+                        disabled={order.status.toLowerCase() !== 'ready to ship'} 
+                      />
                     </TableCell>
+                    <TableCell className="font-medium">{order.id}</TableCell>
+                    <TableCell>{order.customer}</TableCell>
                     <TableCell>
-                      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getPriorityBadgeClasses(shipment.priority)}`}>
-                        {shipment.priority}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm">
-                          <Truck className="h-4 w-4 mr-1" />
-                          Process
-                        </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>View Details</DropdownMenuItem>
-                            <DropdownMenuItem>Print Label</DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-red-600">Cancel</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                      <div className="flex items-center">
+                        <Calendar className="h-4 w-4 mr-1 text-muted-foreground" />
+                        {order.date}
                       </div>
+                    </TableCell>
+                    <TableCell>{order.items}</TableCell>
+                    <TableCell>{order.total}</TableCell>
+                    <TableCell>{order.address}</TableCell>
+                    <TableCell>
+                      {getStatusBadge(order.status)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem>
+                            <FileText className="h-4 w-4 mr-2" />
+                            View Details
+                          </DropdownMenuItem>
+                          {order.status.toLowerCase() === 'ready to ship' && (
+                            <DropdownMenuItem>
+                              <Truck className="h-4 w-4 mr-2" />
+                              Ship Now
+                            </DropdownMenuItem>
+                          )}
+                          {order.status.toLowerCase() === 'payment issue' && (
+                            <DropdownMenuItem>
+                              <AlertTriangle className="h-4 w-4 mr-2" />
+                              Resolve Payment
+                            </DropdownMenuItem>
+                          )}
+                          {order.status.toLowerCase() === 'address issue' && (
+                            <DropdownMenuItem>
+                              <AlertTriangle className="h-4 w-4 mr-2" />
+                              Edit Address
+                            </DropdownMenuItem>
+                          )}
+                          {order.status.toLowerCase() === 'processing' && (
+                            <DropdownMenuItem>
+                              <Check className="h-4 w-4 mr-2" />
+                              Mark as Ready
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+            
+            {/* Pagination */}
+            <div className="flex items-center justify-between mt-6">
+              <div className="text-sm text-muted-foreground">
+                Showing <strong>1-8</strong> of <strong>24</strong> orders
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button variant="outline" size="sm">
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <Button variant="outline" size="sm">
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
