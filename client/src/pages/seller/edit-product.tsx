@@ -541,22 +541,47 @@ export default function EditProductPage() {
                                 // Add tag on Enter or comma
                                 if (e.key === 'Enter' || e.key === ',') {
                                   e.preventDefault();
-                                  const value = (e.target as HTMLInputElement).value.trim();
-                                  if (value) {
-                                    const newTags = [...colorTags, value];
-                                    setColorTags(newTags);
-                                    field.onChange(newTags.join(', '));
+                                  const inputValue = (e.target as HTMLInputElement).value.trim();
+                                  
+                                  if (inputValue) {
+                                    // Check if input contains multiple colors (comma-separated)
+                                    const colorValues = inputValue.split(',').map(c => c.trim()).filter(Boolean);
+                                    
+                                    if (colorValues.length > 0) {
+                                      // Add multiple colors at once
+                                      const newTags = [...colorTags];
+                                      colorValues.forEach(color => {
+                                        if (!newTags.includes(color)) {
+                                          newTags.push(color);
+                                        }
+                                      });
+                                      setColorTags(newTags);
+                                      field.onChange(newTags.join(', '));
+                                    }
+                                    
                                     (e.target as HTMLInputElement).value = '';
                                   }
                                 }
                               };
                               
                               const handleColorBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-                                const value = e.target.value.trim();
-                                if (value) {
-                                  const newTags = [...colorTags, value];
-                                  setColorTags(newTags);
-                                  field.onChange(newTags.join(', '));
+                                const inputValue = e.target.value.trim();
+                                if (inputValue) {
+                                  // Check if input contains multiple colors (comma-separated)
+                                  const colorValues = inputValue.split(',').map(c => c.trim()).filter(Boolean);
+                                  
+                                  if (colorValues.length > 0) {
+                                    // Add multiple colors at once
+                                    const newTags = [...colorTags];
+                                    colorValues.forEach(color => {
+                                      if (!newTags.includes(color)) {
+                                        newTags.push(color);
+                                      }
+                                    });
+                                    setColorTags(newTags);
+                                    field.onChange(newTags.join(', '));
+                                  }
+                                  
                                   e.target.value = '';
                                 }
                               };
@@ -618,11 +643,24 @@ export default function EditProductPage() {
                                 // Add tag on Enter or comma
                                 if (e.key === 'Enter' || e.key === ',') {
                                   e.preventDefault();
-                                  const value = (e.target as HTMLInputElement).value.trim();
-                                  if (value) {
-                                    const newTags = [...sizeTags, value];
-                                    setSizeTags(newTags);
-                                    field.onChange(newTags.join(', '));
+                                  const inputValue = (e.target as HTMLInputElement).value.trim();
+                                  
+                                  if (inputValue) {
+                                    // Check if input contains multiple sizes (comma-separated)
+                                    const sizeValues = inputValue.split(',').map(s => s.trim()).filter(Boolean);
+                                    
+                                    if (sizeValues.length > 0) {
+                                      // Add multiple sizes at once
+                                      const newTags = [...sizeTags];
+                                      sizeValues.forEach(size => {
+                                        if (!newTags.includes(size)) {
+                                          newTags.push(size);
+                                        }
+                                      });
+                                      setSizeTags(newTags);
+                                      field.onChange(newTags.join(', '));
+                                    }
+                                    
                                     (e.target as HTMLInputElement).value = '';
                                   }
                                 }

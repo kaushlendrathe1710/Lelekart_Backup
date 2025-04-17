@@ -522,10 +522,21 @@ export default function AddProductPage() {
                         const handleKeyDown = (e: React.KeyboardEvent) => {
                           if (e.key === 'Enter' && inputValue.trim()) {
                             e.preventDefault();
-                            const newColor = inputValue.trim();
-                            if (!colors.includes(newColor)) {
-                              setColors([...colors, newColor]);
+                            
+                            // Check if input contains multiple colors (comma-separated)
+                            const colorValues = inputValue.split(',').map(c => c.trim()).filter(Boolean);
+                            
+                            if (colorValues.length > 0) {
+                              // Add multiple colors at once
+                              const newColors = [...colors];
+                              colorValues.forEach(color => {
+                                if (!newColors.includes(color)) {
+                                  newColors.push(color);
+                                }
+                              });
+                              setColors(newColors);
                             }
+                            
                             setInputValue("");
                           }
                         };
@@ -584,10 +595,21 @@ export default function AddProductPage() {
                         const handleKeyDown = (e: React.KeyboardEvent) => {
                           if (e.key === 'Enter' && inputValue.trim()) {
                             e.preventDefault();
-                            const newSize = inputValue.trim();
-                            if (!sizes.includes(newSize)) {
-                              setSizes([...sizes, newSize]);
+                            
+                            // Check if input contains multiple sizes (comma-separated)
+                            const sizeValues = inputValue.split(',').map(s => s.trim()).filter(Boolean);
+                            
+                            if (sizeValues.length > 0) {
+                              // Add multiple sizes at once
+                              const newSizes = [...sizes];
+                              sizeValues.forEach(size => {
+                                if (!newSizes.includes(size)) {
+                                  newSizes.push(size);
+                                }
+                              });
+                              setSizes(newSizes);
                             }
+                            
                             setInputValue("");
                           }
                         };
