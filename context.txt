@@ -249,6 +249,54 @@ category=Electronics&page=1&limit=12&sellerId=15&approved=true
 
 ## Cart and Wishlist
 
+### `/api/wishlist` - Get user's wishlist items (GET)
+**Response (200):**
+```json
+[
+  {
+    "id": 1,
+    "userId": 5,
+    "dateAdded": "2025-04-17T08:25:20.921Z",
+    "product": {
+      "id": 3,
+      "name": "Padded Panty 3",
+      "description": "Perfect shapewear for a smooth silhouette",
+      "price": 599,
+      "salePrice": 399,
+      "category": "Fashion",
+      "imageUrl": "https://example.com/padded-panty.jpg",
+      "sellerId": 3
+    }
+  }
+]
+```
+
+### `/api/wishlist` - Add item to wishlist (POST)
+**Request:**
+```json
+{
+  "productId": 3
+}
+```
+**Response (201):**
+```json
+{
+  "id": 1,
+  "userId": 5,
+  "productId": 3,
+  "dateAdded": "2025-04-17T08:25:20.921Z"
+}
+```
+
+### `/api/wishlist/:productId` - Remove item from wishlist (DELETE)
+**Response (200):**
+```json
+{
+  "message": "Item removed from wishlist",
+  "productId": 3
+}
+```
+
 ### `/api/cart` - Get user's cart items (GET)
 **Response (200):**
 ```json
