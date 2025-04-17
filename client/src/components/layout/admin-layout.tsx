@@ -37,6 +37,9 @@ import {
   Award,
   Gift,
   CreditCard,
+  Clock,
+  DollarSign,
+  Upload,
 } from "lucide-react";
 import { useState } from "react";
 import {
@@ -120,7 +123,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       collapsible: true,
       title: "Shipping Management",
       icon: <Truck className="h-5 w-5" />,
-      open: false,
+      open: location.includes("/admin/shipping") || location.includes("/admin/shiprocket"),
       items: [
         {
           title: "General Settings",
@@ -131,6 +134,26 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           title: "Shiprocket Integration",
           href: "/admin/shiprocket",
           icon: <Package className="h-5 w-5" />,
+        },
+        {
+          title: "Shipment Dashboard",
+          href: "/admin/shipping-dashboard",
+          icon: <LayoutDashboard className="h-5 w-5" />,
+        },
+        {
+          title: "Pending Shipments",
+          href: "/admin/pending-shipments",
+          icon: <Clock className="h-5 w-5" />,
+        },
+        {
+          title: "Shipping Rates",
+          href: "/admin/shipping-rates",
+          icon: <DollarSign className="h-5 w-5" />,
+        },
+        {
+          title: "Tracking Management",
+          href: "/admin/tracking-management",
+          icon: <Search className="h-5 w-5" />,
         }
       ],
     },
