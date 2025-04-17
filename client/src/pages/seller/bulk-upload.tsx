@@ -13,11 +13,13 @@ import {
   ChevronDown,
   HelpCircle,
   Info as InfoIcon,
-  X
+  X,
+  Image as ImageIcon
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { AuthContext } from "@/hooks/use-auth";
+import { FlipkartImage } from "@/components/ui/flipkart-image";
 import { useQuery } from "@tanstack/react-query";
 import {
   Popover,
@@ -826,6 +828,7 @@ export default function BulkUploadPage() {
                     <thead className="bg-muted/50">
                       <tr>
                         <th className="px-4 py-3 text-left text-sm font-medium">#</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium">Image</th>
                         <th className="px-4 py-3 text-left text-sm font-medium">Product Name</th>
                         <th className="px-4 py-3 text-left text-sm font-medium">Category</th>
                         <th className="px-4 py-3 text-left text-sm font-medium">Price</th>
@@ -838,6 +841,54 @@ export default function BulkUploadPage() {
                       {previewProducts.slice(0, 5).map((product, index) => (
                         <tr key={index} className={`${!product.isValid ? 'bg-red-50' : ''}`}>
                           <td className="px-4 py-3 text-sm">{product.rowIndex}</td>
+                          <td className="px-4 py-3 text-sm">
+                            {product.imageUrl ? (
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <div className="relative h-12 w-12 overflow-hidden rounded-md border bg-white cursor-pointer">
+                                    <FlipkartImage 
+                                      url={product.imageUrl} 
+                                      alt={product.name} 
+                                      className="h-full w-full object-contain" 
+                                    />
+                                    {/* Indicator for additional images */}
+                                    {product.images && Array.isArray(product.images) && product.images.length > 0 && (
+                                      <div className="absolute bottom-0 right-0 bg-blue-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                                        +{product.images.length}
+                                      </div>
+                                    )}
+                                  </div>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-64 p-2">
+                                  <div className="space-y-2">
+                                    <h4 className="text-sm font-medium">Product Images</h4>
+                                    <div className="grid grid-cols-2 gap-1">
+                                      <div className="aspect-square bg-white border rounded overflow-hidden">
+                                        <FlipkartImage 
+                                          url={product.imageUrl} 
+                                          alt={`${product.name} - Main`}
+                                          className="h-full w-full object-contain"
+                                        />
+                                      </div>
+                                      {product.images && Array.isArray(product.images) && product.images.map((imgUrl, imgIdx) => (
+                                        <div key={imgIdx} className="aspect-square bg-white border rounded overflow-hidden">
+                                          <FlipkartImage 
+                                            url={imgUrl} 
+                                            alt={`${product.name} - ${imgIdx + 1}`}
+                                            className="h-full w-full object-contain"
+                                          />
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            ) : (
+                              <div className="flex h-12 w-12 items-center justify-center rounded-md border bg-muted">
+                                <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                              </div>
+                            )}
+                          </td>
                           <td className="px-4 py-3 text-sm font-medium">{product.name}</td>
                           <td className="px-4 py-3 text-sm text-muted-foreground">{product.category}</td>
                           <td className="px-4 py-3 text-sm">${product.price}</td>
@@ -887,7 +938,7 @@ export default function BulkUploadPage() {
                       ))}
                       {previewProducts.length > 5 && (
                         <tr>
-                          <td colSpan={7} className="px-4 py-3 text-center text-muted-foreground">
+                          <td colSpan={8} className="px-4 py-3 text-center text-muted-foreground">
                             And {previewProducts.length - 5} more products...
                           </td>
                         </tr>
