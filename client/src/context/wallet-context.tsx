@@ -1,10 +1,10 @@
-import { createContext, ReactNode, useContext, useState } from "react";
+import { createContext, ReactNode, useContext, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
-import { useRoute } from "wouter";
+import { useRoute, useLocation } from "wouter";
 
+// Types
 interface WalletTransaction {
   id: number;
   userId: number;
@@ -25,10 +25,10 @@ interface WalletSettings {
   id?: number;
   firstPurchaseCoins: number;
   expiryDays: number;
-  conversionRate: number; // How many coins equal 1 INR
-  maxUsagePercentage: number; // Maximum percentage of order value that can be paid with coins
-  minCartValue: number; // Minimum cart value required to use coins
-  applicableCategories: string; // Comma-separated list of categories where coins can be applied
+  conversionRate: number;
+  maxUsagePercentage: number;
+  minCartValue: number;
+  applicableCategories: string;
   isActive: boolean;
 }
 
@@ -40,6 +40,7 @@ type RedeemCoinsOptions = {
   category?: string;
 };
 
+// Context interface
 type WalletContextType = {
   wallet: Wallet | null;
   transactions: WalletTransaction[];
@@ -52,34 +53,62 @@ type WalletContextType = {
   refetchTransactions: () => void;
 };
 
-const WalletContext = createContext<WalletContextType | null>(null);
+// Default mock values for public/non-authenticated routes
+const defaultWalletContext: WalletContextType = {
+  wallet: null,
+  transactions: [],
+  settings: null,
+  isLoading: false,
+  isSettingsLoading: false,
+  isTransactionsLoading: false,
+  redeemCoins: async () => {},
+  refetchWallet: () => {},
+  refetchTransactions: () => {},
+};
 
+// Create context with default values to avoid null checks
+const WalletContext = createContext<WalletContextType>(defaultWalletContext);
+
+// Helper function to check if a route is public/non-authenticated
+function isPublicRoute(pathname: string): boolean {
+  // List of routes that don't require authentication
+  const publicRoutes = ['/search', '/seller/public-profile'];
+  return publicRoutes.some(route => pathname.startsWith(route));
+}
+
+// Provider component
 export function WalletProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
-  const [isPublicPage] = useRoute("/seller/public-profile/:id");
-  const [isSearchPage] = useRoute("/search");
+  const [location] = useLocation();
   
-  // For public pages and search pages, just render children without auth requirements
-  if (isPublicPage || isSearchPage) {
-    return <>{children}</>;
+  // If we're on a public route, just render children with the default context
+  if (isPublicRoute(location)) {
+    return (
+      <WalletContext.Provider value={defaultWalletContext}>
+        {children}
+      </WalletContext.Provider>
+    );
   }
   
-  // Only use auth for authenticated pages
-  const { user } = useAuth();
+  // For authenticated routes, use the actual wallet data
+  // We'll let the Auth provider handle the authentication check
   
   // Get wallet data
   const {
-    data: wallet,
+    data: wallet = null,
     isLoading: isWalletLoading,
     refetch: refetchWallet
   } = useQuery({
     queryKey: ['/api/wallet'],
     queryFn: async () => {
-      if (!user) return null;
       try {
         const res = await apiRequest('GET', '/api/wallet');
         if (!res.ok) {
           if (res.status === 404) {
+            return null;
+          }
+          if (res.status === 401) {
+            // Not authenticated
             return null;
           }
           throw new Error('Failed to fetch wallet data');
@@ -89,8 +118,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         console.error('Error fetching wallet:', error);
         return null;
       }
-    },
-    enabled: !!user
+    }
   });
 
   // Get wallet transactions
@@ -101,10 +129,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   } = useQuery({
     queryKey: ['/api/wallet/transactions'],
     queryFn: async () => {
-      if (!user) return { transactions: [], total: 0 };
       try {
         const res = await apiRequest('GET', '/api/wallet/transactions');
         if (!res.ok) {
+          if (res.status === 401) {
+            // Not authenticated
+            return { transactions: [], total: 0 };
+          }
           throw new Error('Failed to fetch wallet transactions');
         }
         const data = await res.json();
@@ -117,13 +148,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         console.error('Error fetching transactions:', error);
         return { transactions: [], total: 0 };
       }
-    },
-    enabled: !!user,
+    }
   });
 
   // Get wallet settings
   const {
-    data: rawSettings,
+    data: rawSettings = null,
     isLoading: isSettingsLoading,
   } = useQuery({
     queryKey: ['/api/wallet/settings'],
@@ -211,28 +241,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// Custom hook to use the wallet context
 export function useWallet() {
-  const [isPublicPage] = useRoute("/seller/public-profile/:id");
-  const [isSearchPage] = useRoute("/search");
   const context = useContext(WalletContext);
-  
-  // For public pages and search pages, provide a mock wallet context
-  if (isPublicPage || isSearchPage) {
-    return {
-      wallet: null,
-      transactions: [],
-      settings: null,
-      isLoading: false,
-      isSettingsLoading: false,
-      isTransactionsLoading: false,
-      redeemCoins: async () => {},
-      refetchWallet: () => {},
-      refetchTransactions: () => {},
-    } as WalletContextType;
-  }
-  
-  if (!context) {
-    throw new Error("useWallet must be used within a WalletProvider");
-  }
+  // The context is never null because we provide default values
   return context;
 }
