@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useContext } from "react";
 import { apiRequest } from "@/lib/queryClient";
+import { WishlistButton } from "./wishlist-button";
 
 // Define an extended Product interface to include image_url
 interface ExtendedProduct extends Product {
@@ -97,6 +98,9 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
   // Use the same dimensions and styling for all product cards regardless of featured status
   return (
     <div className="relative">
+      {/* Add Wishlist button on top right of card */}
+      <WishlistButton productId={product.id} variant="card" />
+      
       <Card 
         className="product-card h-full flex flex-col items-center p-3 transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1"
         onClick={() => {

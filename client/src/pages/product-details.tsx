@@ -13,6 +13,7 @@ import { CartContext, CartProvider } from "@/context/cart-context";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { formatPrice } from "@/lib/utils";
+import { WishlistButton } from "@/components/ui/wishlist-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProductReviews from "@/components/product/product-reviews";
 import ProductRecommendationCarousel from "@/components/ui/product-recommendation-carousel";
@@ -622,8 +623,11 @@ export default function ProductDetailsPage() {
               
               {/* Right: Product Info (7/12) */}
               <div className="md:col-span-7 p-4">
-                {/* Product Title */}
-                <h1 className="text-xl text-gray-800 font-medium">{product?.name}</h1>
+                {/* Product Title with Wishlist Button */}
+                <div className="flex justify-between items-start">
+                  <h1 className="text-xl text-gray-800 font-medium">{product?.name}</h1>
+                  {product && <WishlistButton productId={product.id} variant="icon-label" className="text-gray-600 hover:text-primary" />}
+                </div>
                 
                 {/* SKU */}
                 <div className="flex mt-1 text-sm text-gray-500">

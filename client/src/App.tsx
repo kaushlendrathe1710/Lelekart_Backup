@@ -22,6 +22,7 @@ import { AuthProvider } from './hooks/use-auth';
 import { CartProvider } from './context/cart-context';
 import { AIAssistantProvider } from './context/ai-assistant-context';
 import { WalletProvider } from './context/wallet-context';
+import { WishlistProvider } from './context/wishlist-context';
 import { AIAssistantButton } from './components/ai/ai-assistant-button';
 import { AIShoppingAssistant } from './components/ai/ai-shopping-assistant';
 
@@ -84,8 +85,9 @@ function App() {
             <AuthProvider>
               <WalletProvider>
                 <CartProvider>
-                  <AIAssistantProvider>
-                    <TooltipProvider>
+                  <WishlistProvider>
+                    <AIAssistantProvider>
+                      <TooltipProvider>
                       <div className="app">
                         <AIAssistantButton />
                         <AIShoppingAssistant />
@@ -601,9 +603,10 @@ function App() {
                       </div>
                     </TooltipProvider>
                   </AIAssistantProvider>
-                </CartProvider>
-              </WalletProvider>
-            </AuthProvider>
+                </WishlistProvider>
+              </CartProvider>
+            </WalletProvider>
+          </AuthProvider>
           )}
         </Route>
       </Switch>
