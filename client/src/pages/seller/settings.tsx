@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FileUpload } from "@/components/ui/file-upload";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -876,13 +877,30 @@ export default function SellerSettingsPage() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="storeLogo">Store Logo URL</Label>
-                      <Input 
-                        id="storeLogo" 
-                        value={storeSettings.logo}
-                        onChange={(e) => setStoreSettings({...storeSettings, logo: e.target.value})}
-                        placeholder="https://example.com/logo.png"
-                      />
+                      <Label htmlFor="storeLogo">Store Logo</Label>
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Input 
+                            id="storeLogo" 
+                            value={storeSettings.logo}
+                            onChange={(e) => setStoreSettings({...storeSettings, logo: e.target.value})}
+                            placeholder="https://example.com/logo.png"
+                            className="flex-1"
+                          />
+                          <span className="text-sm text-muted-foreground">or</span>
+                          <FileUpload
+                            onChange={(url) => setStoreSettings({...storeSettings, logo: url})}
+                            value={storeSettings.logo}
+                            label="Upload Logo"
+                            accept="image/*"
+                            maxSizeMB={2}
+                            id="logo-upload"
+                          />
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Recommended size: 200x200px. Max file size: 2MB. Supported formats: JPG, PNG, SVG.
+                        </div>
+                      </div>
                       {storeSettings.logo && (
                         <div className="mt-2 p-2 border rounded-md flex justify-center">
                           <img 
@@ -895,13 +913,30 @@ export default function SellerSettingsPage() {
                       )}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="storeBanner">Store Banner URL</Label>
-                      <Input 
-                        id="storeBanner" 
-                        value={storeSettings.banner}
-                        onChange={(e) => setStoreSettings({...storeSettings, banner: e.target.value})}
-                        placeholder="https://example.com/banner.jpg"
-                      />
+                      <Label htmlFor="storeBanner">Store Banner</Label>
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Input 
+                            id="storeBanner" 
+                            value={storeSettings.banner}
+                            onChange={(e) => setStoreSettings({...storeSettings, banner: e.target.value})}
+                            placeholder="https://example.com/banner.jpg"
+                            className="flex-1"
+                          />
+                          <span className="text-sm text-muted-foreground">or</span>
+                          <FileUpload
+                            onChange={(url) => setStoreSettings({...storeSettings, banner: url})}
+                            value={storeSettings.banner}
+                            label="Upload Banner"
+                            accept="image/*"
+                            maxSizeMB={5}
+                            id="banner-upload"
+                          />
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Recommended size: 1200x300px. Max file size: 5MB. Supported formats: JPG, PNG.
+                        </div>
+                      </div>
                       {storeSettings.banner && (
                         <div className="mt-2 p-2 border rounded-md flex justify-center">
                           <img 
