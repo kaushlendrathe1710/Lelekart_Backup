@@ -3,16 +3,16 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-// Import placeholder images directly
-import placeholderImage from '../../assets/placeholder.svg';
-import electronicsImage from '../../assets/electronics.svg';
-import mobilesImage from '../../assets/mobiles.svg';
-import fashionImage from '../../assets/fashion.svg';
-import homeImage from '../../assets/home.svg';
-import appliancesImage from '../../assets/appliances.svg';
-import beautyImage from '../../assets/beauty.svg';
-import toysImage from '../../assets/toys.svg';
-import groceryImage from '../../assets/grocery.svg';
+// Import placeholder images as URLs
+import placeholderImage from '../../assets/placeholder.svg?url';
+import electronicsImage from '../../assets/electronics.svg?url';
+import mobilesImage from '../../assets/mobiles.svg?url';
+import fashionImage from '../../assets/fashion.svg?url';
+import homeImage from '../../assets/home.svg?url';
+import appliancesImage from '../../assets/appliances.svg?url';
+import beautyImage from '../../assets/beauty.svg?url';
+import toysImage from '../../assets/toys.svg?url';
+import groceryImage from '../../assets/grocery.svg?url';
 
 // Hero slider image interface
 interface SliderImage {
