@@ -1871,6 +1871,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Set as pending for approval by default
             product.approved = false; 
             
+            // Clean up product names with any lingering quotation issues
+            if (product.name && typeof product.name === 'string') {
+              // Fix names with triple quotes or other quotation issues (from CSV imports)
+              product.name = product.name.replace(/"{3,}/g, '"').replace(/""/g, '"');
+            }
+            
+            // Clean up product description with any quotation issues
+            if (product.description && typeof product.description === 'string') {
+              // Fix descriptions with triple quotes or other quotation issues
+              product.description = product.description.replace(/"{3,}/g, '"').replace(/""/g, '"');
+            }
+            
             // Ensure proper field naming for images
             if (product.imageUrl && !product.image_url) {
               // Make sure imageUrl is also stored as image_url for consistency with database

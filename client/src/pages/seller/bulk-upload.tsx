@@ -36,27 +36,36 @@ Samsung Galaxy S21,Latest flagship smartphone with high-performance features and
 Apple AirPods Pro,Wireless earbuds with active noise cancellation and transparency mode,29999,19999,34999,Electronics,Apple,White,One Size,https://example.com/earbuds.jpg,https://example.com/earbuds-case.jpg,https://example.com/earbuds-open.jpg,https://example.com/earbuds-charging.jpg,200,APP-123,85183000,50,52,48,23,12,7,18,"Battery Life: 6 hours, Water Resistant: Yes, ANC: Yes, Wireless Charging: Yes, Transparency mode, Adaptive EQ",physical
 Nike Air Zoom,Comfortable sports shoes for daily runners with responsive cushioning,4999,3999,5999,Fashion,Nike,"Blue, Black, Red","UK 7, UK 8, UK 9, UK 10",https://example.com/shoes.jpg,https://example.com/shoes-side.jpg,https://example.com/shoes-sole.jpg,https://example.com/shoes-box.jpg,50,NK-AZ-10,64021990,290,285,105,110,6,30,12,"Material: Breathable mesh, Sole: Rubber, Weight: 290g, Cushioning: React Foam, Responsive Zoom Air unit",physical`;
 
-// Helper function to parse CSV lines, properly handling quoted fields
-// This handles fields with commas inside quoted strings
+// Helper function to parse CSV lines, properly handling quoted fields with special characters
+// This handles fields with commas, quotes, and special characters inside quoted strings
 function parseCsvLine(line: string): string[] {
   const result: string[] = [];
   let current = '';
   let inQuotes = false;
+  let previousChar = '';
   
   // If line is empty, return empty array
   if (!line || line.trim() === '') {
     return [];
   }
   
-  // Debug log
-  console.log(`Parsing CSV line: ${line}`);
+  // Debug log with max length to prevent huge logs
+  const displayLine = line.length > 100 ? line.substring(0, 100) + '...' : line;
+  console.log(`Processing line: ${displayLine}`);
   
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
     
+    // Handle escape sequences - double quotes in quoted fields are represented as two consecutive quotes
     if (char === '"') {
-      // Toggle the in-quotes flag when we see a quote
-      inQuotes = !inQuotes;
+      if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
+        // This is an escaped quote inside a quoted field (i.e., "")
+        current += '"';
+        i++; // Skip the next quote character
+      } else {
+        // Toggle the in-quotes flag when we see a quote
+        inQuotes = !inQuotes;
+      }
     } else if (char === ',' && !inQuotes) {
       // If we're not in quotes and see a comma, end the current field
       result.push(current);
@@ -65,15 +74,20 @@ function parseCsvLine(line: string): string[] {
       // Otherwise add the character to the current field
       current += char;
     }
+    
+    previousChar = char;
   }
   
   // Add the last field
   result.push(current);
   
-  // Remove quotes from fields that were quoted
+  // Clean up fields (remove surrounding quotes but preserve internal ones)
   return result.map(field => {
+    // Remove surrounding quotes if they exist
     if (field.startsWith('"') && field.endsWith('"')) {
-      return field.substring(1, field.length - 1);
+      return field.substring(1, field.length - 1)
+        // Replace any double quotes within the field with a single quote
+        .replace(/""/g, '"');
     }
     return field;
   });
@@ -262,6 +276,38 @@ export default function BulkUploadPage() {
         // Handle boolean fields
         else if (header === 'approved') {
           productData[header] = value.toLowerCase() === 'true';
+        }
+        // Handle product name field with special sanitization
+        else if (header === 'name') {
+          // Clean up product names with nested quotes that cause issues
+          let cleanName = value;
+          
+          // Handle complex product names with nested quotes (common in import files)
+          if (value.includes('""')) {
+            // Replace triple or more consecutive quotes with a single quote
+            cleanName = value.replace(/"{3,}/g, '"');
+            // Replace any remaining double quotes with a single quote
+            cleanName = cleanName.replace(/""/g, '"');
+            
+            console.log(`Sanitized product name: ${cleanName}`);
+          }
+          
+          productData.name = cleanName;
+        }
+        // Handle description field with special sanitization
+        else if (header === 'description') {
+          // Clean up descriptions with quote issues
+          let cleanDesc = value;
+          
+          // Handle descriptions with nested quotes
+          if (value.includes('""')) {
+            // Replace triple or more consecutive quotes with a single quote
+            cleanDesc = value.replace(/"{3,}/g, '"');
+            // Replace any remaining double quotes with a single quote
+            cleanDesc = cleanDesc.replace(/""/g, '"');
+          }
+          
+          productData.description = cleanDesc;
         }
         // Handle color field - convert to array for database but keep as string for display
         else if (header === 'color') {
