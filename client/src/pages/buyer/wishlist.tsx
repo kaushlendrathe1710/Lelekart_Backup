@@ -28,7 +28,6 @@ interface WishlistProduct {
 
 export default function BuyerWishlistPage() {
   const { toast } = useToast();
-  const { addToCart } = useCart();
   const queryClient = useQueryClient();
 
   // Fetch wishlist data
@@ -73,27 +72,38 @@ export default function BuyerWishlistPage() {
   });
 
   // Handle add to cart
-  const handleAddToCart = async (product: WishlistProduct["product"]) => {
-    try {
-      await addToCart({
+  const addToCartMutation = useMutation({
+    mutationFn: async (product: WishlistProduct["product"]) => {
+      const res = await apiRequest('POST', '/api/cart', {
         productId: product.id,
         quantity: 1,
-        name: product.name,
-        price: product.salePrice || product.price,
-        image: product.imageUrl || '',
       });
       
+      if (!res.ok) {
+        throw new Error('Failed to add item to cart');
+      }
+      
+      return product;
+    },
+    onSuccess: (product) => {
       toast({
         title: "Added to cart",
         description: `${product.name} has been added to your cart.`,
       });
-    } catch (error) {
+      // Refresh cart data if needed
+      queryClient.invalidateQueries({ queryKey: ['/api/cart'] });
+    },
+    onError: () => {
       toast({
         title: "Error",
-        description: "Failed to add item to cart",
-        variant: "destructive",
+        description: "Failed to add item to cart. Please try again.",
+        variant: "destructive", 
       });
     }
+  });
+  
+  const handleAddToCart = (product: WishlistProduct["product"]) => {
+    addToCartMutation.mutate(product);
   };
 
   return (
@@ -162,9 +172,13 @@ export default function BuyerWishlistPage() {
                     <Button
                       className="flex-1"
                       onClick={() => handleAddToCart(item.product)}
-                      disabled={item.product.stock <= 0}
+                      disabled={item.product.stock <= 0 || addToCartMutation.isPending}
                     >
-                      <ShoppingCart className="mr-2 h-4 w-4" />
+                      {addToCartMutation.isPending ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <ShoppingCart className="mr-2 h-4 w-4" />
+                      )}
                       {item.product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
                     </Button>
                     <Button
