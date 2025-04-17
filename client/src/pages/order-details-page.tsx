@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Package2, Truck, ClipboardCheck, Clock, MapPin, User, Phone, Mail, FileText, Download, Printer, X, RefreshCw, MessageSquare, ExternalLink, AlertTriangle } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { format } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
 import { ShiprocketSection } from "@/components/shiprocket/shiprocket-section";
@@ -162,6 +163,7 @@ export default function OrderDetailsPage() {
   const [items, setItems] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuth();
   const invoiceRef = useRef<HTMLDivElement>(null);
   
   // Function to print/download invoice

@@ -1,11 +1,27 @@
 import { Request, Response } from 'express';
 import { storage } from '../storage';
-import { 
-  createShiprocketOrder, 
-  trackShiprocketOrder, 
-  getShippingRates as getShiprocketRates,
-  cancelShiprocketOrder 
-} from '../services/shiprocket';
+import { ShiprocketService } from '../services/shiprocket';
+
+// Initialize Shiprocket service
+let shiprocketService: ShiprocketService | null = null;
+
+async function getShiprocketService() {
+  if (shiprocketService) return shiprocketService;
+  
+  try {
+    const settings = await storage.getShiprocketSettings();
+    if (!settings) {
+      throw new Error('Shiprocket settings not configured');
+    }
+    
+    shiprocketService = new ShiprocketService(settings.email, settings.password);
+    await shiprocketService.authenticate();
+    return shiprocketService;
+  } catch (error) {
+    console.error('Failed to initialize Shiprocket service:', error);
+    throw error;
+  }
+}
 
 /**
  * Push an order to Shiprocket for shipping
@@ -40,14 +56,60 @@ export async function pushOrderToShiprocket(req: Request, res: Response) {
     }
     
     // Push order to Shiprocket
-    const shiprocketResponse = await createShiprocketOrder(order, orderItems);
+    const service = await getShiprocketService();
+    
+    // Parse shipping details
+    let shippingDetails;
+    try {
+      shippingDetails = typeof order.shippingDetails === 'string' 
+        ? JSON.parse(order.shippingDetails) 
+        : order.shippingDetails;
+    } catch (error) {
+      return res.status(400).json({ error: 'Invalid shipping details' });
+    }
+    
+    const shiprocketResponse = await service.createOrder({
+      order_id: `ORD-${order.id}`,
+      order_date: new Date(order.date).toISOString().split('T')[0],
+      pickup_location: "Primary",
+      billing_customer_name: shippingDetails.name,
+      billing_address: shippingDetails.address,
+      billing_city: shippingDetails.city,
+      billing_state: shippingDetails.state,
+      billing_country: "India",
+      billing_pincode: shippingDetails.zipCode,
+      billing_email: shippingDetails.email,
+      billing_phone: shippingDetails.phone,
+      shipping_customer_name: shippingDetails.name,
+      shipping_address: shippingDetails.address,
+      shipping_city: shippingDetails.city,
+      shipping_state: shippingDetails.state,
+      shipping_country: "India",
+      shipping_pincode: shippingDetails.zipCode,
+      shipping_email: shippingDetails.email,
+      shipping_phone: shippingDetails.phone,
+      order_items: orderItems.map(item => ({
+        name: item.product.name,
+        sku: `PROD-${item.productId}`,
+        units: item.quantity,
+        selling_price: item.price,
+        discount: 0,
+        tax: 0,
+      })),
+      payment_method: order.paymentMethod === 'cod' ? 'COD' : 'Prepaid',
+      sub_total: order.total,
+      length: 10,
+      breadth: 10,
+      height: 10,
+      weight: 0.5,
+    });
     
     // Update order with Shiprocket information
     if (shiprocketResponse && shiprocketResponse.shipment_id) {
-      await storage.updateOrder(order.id, {
-        shiprocketShipmentId: shiprocketResponse.shipment_id,
-        shiprocketOrderId: shiprocketResponse.order_id,
-        status: 'PROCESSING', // Update order status to reflect Shiprocket order creation
+      await storage.updateOrderShipment(order.id, {
+        shiprocketShipmentId: shiprocketResponse.shipment_id.toString(),
+        shiprocketOrderId: shiprocketResponse.order_id.toString(),
+        status: 'shipped', // Update order status to reflect Shiprocket order creation
       });
       
       // If tracking provided, update that too
@@ -95,7 +157,8 @@ export async function trackShiprocketOrder(req: Request, res: Response) {
     }
     
     // Track order in Shiprocket
-    const trackingDetails = await trackShiprocketOrder(trackingNumber);
+    const service = await getShiprocketService();
+    const trackingDetails = await service.trackShipment(trackingNumber);
     
     res.json(trackingDetails);
   } catch (error) {
@@ -139,7 +202,10 @@ export async function cancelShiprocketOrder(req: Request, res: Response) {
     }
     
     // Cancel order in Shiprocket
-    const cancelResponse = await cancelShiprocketOrder(order.shiprocketOrderId);
+    const service = await getShiprocketService();
+    await service.cancelOrder(order.shiprocketOrderId);
+    
+    const cancelResponse = { success: true };
     
     // Update order status in our system
     await storage.updateOrder(order.id, {
@@ -185,12 +251,13 @@ export async function getShippingRates(req: Request, res: Response) {
     }
     
     // Get shipping rates from Shiprocket
-    const rates = await getShiprocketRates(
-      pickupPostcode, 
-      deliveryPostcode, 
-      weightValue, 
-      codValue
-    );
+    const service = await getShiprocketService();
+    const rates = await service.getShippingRates({
+      pickup_postcode: pickupPostcode,
+      delivery_postcode: deliveryPostcode,
+      weight: weightValue,
+      cod: codValue
+    });
     
     res.json(rates);
   } catch (error) {
