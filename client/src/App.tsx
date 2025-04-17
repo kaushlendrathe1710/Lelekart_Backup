@@ -683,6 +683,30 @@ function App() {
                         )}
                       </Route>
                       
+                      {/* Add missing route for seller inventory */}
+                      <Route path="/seller/inventory">
+                        {() => (
+                          <ProtectedRoute 
+                            path="/seller/inventory" 
+                            role="seller" 
+                            component={() => (
+                              <SellerProductsPage inventoryView={true} />
+                            )} 
+                          />
+                        )}
+                      </Route>
+                      
+                      {/* Add missing route for seller payments */}
+                      <Route path="/seller/payments">
+                        {() => (
+                          <ProtectedRoute 
+                            path="/seller/payments" 
+                            role="seller" 
+                            component={SellerPaymentsPage} 
+                          />
+                        )}
+                      </Route>
+                      
                       {/* Buyer Pages */}
                       <Route path="/buyer/dashboard">
                         {() => (
