@@ -13,35 +13,55 @@ interface ProductImageProps {
 }
 
 export function ProductImage({ product, className = "" }: ProductImageProps) {
-  const [imageSrc, setImageSrc] = useState<string>("/images/placeholder.svg");
-  const [hasError, setHasError] = useState<boolean>(false);
-
-  // Get the best available image URL
-  const imageUrl = product.image_url || product.image || product.imageUrl;
-
-  // If there's an image URL and we haven't had an error yet
-  React.useEffect(() => {
-    if (imageUrl && !hasError) {
-      // For external images that might require a proxy
-      if (imageUrl.includes('flixcart.com') || imageUrl.includes('lelekart.com')) {
-        setImageSrc(`/api/image-proxy?url=${encodeURIComponent(imageUrl)}&category=${encodeURIComponent(product.category || '')}`);
-      } else if (!imageUrl.includes('placeholder.com')) {
-        // For other images (excluding placeholder.com which often fails)
-        setImageSrc(imageUrl);
-      }
+  // Default to category-specific placeholder or general placeholder
+  const getCategoryImage = () => {
+    if (product.category) {
+      const category = product.category.toLowerCase();
+      return `/images/categories/${category}.svg`;
     }
-  }, [imageUrl, product.category, hasError]);
+    return "/images/placeholder.svg";
+  };
 
+  // Determine if a URL should be skipped (known problematic domains)
+  const shouldSkipUrl = (url: string) => {
+    return url.includes('placeholder.com') ||
+           url.includes('via.placeholder') ||
+           url === 'null' ||
+           url === 'undefined' ||
+           url === '';
+  };
+
+  // Get the best image URL to use, prioritize local paths
+  let initialSrc = "/images/placeholder.svg";
+  const imageUrl = product.image_url || product.image || product.imageUrl;
+  
+  if (imageUrl && !shouldSkipUrl(imageUrl)) {
+    if (imageUrl.startsWith('/')) {
+      // Local path
+      initialSrc = imageUrl;
+    } else if (imageUrl.includes('flixcart.com') || imageUrl.includes('lelekart.com')) {
+      // Use proxy for external domains that need it
+      initialSrc = `/api/image-proxy?url=${encodeURIComponent(imageUrl)}&category=${encodeURIComponent(product.category || '')}`;
+    } else {
+      // Try direct external URL as last resort
+      initialSrc = imageUrl;
+    }
+  } else {
+    // Go to category-specific image
+    initialSrc = getCategoryImage();
+  }
+
+  const [imageSrc, setImageSrc] = useState<string>(initialSrc);
+  
   return (
     <img
       src={imageSrc}
       alt={product.name}
       className={`max-w-full max-h-full object-contain ${className}`}
       onError={() => {
-        // Only handle errors once to avoid infinite loops
-        if (!hasError) {
-          setHasError(true);
-          setImageSrc("/images/placeholder.svg");
+        // Only try category-specific fallback if not already using it
+        if (imageSrc !== getCategoryImage()) {
+          setImageSrc(getCategoryImage());
         }
       }}
     />
