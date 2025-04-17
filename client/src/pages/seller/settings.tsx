@@ -69,7 +69,24 @@ export default function SellerSettingsPage() {
     name: "",
     description: "",
     contactEmail: "",
-    contactPhone: ""
+    contactPhone: "",
+    logo: "",
+    banner: "",
+    socialLinks: {
+      facebook: "",
+      instagram: "",
+      twitter: "",
+      website: ""
+    },
+    businessHours: [
+      { day: "Monday", open: true, openTime: "09:00", closeTime: "18:00" },
+      { day: "Tuesday", open: true, openTime: "09:00", closeTime: "18:00" },
+      { day: "Wednesday", open: true, openTime: "09:00", closeTime: "18:00" },
+      { day: "Thursday", open: true, openTime: "09:00", closeTime: "18:00" },
+      { day: "Friday", open: true, openTime: "09:00", closeTime: "18:00" },
+      { day: "Saturday", open: true, openTime: "10:00", closeTime: "16:00" },
+      { day: "Sunday", open: false, openTime: "", closeTime: "" }
+    ]
   });
   
   // Personal information state
@@ -180,7 +197,24 @@ export default function SellerSettingsPage() {
             name: parsedStoreSettings.name || "",
             description: parsedStoreSettings.description || "",
             contactEmail: parsedStoreSettings.contactEmail || "",
-            contactPhone: parsedStoreSettings.contactPhone || ""
+            contactPhone: parsedStoreSettings.contactPhone || "",
+            logo: parsedStoreSettings.logo || "",
+            banner: parsedStoreSettings.banner || "",
+            socialLinks: {
+              facebook: parsedStoreSettings.socialLinks?.facebook || "",
+              instagram: parsedStoreSettings.socialLinks?.instagram || "",
+              twitter: parsedStoreSettings.socialLinks?.twitter || "",
+              website: parsedStoreSettings.socialLinks?.website || ""
+            },
+            businessHours: parsedStoreSettings.businessHours || [
+              { day: "Monday", open: true, openTime: "09:00", closeTime: "18:00" },
+              { day: "Tuesday", open: true, openTime: "09:00", closeTime: "18:00" },
+              { day: "Wednesday", open: true, openTime: "09:00", closeTime: "18:00" },
+              { day: "Thursday", open: true, openTime: "09:00", closeTime: "18:00" },
+              { day: "Friday", open: true, openTime: "09:00", closeTime: "18:00" },
+              { day: "Saturday", open: true, openTime: "10:00", closeTime: "16:00" },
+              { day: "Sunday", open: false, openTime: "", closeTime: "" }
+            ]
           });
         } catch (e) {
           console.error("Error parsing store settings:", e);
@@ -769,8 +803,8 @@ export default function SellerSettingsPage() {
             <TabsContent value="store" className="space-y-6 mt-0">
               <Card>
                 <CardHeader>
-                  <CardTitle>Store Settings</CardTitle>
-                  <CardDescription>Manage your store configuration</CardDescription>
+                  <CardTitle>Store Information</CardTitle>
+                  <CardDescription>Manage your store's basic information</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
@@ -779,6 +813,7 @@ export default function SellerSettingsPage() {
                       id="storeName" 
                       value={storeSettings.name}
                       onChange={(e) => setStoreSettings({...storeSettings, name: e.target.value})}
+                      placeholder="Your Store Name"
                     />
                   </div>
                   <div className="space-y-2">
@@ -788,6 +823,7 @@ export default function SellerSettingsPage() {
                       rows={4}
                       value={storeSettings.description}
                       onChange={(e) => setStoreSettings({...storeSettings, description: e.target.value})}
+                      placeholder="Describe your store and what you sell..."
                     />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -798,6 +834,7 @@ export default function SellerSettingsPage() {
                         type="email" 
                         value={storeSettings.contactEmail}
                         onChange={(e) => setStoreSettings({...storeSettings, contactEmail: e.target.value})}
+                        placeholder="store@example.com"
                       />
                     </div>
                     <div className="space-y-2">
@@ -806,8 +843,279 @@ export default function SellerSettingsPage() {
                         id="contactPhone" 
                         value={storeSettings.contactPhone}
                         onChange={(e) => setStoreSettings({...storeSettings, contactPhone: e.target.value})}
+                        placeholder="+91 98765 43210"
                       />
                     </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-end">
+                  <Button 
+                    onClick={saveStoreSettings}
+                    disabled={isSavingStoreSettings}
+                  >
+                    {isSavingStoreSettings ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save Changes
+                      </>
+                    )}
+                  </Button>
+                </CardFooter>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Store Branding</CardTitle>
+                  <CardDescription>Customize your store's appearance</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="storeLogo">Store Logo URL</Label>
+                      <Input 
+                        id="storeLogo" 
+                        value={storeSettings.logo}
+                        onChange={(e) => setStoreSettings({...storeSettings, logo: e.target.value})}
+                        placeholder="https://example.com/logo.png"
+                      />
+                      {storeSettings.logo && (
+                        <div className="mt-2 p-2 border rounded-md flex justify-center">
+                          <img 
+                            src={storeSettings.logo} 
+                            alt="Store Logo" 
+                            className="h-20 w-auto object-contain"
+                            onError={(e) => (e.target as HTMLImageElement).src = "https://via.placeholder.com/150?text=Logo+Preview"}
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="storeBanner">Store Banner URL</Label>
+                      <Input 
+                        id="storeBanner" 
+                        value={storeSettings.banner}
+                        onChange={(e) => setStoreSettings({...storeSettings, banner: e.target.value})}
+                        placeholder="https://example.com/banner.jpg"
+                      />
+                      {storeSettings.banner && (
+                        <div className="mt-2 p-2 border rounded-md flex justify-center">
+                          <img 
+                            src={storeSettings.banner} 
+                            alt="Store Banner" 
+                            className="h-20 w-full object-cover rounded-md"
+                            onError={(e) => (e.target as HTMLImageElement).src = "https://via.placeholder.com/800x200?text=Banner+Preview"}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-end">
+                  <Button 
+                    onClick={saveStoreSettings}
+                    disabled={isSavingStoreSettings}
+                  >
+                    {isSavingStoreSettings ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save Changes
+                      </>
+                    )}
+                  </Button>
+                </CardFooter>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Social Media Links</CardTitle>
+                  <CardDescription>Connect your store to social networks</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="facebookLink">
+                        <div className="flex items-center">
+                          <span className="mr-2">Facebook</span>
+                        </div>
+                      </Label>
+                      <Input 
+                        id="facebookLink" 
+                        value={storeSettings.socialLinks.facebook}
+                        onChange={(e) => setStoreSettings({
+                          ...storeSettings, 
+                          socialLinks: {
+                            ...storeSettings.socialLinks,
+                            facebook: e.target.value
+                          }
+                        })}
+                        placeholder="https://facebook.com/your-page"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="instagramLink">
+                        <div className="flex items-center">
+                          <span className="mr-2">Instagram</span>
+                        </div>
+                      </Label>
+                      <Input 
+                        id="instagramLink" 
+                        value={storeSettings.socialLinks.instagram}
+                        onChange={(e) => setStoreSettings({
+                          ...storeSettings, 
+                          socialLinks: {
+                            ...storeSettings.socialLinks,
+                            instagram: e.target.value
+                          }
+                        })}
+                        placeholder="https://instagram.com/your-handle"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="twitterLink">
+                        <div className="flex items-center">
+                          <span className="mr-2">Twitter</span>
+                        </div>
+                      </Label>
+                      <Input 
+                        id="twitterLink" 
+                        value={storeSettings.socialLinks.twitter}
+                        onChange={(e) => setStoreSettings({
+                          ...storeSettings, 
+                          socialLinks: {
+                            ...storeSettings.socialLinks,
+                            twitter: e.target.value
+                          }
+                        })}
+                        placeholder="https://twitter.com/your-handle"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="websiteLink">
+                        <div className="flex items-center">
+                          <span className="mr-2">Website</span>
+                        </div>
+                      </Label>
+                      <Input 
+                        id="websiteLink" 
+                        value={storeSettings.socialLinks.website}
+                        onChange={(e) => setStoreSettings({
+                          ...storeSettings, 
+                          socialLinks: {
+                            ...storeSettings.socialLinks,
+                            website: e.target.value
+                          }
+                        })}
+                        placeholder="https://your-website.com"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-end">
+                  <Button 
+                    onClick={saveStoreSettings}
+                    disabled={isSavingStoreSettings}
+                  >
+                    {isSavingStoreSettings ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save Changes
+                      </>
+                    )}
+                  </Button>
+                </CardFooter>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Business Hours</CardTitle>
+                  <CardDescription>Set your store operating hours</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {storeSettings.businessHours.map((dayHours, index) => (
+                      <div key={dayHours.day} className="flex items-center space-x-4">
+                        <div className="w-24">
+                          <Label>{dayHours.day}</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Switch 
+                            checked={dayHours.open}
+                            onCheckedChange={(checked) => {
+                              const newBusinessHours = [...storeSettings.businessHours];
+                              newBusinessHours[index] = {
+                                ...dayHours,
+                                open: checked
+                              };
+                              setStoreSettings({
+                                ...storeSettings,
+                                businessHours: newBusinessHours
+                              });
+                            }}
+                          />
+                          <Label>{dayHours.open ? 'Open' : 'Closed'}</Label>
+                        </div>
+                        {dayHours.open && (
+                          <>
+                            <div className="flex items-center space-x-2">
+                              <Label htmlFor={`openTime-${dayHours.day}`} className="sr-only">Open Time</Label>
+                              <Input 
+                                id={`openTime-${dayHours.day}`}
+                                type="time"
+                                value={dayHours.openTime}
+                                onChange={(e) => {
+                                  const newBusinessHours = [...storeSettings.businessHours];
+                                  newBusinessHours[index] = {
+                                    ...dayHours,
+                                    openTime: e.target.value
+                                  };
+                                  setStoreSettings({
+                                    ...storeSettings,
+                                    businessHours: newBusinessHours
+                                  });
+                                }}
+                                className="w-24"
+                              />
+                            </div>
+                            <span>to</span>
+                            <div className="flex items-center space-x-2">
+                              <Label htmlFor={`closeTime-${dayHours.day}`} className="sr-only">Close Time</Label>
+                              <Input 
+                                id={`closeTime-${dayHours.day}`}
+                                type="time"
+                                value={dayHours.closeTime}
+                                onChange={(e) => {
+                                  const newBusinessHours = [...storeSettings.businessHours];
+                                  newBusinessHours[index] = {
+                                    ...dayHours,
+                                    closeTime: e.target.value
+                                  };
+                                  setStoreSettings({
+                                    ...storeSettings,
+                                    businessHours: newBusinessHours
+                                  });
+                                }}
+                                className="w-24"
+                              />
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
