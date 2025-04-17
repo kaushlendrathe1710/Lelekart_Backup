@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { 
   Search, 
@@ -11,7 +11,8 @@ import {
   LayoutDashboard,
   Store,
   ShoppingBag,
-  Heart
+  Heart,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,13 +29,76 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 
 export function Header() {
+  const [, setLocation] = useLocation();
   const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
   const { toggleCart, cartItems } = useCart();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+
+  // Close search results when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSearchResults(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Debounce search while typing
+  useEffect(() => {
+    if (!searchQuery || searchQuery.length < 2) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      performSearch(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const performSearch = async (query: string) => {
+    if (!query || query.length < 2) return;
+    
+    setIsSearching(true);
+    try {
+      const response = await fetch(`/api/lelekart-search?q=${encodeURIComponent(query)}&limit=5`);
+      if (response.ok) {
+        const data = await response.json();
+        setSearchResults(data);
+        setShowSearchResults(true);
+      } else {
+        console.error("Search failed:", await response.text());
+      }
+    } catch (error) {
+      console.error("Error during search:", error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      // Navigate to search results page
+      setLocation(`/search?q=${encodeURIComponent(searchQuery)}`);
+      setShowSearchResults(false);
+    }
+  };
 
   const handleLogout = () => {
     logoutMutation.mutate(undefined, {
@@ -45,11 +109,6 @@ export function Header() {
         });
       }
     });
-  };
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Search for:", searchQuery);
   };
 
   const getDashboardLink = () => {
@@ -84,7 +143,7 @@ export function Header() {
           </div>
           
           {/* Search Bar */}
-          <div className="w-full md:w-5/12 md:ml-4 relative mb-2 md:mb-0">
+          <div className="w-full md:w-5/12 md:ml-4 relative mb-2 md:mb-0" ref={searchRef}>
             <form onSubmit={handleSearch} className="relative">
               <Input
                 type="text"
@@ -99,9 +158,71 @@ export function Header() {
                 variant="ghost"
                 className="absolute right-2 top-1/2 transform -translate-y-1/2 text-primary"
               >
-                <Search className="h-5 w-5" />
+                {isSearching ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Search className="h-5 w-5" />
+                )}
               </Button>
             </form>
+            
+            {/* Search Results Dropdown */}
+            {showSearchResults && searchResults.length > 0 && (
+              <div className="absolute z-50 mt-1 w-full bg-white rounded-md shadow-lg">
+                <div className="py-1 max-h-96 overflow-auto">
+                  {searchResults.map((product) => (
+                    <div
+                      key={product.id}
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => {
+                        setShowSearchResults(false);
+                        setLocation(`/product/${product.id}`);
+                      }}
+                    >
+                      <div className="flex items-center">
+                        <div className="h-10 w-10 flex-shrink-0 mr-3">
+                          <img
+                            src={product.imageUrl || product.image_url || "/images/placeholder.svg"}
+                            alt={product.name}
+                            className="h-full w-full object-contain"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = "/images/placeholder.svg";
+                            }}
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>
+                          <p className="text-sm text-gray-500 truncate">{product.category}</p>
+                        </div>
+                        <div className="ml-2">
+                          <p className="text-sm font-medium text-gray-900">₹{product.price}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="px-4 py-2 border-t border-gray-200">
+                  <button
+                    className="w-full text-center text-primary text-sm font-medium"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setShowSearchResults(false);
+                      setLocation(`/search?q=${encodeURIComponent(searchQuery)}`);
+                    }}
+                  >
+                    View all results for "{searchQuery}"
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {showSearchResults && searchQuery.length >= 2 && searchResults.length === 0 && !isSearching && (
+              <div className="absolute z-50 mt-1 w-full bg-white rounded-md shadow-lg">
+                <div className="px-4 py-3 text-center text-gray-500">
+                  No products found matching "{searchQuery}"
+                </div>
+              </div>
+            )}
           </div>
           
           {/* Desktop Navigation */}
