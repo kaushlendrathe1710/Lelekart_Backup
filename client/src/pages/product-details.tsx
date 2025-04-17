@@ -430,14 +430,23 @@ export default function ProductDetailsPage() {
     // Start with main image if available
     const images: string[] = [];
     
+    // Helper function to check problematic URLs
+    const isProblematicUrl = (url: string) => {
+      return url.includes('placeholder.com') ||
+             url.includes('via.placeholder') ||
+             url === 'null' ||
+             url === 'undefined' ||
+             url === '' ||
+             !url;
+    };
+    
     // Main image URL (check imageUrl property and handle potential image_url property)
     const mainImage = product.imageUrl || 
                      (product as any).image_url || 
                      (product as any).image;
                      
-    if (mainImage) {
-      const imageUrl = typeof mainImage === 'string' && 
-                      (mainImage.includes('flixcart.com') || mainImage.includes('lelekart.com'))
+    if (mainImage && typeof mainImage === 'string' && !isProblematicUrl(mainImage)) {
+      const imageUrl = (mainImage.includes('flixcart.com') || mainImage.includes('lelekart.com'))
         ? `/api/image-proxy?url=${encodeURIComponent(mainImage)}&category=${encodeURIComponent(product.category || 'general')}`
         : mainImage;
       images.push(imageUrl);
@@ -500,7 +509,7 @@ export default function ProductDetailsPage() {
           if (!img) return;
           
           // Only process string values
-          if (typeof img === 'string') {
+          if (typeof img === 'string' && !isProblematicUrl(img)) {
             const imageUrl = (img.includes('flixcart.com') || img.includes('lelekart.com'))
               ? `/api/image-proxy?url=${encodeURIComponent(img)}&category=${encodeURIComponent(product.category || 'general')}`
               : img;
