@@ -25,13 +25,9 @@ export function SimpleSearch({ className }: SimpleSearchProps = {}) {
     setIsAiSearching(true);
     
     try {
-      // For short queries (1-2 words), don't add 'search' word to preserve exact term
-      const words = searchQuery.trim().split(/\s+/);
-      const processedQuery = words.length <= 2 
-        ? searchQuery
-        : (!searchQuery.toLowerCase().includes('search') 
-            ? `${searchQuery} search` 
-            : searchQuery);
+      // Always use the original query without modification
+      // This ensures consistent behavior with voice search
+      const processedQuery = searchQuery.trim();
       
       console.log('Processing AI search query:', processedQuery);
       

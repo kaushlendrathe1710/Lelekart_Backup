@@ -114,14 +114,41 @@ export default function SearchResultsPage() {
     }
   };
   
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    setDebouncedQuery(searchQuery);
+    if (!searchQuery.trim()) return;
     
-    // Update URL with new search query
-    const newParams = new URLSearchParams(searchParams);
-    newParams.set('q', searchQuery);
-    navigate(`/search?${newParams.toString()}`);
+    try {
+      // Process the query using AI to extract structured search parameters
+      // This makes normal search consistent with voice search
+      const result = await AISearchService.processQuery(searchQuery);
+      
+      if (result.success) {
+        // Build a search URL from the extracted parameters
+        const searchUrl = AISearchService.buildSearchUrl(result.filters, result.enhancedQuery);
+        
+        // Navigate to the search page
+        navigate(searchUrl);
+        
+        toast({
+          title: 'Search',
+          description: `Searching for "${result.enhancedQuery}"`,
+          duration: 3000
+        });
+      } else {
+        throw new Error(result.error || 'Failed to process search query');
+      }
+    } catch (error) {
+      console.error('Error processing search:', error);
+      
+      // Fall back to simple search with the original query
+      setDebouncedQuery(searchQuery);
+      
+      // Update URL with new search query
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set('q', searchQuery);
+      navigate(`/search?${newParams.toString()}`);
+    }
   };
   
   // Build page title based on search query

@@ -260,13 +260,12 @@ export default function SellerProductsPage() {
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
                 <Input 
                   placeholder="Search products..." 
-                  className="pl-8 pr-24" 
-                  disabled
-                  onClick={() => alert('Search functionality is being improved. Please check back later!')}
+                  className="pl-8" 
+                  onChange={(e) => {
+                    // You can implement product filtering here
+                    console.log('Searching for:', e.target.value);
+                  }}
                 />
-                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400">
-                  Coming soon
-                </span>
               </div>
               <div className="flex gap-2">
                 <Button 

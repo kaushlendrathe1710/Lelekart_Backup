@@ -45,11 +45,9 @@ export function VoiceSearchDialog({
       // Otherwise use our default implementation
       console.log('Processing voice search query:', query);
       
-      // Detect if this is just a product name without "search" keyword
-      // Add "search" to the query if it doesn't already end with it to ensure consistency
-      const processedQuery = !query.toLowerCase().includes('search') 
-        ? `${query} search` 
-        : query;
+      // Always use the original query without modification
+      // This ensures consistent behavior with normal search
+      const processedQuery = query.trim();
       
       console.log('Processing voice search query (processed):', processedQuery);
       
