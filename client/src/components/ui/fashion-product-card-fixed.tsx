@@ -1,11 +1,5 @@
 import React from 'react';
 import { Product } from "@shared/schema";
-
-// Define an extended Product interface to include image_url
-interface ExtendedProduct extends Product {
-  image_url?: string;
-  imageUrl?: string;
-}
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
@@ -32,7 +26,7 @@ const FASHION_IMAGES = [
 ];
 
 interface FashionProductCardFixedProps {
-  product: ExtendedProduct;
+  product: Product;
   className?: string;
 }
 
@@ -41,11 +35,11 @@ export function FashionProductCardFixed({ product, className }: FashionProductCa
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Get the product image, using its actual image_url from the database
+  // Get the product image, using its actual imageUrl from the database
   const getImageSrc = () => {
-    // Check if the product has a valid image_url
-    if (product.image_url && product.image_url.indexOf('placeholder') === -1) {
-      return product.image_url;
+    // Check if the product has a valid imageUrl
+    if (product.imageUrl && !product.imageUrl.includes('placeholder')) {
+      return product.imageUrl;
     }
     
     // Fallback to base64 images for consistent display
