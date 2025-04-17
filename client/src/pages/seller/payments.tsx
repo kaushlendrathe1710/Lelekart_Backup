@@ -82,6 +82,16 @@ export default function SellerPaymentsPage() {
   const [dateRange, setDateRange] = useState("last30");
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<any>(null);
+  const [showFAQDialog, setShowFAQDialog] = useState(false);
+  const [showSupportDialog, setShowSupportDialog] = useState(false);
+  const [showFilterDialog, setShowFilterDialog] = useState(false);
+  const [filterOptions, setFilterOptions] = useState({
+    minAmount: "",
+    maxAmount: "",
+    type: "all",
+    dateStart: "",
+    dateEnd: ""
+  });
 
   // Fetch payments summary
   const { data: summaryData, isLoading: isSummaryLoading } = useQuery({
@@ -274,11 +284,36 @@ export default function SellerPaymentsPage() {
               </Select>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline">
+              <Button variant="outline" onClick={() => setShowFilterDialog(true)}>
                 <Filter className="mr-2 h-4 w-4" />
                 Filter
               </Button>
-              <Button variant="outline">
+              <Button variant="outline" onClick={() => {
+                // Create CSV content for export
+                const csvHeader = ["Transaction ID", "Date", "Type", "Description", "Amount", "Status"].join(",") + "\n";
+                const csvRows = filteredPayments.map((payment: any) => {
+                  return [
+                    payment.transactionId,
+                    format(new Date(payment.date), 'yyyy-MM-dd'),
+                    payment.type,
+                    `"${payment.description?.replace(/"/g, '""') || ''}"`,
+                    payment.amount,
+                    payment.status
+                  ].join(",");
+                }).join("\n");
+                
+                const csvContent = csvHeader + csvRows;
+                
+                // Create a blob and download link
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.setAttribute("href", url);
+                link.setAttribute("download", `payment-transactions-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              }}>
                 <FileDown className="mr-2 h-4 w-4" />
                 Export
               </Button>
@@ -448,11 +483,11 @@ export default function SellerPaymentsPage() {
                 If you have any questions about your payments or are facing issues with payouts, our support team is here to help.
               </p>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => setShowFAQDialog(true)}>
                   <HelpCircle className="mr-2 h-4 w-4" />
                   Payment FAQs
                 </Button>
-                <Button size="sm">
+                <Button size="sm" onClick={() => setShowSupportDialog(true)}>
                   Contact Support
                 </Button>
               </div>
@@ -555,6 +590,330 @@ export default function SellerPaymentsPage() {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Filter Dialog */}
+      <Dialog open={showFilterDialog} onOpenChange={setShowFilterDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Filter Payments</DialogTitle>
+            <DialogDescription>
+              Apply filters to narrow down your payment transactions
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="min-amount" className="text-sm font-medium">Min Amount</label>
+                <Input 
+                  id="min-amount" 
+                  type="number" 
+                  placeholder="₹0" 
+                  value={filterOptions.minAmount}
+                  onChange={(e) => setFilterOptions({...filterOptions, minAmount: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="max-amount" className="text-sm font-medium">Max Amount</label>
+                <Input 
+                  id="max-amount" 
+                  type="number" 
+                  placeholder="₹100,000" 
+                  value={filterOptions.maxAmount}
+                  onChange={(e) => setFilterOptions({...filterOptions, maxAmount: e.target.value})}
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Transaction Type</label>
+              <Select 
+                value={filterOptions.type} 
+                onValueChange={(value) => setFilterOptions({...filterOptions, type: value})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All transaction types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All transaction types</SelectItem>
+                  <SelectItem value="payout">Payouts</SelectItem>
+                  <SelectItem value="order">Order payments</SelectItem>
+                  <SelectItem value="refund">Refunds</SelectItem>
+                  <SelectItem value="fee">Service fees</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Custom Date Range</label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label htmlFor="date-start" className="text-xs text-muted-foreground">Start Date</label>
+                  <Input 
+                    id="date-start" 
+                    type="date" 
+                    value={filterOptions.dateStart}
+                    onChange={(e) => setFilterOptions({...filterOptions, dateStart: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="date-end" className="text-xs text-muted-foreground">End Date</label>
+                  <Input 
+                    id="date-end" 
+                    type="date" 
+                    value={filterOptions.dateEnd}
+                    onChange={(e) => setFilterOptions({...filterOptions, dateEnd: e.target.value})}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-2 mt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setFilterOptions({
+                  minAmount: "",
+                  maxAmount: "",
+                  type: "all",
+                  dateStart: "",
+                  dateEnd: ""
+                });
+              }}
+            >
+              Reset Filters
+            </Button>
+            <Button onClick={() => setShowFilterDialog(false)}>
+              Apply Filters
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment FAQs Dialog */}
+      <Dialog open={showFAQDialog} onOpenChange={setShowFAQDialog}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Payment FAQs</DialogTitle>
+            <DialogDescription>
+              Frequently asked questions about payments and payouts
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 py-4">
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold">General Payment Information</h3>
+              
+              <div className="border rounded-lg">
+                <div className="p-4 border-b">
+                  <h4 className="font-medium flex items-center">
+                    <QuestionMarkCircledIcon className="h-5 w-5 mr-2 text-primary" />
+                    How often will I receive payments from Lelekart?
+                  </h4>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Lelekart processes payments on a weekly basis. The default payout schedule is set to weekly (every Monday), 
+                    but you can change this to bi-weekly or monthly through your payment settings.
+                  </p>
+                </div>
+                
+                <div className="p-4 border-b">
+                  <h4 className="font-medium flex items-center">
+                    <QuestionMarkCircledIcon className="h-5 w-5 mr-2 text-primary" />
+                    How long does it take for payments to reach my bank account?
+                  </h4>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Once a payout is initiated, funds typically reach your bank account within 1-2 business days, 
+                    depending on your bank's processing times. If you haven't received your payment after 3 business days, 
+                    please contact our support team.
+                  </p>
+                </div>
+                
+                <div className="p-4 border-b">
+                  <h4 className="font-medium flex items-center">
+                    <QuestionMarkCircledIcon className="h-5 w-5 mr-2 text-primary" />
+                    Is there a minimum payout amount?
+                  </h4>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Yes, the minimum payout amount is ₹100. If your available balance is below this threshold, 
+                    it will be rolled over to the next payout cycle until the minimum amount is reached.
+                  </p>
+                </div>
+                
+                <div className="p-4">
+                  <h4 className="font-medium flex items-center">
+                    <QuestionMarkCircledIcon className="h-5 w-5 mr-2 text-primary" />
+                    How are my earnings calculated?
+                  </h4>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Your earnings are calculated based on the product price minus the Lelekart commission fee. 
+                    The standard commission rate is 5-15% depending on your product category. For a detailed breakdown 
+                    of fees for your specific products, please refer to the "Commission Details" section in your seller settings.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold">Bank Account Information</h3>
+              
+              <div className="border rounded-lg">
+                <div className="p-4 border-b">
+                  <h4 className="font-medium flex items-center">
+                    <QuestionMarkCircledIcon className="h-5 w-5 mr-2 text-primary" />
+                    How do I update my bank account details?
+                  </h4>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    You can update your bank account details by going to the "Bank Account" card in the payments section 
+                    and clicking "Update Details". For security reasons, any changes to your bank account information may 
+                    require additional verification, and payouts may be temporarily held during this period.
+                  </p>
+                </div>
+                
+                <div className="p-4 border-b">
+                  <h4 className="font-medium flex items-center">
+                    <QuestionMarkCircledIcon className="h-5 w-5 mr-2 text-primary" />
+                    What bank details are required for receiving payments?
+                  </h4>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    You need to provide your bank account number, IFSC code, account holder name, and bank name. 
+                    Ensure that the account is in the same name as the registered seller to avoid payment issues.
+                  </p>
+                </div>
+                
+                <div className="p-4">
+                  <h4 className="font-medium flex items-center">
+                    <QuestionMarkCircledIcon className="h-5 w-5 mr-2 text-primary" />
+                    Can I have multiple bank accounts for receiving payments?
+                  </h4>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Currently, Lelekart only supports one bank account per seller. If you need to change your account, 
+                    you can update your bank details as mentioned above.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold">Troubleshooting Payment Issues</h3>
+              
+              <div className="border rounded-lg">
+                <div className="p-4 border-b">
+                  <h4 className="font-medium flex items-center">
+                    <QuestionMarkCircledIcon className="h-5 w-5 mr-2 text-primary" />
+                    My payment is marked as "Failed". What should I do?
+                  </h4>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    If your payment is marked as "Failed", it could be due to incorrect bank details, 
+                    bank account restrictions, or temporary banking system issues. Check the error message for specific details. 
+                    You can view the error in the payment details by clicking on the payment. 
+                    After resolving the issue, the system will automatically attempt to process the payment in the next cycle.
+                  </p>
+                </div>
+                
+                <div className="p-4 border-b">
+                  <h4 className="font-medium flex items-center">
+                    <QuestionMarkCircledIcon className="h-5 w-5 mr-2 text-primary" />
+                    Why is my payment amount different from the order total?
+                  </h4>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    The payment amount reflects your earnings after deducting Lelekart's commission fee, any applicable taxes, 
+                    and other charges like shipping fees (if handled by Lelekart). You can see a detailed breakdown 
+                    of each transaction by clicking on it in your payment history.
+                  </p>
+                </div>
+                
+                <div className="p-4">
+                  <h4 className="font-medium flex items-center">
+                    <QuestionMarkCircledIcon className="h-5 w-5 mr-2 text-primary" />
+                    I have more questions about my payments. How can I get help?
+                  </h4>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    For specific questions about your payments or issues not covered in the FAQs, 
+                    please click the "Contact Support" button to reach our dedicated seller support team. 
+                    They typically respond within 24 hours on business days.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Contact Support Dialog */}
+      <Dialog open={showSupportDialog} onOpenChange={setShowSupportDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Contact Payment Support</DialogTitle>
+            <DialogDescription>
+              Submit your payment-related query to our dedicated seller support team
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <label htmlFor="query-type" className="text-sm font-medium">Issue Type</label>
+              <Select defaultValue="payment-delay">
+                <SelectTrigger>
+                  <SelectValue placeholder="Select issue type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="payment-delay">Payment Delay</SelectItem>
+                  <SelectItem value="incorrect-amount">Incorrect Payment Amount</SelectItem>
+                  <SelectItem value="failed-payment">Failed Payment</SelectItem>
+                  <SelectItem value="bank-update">Bank Details Update</SelectItem>
+                  <SelectItem value="other">Other Payment Issue</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="transaction-id" className="text-sm font-medium">Transaction ID (Optional)</label>
+              <Input id="transaction-id" placeholder="e.g., TRX12345678" />
+              <p className="text-xs text-muted-foreground">
+                If your query is about a specific transaction, please provide the ID
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="description" className="text-sm font-medium">Describe your issue</label>
+              <Textarea 
+                id="description" 
+                placeholder="Please provide details about your payment issue..." 
+                className="min-h-[120px]"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex items-center">
+                <Checkbox id="attach-statement" />
+                <label htmlFor="attach-statement" className="ml-2 text-sm font-medium">
+                  Attach bank statement (recommended for payment verification)
+                </label>
+              </div>
+              <Input id="statement-file" type="file" className="mt-2" />
+              <p className="text-xs text-muted-foreground">
+                Upload a screenshot or PDF of your bank statement (max 2MB)
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setShowSupportDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => {
+              setShowSupportDialog(false);
+              toast({
+                title: "Support request submitted",
+                description: "We've received your query and will respond within 24 hours.",
+              });
+            }}>
+              Submit Request
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </SellerDashboardLayout>
