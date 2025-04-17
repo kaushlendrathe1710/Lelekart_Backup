@@ -118,35 +118,24 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
         <CardContent className="p-0 w-full flex flex-col items-center h-full">
           <div className="w-full flex-shrink-0 h-40 flex items-center justify-center mb-3">
             <img 
-              src={"/images/placeholder.svg"}
+              src={
+                // Get the image URL, checking all possible sources
+                (product.image_url || product.image || product.imageUrl) && 
+                ((product.image_url || product.image || product.imageUrl)?.includes('flixcart.com') || 
+                 (product.image_url || product.image || product.imageUrl)?.includes('lelekart.com') || 
+                 (product.image_url || product.image || product.imageUrl)?.includes('placeholder.com'))
+                  ? "/images/placeholder.svg"  // Use placeholder for remote images
+                  : (product.image_url || product.image || product.imageUrl || "/images/placeholder.svg")
+              }
               alt={product.name} 
               className="max-w-full max-h-full object-contain"
-              onLoad={(e) => {
-                // Replace with actual image after placeholder is loaded
-                const imageUrl = product.image_url || product.image || product.imageUrl;
-                if (imageUrl) {
-                  if (imageUrl.includes('flixcart.com') || imageUrl.includes('lelekart.com')) {
-                    (e.target as HTMLImageElement).src = `/api/image-proxy?url=${encodeURIComponent(imageUrl)}&category=${encodeURIComponent(product.category || '')}`;
-                  } else {
-                    (e.target as HTMLImageElement).src = imageUrl;
-                  }
-                }
-              }}
               onError={(e) => {
                 // Use a fallback image on error
                 const target = e.target as HTMLImageElement;
                 target.onerror = null; // Prevent infinite loop
                 
-                console.log('Image load error for product:', product.name);
-                
-                // Use category-specific placeholder or default placeholder
-                if (product.category) {
-                  // Map to our known category placeholders
-                  const categoryLower = product.category.toLowerCase();
-                  target.src = `/images/categories/${categoryLower}.svg`;
-                } else {
-                  target.src = "/images/placeholder.svg";
-                }
+                // Just use default placeholder to avoid infinite loading
+                target.src = "/images/placeholder.svg";
               }}
             />
           </div>
