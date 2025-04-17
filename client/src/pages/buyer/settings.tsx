@@ -25,7 +25,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Bell, InfoIcon, ShoppingBag, User as UserIcon, UserCircle, Loader2 } from "lucide-react";
+import { Bell, InfoIcon, ShoppingBag, User as UserIcon, UserCircle, Loader2, LockKeyhole } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
