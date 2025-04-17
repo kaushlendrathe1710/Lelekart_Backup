@@ -57,12 +57,15 @@ const WalletContext = createContext<WalletContextType | null>(null);
 export function WalletProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const [isPublicPage] = useRoute("/seller/public-profile/:id");
-  const { user } = useAuth();
+  const [isSearchPage] = useRoute("/search");
   
-  // Skip wallet initialization for public pages
-  if (isPublicPage) {
+  // For public pages and search pages, just render children without auth requirements
+  if (isPublicPage || isSearchPage) {
     return <>{children}</>;
   }
+  
+  // Only use auth for authenticated pages
+  const { user } = useAuth();
   
   // Get wallet data
   const {
@@ -210,10 +213,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
 export function useWallet() {
   const [isPublicPage] = useRoute("/seller/public-profile/:id");
+  const [isSearchPage] = useRoute("/search");
   const context = useContext(WalletContext);
   
-  // For public pages, provide a mock wallet context
-  if (isPublicPage) {
+  // For public pages and search pages, provide a mock wallet context
+  if (isPublicPage || isSearchPage) {
     return {
       wallet: null,
       transactions: [],
