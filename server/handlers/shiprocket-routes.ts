@@ -16,7 +16,7 @@ export async function pushOrderToShiprocket(req: Request, res: Response) {
     }
 
     // Get order and order items
-    const order = await storage.getOrderById(orderId);
+    const order = await storage.getOrder(orderId);
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
     }

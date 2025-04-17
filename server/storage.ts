@@ -1912,10 +1912,22 @@ export class DatabaseStorage implements IStorage {
     return result.length > 0;
   }
   
-  async updateOrderStatus(id: number, status: string): Promise<Order> {
+  async updateOrder(id: number, orderData: Partial<Order>): Promise<Order> {
+    // Handle trackingDetails - convert to string if provided as an object
+    const orderToUpdate = { ...orderData };
+    
+    if (orderToUpdate.trackingDetails && typeof orderToUpdate.trackingDetails === 'object') {
+      orderToUpdate.trackingDetails = JSON.stringify(orderToUpdate.trackingDetails);
+    }
+    
+    // Handle shippingDetails - convert to string if provided as an object
+    if (orderToUpdate.shippingDetails && typeof orderToUpdate.shippingDetails === 'object') {
+      orderToUpdate.shippingDetails = JSON.stringify(orderToUpdate.shippingDetails);
+    }
+    
     const [updatedOrder] = await db
       .update(orders)
-      .set({ status })
+      .set(orderToUpdate)
       .where(eq(orders.id, id))
       .returning();
     
@@ -1932,7 +1944,20 @@ export class DatabaseStorage implements IStorage {
       }
     }
     
+    // Parse trackingDetails if it's a string
+    if (updatedOrder.trackingDetails && typeof updatedOrder.trackingDetails === 'string') {
+      try {
+        updatedOrder.trackingDetails = JSON.parse(updatedOrder.trackingDetails);
+      } catch (error) {
+        console.error('Error parsing trackingDetails:', error);
+      }
+    }
+    
     return updatedOrder;
+  }
+
+  async updateOrderStatus(id: number, status: string): Promise<Order> {
+    return this.updateOrder(id, { status });
   }
 
   // Category operations

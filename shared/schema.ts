@@ -100,6 +100,15 @@ export const orders = pgTable("orders", {
   paymentId: text("payment_id"), // For Razorpay paymentId
   orderId: text("order_id"), // For Razorpay orderId
   addressId: integer("address_id").references(() => userAddresses.id), // Optional reference to saved address
+  
+  // Shiprocket integration fields
+  shippingStatus: text("shipping_status"), // Status of the order in Shiprocket
+  shiprocketOrderId: text("shiprocket_order_id"), // Shiprocket order ID
+  shiprocketShipmentId: text("shiprocket_shipment_id"), // Shiprocket shipment ID
+  trackingDetails: text("tracking_details"), // Stored as JSON string with tracking details
+  courierName: text("courier_name"), // Name of the courier service
+  awbCode: text("awb_code"), // AWB code / tracking number
+  estimatedDeliveryDate: timestamp("estimated_delivery_date"), // Estimated delivery date
 });
 
 export const insertOrderSchema = createInsertSchema(orders).pick({
@@ -112,6 +121,14 @@ export const insertOrderSchema = createInsertSchema(orders).pick({
   paymentId: true,
   orderId: true,
   addressId: true,
+  // Shiprocket fields
+  shippingStatus: true,
+  shiprocketOrderId: true,
+  shiprocketShipmentId: true,
+  trackingDetails: true,
+  courierName: true,
+  awbCode: true,
+  estimatedDeliveryDate: true,
 });
 
 // OrderItem schema
