@@ -451,7 +451,12 @@ export default function OrderDetailsPage() {
         </Card>
         
         {/* Shiprocket Integration */}
-        <ShiprocketSection order={order} refreshOrder={refreshOrderData} />
+        <ShiprocketSection 
+          order={order} 
+          onRefetch={refreshOrderData} 
+          isAdmin={user?.role === 'admin' || user?.role === 'co-admin'}
+          isSeller={user?.role === 'seller' && order.sellerId === user.id}
+        />
         
         {/* Shipping and Billing Information */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">

@@ -1,284 +1,394 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Truck, RefreshCw, X, ExternalLink, AlertTriangle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import React, { useState } from 'react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  TruckIcon,
+  PackageIcon,
+  XCircleIcon,
+  MapPinIcon,
+  RefreshCwIcon,
+  ClockIcon,
+  CheckCircleIcon
+} from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { Skeleton } from '@/components/ui/skeleton';
 
-interface ShiprocketSectionProps {
-  order: any;
-  refreshOrder: () => void;
+interface Order {
+  id: number;
+  status: string;
+  shiprocketOrderId?: string;
+  shiprocketShipmentId?: string;
+  trackingId?: string;
+  courierName?: string;
+  trackingUrl?: string;
 }
 
-export function ShiprocketSection({ order, refreshOrder }: ShiprocketSectionProps) {
-  const [loading, setLoading] = useState(false);
-  const [trackingInfo, setTrackingInfo] = useState<any>(null);
-  const [trackingLoading, setTrackingLoading] = useState(false);
-  const { toast } = useToast();
-  const cachedUser = queryClient.getQueryData<any>(['/api/user']);
-  const isAdmin = cachedUser?.role === 'admin' || cachedUser?.role === 'co-admin';
-  const isSeller = cachedUser?.role === 'seller';
-  
-  // Function to push order to Shiprocket
-  const pushToShiprocket = async () => {
-    if (!order) return;
-    
-    setLoading(true);
-    try {
-      const response = await apiRequest('POST', `/api/orders/${order.id}/shiprocket`);
-      
-      if (response.ok) {
-        const result = await response.json();
-        toast({
-          title: "Success",
-          description: "Order pushed to Shiprocket successfully",
-        });
-        refreshOrder();
-      } else {
-        const errorData = await response.json();
-        toast({
-          title: "Error",
-          description: errorData.error || "Failed to push order to Shiprocket",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error pushing order to Shiprocket:", error);
-      toast({
-        title: "Error",
-        description: "An error occurred while pushing order to Shiprocket",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Function to track Shiprocket order
-  const trackOrder = async () => {
-    if (!order || !order.trackingId) return;
-    
-    setTrackingLoading(true);
-    try {
-      const response = await apiRequest('GET', `/api/tracking/${order.trackingId}`);
-      
-      if (response.ok) {
-        const result = await response.json();
-        setTrackingInfo(result);
-      } else {
-        const errorData = await response.json();
-        toast({
-          title: "Error",
-          description: errorData.error || "Failed to track order",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error tracking order:", error);
-      toast({
-        title: "Error",
-        description: "An error occurred while tracking the order",
-        variant: "destructive",
-      });
-    } finally {
-      setTrackingLoading(false);
-    }
-  };
-  
-  // Function to cancel Shiprocket order
-  const cancelOrder = async () => {
-    if (!order) return;
-    
-    if (!confirm("Are you sure you want to cancel this order? This action cannot be undone.")) {
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      const response = await apiRequest('POST', `/api/orders/${order.id}/shiprocket/cancel`, {
-        reason: "Cancelled by user"
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        toast({
-          title: "Success",
-          description: "Order cancelled successfully",
-        });
-        refreshOrder();
-      } else {
-        const errorData = await response.json();
-        toast({
-          title: "Error",
-          description: errorData.error || "Failed to cancel order",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error cancelling order:", error);
-      toast({
-        title: "Error",
-        description: "An error occurred while cancelling the order",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Check if order is from an external seller
-  const canUseShiprocket = order && order.sellerId !== undefined && order.sellerId > 0;
-  
-  // Check if order has already been pushed to Shiprocket
-  const isPushedToShiprocket = Boolean(order.shiprocketOrderId);
-  
-  // Determine if user can push to Shiprocket
-  const canPushToShiprocket = (isAdmin || isSeller) && 
-                            canUseShiprocket && 
-                            !isPushedToShiprocket && 
-                            order.status.toLowerCase() !== 'cancelled';
-                            
-  // Determine if user can view tracking
-  const canViewTracking = isPushedToShiprocket && order.trackingId;
-  
-  // Determine if user can cancel
-  const canCancelOrder = (isAdmin || (isSeller && isSeller === order.sellerId)) && 
-                       isPushedToShiprocket && 
-                       order.status.toLowerCase() !== 'cancelled' && 
-                       order.status.toLowerCase() !== 'delivered';
+interface TrackingActivity {
+  date: string;
+  activity: string;
+  location: string;
+}
 
+interface TrackingData {
+  track_status: string;
+  shipment_track_activities: TrackingActivity[];
+}
+
+interface ShiprocketSectionProps {
+  order: Order;
+  onRefetch: () => void;
+  isAdmin?: boolean;
+  isSeller?: boolean;
+}
+
+export function ShiprocketSection({ order, onRefetch, isAdmin = false, isSeller = false }: ShiprocketSectionProps) {
+  const { toast } = useToast();
+  const [showTracking, setShowTracking] = useState(false);
+  
+  // Check if the order has shipping details
+  const hasShippingDetails = Boolean(order.shiprocketOrderId || order.shiprocketShipmentId || order.trackingId);
+  
+  // Fetch tracking data if available
+  const {
+    data: trackingData,
+    isLoading: isLoadingTracking,
+    refetch: refetchTracking
+  } = useQuery<{ tracking_data: TrackingData }>({
+    queryKey: ['/api/tracking', order.trackingId],
+    queryFn: async () => {
+      if (!order.trackingId) throw new Error('No tracking ID available');
+      const res = await apiRequest('GET', `/api/tracking/${order.trackingId}`);
+      if (!res.ok) throw new Error('Failed to fetch tracking data');
+      return res.json();
+    },
+    enabled: Boolean(order.trackingId) && showTracking,
+  });
+  
+  // Create shipment mutation
+  const createShipmentMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest('POST', `/api/orders/${order.id}/shiprocket`);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to create shipment');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Shipment created',
+        description: 'The order has been shipped successfully.',
+        variant: 'default',
+      });
+      onRefetch();
+    },
+    onError: (error) => {
+      toast({
+        title: 'Failed to create shipment',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+  
+  // Cancel shipment mutation
+  const cancelShipmentMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest('POST', `/api/orders/${order.id}/shiprocket/cancel`);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to cancel shipment');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Shipment cancelled',
+        description: 'The shipment has been cancelled successfully.',
+        variant: 'default',
+      });
+      onRefetch();
+    },
+    onError: (error) => {
+      toast({
+        title: 'Failed to cancel shipment',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+  
+  // Helper function to format date
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+  
+  // Determine shipment status
+  const getShipmentStatus = () => {
+    if (!hasShippingDetails) return { label: 'Not Shipped', color: 'bg-gray-100 text-gray-800' };
+    
+    const status = order.status.toLowerCase();
+    
+    switch (status) {
+      case 'delivered':
+        return { label: 'Delivered', color: 'bg-green-100 text-green-800' };
+      case 'shipped':
+        return { label: 'In Transit', color: 'bg-blue-100 text-blue-800' };
+      case 'processing':
+        return { label: 'Processing', color: 'bg-yellow-100 text-yellow-800' };
+      case 'cancelled':
+        return { label: 'Cancelled', color: 'bg-red-100 text-red-800' };
+      default:
+        return { label: 'Unknown', color: 'bg-gray-100 text-gray-800' };
+    }
+  };
+  
+  // Calculate progress percentage based on status
+  const getProgressPercentage = () => {
+    const status = order.status.toLowerCase();
+    
+    switch (status) {
+      case 'processing':
+        return 25;
+      case 'shipped':
+        return 50;
+      case 'outfordelivery':
+        return 75;
+      case 'delivered':
+        return 100;
+      case 'cancelled':
+        return 100;
+      default:
+        return 0;
+    }
+  };
+  
+  // Handle create shipment
+  const handleCreateShipment = async () => {
+    await createShipmentMutation.mutateAsync();
+  };
+  
+  // Handle cancel shipment
+  const handleCancelShipment = async () => {
+    if (window.confirm('Are you sure you want to cancel this shipment?')) {
+      await cancelShipmentMutation.mutateAsync();
+    }
+  };
+  
+  // Show tracking details
+  const handleViewTracking = () => {
+    setShowTracking(true);
+    refetchTracking();
+  };
+  
+  // Get shipment status
+  const shipmentStatus = getShipmentStatus();
+  
+  // Determine if user can manage the shipment
+  const canManageShipment = isAdmin || isSeller;
+  
   return (
-    <Card className="p-6 mt-6">
-      <h2 className="text-lg font-semibold mb-4 flex items-center">
-        <Truck className="h-5 w-5 mr-2 text-muted-foreground" />
-        Shiprocket Shipping
-      </h2>
-      
-      {!canUseShiprocket && (
-        <div className="flex items-center p-4 bg-yellow-50 rounded-md mb-4">
-          <AlertTriangle className="h-5 w-5 text-yellow-500 mr-2" />
-          <p className="text-sm text-yellow-700">
-            This order is not eligible for Shiprocket shipping as it's not from an external seller.
-          </p>
+    <Card className="my-6">
+      <CardHeader className="pb-3">
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle className="flex items-center">
+              <TruckIcon className="h-5 w-5 mr-2" />
+              Shipping Information
+            </CardTitle>
+            <CardDescription>
+              Track your shipment and delivery status
+            </CardDescription>
+          </div>
+          <Badge className={shipmentStatus.color}>
+            {shipmentStatus.label}
+          </Badge>
         </div>
-      )}
+      </CardHeader>
       
-      {isPushedToShiprocket ? (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm font-medium">Shiprocket Order ID</p>
-              <p className="text-sm text-muted-foreground">{order.shiprocketOrderId || 'N/A'}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium">Shipment ID</p>
-              <p className="text-sm text-muted-foreground">{order.shiprocketShipmentId || 'N/A'}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium">Tracking ID</p>
-              <p className="text-sm text-muted-foreground">{order.trackingId || 'Not available yet'}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium">Courier</p>
-              <p className="text-sm text-muted-foreground">{order.courierName || 'Not assigned yet'}</p>
-            </div>
-          </div>
-          
-          <div className="flex flex-wrap gap-2 mt-4">
-            {canViewTracking && order.trackingUrl && (
-              <Button 
-                variant="outline" 
-                className="flex items-center gap-2"
-                onClick={() => window.open(order.trackingUrl, '_blank')}
+      <CardContent>
+        {!hasShippingDetails ? (
+          <div className="text-center py-6">
+            <PackageIcon className="h-12 w-12 mx-auto text-muted-foreground" />
+            <p className="mt-2 text-sm text-muted-foreground">
+              This order hasn't been shipped yet
+            </p>
+            {canManageShipment && order.status === 'processing' && (
+              <Button
+                className="mt-4"
+                onClick={handleCreateShipment}
+                disabled={createShipmentMutation.isPending}
               >
-                <ExternalLink className="h-4 w-4" />
-                Track Order
-              </Button>
-            )}
-            
-            {canViewTracking && (
-              <Button 
-                variant="outline" 
-                className="flex items-center gap-2"
-                onClick={trackOrder}
-                disabled={trackingLoading}
-              >
-                {trackingLoading ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
+                {createShipmentMutation.isPending ? (
+                  <>Creating Shipment...</>
                 ) : (
-                  <RefreshCw className="h-4 w-4" />
+                  <>Ship Now with Shiprocket</>
                 )}
-                Refresh Tracking
-              </Button>
-            )}
-            
-            {canCancelOrder && (
-              <Button 
-                variant="outline" 
-                className="flex items-center gap-2 text-red-500 hover:text-red-700 hover:bg-red-50"
-                onClick={cancelOrder}
-                disabled={loading}
-              >
-                <X className="h-4 w-4" />
-                Cancel Shipment
               </Button>
             )}
           </div>
-          
-          {trackingInfo && (
-            <div className="mt-4 border rounded-md p-4">
-              <h3 className="text-md font-semibold mb-2">Tracking Details</h3>
-              <div className="space-y-2">
-                {trackingInfo.tracking_data?.track_status ? (
-                  <>
-                    <p className="text-sm"><span className="font-medium">Status:</span> {trackingInfo.tracking_data.track_status}</p>
-                    <p className="text-sm"><span className="font-medium">Last Updated:</span> {trackingInfo.tracking_data.shipment_track_activities?.[0]?.date || 'N/A'}</p>
-                    
-                    <div className="mt-4">
-                      <h4 className="text-sm font-medium mb-2">Shipment Activities</h4>
-                      <div className="space-y-2 max-h-60 overflow-y-auto">
-                        {trackingInfo.tracking_data.shipment_track_activities?.map((activity: any, index: number) => (
-                          <div key={index} className="text-xs p-2 bg-gray-50 rounded">
-                            <p className="font-medium">{activity.date}</p>
-                            <p>{activity.activity}</p>
-                            <p className="text-muted-foreground">{activity.location}</p>
-                          </div>
-                        ))}
-                      </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Shipping progress */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Order Placed</span>
+                <span>Delivered</span>
+              </div>
+              <Progress value={getProgressPercentage()} className="h-2" />
+            </div>
+            
+            {/* Shipping details */}
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="border rounded-md p-3 space-y-2">
+                <div className="text-sm font-medium">Shipment Details</div>
+                <div className="text-sm space-y-1">
+                  {order.shiprocketOrderId && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Order ID:</span>
+                      <span>{order.shiprocketOrderId}</span>
                     </div>
-                  </>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No detailed tracking information available yet.</p>
-                )}
+                  )}
+                  {order.shiprocketShipmentId && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Shipment ID:</span>
+                      <span>{order.shiprocketShipmentId}</span>
+                    </div>
+                  )}
+                  {order.courierName && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Courier:</span>
+                      <span>{order.courierName}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="border rounded-md p-3 space-y-2">
+                <div className="text-sm font-medium">Tracking Information</div>
+                <div className="text-sm space-y-1">
+                  {order.trackingId && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Tracking ID:</span>
+                      <span>{order.trackingId}</span>
+                    </div>
+                  )}
+                  {order.trackingUrl && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Tracking Link:</span>
+                      <a
+                        href={order.trackingUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        Track Package
+                      </a>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {canPushToShiprocket ? (
-            <div>
-              <p className="text-sm mb-4">This order can be shipped using Shiprocket's delivery services.</p>
-              <Button 
-                variant="default" 
-                className="flex items-center gap-2"
-                onClick={pushToShiprocket}
-                disabled={loading}
-              >
-                {loading ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
+            
+            {/* Tracking details */}
+            {order.trackingId && (
+              <div>
+                {!showTracking ? (
+                  <Button variant="outline" className="w-full" onClick={handleViewTracking}>
+                    <MapPinIcon className="h-4 w-4 mr-2" />
+                    View Detailed Tracking
+                  </Button>
+                ) : isLoadingTracking ? (
+                  <div className="space-y-3 border rounded-md p-4">
+                    <Skeleton className="h-6 w-full" />
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </div>
+                ) : trackingData ? (
+                  <div className="border rounded-md p-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <h4 className="font-medium">Tracking Details</h4>
+                      <Badge className="bg-blue-100 text-blue-800">
+                        {trackingData.tracking_data.track_status}
+                      </Badge>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      {trackingData.tracking_data.shipment_track_activities.map((activity, index) => (
+                        <div key={index} className="flex gap-3">
+                          <div className="flex flex-col items-center">
+                            <div className={`h-6 w-6 rounded-full flex items-center justify-center ${index === 0 ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                              {index === 0 ? (
+                                <CheckCircleIcon className="h-4 w-4" />
+                              ) : (
+                                <ClockIcon className="h-3 w-3" />
+                              )}
+                            </div>
+                            {index !== trackingData.tracking_data.shipment_track_activities.length - 1 && (
+                              <div className="w-px h-full bg-muted my-1" />
+                            )}
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium">{activity.activity}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatDate(activity.date)} • {activity.location}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 ) : (
-                  <Truck className="h-4 w-4" />
+                  <div className="text-center p-4 border rounded-md">
+                    <XCircleIcon className="h-8 w-8 mx-auto text-muted-foreground" />
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      Unable to fetch tracking information
+                    </p>
+                    <Button variant="outline" size="sm" className="mt-2" onClick={refetchTracking}>
+                      <RefreshCwIcon className="h-3 w-3 mr-1" />
+                      Retry
+                    </Button>
+                  </div>
                 )}
-                Push to Shiprocket
-              </Button>
-            </div>
-          ) : canUseShiprocket ? (
-            <p className="text-sm text-muted-foreground">
-              This order has not been pushed to Shiprocket yet. Only administrators and sellers can push orders to Shiprocket.
-            </p>
-          ) : null}
-        </div>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+      
+      {hasShippingDetails && canManageShipment && order.status !== 'delivered' && order.status !== 'cancelled' && (
+        <CardFooter>
+          <Button 
+            variant="destructive" 
+            className="w-full"
+            onClick={handleCancelShipment}
+            disabled={cancelShipmentMutation.isPending}
+          >
+            {cancelShipmentMutation.isPending ? (
+              <>Cancelling Shipment...</>
+            ) : (
+              <>Cancel Shipment</>
+            )}
+          </Button>
+        </CardFooter>
       )}
     </Card>
   );

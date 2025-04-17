@@ -1,16 +1,44 @@
-import { useState, useEffect } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { AdminLayout } from "@/components/layout/admin-layout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Loader2, Truck, Settings, Package, RefreshCw, Link as LinkIcon, CheckCircle2, XCircle } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import React, { useState, useEffect } from 'react';
+import { AdminLayout } from '@/components/layout/admin-layout';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  TruckIcon, 
+  CheckCircleIcon, 
+  XCircleIcon, 
+  PackageIcon, 
+  SettingsIcon,
+  RefreshCwIcon,
+  ClockIcon,
+  CheckIcon
+} from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ShiprocketSettings {
   email: string;
@@ -19,240 +47,308 @@ interface ShiprocketSettings {
   autoShipEnabled: boolean;
 }
 
+interface ShiprocketCourier {
+  id: number;
+  name: string;
+  serviceable_zones: string;
+}
+
+interface ShiprocketShipment {
+  id: string;
+  order_id: string;
+  status: string;
+  courier: string;
+  tracking_id: string;
+  created_at: string;
+}
+
+interface PendingOrder {
+  id: number;
+  userId: number;
+  status: string;
+  total: number;
+  date: string;
+  shippingDetails: string;
+  items: {
+    id: number;
+    orderId: number;
+    productId: number;
+    quantity: number;
+    price: number;
+    product: {
+      name: string;
+    };
+  }[];
+}
+
 export default function ShiprocketPage() {
+  const { toast } = useToast();
   const [settings, setSettings] = useState<ShiprocketSettings>({
-    email: "",
-    password: "",
-    defaultCourier: "",
+    email: '',
+    password: '',
+    defaultCourier: '',
     autoShipEnabled: false
   });
-  const [isConnected, setIsConnected] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isTesting, setIsTesting] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [couriers, setCouriers] = useState<any[]>([]);
-  const [pendingOrders, setPendingOrders] = useState<any[]>([]);
-  const [shipments, setShipments] = useState<any[]>([]);
-  const [loadingCouriers, setLoadingCouriers] = useState(false);
-  const [loadingPendingOrders, setLoadingPendingOrders] = useState(false);
-  const [loadingShipments, setLoadingShipments] = useState(false);
-  const { toast } = useToast();
+  
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  
+  // Fetch Shiprocket connection status
+  const { 
+    data: connectionStatus,
+    isLoading: isLoadingStatus,
+    refetch: refetchStatus
+  } = useQuery({
+    queryKey: ['/api/shiprocket/status'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/shiprocket/status');
+      if (!res.ok) throw new Error('Failed to fetch Shiprocket status');
+      return res.json();
+    }
+  });
+  
+  // Fetch Shiprocket settings
+  const { 
+    data: shiprocketSettings,
+    isLoading: isLoadingSettings,
+    refetch: refetchSettings
+  } = useQuery({
+    queryKey: ['/api/shiprocket/settings'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/shiprocket/settings');
+      if (!res.ok) throw new Error('Failed to fetch Shiprocket settings');
+      return res.json();
+    }
+  });
+  
+  // Fetch Shiprocket couriers
+  const { 
+    data: couriers,
+    isLoading: isLoadingCouriers
+  } = useQuery({
+    queryKey: ['/api/shiprocket/couriers'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/shiprocket/couriers');
+      if (!res.ok) throw new Error('Failed to fetch Shiprocket couriers');
+      return res.json();
+    },
+    enabled: connectionStatus?.connected === true
+  });
+  
+  // Fetch Shiprocket shipments
+  const { 
+    data: shipments,
+    isLoading: isLoadingShipments,
+    refetch: refetchShipments
+  } = useQuery({
+    queryKey: ['/api/shiprocket/shipments'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/shiprocket/shipments');
+      if (!res.ok) throw new Error('Failed to fetch Shiprocket shipments');
+      return res.json();
+    },
+    enabled: connectionStatus?.connected === true
+  });
+  
+  // Fetch pending orders
+  const { 
+    data: pendingOrders,
+    isLoading: isLoadingPendingOrders,
+    refetch: refetchPendingOrders
+  } = useQuery({
+    queryKey: ['/api/shiprocket/pending-orders'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/shiprocket/pending-orders');
+      if (!res.ok) throw new Error('Failed to fetch pending orders');
+      return res.json();
+    },
+    enabled: connectionStatus?.connected === true
+  });
+  
+  // Connect to Shiprocket mutation
+  const connectMutation = useMutation({
+    mutationFn: async (credentials: { email: string; password: string }) => {
+      const res = await apiRequest('POST', '/api/shiprocket/connect', credentials);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to connect to Shiprocket');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Connected to Shiprocket',
+        description: 'Your Shiprocket account has been connected successfully.',
+        variant: 'default',
+      });
+      refetchStatus();
+      refetchSettings();
+    },
+    onError: (error) => {
+      toast({
+        title: 'Connection failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
 
+  // Test Shiprocket connection mutation
+  const testConnectionMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest('POST', '/api/shiprocket/test');
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to test Shiprocket connection');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Connection test successful',
+        description: 'Your Shiprocket account is properly connected.',
+        variant: 'default',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Connection test failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+  
+  // Save settings mutation
+  const saveSettingsMutation = useMutation({
+    mutationFn: async (newSettings: ShiprocketSettings) => {
+      const res = await apiRequest('POST', '/api/shiprocket/settings', newSettings);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to save settings');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Settings saved',
+        description: 'Your Shiprocket settings have been saved successfully.',
+        variant: 'default',
+      });
+      refetchSettings();
+    },
+    onError: (error) => {
+      toast({
+        title: 'Failed to save settings',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+  
+  // Create shipment mutation
+  const createShipmentMutation = useMutation({
+    mutationFn: async (orderId: number) => {
+      const res = await apiRequest('POST', `/api/orders/${orderId}/shiprocket`);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to create shipment');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Shipment created',
+        description: 'The order has been shipped successfully.',
+        variant: 'default',
+      });
+      refetchPendingOrders();
+      refetchShipments();
+    },
+    onError: (error) => {
+      toast({
+        title: 'Failed to create shipment',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+  
+  // Cancel shipment mutation
+  const cancelShipmentMutation = useMutation({
+    mutationFn: async (orderId: number) => {
+      const res = await apiRequest('POST', `/api/orders/${orderId}/shiprocket/cancel`);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to cancel shipment');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Shipment cancelled',
+        description: 'The shipment has been cancelled successfully.',
+        variant: 'default',
+      });
+      refetchShipments();
+    },
+    onError: (error) => {
+      toast({
+        title: 'Failed to cancel shipment',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+
+  // Update settings state when data is loaded
   useEffect(() => {
-    // Check if Shiprocket is connected
-    checkConnection();
+    if (shiprocketSettings) {
+      setSettings(shiprocketSettings);
+    }
+  }, [shiprocketSettings]);
+
+  // Handle connect to Shiprocket
+  const handleConnect = async () => {
+    if (!settings.email || !settings.password) {
+      toast({
+        title: 'Missing credentials',
+        description: 'Please provide your Shiprocket email and password.',
+        variant: 'destructive',
+      });
+      return;
+    }
     
-    // Load couriers
-    loadCouriers();
-    
-    // Load pending orders
-    loadPendingOrders();
-    
-    // Load shipments
-    loadShipments();
-  }, []);
-
-  // Function to check connection status
-  const checkConnection = async () => {
+    setIsConnecting(true);
     try {
-      setIsLoading(true);
-      const response = await apiRequest("GET", "/api/shiprocket/status");
-      
-      if (response.ok) {
-        const data = await response.json();
-        setIsConnected(data.connected);
-        
-        // If connected, also fetch settings
-        if (data.connected) {
-          const settingsResponse = await apiRequest("GET", "/api/shiprocket/settings");
-          if (settingsResponse.ok) {
-            const settingsData = await settingsResponse.json();
-            setSettings(settingsData);
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error checking Shiprocket connection:", error);
-      toast({
-        title: "Error",
-        description: "Failed to check Shiprocket connection status",
-        variant: "destructive",
+      await connectMutation.mutateAsync({
+        email: settings.email,
+        password: settings.password,
       });
     } finally {
-      setIsLoading(false);
+      setIsConnecting(false);
     }
   };
-
-  // Function to load couriers
-  const loadCouriers = async () => {
+  
+  // Handle test connection
+  const handleTestConnection = async () => {
+    setIsTestingConnection(true);
     try {
-      setLoadingCouriers(true);
-      const response = await apiRequest("GET", "/api/shiprocket/couriers");
-      
-      if (response.ok) {
-        const data = await response.json();
-        setCouriers(data);
-      }
-    } catch (error) {
-      console.error("Error loading Shiprocket couriers:", error);
+      await testConnectionMutation.mutateAsync();
     } finally {
-      setLoadingCouriers(false);
+      setIsTestingConnection(false);
     }
   };
-
-  // Function to load pending orders
-  const loadPendingOrders = async () => {
-    try {
-      setLoadingPendingOrders(true);
-      const response = await apiRequest("GET", "/api/shiprocket/pending-orders");
-      
-      if (response.ok) {
-        const data = await response.json();
-        setPendingOrders(data);
-      }
-    } catch (error) {
-      console.error("Error loading pending orders:", error);
-    } finally {
-      setLoadingPendingOrders(false);
-    }
+  
+  // Handle save settings
+  const handleSaveSettings = async () => {
+    await saveSettingsMutation.mutateAsync(settings);
   };
-
-  // Function to load shipments
-  const loadShipments = async () => {
-    try {
-      setLoadingShipments(true);
-      const response = await apiRequest("GET", "/api/shiprocket/shipments");
-      
-      if (response.ok) {
-        const data = await response.json();
-        setShipments(data);
-      }
-    } catch (error) {
-      console.error("Error loading shipments:", error);
-    } finally {
-      setLoadingShipments(false);
-    }
-  };
-
-  // Function to test connection
-  const testConnection = async () => {
-    try {
-      setIsTesting(true);
-      const response = await apiRequest("POST", "/api/shiprocket/test");
-      
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data.success) {
-          toast({
-            title: "Success",
-            description: "Successfully connected to Shiprocket",
-          });
-        } else {
-          toast({
-            title: "Error",
-            description: data.message || "Failed to connect to Shiprocket",
-            variant: "destructive",
-          });
-        }
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to test Shiprocket connection",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error testing Shiprocket connection:", error);
-      toast({
-        title: "Error",
-        description: "Failed to test Shiprocket connection",
-        variant: "destructive",
-      });
-    } finally {
-      setIsTesting(false);
-    }
-  };
-
-  // Function to save settings
-  const saveSettings = async () => {
-    try {
-      setIsSaving(true);
-      const response = await apiRequest("POST", "/api/shiprocket/settings", settings);
-      
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Shiprocket settings saved successfully",
-        });
-        
-        // Refresh connection status
-        checkConnection();
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to save Shiprocket settings",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error saving Shiprocket settings:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save Shiprocket settings",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // Function to push order to Shiprocket
-  const pushOrderToShiprocket = async (orderId: number) => {
-    try {
-      const response = await apiRequest("POST", `/api/orders/${orderId}/shiprocket`);
-      
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Order pushed to Shiprocket successfully",
-        });
-        
-        // Refresh pending orders and shipments
-        loadPendingOrders();
-        loadShipments();
-      } else {
-        const errorData = await response.json();
-        toast({
-          title: "Error",
-          description: errorData.error || "Failed to push order to Shiprocket",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error pushing order to Shiprocket:", error);
-      toast({
-        title: "Error",
-        description: "Failed to push order to Shiprocket",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Function to handle input change
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setSettings(prev => ({ ...prev, [name]: value }));
-  };
-
-  // Function to handle switch change
-  const handleSwitchChange = (checked: boolean) => {
-    setSettings(prev => ({ ...prev, autoShipEnabled: checked }));
-  };
-
-  // Function to format date
+  
+  // Format date helper function
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -260,343 +356,375 @@ export default function ShiprocketPage() {
       minute: '2-digit'
     });
   };
+  
+  // Shipment status color
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'delivered':
+        return 'bg-green-100 text-green-800';
+      case 'shipped':
+        return 'bg-blue-100 text-blue-800';
+      case 'processing':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+  
+  // Parse shipping details
+  const parseShippingDetails = (shippingDetails: string) => {
+    try {
+      return typeof shippingDetails === 'string'
+        ? JSON.parse(shippingDetails)
+        : shippingDetails;
+    } catch (error) {
+      return { address: shippingDetails };
+    }
+  };
 
   return (
     <AdminLayout>
-      <div className="container mx-auto p-4 space-y-6">
-        <h1 className="text-3xl font-bold mb-6 flex items-center">
-          <Truck className="mr-2 h-8 w-8" />
-          Shiprocket Management
-        </h1>
-
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Shiprocket Integration</h1>
+          <div className="flex items-center space-x-2">
+            {isLoadingStatus ? (
+              <Badge variant="outline" className="bg-gray-100">
+                <Skeleton className="h-4 w-20" />
+              </Badge>
+            ) : connectionStatus?.connected ? (
+              <Badge variant="outline" className="bg-green-100 text-green-800">
+                <CheckCircleIcon className="h-4 w-4 mr-1" />
+                Connected
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="bg-red-100 text-red-800">
+                <XCircleIcon className="h-4 w-4 mr-1" />
+                Not Connected
+              </Badge>
+            )}
+            <Button variant="outline" size="sm" onClick={() => {
+              refetchStatus();
+              refetchSettings();
+              refetchShipments();
+              refetchPendingOrders();
+            }}>
+              <RefreshCwIcon className="h-4 w-4 mr-1" />
+              Refresh
+            </Button>
+          </div>
+        </div>
+        
         <Tabs defaultValue="settings">
           <TabsList className="mb-4">
-            <TabsTrigger value="settings" className="flex items-center">
-              <Settings className="mr-2 h-4 w-4" />
+            <TabsTrigger value="settings">
+              <SettingsIcon className="h-4 w-4 mr-2" />
               Settings
             </TabsTrigger>
-            <TabsTrigger value="orders" className="flex items-center">
-              <Package className="mr-2 h-4 w-4" />
+            <TabsTrigger value="pending" disabled={!connectionStatus?.connected}>
+              <ClockIcon className="h-4 w-4 mr-2" />
               Pending Orders
             </TabsTrigger>
-            <TabsTrigger value="shipments" className="flex items-center">
-              <Truck className="mr-2 h-4 w-4" />
+            <TabsTrigger value="shipments" disabled={!connectionStatus?.connected}>
+              <TruckIcon className="h-4 w-4 mr-2" />
               Shipments
             </TabsTrigger>
           </TabsList>
-
-          {/* Settings Tab */}
+          
           <TabsContent value="settings">
-            <Card>
-              <CardHeader>
-                <CardTitle>Shiprocket Settings</CardTitle>
-                <CardDescription>
-                  Configure your Shiprocket integration settings here
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <div className="flex justify-center items-center h-40">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    <div className="flex items-center mb-6 p-4 rounded-md bg-muted">
-                      <div className="mr-4">
-                        {isConnected ? (
-                          <CheckCircle2 className="h-8 w-8 text-green-500" />
-                        ) : (
-                          <XCircle className="h-8 w-8 text-red-500" />
-                        )}
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-medium">
-                          {isConnected ? "Connected to Shiprocket" : "Not Connected to Shiprocket"}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {isConnected
-                            ? `Connected as ${settings.email}`
-                            : "Enter your Shiprocket credentials below to connect"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="email">Email</Label>
-                          <Input
-                            id="email"
-                            name="email"
-                            placeholder="shiprocket@example.com"
-                            value={settings.email}
-                            onChange={handleInputChange}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="password">Password</Label>
-                          <Input
-                            id="password"
-                            name="password"
-                            type="password"
-                            placeholder={settings.password ? "********" : "Enter password"}
-                            value={settings.password}
-                            onChange={handleInputChange}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="defaultCourier">Default Courier</Label>
-                          <Input
-                            id="defaultCourier"
-                            name="defaultCourier"
-                            placeholder="e.g., Delhivery, DTDC"
-                            value={settings.defaultCourier}
-                            onChange={handleInputChange}
-                          />
-                        </div>
-                        <div className="flex items-center space-x-2 pt-8">
-                          <Switch
-                            id="autoShipEnabled"
-                            checked={settings.autoShipEnabled}
-                            onCheckedChange={handleSwitchChange}
-                          />
-                          <Label htmlFor="autoShipEnabled">Auto-ship new orders</Label>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row gap-2 pt-4">
-                      <Button onClick={saveSettings} disabled={isSaving}>
-                        {isSaving ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Saving...
-                          </>
-                        ) : (
-                          "Save Settings"
-                        )}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={testConnection}
-                        disabled={isTesting || !settings.email || !settings.password}
-                      >
-                        {isTesting ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Testing...
-                          </>
-                        ) : (
-                          <>
-                            <RefreshCw className="mr-2 h-4 w-4" />
-                            Test Connection
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {isConnected && !loadingCouriers && (
-              <Card className="mt-6">
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card>
                 <CardHeader>
-                  <CardTitle>Available Couriers</CardTitle>
+                  <CardTitle>Shiprocket Account</CardTitle>
                   <CardDescription>
-                    List of available courier services from Shiprocket
+                    Connect your Shiprocket account to automate shipping and order tracking.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {couriers.length > 0 ? (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Courier Name</TableHead>
-                          <TableHead>Serviceable Zones</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {couriers.map((courier) => (
-                          <TableRow key={courier.id}>
-                            <TableCell className="font-medium">{courier.name}</TableCell>
-                            <TableCell>{courier.serviceable_zones}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  ) : (
-                    <div className="text-center p-4 text-muted-foreground">
-                      No couriers available
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email Address</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="your@email.com"
+                        value={settings.email}
+                        onChange={(e) => setSettings({...settings, email: e.target.value})}
+                      />
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          {/* Pending Orders Tab */}
-          <TabsContent value="orders">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle>Pending Orders</CardTitle>
-                    <CardDescription>
-                      Orders ready to be shipped through Shiprocket
-                    </CardDescription>
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Password</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        placeholder={settings.password === '********' ? '********' : 'Enter password'}
+                        value={settings.password}
+                        onChange={(e) => setSettings({...settings, password: e.target.value})}
+                      />
+                    </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={loadPendingOrders}
-                    disabled={loadingPendingOrders}
-                  >
-                    {loadingPendingOrders ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                  <Button variant="outline" onClick={handleTestConnection} disabled={!connectionStatus?.connected || isTestingConnection}>
+                    {isTestingConnection ? (
+                      <>
+                        <Skeleton className="h-4 w-4 mr-2 rounded-full animate-spin" />
+                        Testing...
+                      </>
                     ) : (
-                      <RefreshCw className="h-4 w-4" />
+                      <>
+                        <CheckIcon className="h-4 w-4 mr-2" />
+                        Test Connection
+                      </>
                     )}
                   </Button>
-                </div>
+                  <Button onClick={handleConnect} disabled={isConnecting}>
+                    {isConnecting ? (
+                      <>
+                        <Skeleton className="h-4 w-4 mr-2 rounded-full animate-spin" />
+                        Connecting...
+                      </>
+                    ) : (
+                      <>
+                        {connectionStatus?.connected ? 'Update Connection' : 'Connect'}
+                      </>
+                    )}
+                  </Button>
+                </CardFooter>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Shipping Configuration</CardTitle>
+                  <CardDescription>
+                    Configure default shipping options and automation settings.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="defaultCourier">Default Courier</Label>
+                      <Select
+                        disabled={!connectionStatus?.connected}
+                        value={settings.defaultCourier}
+                        onValueChange={(value) => setSettings({...settings, defaultCourier: value})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a courier" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {couriers?.map((courier: ShiprocketCourier) => (
+                            <SelectItem key={courier.id} value={courier.name}>
+                              {courier.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        This courier will be used by default when creating shipments.
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between space-y-0 rounded-md border p-4">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="autoShip">Automatic Shipping</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Automatically create shipments for new orders.
+                        </p>
+                      </div>
+                      <Switch
+                        id="autoShip"
+                        disabled={!connectionStatus?.connected}
+                        checked={settings.autoShipEnabled}
+                        onCheckedChange={(checked) => setSettings({...settings, autoShipEnabled: checked})}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button 
+                    className="w-full" 
+                    onClick={handleSaveSettings}
+                    disabled={!connectionStatus?.connected || saveSettingsMutation.isPending}
+                  >
+                    {saveSettingsMutation.isPending ? 'Saving...' : 'Save Settings'}
+                  </Button>
+                </CardFooter>
+              </Card>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="pending">
+            <Card>
+              <CardHeader>
+                <CardTitle>Pending Orders</CardTitle>
+                <CardDescription>
+                  Orders that are ready to be shipped via Shiprocket.
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                {loadingPendingOrders ? (
-                  <div className="flex justify-center items-center h-40">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                {isLoadingPendingOrders ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex items-center space-x-4 border p-4 rounded-md">
+                        <Skeleton className="h-12 w-12 rounded-md" />
+                        <div className="space-y-2 flex-1">
+                          <Skeleton className="h-4 w-1/4" />
+                          <Skeleton className="h-4 w-1/2" />
+                        </div>
+                        <Skeleton className="h-9 w-20" />
+                      </div>
+                    ))}
                   </div>
-                ) : pendingOrders.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Order ID</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Total</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {pendingOrders.map((order) => (
-                        <TableRow key={order.id}>
-                          <TableCell className="font-medium">#{order.id}</TableCell>
-                          <TableCell>{formatDate(order.date)}</TableCell>
-                          <TableCell>
-                            {typeof order.shippingDetails === 'string'
-                              ? JSON.parse(order.shippingDetails).name
-                              : order.shippingDetails.name}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={order.status === 'processing' ? 'default' : 'outline'}>
-                              {order.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>₹{order.total.toFixed(2)}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => window.open(`/orders/${order.id}`, '_blank')}
-                              >
-                                <LinkIcon className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                onClick={() => pushOrderToShiprocket(order.id)}
-                              >
-                                <Truck className="h-4 w-4 mr-1" />
-                                Ship
-                              </Button>
+                ) : pendingOrders?.length > 0 ? (
+                  <div className="space-y-4">
+                    {pendingOrders.map((order: PendingOrder) => {
+                      const shippingDetails = parseShippingDetails(order.shippingDetails);
+                      return (
+                        <div key={order.id} className="flex flex-col border rounded-md overflow-hidden">
+                          <div className="flex justify-between items-center p-4 bg-muted/50">
+                            <div>
+                              <h3 className="font-semibold">Order #{order.id}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                {formatDate(order.date)} • {order.items.length} item(s) • ${order.total.toFixed(2)}
+                              </p>
                             </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                            <Button 
+                              size="sm"
+                              onClick={() => createShipmentMutation.mutate(order.id)}
+                              disabled={createShipmentMutation.isPending}
+                            >
+                              <PackageIcon className="h-4 w-4 mr-2" />
+                              {createShipmentMutation.isPending ? 'Processing...' : 'Ship Now'}
+                            </Button>
+                          </div>
+                          <div className="p-4 border-t">
+                            <div className="grid md:grid-cols-2 gap-4">
+                              <div>
+                                <h4 className="font-medium text-sm mb-1">Items</h4>
+                                <ul className="space-y-1 text-sm">
+                                  {order.items.map((item) => (
+                                    <li key={item.id}>
+                                      {item.quantity}x {item.product.name} (${item.price.toFixed(2)})
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                              <div>
+                                <h4 className="font-medium text-sm mb-1">Shipping Address</h4>
+                                <p className="text-sm">
+                                  {shippingDetails.name}<br />
+                                  {shippingDetails.address}<br />
+                                  {shippingDetails.city}, {shippingDetails.state} {shippingDetails.zipCode}<br />
+                                  {shippingDetails.phone}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 ) : (
-                  <div className="text-center p-10 text-muted-foreground">
-                    No pending orders to ship
+                  <div className="text-center py-12">
+                    <CheckCircleIcon className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <h3 className="mt-2 text-sm font-semibold">No pending orders</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      All orders have been processed. Great job!
+                    </p>
                   </div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
-
-          {/* Shipments Tab */}
+          
           <TabsContent value="shipments">
             <Card>
               <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle>Shipments</CardTitle>
-                    <CardDescription>
-                      Track your shipments processed through Shiprocket
-                    </CardDescription>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={loadShipments}
-                    disabled={loadingShipments}
-                  >
-                    {loadingShipments ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
+                <CardTitle>Shipments</CardTitle>
+                <CardDescription>
+                  Track all your Shiprocket shipments and their current status.
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                {loadingShipments ? (
-                  <div className="flex justify-center items-center h-40">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                {isLoadingShipments ? (
+                  <div className="w-full space-y-3">
+                    <Skeleton className="h-10 w-full" />
+                    {[1, 2, 3, 4].map((i) => (
+                      <Skeleton key={i} className="h-16 w-full" />
+                    ))}
                   </div>
-                ) : shipments.length > 0 ? (
+                ) : shipments?.length > 0 ? (
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Shipment ID</TableHead>
                         <TableHead>Order ID</TableHead>
-                        <TableHead>Created</TableHead>
-                        <TableHead>Status</TableHead>
                         <TableHead>Courier</TableHead>
                         <TableHead>Tracking ID</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {shipments.map((shipment) => (
+                      {shipments.map((shipment: ShiprocketShipment) => (
                         <TableRow key={shipment.id}>
-                          <TableCell className="font-medium">{shipment.id}</TableCell>
+                          <TableCell>{shipment.id}</TableCell>
                           <TableCell>{shipment.order_id}</TableCell>
-                          <TableCell>{formatDate(shipment.created_at)}</TableCell>
+                          <TableCell>{shipment.courier}</TableCell>
                           <TableCell>
-                            <Badge
-                              variant={
-                                shipment.status === 'Delivered'
-                                  ? 'success'
-                                  : shipment.status === 'Shipped'
-                                  ? 'default'
-                                  : 'outline'
-                              }
+                            <a 
+                              href={`/tracking/${shipment.tracking_id}`}
+                              className="text-primary hover:underline"
+                              target="_blank"
+                              rel="noopener noreferrer"
                             >
+                              {shipment.tracking_id}
+                            </a>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getStatusColor(shipment.status)}>
                               {shipment.status}
                             </Badge>
                           </TableCell>
-                          <TableCell>{shipment.courier}</TableCell>
-                          <TableCell>{shipment.tracking_id}</TableCell>
+                          <TableCell>{formatDate(shipment.created_at)}</TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-red-500 hover:text-red-700"
+                              onClick={() => {
+                                // Extract order ID from shipment
+                                const orderId = parseInt(shipment.order_id.replace('SR-', ''));
+                                if (!isNaN(orderId)) {
+                                  cancelShipmentMutation.mutate(orderId);
+                                }
+                              }}
+                              disabled={shipment.status.toLowerCase() === 'delivered' || shipment.status.toLowerCase() === 'cancelled'}
+                            >
+                              Cancel
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                 ) : (
-                  <div className="text-center p-10 text-muted-foreground">
-                    No shipments found
+                  <div className="text-center py-12">
+                    <TruckIcon className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <h3 className="mt-2 text-sm font-semibold">No shipments yet</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      No shipments have been created using Shiprocket yet.
+                    </p>
+                    <Button
+                      variant="outline"
+                      className="mt-4"
+                      onClick={() => document.querySelector('[data-value="pending"]')?.click()}
+                    >
+                      View Pending Orders
+                    </Button>
                   </div>
                 )}
               </CardContent>

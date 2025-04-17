@@ -3867,6 +3867,142 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/orders/:orderId/shiprocket/cancel", shiprocketRoutes.cancelShiprocketOrder);
   app.get("/api/shipping/rates", shiprocketRoutes.getShippingRates);
 
+  // Shiprocket integration routes
+  app.get("/api/shiprocket/status", shiprocketHandlers.checkShiprocketStatus);
+  app.post("/api/shiprocket/connect", shiprocketHandlers.connectShiprocket);
+  app.post("/api/shiprocket/test", shiprocketHandlers.testShiprocketConnection);
+  app.get("/api/shiprocket/couriers", shiprocketHandlers.getShiprocketCouriers);
+  app.get("/api/shiprocket/shipments", shiprocketHandlers.getShiprocketShipments);
+  app.get("/api/shiprocket/settings", shiprocketHandlers.getShiprocketSettings);
+  app.post("/api/shiprocket/settings", shiprocketHandlers.saveShiprocketSettings);
+  app.get("/api/shiprocket/pending-orders", shiprocketHandlers.getPendingOrders);
+  
+  // Add route to push order to Shiprocket
+  app.post("/api/orders/:id/shiprocket", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      // Check if user has permission (admin, co-admin, or seller of the order)
+      const orderId = parseInt(req.params.id);
+      const order = await storage.getOrder(orderId);
+      
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+      
+      const hasPermission = 
+        req.user.role === "admin" || 
+        req.user.role === "co-admin" || 
+        (req.user.role === "seller" && order.sellerId === req.user.id);
+      
+      if (!hasPermission) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      // In a real implementation, call Shiprocket API to create shipment
+      // For now, just update the order with mock shipment details
+      const shipmentId = "SR-" + Math.floor(100000 + Math.random() * 900000);
+      const trackingId = "TRACK-" + Math.floor(100000 + Math.random() * 900000);
+      
+      const updatedOrder = await storage.updateOrderShipment(orderId, {
+        shiprocketOrderId: shipmentId,
+        shiprocketShipmentId: shipmentId,
+        trackingId: trackingId,
+        courierName: "Delhivery",
+        trackingUrl: `https://shiprocket.co/tracking/${trackingId}`
+      });
+      
+      // Update order status to "shipped"
+      await storage.updateOrderStatus(orderId, "shipped");
+      
+      res.json(updatedOrder);
+    } catch (error) {
+      console.error("Error pushing order to Shiprocket:", error);
+      res.status(500).json({ error: "Error pushing order to Shiprocket" });
+    }
+  });
+  
+  // Cancel Shiprocket shipment
+  app.post("/api/orders/:id/shiprocket/cancel", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      // Check if user has permission (admin, co-admin, or seller of the order)
+      const orderId = parseInt(req.params.id);
+      const order = await storage.getOrder(orderId);
+      
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+      
+      const hasPermission = 
+        req.user.role === "admin" || 
+        req.user.role === "co-admin" || 
+        (req.user.role === "seller" && order.sellerId === req.user.id);
+      
+      if (!hasPermission) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      if (!order.shiprocketOrderId) {
+        return res.status(400).json({ error: "Order has not been shipped with Shiprocket" });
+      }
+      
+      // In a real implementation, call Shiprocket API to cancel shipment
+      // For now, just update the order status
+      await storage.updateOrderStatus(orderId, "cancelled");
+      
+      // Clear shipment details
+      const updatedOrder = await storage.updateOrderShipment(orderId, {
+        shiprocketShipmentId: order.shiprocketShipmentId,
+        shiprocketOrderId: order.shiprocketOrderId,
+        trackingId: order.trackingId,
+        courierName: order.courierName,
+        trackingUrl: order.trackingUrl,
+        shipmentStatus: "Cancelled"
+      });
+      
+      res.json(updatedOrder);
+    } catch (error) {
+      console.error("Error cancelling Shiprocket shipment:", error);
+      res.status(500).json({ error: "Error cancelling Shiprocket shipment" });
+    }
+  });
+  
+  // Get shipment tracking information
+  app.get("/api/tracking/:trackingId", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      const trackingId = req.params.trackingId;
+      
+      // In a real implementation, call Shiprocket API to get tracking info
+      // For now, return mock tracking data
+      const mockTrackingData = {
+        tracking_data: {
+          track_status: "In Transit",
+          shipment_track_activities: [
+            {
+              date: new Date().toISOString(),
+              activity: "Package has left the origin facility",
+              location: "Delhi Sorting Facility"
+            },
+            {
+              date: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+              activity: "Package received at origin facility",
+              location: "Delhi Warehouse"
+            }
+          ]
+        }
+      };
+      
+      res.json(mockTrackingData);
+    } catch (error) {
+      console.error("Error fetching tracking information:", error);
+      res.status(500).json({ error: "Error fetching tracking information" });
+    }
+  });
+
   // New seller dashboard module routes
   
   // Returns Routes
