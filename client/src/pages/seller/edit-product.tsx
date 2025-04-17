@@ -667,11 +667,23 @@ export default function EditProductPage() {
                               };
                               
                               const handleSizeBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-                                const value = e.target.value.trim();
-                                if (value) {
-                                  const newTags = [...sizeTags, value];
-                                  setSizeTags(newTags);
-                                  field.onChange(newTags.join(', '));
+                                const inputValue = e.target.value.trim();
+                                if (inputValue) {
+                                  // Check if input contains multiple sizes (comma-separated)
+                                  const sizeValues = inputValue.split(',').map(s => s.trim()).filter(Boolean);
+                                  
+                                  if (sizeValues.length > 0) {
+                                    // Add multiple sizes at once
+                                    const newTags = [...sizeTags];
+                                    sizeValues.forEach(size => {
+                                      if (!newTags.includes(size)) {
+                                        newTags.push(size);
+                                      }
+                                    });
+                                    setSizeTags(newTags);
+                                    field.onChange(newTags.join(', '));
+                                  }
+                                  
                                   e.target.value = '';
                                 }
                               };
