@@ -354,6 +354,16 @@ function App() {
                         )}
                       </Route>
                       
+                      <Route path="/admin/shiprocket">
+                        {() => (
+                          <ProtectedRoute 
+                            path="/admin/shiprocket" 
+                            role="admin" 
+                            component={lazy(() => import('./pages/admin/shiprocket'))}
+                          />
+                        )}
+                      </Route>
+                      
                       <Route path="/admin/manage-admins">
                         {() => (
                           <ProtectedRoute 

@@ -117,9 +117,22 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       icon: <ShoppingBag className="h-5 w-5" />,
     },
     {
+      collapsible: true,
       title: "Shipping Management",
-      href: "/admin/shipping-management",
       icon: <Truck className="h-5 w-5" />,
+      open: false,
+      items: [
+        {
+          title: "General Settings",
+          href: "/admin/shipping-management",
+          icon: <Settings className="h-5 w-5" />,
+        },
+        {
+          title: "Shiprocket Integration",
+          href: "/admin/shiprocket",
+          icon: <Package className="h-5 w-5" />,
+        }
+      ],
     },
     {
       title: "Rewards Management",
