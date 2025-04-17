@@ -89,8 +89,24 @@ async function getAuthToken(): Promise<string> {
  * Convert our Order to Shiprocket format
  */
 function mapOrderToShiprocketPayload(order: Order, orderItems: OrderItem[]): ShiprocketOrderPayload {
-  // Split the name into first and last name
-  const nameParts = order.name.split(' ');
+  // Parse shipping details if needed
+  let shippingDetails: any = {};
+  
+  if (order.shippingDetails) {
+    try {
+      if (typeof order.shippingDetails === 'string') {
+        shippingDetails = JSON.parse(order.shippingDetails);
+      } else {
+        shippingDetails = order.shippingDetails;
+      }
+    } catch (error) {
+      console.error('Error parsing shipping details:', error);
+    }
+  }
+  
+  // Extract customer details from shipping details
+  const fullName = shippingDetails.fullName || 'Customer';
+  const nameParts = fullName.split(' ');
   const firstName = nameParts[0];
   const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
 
@@ -106,39 +122,48 @@ function mapOrderToShiprocketPayload(order: Order, orderItems: OrderItem[]): Shi
     paymentMethod = 'Prepaid';
   }
 
+  // Extract order details
+  const orderId = order.orderId || order.id.toString();
+  const orderDate = order.date ? new Date(order.date) : new Date();
+  
   // Create Shiprocket order payload
   const payload: ShiprocketOrderPayload = {
-    order_id: order.orderNumber.toString(),
-    order_date: new Date(order.createdAt).toISOString().split('T')[0],
+    order_id: orderId,
+    order_date: orderDate.toISOString().split('T')[0],
     pickup_location: 'Primary',
     channel_id: '', // Set your channel ID here or fetch from settings
-    comment: order.notes || 'Order from Lelekart',
+    comment: shippingDetails.notes || 'Order from Lelekart',
     billing_customer_name: firstName,
     billing_last_name: lastName,
-    billing_address: order.address,
-    billing_address_2: order.city,
-    billing_city: order.city,
-    billing_pincode: order.zipCode,
-    billing_state: order.state,
+    billing_address: shippingDetails.address || 'Address not provided',
+    billing_address_2: shippingDetails.city || 'City not provided',
+    billing_city: shippingDetails.city || 'City not provided',
+    billing_pincode: shippingDetails.pincode || '000000',
+    billing_state: shippingDetails.state || 'State not provided',
     billing_country: 'India',
-    billing_email: order.email,
-    billing_phone: order.phone,
+    billing_email: shippingDetails.email || 'customer@example.com',
+    billing_phone: shippingDetails.phone || '0000000000',
     shipping_is_billing: true, // Assuming shipping address is the same as billing
-    order_items: orderItems.map(item => ({
-      name: item.productName,
-      sku: item.sku || item.productId.toString(),
-      units: item.quantity,
-      selling_price: item.price,
-      discount: item.discount || 0,
-      tax: item.tax || 0,
-      hsn: 0, // Hardcoded for now, can be added to product details later
-    })),
+    order_items: orderItems.map(item => {
+      // Get product details from the database or item
+      const product = item.product || { name: `Product ${item.productId}` };
+      
+      return {
+        name: product.name || `Product ${item.productId}`,
+        sku: item.productId.toString(),
+        units: item.quantity,
+        selling_price: item.price,
+        discount: 0,
+        tax: 0,
+        hsn: 0, // Hardcoded for now, can be added to product details later
+      };
+    }),
     payment_method: paymentMethod,
-    shipping_charges: order.shippingCost || 0,
+    shipping_charges: 0,
     giftwrap_charges: 0,
     transaction_charges: 0,
-    total_discount: order.discount || 0,
-    sub_total: order.subtotal,
+    total_discount: 0,
+    sub_total: order.total,
     length: defaultLength,
     breadth: defaultBreadth,
     height: defaultHeight,
@@ -146,18 +171,18 @@ function mapOrderToShiprocketPayload(order: Order, orderItems: OrderItem[]): Shi
   };
 
   // If shipping address is different
-  if (!order.shippingSameAsBilling) {
+  if (shippingDetails.shippingAddress) {
     payload.shipping_is_billing = false;
     payload.shipping_customer_name = firstName;
     payload.shipping_last_name = lastName;
-    payload.shipping_address = order.shippingAddress || order.address;
-    payload.shipping_address_2 = order.shippingCity || order.city;
-    payload.shipping_city = order.shippingCity || order.city;
-    payload.shipping_pincode = order.shippingZipCode || order.zipCode;
-    payload.shipping_state = order.shippingState || order.state;
+    payload.shipping_address = shippingDetails.shippingAddress;
+    payload.shipping_address_2 = shippingDetails.shippingCity || shippingDetails.city;
+    payload.shipping_city = shippingDetails.shippingCity || shippingDetails.city;
+    payload.shipping_pincode = shippingDetails.shippingPincode || shippingDetails.pincode;
+    payload.shipping_state = shippingDetails.shippingState || shippingDetails.state;
     payload.shipping_country = 'India';
-    payload.shipping_email = order.email;
-    payload.shipping_phone = order.phone;
+    payload.shipping_email = shippingDetails.email;
+    payload.shipping_phone = shippingDetails.phone;
   }
 
   return payload;

@@ -62,7 +62,7 @@ export async function trackShiprocketOrder(req: Request, res: Response) {
     }
 
     // Get order
-    const order = await storage.getOrderById(orderId);
+    const order = await storage.getOrder(orderId);
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
     }
@@ -96,7 +96,7 @@ export async function cancelShiprocketOrder(req: Request, res: Response) {
     }
 
     // Get order
-    const order = await storage.getOrderById(orderId);
+    const order = await storage.getOrder(orderId);
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
     }
