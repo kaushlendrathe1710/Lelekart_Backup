@@ -1404,9 +1404,21 @@ export default function SellerSettingsPage() {
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                  <Button>
-                    <Save className="mr-2 h-4 w-4" />
-                    Save Changes
+                  <Button 
+                    onClick={saveBillingInfo}
+                    disabled={isSavingBillingInfo}
+                  >
+                    {isSavingBillingInfo ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save Changes
+                      </>
+                    )}
                   </Button>
                 </CardFooter>
               </Card>
@@ -1461,9 +1473,21 @@ export default function SellerSettingsPage() {
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                  <Button>
-                    <Save className="mr-2 h-4 w-4" />
-                    Save Changes
+                  <Button 
+                    onClick={saveBankInfo}
+                    disabled={isSavingBankInfo}
+                  >
+                    {isSavingBankInfo ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save Changes
+                      </>
+                    )}
                   </Button>
                 </CardFooter>
               </Card>
