@@ -43,6 +43,9 @@ import AdminShippingManagement from './pages/admin/shipping-management';
 import RewardsManagement from './pages/admin/rewards-management';
 import GiftCardsManagement from './pages/admin/gift-cards-management';
 import WalletManagementPage from './pages/admin/wallet-management';
+// Import shared components
+import { SuspenseWrapper } from './components/shared/suspense-wrapper';
+
 // Import shipping pages dynamically
 const ShippingDashboard = lazy(() => import('./pages/admin/shipping-dashboard'));
 const PendingShipments = lazy(() => import('./pages/admin/pending-shipments'));
@@ -374,7 +377,11 @@ function App() {
                           <ProtectedRoute 
                             path="/admin/shipping-dashboard" 
                             role="admin" 
-                            component={ShippingDashboard}
+                            component={() => (
+                              <SuspenseWrapper>
+                                <ShippingDashboard />
+                              </SuspenseWrapper>
+                            )}
                           />
                         )}
                       </Route>
@@ -384,7 +391,11 @@ function App() {
                           <ProtectedRoute 
                             path="/admin/pending-shipments" 
                             role="admin" 
-                            component={PendingShipments}
+                            component={() => (
+                              <SuspenseWrapper>
+                                <PendingShipments />
+                              </SuspenseWrapper>
+                            )}
                           />
                         )}
                       </Route>
@@ -394,7 +405,11 @@ function App() {
                           <ProtectedRoute 
                             path="/admin/shipping-rates" 
                             role="admin" 
-                            component={ShippingRates}
+                            component={() => (
+                              <SuspenseWrapper>
+                                <ShippingRates />
+                              </SuspenseWrapper>
+                            )}
                           />
                         )}
                       </Route>
