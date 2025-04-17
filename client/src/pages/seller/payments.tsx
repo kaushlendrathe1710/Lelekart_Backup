@@ -710,7 +710,7 @@ export default function SellerPaymentsPage() {
               <div className="border rounded-lg">
                 <div className="p-4 border-b">
                   <h4 className="font-medium flex items-center">
-                    <QuestionMarkCircledIcon className="h-5 w-5 mr-2 text-primary" />
+                    <HelpCircle className="h-5 w-5 mr-2 text-primary" />
                     How often will I receive payments from Lelekart?
                   </h4>
                   <p className="text-sm text-muted-foreground mt-2">
@@ -721,7 +721,7 @@ export default function SellerPaymentsPage() {
                 
                 <div className="p-4 border-b">
                   <h4 className="font-medium flex items-center">
-                    <QuestionMarkCircledIcon className="h-5 w-5 mr-2 text-primary" />
+                    <HelpCircle className="h-5 w-5 mr-2 text-primary" />
                     How long does it take for payments to reach my bank account?
                   </h4>
                   <p className="text-sm text-muted-foreground mt-2">
@@ -733,7 +733,7 @@ export default function SellerPaymentsPage() {
                 
                 <div className="p-4 border-b">
                   <h4 className="font-medium flex items-center">
-                    <QuestionMarkCircledIcon className="h-5 w-5 mr-2 text-primary" />
+                    <HelpCircle className="h-5 w-5 mr-2 text-primary" />
                     Is there a minimum payout amount?
                   </h4>
                   <p className="text-sm text-muted-foreground mt-2">
@@ -744,7 +744,7 @@ export default function SellerPaymentsPage() {
                 
                 <div className="p-4">
                   <h4 className="font-medium flex items-center">
-                    <QuestionMarkCircledIcon className="h-5 w-5 mr-2 text-primary" />
+                    <HelpCircle className="h-5 w-5 mr-2 text-primary" />
                     How are my earnings calculated?
                   </h4>
                   <p className="text-sm text-muted-foreground mt-2">
@@ -762,7 +762,7 @@ export default function SellerPaymentsPage() {
               <div className="border rounded-lg">
                 <div className="p-4 border-b">
                   <h4 className="font-medium flex items-center">
-                    <QuestionMarkCircledIcon className="h-5 w-5 mr-2 text-primary" />
+                    <HelpCircle className="h-5 w-5 mr-2 text-primary" />
                     How do I update my bank account details?
                   </h4>
                   <p className="text-sm text-muted-foreground mt-2">
@@ -774,7 +774,7 @@ export default function SellerPaymentsPage() {
                 
                 <div className="p-4 border-b">
                   <h4 className="font-medium flex items-center">
-                    <QuestionMarkCircledIcon className="h-5 w-5 mr-2 text-primary" />
+                    <HelpCircle className="h-5 w-5 mr-2 text-primary" />
                     What bank details are required for receiving payments?
                   </h4>
                   <p className="text-sm text-muted-foreground mt-2">
@@ -785,7 +785,7 @@ export default function SellerPaymentsPage() {
                 
                 <div className="p-4">
                   <h4 className="font-medium flex items-center">
-                    <QuestionMarkCircledIcon className="h-5 w-5 mr-2 text-primary" />
+                    <HelpCircle className="h-5 w-5 mr-2 text-primary" />
                     Can I have multiple bank accounts for receiving payments?
                   </h4>
                   <p className="text-sm text-muted-foreground mt-2">
@@ -802,7 +802,7 @@ export default function SellerPaymentsPage() {
               <div className="border rounded-lg">
                 <div className="p-4 border-b">
                   <h4 className="font-medium flex items-center">
-                    <QuestionMarkCircledIcon className="h-5 w-5 mr-2 text-primary" />
+                    <HelpCircle className="h-5 w-5 mr-2 text-primary" />
                     My payment is marked as "Failed". What should I do?
                   </h4>
                   <p className="text-sm text-muted-foreground mt-2">
@@ -815,7 +815,7 @@ export default function SellerPaymentsPage() {
                 
                 <div className="p-4 border-b">
                   <h4 className="font-medium flex items-center">
-                    <QuestionMarkCircledIcon className="h-5 w-5 mr-2 text-primary" />
+                    <HelpCircle className="h-5 w-5 mr-2 text-primary" />
                     Why is my payment amount different from the order total?
                   </h4>
                   <p className="text-sm text-muted-foreground mt-2">
@@ -827,7 +827,7 @@ export default function SellerPaymentsPage() {
                 
                 <div className="p-4">
                   <h4 className="font-medium flex items-center">
-                    <QuestionMarkCircledIcon className="h-5 w-5 mr-2 text-primary" />
+                    <HelpCircle className="h-5 w-5 mr-2 text-primary" />
                     I have more questions about my payments. How can I get help?
                   </h4>
                   <p className="text-sm text-muted-foreground mt-2">
