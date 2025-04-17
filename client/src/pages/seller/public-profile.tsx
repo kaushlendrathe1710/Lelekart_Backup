@@ -38,12 +38,18 @@ export default function PublicSellerProfilePage() {
     queryKey: [`/api/seller/public-profile/${sellerId}`],
     queryFn: async () => {
       try {
+        console.log(`Fetching seller profile for ID: ${sellerId}`);
+        // Make sure we use the correct API endpoint that was defined in server/routes.ts
         const res = await fetch(`/api/seller/public-profile/${sellerId}`);
         if (!res.ok) {
+          console.error('Failed to fetch seller profile:', await res.text());
           throw new Error('Failed to fetch seller profile');
         }
-        return res.json();
+        const data = await res.json();
+        console.log('Received seller profile data:', data);
+        return data;
       } catch (error) {
+        console.error('Error fetching seller profile:', error);
         toast({
           title: "Error",
           description: "Failed to load seller profile",

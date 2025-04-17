@@ -388,8 +388,14 @@ const SellerProfilePage = () => {
               </div>
               
               <div className="flex items-center gap-2">
-                <Button variant="outline" className="gap-1">
-                  <User className="h-4 w-4" /> View Public Profile
+                <Button 
+                  variant="outline" 
+                  className="gap-1"
+                  asChild
+                >
+                  <a href={`/seller/public-profile/${user?.id}`} target="_blank" rel="noopener noreferrer">
+                    <User className="h-4 w-4" /> View Public Profile
+                  </a>
                 </Button>
               </div>
             </div>

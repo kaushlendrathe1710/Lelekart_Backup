@@ -447,6 +447,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get public seller profile (doesn't require authentication)
+  app.get("/api/seller/public-profile/:id", async (req, res) => {
+    try {
+      const sellerId = parseInt(req.params.id);
+      
+      if (isNaN(sellerId)) {
+        return res.status(400).json({ error: "Invalid seller ID" });
+      }
+      
+      // Get the seller user
+      const seller = await storage.getUser(sellerId);
+      
+      // Check if seller exists and is approved
+      if (!seller || seller.role !== "seller" || !seller.approved) {
+        return res.status(404).json({ error: "Seller not found or not approved" });
+      }
+      
+      // Get business details
+      const businessDetails = await storage.getBusinessDetails(sellerId);
+      
+      // Get seller products count (approved only)
+      const products = await storage.getProducts(undefined, sellerId, true);
+      
+      // Get seller analytics if available (for stats)
+      const analytics = await storage.getSellerAnalytics(sellerId);
+      
+      // Combine data for public profile
+      const publicProfile = {
+        id: seller.id,
+        businessName: businessDetails?.businessName || seller.username,
+        businessType: businessDetails?.businessType || "Retail",
+        description: businessDetails?.description,
+        location: businessDetails?.location || "India",
+        gstNumber: businessDetails?.gstNumber,
+        logoUrl: businessDetails?.logoUrl,
+        memberSince: seller.createdAt ? new Date(seller.createdAt).toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long' 
+        }) : "April 2023",
+        rating: 4.8, // Placeholder until we have actual ratings
+        reviewCount: 120, // Placeholder until we have actual reviews
+        totalProducts: products.length,
+        ordersCompleted: "500+", // This would come from actual analytics in a real implementation
+        avgDeliveryTime: "2-3 days", // This would come from actual analytics in a real implementation
+        returnRate: "<2%", // This would come from actual analytics in a real implementation
+        // Add more fields as needed
+      };
+      
+      res.json(publicProfile);
+    } catch (error) {
+      console.error("Error fetching public seller profile:", error);
+      res.status(500).json({ error: "Failed to fetch seller profile" });
+    }
+  });
+
   // Search endpoint
   app.get("/api/search", async (req, res) => {
     try {

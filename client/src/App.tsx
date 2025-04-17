@@ -587,7 +587,7 @@ function App() {
                   
                   {/* Public routes that don't require authentication */}
                   <Route path="/seller/public-profile/:id">
-                    {() => (
+                    {(params) => (
                       <Layout>
                         <PublicSellerProfilePage />
                       </Layout>
