@@ -1319,14 +1319,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           // Deduct coins from wallet
           console.log(`Deducting ${walletDetails.coinsUsed} coins from wallet ${walletDetails.walletId}`);
-          await storage.createWalletTransaction({
-            walletId: walletDetails.walletId,
-            amount: -walletDetails.coinsUsed,
-            type: "redemption",
-            description: `Order #${order.id} redemption`,
-            referenceId: order.id.toString(),
-            referenceType: "order"
-          });
+          // Import the redeemCoinsFromWallet function from wallet-handlers
+          const { redeemCoinsFromWallet } = await import('./handlers/wallet-handlers');
+          
+          const userId = req.user.id; // Get the user ID who owns the wallet
+          
+          // Process the redemption
+          await redeemCoinsFromWallet(
+            userId,
+            walletDetails.coinsUsed,
+            'ORDER',
+            order.id,
+            `Order #${order.id} coin redemption`
+          );
           console.log("Wallet transaction created successfully");
         } catch (walletError) {
           console.error("Error processing wallet redemption:", walletError);
