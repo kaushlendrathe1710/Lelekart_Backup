@@ -88,6 +88,13 @@ export interface IStorage {
     delivered: number;
     issues: number;
   }>;
+  getShiprocketSettings(): Promise<ShiprocketSettings | undefined>;
+  updateShiprocketSettings(settings: InsertShiprocketSettings): Promise<ShiprocketSettings>;
+  getPendingShiprocketOrders(): Promise<any[]>;
+  getOrdersWithShiprocketShipments(): Promise<any[]>;
+  updateOrderShipment(orderId: number, data: any): Promise<any>;
+  updateOrder(id: number, data: Partial<any>): Promise<any>;
+  createOrUpdateOrderShippingTracking(data: any): Promise<any>;
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
