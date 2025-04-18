@@ -1,6 +1,7 @@
 import { useState, useRef, useContext } from "react";
 import { SellerDashboardLayout } from "@/components/layout/seller-dashboard-layout";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Upload,
   ArrowLeft,
@@ -14,7 +15,10 @@ import {
   HelpCircle,
   Info as InfoIcon,
   X,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Link2,
+  Download,
+  Plus
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
@@ -453,6 +457,89 @@ export default function BulkUploadPage() {
     }
   };
 
+  // Flipkart scraper functionality
+  const [flipkartUrl, setFlipkartUrl] = useState<string>('');
+  const [isScrapingFlipkart, setIsScrapingFlipkart] = useState<boolean>(false);
+  const [scrapedProduct, setScrapedProduct] = useState<ProductPreview | null>(null);
+  
+  // Function to scrape product data from Flipkart URL
+  const scrapeFlipkartProduct = async () => {
+    if (!flipkartUrl || !flipkartUrl.includes('flipkart.com')) {
+      toast({
+        title: "Invalid URL",
+        description: "Please enter a valid Flipkart product URL",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      setIsScrapingFlipkart(true);
+      
+      const response = await fetch('/api/seller/products/scrape-flipkart', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: flipkartUrl }),
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to scrape product data');
+      }
+      
+      const result = await response.json();
+      
+      // Convert to ProductPreview format
+      const productData = {
+        ...result.product,
+        isValid: true,
+        errors: [],
+        rowIndex: 0
+      };
+      
+      setScrapedProduct(productData);
+      
+      toast({
+        title: "Product imported",
+        description: "Successfully imported product data from Flipkart",
+        variant: "default",
+      });
+      
+    } catch (error) {
+      console.error('Error scraping product:', error);
+      toast({
+        title: "Import failed",
+        description: error instanceof Error ? error.message : "Failed to import product data",
+        variant: "destructive",
+      });
+    } finally {
+      setIsScrapingFlipkart(false);
+    }
+  };
+  
+  // Function to add the scraped product to the upload list
+  const addScrapedProductToUpload = () => {
+    if (!scrapedProduct) return;
+    
+    // Create a new array with the scraped product added
+    setPreviewProducts(prev => [scrapedProduct, ...prev]);
+    setTotalRows(prev => prev + 1);
+    setValidRows(prev => prev + 1);
+    
+    toast({
+      title: "Product added",
+      description: "The product has been added to your upload list",
+      variant: "default",
+    });
+    
+    // Clear the scraped product
+    setScrapedProduct(null);
+    setFlipkartUrl('');
+  };
+
   // Function to handle file selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -726,7 +813,78 @@ export default function BulkUploadPage() {
                 <Upload className="h-5 w-5" />
                 <h2 className="text-xl font-semibold">Upload Your Product Data</h2>
               </div>
-              <p className="text-muted-foreground">Import multiple products at once using a CSV or Excel file.</p>
+              <p className="text-muted-foreground">Import multiple products at once using a CSV or Excel file, or scrape from Flipkart.</p>
+            </div>
+            
+            {/* Flipkart Product Scraper Section */}
+            <div className="border rounded-md p-4 mb-6 bg-blue-50">
+              <h3 className="flex items-center gap-2 text-sm font-medium mb-2">
+                <Link2 className="h-4 w-4 text-blue-600" />
+                Import from Flipkart
+              </h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                Quickly import a product by pasting a Flipkart product URL.
+              </p>
+              <div className="flex gap-2">
+                <Input 
+                  type="text" 
+                  placeholder="Paste Flipkart product URL here..." 
+                  className="flex-grow"
+                  value={flipkartUrl}
+                  onChange={(e) => setFlipkartUrl(e.target.value)}
+                />
+                <Button 
+                  variant="default" 
+                  onClick={scrapeFlipkartProduct}
+                  disabled={isScrapingFlipkart || !flipkartUrl.includes('flipkart.com')}
+                  className="flex items-center gap-2"
+                >
+                  {isScrapingFlipkart ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Importing...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4" />
+                      Import
+                    </>
+                  )}
+                </Button>
+              </div>
+              {scrapedProduct && (
+                <div className="mt-3 border rounded-md p-3 bg-white">
+                  <div className="flex items-center gap-3">
+                    {scrapedProduct.imageUrl && (
+                      <div className="h-14 w-14 rounded border overflow-hidden">
+                        <FlipkartImage 
+                          url={scrapedProduct.imageUrl} 
+                          alt={scrapedProduct.name} 
+                          className="h-full w-full object-contain" 
+                        />
+                      </div>
+                    )}
+                    <div className="flex-grow">
+                      <h4 className="font-medium text-sm truncate">{scrapedProduct.name}</h4>
+                      <div className="flex gap-3 text-sm">
+                        <span>₹{scrapedProduct.price}</span>
+                        {scrapedProduct.mrp && scrapedProduct.mrp > scrapedProduct.price && (
+                          <span className="text-muted-foreground line-through">₹{scrapedProduct.mrp}</span>
+                        )}
+                      </div>
+                    </div>
+                    <Button 
+                      variant="default" 
+                      size="sm"
+                      onClick={addScrapedProductToUpload}
+                      className="flex items-center gap-1"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Add to Upload
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
             
             {/* File Upload Area with Drag & Drop */}
