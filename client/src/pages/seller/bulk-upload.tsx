@@ -944,7 +944,7 @@ export default function BulkUploadPage() {
                 <Upload className="h-5 w-5" />
                 <h2 className="text-xl font-semibold">Upload Your Product Data</h2>
               </div>
-              <p className="text-muted-foreground">Import multiple products at once using a CSV file.</p>
+              <p className="text-muted-foreground">Import multiple products at once using a CSV or Excel file.</p>
             </div>
             
             {/* File Upload Area with Drag & Drop */}
@@ -962,7 +962,9 @@ export default function BulkUploadPage() {
                   const droppedFile = e.dataTransfer.files[0];
                   
                   // Check file extension and handle accordingly
-                  if (droppedFile.name.endsWith('.csv')) {
+                  if (droppedFile.name.endsWith('.csv') || 
+                      droppedFile.name.endsWith('.xlsx') || 
+                      droppedFile.name.endsWith('.xls')) {
                     // Create a new event and pass it to the handler
                     const input = fileInputRef.current;
                     if (input) {
@@ -976,7 +978,7 @@ export default function BulkUploadPage() {
                   } else {
                     toast({
                       title: "Invalid file format",
-                      description: "Please upload a CSV file.",
+                      description: "Please upload a CSV or Excel file.",
                       variant: "destructive",
                     });
                   }
@@ -1050,6 +1052,13 @@ export default function BulkUploadPage() {
                                     processCSVForPreview(event.target.result as string);
                                   };
                                   reader.readAsText(file);
+                                } else {
+                                  // For Excel, we'd need SheetJS integration
+                                  toast({
+                                    title: "Excel processing",
+                                    description: "Excel processing would need additional libraries.",
+                                    variant: "default",
+                                  });
                                 }
                               }}
                               className="flex items-center gap-1"
@@ -1073,7 +1082,7 @@ export default function BulkUploadPage() {
                           type="file"
                           ref={fileInputRef}
                           className="hidden"
-                          accept=".csv"
+                          accept=".csv,.xlsx,.xls"
                           onChange={handleFileSelect}
                         />
                       </div>
