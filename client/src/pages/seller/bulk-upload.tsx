@@ -1,7 +1,6 @@
 import { useState, useRef, useContext } from "react";
 import { SellerDashboardLayout } from "@/components/layout/seller-dashboard-layout";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Upload,
   ArrowLeft,
@@ -15,10 +14,7 @@ import {
   HelpCircle,
   Info as InfoIcon,
   X,
-  Image as ImageIcon,
-  Link2,
-  Download,
-  Plus
+  Image as ImageIcon
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,93 +39,26 @@ Nike Air Zoom,Comfortable sports shoes for daily runners with responsive cushion
 // Helper function to parse CSV lines, properly handling quoted fields with special characters
 // This handles fields with commas, quotes, and special characters inside quoted strings
 function parseCsvLine(line: string): string[] {
-  // Pre-process line for special cases (Flipkart data has many special characters)
-  const preprocessedLine = line
-    // Normalize Unicode quotes and spaces
-    .replace(/[\u2018\u2019]/g, "'") // Smart quotes
-    .replace(/[\u201C\u201D]/g, '"') // Smart double quotes
-    .replace(/\u00A0/g, ' ') // Non-breaking spaces
-    .replace(/[\u2013\u2014]/g, '-'); // En/em dashes
-
-  // Special case for Flipkart product data with triple quotes pattern
-  // Example: Ahina ""Unisex Shapewear That Supports...""
-  if (preprocessedLine.includes('""') && 
-      (preprocessedLine.match(/^Ahina/) || preprocessedLine.match(/""{2,}[^"]*""{2,}/))) {
-    
-    console.log("Using special parser for complex Flipkart data");
-    
-    // Use a more robust method for these particularly complex lines
-    try {
-      // Split by commas that are not inside quotes
-      const specialResult = [];
-      let fieldStart = 0;
-      let insideQuotes = false;
-      let quoteCount = 0;
-      
-      for (let i = 0; i < preprocessedLine.length; i++) {
-        const char = preprocessedLine[i];
-        
-        if (char === '"') {
-          quoteCount++;
-          insideQuotes = (quoteCount % 2 === 1);
-        } else if (char === ',' && !insideQuotes) {
-          specialResult.push(preprocessedLine.substring(fieldStart, i));
-          fieldStart = i + 1;
-        }
-      }
-      
-      // Add the last field
-      specialResult.push(preprocessedLine.substring(fieldStart));
-      
-      // Clean up each field
-      return specialResult.map(field => {
-        field = field.trim();
-        
-        // Handle nested quote patterns
-        if (field.includes('""')) {
-          // Special case for brand + quoted product name pattern
-          const brandNameMatch = field.match(/^([^"]+)\s*""([^"]*)""$/);
-          if (brandNameMatch) {
-            return `${brandNameMatch[1].trim()} "${brandNameMatch[2].trim()}"`;
-          }
-          
-          // General case: replace double quotes with single
-          return field.replace(/""/g, '"');
-        }
-        
-        // Handle regular quoted fields
-        if (field.startsWith('"') && field.endsWith('"')) {
-          return field.substring(1, field.length - 1);
-        }
-        
-        return field;
-      });
-    } catch (error) {
-      console.error("Error in special quote processing:", error);
-      // Fall back to standard processing if special handling fails
-    }
-  }
-  
-  // Standard CSV parsing for normal cases
   const result: string[] = [];
   let current = '';
   let inQuotes = false;
+  let previousChar = '';
   
   // If line is empty, return empty array
-  if (!preprocessedLine || preprocessedLine.trim() === '') {
+  if (!line || line.trim() === '') {
     return [];
   }
   
   // Debug log with max length to prevent huge logs
-  const displayLine = preprocessedLine.length > 100 ? preprocessedLine.substring(0, 100) + '...' : preprocessedLine;
+  const displayLine = line.length > 100 ? line.substring(0, 100) + '...' : line;
   console.log(`Processing line: ${displayLine}`);
   
-  for (let i = 0; i < preprocessedLine.length; i++) {
-    const char = preprocessedLine[i];
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
     
     // Handle escape sequences - double quotes in quoted fields are represented as two consecutive quotes
     if (char === '"') {
-      if (inQuotes && i + 1 < preprocessedLine.length && preprocessedLine[i + 1] === '"') {
+      if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
         // This is an escaped quote inside a quoted field (i.e., "")
         current += '"';
         i++; // Skip the next quote character
@@ -145,6 +74,8 @@ function parseCsvLine(line: string): string[] {
       // Otherwise add the character to the current field
       current += char;
     }
+    
+    previousChar = char;
   }
   
   // Add the last field
@@ -247,27 +178,17 @@ export default function BulkUploadPage() {
       errors.push(`Selling price (${product.price}) cannot be greater than MRP (${product.mrp})`);
     }
     
-    // Validate URLs in image fields - with special handling for Flipkart URLs
-    if (product.imageUrl) {
-      // Accept Flipkart image URLs whether they start with http or not
-      if (product.imageUrl.includes('fkcdn.com') || product.imageUrl.includes('flixcart.com')) {
-        // Ensure URL starts with https:// for Flipkart image URLs
-        if (!product.imageUrl.startsWith('http')) {
-          product.imageUrl = 'https://' + product.imageUrl;
-        }
-      } 
-      // For other URLs, enforce http/https pattern
-      else if (!product.imageUrl.match(/^https?:\/\/.+/)) {
-        errors.push(`Main image URL must be a valid URL starting with http:// or https://`);
-      }
+    // Validate URLs in image fields
+    if (product.imageUrl && !product.imageUrl.match(/^https?:\/\/.+/)) {
+      errors.push(`Main image URL must be a valid URL starting with http:// or https://`);
     }
     
-    // Check for problematic placeholder images - but allow Flipkart CDN images
+    // Check for problematic placeholder images
     if (product.imageUrl && (
       product.imageUrl.includes('placeholder.com') || 
       product.imageUrl.includes('placeholder.jpg') ||
       product.imageUrl.includes('dummyimage.com')
-    ) && !product.imageUrl.includes('fkcdn.com') && !product.imageUrl.includes('flixcart.com')) {
+    )) {
       errors.push(`Please use actual product images instead of placeholder images`);
     }
     
@@ -299,45 +220,6 @@ export default function BulkUploadPage() {
     return { isValid: errors.length === 0, errors };
   };
 
-  // Function to sanitize product data with special handling for common issues
-  const sanitizeProductData = (productData: Record<string, any>): Record<string, any> => {
-    const sanitized = { ...productData };
-
-    // Fix product names with triple quotes or nested quotes
-    if (sanitized.name && typeof sanitized.name === 'string') {
-      // First handle common Flipkart product naming patterns with nested quotes
-      if (sanitized.name.includes('""')) {
-        // Pattern like: Ahina ""Unisex Shapewear That Supports...""
-        const namePattern = /^([^"]+)\s+""([^"]+)""(.*)$/;
-        const match = sanitized.name.match(namePattern);
-        
-        if (match) {
-          // Reconstruct name with proper quotes
-          sanitized.name = `${match[1]} "${match[2]}"${match[3] || ''}`;
-          console.log(`Fixed product name format: ${sanitized.name}`);
-        } else {
-          // General quote cleanup
-          sanitized.name = sanitized.name
-            .replace(/"{3,}/g, '"')
-            .replace(/""/g, '"');
-        }
-      }
-    }
-    
-    // Fix descriptions with special characters and line breaks
-    if (sanitized.description && typeof sanitized.description === 'string') {
-      // Replace non-breaking spaces, odd Unicode spaces, and unusual dash characters
-      sanitized.description = sanitized.description
-        .replace(/\u00A0/g, ' ')  // Non-breaking space
-        .replace(/\u2013|\u2014/g, '-')  // En dash, em dash
-        .replace(/\u2019/g, "'")  // Right single quotation mark
-        .replace(/\u201C|\u201D/g, '"')  // Left/right double quotation mark
-        .replace(/�/g, '-');  // Replace unknown character with dash
-    }
-    
-    return sanitized;
-  };
-
   // Function to process CSV data and generate preview
   const processCSVForPreview = (csvData: string) => {
     // Handle different line endings (CRLF, LF)
@@ -357,15 +239,7 @@ export default function BulkUploadPage() {
     console.log(`Processing CSV with ${lines.length} lines`);
     console.log(`Headers: ${lines[0]}`);
     
-    // Pre-process lines to handle known problematic patterns
-    const processedLines = lines.map(line => {
-      // Handle product names with nested quotes in a special way
-      // Pattern: field that starts with something like: Ahina ""Product Name""
-      return line.replace(/^([^,]*?[^"]),"/g, '$1,"')
-                .replace(/,([^,]*?[^"]),""/g, ',$1,"');
-    });
-    
-    const headers = parseCsvLine(processedLines[0]).map(h => h.trim().toLowerCase());
+    const headers = parseCsvLine(lines[0]).map(h => h.trim().toLowerCase());
     const previews: ProductPreview[] = [];
     const errors: UploadError[] = [];
     let validCount = 0;
@@ -397,29 +271,11 @@ export default function BulkUploadPage() {
         
         // Handle numeric fields
         if (['price', 'purchasePrice', 'stock', 'mrp', 'weight', 'length', 'width', 'height', 'warranty_months', 'returnPolicy', 'tax'].includes(header)) {
-          // Handle empty or non-numeric values more gracefully
-          productData[header] = value ? (isNaN(parseInt(value, 10)) ? 0 : parseInt(value, 10)) : 0;
+          productData[header] = parseInt(value, 10);
         } 
         // Handle boolean fields
         else if (header === 'approved') {
           productData[header] = value.toLowerCase() === 'true';
-        }
-        // Handle image URL fields with pattern imageUrl1, imageUrl2, etc.
-        else if (header.match(/^imageUrl\d+$/)) {
-          // First imageUrl becomes the main imageUrl
-          if (header === 'imageUrl1' && value && !productData.imageUrl) {
-            productData.imageUrl = value;
-          }
-          
-          // Add to additional images array
-          if (value) {
-            if (!productData.images) {
-              productData.images = [];
-            }
-            if (Array.isArray(productData.images)) {
-              productData.images.push(value);
-            }
-          }
         }
         // Handle product name field with special sanitization
         else if (header === 'name') {
@@ -495,11 +351,8 @@ export default function BulkUploadPage() {
         }
       });
       
-      // Apply enhanced sanitization to fix all known issues
-      const sanitizedProduct = sanitizeProductData(productData);
-      
       // Validate the product
-      const { isValid, errors: validationErrors } = validateProduct(sanitizedProduct, i);
+      const { isValid, errors: validationErrors } = validateProduct(productData, i);
       
       if (isValid) {
         validCount++;
@@ -513,14 +366,14 @@ export default function BulkUploadPage() {
       }
       
       // Convert images array to JSON string for storage
-      const imagesForPreview = sanitizedProduct.images ? [...sanitizedProduct.images] : [];
-      if (sanitizedProduct.images && Array.isArray(sanitizedProduct.images)) {
-        sanitizedProduct.images = JSON.stringify(sanitizedProduct.images);
+      const imagesForPreview = productData.images ? [...productData.images] : [];
+      if (productData.images && Array.isArray(productData.images)) {
+        productData.images = JSON.stringify(productData.images);
       }
       
-      // Add to preview list with the sanitized product data
+      // Add to preview list
       previews.push({
-        ...sanitizedProduct,
+        ...productData,
         isValid,
         errors: validationErrors,
         rowIndex: i,
@@ -548,89 +401,6 @@ export default function BulkUploadPage() {
         variant: "default",
       });
     }
-  };
-
-  // Flipkart scraper functionality
-  const [flipkartUrl, setFlipkartUrl] = useState<string>('');
-  const [isScrapingFlipkart, setIsScrapingFlipkart] = useState<boolean>(false);
-  const [scrapedProduct, setScrapedProduct] = useState<ProductPreview | null>(null);
-  
-  // Function to scrape product data from Flipkart URL
-  const scrapeFlipkartProduct = async () => {
-    if (!flipkartUrl || !flipkartUrl.includes('flipkart.com')) {
-      toast({
-        title: "Invalid URL",
-        description: "Please enter a valid Flipkart product URL",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    try {
-      setIsScrapingFlipkart(true);
-      
-      const response = await fetch('/api/seller/products/scrape-flipkart', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ url: flipkartUrl }),
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to scrape product data');
-      }
-      
-      const result = await response.json();
-      
-      // Convert to ProductPreview format
-      const productData = {
-        ...result.product,
-        isValid: true,
-        errors: [],
-        rowIndex: 0
-      };
-      
-      setScrapedProduct(productData);
-      
-      toast({
-        title: "Product imported",
-        description: "Successfully imported product data from Flipkart",
-        variant: "default",
-      });
-      
-    } catch (error) {
-      console.error('Error scraping product:', error);
-      toast({
-        title: "Import failed",
-        description: error instanceof Error ? error.message : "Failed to import product data",
-        variant: "destructive",
-      });
-    } finally {
-      setIsScrapingFlipkart(false);
-    }
-  };
-  
-  // Function to add the scraped product to the upload list
-  const addScrapedProductToUpload = () => {
-    if (!scrapedProduct) return;
-    
-    // Create a new array with the scraped product added
-    setPreviewProducts(prev => [scrapedProduct, ...prev]);
-    setTotalRows(prev => prev + 1);
-    setValidRows(prev => prev + 1);
-    
-    toast({
-      title: "Product added",
-      description: "The product has been added to your upload list",
-      variant: "default",
-    });
-    
-    // Clear the scraped product
-    setScrapedProduct(null);
-    setFlipkartUrl('');
   };
 
   // Function to handle file selection
@@ -906,78 +676,7 @@ export default function BulkUploadPage() {
                 <Upload className="h-5 w-5" />
                 <h2 className="text-xl font-semibold">Upload Your Product Data</h2>
               </div>
-              <p className="text-muted-foreground">Import multiple products at once using a CSV or Excel file, or scrape from Flipkart.</p>
-            </div>
-            
-            {/* Flipkart Product Scraper Section */}
-            <div className="border rounded-md p-4 mb-6 bg-blue-50">
-              <h3 className="flex items-center gap-2 text-sm font-medium mb-2">
-                <Link2 className="h-4 w-4 text-blue-600" />
-                Import from Flipkart
-              </h3>
-              <p className="text-sm text-muted-foreground mb-3">
-                Quickly import a product by pasting a Flipkart product URL.
-              </p>
-              <div className="flex gap-2">
-                <Input 
-                  type="text" 
-                  placeholder="Paste Flipkart product URL here..." 
-                  className="flex-grow"
-                  value={flipkartUrl}
-                  onChange={(e) => setFlipkartUrl(e.target.value)}
-                />
-                <Button 
-                  variant="default" 
-                  onClick={scrapeFlipkartProduct}
-                  disabled={isScrapingFlipkart || !flipkartUrl.includes('flipkart.com')}
-                  className="flex items-center gap-2"
-                >
-                  {isScrapingFlipkart ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Importing...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="h-4 w-4" />
-                      Import
-                    </>
-                  )}
-                </Button>
-              </div>
-              {scrapedProduct && (
-                <div className="mt-3 border rounded-md p-3 bg-white">
-                  <div className="flex items-center gap-3">
-                    {scrapedProduct.imageUrl && (
-                      <div className="h-14 w-14 rounded border overflow-hidden">
-                        <FlipkartImage 
-                          url={scrapedProduct.imageUrl} 
-                          alt={scrapedProduct.name} 
-                          className="h-full w-full object-contain" 
-                        />
-                      </div>
-                    )}
-                    <div className="flex-grow">
-                      <h4 className="font-medium text-sm truncate">{scrapedProduct.name}</h4>
-                      <div className="flex gap-3 text-sm">
-                        <span>₹{scrapedProduct.price}</span>
-                        {scrapedProduct.mrp && scrapedProduct.mrp > scrapedProduct.price && (
-                          <span className="text-muted-foreground line-through">₹{scrapedProduct.mrp}</span>
-                        )}
-                      </div>
-                    </div>
-                    <Button 
-                      variant="default" 
-                      size="sm"
-                      onClick={addScrapedProductToUpload}
-                      className="flex items-center gap-1"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      Add to Upload
-                    </Button>
-                  </div>
-                </div>
-              )}
+              <p className="text-muted-foreground">Import multiple products at once using a CSV or Excel file.</p>
             </div>
             
             {/* File Upload Area with Drag & Drop */}
