@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+
 import {
   Select,
   SelectContent,
@@ -710,7 +711,7 @@ export default function SellerPaymentsPage() {
               <div className="border rounded-lg">
                 <div className="p-4 border-b">
                   <h4 className="font-medium flex items-center">
-                    <QuestionMarkCircledIcon className="h-5 w-5 mr-2 text-primary" />
+                    <HelpCircle className="h-5 w-5 mr-2 text-primary" />
                     How often will I receive payments from Lelekart?
                   </h4>
                   <p className="text-sm text-muted-foreground mt-2">
