@@ -351,18 +351,32 @@ const SellerProfilePage = () => {
       const formData = new FormData();
       formData.append("profileImage", file);
       
-      const res = await fetch('/api/user/profile-image', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include'
-      });
-      
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Failed to upload profile image");
+      try {
+        console.log("Uploading profile image...");
+        const res = await fetch('/api/user/profile-image', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include'
+        });
+        
+        // First check if response is JSON
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          console.error("Non-JSON response from server:", await res.text());
+          throw new Error("Server returned an invalid response format");
+        }
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(data.error || data.details || "Failed to upload profile image");
+        }
+        
+        return data;
+      } catch (err) {
+        console.error("Profile image upload error:", err);
+        throw err; // Re-throw to be caught by onError
       }
-      
-      return await res.json();
     },
     onSuccess: (data) => {
       toast({
@@ -386,7 +400,7 @@ const SellerProfilePage = () => {
     onError: (error) => {
       toast({
         title: "Upload Failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Unknown error occurred",
         variant: "destructive",
       });
       setIsUploadingProfileImage(false);

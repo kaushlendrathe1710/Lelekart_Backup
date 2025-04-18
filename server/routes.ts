@@ -7,6 +7,7 @@ import multer from "multer";
 import * as shiprocketHandlers from "./handlers/shiprocket-handlers";
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { uploadFile, getPresignedDownloadUrl } from "./helpers/s3";
 // Configure multer for file uploads
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -58,7 +59,6 @@ import {
   insertWishlistSchema
 } from "@shared/schema";
 import { z } from "zod";
-import { uploadFile, getPresignedDownloadUrl } from "./helpers/s3";
 import { handleImageProxy } from "./utils/image-proxy";
 import { RecommendationEngine } from "./utils/recommendation-engine";
 import { createRazorpayOrder, handleSuccessfulPayment, generateReceiptId, getRazorpayKeyId } from "./utils/razorpay";
@@ -2769,22 +2769,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Processing profile image upload: ${req.file.originalname}, size: ${req.file.size}, mimetype: ${req.file.mimetype}`);
       
-      // Upload the image to S3
-      const uploadResult = await uploadFileToS3(req.file);
-      console.log(`Profile image uploaded successfully to S3: ${uploadResult.Location}`);
-      
-      // Update the user's profile image URL in the database
-      const updatedUser = await storage.updateUserProfile(req.user.id, {
-        profileImage: uploadResult.Location
-      });
-      
-      res.json({
-        success: true,
-        profileImage: updatedUser.profileImage
-      });
+      try {
+        // Upload the image to S3
+        const uploadResult = await uploadFileToS3(req.file);
+        console.log(`Profile image uploaded successfully to S3: ${uploadResult.Location}`);
+        
+        if (!uploadResult || !uploadResult.Location) {
+          throw new Error("S3 upload failed - no URL returned");
+        }
+        
+        // Update the user's profile image URL in the database
+        const updatedUser = await storage.updateUserProfile(req.user.id, {
+          profileImage: uploadResult.Location
+        });
+        
+        // Return a simple JSON response with no HTML
+        return res.json({
+          success: true,
+          profileImage: updatedUser.profileImage
+        });
+      } catch (uploadError) {
+        console.error("S3 upload error:", uploadError);
+        return res.status(500).json({ 
+          error: "Failed to upload to cloud storage",
+          details: uploadError instanceof Error ? uploadError.message : "Unknown error"
+        });
+      }
     } catch (error) {
-      console.error("Error uploading profile image:", error);
-      res.status(500).json({ error: "Failed to upload profile image" });
+      console.error("Error in profile image upload handler:", error);
+      res.status(500).json({ 
+        error: "Failed to process profile image upload",
+        details: error instanceof Error ? error.message : "Unknown error" 
+      });
     }
   });
   
