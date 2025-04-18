@@ -562,6 +562,11 @@ export default function CheckoutPage() {
                         form.setValue("city", address.city);
                         form.setValue("state", address.state);
                         form.setValue("zipCode", address.pincode);
+                        
+                        // Ensure email field is set - use user email if available or keep current value
+                        if (!form.getValues("email") && user?.email) {
+                          form.setValue("email", user.email);
+                        }
                       }}
                     >
                       <div className="flex justify-between items-start mb-2">
