@@ -1265,26 +1265,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if wallet discount was applied
       let walletDiscount = 0;
-      let walletDetails = null;
+      let walletCoinsUsed = 0;
       
-      if (req.body.walletDetails) {
-        console.log("Processing order with wallet redemption:", req.body.walletDetails);
-        walletDiscount = req.body.walletDetails.discountAmount || 0;
-        walletDetails = req.body.walletDetails;
+      // Check if the request contains wallet discount information
+      if (req.body.walletDiscount && req.body.walletCoinsUsed) {
+        console.log("Processing order with wallet redemption:", {
+          walletDiscount: req.body.walletDiscount,
+          walletCoinsUsed: req.body.walletCoinsUsed
+        });
         
-        // Validate wallet usage by checking if user has enough coins
-        if (walletDetails.walletId) {
+        walletDiscount = parseFloat(req.body.walletDiscount) || 0;
+        walletCoinsUsed = parseInt(req.body.walletCoinsUsed) || 0;
+        
+        // Validate wallet usage if coins were provided
+        if (walletCoinsUsed > 0) {
           try {
-            const wallet = await storage.getWalletById(walletDetails.walletId);
-            console.log(`Validating wallet ${walletDetails.walletId} with balance ${wallet?.balance} against required ${walletDetails.coinsUsed} coins`);
+            // Get user's wallet
+            const wallet = await storage.getWalletByUserId(req.user.id);
+            console.log(`Validating wallet for user ${req.user.id} with balance ${wallet?.balance} against required ${walletCoinsUsed} coins`);
             
             if (!wallet) {
-              console.error(`Wallet with ID ${walletDetails.walletId} not found`);
+              console.error(`Wallet for user ${req.user.id} not found`);
               return res.status(400).json({ error: "Wallet not found" });
             }
             
-            if (wallet.balance < walletDetails.coinsUsed) {
-              console.error(`Insufficient wallet balance: ${wallet.balance} < ${walletDetails.coinsUsed}`);
+            if (wallet.balance < walletCoinsUsed) {
+              console.error(`Insufficient wallet balance: ${wallet.balance} < ${walletCoinsUsed}`);
               return res.status(400).json({ error: "Insufficient wallet balance" });
             }
           } catch (walletError) {
@@ -1311,9 +1317,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       // Add wallet information if wallet redemption was applied
-      if (walletDetails) {
+      if (walletDiscount > 0 && walletCoinsUsed > 0) {
         orderData.walletDiscount = walletDiscount;
-        orderData.walletCoinsUsed = walletDetails.coinsUsed;
+        orderData.walletCoinsUsed = walletCoinsUsed;
       }
       
       // Add validated address ID if available
@@ -1345,10 +1351,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.clearCart(req.user.id);
       
       // Apply wallet redemption if needed
-      if (walletDetails && walletDetails.walletId && walletDetails.coinsUsed > 0) {
+      if (walletCoinsUsed > 0) {
         try {
           // Deduct coins from wallet
-          console.log(`Deducting ${walletDetails.coinsUsed} coins from wallet ${walletDetails.walletId}`);
+          console.log(`Deducting ${walletCoinsUsed} coins from wallet for user ${req.user.id}`);
           // Import the redeemCoinsFromWallet function from wallet-handlers
           const { redeemCoinsFromWallet } = await import('./handlers/wallet-handlers');
           
@@ -1357,7 +1363,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Process the redemption
           await redeemCoinsFromWallet(
             userId,
-            walletDetails.coinsUsed,
+            walletCoinsUsed,
             'ORDER',
             order.id,
             `Order #${order.id} coin redemption`

@@ -439,11 +439,9 @@ export default function CheckoutPage() {
         // Calculate coins used based on the discount amount
         const coinsUsed = Math.ceil(walletDiscount / (settings?.coinToCurrencyRatio || 0.1));
         
-        orderData.walletDetails = {
-          coinsUsed,
-          discountAmount: walletDiscount,
-          walletId: wallet.id
-        };
+        // Add wallet fields directly to the order data instead of using walletDetails object
+        orderData.walletDiscount = walletDiscount;
+        orderData.walletCoinsUsed = coinsUsed;
       }
       
       // Log order data before submission

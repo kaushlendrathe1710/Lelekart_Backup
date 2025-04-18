@@ -54,6 +54,8 @@ export default function OrderConfirmationPage() {
     date: string;
     shippingDetails: string;
     paymentMethod: string;
+    walletDiscount?: number;
+    walletCoinsUsed?: number;
     items?: OrderItemWithProduct[];
   }
 
@@ -258,6 +260,16 @@ export default function OrderConfirmationPage() {
                       ₹40.00
                     </td>
                   </tr>
+                  {orderDetails.walletDiscount > 0 && (
+                    <tr>
+                      <td colSpan={2} className="px-6 py-4 text-right font-medium text-green-600">
+                        Wallet Discount ({orderDetails.walletCoinsUsed} coins)
+                      </td>
+                      <td className="px-6 py-4 text-right font-medium text-green-600">
+                        -₹{orderDetails.walletDiscount.toFixed(2)}
+                      </td>
+                    </tr>
+                  )}
                   <tr>
                     <td colSpan={2} className="px-6 py-4 text-right text-lg font-bold">
                       Total
@@ -276,6 +288,18 @@ export default function OrderConfirmationPage() {
             <div className="border border-gray-200 rounded-lg p-6 text-center">
               <p className="text-gray-500 mb-4">Your order has been confirmed!</p>
               <div className="text-left mb-4 p-4 bg-gray-50 rounded-lg">
+                {orderDetails.walletDiscount > 0 && (
+                  <div className="flex justify-between mb-2">
+                    <span className="text-gray-600">Wallet Discount</span>
+                    <span className="font-medium text-green-600">-₹{orderDetails.walletDiscount.toFixed(2)}</span>
+                  </div>
+                )}
+                {orderDetails.walletCoinsUsed > 0 && (
+                  <div className="flex justify-between mb-2">
+                    <span className="text-gray-600">Coins Used</span>
+                    <span className="font-medium">{orderDetails.walletCoinsUsed} coins</span>
+                  </div>
+                )}
                 <div className="flex justify-between mb-2">
                   <span className="text-gray-600">Total</span>
                   <span className="font-medium">₹{(orderDetails.total || 0).toFixed(2)}</span>
