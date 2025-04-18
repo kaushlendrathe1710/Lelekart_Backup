@@ -594,28 +594,45 @@ export default function CheckoutPage() {
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                       onClick={() => {
+                        console.log(`Clicked on address ID: ${address.id}`);
                         setSelectedAddressId(address.id.toString());
                         
                         // Get email value
                         const emailValue = user?.email || user?.username || "";
                         
-                        // Clear all validation errors by resetting form with new values
-                        form.reset({
-                          name: address.fullName,
-                          phone: address.phone,
-                          address: address.address,
-                          city: address.city,
-                          state: address.state,
-                          zipCode: address.pincode,
-                          email: emailValue,
-                          paymentMethod: form.getValues("paymentMethod"),
-                          notes: form.getValues("notes")
-                        });
+                        try {
+                          // Clear all validation errors by resetting form with new values
+                          form.reset({
+                            name: address.fullName,
+                            phone: address.phone,
+                            address: address.address,
+                            city: address.city,
+                            state: address.state,
+                            zipCode: address.pincode,
+                            email: emailValue,
+                            paymentMethod: form.getValues("paymentMethod") || "cod",
+                            notes: form.getValues("notes") || ""
+                          }, {
+                            // This is crucial - ensures the form is considered valid after reset
+                            keepIsValid: true,
+                            keepDirty: false,
+                            keepTouched: false
+                          });
+                          
+                          // Force validation to ensure the button becomes enabled
+                          setTimeout(() => {
+                            form.trigger();
+                            console.log("Form validation triggered, state:", form.formState);
+                          }, 100);
+                        } catch (error) {
+                          console.error("Error resetting form:", error);
+                        }
                         
                         // Log for debugging
                         console.log("Address selected, form reset with values:", {
                           name: address.fullName,
-                          email: emailValue
+                          email: emailValue,
+                          formState: form.formState
                         });
                       }}
                     >
