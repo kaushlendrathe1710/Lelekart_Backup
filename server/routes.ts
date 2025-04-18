@@ -5,6 +5,7 @@ import { pool } from "./db"; // Import pool for direct SQL queries
 import { setupAuth } from "./auth";
 import multer from "multer";
 import * as shiprocketHandlers from "./handlers/shiprocket-handlers";
+import * as shiprocketRoutes from "./handlers/shiprocket-routes";
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { uploadFile, getPresignedDownloadUrl } from "./helpers/s3";
@@ -90,7 +91,6 @@ import * as supportHandlers from "./handlers/support-handlers";
 import * as rewardsHandlers from "./handlers/rewards-handlers";
 import * as giftCardsHandlers from "./handlers/gift-cards-handlers";
 import * as walletRoutes from "./handlers/wallet-routes";
-import * as shiprocketRoutes from "./handlers/shiprocket-routes";
 import {
   getShippingMethods,
   getShippingMethod,
