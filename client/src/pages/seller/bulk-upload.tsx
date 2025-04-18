@@ -209,7 +209,18 @@ export default function BulkUploadPage() {
     if (!product.description && product.description !== 0) errors.push(`Description is required`);
     if (!product.price && product.price !== 0) errors.push(`Price is required`);
     if (!product.category && product.category !== 0) errors.push(`Category is required`);
-    if (!product.imageUrl && product.imageUrl !== 0) errors.push(`Image URL is required`);
+    
+    // Special handling for imageUrl field - check imageurl1 as a fallback
+    if (!product.imageUrl && product.imageUrl !== 0) {
+      // Look for alternate image field names (like imageurl1)
+      if (product.imageurl1) {
+        product.imageUrl = product.imageurl1;
+        console.log(`Using imageurl1 as the main image URL: ${product.imageUrl}`);
+      } else {
+        errors.push(`Image URL is required`);
+      }
+    }
+    
     if (product.stock === undefined && product.stock !== 0) errors.push(`Stock quantity is required`);
     
     // Validate numeric fields - be more flexible with type conversion
@@ -230,8 +241,15 @@ export default function BulkUploadPage() {
       errors.push(`Selling price (${product.price}) cannot be greater than MRP (${product.mrp})`);
     }
     
-    // Validate URLs in image fields - more permissive for Flipkart URLs
-    if (product.imageUrl && typeof product.imageUrl === 'string' && 
+    // Validate URLs in image fields - more permissive for Flipkart URLs and image fields
+    // Special fallback - copy from imageurl1 if available and imageUrl is empty (due to case sensitivity issues)
+    if (!product.imageUrl && product.imageurl1) {
+      product.imageUrl = product.imageurl1;
+      console.log(`Fixed missing imageUrl using imageurl1: ${product.imageUrl}`);
+    }
+    
+    // Only validate if imageUrl exists and is non-empty
+    if (product.imageUrl && typeof product.imageUrl === 'string' && product.imageUrl.trim() !== '' && 
         !product.imageUrl.match(/^https?:\/\/.+/) && 
         !product.imageUrl.includes('fkcdn.com')) {  // Allow Flipkart CDN URLs even without protocol
       errors.push(`Main image URL must be a valid URL starting with http:// or https://`);
@@ -463,7 +481,7 @@ export default function BulkUploadPage() {
           }
         }
         // Handle image fields mapping - use the first one as the main image
-        else if (header === 'imageUrl1') {
+        else if (header === 'imageurl1' || header === 'imageUrl1') {
           // Make sure the URL is properly formatted (some URLs might be missing the http:// prefix)
           let imageUrl = value;
           
@@ -480,8 +498,8 @@ export default function BulkUploadPage() {
             productData.images = [];
           }
         }
-        // Handle additional image fields
-        else if (['imageUrl2', 'imageUrl3', 'imageUrl4'].includes(header) && value) {
+        // Handle additional image fields - check for both lowercase and uppercase field names
+        else if (['imageUrl2', 'imageUrl3', 'imageUrl4', 'imageurl2', 'imageurl3', 'imageurl4'].includes(header) && value) {
           if (!productData.images) {
             productData.images = [];
           }
