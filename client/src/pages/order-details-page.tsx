@@ -81,7 +81,7 @@ function formatDate(dateString: string) {
     hour: '2-digit',
     minute: '2-digit'
   };
-  return new Date(dateString).toLocaleDateString('en-IN', options);
+  return new Date(dateString).toLocaleString('en-IN', options);
 }
 
 // Helper to get status badge color

@@ -28,14 +28,16 @@ interface Order {
   paymentMethod: string;
 }
 
-// Helper to format dates
+// Helper to format dates with time
 function formatDate(dateString: string) {
   const options: Intl.DateTimeFormatOptions = { 
     year: 'numeric', 
     month: 'long', 
-    day: 'numeric'
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
   };
-  return new Date(dateString).toLocaleDateString('en-IN', options);
+  return new Date(dateString).toLocaleString('en-IN', options);
 }
 
 // Helper to get status badge color
