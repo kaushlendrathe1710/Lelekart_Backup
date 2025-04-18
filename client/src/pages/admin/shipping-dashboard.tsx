@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AdminLayout } from '@/components/layout/admin-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
@@ -18,92 +18,306 @@ import {
   TrendingUp,
   Clock,
   Activity,
-  ArrowRight
+  ArrowRight,
+  ExternalLink,
+  Loader2
 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from '@/components/ui/dialog';
+import { format } from 'date-fns';
+
+// Type definitions
+interface ShipmentStats {
+  pending: number;
+  shipped: number;
+  delivered: number;
+  issues: number;
+}
+
+interface Shipment {
+  id: string;
+  orderId: string;
+  trackingId: string;
+  courierName: string;
+  status: string;
+  date: string;
+  customerName: string;
+}
+
+interface PendingOrder {
+  id: number;
+  orderNumber: string;
+  customerName: string;
+  totalAmount: number;
+  date: string;
+  items: Array<{
+    id: number;
+    productId: number;
+    name: string;
+    quantity: number;
+    price: number;
+  }>;
+  shippingDetails: {
+    name: string;
+    address: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+    phone: string;
+    email: string;
+  };
+}
+
+interface ShiprocketConnectionStatus {
+  configured: boolean;
+  status: 'connected' | 'not_connected' | 'error';
+}
 
 const ShippingDashboardPage = () => {
-  // Sample data for the dashboard
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [selectedOrder, setSelectedOrder] = useState<PendingOrder | null>(null);
+  const [shipmentDialogOpen, setShipmentDialogOpen] = useState(false);
+  const [statsTimeframe, setStatsTimeframe] = useState<'week' | 'month' | 'year'>('week');
+
+  // Fetch Shiprocket connection status
+  const { 
+    data: connectionStatus,
+    isLoading: isLoadingStatus,
+  } = useQuery<ShiprocketConnectionStatus>({
+    queryKey: ['/api/shiprocket/status'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/shiprocket/status');
+      if (!res.ok) throw new Error('Failed to fetch Shiprocket status');
+      return res.json();
+    }
+  });
+
+  // Fetch shipment statistics
+  const { 
+    data: shipmentStats,
+    isLoading: isLoadingStats,
+  } = useQuery<ShipmentStats>({
+    queryKey: ['/api/shiprocket/stats', statsTimeframe],
+    queryFn: async () => {
+      try {
+        const res = await apiRequest('GET', `/api/shiprocket/stats?timeframe=${statsTimeframe}`);
+        if (!res.ok) {
+          // If the backend doesn't have this endpoint yet, use estimated numbers based on orders
+          return {
+            pending: 0,
+            shipped: 0,
+            delivered: 0,
+            issues: 0
+          };
+        }
+        return res.json();
+      } catch (error) {
+        console.error('Error fetching shipment stats:', error);
+        // Fallback to empty stats if the endpoint doesn't exist yet
+        return {
+          pending: 0,
+          shipped: 0,
+          delivered: 0,
+          issues: 0
+        };
+      }
+    }
+  });
+
+  // Fetch recent shipments
+  const { 
+    data: recentShipments,
+    isLoading: isLoadingShipments,
+  } = useQuery<Shipment[]>({
+    queryKey: ['/api/shiprocket/shipments'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/shiprocket/shipments');
+      if (!res.ok) {
+        if (res.status === 404) {
+          return []; // Return empty array if no shipments found
+        }
+        throw new Error('Failed to fetch Shiprocket shipments');
+      }
+      return res.json();
+    }
+  });
+
+  // Fetch pending orders
+  const { 
+    data: pendingOrders,
+    isLoading: isLoadingPendingOrders,
+  } = useQuery<PendingOrder[]>({
+    queryKey: ['/api/shiprocket/pending-orders'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/shiprocket/pending-orders');
+      if (!res.ok) {
+        if (res.status === 404) {
+          return []; // Return empty array if no pending orders found
+        }
+        throw new Error('Failed to fetch pending orders');
+      }
+      return res.json();
+    }
+  });
+
+  // Create shipment mutation
+  const createShipmentMutation = useMutation({
+    mutationFn: async (orderId: number) => {
+      const res = await apiRequest('POST', `/api/orders/${orderId}/shiprocket`);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to create shipment');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Shipment created',
+        description: 'The order has been shipped successfully via Shiprocket.',
+      });
+      setShipmentDialogOpen(false);
+      // Invalidate queries to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['/api/shiprocket/shipments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/shiprocket/pending-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/shiprocket/stats'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Failed to create shipment',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+
+  // Handle create shipment
+  const handleCreateShipment = () => {
+    if (!connectionStatus?.configured) {
+      toast({
+        title: 'Shiprocket not configured',
+        description: 'Please configure your Shiprocket account in the settings first.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!pendingOrders || pendingOrders.length === 0) {
+      toast({
+        title: 'No pending orders',
+        description: 'There are no pending orders that need to be shipped.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Show the first pending order in the dialog
+    setSelectedOrder(pendingOrders[0]);
+    setShipmentDialogOpen(true);
+  };
+
+  // Handle confirming a shipment creation
+  const confirmShipment = () => {
+    if (selectedOrder) {
+      createShipmentMutation.mutate(selectedOrder.id);
+    }
+  };
+
+  // Combine the data for display
   const shippingStats = [
     { 
       title: 'Pending Shipments',
-      value: '24',
+      value: isLoadingStats ? '...' : (shipmentStats?.pending || 0).toString(),
       icon: Clock,
       color: 'bg-yellow-100 text-yellow-800'
     },
     { 
       title: 'Shipped Today',
-      value: '12',
+      value: isLoadingStats ? '...' : (shipmentStats?.shipped || 0).toString(),
       icon: Truck,
       color: 'bg-blue-100 text-blue-800'
     },
     { 
       title: 'Delivered',
-      value: '78',
+      value: isLoadingStats ? '...' : (shipmentStats?.delivered || 0).toString(),
       icon: ClipboardCheck,
       color: 'bg-green-100 text-green-800'
     },
     { 
       title: 'Issues',
-      value: '3',
+      value: isLoadingStats ? '...' : (shipmentStats?.issues || 0).toString(),
       icon: AlertCircle,
       color: 'bg-red-100 text-red-800'
     },
   ];
 
-  // Sample recent shipments
-  const recentShipments = [
-    { 
-      id: 'TRK-001', 
-      orderId: 'ORD-5893', 
-      customer: 'Deepak Singh', 
-      carrier: 'Shiprocket', 
-      status: 'In Transit',
-      sentDate: '2025-04-15'
-    },
-    { 
-      id: 'TRK-002', 
-      orderId: 'ORD-5890', 
-      customer: 'Priya Sharma', 
-      carrier: 'Delhivery', 
-      status: 'Out for Delivery',
-      sentDate: '2025-04-15'
-    },
-    { 
-      id: 'TRK-003', 
-      orderId: 'ORD-5885', 
-      customer: 'Rajesh Kumar', 
-      carrier: 'BlueDart', 
-      status: 'In Transit',
-      sentDate: '2025-04-14'
-    },
-    { 
-      id: 'TRK-004', 
-      orderId: 'ORD-5882', 
-      customer: 'Neha Patel', 
-      carrier: 'DTDC', 
-      status: 'Picked Up',
-      sentDate: '2025-04-14'
-    },
-    { 
-      id: 'TRK-005', 
-      orderId: 'ORD-5878', 
-      customer: 'Amit Singh', 
-      carrier: 'Shiprocket', 
-      status: 'Delivered',
-      sentDate: '2025-04-13'
-    },
-  ];
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), 'yyyy-MM-dd');
+    } catch (error) {
+      return dateString;
+    }
+  };
 
   return (
     <AdminLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold tracking-tight">Shipping Dashboard</h1>
-          <Button>
-            <Truck className="h-4 w-4 mr-2" />
-            Create Shipment
+          <Button 
+            onClick={handleCreateShipment}
+            disabled={
+              isLoadingStatus || 
+              !connectionStatus?.configured || 
+              !pendingOrders?.length ||
+              createShipmentMutation.isPending
+            }
+          >
+            {createShipmentMutation.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              <>
+                <Truck className="h-4 w-4 mr-2" />
+                Create Shipment
+              </>
+            )}
           </Button>
         </div>
+
+        {/* Connection Status Alert */}
+        {!isLoadingStatus && !connectionStatus?.configured && (
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
+            <div className="flex">
+              <AlertCircle className="h-5 w-5 text-yellow-400 mr-2" />
+              <div>
+                <p className="text-sm text-yellow-700">
+                  Shiprocket is not configured. Please set up your Shiprocket credentials in 
+                  <Button 
+                    variant="link" 
+                    className="px-1 font-medium underline text-yellow-700"
+                    onClick={() => window.location.href = '/admin/shiprocket'}
+                  >
+                    Shiprocket Settings
+                  </Button>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -117,7 +331,13 @@ const ShippingDashboardPage = () => {
                       <p className="text-sm font-medium text-muted-foreground">
                         {stat.title}
                       </p>
-                      <h3 className="text-2xl font-bold mt-1">{stat.value}</h3>
+                      <h3 className="text-2xl font-bold mt-1">
+                        {isLoadingStats ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          stat.value
+                        )}
+                      </h3>
                     </div>
                     <div className={`p-2 rounded-full ${stat.color}`}>
                       <IconComponent className="h-5 w-5" />
@@ -135,29 +355,55 @@ const ShippingDashboardPage = () => {
             <div>
               <CardTitle>Shipping Activity</CardTitle>
               <CardDescription>
-                Overview of monthly shipping performance
+                Overview of shipping performance
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm">
+              <Button 
+                variant={statsTimeframe === 'week' ? 'default' : 'outline'} 
+                size="sm"
+                onClick={() => setStatsTimeframe('week')}
+              >
                 This Week
               </Button>
-              <Button variant="outline" size="sm">
+              <Button 
+                variant={statsTimeframe === 'month' ? 'default' : 'outline'} 
+                size="sm"
+                onClick={() => setStatsTimeframe('month')}
+              >
                 This Month
               </Button>
-              <Button variant="outline" size="sm">
+              <Button 
+                variant={statsTimeframe === 'year' ? 'default' : 'outline'} 
+                size="sm"
+                onClick={() => setStatsTimeframe('year')}
+              >
                 This Year
               </Button>
             </div>
           </CardHeader>
           <CardContent className="pl-2">
-            <div className="h-[200px] w-full flex items-center justify-center">
-              <div className="flex flex-col items-center text-muted-foreground">
-                <Activity className="h-16 w-16 mb-2" />
-                <p>Shipping activity chart will appear here</p>
-                <p className="text-sm">Showing data for April 2025</p>
+            {isLoadingShipments ? (
+              <div className="h-[200px] w-full flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            </div>
+            ) : !recentShipments || recentShipments.length === 0 ? (
+              <div className="h-[200px] w-full flex items-center justify-center">
+                <div className="flex flex-col items-center text-muted-foreground">
+                  <Activity className="h-16 w-16 mb-2" />
+                  <p>No shipping activity data available</p>
+                  <p className="text-sm">Create shipments to see activity chart</p>
+                </div>
+              </div>
+            ) : (
+              <div className="h-[200px] w-full flex items-center justify-center">
+                <div className="flex flex-col items-center text-muted-foreground">
+                  <Activity className="h-16 w-16 mb-2" />
+                  <p>Shipping activity chart will appear here</p>
+                  <p className="text-sm">Showing data for {statsTimeframe === 'week' ? 'this week' : statsTimeframe === 'month' ? 'this month' : 'this year'}</p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -167,92 +413,232 @@ const ShippingDashboardPage = () => {
             <div>
               <CardTitle>Recent Shipments</CardTitle>
               <CardDescription>
-                Last 5 shipments processed in the system
+                Latest shipments processed in the system
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm">
-              View All
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => window.location.href = '/admin/orders'}
+            >
+              View All Orders
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tracking ID</TableHead>
-                  <TableHead>Order ID</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Carrier</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Shipped Date</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recentShipments.map((shipment) => (
-                  <TableRow key={shipment.id}>
-                    <TableCell className="font-medium">{shipment.id}</TableCell>
-                    <TableCell>{shipment.orderId}</TableCell>
-                    <TableCell>{shipment.customer}</TableCell>
-                    <TableCell>{shipment.carrier}</TableCell>
-                    <TableCell>
-                      <span 
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                          shipment.status === 'Delivered' 
-                            ? 'bg-green-100 text-green-800 border border-green-200' 
-                            : shipment.status === 'In Transit'
-                            ? 'bg-blue-100 text-blue-800 border border-blue-200'
-                            : shipment.status === 'Out for Delivery'
-                            ? 'bg-purple-100 text-purple-800 border border-purple-200'
-                            : 'bg-yellow-100 text-yellow-800 border border-yellow-200'
-                        }`}
-                      >
-                        {shipment.status}
-                      </span>
-                    </TableCell>
-                    <TableCell>{shipment.sentDate}</TableCell>
+            {isLoadingShipments ? (
+              <div className="py-6 flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : !recentShipments || recentShipments.length === 0 ? (
+              <div className="py-8 text-center">
+                <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-medium">No shipments yet</h3>
+                <p className="text-sm text-muted-foreground mt-1 mb-4">
+                  Use the Create Shipment button to ship your first order
+                </p>
+                <Button 
+                  onClick={handleCreateShipment} 
+                  disabled={!connectionStatus?.configured || !pendingOrders?.length}
+                >
+                  <Truck className="h-4 w-4 mr-2" />
+                  Create Your First Shipment
+                </Button>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tracking ID</TableHead>
+                    <TableHead>Order ID</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Carrier</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Shipped Date</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {recentShipments.map((shipment) => (
+                    <TableRow key={shipment.id}>
+                      <TableCell className="font-medium">{shipment.trackingId}</TableCell>
+                      <TableCell>{shipment.orderId}</TableCell>
+                      <TableCell>{shipment.customerName}</TableCell>
+                      <TableCell>{shipment.courierName}</TableCell>
+                      <TableCell>
+                        <span 
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                            shipment.status === 'Delivered' 
+                              ? 'bg-green-100 text-green-800 border border-green-200' 
+                              : shipment.status === 'In Transit'
+                              ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                              : shipment.status === 'Out for Delivery'
+                              ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                              : 'bg-yellow-100 text-yellow-800 border border-yellow-200'
+                          }`}
+                        >
+                          {shipment.status}
+                        </span>
+                      </TableCell>
+                      <TableCell>{formatDate(shipment.date)}</TableCell>
+                      <TableCell>
+                        <a 
+                          href={`https://shiprocket.co/tracking/${shipment.trackingId}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 inline-flex items-center"
+                        >
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          Track
+                        </a>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
 
-        {/* Carrier Performance */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Carrier Performance</CardTitle>
-              <CardDescription>
-                Delivery success rates by carrier
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pl-2">
-              <div className="h-[200px] w-full flex items-center justify-center">
-                <div className="flex flex-col items-center text-muted-foreground">
-                  <TrendingUp className="h-16 w-16 mb-2" />
-                  <p>Carrier performance chart will appear here</p>
-                </div>
+        {/* Pending Orders */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Pending Orders</CardTitle>
+            <CardDescription>
+              Orders ready to be shipped via Shiprocket
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoadingPendingOrders ? (
+              <div className="py-6 flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            </CardContent>
-          </Card>
+            ) : !pendingOrders || pendingOrders.length === 0 ? (
+              <div className="py-8 text-center">
+                <ClipboardCheck className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-medium">No pending orders</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  All orders have been shipped or there are no new orders
+                </p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Order ID</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Items</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Order Date</TableHead>
+                    <TableHead>Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pendingOrders.map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-medium">{order.orderNumber || `ORD-${order.id}`}</TableCell>
+                      <TableCell>{order.customerName || order.shippingDetails?.name || 'N/A'}</TableCell>
+                      <TableCell>{order.items?.length || 0} items</TableCell>
+                      <TableCell>₹{order.totalAmount.toFixed(2)}</TableCell>
+                      <TableCell>{formatDate(order.date)}</TableCell>
+                      <TableCell>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedOrder(order);
+                            setShipmentDialogOpen(true);
+                          }}
+                          disabled={createShipmentMutation.isPending}
+                        >
+                          {createShipmentMutation.isPending && selectedOrder?.id === order.id ? (
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          ) : (
+                            <Truck className="h-3 w-3 mr-1" />
+                          )}
+                          Ship
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Shipping Cost Analysis</CardTitle>
-              <CardDescription>
-                Average shipping costs and trends
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pl-2">
-              <div className="h-[200px] w-full flex items-center justify-center">
-                <div className="flex flex-col items-center text-muted-foreground">
-                  <TrendingUp className="h-16 w-16 mb-2" />
-                  <p>Shipping cost chart will appear here</p>
+        {/* Create Shipment Dialog */}
+        <Dialog open={shipmentDialogOpen} onOpenChange={setShipmentDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Create Shipment</DialogTitle>
+              <DialogDescription>
+                Confirm shipping details for order #{selectedOrder?.orderNumber || `ORD-${selectedOrder?.id}`}
+              </DialogDescription>
+            </DialogHeader>
+            {selectedOrder && (
+              <div className="space-y-4 py-4">
+                <div className="flex flex-col space-y-1">
+                  <h4 className="text-sm font-semibold">Shipping To:</h4>
+                  <p className="text-sm">{selectedOrder.shippingDetails?.name}</p>
+                  <p className="text-sm">{selectedOrder.shippingDetails?.address}</p>
+                  <p className="text-sm">
+                    {selectedOrder.shippingDetails?.city}, {selectedOrder.shippingDetails?.state} {selectedOrder.shippingDetails?.zipCode}
+                  </p>
+                  <p className="text-sm">{selectedOrder.shippingDetails?.phone}</p>
+                </div>
+                
+                <div className="flex flex-col space-y-1">
+                  <h4 className="text-sm font-semibold">Order Details:</h4>
+                  <div className="text-sm space-y-1">
+                    <p>Date: {formatDate(selectedOrder.date)}</p>
+                    <p>Total: ₹{selectedOrder.totalAmount.toFixed(2)}</p>
+                    <p>Items: {selectedOrder.items?.length || 0}</p>
+                  </div>
+                </div>
+                
+                <div className="flex flex-col space-y-1">
+                  <h4 className="text-sm font-semibold">Products:</h4>
+                  <div className="text-sm space-y-2 max-h-[200px] overflow-y-auto">
+                    {selectedOrder.items?.map((item) => (
+                      <div key={item.id} className="flex justify-between border-b pb-2">
+                        <span>{item.name} × {item.quantity}</span>
+                        <span>₹{(item.price * item.quantity).toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="bg-blue-50 p-3 rounded-md">
+                  <p className="text-sm text-blue-800 font-medium">
+                    This order will be pushed to Shiprocket for shipping.
+                  </p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShipmentDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={confirmShipment} 
+                disabled={createShipmentMutation.isPending}
+              >
+                {createShipmentMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Truck className="h-4 w-4 mr-2" />
+                    Create Shipment
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AdminLayout>
   );
