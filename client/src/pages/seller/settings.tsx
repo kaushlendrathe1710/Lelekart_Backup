@@ -308,15 +308,36 @@ export default function SellerSettingsPage() {
   const saveNotificationSettings = async () => {
     setIsLoading(true);
     try {
+      // Transform the nested notification settings to the flat structure expected by the API
+      const transformedSettings = {
+        email: notificationSettings.email.orders || notificationSettings.email.payments || 
+               notificationSettings.email.returns || notificationSettings.email.reviews ||
+               notificationSettings.email.promotions,
+        sms: notificationSettings.sms.orders || notificationSettings.sms.payments ||
+             notificationSettings.sms.returns,
+        push: notificationSettings.push.orders || notificationSettings.push.payments ||
+              notificationSettings.push.returns || notificationSettings.push.reviews ||
+              notificationSettings.push.promotions,
+        orderNotifications: notificationSettings.email.orders || notificationSettings.sms.orders || 
+                           notificationSettings.push.orders,
+        paymentNotifications: notificationSettings.email.payments || notificationSettings.sms.payments || 
+                             notificationSettings.push.payments,
+        returnNotifications: notificationSettings.email.returns || notificationSettings.sms.returns || 
+                            notificationSettings.push.returns,
+        promotionNotifications: notificationSettings.email.promotions || notificationSettings.push.promotions
+      };
+
       const response = await fetch('/api/seller/settings/notifications', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(notificationSettings),
+        body: JSON.stringify(transformedSettings),
       });
       
       if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Server error:', errorData);
         throw new Error('Failed to update notification settings');
       }
       
