@@ -4694,35 +4694,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Route: app.post("/api/orders/:orderId/shiprocket/cancel", shiprocketRoutes.cancelShiprocketOrder);
   
   // Get tracking information
-  app.get('/api/tracking/:id', async (req, res) => {
-    try {
-      const trackingId = req.params.id;
-      
-      // Mock tracking data for now - would actually call Shiprocket API
-      const trackingData = {
-        tracking_data: {
-          track_status: "In Transit",
-          shipment_track_activities: [
-            {
-              date: new Date().toISOString(),
-              activity: "Package picked up",
-              location: "Delhi Hub"
-            },
-            {
-              date: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-              activity: "Package received at delivery facility",
-              location: "Mumbai Hub"
-            }
-          ]
-        }
-      };
-      
-      res.json(trackingData);
-    } catch (error) {
-      console.error("Error getting tracking info:", error);
-      res.status(500).json({ error: "Failed to get tracking information" });
-    }
-  });
+  // Using shiprocket-routes.ts implementation instead
+  // Route: app.get("/api/tracking/:trackingNumber", shiprocketRoutes.trackShiprocketOrder);
   
   return httpServer;
 }
