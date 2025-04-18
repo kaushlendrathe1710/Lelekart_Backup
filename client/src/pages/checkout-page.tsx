@@ -564,16 +564,35 @@ export default function CheckoutPage() {
         }
       }
       
-      // Clear cart
-      await fetch('/api/cart/clear', {
-        method: 'POST',
-        credentials: 'include',
-      });
+      // Use the cart context to clear the cart if it's available
+      try {
+        // Import the cart context if it hasn't been already
+        const cartContext = React.useContext(CartContext);
+        if (cartContext) {
+          // If cart context is available, use its clearCart method
+          await cartContext.clearCart();
+        } else {
+          // Fallback to direct API call if context is not available
+          await fetch('/api/cart/clear', {
+            method: 'POST',
+            credentials: 'include',
+          });
+          
+          // Also update the local cart items state to reflect empty cart
+          setCartItems([]);
+          
+          // Invalidate cart data in React Query cache to ensure it's refreshed everywhere
+          queryClient.invalidateQueries({ queryKey: ['/api/cart'] });
+        }
+      } catch (error) {
+        console.error("Error clearing cart:", error);
+        // Continue with order process even if cart clearing fails
+      }
       
       // Show success message
       toast({
         title: "Order Placed Successfully",
-        description: "Your order has been placed successfully. Thank you for shopping with us!",
+        description: "Your order has been placed successfully. Your cart has been cleared. Thank you for shopping with us!",
       });
       
       // Redirect to order confirmation page with success parameter and total

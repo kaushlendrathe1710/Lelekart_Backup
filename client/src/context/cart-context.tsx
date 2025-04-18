@@ -173,14 +173,29 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   // Clear the cart
-  const clearCart = () => {
+  const clearCart = async () => {
     if (user) {
-      // Clear each item individually
-      cartItems.forEach(item => {
-        if (item.id) {
-          removeFromCartMutation.mutate(item.id);
-        }
-      });
+      try {
+        // Use the dedicated clear cart endpoint instead of removing items one by one
+        await apiRequest("POST", "/api/cart/clear", {}, {
+          credentials: 'include',
+        });
+        
+        // Force refresh cart data immediately
+        queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+        
+        toast({
+          title: "Cart Cleared",
+          description: "Your cart has been cleared successfully.",
+          variant: "default",
+        });
+      } catch (error) {
+        toast({
+          title: "Failed to clear cart",
+          description: "There was an error clearing your cart. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
