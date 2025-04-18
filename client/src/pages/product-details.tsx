@@ -1,4 +1,4 @@
-import { useState, useContext, useRef, useEffect } from "react";
+import { useState, useContext, useRef, useEffect, useMemo } from "react";
 import { useLocation, useRoute } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Product, User } from "@shared/schema";
@@ -699,9 +699,14 @@ export default function ProductDetailsPage() {
   const specifications = parseSpecifications(product?.specifications);
   const { price, discount, original } = getPriceDetails(product);
   
-  // Parse options directly to avoid hook ordering issues
-  const colorOptions = product?.color ? product.color.split(/,\s*/).filter(Boolean) : [];
-  const sizeOptions = product?.size ? product.size.split(/,\s*/).filter(Boolean) : [];
+  // Use useMemo for options to ensure consistent hook calls
+  const colorOptions = useMemo(() => {
+    return product?.color ? product.color.split(/,\s*/).filter(Boolean) : [];
+  }, [product]);
+  
+  const sizeOptions = useMemo(() => {
+    return product?.size ? product.size.split(/,\s*/).filter(Boolean) : [];
+  }, [product]);
   
   // Set initial values for color and size if not already set
   useEffect(() => {
