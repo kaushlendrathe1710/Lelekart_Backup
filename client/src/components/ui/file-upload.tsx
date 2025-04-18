@@ -110,6 +110,11 @@ export function FileUpload({
 
   const handleRemove = () => {
     onChange("");
+    // Reset the file input element to allow re-uploading
+    const inputElement = document.getElementById(id) as HTMLInputElement;
+    if (inputElement) {
+      inputElement.value = '';
+    }
   };
 
   return (
@@ -280,7 +285,14 @@ export function FileUploadRow({
               variant="outline"
               size="sm"
               className="gap-1"
-              onClick={() => onChange("")}
+              onClick={() => {
+                onChange("");
+                // Reset the file input element to allow re-uploading
+                const inputElement = document.getElementById(id) as HTMLInputElement;
+                if (inputElement) {
+                  inputElement.value = '';
+                }
+              }}
             >
               <X className="h-4 w-4" /> Remove
             </Button>
