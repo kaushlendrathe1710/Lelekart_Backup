@@ -37,7 +37,7 @@ export async function pushOrderToShiprocket(req: Request, res: Response) {
     }
     
     // Get order details
-    const order = await storage.getOrderById(parseInt(orderId));
+    const order = await storage.getOrder(parseInt(orderId));
     
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
@@ -184,7 +184,7 @@ export async function cancelShiprocketOrder(req: Request, res: Response) {
     }
     
     // Get order details
-    const order = await storage.getOrderById(parseInt(orderId));
+    const order = await storage.getOrder(parseInt(orderId));
     
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
