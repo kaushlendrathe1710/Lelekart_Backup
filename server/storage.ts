@@ -1175,6 +1175,11 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
+  async getUserAddress(id: number): Promise<UserAddress | undefined> {
+    // This is an alias for getUserAddressById for better naming consistency
+    return this.getUserAddressById(id);
+  }
+  
   async createUserAddress(address: InsertUserAddress): Promise<UserAddress> {
     try {
       // If this is set as default, make sure to unset any other default addresses for this user

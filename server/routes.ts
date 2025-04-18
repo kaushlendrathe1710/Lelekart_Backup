@@ -1146,6 +1146,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Cart is empty" });
       }
       
+      // Validate shipping address - check if we have a valid address
+      const { shippingDetails, addressId } = req.body;
+      
+      if (!addressId && (!shippingDetails || typeof shippingDetails === 'string' && 
+          (!JSON.parse(shippingDetails)?.address || JSON.parse(shippingDetails)?.address.trim() === ''))) {
+        return res.status(400).json({ error: "Shipping address is required" });
+      }
+      
+      if (addressId) {
+        // Verify the address exists and belongs to the user
+        const address = await storage.getUserAddress(parseInt(addressId));
+        if (!address || address.userId !== req.user.id) {
+          return res.status(400).json({ error: "Invalid address selected" });
+        }
+      }
+      
       // Calculate subtotal from cart items
       const subtotal = cartItems.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
       
@@ -1173,8 +1189,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Calculate final total with all adjustments
       const total = req.body.total || (subtotal + shipping - walletDiscount);
       
-      // Create order with shipping details from request body
-      const { shippingDetails, paymentMethod } = req.body;
+      // Create order with payment method from request body
+      const { paymentMethod } = req.body;
       
       // Prepare base order data
       const orderData: any = {
