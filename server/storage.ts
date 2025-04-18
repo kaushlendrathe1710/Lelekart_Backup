@@ -626,11 +626,40 @@ export class DatabaseStorage implements IStorage {
         return null;
       }
       
+      // If it's already an object, return it
+      if (typeof user.notificationPreferences === 'object' && user.notificationPreferences !== null) {
+        return user.notificationPreferences;
+      }
+      
       // Parse and return the notification preferences
       try {
-        return JSON.parse(user.notificationPreferences);
+        // If it's a string, try to parse it as JSON
+        if (typeof user.notificationPreferences === 'string') {
+          return JSON.parse(user.notificationPreferences);
+        } else {
+          console.warn(`Unexpected type for notification preferences: ${typeof user.notificationPreferences}`);
+          return null;
+        }
       } catch (error) {
         console.error(`Error parsing notification preferences for user ${id}:`, error);
+        
+        // If parsing fails and we have an invalid value like '[object Object]',
+        // return default preferences instead of null
+        if (user.notificationPreferences === '[object Object]') {
+          console.log(`Resetting invalid notification preferences for user ${id}`);
+          return {
+            orderUpdates: true,
+            promotions: true,
+            priceAlerts: true,
+            stockAlerts: true,
+            accountUpdates: true,
+            deliveryUpdates: true,
+            recommendationAlerts: true,
+            paymentReminders: true,
+            communicationPreference: "email"
+          };
+        }
+        
         return null;
       }
     } catch (error) {
@@ -648,8 +677,14 @@ export class DatabaseStorage implements IStorage {
         throw new Error(`User with ID ${id} not found`);
       }
       
+      // Ensure preferences is an object, not a string
+      const preferencesObj = typeof preferences === 'string' ? JSON.parse(preferences) : preferences;
+      
+      // Debug log to see what we're trying to save
+      console.log(`Saving notification preferences for user ${id}:`, preferencesObj);
+      
       // Convert preferences to JSON string
-      const preferencesJson = JSON.stringify(preferences);
+      const preferencesJson = JSON.stringify(preferencesObj);
       
       // Update the user's notification preferences
       const [updatedUser] = await db
@@ -661,6 +696,8 @@ export class DatabaseStorage implements IStorage {
       if (!updatedUser) {
         throw new Error(`Failed to update notification preferences for user ${id}`);
       }
+      
+      console.log(`Successfully updated notification preferences for user ${id}`);
       
       return updatedUser;
     } catch (error) {
