@@ -1179,6 +1179,18 @@ export class DatabaseStorage implements IStorage {
     // This is an alias for getUserAddressById for better naming consistency
     return this.getUserAddressById(id);
   }
+
+  async getWalletById(id: number): Promise<any> {
+    try {
+      // Use the getUserWallet function from wallet-handlers.js
+      const { getUserWallet } = await import('./handlers/wallet-handlers');
+      const wallet = await getUserWallet(id);
+      return wallet;
+    } catch (error) {
+      console.error(`Error getting wallet with ID ${id}:`, error);
+      return null;
+    }
+  }
   
   async createUserAddress(address: InsertUserAddress): Promise<UserAddress> {
     try {
