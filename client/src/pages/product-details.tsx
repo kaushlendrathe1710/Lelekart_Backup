@@ -6,7 +6,7 @@ import { CategoryNav } from "@/components/ui/category-nav";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Minus, Plus, ShoppingCart, Star, Zap, Heart, Share2, Package, Shield, TruckIcon, Award, BarChart3, ChevronDown, Maximize, RotateCw } from "lucide-react";
+import { Minus, Plus, ShoppingCart, Star, Zap, Heart, Share2, Package, Shield, TruckIcon, Award, BarChart3, ChevronDown, Maximize, RotateCw, Ruler } from "lucide-react";
 import { ProductCard } from "@/components/ui/product-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CartContext, CartProvider } from "@/context/cart-context";
@@ -694,30 +694,26 @@ export default function ProductDetailsPage() {
   }
   
   // Process images, specifications, price details, colors and sizes
+  // Initialize state and calculated values AFTER all hooks have been called
   const productImages = getProductImages(product);
   const specifications = parseSpecifications(product?.specifications);
   const { price, discount, original } = getPriceDetails(product);
   
-  // Parse color and size options and set initial values
-  useEffect(() => {
-    if (product) {
-      // Parse options
-      const parsedColorOptions = product.color ? product.color.split(/,\s*/).filter(Boolean) : [];
-      const parsedSizeOptions = product.size ? product.size.split(/,\s*/).filter(Boolean) : [];
-      
-      // Set initial values if needed
-      if (parsedColorOptions.length > 0 && !selectedColor) {
-        setSelectedColor(parsedColorOptions[0]);
-      }
-      if (parsedSizeOptions.length > 0 && !selectedSize) {
-        setSelectedSize(parsedSizeOptions[0]);
-      }
-    }
-  }, [product, selectedColor, selectedSize]);
-  
-  // Create variables for color and size options for rendering
+  // Parse options directly to avoid hook ordering issues
   const colorOptions = product?.color ? product.color.split(/,\s*/).filter(Boolean) : [];
   const sizeOptions = product?.size ? product.size.split(/,\s*/).filter(Boolean) : [];
+  
+  // Set initial values for color and size if not already set
+  useEffect(() => {
+    if (product) {
+      if (colorOptions.length > 0 && !selectedColor) {
+        setSelectedColor(colorOptions[0]);
+      }
+      if (sizeOptions.length > 0 && !selectedSize) {
+        setSelectedSize(sizeOptions[0]);
+      }
+    }
+  }, [product, colorOptions, sizeOptions, selectedColor, selectedSize]);
   
   return (
     <CartProvider>
