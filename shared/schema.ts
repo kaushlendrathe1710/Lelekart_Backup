@@ -101,6 +101,10 @@ export const orders = pgTable("orders", {
   orderId: text("order_id"), // For Razorpay orderId
   addressId: integer("address_id").references(() => userAddresses.id), // Optional reference to saved address
   
+  // Wallet integration fields
+  walletDiscount: integer("wallet_discount").default(0), // Amount discounted using wallet coins
+  walletCoinsUsed: integer("wallet_coins_used").default(0), // Number of coins used from wallet
+  
   // Shiprocket integration fields
   shippingStatus: text("shipping_status"), // Status of the order in Shiprocket
   shiprocketOrderId: text("shiprocket_order_id"), // Shiprocket order ID

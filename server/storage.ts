@@ -1869,7 +1869,8 @@ export class DatabaseStorage implements IStorage {
     // Add console logging for debugging
     console.log("Creating order with data:", orderToInsert);
     
-    // Create a properly typed order object as an array with a single item
+    // Only include the basic fields that we know exist in the database
+    // Exclude any Shiprocket fields (shipping_status, etc) that might not exist yet
     const orderData = [{
       userId: orderToInsert.userId,
       status: orderToInsert.status,
@@ -1883,6 +1884,24 @@ export class DatabaseStorage implements IStorage {
       ...(orderToInsert.paymentId ? { paymentId: orderToInsert.paymentId } : {}),
       ...(orderToInsert.orderId ? { orderId: orderToInsert.orderId } : {})
     }];
+    
+    // Remove any shipping-related fields that might not exist yet
+    delete orderData[0]['shippingStatus'];
+    delete orderData[0]['shiprocketOrderId'];
+    delete orderData[0]['shiprocketShipmentId']; 
+    delete orderData[0]['trackingDetails'];
+    delete orderData[0]['courierName'];
+    delete orderData[0]['awbCode'];
+    delete orderData[0]['estimatedDeliveryDate'];
+    
+    // Add wallet-related fields if they exist in the order input
+    if (orderToInsert.walletDiscount) {
+      orderData[0]['walletDiscount'] = orderToInsert.walletDiscount;
+    }
+    
+    if (orderToInsert.walletCoinsUsed) {
+      orderData[0]['walletCoinsUsed'] = orderToInsert.walletCoinsUsed;
+    }
     
     // Debug log to verify the final data being sent to the database
     console.log("Final order data for database insertion:", orderData);
