@@ -698,21 +698,26 @@ export default function ProductDetailsPage() {
   const specifications = parseSpecifications(product?.specifications);
   const { price, discount, original } = getPriceDetails(product);
   
-  // Parse color and size options
-  const colorOptions = product?.color ? product.color.split(/,\s*/).filter(Boolean) : [];
-  const sizeOptions = product?.size ? product.size.split(/,\s*/).filter(Boolean) : [];
-  
-  // Set initial values for color and size if not already set
+  // Parse color and size options and set initial values
   useEffect(() => {
     if (product) {
-      if (colorOptions.length > 0 && !selectedColor) {
-        setSelectedColor(colorOptions[0]);
+      // Parse options
+      const parsedColorOptions = product.color ? product.color.split(/,\s*/).filter(Boolean) : [];
+      const parsedSizeOptions = product.size ? product.size.split(/,\s*/).filter(Boolean) : [];
+      
+      // Set initial values if needed
+      if (parsedColorOptions.length > 0 && !selectedColor) {
+        setSelectedColor(parsedColorOptions[0]);
       }
-      if (sizeOptions.length > 0 && !selectedSize) {
-        setSelectedSize(sizeOptions[0]);
+      if (parsedSizeOptions.length > 0 && !selectedSize) {
+        setSelectedSize(parsedSizeOptions[0]);
       }
     }
-  }, [product, colorOptions, sizeOptions, selectedColor, selectedSize]);
+  }, [product, selectedColor, selectedSize]);
+  
+  // Create variables for color and size options for rendering
+  const colorOptions = product?.color ? product.color.split(/,\s*/).filter(Boolean) : [];
+  const sizeOptions = product?.size ? product.size.split(/,\s*/).filter(Boolean) : [];
   
   return (
     <CartProvider>
