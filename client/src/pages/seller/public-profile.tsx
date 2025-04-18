@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { Layout } from "@/components/layout/layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -80,50 +79,45 @@ export default function PublicSellerProfilePage() {
 
   if (isLoading) {
     return (
-      <Layout>
-        <div className="container py-8">
-          <div className="flex flex-col gap-6">
-            <div className="flex items-center gap-4">
-              <Skeleton className="h-20 w-20 rounded-full" />
-              <div className="space-y-2">
-                <Skeleton className="h-8 w-56" />
-                <Skeleton className="h-4 w-40" />
-              </div>
-            </div>
-            <Skeleton className="h-32 w-full" />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Skeleton className="h-64 w-full" />
-              <Skeleton className="h-64 w-full" />
-              <Skeleton className="h-64 w-full" />
+      <div className="container py-8">
+        <div className="flex flex-col gap-6">
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-20 w-20 rounded-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-56" />
+              <Skeleton className="h-4 w-40" />
             </div>
           </div>
+          <Skeleton className="h-32 w-full" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-64 w-full" />
+          </div>
         </div>
-      </Layout>
+      </div>
     );
   }
 
   if (!sellerProfile) {
     return (
-      <Layout>
-        <div className="container py-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Seller Not Found</CardTitle>
-              <CardDescription>The seller profile you're looking for doesn't exist or is not available.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button asChild>
-                <RouterLink href="/marketplace">Back to Marketplace</RouterLink>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </Layout>
+      <div className="container py-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Seller Not Found</CardTitle>
+            <CardDescription>The seller profile you're looking for doesn't exist or is not available.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild>
+              <RouterLink href="/marketplace">Back to Marketplace</RouterLink>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <Layout>
       <div className="container py-8">
         {/* Breadcrumb */}
         <Breadcrumb className="mb-6">
@@ -388,6 +382,5 @@ export default function PublicSellerProfilePage() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
 }
