@@ -1061,7 +1061,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
-      const { razorpayOrderId, razorpayPaymentId, razorpaySignature, shippingDetails } = req.body;
+      const { razorpayOrderId, razorpayPaymentId, razorpaySignature, shippingDetails, addressId } = req.body;
       
       if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
         return res.status(400).json({ error: "Missing payment verification details" });
@@ -1085,11 +1085,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Cart is empty" });
       }
       
+      // Validate shipping address
+      if (!addressId && (!shippingDetails || typeof shippingDetails === 'string' && 
+          (!JSON.parse(shippingDetails)?.address || JSON.parse(shippingDetails)?.address.trim() === ''))) {
+        return res.status(400).json({ error: "Shipping address is required" });
+      }
+      
+      // Debug log the address information
+      console.log("Order address information (Razorpay):", { addressId, shippingDetails });
+      
+      // Validate addressId (if provided)
+      let validatedAddressId = null;
+      if (addressId) {
+        // Verify the address exists and belongs to the user
+        const parsedAddressId = parseInt(addressId);
+        console.log(`Validating address ID (Razorpay): ${parsedAddressId}`);
+        
+        try {
+          const address = await storage.getUserAddress(parsedAddressId);
+          if (!address) {
+            console.error(`Address with ID ${parsedAddressId} not found`);
+            return res.status(400).json({ error: "Address not found" });
+          }
+          
+          if (address.userId !== req.user.id) {
+            console.error(`Address ${parsedAddressId} belongs to user ${address.userId}, not ${req.user.id}`);
+            return res.status(400).json({ error: "Invalid address selected" });
+          }
+          
+          console.log(`Address validated successfully:`, address);
+          validatedAddressId = parsedAddressId;
+        } catch (addressError) {
+          console.error("Error validating address:", addressError);
+          return res.status(400).json({ error: "Error validating address" });
+        }
+      }
+      
       // Calculate total
       const total = cartItems.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
       
       // Create order in our system
-      const orderData = {
+      const orderData: any = {
         userId: req.user.id,
         status: "paid", // Payment successful, so mark as paid
         total,
@@ -1100,9 +1136,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         orderId: razorpayOrderId
       };
       
+      // Add validated address ID if available
+      if (validatedAddressId) {
+        orderData.addressId = validatedAddressId;
+        console.log(`Adding validated addressId ${validatedAddressId} to Razorpay order`);
+      }
+      
       console.log("Creating order after successful Razorpay payment:", orderData);
       
       const order = await storage.createOrder(orderData);
+      console.log("Order created successfully after Razorpay payment:", order);
       
       // Create order items
       for (const item of cartItems) {
@@ -1154,11 +1197,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Shipping address is required" });
       }
       
+      // Debug log the address information
+      console.log("Order address information:", { addressId, shippingDetails });
+      
+      // Validate addressId (if provided)
+      let validatedAddressId = null;
       if (addressId) {
         // Verify the address exists and belongs to the user
-        const address = await storage.getUserAddress(parseInt(addressId));
-        if (!address || address.userId !== req.user.id) {
-          return res.status(400).json({ error: "Invalid address selected" });
+        const parsedAddressId = parseInt(addressId);
+        console.log(`Validating address ID: ${parsedAddressId}`);
+        
+        try {
+          const address = await storage.getUserAddress(parsedAddressId);
+          if (!address) {
+            console.error(`Address with ID ${parsedAddressId} not found`);
+            return res.status(400).json({ error: "Address not found" });
+          }
+          
+          if (address.userId !== req.user.id) {
+            console.error(`Address ${parsedAddressId} belongs to user ${address.userId}, not ${req.user.id}`);
+            return res.status(400).json({ error: "Invalid address selected" });
+          }
+          
+          console.log(`Address validated successfully:`, address);
+          validatedAddressId = parsedAddressId;
+        } catch (addressError) {
+          console.error("Error validating address:", addressError);
+          return res.status(400).json({ error: "Error validating address" });
         }
       }
       
@@ -1179,9 +1244,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Validate wallet usage by checking if user has enough coins
         if (walletDetails.walletId) {
-          const wallet = await storage.getWalletById(walletDetails.walletId);
-          if (!wallet || wallet.balance < walletDetails.coinsUsed) {
-            return res.status(400).json({ error: "Insufficient wallet balance" });
+          try {
+            const wallet = await storage.getWalletById(walletDetails.walletId);
+            console.log(`Validating wallet ${walletDetails.walletId} with balance ${wallet?.balance} against required ${walletDetails.coinsUsed} coins`);
+            
+            if (!wallet) {
+              console.error(`Wallet with ID ${walletDetails.walletId} not found`);
+              return res.status(400).json({ error: "Wallet not found" });
+            }
+            
+            if (wallet.balance < walletDetails.coinsUsed) {
+              console.error(`Insufficient wallet balance: ${wallet.balance} < ${walletDetails.coinsUsed}`);
+              return res.status(400).json({ error: "Insufficient wallet balance" });
+            }
+          } catch (walletError) {
+            console.error("Error validating wallet:", walletError);
+            return res.status(400).json({ error: "Error validating wallet" });
           }
         }
       }
@@ -1208,15 +1286,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         orderData.walletCoinsUsed = walletDetails.coinsUsed;
       }
       
-      // Add address ID if provided
-      if (req.body.addressId) {
-        orderData.addressId = parseInt(req.body.addressId);
+      // Add validated address ID if available
+      if (validatedAddressId) {
+        orderData.addressId = validatedAddressId;
+        console.log(`Adding validated addressId ${validatedAddressId} to order`);
       }
       
       // Log the order data for debugging
       console.log("Creating order with data:", orderData);
       
       const order = await storage.createOrder(orderData);
+      console.log("Order created successfully:", order);
       
       // Create order items
       for (const item of cartItems) {
@@ -1233,6 +1313,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Clear cart
       await storage.clearCart(req.user.id);
+      
+      // Apply wallet redemption if needed
+      if (walletDetails && walletDetails.walletId && walletDetails.coinsUsed > 0) {
+        try {
+          // Deduct coins from wallet
+          console.log(`Deducting ${walletDetails.coinsUsed} coins from wallet ${walletDetails.walletId}`);
+          await storage.createWalletTransaction({
+            walletId: walletDetails.walletId,
+            amount: -walletDetails.coinsUsed,
+            type: "redemption",
+            description: `Order #${order.id} redemption`,
+            referenceId: order.id.toString(),
+            referenceType: "order"
+          });
+          console.log("Wallet transaction created successfully");
+        } catch (walletError) {
+          console.error("Error processing wallet redemption:", walletError);
+          // We don't want to fail the order if wallet processing fails at this point
+          // Just log the error and continue
+        }
+      }
       
       res.status(201).json(order);
     } catch (error) {
