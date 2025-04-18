@@ -1967,6 +1967,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get seller products with filtering and pagination
+  app.get("/api/seller/products", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+    
+    if (req.user.role !== "seller" && req.user.role !== "admin") {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+    
+    try {
+      const sellerId = req.user.id;
+      const category = req.query.category as string | undefined;
+      const search = req.query.search as string | undefined;
+      const stockFilter = req.query.stock as string | undefined;
+      
+      // Pagination parameters
+      const page = req.query.page ? parseInt(req.query.page as string) : 1;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const offset = (page - 1) * limit;
+      
+      // Get total count for pagination
+      const totalCount = await storage.getProductsCount(category, sellerId, undefined, search);
+      const totalPages = Math.ceil(totalCount / limit);
+      
+      // Get the products with applied filters
+      let products = await storage.getProductsPaginated(category, sellerId, undefined, offset, limit, search);
+      
+      // Apply stock filtering if required
+      if (stockFilter && stockFilter !== 'all') {
+        products = products.filter(product => {
+          const stock = product.stockQuantity || 0;
+          
+          if (stockFilter === 'in-stock') {
+            return stock > 10;
+          } else if (stockFilter === 'low-stock') {
+            return stock > 0 && stock <= 10;
+          } else if (stockFilter === 'out-of-stock') {
+            return stock <= 0;
+          }
+          
+          return true;
+        });
+      }
+      
+      res.json({
+        products,
+        currentPage: page,
+        totalPages,
+        total: totalCount
+      });
+    } catch (error) {
+      console.error("Error fetching seller products:", error);
+      res.status(500).json({ error: "Failed to fetch products" });
+    }
+  });
+
   // Bulk upload endpoint
   app.post("/api/seller/products/bulk-upload", async (req, res) => {
     if (!req.isAuthenticated()) {
