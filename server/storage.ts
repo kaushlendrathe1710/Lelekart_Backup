@@ -588,7 +588,7 @@ export class DatabaseStorage implements IStorage {
   
   async updateUserProfile(id: number, data: Partial<User>): Promise<User> {
     // Only allow updating these fields
-    const allowedFields: (keyof User)[] = ['username', 'email', 'phone', 'address'];
+    const allowedFields: (keyof User)[] = ['username', 'email', 'phone', 'address', 'profileImage'];
     
     // Filter out any fields that are not allowed
     const filteredData: Partial<User> = {};
