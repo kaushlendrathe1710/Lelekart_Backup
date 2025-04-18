@@ -1270,14 +1270,9 @@ export default function BulkUploadPage() {
                               <div className="h-12 w-12 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden">
                                 {product.imageUrl ? (
                                   <FlipkartImage 
-                                    src={product.imageUrl} 
-                                    alt={product.name} 
+                                    url={product.imageUrl} 
+                                    alt={product.name || "Product image"} 
                                     className="h-full w-full object-contain"
-                                    fallbackComponent={
-                                      <div className="h-full w-full flex items-center justify-center bg-gray-100">
-                                        <ImageIcon className="h-6 w-6 text-gray-400" />
-                                      </div>
-                                    }
                                   />
                                 ) : (
                                   <ImageIcon className="h-6 w-6 text-gray-400" />

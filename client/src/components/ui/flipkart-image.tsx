@@ -40,6 +40,7 @@ interface FlipkartImageProps {
   fallbackIndex?: number;
   width?: string | number;
   height?: string | number;
+  fallbackComponent?: React.ReactNode;
 }
 
 export function FlipkartImage({ 
@@ -48,7 +49,8 @@ export function FlipkartImage({
   className = "", 
   fallbackIndex = 0,
   width,
-  height
+  height,
+  fallbackComponent
 }: FlipkartImageProps) {
   const [imgSrc, setImgSrc] = useState<string>(() => {
     // Try to use the provided URL first
@@ -61,9 +63,19 @@ export function FlipkartImage({
     return FASHION_FALLBACK_IMAGES[fallbackIdx];
   });
   
+  const [hasError, setHasError] = useState(false);
+  
   // Use a fallback if the image fails to load
   const handleError = () => {
     console.warn(`Failed to load image: ${imgSrc}, using fallback`);
+    
+    // If there's a custom fallback component, show it
+    if (fallbackComponent) {
+      setHasError(true);
+      return;
+    }
+    
+    // Otherwise use the built-in fallback images
     const fallbackIdx = Math.abs(fallbackIndex) % FASHION_FALLBACK_IMAGES.length;
     setImgSrc(FASHION_FALLBACK_IMAGES[fallbackIdx]);
   };
@@ -72,8 +84,14 @@ export function FlipkartImage({
   useEffect(() => {
     if (url && url.trim() !== '' && !url.includes('placeholder.com')) {
       setImgSrc(createProxyUrl(url));
+      setHasError(false);
     }
   }, [url]);
+  
+  // If there's an error and a custom fallback component, show that
+  if (hasError && fallbackComponent) {
+    return <>{fallbackComponent}</>;
+  }
   
   return (
     <img 
