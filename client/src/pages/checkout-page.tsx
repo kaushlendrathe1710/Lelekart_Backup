@@ -186,37 +186,43 @@ export default function CheckoutPage() {
           setSelectedAddressId(defaultAddress.id.toString());
           
           // Pre-fill form with default address data for payment processing
-          form.setValue("name", defaultAddress.fullName);
-          form.setValue("phone", defaultAddress.phone);
-          form.setValue("address", defaultAddress.address);
-          form.setValue("city", defaultAddress.city);
-          form.setValue("state", defaultAddress.state);
-          form.setValue("zipCode", defaultAddress.pincode);
+          form.setValue("name", defaultAddress.fullName, { shouldValidate: true });
+          form.setValue("phone", defaultAddress.phone, { shouldValidate: true });
+          form.setValue("address", defaultAddress.address, { shouldValidate: true });
+          form.setValue("city", defaultAddress.city, { shouldValidate: true });
+          form.setValue("state", defaultAddress.state, { shouldValidate: true });
+          form.setValue("zipCode", defaultAddress.pincode, { shouldValidate: true });
           
           // Make sure email is set - keep existing email or use username 
-          if (!form.getValues("email") && user?.email) {
-            form.setValue("email", user.email);
-          } else if (!form.getValues("email") && user?.username) {
-            form.setValue("email", user.username);
+          if (user?.email) {
+            form.setValue("email", user.email, { shouldValidate: true });
+          } else if (user?.username) {
+            form.setValue("email", user.username, { shouldValidate: true });
           }
+          
+          // Trigger form validation after setting all values
+          form.trigger();
         } else {
           // Use the first address if no default
           setSelectedAddressId(data[0].id.toString());
           
           // Pre-fill form with first address data for payment processing
-          form.setValue("name", data[0].fullName);
-          form.setValue("phone", data[0].phone);
-          form.setValue("address", data[0].address);
-          form.setValue("city", data[0].city);
-          form.setValue("state", data[0].state);
-          form.setValue("zipCode", data[0].pincode);
+          form.setValue("name", data[0].fullName, { shouldValidate: true });
+          form.setValue("phone", data[0].phone, { shouldValidate: true });
+          form.setValue("address", data[0].address, { shouldValidate: true });
+          form.setValue("city", data[0].city, { shouldValidate: true });
+          form.setValue("state", data[0].state, { shouldValidate: true });
+          form.setValue("zipCode", data[0].pincode, { shouldValidate: true });
           
           // Make sure email is set - keep existing email or use username
-          if (!form.getValues("email") && user?.email) {
-            form.setValue("email", user.email);
-          } else if (!form.getValues("email") && user?.username) {
-            form.setValue("email", user.username);
+          if (user?.email) {
+            form.setValue("email", user.email, { shouldValidate: true });
+          } else if (user?.username) {
+            form.setValue("email", user.username, { shouldValidate: true });
           }
+          
+          // Trigger form validation after setting all values
+          form.trigger();
         }
       }
     })
@@ -411,6 +417,10 @@ export default function CheckoutPage() {
   const onSubmit = async (values: CheckoutFormValues) => {
     setProcessingOrder(true);
     
+    // Debug validation
+    console.log("Form values being submitted:", values);
+    console.log("Form validation state:", form.formState);
+    
     try {
       // Validate wallet usage if attempting to use wallet coins
       if (useWalletCoins && wallet) {
@@ -570,17 +580,22 @@ export default function CheckoutPage() {
                         setSelectedAddressId(address.id.toString());
                         
                         // Update form values when address is selected
-                        form.setValue("name", address.fullName);
-                        form.setValue("phone", address.phone);
-                        form.setValue("address", address.address);
-                        form.setValue("city", address.city);
-                        form.setValue("state", address.state);
-                        form.setValue("zipCode", address.pincode);
+                        form.setValue("name", address.fullName, { shouldValidate: true });
+                        form.setValue("phone", address.phone, { shouldValidate: true });
+                        form.setValue("address", address.address, { shouldValidate: true });
+                        form.setValue("city", address.city, { shouldValidate: true });
+                        form.setValue("state", address.state, { shouldValidate: true });
+                        form.setValue("zipCode", address.pincode, { shouldValidate: true });
                         
-                        // Ensure email field is set - use user email if available or keep current value
-                        if (!form.getValues("email") && user?.email) {
-                          form.setValue("email", user.email);
+                        // Ensure email field is set - use user email if available or use username
+                        if (user?.email) {
+                          form.setValue("email", user.email, { shouldValidate: true });
+                        } else if (user?.username) {
+                          form.setValue("email", user.username, { shouldValidate: true });
                         }
+                        
+                        // Trigger form validation after setting all values
+                        form.trigger();
                       }}
                     >
                       <div className="flex justify-between items-start mb-2">
@@ -758,6 +773,23 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
+                {/* Hidden field for email when using saved address */}
+                {addresses.length > 0 && !showAddressForm && (
+                  <div style={{ display: 'none' }}>
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input type="email" {...field} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
+                
                 {/* Payment section - always visible */}
                 <div className="payment-section pt-4 border-t">
                   <h3 className="font-medium text-base mb-4">Payment Method</h3>
