@@ -1907,10 +1907,15 @@ export class DatabaseStorage implements IStorage {
     console.log("Final order data for database insertion:", orderData);
     
     try {
-      const [order] = await db
-        .insert(orders)
-        .values(orderData)
-        .returning();
+      // Log the SQL that would be executed
+      const query = db.insert(orders).values(orderData);
+      const sql = query.toSQL();
+      console.log("Order insertion SQL query:", sql.sql);
+      console.log("Order insertion SQL parameters:", sql.params);
+      
+      const [order] = await query.returning();
+      
+      console.log("Order created successfully:", order);
       
       // Parse shippingDetails from string to object if it exists
       if (order.shippingDetails && typeof order.shippingDetails === 'string') {
@@ -1924,6 +1929,21 @@ export class DatabaseStorage implements IStorage {
       return order;
     } catch (error) {
       console.error("Database error during order creation:", error);
+      
+      // More detailed error logging
+      if (error instanceof Error) {
+        console.error("Error name:", error.name);
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+        
+        // Check if it's a database error with code
+        if ('code' in error) {
+          console.error("Database error code:", (error as any).code);
+          console.error("Database error detail:", (error as any).detail);
+          console.error("Database error constraint:", (error as any).constraint);
+        }
+      }
+      
       throw error;
     }
   }

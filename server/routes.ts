@@ -1207,6 +1207,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/orders", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
+    console.log("==== CREATING NEW ORDER ====");
+    console.log("User:", req.user.id);
+    console.log("Request body:", JSON.stringify(req.body));
+    
     try {
       // Get cart items
       const cartItems = await storage.getCartItems(req.user.id);
