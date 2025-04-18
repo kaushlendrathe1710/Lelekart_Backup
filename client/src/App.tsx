@@ -62,6 +62,7 @@ import PublicSellerProfilePage from './pages/seller/public-profile';
 import SellerOrdersPage from './pages/seller/orders';
 import BulkUploadPage from './pages/seller/bulk-upload';
 import SmartInventoryPage from './pages/seller/smart-inventory';
+import InventoryPage from './pages/seller/inventory';
 import SellerProfilePage from './pages/seller/profile';
 import SellerReturnsPage from './pages/seller/returns';
 import SellerAnalyticsPage from './pages/seller/analytics';
@@ -574,6 +575,16 @@ function App() {
                             path="/seller/smart-inventory" 
                             role="seller" 
                             component={SmartInventoryPage} 
+                          />
+                        )}
+                      </Route>
+                      
+                      <Route path="/seller/inventory">
+                        {() => (
+                          <ProtectedRoute 
+                            path="/seller/inventory" 
+                            role="seller" 
+                            component={InventoryPage} 
                           />
                         )}
                       </Route>
