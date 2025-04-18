@@ -565,3 +565,56 @@ export async function getPendingOrders(req: Request, res: Response) {
     return res.status(500).json({ error: 'Failed to fetch pending orders' });
   }
 }
+
+// Get shipment statistics
+export async function getShipmentStats(req: Request, res: Response) {
+  try {
+    if (!req.isAuthenticated() || (req.user.role !== 'admin' && req.user.role !== 'co-admin')) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+    
+    const timeframe = req.query.timeframe as string || 'week';
+    
+    // Calculate date ranges based on timeframe
+    const now = new Date();
+    let startDate = new Date();
+    
+    if (timeframe === 'week') {
+      startDate.setDate(now.getDate() - 7); // Last 7 days
+    } else if (timeframe === 'month') {
+      startDate.setMonth(now.getMonth() - 1); // Last month
+    } else if (timeframe === 'year') {
+      startDate.setFullYear(now.getFullYear() - 1); // Last year
+    } else {
+      startDate.setDate(now.getDate() - 7); // Default to week
+    }
+    
+    // Get real-time stats from Shiprocket
+    try {
+      // Initialize Shiprocket service if not already initialized
+      if (!shiprocketService) {
+        const initialized = await initializeShiprocketService();
+        if (!initialized) {
+          // If we can't connect to Shiprocket, get stats from our database
+          const stats = await storage.getShipmentStatsByTimeframe(startDate.toISOString(), now.toISOString());
+          return res.json(stats);
+        }
+      }
+      
+      // Get statistics from the database for orders with Shiprocket integration
+      const stats = await storage.getShipmentStatsByTimeframe(startDate.toISOString(), now.toISOString());
+      
+      // Return stats
+      return res.json(stats);
+    } catch (error) {
+      console.error('Error fetching statistics from Shiprocket:', error);
+      
+      // Fallback to database stats only if Shiprocket API fails
+      const stats = await storage.getShipmentStatsByTimeframe(startDate.toISOString(), now.toISOString());
+      return res.json(stats);
+    }
+  } catch (error) {
+    console.error('Error fetching shipment statistics:', error);
+    return res.status(500).json({ error: 'Failed to fetch shipment statistics' });
+  }
+}

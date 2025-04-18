@@ -4218,6 +4218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/shiprocket/settings", shiprocketHandlers.getShiprocketSettings);
   app.post("/api/shiprocket/settings", shiprocketHandlers.saveShiprocketSettings);
   app.get("/api/shiprocket/pending-orders", shiprocketHandlers.getPendingOrders);
+  app.get("/api/shiprocket/stats", shiprocketHandlers.getShipmentStats);
   
   // Add route to push order to Shiprocket
   app.post("/api/orders/:id/shiprocket", async (req, res) => {
