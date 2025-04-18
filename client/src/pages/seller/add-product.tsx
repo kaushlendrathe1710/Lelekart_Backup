@@ -846,16 +846,28 @@ export default function AddProductPage() {
                       <Button 
                         variant="outline" 
                         className="w-full flex items-center justify-center gap-2"
-                        onClick={() => document.getElementById("add-another-image")?.click()}
+                        onClick={() => {
+                          // Reset the input before clicking it
+                          const inputElement = document.getElementById("add-another-image-input") as HTMLInputElement;
+                          if (inputElement) {
+                            inputElement.value = '';
+                            setTimeout(() => inputElement.click(), 0);
+                          }
+                        }}
                       >
                         <ImagePlus className="h-4 w-4" />
                         Add Another Image
-                        <FileUpload
-                          id="add-another-image"
-                          onChange={handleAddImage}
+                        <input
+                          id="add-another-image-input"
+                          type="file"
                           className="hidden"
                           accept="image/*"
-                          maxSizeMB={5}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              handleAddImage(file);
+                            }
+                          }}
                         />
                       </Button>
                     )}
