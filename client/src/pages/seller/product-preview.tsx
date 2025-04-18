@@ -249,6 +249,52 @@ export default function ProductPreviewPage() {
                   </div>
                 </div>
 
+                {/* Color & Size Options (if available) */}
+                {(product?.colors || product?.sizes) && (
+                  <div className="space-y-4">
+                    {/* Color options */}
+                    {product?.colors && (
+                      <div className="space-y-2">
+                        <h2 className="font-medium">Color</h2>
+                        <div className="flex flex-wrap gap-2">
+                          {(typeof product.colors === 'string' ? JSON.parse(product.colors) : product.colors).map((color: string, i: number) => (
+                            <div 
+                              key={i} 
+                              className="flex flex-col items-center space-y-1"
+                            >
+                              <div 
+                                className="h-8 w-8 rounded-full border cursor-pointer"
+                                style={{ 
+                                  backgroundColor: color.toLowerCase(),
+                                  borderColor: color.toLowerCase() === 'white' ? '#e5e7eb' : color.toLowerCase()  
+                                }}
+                              />
+                              <span className="text-xs">{color}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Size options */}
+                    {product?.sizes && (
+                      <div className="space-y-2">
+                        <h2 className="font-medium">Size</h2>
+                        <div className="flex flex-wrap gap-2">
+                          {(typeof product.sizes === 'string' ? JSON.parse(product.sizes) : product.sizes).map((size: string, i: number) => (
+                            <div 
+                              key={i} 
+                              className="border rounded-md px-3 py-1 cursor-pointer hover:border-primary text-sm"
+                            >
+                              {size}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Highlights & Seller */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
