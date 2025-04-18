@@ -43,26 +43,93 @@ Nike Air Zoom,Comfortable sports shoes for daily runners with responsive cushion
 // Helper function to parse CSV lines, properly handling quoted fields with special characters
 // This handles fields with commas, quotes, and special characters inside quoted strings
 function parseCsvLine(line: string): string[] {
+  // Pre-process line for special cases (Flipkart data has many special characters)
+  const preprocessedLine = line
+    // Normalize Unicode quotes and spaces
+    .replace(/[\u2018\u2019]/g, "'") // Smart quotes
+    .replace(/[\u201C\u201D]/g, '"') // Smart double quotes
+    .replace(/\u00A0/g, ' ') // Non-breaking spaces
+    .replace(/[\u2013\u2014]/g, '-'); // En/em dashes
+
+  // Special case for Flipkart product data with triple quotes pattern
+  // Example: Ahina ""Unisex Shapewear That Supports...""
+  if (preprocessedLine.includes('""') && 
+      (preprocessedLine.match(/^Ahina/) || preprocessedLine.match(/""{2,}[^"]*""{2,}/))) {
+    
+    console.log("Using special parser for complex Flipkart data");
+    
+    // Use a more robust method for these particularly complex lines
+    try {
+      // Split by commas that are not inside quotes
+      const specialResult = [];
+      let fieldStart = 0;
+      let insideQuotes = false;
+      let quoteCount = 0;
+      
+      for (let i = 0; i < preprocessedLine.length; i++) {
+        const char = preprocessedLine[i];
+        
+        if (char === '"') {
+          quoteCount++;
+          insideQuotes = (quoteCount % 2 === 1);
+        } else if (char === ',' && !insideQuotes) {
+          specialResult.push(preprocessedLine.substring(fieldStart, i));
+          fieldStart = i + 1;
+        }
+      }
+      
+      // Add the last field
+      specialResult.push(preprocessedLine.substring(fieldStart));
+      
+      // Clean up each field
+      return specialResult.map(field => {
+        field = field.trim();
+        
+        // Handle nested quote patterns
+        if (field.includes('""')) {
+          // Special case for brand + quoted product name pattern
+          const brandNameMatch = field.match(/^([^"]+)\s*""([^"]*)""$/);
+          if (brandNameMatch) {
+            return `${brandNameMatch[1].trim()} "${brandNameMatch[2].trim()}"`;
+          }
+          
+          // General case: replace double quotes with single
+          return field.replace(/""/g, '"');
+        }
+        
+        // Handle regular quoted fields
+        if (field.startsWith('"') && field.endsWith('"')) {
+          return field.substring(1, field.length - 1);
+        }
+        
+        return field;
+      });
+    } catch (error) {
+      console.error("Error in special quote processing:", error);
+      // Fall back to standard processing if special handling fails
+    }
+  }
+  
+  // Standard CSV parsing for normal cases
   const result: string[] = [];
   let current = '';
   let inQuotes = false;
-  let previousChar = '';
   
   // If line is empty, return empty array
-  if (!line || line.trim() === '') {
+  if (!preprocessedLine || preprocessedLine.trim() === '') {
     return [];
   }
   
   // Debug log with max length to prevent huge logs
-  const displayLine = line.length > 100 ? line.substring(0, 100) + '...' : line;
+  const displayLine = preprocessedLine.length > 100 ? preprocessedLine.substring(0, 100) + '...' : preprocessedLine;
   console.log(`Processing line: ${displayLine}`);
   
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
+  for (let i = 0; i < preprocessedLine.length; i++) {
+    const char = preprocessedLine[i];
     
     // Handle escape sequences - double quotes in quoted fields are represented as two consecutive quotes
     if (char === '"') {
-      if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
+      if (inQuotes && i + 1 < preprocessedLine.length && preprocessedLine[i + 1] === '"') {
         // This is an escaped quote inside a quoted field (i.e., "")
         current += '"';
         i++; // Skip the next quote character
@@ -78,8 +145,6 @@ function parseCsvLine(line: string): string[] {
       // Otherwise add the character to the current field
       current += char;
     }
-    
-    previousChar = char;
   }
   
   // Add the last field
