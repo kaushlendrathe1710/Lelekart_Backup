@@ -290,6 +290,8 @@ export default function ProductDetailsPage() {
   const productId = match ? parseInt(params.id) : null;
   
   const [quantity, setQuantity] = useState(1);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -327,7 +329,12 @@ export default function ProductDetailsPage() {
   
   // Create mutations for cart operations
   const addToCartMutation = useMutation({
-    mutationFn: async (data: { productId: number, quantity: number }) => {
+    mutationFn: async (data: { 
+      productId: number, 
+      quantity: number,
+      color?: string | null,
+      size?: string | null
+    }) => {
       return apiRequest("POST", "/api/cart", data);
     },
     onSuccess: () => {
@@ -373,15 +380,50 @@ export default function ProductDetailsPage() {
       return;
     }
     
+    // Validate color and size selection for fashion items
+    const isFashionItem = product?.category?.toLowerCase().includes('fashion') || 
+                           product?.category?.toLowerCase().includes('clothing') || 
+                           product?.name?.toLowerCase().includes('shirt') || 
+                           product?.name?.toLowerCase().includes('pant') || 
+                           product?.name?.toLowerCase().includes('shoe');
+    
+    if (isFashionItem) {
+      if (colorOptions.length > 0 && !selectedColor) {
+        toast({
+          title: "Select Color",
+          description: "Please select a color before adding to cart",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (sizeOptions.length > 0 && !selectedSize) {
+        toast({
+          title: "Select Size",
+          description: "Please select a size before adding to cart",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
     try {
       // Try to use context if available
       if (cartContext) {
-        cartContext.addToCart(product, quantity);
+        // Add selected color and size to product info before adding to cart
+        const productWithOptions = {
+          ...product,
+          selectedColor,
+          selectedSize
+        };
+        cartContext.addToCart(productWithOptions, quantity);
       } else {
         // Fallback to direct API call
         await addToCartMutation.mutateAsync({
           productId: product.id,
-          quantity: quantity
+          quantity: quantity,
+          color: selectedColor,
+          size: selectedSize
         });
       }
     } catch (error) {
@@ -415,15 +457,50 @@ export default function ProductDetailsPage() {
       return;
     }
     
+    // Validate color and size selection for fashion items
+    const isFashionItem = product?.category?.toLowerCase().includes('fashion') || 
+                           product?.category?.toLowerCase().includes('clothing') || 
+                           product?.name?.toLowerCase().includes('shirt') || 
+                           product?.name?.toLowerCase().includes('pant') || 
+                           product?.name?.toLowerCase().includes('shoe');
+    
+    if (isFashionItem) {
+      if (colorOptions.length > 0 && !selectedColor) {
+        toast({
+          title: "Select Color",
+          description: "Please select a color before proceeding to buy",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (sizeOptions.length > 0 && !selectedSize) {
+        toast({
+          title: "Select Size",
+          description: "Please select a size before proceeding to buy",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
     try {
       // Try to use context if available
       if (cartContext) {
-        cartContext.buyNow(product, quantity);
+        // Add selected color and size to product info before adding to cart
+        const productWithOptions = {
+          ...product,
+          selectedColor,
+          selectedSize
+        };
+        cartContext.buyNow(productWithOptions, quantity);
       } else {
         // Fallback to direct API approach
         await addToCartMutation.mutateAsync({
           productId: product.id,
-          quantity: quantity
+          quantity: quantity,
+          color: selectedColor,
+          size: selectedSize
         });
         
         // Redirect to checkout
@@ -625,6 +702,18 @@ export default function ProductDetailsPage() {
   const colorOptions = product?.color ? product.color.split(/,\s*/).filter(Boolean) : [];
   const sizeOptions = product?.size ? product.size.split(/,\s*/).filter(Boolean) : [];
   
+  // Set initial values for color and size if not already set
+  useEffect(() => {
+    if (product) {
+      if (colorOptions.length > 0 && !selectedColor) {
+        setSelectedColor(colorOptions[0]);
+      }
+      if (sizeOptions.length > 0 && !selectedSize) {
+        setSelectedSize(sizeOptions[0]);
+      }
+    }
+  }, [product, colorOptions, sizeOptions]);
+  
   return (
     <CartProvider>
       <CategoryNav />
@@ -737,12 +826,43 @@ export default function ProductDetailsPage() {
                         {colorOptions.map((color, index) => (
                           <Badge 
                             key={index} 
-                            className="bg-primary text-white px-3 py-1 cursor-pointer hover:bg-primary/90"
+                            className={`px-3 py-1 cursor-pointer ${selectedColor === color 
+                              ? 'bg-primary text-white ring-2 ring-primary ring-offset-1' 
+                              : 'bg-white text-gray-700 border border-gray-300 hover:border-primary'}`}
+                            onClick={() => setSelectedColor(color)}
                           >
                             {color}
                           </Badge>
                         ))}
                       </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Size Options - Only shown if sizes are available */}
+                {sizeOptions.length > 0 && (
+                  <div className="mt-6 grid grid-cols-12 gap-4">
+                    <div className="col-span-2 text-gray-600 text-sm">Size</div>
+                    <div className="col-span-10">
+                      <div className="flex flex-wrap gap-2">
+                        {sizeOptions.map((size, index) => (
+                          <Badge 
+                            key={index} 
+                            className={`px-3 py-1 cursor-pointer ${selectedSize === size 
+                              ? 'bg-primary text-white ring-2 ring-primary ring-offset-1' 
+                              : 'bg-white text-gray-700 border border-gray-300 hover:border-primary'}`}
+                            onClick={() => setSelectedSize(size)}
+                          >
+                            {size}
+                          </Badge>
+                        ))}
+                      </div>
+                      {user && (
+                        <div className="text-xs text-primary mt-2 flex items-center cursor-pointer">
+                          <Ruler size={12} className="mr-1" />
+                          <span>Size chart</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
