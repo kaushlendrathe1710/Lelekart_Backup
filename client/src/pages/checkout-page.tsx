@@ -192,6 +192,13 @@ export default function CheckoutPage() {
           form.setValue("city", defaultAddress.city);
           form.setValue("state", defaultAddress.state);
           form.setValue("zipCode", defaultAddress.pincode);
+          
+          // Make sure email is set - keep existing email or use username 
+          if (!form.getValues("email") && user?.email) {
+            form.setValue("email", user.email);
+          } else if (!form.getValues("email") && user?.username) {
+            form.setValue("email", user.username);
+          }
         } else {
           // Use the first address if no default
           setSelectedAddressId(data[0].id.toString());
@@ -203,6 +210,13 @@ export default function CheckoutPage() {
           form.setValue("city", data[0].city);
           form.setValue("state", data[0].state);
           form.setValue("zipCode", data[0].pincode);
+          
+          // Make sure email is set - keep existing email or use username
+          if (!form.getValues("email") && user?.email) {
+            form.setValue("email", user.email);
+          } else if (!form.getValues("email") && user?.username) {
+            form.setValue("email", user.username);
+          }
         }
       }
     })
