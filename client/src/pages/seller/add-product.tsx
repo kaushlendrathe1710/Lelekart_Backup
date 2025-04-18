@@ -801,37 +801,12 @@ export default function AddProductPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
                       <div>
                         <h3 className="text-sm font-medium mb-2">Upload Image</h3>
-                        <div className="border-2 border-dashed rounded-md p-6 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-primary/50 transition-colors">
-                          <input
-                            id="main-product-image-input"
-                            type="file"
-                            className="hidden"
-                            accept="image/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                handleAddImage(file);
-                              }
-                            }}
-                          />
-                          <div 
-                            className="w-full h-full flex flex-col items-center justify-center gap-2" 
-                            onClick={() => {
-                              // Reset the input before clicking it
-                              const inputElement = document.getElementById("main-product-image-input") as HTMLInputElement;
-                              if (inputElement) {
-                                inputElement.value = '';
-                                setTimeout(() => inputElement.click(), 0);
-                              }
-                            }}
-                          >
-                            <UploadCloud className="h-10 w-10 text-muted-foreground" />
-                            <p className="text-sm font-medium">Drag & drop or click to upload</p>
-                            <p className="text-xs text-muted-foreground">
-                              Upload a file (max 5MB)
-                            </p>
-                          </div>
-                        </div>
+                        <FileUpload
+                          onChange={handleAddImage}
+                          label="Main Product Image"
+                          accept="image/*"
+                          maxSizeMB={5}
+                        />
                       </div>
                       
                       <div className="space-y-2">
@@ -871,28 +846,16 @@ export default function AddProductPage() {
                       <Button 
                         variant="outline" 
                         className="w-full flex items-center justify-center gap-2"
-                        onClick={() => {
-                          // Reset the input before clicking it
-                          const inputElement = document.getElementById("add-another-image-input") as HTMLInputElement;
-                          if (inputElement) {
-                            inputElement.value = '';
-                            setTimeout(() => inputElement.click(), 0);
-                          }
-                        }}
+                        onClick={() => document.getElementById("add-another-image")?.click()}
                       >
                         <ImagePlus className="h-4 w-4" />
                         Add Another Image
-                        <input
-                          id="add-another-image-input"
-                          type="file"
+                        <FileUpload
+                          id="add-another-image"
+                          onChange={handleAddImage}
                           className="hidden"
                           accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              handleAddImage(file);
-                            }
-                          }}
+                          maxSizeMB={5}
                         />
                       </Button>
                     )}

@@ -1,4 +1,4 @@
-import { useState, useContext, useRef, useEffect, useMemo } from "react";
+import { useState, useContext, useRef, useEffect } from "react";
 import { useLocation, useRoute } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Product, User } from "@shared/schema";
@@ -6,7 +6,7 @@ import { CategoryNav } from "@/components/ui/category-nav";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Minus, Plus, ShoppingCart, Star, Zap, Heart, Share2, Package, Shield, TruckIcon, Award, BarChart3, ChevronDown, Maximize, RotateCw, Ruler } from "lucide-react";
+import { Minus, Plus, ShoppingCart, Star, Zap, Heart, Share2, Package, Shield, TruckIcon, Award, BarChart3, ChevronDown, Maximize, RotateCw } from "lucide-react";
 import { ProductCard } from "@/components/ui/product-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CartContext, CartProvider } from "@/context/cart-context";
@@ -694,19 +694,13 @@ export default function ProductDetailsPage() {
   }
   
   // Process images, specifications, price details, colors and sizes
-  // Initialize state and calculated values AFTER all hooks have been called
   const productImages = getProductImages(product);
   const specifications = parseSpecifications(product?.specifications);
   const { price, discount, original } = getPriceDetails(product);
   
-  // Use useMemo for options to ensure consistent hook calls
-  const colorOptions = useMemo(() => {
-    return product?.color ? product.color.split(/,\s*/).filter(Boolean) : [];
-  }, [product]);
-  
-  const sizeOptions = useMemo(() => {
-    return product?.size ? product.size.split(/,\s*/).filter(Boolean) : [];
-  }, [product]);
+  // Parse color and size options
+  const colorOptions = product?.color ? product.color.split(/,\s*/).filter(Boolean) : [];
+  const sizeOptions = product?.size ? product.size.split(/,\s*/).filter(Boolean) : [];
   
   // Set initial values for color and size if not already set
   useEffect(() => {
@@ -718,7 +712,7 @@ export default function ProductDetailsPage() {
         setSelectedSize(sizeOptions[0]);
       }
     }
-  }, [product, colorOptions, sizeOptions, selectedColor, selectedSize]);
+  }, [product, colorOptions, sizeOptions]);
   
   return (
     <CartProvider>
