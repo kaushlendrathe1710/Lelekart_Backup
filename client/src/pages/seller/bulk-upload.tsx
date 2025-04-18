@@ -38,6 +38,7 @@ function parseCsvLine(line: string): string[] {
   let current = '';
   let inQuotes = false;
   let previousChar = '';
+  let quoteCount = 0;
   
   // If line is empty, return empty array
   if (!line || line.trim() === '') {
@@ -46,46 +47,73 @@ function parseCsvLine(line: string): string[] {
   
   // Debug log with max length to prevent huge logs
   const displayLine = line.length > 100 ? line.substring(0, 100) + '...' : line;
-  console.log(`Processing line: ${displayLine}`);
+  // console.log(`Processing line: ${displayLine}`);
   
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    
-    // Handle escape sequences - double quotes in quoted fields are represented as two consecutive quotes
-    if (char === '"') {
-      if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
-        // This is an escaped quote inside a quoted field (i.e., "")
-        current += '"';
-        i++; // Skip the next quote character
+  try {
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      
+      // Count consecutive quotes for handling complex cases
+      if (char === '"') {
+        quoteCount++;
       } else {
-        // Toggle the in-quotes flag when we see a quote
-        inQuotes = !inQuotes;
+        quoteCount = 0;
       }
-    } else if (char === ',' && !inQuotes) {
-      // If we're not in quotes and see a comma, end the current field
-      result.push(current);
-      current = '';
-    } else {
-      // Otherwise add the character to the current field
-      current += char;
+      
+      // Handle escape sequences - double quotes in quoted fields are represented as two consecutive quotes
+      if (char === '"') {
+        if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
+          // This is an escaped quote inside a quoted field (i.e., "")
+          current += '"';
+          i++; // Skip the next quote character
+        } else {
+          // Toggle the in-quotes flag when we see a quote
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        // If we're not in quotes and see a comma, end the current field
+        result.push(current);
+        current = '';
+      } else {
+        // Otherwise add the character to the current field
+        current += char;
+      }
+      
+      previousChar = char;
     }
     
-    previousChar = char;
+    // Add the last field
+    result.push(current);
+    
+    // Clean up fields (remove surrounding quotes but preserve internal ones)
+    const cleanedResult = result.map(field => {
+      // Trim whitespace first
+      let trimmed = field.trim();
+      
+      // Handle special case of triple quotes (often in messy data)
+      if (trimmed.startsWith('"""') && trimmed.endsWith('"""')) {
+        return trimmed.substring(3, trimmed.length - 3);
+      }
+      
+      // Remove surrounding quotes if they exist
+      if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+        // Remove the surrounding quotes
+        trimmed = trimmed.substring(1, trimmed.length - 1);
+        
+        // Replace any remaining double quotes with a single quote
+        return trimmed.replace(/""/g, '"');
+      }
+      
+      return trimmed;
+    });
+    
+    // console.log(`Parsed ${cleanedResult.length} fields`);
+    return cleanedResult;
+  } catch (error) {
+    console.error("Error parsing CSV line:", error, "Line:", displayLine);
+    // Return the best we could do if there was an error
+    return line.split(',').map(item => item.trim());
   }
-  
-  // Add the last field
-  result.push(current);
-  
-  // Clean up fields (remove surrounding quotes but preserve internal ones)
-  return result.map(field => {
-    // Remove surrounding quotes if they exist
-    if (field.startsWith('"') && field.endsWith('"')) {
-      return field.substring(1, field.length - 1)
-        // Replace any double quotes within the field with a single quote
-        .replace(/""/g, '"');
-    }
-    return field;
-  });
 }
 
 // Type for product preview data
@@ -173,67 +201,87 @@ export default function BulkUploadPage() {
   const validateProduct = (product: Record<string, any>, rowIndex: number): { isValid: boolean; errors: string[] } => {
     const errors: string[] = [];
     
-    // Required fields
-    if (!product.name) errors.push(`Name is required`);
-    if (!product.description) errors.push(`Description is required`);
-    if (!product.price) errors.push(`Price is required`);
-    if (!product.category) errors.push(`Category is required`);
-    if (!product.imageUrl) errors.push(`Image URL is required`);
-    if (!product.stock && product.stock !== 0) errors.push(`Stock quantity is required`);
+    // Log for debugging
+    console.log(`Validating product at row ${rowIndex}:`, product);
     
-    // Validate numeric fields
-    if (product.price && isNaN(Number(product.price))) errors.push(`Price must be a number`);
-    if (product.stock && isNaN(Number(product.stock))) errors.push(`Stock must be a number`);
-    if (product.mrp && isNaN(Number(product.mrp))) errors.push(`MRP must be a number`);
-    if (product.purchasePrice && isNaN(Number(product.purchasePrice))) errors.push(`Purchase price must be a number`);
-    if (product.warranty_months && isNaN(Number(product.warranty_months))) errors.push(`Warranty period must be a number (in months)`);
-    if (product.weight && isNaN(Number(product.weight))) errors.push(`Weight must be a number`);
-    if (product.length && isNaN(Number(product.length))) errors.push(`Length must be a number`);
-    if (product.width && isNaN(Number(product.width))) errors.push(`Width must be a number`);
-    if (product.height && isNaN(Number(product.height))) errors.push(`Height must be a number`);
+    // Required fields with more flexible validation
+    if (!product.name && product.name !== 0) errors.push(`Name is required`);
+    if (!product.description && product.description !== 0) errors.push(`Description is required`);
+    if (!product.price && product.price !== 0) errors.push(`Price is required`);
+    if (!product.category && product.category !== 0) errors.push(`Category is required`);
+    if (!product.imageUrl && product.imageUrl !== 0) errors.push(`Image URL is required`);
+    if (product.stock === undefined && product.stock !== 0) errors.push(`Stock quantity is required`);
+    
+    // Validate numeric fields - be more flexible with type conversion
+    if (product.price !== undefined && isNaN(Number(product.price))) errors.push(`Price must be a number`);
+    if (product.stock !== undefined && isNaN(Number(product.stock))) errors.push(`Stock must be a number`);
+    if (product.mrp !== undefined && product.mrp !== "" && isNaN(Number(product.mrp))) errors.push(`MRP must be a number`);
+    if (product.purchasePrice !== undefined && product.purchasePrice !== "" && isNaN(Number(product.purchasePrice))) errors.push(`Purchase price must be a number`);
+    if (product.warranty_months !== undefined && product.warranty_months !== "" && isNaN(Number(product.warranty_months))) errors.push(`Warranty period must be a number (in months)`);
+    if (product.weight !== undefined && product.weight !== "" && isNaN(Number(product.weight))) errors.push(`Weight must be a number`);
+    if (product.length !== undefined && product.length !== "" && isNaN(Number(product.length))) errors.push(`Length must be a number`);
+    if (product.width !== undefined && product.width !== "" && isNaN(Number(product.width))) errors.push(`Width must be a number`);
+    if (product.height !== undefined && product.height !== "" && isNaN(Number(product.height))) errors.push(`Height must be a number`);
 
-    // Validate price logic
-    if (product.price && product.mrp && Number(product.price) > Number(product.mrp)) {
+    // Validate price logic with more flexible handling
+    if (product.price !== undefined && product.mrp !== undefined && 
+        !isNaN(Number(product.price)) && !isNaN(Number(product.mrp)) && 
+        Number(product.price) > Number(product.mrp) && Number(product.mrp) > 0) {
       errors.push(`Selling price (${product.price}) cannot be greater than MRP (${product.mrp})`);
     }
     
-    // Validate URLs in image fields
-    if (product.imageUrl && !product.imageUrl.match(/^https?:\/\/.+/)) {
+    // Validate URLs in image fields - more permissive for Flipkart URLs
+    if (product.imageUrl && typeof product.imageUrl === 'string' && 
+        !product.imageUrl.match(/^https?:\/\/.+/) && 
+        !product.imageUrl.includes('fkcdn.com')) {  // Allow Flipkart CDN URLs even without protocol
       errors.push(`Main image URL must be a valid URL starting with http:// or https://`);
     }
     
-    // Check for problematic placeholder images
-    if (product.imageUrl && (
-      product.imageUrl.includes('placeholder.com') || 
+    // Check for problematic placeholder images - be specific
+    if (product.imageUrl && typeof product.imageUrl === 'string' && (
+      product.imageUrl.includes('placeholder.com/') || 
       product.imageUrl.includes('placeholder.jpg') ||
-      product.imageUrl.includes('dummyimage.com')
+      product.imageUrl.includes('dummyimage.com/')
     )) {
       errors.push(`Please use actual product images instead of placeholder images`);
     }
     
-    // Validate additional images if present
+    // Validate additional images if present - more permissive for Flipkart URLs
     if (product.images && Array.isArray(product.images)) {
       for (let i = 0; i < product.images.length; i++) {
         const imgUrl = product.images[i];
-        if (!imgUrl.match(/^https?:\/\/.+/)) {
+        if (typeof imgUrl === 'string' && !imgUrl.match(/^https?:\/\/.+/) && !imgUrl.includes('fkcdn.com')) {
           errors.push(`Additional image ${i+1} must be a valid URL starting with http:// or https://`);
         }
       }
     }
     
-    // If colors or sizes are provided, check if they are in the correct format
+    // If colors or sizes are provided, check if they are in the correct format, but be more permissive
     if (product.color && typeof product.color === 'string') {
       const colors = product.color.split(',').map((c: string) => c.trim()).filter(Boolean);
       if (colors.length === 0 && product.color.trim() !== '') {
-        errors.push(`Color format is invalid. Use comma-separated values like "Red, Blue, Green"`);
+        // Only flag as an error if it's clearly an invalid format, not just a single color
+        if (product.color.includes(',,') || product.color.trim().endsWith(',')) {
+          errors.push(`Color format appears invalid: "${product.color}". Use comma-separated values like "Red, Blue, Green"`);
+        }
       }
     }
     
     if (product.size && typeof product.size === 'string') {
       const sizes = product.size.split(',').map((s: string) => s.trim()).filter(Boolean);
       if (sizes.length === 0 && product.size.trim() !== '') {
-        errors.push(`Size format is invalid. Use comma-separated values like "S, M, L, XL"`);
+        // Only flag as an error if it's clearly an invalid format, not just a single size
+        if (product.size.includes(',,') || product.size.trim().endsWith(',')) {
+          errors.push(`Size format appears invalid: "${product.size}". Use comma-separated values like "S, M, L, XL"`);
+        }
       }
+    }
+    
+    // For products with many errors, limit to top 5 to avoid overwhelming the UI
+    if (errors.length > 5) {
+      const truncatedErrors = errors.slice(0, 5);
+      truncatedErrors.push(`... and ${errors.length - 5} more errors (fix these first)`);
+      return { isValid: false, errors: truncatedErrors };
     }
     
     return { isValid: errors.length === 0, errors };
@@ -283,14 +331,21 @@ export default function BulkUploadPage() {
         sellerId: user?.id || 0 // Ensure we have a fallback
       };
       
-      // Map CSV values to product schema fields
+      // Map CSV values to product schema fields with improved handling
       headers.forEach((header, index) => {
         const value = values[index]?.trim();
-        if (!value) return; // Skip empty values
+        if (value === undefined || value === null) return; // Skip empty values
         
-        // Handle numeric fields
+        // Handle numeric fields - use parseFloat to handle decimal values properly
         if (['price', 'purchasePrice', 'stock', 'mrp', 'weight', 'length', 'width', 'height', 'warranty_months', 'returnPolicy', 'tax'].includes(header)) {
-          productData[header] = parseInt(value, 10);
+          // Check if it's actually a number
+          const parsedValue = parseFloat(value);
+          if (!isNaN(parsedValue)) {
+            productData[header] = parsedValue;
+          } else {
+            // If not a valid number, still keep the original value for validation to catch
+            productData[header] = value;
+          }
         } 
         // Handle boolean fields
         else if (header === 'approved') {
@@ -298,52 +353,127 @@ export default function BulkUploadPage() {
         }
         // Handle product name field with special sanitization
         else if (header === 'name') {
-          // Clean up product names with nested quotes that cause issues
+          // Clean up product names with nested quotes and special characters
           let cleanName = value;
           
-          // Handle complex product names with nested quotes (common in import files)
-          if (value.includes('""')) {
+          // Handle different types of quote issues in product names
+          if (value.includes('"')) {
             // Replace triple or more consecutive quotes with a single quote
             cleanName = value.replace(/"{3,}/g, '"');
             // Replace any remaining double quotes with a single quote
             cleanName = cleanName.replace(/""/g, '"');
             
+            // Remove any surrounding quotes that might still be present
+            if (cleanName.startsWith('"') && cleanName.endsWith('"')) {
+              cleanName = cleanName.substring(1, cleanName.length - 1);
+            }
+            
             console.log(`Sanitized product name: ${cleanName}`);
           }
+          
+          // Handle special characters like curly quotes, em-dashes, etc.
+          cleanName = cleanName.replace(/['']/g, "'")  // Normalize single quotes
+                              .replace(/[""]/g, '"')   // Normalize double quotes
+                              .replace(/—/g, '-')      // Replace em dashes
+                              .replace(/–/g, '-');     // Replace en dashes
           
           productData.name = cleanName;
         }
         // Handle description field with special sanitization
         else if (header === 'description') {
-          // Clean up descriptions with quote issues
+          // Clean up descriptions with quote issues and special characters
           let cleanDesc = value;
           
-          // Handle descriptions with nested quotes
-          if (value.includes('""')) {
+          // Handle different types of quote issues in descriptions
+          if (value.includes('"')) {
             // Replace triple or more consecutive quotes with a single quote
             cleanDesc = value.replace(/"{3,}/g, '"');
             // Replace any remaining double quotes with a single quote
             cleanDesc = cleanDesc.replace(/""/g, '"');
+            
+            // Remove any surrounding quotes that might still be present
+            if (cleanDesc.startsWith('"') && cleanDesc.endsWith('"')) {
+              cleanDesc = cleanDesc.substring(1, cleanDesc.length - 1);
+            }
           }
+          
+          // Handle special characters like curly quotes, em-dashes, etc.
+          cleanDesc = cleanDesc.replace(/['']/g, "'")  // Normalize single quotes
+                              .replace(/[""]/g, '"')   // Normalize double quotes
+                              .replace(/—/g, '-')      // Replace em dashes
+                              .replace(/–/g, '-')      // Replace en dashes
+                              .replace(/�/g, '');      // Remove replacement characters
           
           productData.description = cleanDesc;
         }
-        // Handle color field - convert to array for database but keep as string for display
+        // Handle color field with more robust parsing
         else if (header === 'color') {
-          // Split by comma and trim each value
-          const colors = value.split(',').map(c => c.trim()).filter(Boolean);
-          productData.color = colors.join(', ');
+          if (value.startsWith('"') && value.endsWith('"')) {
+            // This is likely a JSON array format from the CSV - handle it specially
+            try {
+              // Try to parse it as JSON
+              const parsedValue = JSON.parse(value);
+              if (Array.isArray(parsedValue)) {
+                productData.color = parsedValue.join(', ');
+              } else {
+                productData.color = value;
+              }
+            } catch (e) {
+              // If parsing fails, handle as a regular string
+              const colors = value
+                .replace(/^"/, '')
+                .replace(/"$/, '')
+                .split(',')
+                .map(c => c.trim())
+                .filter(Boolean);
+              productData.color = colors.join(', ');
+            }
+          } else {
+            // Regular comma-separated string
+            const colors = value.split(',').map(c => c.trim()).filter(Boolean);
+            productData.color = colors.join(', ');
+          }
         }
-        // Handle size field - convert to array for database but keep as string for display
+        // Handle size field with more robust parsing
         else if (header === 'size') {
-          // Split by comma and trim each value
-          const sizes = value.split(',').map(s => s.trim()).filter(Boolean);
-          productData.size = sizes.join(', ');
+          if (value.startsWith('"') && value.endsWith('"')) {
+            // This is likely a JSON array format from the CSV - handle it specially
+            try {
+              // Try to parse it as JSON
+              const parsedValue = JSON.parse(value);
+              if (Array.isArray(parsedValue)) {
+                productData.size = parsedValue.join(', ');
+              } else {
+                productData.size = value;
+              }
+            } catch (e) {
+              // If parsing fails, handle as a regular string
+              const sizes = value
+                .replace(/^"/, '')
+                .replace(/"$/, '')
+                .split(',')
+                .map(s => s.trim())
+                .filter(Boolean);
+              productData.size = sizes.join(', ');
+            }
+          } else {
+            // Regular comma-separated string
+            const sizes = value.split(',').map(s => s.trim()).filter(Boolean);
+            productData.size = sizes.join(', ');
+          }
         }
         // Handle image fields mapping - use the first one as the main image
         else if (header === 'imageUrl1') {
+          // Make sure the URL is properly formatted (some URLs might be missing the http:// prefix)
+          let imageUrl = value;
+          
+          // Handle Flipkart CDN URLs specifically
+          if (imageUrl.includes('fkcdn.com') && !imageUrl.startsWith('http')) {
+            imageUrl = 'https://' + imageUrl;
+          }
+          
           // First image becomes the main imageUrl (use format matching database field 'image_url')
-          productData.imageUrl = value;
+          productData.imageUrl = imageUrl;
           
           // Start the additional images array
           if (!productData.images) {
@@ -355,9 +485,18 @@ export default function BulkUploadPage() {
           if (!productData.images) {
             productData.images = [];
           }
+          
+          // Make sure the URL is properly formatted (some URLs might be missing the http:// prefix)
+          let imageUrl = value;
+          
+          // Handle Flipkart CDN URLs specifically
+          if (imageUrl.includes('fkcdn.com') && !imageUrl.startsWith('http')) {
+            imageUrl = 'https://' + imageUrl;
+          }
+          
           // Only add valid image URLs (avoid placeholders)
-          if (value && value.trim() !== '' && !value.includes('placeholder')) {
-            productData.images.push(value);
+          if (imageUrl && imageUrl.trim() !== '' && !imageUrl.includes('placeholder')) {
+            productData.images.push(imageUrl);
           }
         }
         // Handle SKU directly (don't put in metadata)
