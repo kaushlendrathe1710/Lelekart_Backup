@@ -1876,24 +1876,37 @@ export class DatabaseStorage implements IStorage {
       total: orderToInsert.total,
       date: typeof orderToInsert.date === 'string' ? new Date(orderToInsert.date) : orderToInsert.date,
       shippingDetails: orderToInsert.shippingDetails,
-      paymentMethod: orderToInsert.paymentMethod || 'cod'
+      paymentMethod: orderToInsert.paymentMethod || 'cod',
+      // Include addressId if provided
+      ...(orderToInsert.addressId ? { addressId: orderToInsert.addressId } : {}),
+      // Include paymentId and orderId if provided
+      ...(orderToInsert.paymentId ? { paymentId: orderToInsert.paymentId } : {}),
+      ...(orderToInsert.orderId ? { orderId: orderToInsert.orderId } : {})
     }];
     
-    const [order] = await db
-      .insert(orders)
-      .values(orderData)
-      .returning();
+    // Debug log to verify the final data being sent to the database
+    console.log("Final order data for database insertion:", orderData);
     
-    // Parse shippingDetails from string to object if it exists
-    if (order.shippingDetails && typeof order.shippingDetails === 'string') {
-      try {
-        order.shippingDetails = JSON.parse(order.shippingDetails);
-      } catch (error) {
-        console.error('Error parsing shippingDetails:', error);
+    try {
+      const [order] = await db
+        .insert(orders)
+        .values(orderData)
+        .returning();
+      
+      // Parse shippingDetails from string to object if it exists
+      if (order.shippingDetails && typeof order.shippingDetails === 'string') {
+        try {
+          order.shippingDetails = JSON.parse(order.shippingDetails);
+        } catch (error) {
+          console.error('Error parsing shippingDetails:', error);
+        }
       }
+      
+      return order;
+    } catch (error) {
+      console.error("Database error during order creation:", error);
+      throw error;
     }
-    
-    return order;
   }
 
   async getOrderItems(orderId: number): Promise<(OrderItem & { product: Product })[]> {
