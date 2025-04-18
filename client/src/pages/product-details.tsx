@@ -712,7 +712,7 @@ export default function ProductDetailsPage() {
         setSelectedSize(sizeOptions[0]);
       }
     }
-  }, [product, colorOptions, sizeOptions]);
+  }, [product, colorOptions, sizeOptions, selectedColor, selectedSize]);
   
   return (
     <CartProvider>
