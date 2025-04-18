@@ -962,9 +962,7 @@ export default function BulkUploadPage() {
                   const droppedFile = e.dataTransfer.files[0];
                   
                   // Check file extension and handle accordingly
-                  if (droppedFile.name.endsWith('.csv') || 
-                      droppedFile.name.endsWith('.xlsx') || 
-                      droppedFile.name.endsWith('.xls')) {
+                  if (droppedFile.name.endsWith('.csv')) {
                     // Create a new event and pass it to the handler
                     const input = fileInputRef.current;
                     if (input) {
@@ -1052,13 +1050,6 @@ export default function BulkUploadPage() {
                                     processCSVForPreview(event.target.result as string);
                                   };
                                   reader.readAsText(file);
-                                } else {
-                                  // For Excel, we'd need SheetJS integration
-                                  toast({
-                                    title: "Excel processing",
-                                    description: "Excel processing would need additional libraries.",
-                                    variant: "default",
-                                  });
                                 }
                               }}
                               className="flex items-center gap-1"
