@@ -462,14 +462,31 @@ const SellerProfilePage = () => {
               <div className="flex items-center gap-4">
                 <div className="relative group">
                   <Avatar className="h-20 w-20 border-2 border-primary cursor-pointer">
-                    <AvatarImage src={user?.profileImage || ""} alt={user?.username} />
+                    {user?.profileImage ? (
+                      <AvatarImage 
+                        src={user.profileImage} 
+                        alt={user?.username} 
+                        onError={(e) => {
+                          // If image fails to load, fallback to initials
+                          console.error("Profile image failed to load:", user.profileImage);
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    ) : null}
                     <AvatarFallback className="bg-primary/10 text-primary text-xl">
                       {user?.username?.charAt(0)?.toUpperCase() || 'S'}
                     </AvatarFallback>
                   </Avatar>
                   <div 
                     className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                    onClick={() => !isUploadingProfileImage && document.getElementById('profile-image-upload')?.click()}
+                    onClick={() => {
+                      if (!isUploadingProfileImage) {
+                        const fileInput = document.getElementById('profile-image-upload') as HTMLInputElement;
+                        if (fileInput) {
+                          fileInput.click();
+                        }
+                      }
+                    }}
                   >
                     {isUploadingProfileImage ? (
                       <div className="animate-spin h-6 w-6 border-2 border-white border-t-transparent rounded-full" />

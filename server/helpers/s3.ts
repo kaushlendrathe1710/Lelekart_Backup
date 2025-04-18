@@ -9,6 +9,56 @@ const AWS_SECRET_KEY = process.env.AWS_SECRET_KEY || '';
 const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
 const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME || '';
 
+// Validate AWS configuration
+if (!AWS_ACCESS_KEY || !AWS_SECRET_KEY || !AWS_BUCKET_NAME) {
+  console.error('AWS Environment variables are missing:', {
+    hasAccessKey: !!AWS_ACCESS_KEY,
+    hasSecretKey: !!AWS_SECRET_KEY,
+    hasBucketName: !!AWS_BUCKET_NAME,
+    region: AWS_REGION
+  });
+}
+
+console.log('S3 Configuration:', {
+  hasAccessKey: !!AWS_ACCESS_KEY,
+  hasSecretKey: !!AWS_SECRET_KEY,
+  hasBucketName: !!AWS_BUCKET_NAME,
+  region: AWS_REGION
+});
+
+// Test connection to AWS S3 on startup
+async function testS3Connection() {
+  try {
+    console.log('Testing S3 connection...');
+    const s3TestClient = new AWS.S3({
+      accessKeyId: AWS_ACCESS_KEY,
+      secretAccessKey: AWS_SECRET_KEY,
+      region: AWS_REGION,
+    });
+    
+    // List buckets to validate credentials
+    const listBuckets = await s3TestClient.listBuckets().promise();
+    console.log(`S3 Connection successful. Found ${listBuckets.Buckets?.length || 0} buckets.`);
+    
+    // Check if our bucket exists
+    const bucketExists = listBuckets.Buckets?.some(bucket => bucket.Name === AWS_BUCKET_NAME);
+    if (bucketExists) {
+      console.log(`Bucket '${AWS_BUCKET_NAME}' exists and is accessible.`);
+    } else {
+      console.warn(`Bucket '${AWS_BUCKET_NAME}' was not found in the list of accessible buckets.`);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Failed to connect to AWS S3:', error);
+    console.error('S3 uploads will likely fail. Please check your AWS credentials and network connection.');
+    return false;
+  }
+}
+
+// Run test on startup
+testS3Connection();
+
 // Initialize AWS S3
 const s3 = new AWS.S3({
   accessKeyId: AWS_ACCESS_KEY,
@@ -50,7 +100,10 @@ export async function uploadFile(
   fileName: string,
   contentType: string
 ): Promise<string> {
-  const fileKey = `${uuidv4()}-${fileName}`;
+  const fileKey = `${uuidv4()}-${fileName.replace(/[^\w\s.-]/g, '')}`; // Sanitize filename
+  
+  console.log(`S3 Upload - Starting upload for: ${fileKey}, Content Type: ${contentType}, Buffer Length: ${fileBuffer.length}`);
+  console.log(`S3 Config: Bucket: ${AWS_BUCKET_NAME}, Region: ${AWS_REGION}`);
   
   const params = {
     Bucket: AWS_BUCKET_NAME,
@@ -62,11 +115,35 @@ export async function uploadFile(
   };
 
   try {
+    console.log('S3 Upload - Initiating upload to S3...');
     const uploadResult = await s3.upload(params).promise();
+    console.log(`S3 Upload - Success! URL: ${uploadResult.Location}`);
+    
+    if (!uploadResult.Location) {
+      throw new Error('S3 upload succeeded but no location URL was returned');
+    }
+    
     return uploadResult.Location; // Return the URL of the uploaded file
   } catch (error) {
     console.error('Error uploading file to S3:', error);
-    throw new Error('Failed to upload file to S3');
+    
+    // Log more details about the error for troubleshooting
+    if (error instanceof Error) {
+      console.error(`Error name: ${error.name}, Message: ${error.message}`);
+    }
+    
+    // Verify AWS credentials are set
+    if (!AWS_ACCESS_KEY || !AWS_SECRET_KEY) {
+      console.error('AWS credentials are missing. Please check environment variables.');
+      throw new Error('AWS credentials are missing');
+    }
+    
+    if (!AWS_BUCKET_NAME) {
+      console.error('AWS_BUCKET_NAME is missing. Please check environment variables.');
+      throw new Error('AWS bucket name is missing');
+    }
+    
+    throw new Error('Failed to upload file to S3: ' + (error instanceof Error ? error.message : 'Unknown error'));
   }
 }
 
