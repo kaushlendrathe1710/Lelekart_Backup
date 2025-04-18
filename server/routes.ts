@@ -2736,7 +2736,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       // Only allow updating certain fields
-      const allowedFields = ['username', 'email', 'phone', 'address'];
+      const allowedFields = ['username', 'email', 'phone', 'address', 'profileImage'];
       const updateData: Partial<User> = {};
       
       // Filter out any fields that shouldn't be updated
@@ -2755,6 +2755,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating user profile:", error);
       res.status(500).json({ error: "Failed to update user profile" });
+    }
+  });
+  
+  // Profile image upload endpoint
+  app.post("/api/user/profile-image", upload.single("profileImage"), async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No image file uploaded" });
+      }
+      
+      console.log(`Processing profile image upload: ${req.file.originalname}, size: ${req.file.size}, mimetype: ${req.file.mimetype}`);
+      
+      // Upload the image to S3
+      const uploadResult = await uploadFileToS3(req.file);
+      console.log(`Profile image uploaded successfully to S3: ${uploadResult.Location}`);
+      
+      // Update the user's profile image URL in the database
+      const updatedUser = await storage.updateUserProfile(req.user.id, {
+        profileImage: uploadResult.Location
+      });
+      
+      res.json({
+        success: true,
+        profileImage: updatedUser.profileImage
+      });
+    } catch (error) {
+      console.error("Error uploading profile image:", error);
+      res.status(500).json({ error: "Failed to upload profile image" });
     }
   });
   

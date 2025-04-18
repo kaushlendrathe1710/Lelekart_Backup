@@ -78,6 +78,7 @@ const SellerProfilePage = () => {
   // Form states
   const [documentType, setDocumentType] = useState("");
   const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const [isUploadingProfileImage, setIsUploadingProfileImage] = useState(false);
   
   const [businessDetails, setBusinessDetails] = useState({
     businessName: "",
@@ -344,6 +345,84 @@ const SellerProfilePage = () => {
     updateBankingInfoMutation.mutate();
   };
   
+  // Profile image upload mutation
+  const uploadProfileImageMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("profileImage", file);
+      
+      const res = await fetch('/api/user/profile-image', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to upload profile image");
+      }
+      
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Profile Image Updated",
+        description: "Your profile image has been updated successfully.",
+      });
+      
+      // Update the user data in the queryClient cache
+      queryClient.setQueryData(['/api/user'], (oldData: any) => {
+        if (oldData) {
+          return {
+            ...oldData,
+            profileImage: data.profileImage
+          };
+        }
+        return oldData;
+      });
+      
+      setIsUploadingProfileImage(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Upload Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      setIsUploadingProfileImage(false);
+    }
+  });
+  
+  // Profile image change handler
+  const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid File Type",
+          description: "Please select an image file (jpg, png, etc.)",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File Too Large",
+          description: "Profile image must be less than 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setIsUploadingProfileImage(true);
+      uploadProfileImageMutation.mutate(file);
+    }
+  };
+  
   // Show loading state while fetching user data
   if (isLoadingUser) {
     return (
@@ -367,12 +446,31 @@ const SellerProfilePage = () => {
           <div className="container py-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <Avatar className="h-20 w-20 border-2 border-primary">
-                  <AvatarImage src={""} alt={user?.username} />
-                  <AvatarFallback className="bg-primary/10 text-primary text-xl">
-                    {user?.username?.charAt(0)?.toUpperCase() || 'S'}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="relative group">
+                  <Avatar className="h-20 w-20 border-2 border-primary cursor-pointer">
+                    <AvatarImage src={user?.profileImage || ""} alt={user?.username} />
+                    <AvatarFallback className="bg-primary/10 text-primary text-xl">
+                      {user?.username?.charAt(0)?.toUpperCase() || 'S'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div 
+                    className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                    onClick={() => !isUploadingProfileImage && document.getElementById('profile-image-upload')?.click()}
+                  >
+                    {isUploadingProfileImage ? (
+                      <div className="animate-spin h-6 w-6 border-2 border-white border-t-transparent rounded-full" />
+                    ) : (
+                      <Upload className="h-6 w-6 text-white" />
+                    )}
+                  </div>
+                  <input 
+                    type="file" 
+                    id="profile-image-upload" 
+                    className="hidden" 
+                    accept="image/*"
+                    onChange={handleProfileImageChange}
+                  />
+                </div>
                 <div>
                   <h1 className="text-3xl font-bold">{user?.username}</h1>
                   <div className="flex items-center text-muted-foreground mt-1">
