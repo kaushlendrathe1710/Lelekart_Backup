@@ -944,7 +944,7 @@ export default function BulkUploadPage() {
                 <Upload className="h-5 w-5" />
                 <h2 className="text-xl font-semibold">Upload Your Product Data</h2>
               </div>
-              <p className="text-muted-foreground">Import multiple products at once using a CSV or Excel file.</p>
+              <p className="text-muted-foreground">Import multiple products at once using a CSV file.</p>
             </div>
             
             {/* File Upload Area with Drag & Drop */}
@@ -978,7 +978,7 @@ export default function BulkUploadPage() {
                   } else {
                     toast({
                       title: "Invalid file format",
-                      description: "Please upload a CSV or Excel file.",
+                      description: "Please upload a CSV file.",
                       variant: "destructive",
                     });
                   }
@@ -1082,7 +1082,7 @@ export default function BulkUploadPage() {
                           type="file"
                           ref={fileInputRef}
                           className="hidden"
-                          accept=".csv,.xlsx,.xls"
+                          accept=".csv"
                           onChange={handleFileSelect}
                         />
                       </div>
