@@ -1,8 +1,8 @@
 // Add wallet fields to orders table
-import { Pool } from 'pg';
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { sql } from 'drizzle-orm';
-import dotenv from 'dotenv';
+const { Pool } = require('pg');
+const { drizzle } = require('drizzle-orm/node-postgres');
+const { sql } = require('drizzle-orm');
+const dotenv = require('dotenv');
 
 dotenv.config();
 

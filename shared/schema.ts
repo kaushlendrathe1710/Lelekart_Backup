@@ -125,6 +125,9 @@ export const insertOrderSchema = createInsertSchema(orders).pick({
   paymentId: true,
   orderId: true,
   addressId: true,
+  // Wallet fields
+  walletDiscount: true,
+  walletCoinsUsed: true,
   // Shiprocket fields
   shippingStatus: true,
   shiprocketOrderId: true,
