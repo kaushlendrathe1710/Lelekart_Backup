@@ -226,10 +226,13 @@ export default function CheckoutPage() {
         setTimeout(() => {
           form.trigger();
           
-          // Ensure form is valid
+          // Ensure form is valid by triggering validation
           if (!form.formState.isValid) {
             console.log("Forcing form to valid state for initial address");
-            form.formState.isValid = true;
+            // Instead of directly setting isValid, we'll validate all fields manually
+            Object.keys(form.getValues()).forEach(field => {
+              form.trigger(field as any);
+            });
           }
         }, 100);
         
@@ -443,8 +446,11 @@ export default function CheckoutPage() {
       Object.keys(form.getValues()).forEach(fieldName => {
         form.clearErrors(fieldName);
       });
-      // Force form to be valid
-      form.formState.isValid = true;
+      // Instead of setting isValid directly, set all fields as valid
+      Object.keys(form.getValues()).forEach(field => {
+        form.clearErrors(field as any);
+        form.trigger(field as any);
+      });
     }
     
     try {
@@ -637,10 +643,14 @@ export default function CheckoutPage() {
                           setTimeout(() => {
                             form.trigger();
                             
-                            // Manually set form state to valid
+                            // Manually validate all fields instead of setting isValid
                             if (!form.formState.isValid) {
                               console.log("Forcing form to valid state for address selection");
-                              form.formState.isValid = true;
+                              // Trigger validation on all fields
+                              Object.keys(form.getValues()).forEach(field => {
+                                form.clearErrors(field as any);
+                                form.trigger(field as any);
+                              });
                             }
                             
                             console.log("Form validation triggered, state:", form.formState);
@@ -920,7 +930,10 @@ export default function CheckoutPage() {
                               Object.keys(form.getValues()).forEach(fieldName => {
                                 form.clearErrors(fieldName);
                               });
-                              form.formState.isValid = true;
+                              // Instead of directly setting isValid, trigger validation on all fields
+                              Object.keys(form.getValues()).forEach(field => {
+                                form.trigger(field as any);
+                              });
                             }
                           }
                         }}
