@@ -316,19 +316,6 @@ const SellerProfilePage = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setDocumentFile(e.target.files[0]);
-    } else {
-      // If no files selected (like when cancel is clicked), clear the state
-      setDocumentFile(null);
-    }
-  };
-  
-  // Function to remove the currently selected file
-  const handleRemoveFile = () => {
-    setDocumentFile(null);
-    // Reset the file input by creating a new reference
-    const fileInput = document.getElementById('document') as HTMLInputElement;
-    if (fileInput) {
-      fileInput.value = '';
     }
   };
   
@@ -960,32 +947,17 @@ const SellerProfilePage = () => {
                   required
                   className="hidden"
                 />
-                {documentFile ? (
-                  <div className="flex flex-col items-center">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-8 w-8 text-primary mb-2" />
-                      <Button 
-                        type="button" 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 text-red-500 hover:text-red-700 hover:bg-red-50 p-1"
-                        onClick={handleRemoveFile}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
+                <label htmlFor="document" className="cursor-pointer flex flex-col items-center">
+                  <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                  {documentFile ? (
                     <p className="text-sm font-medium">{documentFile.name}</p>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Click remove button to re-upload a different file
-                    </p>
-                  </div>
-                ) : (
-                  <label htmlFor="document" className="cursor-pointer flex flex-col items-center">
-                    <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                    <p className="text-sm font-medium mb-1">Click to select a file</p>
-                    <p className="text-xs text-muted-foreground">PDF, JPG, JPEG, PNG (5MB max)</p>
-                  </label>
-                )}
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium mb-1">Click to select a file</p>
+                      <p className="text-xs text-muted-foreground">PDF, JPG, JPEG, PNG (5MB max)</p>
+                    </>
+                  )}
+                </label>
               </div>
             </div>
             

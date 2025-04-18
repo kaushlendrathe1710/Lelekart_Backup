@@ -11,16 +11,12 @@ interface SizeRecommendationProps {
   productId: number;
   category?: string;
   availableSizes?: string[];
-  selectedSize?: string | null;
-  onSizeSelect?: (size: string) => void;
 }
 
 export const SizeRecommendation: React.FC<SizeRecommendationProps> = ({
   productId,
   category,
   availableSizes = [],
-  selectedSize,
-  onSizeSelect,
 }) => {
   const { getSizeRecommendation } = useAIAssistant();
   const { user } = useAuth();
@@ -34,6 +30,7 @@ export const SizeRecommendation: React.FC<SizeRecommendationProps> = ({
     message: "",
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
 
   useEffect(() => {
     if (productId && user) {
@@ -41,8 +38,8 @@ export const SizeRecommendation: React.FC<SizeRecommendationProps> = ({
       getSizeRecommendation(productId, category)
         .then((result) => {
           setRecommendation(result);
-          if (result.recommendedSize && onSizeSelect) {
-            onSizeSelect(result.recommendedSize);
+          if (result.recommendedSize) {
+            setSelectedSize(result.recommendedSize);
           }
         })
         .finally(() => {
@@ -56,7 +53,7 @@ export const SizeRecommendation: React.FC<SizeRecommendationProps> = ({
         message: user ? "Unable to determine size" : "Sign in for personalized size recommendations",
       });
     }
-  }, [productId, category, user, getSizeRecommendation, onSizeSelect]);
+  }, [productId, category, user, getSizeRecommendation]);
 
   if (!availableSizes.length) {
     return null;
@@ -91,7 +88,7 @@ export const SizeRecommendation: React.FC<SizeRecommendationProps> = ({
             type="button"
             variant={selectedSize === size ? "default" : "outline"}
             size="sm"
-            onClick={() => onSizeSelect ? onSizeSelect(size) : undefined}
+            onClick={() => setSelectedSize(size)}
             className={cn(
               "h-9 px-3",
               recommendation.recommendedSize === size && "border-green-500 border-2",
