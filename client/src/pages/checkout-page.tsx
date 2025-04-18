@@ -185,44 +185,50 @@ export default function CheckoutPage() {
         if (defaultAddress) {
           setSelectedAddressId(defaultAddress.id.toString());
           
-          // Pre-fill form with default address data for payment processing
-          form.setValue("name", defaultAddress.fullName, { shouldValidate: true });
-          form.setValue("phone", defaultAddress.phone, { shouldValidate: true });
-          form.setValue("address", defaultAddress.address, { shouldValidate: true });
-          form.setValue("city", defaultAddress.city, { shouldValidate: true });
-          form.setValue("state", defaultAddress.state, { shouldValidate: true });
-          form.setValue("zipCode", defaultAddress.pincode, { shouldValidate: true });
+          // Get email value for the address
+          const emailValue = user?.email || user?.username || "";
           
-          // Make sure email is set - keep existing email or use username 
-          if (user?.email) {
-            form.setValue("email", user.email, { shouldValidate: true });
-          } else if (user?.username) {
-            form.setValue("email", user.username, { shouldValidate: true });
-          }
+          // Reset the form with all necessary values
+          form.reset({
+            name: defaultAddress.fullName,
+            phone: defaultAddress.phone,
+            address: defaultAddress.address,
+            city: defaultAddress.city,
+            state: defaultAddress.state,
+            zipCode: defaultAddress.pincode,
+            email: emailValue,
+            paymentMethod: "cod",
+            notes: ""
+          });
           
-          // Trigger form validation after setting all values
-          form.trigger();
+          console.log("Default address selected, form reset with values:", {
+            name: defaultAddress.fullName,
+            email: emailValue
+          });
         } else {
           // Use the first address if no default
           setSelectedAddressId(data[0].id.toString());
           
-          // Pre-fill form with first address data for payment processing
-          form.setValue("name", data[0].fullName, { shouldValidate: true });
-          form.setValue("phone", data[0].phone, { shouldValidate: true });
-          form.setValue("address", data[0].address, { shouldValidate: true });
-          form.setValue("city", data[0].city, { shouldValidate: true });
-          form.setValue("state", data[0].state, { shouldValidate: true });
-          form.setValue("zipCode", data[0].pincode, { shouldValidate: true });
+          // Get email value for the address
+          const emailValue = user?.email || user?.username || "";
           
-          // Make sure email is set - keep existing email or use username
-          if (user?.email) {
-            form.setValue("email", user.email, { shouldValidate: true });
-          } else if (user?.username) {
-            form.setValue("email", user.username, { shouldValidate: true });
-          }
+          // Reset the form with all necessary values
+          form.reset({
+            name: data[0].fullName,
+            phone: data[0].phone,
+            address: data[0].address,
+            city: data[0].city,
+            state: data[0].state,
+            zipCode: data[0].pincode,
+            email: emailValue,
+            paymentMethod: "cod",
+            notes: ""
+          });
           
-          // Trigger form validation after setting all values
-          form.trigger();
+          console.log("First address selected, form reset with values:", {
+            name: data[0].fullName,
+            email: emailValue
+          });
         }
       }
     })
@@ -579,23 +585,27 @@ export default function CheckoutPage() {
                       onClick={() => {
                         setSelectedAddressId(address.id.toString());
                         
-                        // Update form values when address is selected
-                        form.setValue("name", address.fullName, { shouldValidate: true });
-                        form.setValue("phone", address.phone, { shouldValidate: true });
-                        form.setValue("address", address.address, { shouldValidate: true });
-                        form.setValue("city", address.city, { shouldValidate: true });
-                        form.setValue("state", address.state, { shouldValidate: true });
-                        form.setValue("zipCode", address.pincode, { shouldValidate: true });
+                        // Get email value
+                        const emailValue = user?.email || user?.username || "";
                         
-                        // Ensure email field is set - use user email if available or use username
-                        if (user?.email) {
-                          form.setValue("email", user.email, { shouldValidate: true });
-                        } else if (user?.username) {
-                          form.setValue("email", user.username, { shouldValidate: true });
-                        }
+                        // Clear all validation errors by resetting form with new values
+                        form.reset({
+                          name: address.fullName,
+                          phone: address.phone,
+                          address: address.address,
+                          city: address.city,
+                          state: address.state,
+                          zipCode: address.pincode,
+                          email: emailValue,
+                          paymentMethod: form.getValues("paymentMethod"),
+                          notes: form.getValues("notes")
+                        });
                         
-                        // Trigger form validation after setting all values
-                        form.trigger();
+                        // Log for debugging
+                        console.log("Address selected, form reset with values:", {
+                          name: address.fullName,
+                          email: emailValue
+                        });
                       }}
                     >
                       <div className="flex justify-between items-start mb-2">
