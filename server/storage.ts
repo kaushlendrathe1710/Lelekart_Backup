@@ -1857,7 +1857,8 @@ export class DatabaseStorage implements IStorage {
     // Handle shippingDetails - convert to string if provided as an object
     const orderToInsert = {
       ...insertOrder,
-      status: insertOrder.status || "pending",
+      // Always set status based on server-side business logic, ignoring client input for security
+      status: "pending", // Default status for new orders
       date: insertOrder.date || new Date().toISOString()
     };
     
@@ -2042,6 +2043,35 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateOrderStatus(id: number, status: string): Promise<Order> {
+    // Get the current order to validate status transition
+    const currentOrder = await this.getOrder(id);
+    if (!currentOrder) {
+      throw new Error(`Order with ID ${id} not found`);
+    }
+    
+    // Define allowed status transitions for security
+    const allowedTransitions: Record<string, string[]> = {
+      'pending': ['processing', 'confirmed', 'cancelled'],
+      'processing': ['confirmed', 'shipped', 'cancelled'],
+      'confirmed': ['shipped', 'cancelled'],
+      'shipped': ['delivered', 'returned'],
+      'delivered': ['returned', 'completed'],
+      'returned': ['refunded'],
+      'cancelled': ['refunded'],
+      'refunded': [],
+      'completed': []
+    };
+    
+    // Check if the status transition is allowed
+    const allowedNextStatuses = allowedTransitions[currentOrder.status] || [];
+    if (!allowedNextStatuses.includes(status)) {
+      throw new Error(`Cannot transition order from '${currentOrder.status}' to '${status}'. Allowed transitions: ${allowedNextStatuses.join(', ')}`);
+    }
+    
+    // Log the status change
+    console.log(`Updating order ${id} status from '${currentOrder.status}' to '${status}'`);
+    
+    // If transition is valid, proceed with the update
     return this.updateOrder(id, { status });
   }
   

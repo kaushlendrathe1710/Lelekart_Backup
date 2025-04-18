@@ -486,7 +486,7 @@ export default function CheckoutPage() {
       const orderData: any = {
         userId: user.id,
         total,
-        status: "pending",
+        // status is removed from client request and will be set by server
         paymentMethod: values.paymentMethod,
         shippingDetails: JSON.stringify({
           name: values.name,
