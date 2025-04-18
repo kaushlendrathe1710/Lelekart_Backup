@@ -974,6 +974,8 @@ export default function ProductDetailsPage() {
                         productId={product.id} 
                         category={product.category}
                         availableSizes={sizeOptions}
+                        selectedSize={selectedSize}
+                        onSizeSelect={(size) => setSelectedSize(size)}
                       />
                       <Separator className="my-4" />
                     </div>

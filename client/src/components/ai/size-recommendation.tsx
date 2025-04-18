@@ -56,7 +56,7 @@ export const SizeRecommendation: React.FC<SizeRecommendationProps> = ({
         message: user ? "Unable to determine size" : "Sign in for personalized size recommendations",
       });
     }
-  }, [productId, category, user, getSizeRecommendation]);
+  }, [productId, category, user, getSizeRecommendation, onSizeSelect]);
 
   if (!availableSizes.length) {
     return null;
