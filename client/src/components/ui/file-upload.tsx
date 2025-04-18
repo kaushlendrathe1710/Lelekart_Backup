@@ -113,7 +113,17 @@ export function FileUpload({
     // Reset the file input element to allow re-uploading
     const inputElement = document.getElementById(id) as HTMLInputElement;
     if (inputElement) {
+      // This is critical: we need to properly reset the file input
+      // First set to empty string
       inputElement.value = '';
+      
+      // Create a new event to signal the change
+      const event = new Event('change', { bubbles: true });
+      inputElement.dispatchEvent(event);
+      
+      // For extra safety with some browsers
+      setError(null);
+      setIsUploading(false);
     }
   };
 
@@ -290,7 +300,16 @@ export function FileUploadRow({
                 // Reset the file input element to allow re-uploading
                 const inputElement = document.getElementById(id) as HTMLInputElement;
                 if (inputElement) {
+                  // This is critical: we need to properly reset the file input
                   inputElement.value = '';
+                  
+                  // Create a new event to signal the change
+                  const event = new Event('change', { bubbles: true });
+                  inputElement.dispatchEvent(event);
+                  
+                  // For extra safety with some browsers
+                  setIsUploading(false);
+                  setIsSuccess(false);
                 }
               }}
             >
