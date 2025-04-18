@@ -13,6 +13,7 @@ export const users = pgTable("users", {
   name: text("name"),
   phone: text("phone"),
   address: text("address"),
+  profileImage: text("profile_image"), // Profile image URL
   approved: boolean("approved").notNull().default(false), // Sellers need admin approval
   rejected: boolean("rejected").notNull().default(false), // For rejected sellers
   isCoAdmin: boolean("is_co_admin").default(false), // Designates a user as a co-admin
@@ -27,6 +28,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   name: true,
   phone: true,
   address: true,
+  profileImage: true,
   approved: true,
   rejected: true,
   isCoAdmin: true,
