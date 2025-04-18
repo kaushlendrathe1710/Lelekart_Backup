@@ -1160,6 +1160,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.createOrderItem(orderItemData);
       }
       
+      // Process wallet redemption if needed
+      if (walletDetails && walletDetails.walletId && walletDetails.coinsUsed > 0) {
+        try {
+          // Deduct coins from wallet
+          console.log(`Deducting ${walletDetails.coinsUsed} coins from wallet ${walletDetails.walletId}`);
+          
+          // Import the redeemCoinsFromWallet function from wallet-handlers
+          const { redeemCoinsFromWallet } = await import('./handlers/wallet-handlers');
+          
+          // Process the redemption
+          await redeemCoinsFromWallet(
+            req.user.id,
+            walletDetails.coinsUsed,
+            'ORDER',
+            order.id,
+            `Order #${order.id} coin redemption (Razorpay payment)`
+          );
+          
+          console.log("Wallet transaction created successfully for Razorpay payment");
+        } catch (walletError) {
+          console.error("Error processing wallet redemption for Razorpay payment:", walletError);
+          // We don't want to fail the order if wallet processing fails at this point
+          // Just log the error and continue
+        }
+      }
+      
       // Clear cart
       await storage.clearCart(req.user.id);
       
