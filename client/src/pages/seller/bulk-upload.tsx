@@ -502,6 +502,10 @@ export default function BulkUploadPage() {
     // Filter to only include valid products
     const validProducts = previewProducts.filter(p => p.isValid);
     
+    // Log the number of valid products being sent
+    console.log(`Submitting ${validProducts.length} valid products to server`);
+    console.log('First product example:', validProducts[0]);
+    
     try {
       // Show progress notification for large batches
       const largeUpload = validProducts.length > 50;
@@ -515,16 +519,35 @@ export default function BulkUploadPage() {
         });
       }
       
+      // Prepare the data that will be sent to the server
+      const requestData = { products: validProducts };
+      
+      // Debug log
+      console.log(`Sending request to /api/seller/products/bulk-upload with ${validProducts.length} products`);
+      
       // Set a longer timeout for large uploads (5 minutes)
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes timeout
+      
+      // Make sure the request body isn't too large (split into batches if needed)
+      const requestBody = JSON.stringify(requestData);
+      console.log(`Request body size: ${requestBody.length} bytes`);
+      
+      // If the request is very large, warn the user
+      if (requestBody.length > 10000000) { // 10MB
+        toast({
+          title: "Warning: Large Upload",
+          description: "The upload data is very large. Consider splitting it into smaller batches if you encounter issues.",
+          variant: "destructive",
+        });
+      }
       
       const response = await fetch('/api/seller/products/bulk-upload', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ products: validProducts }),
+        body: requestBody,
         signal: controller.signal,
         credentials: 'include' // Important: Include credentials for authentication
       });
@@ -532,7 +555,18 @@ export default function BulkUploadPage() {
       // Clear the timeout
       clearTimeout(timeoutId);
 
-      const result = await response.json();
+      // Log response status
+      console.log(`Upload response status: ${response.status} ${response.statusText}`);
+      
+      let result;
+      try {
+        result = await response.json();
+      } catch (err) {
+        console.error("Error parsing response JSON:", err);
+        throw new Error("Failed to parse server response");
+      }
+      
+      console.log("Upload response:", result);
       
       if (!response.ok) {
         throw new Error(result.error || result.details || 'Error uploading products');

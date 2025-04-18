@@ -1836,15 +1836,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Process products for actual submission
-      const { products } = req.body;
+      console.log('Received bulk upload request from sellerId:', sellerId);
       
-      if (!products || !Array.isArray(products) || products.length === 0) {
+      // Check if req.body exists
+      if (!req.body) {
+        console.error('Empty request body received');
         return res.status(400).json({ 
-          error: "No valid products to upload",
+          error: "Empty request body",
+          details: "The request did not contain any data"
+        });
+      }
+      
+      // Get products from request body
+      let { products } = req.body;
+      
+      // Log request body size
+      console.log('Request body size:', JSON.stringify(req.body).length, 'bytes');
+      
+      if (!products) {
+        console.error('No products field in request body:', Object.keys(req.body));
+        return res.status(400).json({ 
+          error: "No products field in request body",
+          details: "The 'products' field is missing from the request body"
+        });
+      }
+      
+      if (!Array.isArray(products)) {
+        console.error('Products is not an array. Type:', typeof products);
+        return res.status(400).json({ 
+          error: "Invalid products data",
+          details: "The 'products' field must be an array"
+        });
+      }
+      
+      if (products.length === 0) {
+        console.error('Products array is empty');
+        return res.status(400).json({ 
+          error: "No products to upload",
+          details: "The products array is empty"
         });
       }
       
       console.log(`Bulk uploading ${products.length} products for seller ${sellerId}`);
+      console.log('First product example:', JSON.stringify(products[0]).substring(0, 300) + '...');
       
       // Process each product
       const results = {
