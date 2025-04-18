@@ -109,5 +109,61 @@ export const shiprocketStorageMethods = {
       console.error('Error updating Shiprocket settings:', error);
       throw new Error('Failed to update Shiprocket settings');
     }
+  },
+  
+  // Get shipment statistics by timeframe
+  async getShipmentStatsByTimeframe(startDate: string, endDate: string): Promise<any> {
+    try {
+      // Get pending shipments (orders in processing status)
+      const pendingResult = await pool.query(`
+        SELECT COUNT(*) as count
+        FROM orders
+        WHERE status = 'processing'
+        AND order_date BETWEEN $1 AND $2
+      `, [startDate, endDate]);
+      
+      // Get shipped orders (in transit)
+      const shippedResult = await pool.query(`
+        SELECT COUNT(*) as count
+        FROM orders
+        WHERE status = 'shipped'
+        AND shiprocket_shipment_id IS NOT NULL
+        AND order_date BETWEEN $1 AND $2
+      `, [startDate, endDate]);
+      
+      // Get delivered orders
+      const deliveredResult = await pool.query(`
+        SELECT COUNT(*) as count
+        FROM orders
+        WHERE status = 'delivered'
+        AND shiprocket_shipment_id IS NOT NULL
+        AND order_date BETWEEN $1 AND $2
+      `, [startDate, endDate]);
+      
+      // Get orders with issues (cancelled or returned after shipping)
+      const issuesResult = await pool.query(`
+        SELECT COUNT(*) as count
+        FROM orders
+        WHERE (status = 'cancelled' OR status = 'returned')
+        AND shiprocket_shipment_id IS NOT NULL
+        AND order_date BETWEEN $1 AND $2
+      `, [startDate, endDate]);
+      
+      return {
+        pending: parseInt(pendingResult.rows[0].count) || 0,
+        shipped: parseInt(shippedResult.rows[0].count) || 0,
+        delivered: parseInt(deliveredResult.rows[0].count) || 0,
+        issues: parseInt(issuesResult.rows[0].count) || 0
+      };
+    } catch (error) {
+      console.error('Error getting shipment statistics:', error);
+      // Return zeros if there's an error
+      return {
+        pending: 0,
+        shipped: 0,
+        delivered: 0,
+        issues: 0
+      };
+    }
   }
 };

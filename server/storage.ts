@@ -80,6 +80,14 @@ export interface IStorage {
   createGiftCardTemplate(data: InsertGiftCardTemplate): Promise<SelectGiftCardTemplate>;
   updateGiftCardTemplate(id: number, data: Partial<InsertGiftCardTemplate>): Promise<SelectGiftCardTemplate>;
   deleteGiftCardTemplate(id: number): Promise<void>;
+  
+  // Shiprocket Methods
+  getShipmentStatsByTimeframe(startDate: string, endDate: string): Promise<{ 
+    pending: number;
+    shipped: number;
+    delivered: number;
+    issues: number;
+  }>;
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
