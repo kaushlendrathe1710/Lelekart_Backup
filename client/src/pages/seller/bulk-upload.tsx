@@ -220,6 +220,45 @@ export default function BulkUploadPage() {
     return { isValid: errors.length === 0, errors };
   };
 
+  // Function to sanitize product data with special handling for common issues
+  const sanitizeProductData = (productData: Record<string, any>): Record<string, any> => {
+    const sanitized = { ...productData };
+
+    // Fix product names with triple quotes or nested quotes
+    if (sanitized.name && typeof sanitized.name === 'string') {
+      // First handle common Flipkart product naming patterns with nested quotes
+      if (sanitized.name.includes('""')) {
+        // Pattern like: Ahina ""Unisex Shapewear That Supports...""
+        const namePattern = /^([^"]+)\s+""([^"]+)""(.*)$/;
+        const match = sanitized.name.match(namePattern);
+        
+        if (match) {
+          // Reconstruct name with proper quotes
+          sanitized.name = `${match[1]} "${match[2]}"${match[3] || ''}`;
+          console.log(`Fixed product name format: ${sanitized.name}`);
+        } else {
+          // General quote cleanup
+          sanitized.name = sanitized.name
+            .replace(/"{3,}/g, '"')
+            .replace(/""/g, '"');
+        }
+      }
+    }
+    
+    // Fix descriptions with special characters and line breaks
+    if (sanitized.description && typeof sanitized.description === 'string') {
+      // Replace non-breaking spaces, odd Unicode spaces, and unusual dash characters
+      sanitized.description = sanitized.description
+        .replace(/\u00A0/g, ' ')  // Non-breaking space
+        .replace(/\u2013|\u2014/g, '-')  // En dash, em dash
+        .replace(/\u2019/g, "'")  // Right single quotation mark
+        .replace(/\u201C|\u201D/g, '"')  // Left/right double quotation mark
+        .replace(/�/g, '-');  // Replace unknown character with dash
+    }
+    
+    return sanitized;
+  };
+
   // Function to process CSV data and generate preview
   const processCSVForPreview = (csvData: string) => {
     // Handle different line endings (CRLF, LF)
@@ -239,7 +278,15 @@ export default function BulkUploadPage() {
     console.log(`Processing CSV with ${lines.length} lines`);
     console.log(`Headers: ${lines[0]}`);
     
-    const headers = parseCsvLine(lines[0]).map(h => h.trim().toLowerCase());
+    // Pre-process lines to handle known problematic patterns
+    const processedLines = lines.map(line => {
+      // Handle product names with nested quotes in a special way
+      // Pattern: field that starts with something like: Ahina ""Product Name""
+      return line.replace(/^([^,]*?[^"]),"/g, '$1,"')
+                .replace(/,([^,]*?[^"]),""/g, ',$1,"');
+    });
+    
+    const headers = parseCsvLine(processedLines[0]).map(h => h.trim().toLowerCase());
     const previews: ProductPreview[] = [];
     const errors: UploadError[] = [];
     let validCount = 0;
@@ -351,8 +398,11 @@ export default function BulkUploadPage() {
         }
       });
       
+      // Apply enhanced sanitization to fix all known issues
+      const sanitizedProduct = sanitizeProductData(productData);
+      
       // Validate the product
-      const { isValid, errors: validationErrors } = validateProduct(productData, i);
+      const { isValid, errors: validationErrors } = validateProduct(sanitizedProduct, i);
       
       if (isValid) {
         validCount++;
@@ -366,14 +416,14 @@ export default function BulkUploadPage() {
       }
       
       // Convert images array to JSON string for storage
-      const imagesForPreview = productData.images ? [...productData.images] : [];
-      if (productData.images && Array.isArray(productData.images)) {
-        productData.images = JSON.stringify(productData.images);
+      const imagesForPreview = sanitizedProduct.images ? [...sanitizedProduct.images] : [];
+      if (sanitizedProduct.images && Array.isArray(sanitizedProduct.images)) {
+        sanitizedProduct.images = JSON.stringify(sanitizedProduct.images);
       }
       
-      // Add to preview list
+      // Add to preview list with the sanitized product data
       previews.push({
-        ...productData,
+        ...sanitizedProduct,
         isValid,
         errors: validationErrors,
         rowIndex: i,
