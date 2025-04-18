@@ -182,17 +182,27 @@ export default function BulkUploadPage() {
       errors.push(`Selling price (${product.price}) cannot be greater than MRP (${product.mrp})`);
     }
     
-    // Validate URLs in image fields
-    if (product.imageUrl && !product.imageUrl.match(/^https?:\/\/.+/)) {
-      errors.push(`Main image URL must be a valid URL starting with http:// or https://`);
+    // Validate URLs in image fields - with special handling for Flipkart URLs
+    if (product.imageUrl) {
+      // Accept Flipkart image URLs whether they start with http or not
+      if (product.imageUrl.includes('fkcdn.com') || product.imageUrl.includes('flixcart.com')) {
+        // Ensure URL starts with https:// for Flipkart image URLs
+        if (!product.imageUrl.startsWith('http')) {
+          product.imageUrl = 'https://' + product.imageUrl;
+        }
+      } 
+      // For other URLs, enforce http/https pattern
+      else if (!product.imageUrl.match(/^https?:\/\/.+/)) {
+        errors.push(`Main image URL must be a valid URL starting with http:// or https://`);
+      }
     }
     
-    // Check for problematic placeholder images
+    // Check for problematic placeholder images - but allow Flipkart CDN images
     if (product.imageUrl && (
       product.imageUrl.includes('placeholder.com') || 
       product.imageUrl.includes('placeholder.jpg') ||
       product.imageUrl.includes('dummyimage.com')
-    )) {
+    ) && !product.imageUrl.includes('fkcdn.com') && !product.imageUrl.includes('flixcart.com')) {
       errors.push(`Please use actual product images instead of placeholder images`);
     }
     
@@ -322,11 +332,29 @@ export default function BulkUploadPage() {
         
         // Handle numeric fields
         if (['price', 'purchasePrice', 'stock', 'mrp', 'weight', 'length', 'width', 'height', 'warranty_months', 'returnPolicy', 'tax'].includes(header)) {
-          productData[header] = parseInt(value, 10);
+          // Handle empty or non-numeric values more gracefully
+          productData[header] = value ? (isNaN(parseInt(value, 10)) ? 0 : parseInt(value, 10)) : 0;
         } 
         // Handle boolean fields
         else if (header === 'approved') {
           productData[header] = value.toLowerCase() === 'true';
+        }
+        // Handle image URL fields with pattern imageUrl1, imageUrl2, etc.
+        else if (header.match(/^imageUrl\d+$/)) {
+          // First imageUrl becomes the main imageUrl
+          if (header === 'imageUrl1' && value && !productData.imageUrl) {
+            productData.imageUrl = value;
+          }
+          
+          // Add to additional images array
+          if (value) {
+            if (!productData.images) {
+              productData.images = [];
+            }
+            if (Array.isArray(productData.images)) {
+              productData.images.push(value);
+            }
+          }
         }
         // Handle product name field with special sanitization
         else if (header === 'name') {
