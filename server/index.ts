@@ -119,11 +119,15 @@ app.use((req, res, next) => {
   server.listen(
     {
       port: parseInt(port.toString()),
-      host: "127.0.0.1",
+      host: process.env.NODE_ENV === "production" ? "0.0.0.0" : "127.0.0.1",
     },
     () => {
       log(`serving on port ${port}`);
-      console.log(`Server is running on http://127.0.0.1:${port}`);
+      console.log(
+        `Server is running on http://${
+          process.env.NODE_ENV === "production" ? "0.0.0.0" : "127.0.0.1"
+        }:${port}`
+      );
 
       // Initialize daily database backup at midnight
       scheduleDailyBackup(0, 0);
