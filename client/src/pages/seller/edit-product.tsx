@@ -1373,6 +1373,7 @@ export default function EditProductPage() {
         color: data.color,
         size: data.size,
         imageUrl: imageUrl,
+        images: JSON.stringify(uploadedImages), // Add the images array as a JSON string
         // If variants exist, calculate total stock from variants
         // Only use currentVariants to avoid duplicate stock counting, as variants are already in currentVariants
         stock:
@@ -1397,6 +1398,8 @@ export default function EditProductPage() {
         // Add the __preserveVariants flag to ensure existing variants are preserved when category is changed
         __preserveVariants: true,
       };
+      console.log("productData", productData.width);
+      console.log("Full product data:", JSON.stringify(productData, null, 2));
 
       // Filter out any deleted variants before processing
       // This ensures we don't include variants that should be deleted
