@@ -2450,19 +2450,61 @@ export default function AddProductPage() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-variant-stock">Stock</Label>
+                  <Input
+                    id="edit-variant-stock"
+                    type="number"
+                    defaultValue={selectedVariant.stock || 0}
+                    onChange={(e) => {
+                      setSelectedVariant({
+                        ...selectedVariant,
+                        stock: Number(e.target.value),
+                      });
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-variant-warranty">
+                    Warranty (months)
+                  </Label>
+                  <Input
+                    id="edit-variant-warranty"
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 12"
+                    defaultValue={selectedVariant.warranty || 0}
+                    onChange={(e) => {
+                      setSelectedVariant({
+                        ...selectedVariant,
+                        warranty: Number(e.target.value),
+                      });
+                    }}
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="edit-variant-stock">Stock</Label>
+                <Label htmlFor="edit-variant-return-policy">
+                  Return Policy (days)
+                </Label>
                 <Input
-                  id="edit-variant-stock"
+                  id="edit-variant-return-policy"
                   type="number"
-                  defaultValue={selectedVariant.stock || 0}
+                  min="0"
+                  placeholder="e.g. 7"
+                  defaultValue={selectedVariant.returnPolicy || "7"}
                   onChange={(e) => {
                     setSelectedVariant({
                       ...selectedVariant,
-                      stock: Number(e.target.value),
+                      returnPolicy: e.target.value,
                     });
                   }}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Number of days within which customers can return this variant
+                </p>
               </div>
 
               {/* Variant Images Section */}

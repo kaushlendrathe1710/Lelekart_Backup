@@ -89,59 +89,81 @@ import {
 } from "@/components/ui/table";
 
 // Form validation schema
-const productSchema = z.object({
-  name: z.string().min(5, "Product name must be at least 5 characters"),
-  brand: z.string().optional().nullable(),
-  category: z.string().min(2, "Category is required"),
-  subcategory: z.string().optional().nullable(),
-  subcategoryId: z.number().optional().nullable(),
-  price: z.coerce
-    .number()
-    .min(1, "Price must be greater than 0")
-    .nonnegative("Price cannot be negative"),
-  mrp: z.coerce
-    .number()
-    .min(1, "MRP must be greater than 0")
-    .nonnegative("MRP cannot be negative")
-    .optional()
-    .nullable(),
-  purchasePrice: z.coerce
-    .number()
-    .min(0, "Purchase price cannot be negative")
-    .optional()
-    .nullable(),
-  gstRate: z.coerce
-    .number()
-    .min(0, "GST rate cannot be negative")
-    .max(100, "GST rate cannot exceed 100%")
-    .optional()
-    .nullable(),
-  warranty: z.coerce
-    .number()
-    .min(0, "Warranty period cannot be negative")
-    .max(60, "Warranty period cannot exceed 60 months")
-    .optional()
-    .nullable(),
-  returnPolicy: z
-    .string()
-    .min(10, "Return policy must be at least 10 characters")
-    .max(1000, "Return policy cannot exceed 1000 characters")
-    .optional()
-    .nullable(),
-  description: z.string().min(20, "Description must be at least 20 characters"),
-  specifications: z.string().optional().nullable(),
-  sku: z.string().optional().nullable(),
-  stock: z.coerce
-    .number()
-    .min(0, "Stock cannot be negative")
-    .nonnegative("Stock cannot be negative"),
-  weight: z.coerce.number().optional().nullable(),
-  length: z.coerce.number().optional().nullable(),
-  width: z.coerce.number().optional().nullable(),
-  height: z.coerce.number().optional().nullable(),
-  color: z.string().optional().nullable(),
-  size: z.string().optional().nullable(),
-});
+const productSchema = z
+  .object({
+    name: z.string().min(5, "Product name must be at least 5 characters"),
+    brand: z.string().optional().nullable(),
+    category: z.string().min(2, "Category is required"),
+    subcategory: z.string().optional().nullable(),
+    subcategoryId: z.number().optional().nullable(),
+    price: z.coerce
+      .number()
+      .min(1, "Price must be greater than 0")
+      .nonnegative("Price cannot be negative"),
+    mrp: z.coerce
+      .number()
+      .min(1, "MRP must be greater than 0")
+      .nonnegative("MRP cannot be negative")
+      .optional()
+      .nullable(),
+    purchasePrice: z.coerce
+      .number()
+      .min(0, "Purchase price cannot be negative")
+      .optional()
+      .nullable(),
+    gstRate: z.coerce
+      .number()
+      .min(0, "GST rate cannot be negative")
+      .max(100, "GST rate cannot exceed 100%")
+      .optional()
+      .nullable(),
+    warranty: z.coerce
+      .number()
+      .min(0, "Warranty period cannot be negative")
+      .max(60, "Warranty period cannot exceed 60 months")
+      .optional()
+      .nullable(),
+    returnPolicy: z
+      .string()
+      .min(1, "Return policy is required")
+      .max(1000, "Return policy cannot exceed 1000 characters")
+      .optional()
+      .nullable(),
+    customReturnPolicy: z.string().optional().nullable(),
+    description: z
+      .string()
+      .min(20, "Description must be at least 20 characters"),
+    specifications: z.string().optional().nullable(),
+    sku: z.string().optional().nullable(),
+    stock: z.coerce
+      .number()
+      .min(0, "Stock cannot be negative")
+      .nonnegative("Stock cannot be negative"),
+    weight: z.coerce.number().optional().nullable(),
+    length: z.coerce.number().optional().nullable(),
+    width: z.coerce.number().optional().nullable(),
+    height: z.coerce.number().optional().nullable(),
+    color: z.string().optional().nullable(),
+    size: z.string().optional().nullable(),
+  })
+  .refine(
+    (data) => {
+      // Validate that when returnPolicy is 'custom', customReturnPolicy must be provided
+      if (data.returnPolicy === "custom") {
+        return (
+          !!data.customReturnPolicy &&
+          !isNaN(parseInt(data.customReturnPolicy)) &&
+          parseInt(data.customReturnPolicy) > 0
+        );
+      }
+      return true;
+    },
+    {
+      message:
+        "Please enter a valid number of days for your custom return policy",
+      path: ["customReturnPolicy"],
+    }
+  );
 
 interface AddProductFormProps {
   redirectTo?: string; // Where to redirect after successful submission
@@ -237,7 +259,6 @@ export default function AddProductForm({
   // Form setup with validation
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
-    // Use initialValues if provided (for edit mode), otherwise use empty defaults
     defaultValues: initialValues
       ? {
           name: initialValues.name || "",
@@ -250,7 +271,8 @@ export default function AddProductForm({
           purchasePrice: initialValues.purchasePrice,
           gstRate: initialValues.gstRate,
           warranty: initialValues.warranty,
-          returnPolicy: initialValues.returnPolicy,
+          returnPolicy: initialValues.returnPolicy || "7",
+          customReturnPolicy: initialValues.customReturnPolicy,
           description: initialValues.description || "",
           specifications: initialValues.specifications || "",
           sku: initialValues.sku || "",
@@ -273,7 +295,8 @@ export default function AddProductForm({
           purchasePrice: undefined,
           gstRate: undefined,
           warranty: undefined,
-          returnPolicy: undefined,
+          returnPolicy: "7", // Default to 7 days
+          customReturnPolicy: undefined,
           description: "",
           specifications: "",
           sku: "",
@@ -961,21 +984,16 @@ export default function AddProductForm({
       // Get form values
       const formValues = form.getValues();
 
-      // Additional validation for price field
+      // Process return policy
+      let finalReturnPolicy = formValues.returnPolicy;
       if (
-        formValues.price === undefined ||
-        formValues.price === null ||
-        isNaN(Number(formValues.price))
+        formValues.returnPolicy === "custom" &&
+        formValues.customReturnPolicy
       ) {
-        toast({
-          title: "Invalid Price",
-          description: "Please enter a valid price value",
-          variant: "destructive",
-        });
-        return;
+        finalReturnPolicy = formValues.customReturnPolicy;
       }
 
-      // Ensure price is a proper number
+      // Process numeric fields
       const processedFormValues = {
         ...formValues,
         price: Number(formValues.price),
@@ -987,6 +1005,12 @@ export default function AddProductForm({
         gstRate: formValues.gstRate
           ? Number(formValues.gstRate)
           : formValues.gstRate,
+        warranty: formValues.warranty ? Number(formValues.warranty) : null,
+        weight: formValues.weight ? Number(formValues.weight) : null,
+        length: formValues.length ? Number(formValues.length) : null,
+        width: formValues.width ? Number(formValues.width) : null,
+        height: formValues.height ? Number(formValues.height) : null,
+        returnPolicy: finalReturnPolicy,
       };
 
       console.log("Processed form values:", processedFormValues);
@@ -1012,12 +1036,24 @@ export default function AddProductForm({
         // Create new product
         await createProductMutation.mutateAsync(productData);
       }
-    } catch (error: any) {
-      console.error("Error submitting product:", error);
 
+      // Show success message
+      toast({
+        title: "Success",
+        description: initialValues?.id
+          ? "Product updated successfully"
+          : "Product created successfully",
+      });
+
+      // Redirect if needed
+      if (redirectTo) {
+        navigate(redirectTo);
+      }
+    } catch (error: any) {
+      console.error("Form submission error:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to add product",
+        description: error.message || "Failed to save product",
         variant: "destructive",
       });
     }
@@ -1711,6 +1747,59 @@ export default function AddProductForm({
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="returnPolicy"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Return Policy</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select return policy" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="7">7 Days</SelectItem>
+                          <SelectItem value="15">15 Days</SelectItem>
+                          <SelectItem value="30">30 Days</SelectItem>
+                          <SelectItem value="custom">Custom</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {form.watch("returnPolicy") === "custom" && (
+                  <FormField
+                    control={form.control}
+                    name="customReturnPolicy"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Custom Return Policy (days)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="1"
+                            step="1"
+                            placeholder="Enter number of days"
+                            {...field}
+                            value={field.value || ""}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Enter the number of days for your custom return policy
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
               </CardContent>
             </Card>
 

@@ -185,11 +185,46 @@ const productSchema = z
           message: "Stock must be a non-negative number",
         }
       ),
-    weight: z.string().optional(),
-    height: z.string().optional(),
-    width: z.string().optional(),
-    length: z.string().optional(),
-    warranty: z.string().optional(),
+    weight: z
+      .string()
+      .refine(
+        (val) => !val || (!isNaN(parseFloat(val)) && parseFloat(val) >= 0),
+        {
+          message: "Weight must be a non-negative number",
+        }
+      )
+      .optional(),
+    height: z
+      .string()
+      .refine(
+        (val) => !val || (!isNaN(parseFloat(val)) && parseFloat(val) >= 0),
+        {
+          message: "Height must be a non-negative number",
+        }
+      )
+      .optional(),
+    width: z
+      .string()
+      .refine(
+        (val) => !val || (!isNaN(parseFloat(val)) && parseFloat(val) >= 0),
+        {
+          message: "Width must be a non-negative number",
+        }
+      )
+      .optional(),
+    length: z
+      .string()
+      .refine(
+        (val) => !val || (!isNaN(parseFloat(val)) && parseFloat(val) >= 0),
+        {
+          message: "Length must be a non-negative number",
+        }
+      )
+      .optional(),
+    warranty: z
+      .string()
+      .min(1, "Warranty information is required")
+      .max(500, "Warranty description is too long"),
     hsn: z.string().optional(),
     color: z.string().optional(),
     size: z.string().optional(),
@@ -4631,5 +4666,4 @@ export default function EditProductPage() {
     </SellerDashboardLayout>
   );
 }
-
 // Eye component is imported from lucide-react at the top of the file
