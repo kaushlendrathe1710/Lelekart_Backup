@@ -526,7 +526,12 @@ export function VariantSelector({
   // Automatically select the first available size when a color is selected
   useEffect(() => {
     if (selectedColor && availableSizes.length > 0 && !selectedSize) {
-      setSelectedSize(availableSizes[0]);
+      // Try to find 'M' (medium) size first
+      const mediumSize = availableSizes.find(
+        (size) => size.toUpperCase() === "M"
+      );
+      // If 'M' is available, select it, otherwise fall back to first available size
+      setSelectedSize(mediumSize || availableSizes[0]);
     }
   }, [selectedColor, availableSizes, selectedSize]);
 
