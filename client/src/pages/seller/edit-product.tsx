@@ -398,6 +398,11 @@ export default function EditProductPage() {
     mrp: number;
     stock: number;
     images: string[];
+    height?: number;
+    width?: number;
+    length?: number;
+    weight?: number;
+    warranty?: number;
   }
 
   // Fetch product data including variants
@@ -686,6 +691,11 @@ export default function EditProductPage() {
               price: Number(processedVariant.price) || 0,
               mrp: Number(processedVariant.mrp) || 0,
               stock: Number(processedVariant.stock) || 0,
+              height: Number(product.height) || 0,
+              width: Number(product.width) || 0,
+              length: Number(product.length) || 0,
+              weight: Number(product.weight) || 0,
+              warranty: Number(product.warranty) || 0,
               // Images already processed above
             };
           }
