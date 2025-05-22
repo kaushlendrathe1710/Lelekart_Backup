@@ -2177,6 +2177,9 @@ export default function ProductDetailsPage() {
               <Tabs defaultValue="description">
                 <TabsList className="w-full justify-start border-b mb-4">
                   <TabsTrigger value="description">Description</TabsTrigger>
+                  <TabsTrigger value="additional">
+                    Additional information
+                  </TabsTrigger>
                   <TabsTrigger value="specifications">
                     Specifications
                   </TabsTrigger>
@@ -2192,8 +2195,47 @@ export default function ProductDetailsPage() {
                     content={product?.description || ""}
                     className="text-gray-700"
                   />
-
                   {/* AI-Powered Product Q&A removed */}
+                </TabsContent>
+
+                <TabsContent value="additional" className="p-2">
+                  <h3 className="font-medium text-lg mb-3">
+                    Additional Information
+                  </h3>
+                  <table className="w-full border rounded text-sm">
+                    <tbody>
+                      <tr className="border-b">
+                        <td className="p-3 font-medium w-1/3 bg-gray-50">
+                          Weight
+                        </td>
+                        <td className="p-3">
+                          {product?.weight !== undefined &&
+                          product?.weight !== null &&
+                          product?.weight !== ""
+                            ? `${product.weight} kg`
+                            : "No information available"}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 font-medium w-1/3 bg-gray-50">
+                          Dimensions
+                        </td>
+                        <td className="p-3">
+                          {product?.length !== undefined &&
+                          product?.width !== undefined &&
+                          product?.height !== undefined &&
+                          product?.length !== null &&
+                          product?.width !== null &&
+                          product?.height !== null &&
+                          product?.length !== "" &&
+                          product?.width !== "" &&
+                          product?.height !== ""
+                            ? `${product.length} × ${product.width} × ${product.height} cm`
+                            : "No information available"}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </TabsContent>
 
                 <TabsContent value="specifications" className="p-2">
