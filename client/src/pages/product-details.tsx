@@ -2212,7 +2212,7 @@ export default function ProductDetailsPage() {
                           {product?.weight !== undefined &&
                           product?.weight !== null &&
                           product?.weight !== ""
-                            ? `${product.weight} kg`
+                            ? `${product.weight} g`
                             : "No information available"}
                         </td>
                       </tr>
