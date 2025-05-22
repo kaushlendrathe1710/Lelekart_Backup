@@ -2086,18 +2086,24 @@ export default function ProductDetailsPage() {
                     <div className="text-sm space-y-1">
                       <div className="flex items-center">
                         <TruckIcon className="h-4 w-4 text-primary mr-2" />
-                        <span>7 Days Replacement</span>
+                        <span>
+                          {Number(product?.returnPolicy) === 0
+                            ? "No Return Policy"
+                            : `${product?.returnPolicy} Days Return Policy`}
+                        </span>
                       </div>
                       {product?.warranty ? (
                         <div className="flex items-center">
                           <Shield className="h-4 w-4 text-primary mr-2" />
                           <span>
-                            {product.warranty === 1
-                              ? "1 Year Warranty"
-                              : product.warranty > 1
-                              ? `${product.warranty} Years Warranty`
-                              : product.warranty < 1 && product.warranty > 0
-                              ? `${product.warranty * 12} Months Warranty`
+                            {product.warranty && product.warranty > 0
+                              ? product.warranty % 12 === 0
+                                ? `${product.warranty / 12} ${
+                                    product.warranty / 12 === 1
+                                      ? "Year"
+                                      : "Years"
+                                  } Warranty`
+                                : `${product.warranty} Months Warranty`
                               : "No Warranty"}
                           </span>
                         </div>
