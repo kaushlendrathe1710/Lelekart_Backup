@@ -3401,7 +3401,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Fallback for empty images
       if (!imageUrl) {
-        imageUrl = "https://via.placeholder.com/400x400?text=Draft+Product";
+        imageUrl = "https://dummyimage.com/400x400/cccccc/000000.png&text=Draft+Product";
       }
 
       // Set required fields for a draft product with careful type handling

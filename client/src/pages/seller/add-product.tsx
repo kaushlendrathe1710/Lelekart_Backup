@@ -479,7 +479,7 @@ export default function AddProductPage() {
     mutationFn: async (data: any) => {
       try {
         // Validate the minimum required field - product name
-        if (!data.name || data.name.trim() === "") {
+        if (!data.productData?.name || data.productData.name.trim() === "") {
           throw new Error("Product name is required, even for drafts");
         }
 
@@ -1003,7 +1003,8 @@ export default function AddProductPage() {
       : null;
 
     // Create a placeholder image URL if no images are available
-    const placeholderImage = "https://placehold.co/600x400?text=Draft+Product";
+    const placeholderImage =
+      "https://dummyimage.com/400x400/cccccc/000000.png&text=Draft+Product";
 
     // Prepare draft data with minimal requirements
     const draftData = {
@@ -1013,8 +1014,7 @@ export default function AddProductPage() {
       price: numericPrice,
       stock: numericStock,
       // Use both snake_case AND camelCase versions to ensure server compatibility
-      image_url:
-        uploadedImages.length > 0 ? uploadedImages[0] : placeholderImage,
+
       imageUrl:
         uploadedImages.length > 0 ? uploadedImages[0] : placeholderImage,
       images:
@@ -1060,8 +1060,10 @@ export default function AddProductPage() {
 
     // Create the data structure expected by the server
     saveDraftMutation.mutate({
-      ...draftData,
-      variants: combinedVariants,
+      productData: {
+        ...draftData,
+        variants: combinedVariants,
+      },
     });
   };
 
