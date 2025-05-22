@@ -2569,15 +2569,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Otherwise, for buyers only show approved products
       let approved: boolean | undefined;
 
-      // Should we hide draft products?
-      let hideDrafts = req.query.hideDrafts === "true" || userRole === "buyer";
+      // Use isDraft instead of hideDrafts
+      let isDraft = req.query.isDraft === "true" || userRole === "buyer";
 
-      // Should we hide rejected products? Always hide for buyers and when hideDrafts is true
-      // If explicitly requested to hide
-      let hideRejected =
-        req.query.hideRejected === "true" ||
-        userRole === "buyer" ||
-        req.query.hideDrafts === "true";
+      // Use rejected instead of hideRejected
+      let rejected = req.query.rejected === "true" || userRole === "buyer" || req.query.isDraft === "true";
 
       if (req.query.approved !== undefined) {
         approved = req.query.approved === "true";
@@ -2599,16 +2595,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // and hide both draft and rejected products
       if (req.query.homepage === "true") {
         approved = true;
-        hideDrafts = true;
-        hideRejected = true;
+        isDraft = true;
+        rejected = true;
       }
 
       console.log("Fetching products with filters:", {
         category,
         sellerId,
         approved,
-        hideDrafts,
-        hideRejected,
+        isDraft,
+        rejected,
         page,
         limit,
         search,
@@ -2622,9 +2618,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sellerId,
         approved,
         search,
-        hideDrafts,
+        isDraft,
         subcategory,
-        hideRejected
+        rejected
       );
       const totalPages = Math.ceil(totalCount / limit);
 
@@ -2648,9 +2644,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         offset,
         limit,
         search,
-        hideDrafts, // Pass hideDrafts parameter
+        isDraft, // Pass isDraft parameter
         subcategory, // Pass subcategory parameter
-        hideRejected // Pass hideRejected parameter
+        rejected // Pass rejected parameter
       );
       console.log(
         `Found ${products?.length || 0} products (page ${page}/${totalPages})`
