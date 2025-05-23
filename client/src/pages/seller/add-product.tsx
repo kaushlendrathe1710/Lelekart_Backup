@@ -642,88 +642,83 @@ export default function AddProductPage() {
   };
 
   // Save the currently editing variant
-  const handleSaveNewVariant = () => {
-    if (selectedVariant) {
-      // More robust validation for the current variant's required fields
-      if (!selectedVariant.sku || selectedVariant.sku.trim() === "") {
-        toast({
-          title: "Missing required field: SKU",
-          description: "Please enter a valid SKU for this variant",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Validate price (must be a positive number)
-      if (
-        selectedVariant.price === undefined ||
-        selectedVariant.price === null ||
-        isNaN(Number(selectedVariant.price)) ||
-        Number(selectedVariant.price) <= 0
-      ) {
-        toast({
-          title: "Invalid price",
-          description: "Please enter a valid price greater than zero",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Validate stock (must be a non-negative number)
-      if (
-        selectedVariant.stock === undefined ||
-        selectedVariant.stock === null ||
-        isNaN(Number(selectedVariant.stock)) ||
-        Number(selectedVariant.stock) < 0
-      ) {
-        toast({
-          title: "Invalid stock quantity",
-          description: "Please enter a valid stock quantity (zero or greater)",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Create variant with images
-      const variantWithImages = { ...selectedVariant, images: variantImages };
-
-      // Only add to draftVariants (we'll merge these with variants when submitting the form)
-      setDraftVariants((prevDraftVariants) => {
-        // Check if this variant already exists to avoid duplication
-        const variantExists = prevDraftVariants.some(
-          (v) => v.id === variantWithImages.id
-        );
-        if (variantExists) {
-          // Update the existing variant
-          return prevDraftVariants.map((v) =>
-            v.id === variantWithImages.id ? variantWithImages : v
-          );
-        } else {
-          // Add as a new variant
-          return [...prevDraftVariants, variantWithImages];
-        }
-      });
-
-      // Log current variant count (for debugging)
-      const totalVariants = variants.length + draftVariants.length + 1; // +1 for the one we just added
-      console.log(`Current variant count: ${totalVariants}`);
-
-      // Show success toast
+  const handleSaveNewVariant = (variant: ProductVariant) => {
+    // More robust validation for the current variant's required fields
+    if (!variant.sku || variant.sku.trim() === "") {
       toast({
-        title: "Variant added",
-        description: `New variant has been added successfully (${totalVariants} total variants)`,
+        title: "Missing required field: SKU",
+        description: "Please enter a valid SKU for this variant",
+        variant: "destructive",
       });
-
-      // Reset the variant editing state to close the form
-      // This change allows users to more clearly see they need to click "Add More Variant" again
-      setSelectedVariant(null);
-      setIsAddingVariant(false);
-      setVariantImages([]);
-
-      console.log(
-        "Added variant. Click 'Add More Variant' to add another one."
-      );
+      return;
     }
+
+    // Validate price (must be a positive number)
+    if (
+      variant.price === undefined ||
+      variant.price === null ||
+      isNaN(Number(variant.price)) ||
+      Number(variant.price) <= 0
+    ) {
+      toast({
+        title: "Invalid price",
+        description: "Please enter a valid price greater than zero",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate stock (must be a non-negative number)
+    if (
+      variant.stock === undefined ||
+      variant.stock === null ||
+      isNaN(Number(variant.stock)) ||
+      Number(variant.stock) < 0
+    ) {
+      toast({
+        title: "Invalid stock quantity",
+        description: "Please enter a valid stock quantity (zero or greater)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Only add to draftVariants (we'll merge these with variants when submitting the form)
+    setDraftVariants((prevDraftVariants) => {
+      // Check if this variant already exists to avoid duplication
+      const variantExists = prevDraftVariants.some(
+        (v: ProductVariant) => v.id === variant.id
+      );
+      if (variantExists) {
+        // Update the existing variant
+        return prevDraftVariants.map((v: ProductVariant) =>
+          v.id === variant.id ? variant : v
+        );
+      } else {
+        // Add as a new variant
+        return [...prevDraftVariants, variant];
+      }
+    });
+
+    // Log current variant count (for debugging)
+    const totalVariants =
+      (Array.isArray(variants) ? variants.length : 0) +
+      (Array.isArray(draftVariants) ? draftVariants.length : 0) +
+      1; // +1 for the one we just added
+    console.log(`Current variant count: ${totalVariants}`);
+
+    // Show success toast
+    toast({
+      title: "Variant added",
+      description: `New variant has been added successfully (${totalVariants} total variants)`,
+    });
+
+    // Reset the variant editing state to close the form
+    setSelectedVariant(null);
+    setIsAddingVariant(false);
+    setVariantImages([]);
+
+    console.log("Added variant. Click 'Add More Variant' to add another one.");
   };
 
   // Traditional save variant (for edit modal)
