@@ -181,6 +181,7 @@ export default function AddProductPage() {
   );
   const [isEditingVariant, setIsEditingVariant] = useState(false);
   const [isAddingVariant, setIsAddingVariant] = useState(false);
+  const [isDeletingVariant, setIsDeletingVariant] = useState(false);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [draftVariants, setDraftVariants] = useState<ProductVariant[]>([]);
   const [activeTab, setActiveTab] = useState("basic");
@@ -807,7 +808,7 @@ export default function AddProductPage() {
 
     // Set the selected variant and open the delete confirmation dialog
     setSelectedVariant(variant);
-    setIsAddingVariant(true);
+    setIsDeletingVariant(true);
   };
 
   // Upload handler for variant images
@@ -2740,7 +2741,7 @@ export default function AddProductPage() {
       </Dialog>
 
       {/* Delete Variant Dialog */}
-      <Dialog open={isAddingVariant} onOpenChange={setIsAddingVariant}>
+      <Dialog open={isDeletingVariant} onOpenChange={setIsDeletingVariant}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Delete Variant</DialogTitle>
@@ -2751,7 +2752,10 @@ export default function AddProductPage() {
           </DialogHeader>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddingVariant(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeletingVariant(false)}
+            >
               Cancel
             </Button>
             <Button
@@ -2774,7 +2778,7 @@ export default function AddProductPage() {
                       "The variant has been deleted. Save the product to apply changes.",
                   });
 
-                  setIsAddingVariant(false);
+                  setIsDeletingVariant(false);
                 }
               }}
             >
