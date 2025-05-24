@@ -155,7 +155,7 @@ const productSchema = z.object({
     ])
     .optional()
     .nullable(),
-  brand: z.string().min(2, "Brand name is required"),
+  brand: z.string().optional().nullable(),
   stock: z.coerce
     .number()
     .min(0, "Stock cannot be negative")
@@ -1208,9 +1208,7 @@ export default function AddProductPage() {
                       name="brand"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>
-                            Brand <span className="text-red-500">*</span>
-                          </FormLabel>
+                          <FormLabel>Brand</FormLabel>
                           <FormControl>
                             <Input
                               placeholder="e.g. Samsung, Apple, Sony"
