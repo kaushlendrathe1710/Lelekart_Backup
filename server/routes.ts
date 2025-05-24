@@ -11532,59 +11532,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       handlebars.registerHelper(
-        "splitGST",
-        function (amount: number, buyerState: string, sellerState: string) {
+        "calculateTaxableValue",
+        function (price: number, quantity: number, gstRate: number) {
+          const totalPrice = price * quantity;
+          // GST is already included in the price, so we need to extract the base price
+          const basePrice =
+            gstRate > 0 ? (totalPrice * 100) / (100 + gstRate) : totalPrice;
+          return basePrice.toFixed(2);
+        }
+      );
+
+      handlebars.registerHelper(
+        "calculateTaxes",
+        function (
+          price: number,
+          quantity: number,
+          gstRate: number,
+          buyerState: string,
+          sellerState: string
+        ) {
+          const totalPrice = price * quantity;
+          const basePrice =
+            gstRate > 0 ? (totalPrice * 100) / (100 + gstRate) : totalPrice;
+          const gstAmount = totalPrice - basePrice;
+
           // If buyer and seller are from the same state, split GST into CGST and SGST
           if (
             buyerState &&
             sellerState &&
             buyerState.toLowerCase() === sellerState.toLowerCase()
           ) {
-            const halfAmount = amount / 2;
-            return `CGST: ₹${halfAmount.toFixed(
+            const halfAmount = gstAmount / 2;
+            return `SGST @ ${gstRate / 2}% say Rs ${halfAmount.toFixed(
               2
-            )}, SGST: ₹${halfAmount.toFixed(2)}`;
+            )}<br>CGST @ ${gstRate / 2}% say Rs ${halfAmount.toFixed(2)}`;
           } else {
             // If different states or state info not available, show as IGST
-            return `IGST: ₹${amount.toFixed(2)}`;
+            return `IGST @ ${gstRate}% say Rs ${gstAmount.toFixed(2)}`;
           }
         }
       );
 
-      // Flipkart-style invoice template based on provided example
+      // Clean, structured invoice template based on the provided image
       const invoiceTemplate = `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="utf-8">
-        <title>Tax Invoice/Bill of Supply</title>
+        <title>Tax Invoice</title>
         <style>
           body {
             font-family: Arial, sans-serif;
-            font-size: 12px;
-            line-height: 1.4;
+            font-size: 11px;
+            line-height: 1.3;
             color: #000;
-            margin: 0;
+            margin: 20px;
             padding: 0;
           }
           
           .container {
             max-width: 800px;
             margin: 0 auto;
-            border: 1px solid #000;
+            border: 2px solid #000;
           }
           
           .invoice-title {
             text-align: center;
             font-weight: bold;
             font-size: 16px;
-            padding: 8px;
+            padding: 10px;
+            border-bottom: 2px solid #000;
+            background-color: #f5f5f5;
+          }
+          
+          .header-info {
+            display: flex;
             border-bottom: 1px solid #000;
           }
           
-          .seller-info {
+          .header-left, .header-right {
+            width: 50%;
             padding: 8px;
-            border-bottom: 1px solid #000;
+          }
+          
+          .header-right {
+            border-left: 1px solid #000;
+            text-align: right;
           }
           
           .address-section {
@@ -11592,173 +11625,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
             border-bottom: 1px solid #000;
           }
           
-          .ship-to, .bill-to {
+          .bill-to, .ship-to {
             width: 50%;
-            padding: 8px;
+            padding: 10px;
           }
           
           .ship-to {
-            border-right: 1px solid #000;
+            border-left: 1px solid #000;
           }
           
-          .order-details {
+          .business-section {
             display: flex;
             border-bottom: 1px solid #000;
           }
           
-          .order-left, .order-right {
+          .bill-from, .ship-from {
             width: 50%;
-            padding: 8px;
+            padding: 10px;
           }
           
-          .order-left {
-            border-right: 1px solid #000;
-          }
-          
-          table {
-            width: 100%;
-            border-collapse: collapse;
+          .ship-from {
+            border-left: 1px solid #000;
           }
           
           table.items {
+            width: 100%;
+            border-collapse: collapse;
             border-bottom: 1px solid #000;
-          }
-          
-          table.items th, table.items td {
-            border: 1px solid #000;
-            padding: 6px;
-            text-align: center;
           }
           
           table.items th {
-            background-color: #f2f2f2;
-          }
-          
-          .summary {
-            text-align: center;
-            padding: 8px;
-            border-bottom: 1px solid #000;
-            font-weight: bold;
-          }
-          
-          .savings {
-            text-align: left;
-            padding: 8px;
-            border-bottom: 1px solid #000;
-            font-weight: bold;
-          }
-          
-          .totals-section {
-            display: flex;
-            border-bottom: 1px solid #000;
-          }
-          
-          .signature {
-            width: 50%;
-            padding: 8px;
-            border-right: 1px solid #000;
-          }
-          
-          .totals {
-            width: 50%;
-            padding: 0;
-          }
-          
-          .totals table {
-            width: 100%;
-          }
-          
-          .totals td {
-            padding: 4px 8px;
-            text-align: right;
-          }
-          
-          .grand-total {
-            font-weight: bold;
-            background-color: #f2f2f2;
-            border-top: 1px solid #000;
-            border-bottom: 1px solid #000;
-          }
-          
-          .tax-breakdown {
-            border-top: 1px solid #000;
-            padding-top: 8px;
-            text-align: center;
-          }
-          
-          .tax-table {
-            width: 100%;
-            text-align: center;
-          }
-          
-          .tax-table th, .tax-table td {
-            padding: 4px;
-            text-align: center;
+            background-color: #e0e0e0;
             border: 1px solid #000;
-          }
-          
-          .return-policy {
-            font-size: 8px;
-            padding: 8px;
-            border-bottom: 1px solid #000;
-          }
-          
-          .footer {
-            display: flex;
-            align-items: center;
-          }
-          
-          .footer-text {
-            width: 75%;
-            padding: 8px;
+            padding: 8px 4px;
+            text-align: center;
+            font-weight: bold;
             font-size: 10px;
           }
           
-          .footer-logo {
-            width: 25%;
-            text-align: right;
-            padding: 8px;
+          table.items td {
+            border: 1px solid #000;
+            padding: 6px 4px;
+            text-align: center;
+            font-size: 10px;
+            vertical-align: top;
           }
           
-          .qr-code {
-            text-align: right;
-            padding: 8px;
+          .description-cell {
+            text-align: left !important;
+            max-width: 200px;
+          }
+          
+          .signature-section {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid #000;
+          }
+          
+          .signature-line {
+            border-top: 1px solid #000;
+            width: 200px;
+            margin: 40px auto 5px auto;
+            padding-top: 5px;
+            font-size: 10px;
           }
           
           .bold {
             font-weight: bold;
           }
           
-          .authorized-signature {
-            margin-top: 60px;
-            border-top: 1px solid #000;
-            width: 150px;
-            text-align: center;
-            padding-top: 5px;
+          .taxes-cell {
+            font-size: 9px;
+            line-height: 1.2;
           }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="invoice-title">
-            Tax Invoice/Bill of Supply
+            Tax Invoice
           </div>
           
-          <div class="seller-info">
-            <div class="bold">Sold By: LeleKart Retail Private Limited</div>
-            <div>Ship Address: 123 Commerce Street, Mumbai, Maharashtra 400001, India</div>
-            <div>GSTIN: 27AABCU9603R1ZX</div>
-            <div>PAN: AABCU9603R</div>
-            
-            <div class="qr-code">
-              <!-- This would typically be a QR code image, for now just displaying a text placeholder -->
-              QR Code for {{order.orderNumber}}
+          <div class="header-info">
+            <div class="header-left">
+              <div><span class="bold">Invoice No:</span> LK-{{order.id}}</div>
+            </div>
+            <div class="header-right">
+              <div><span class="bold">Invoice Date:</span> {{currentDate}}</div>
+              <div><span class="bold">Order No:</span> {{order.orderNumber}}</div>
             </div>
           </div>
           
           <div class="address-section">
-            <div class="ship-to">
-              <div class="bold">Ship To</div>
+            <div class="bill-to">
+              <div class="bold">Bill To</div>
+              <br>
               {{#if shippingAddress}}
                 <div>{{user.name}}</div>
                 <div>{{shippingAddress.address1}}</div>
@@ -11766,11 +11727,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 <div>{{shippingAddress.city}}, {{shippingAddress.state}} {{shippingAddress.pincode}}</div>
               {{else}}
                 <div>{{user.name}}</div>
+                <div>{{user.email}}</div>
                 <div>Address details not available</div>
               {{/if}}
             </div>
-            <div class="bill-to">
-              <div class="bold">Bill To</div>
+            <div class="ship-to">
+              <div class="bold">Ship To</div>
+              <br>
               {{#if shippingAddress}}
                 <div>{{user.name}}</div>
                 <div>{{shippingAddress.address1}}</div>
@@ -11778,145 +11741,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 <div>{{shippingAddress.city}}, {{shippingAddress.state}} {{shippingAddress.pincode}}</div>
               {{else}}
                 <div>{{user.name}}</div>
+                <div>{{user.email}}</div>
                 <div>Address details not available</div>
               {{/if}}
             </div>
           </div>
           
-          <div class="order-details">
-            <div class="order-left">
-              <div>Order Date: {{order.formattedDate}}</div>
-              <div>Invoice Number: LK-{{order.id}}</div>
-              <div>Payment method: {{order.paymentMethod}}</div>
+          <div class="business-section">
+            <div class="bill-from">
+              <div class="bold">Bill From</div>
+              <br>
+              <div class="bold">LeleKart Retail Private Limited</div>
+              <div>123 Commerce Street</div>
+              <div>Mumbai, Maharashtra 400001</div>
+              <div>GSTIN: 27AABCU9603R1ZX</div>
             </div>
-            <div class="order-right">
-              <div>Order ID: {{order.orderNumber}}</div>
-              <div>Invoice Date: {{currentDate}}</div>
-              {{#if order.trackingNumber}}
-              <div>Tracking ID: {{order.trackingNumber}}</div>
-              {{/if}}
+            <div class="ship-from">
+              <div class="bold">Ship From</div>
+              <br>
+              <div class="bold">LeleKart Retail Private Limited</div>
+              <div>Warehouse Address: 123 Commerce Street</div>
+              <div>Mumbai, Maharashtra 400001</div>
+              <div>If warehouse address isn't available then fetch business name</div>
             </div>
           </div>
           
           <table class="items">
             <thead>
               <tr>
-                <th>S.No</th>
-                <th>Item</th>
-                <th>HSN<br>(Tax%)</th>
+                <th>Sr No</th>
+                <th>Description</th>
+                <th>HSN</th>
                 <th>Qty</th>
                 <th>MRP</th>
-                <th>Savings<br>(Rs)</th>
-                <th>Total<br>Amount</th>
+                <th>Discount</th>
+                <th>Taxable Value</th>
+                <th>Taxes</th>
+                <th>Total</th>
               </tr>
             </thead>
             <tbody>
               {{#each order.items}}
               <tr>
                 <td>{{add @index 1}}</td>
-                <td style="text-align: left">{{this.product.name}}</td>
-                <td>{{#if this.product.hsn}}{{this.product.hsn}}{{else}}{{this.product.id}}{{/if}}<br>({{this.product.gstRate}}%)</td>
+                <td class="description-cell">{{this.product.name}}</td>
+                <td>{{#if this.product.hsn}}{{this.product.hsn}}{{else}}{{this.product.id}}{{/if}}</td>
                 <td>{{this.quantity}}</td>
                 <td>{{formatMoney this.price}}</td>
                 <td>{{#if this.discount}}{{formatMoney this.discount}}{{else}}0.00{{/if}}</td>
+                <td>{{calculateTaxableValue this.price this.quantity this.product.gstRate}}</td>
+                <td class="taxes-cell">{{{calculateTaxes this.price this.quantity this.product.gstRate ../shippingAddress.state "Maharashtra"}}}</td>
                 <td>{{formatMoney (multiply this.price this.quantity)}}</td>
               </tr>
               {{/each}}
             </tbody>
           </table>
           
-          <div class="summary">
-            Summary
-          </div>
-          
-          {{#if order.discount}}
-          <div class="savings">
-            You have SAVED Rs. {{formatMoney order.discount}} on this order.
-          </div>
-          {{/if}}
-          
-          <div class="totals-section">
-            <div class="signature">
-              <div class="bold">LeleKart Retail Private Limited</div>
-              
-              <div class="authorized-signature">
-                Authorized Signatory
-              </div>
-            </div>
-            
-            <div class="totals">
-              <table>
-                <tr>
-                  <td>Total Amount (Food)</td>
-                  <td>{{formatMoney order.subtotal}}</td>
-                </tr>
-                <tr>
-                  <td>Total Amount (Non-Food)</td>
-                  <td>0.00</td>
-                </tr>
-                <tr>
-                  <td>Delivery Charges</td>
-                  <td>{{formatMoney (or order.shippingFee 0)}}</td>
-                </tr>
-                <tr class="grand-total">
-                  <td>GRAND TOTAL</td>
-                  <td>{{formatMoney order.total}}</td>
-                </tr>
-              </table>
-              
-              <div class="tax-breakdown">
-                <div class="bold">Tax break-up</div>
-                <table class="tax-table">
-                  <thead>
-                    <tr>
-                      <th>GST%</th>
-                      <th>Taxable Amount</th>
-                      <th>SGST</th>
-                      <th>CGST</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {{#each order.items}}
-                    <tr>
-                      <td>{{this.product.gstRate}}</td>
-                      <td>{{formatMoney (divide (multiply this.price this.quantity) (add 100 this.product.gstRate) 100)}}</td>
-                      <td>{{formatMoney (divide (calculateGST this.price this.quantity this.product.gstRate) 2)}}</td>
-                      <td>{{formatMoney (divide (calculateGST this.price this.quantity this.product.gstRate) 2)}}</td>
-                    </tr>
-                    {{/each}}
-                    <tr>
-                      <td>Delivery</td>
-                      <td>{{formatMoney (divide (or order.shippingFee 0) 1.18)}}</td>
-                      <td>{{formatMoney (multiply (divide (or order.shippingFee 0) 1.18) 0.09)}}</td>
-                      <td>{{formatMoney (multiply (divide (or order.shippingFee 0) 1.18) 0.09)}}</td>
-                    </tr>
-                    <tr>
-                      <td>Grand Total</td>
-                      <td>{{formatMoney (subtract order.total (divide (calculateTotalGST order.items) 1))}}</td>
-                      <td>{{formatMoney (divide (calculateTotalGST order.items) 2)}}</td>
-                      <td>{{formatMoney (divide (calculateTotalGST order.items) 2)}}</td>
-                    </tr>
-                  </tbody>
-                </table>
-                <div style="font-size: 8px; margin-top: 5px;">*Appropriate product-wise and Rate-applicable thereunder.</div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="return-policy">
-            <div class="bold">Return Policy:</div>
-            If the item is defective or not as described, you may return it during delivery directly or you may request for return within 7 days for apparel and lifestyle categories and within 10 days for most other categories. For categories including furniture, certain electronics items etc., returns may not be accepted for being different from what you ordered but will be accepted if they are defective. Grocery, food and FMCG products cannot be returned, refunded or exchanged once delivered.
-            <br><br>
-            <div class="bold">Registered Office:</div>
-            LeleKart Retail Private Limited, 123 Commerce Street, Mumbai, Maharashtra 400001, India.
-            <br><br>
-            <div>Contact Number: 044-45614700/4655/4100 | www.LeleKart.com/helpcentre</div>
-          </div>
-          
-          <div class="footer">
-            <div class="footer-text">
-              <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAAAyCAYAAAAZUZThAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAGwSURBVHhe7dKxTQNBFABBHDpczP6roBTHA94LSMCuhpE+2d7n9Xw8p9l+5tnNae3O/i7cg7Pf83P2uw/r8fqcJ8CfBAJEAgEigQCRQIBIIEAkECASCBAJBIgEAkQCASKBAJFAgEggQCQQIBIIEAkEiAQCRAIBIoEAkUCASCBAJBAgEggQCQSIBAJEAgEigQCRQIBIIEAkECASCBAJBIgEAkQCASKBAJFAgEggQCQQIBIIEAkEiAQCRAIBIoEAkUCASCBAJBAgEggQCQSIBAJE1+MKN/zmF1XgAAAAAElFTkSuQmCC" alt="Flipkart" width="100">
-              <span style="display: block; text-align: center; margin-top: 5px;">Thank You for shopping with us!</span>
+          <div class="signature-section">
+            <div class="bold">Authorized signatory</div>
+            <div>(option to upload admin signature)</div>
+            <div class="signature-line">
+              Authorized Signatory
             </div>
           </div>
         </div>
@@ -11929,41 +11814,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return a * b;
       });
 
-      handlebars.registerHelper(
-        "divide",
-        function (a: number, b: number, multiplier: number = 1) {
-          return (a / b) * multiplier;
-        }
-      );
-
       handlebars.registerHelper("add", function (a: number, b: number) {
         return a + b;
-      });
-
-      handlebars.registerHelper("subtract", function (a: number, b: number) {
-        return a - b;
-      });
-
-      handlebars.registerHelper("or", function (a: any, b: any) {
-        return a || b;
-      });
-
-      handlebars.registerHelper("calculateTotalGST", function (items: any[]) {
-        return items.reduce((totalGST, item) => {
-          const price = item.price;
-          const quantity = item.quantity;
-          const gstRate = item.product.gstRate || 0;
-
-          // GST is already included in the price, so we need to extract it
-          const totalItemPrice = price * quantity;
-          const basePrice =
-            gstRate > 0
-              ? (totalItemPrice * 100) / (100 + gstRate)
-              : totalItemPrice;
-          const itemGSTAmount = totalItemPrice - basePrice;
-
-          return totalGST + itemGSTAmount;
-        }, 0);
       });
 
       const template = handlebars.compile(invoiceTemplate);
