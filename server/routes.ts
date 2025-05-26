@@ -11513,6 +11513,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           buyerState: any,
           sellerState: string
         ) {
+          console.log("Buyer state received:", buyerState); // Debug log
+          console.log("Seller state received:", sellerState); // Debug log
           const totalPrice = price * quantity;
           const basePrice =
             gstRate > 0 ? totalPrice / (1 + gstRate / 100) : totalPrice;
@@ -11780,7 +11782,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 <td>{{formatMoney this.price}}</td>
                 <td>{{formatMoney (subtract this.product.mrp this.price)}}</td>
                 <td>{{calculateTaxableValue this.price this.quantity this.product.gstRate}}</td>
-                <td class="taxes-cell">{{{calculateTaxes this.price this.quantity this.product.gstRate order.shippingDetails.state "Maharashtra"}}}</td> 
+              
+               <td class="taxes-cell">{{{calculateTaxes this.price this.quantity this.product.gstRate ../order.shippingDetails.state "Maharashtra"}}}</td>
+               
                 <td>{{formatMoney (multiply this.price this.quantity)}}</td>
               </tr>
               {{/each}}
