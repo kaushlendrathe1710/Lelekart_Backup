@@ -11786,7 +11786,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 <th>Sr No</th>
                 <th>Description</th>
                 <th>Qty</th>
-                <th>Selling Price</th>
+                <th>MRP</th>
                 <th>Discount</th>
                 <th>Taxable Value</th>
                 <th>Taxes</th>
