@@ -11531,10 +11531,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "calculateTaxableValue",
         function (price: number, quantity: number, gstRate: number) {
           const totalPrice = price * quantity;
-          // GST is already included in the price, so we need to extract the base price
-          const basePrice =
-            gstRate > 0 ? (totalPrice * 100) / (100 + gstRate) : totalPrice;
-          return basePrice.toFixed(2);
+          const taxAmount = (totalPrice * gstRate) / (100 + gstRate);
+          return (totalPrice - taxAmount).toFixed(2);
         }
       );
 
@@ -11548,8 +11546,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           sellerState: string
         ) {
           const totalPrice = price * quantity;
-          const basePrice =
-            gstRate > 0 ? (totalPrice * 100) / (100 + gstRate) : totalPrice;
+          const basePrice = (totalPrice * 100) / (100 + gstRate);
           const gstAmount = totalPrice - basePrice;
 
           // If buyer and seller are from the same state, split GST into CGST and SGST
@@ -11559,12 +11556,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             buyerState.toLowerCase() === sellerState.toLowerCase()
           ) {
             const halfAmount = gstAmount / 2;
-            return `SGST @ ${gstRate / 2}% say Rs ${halfAmount.toFixed(
+            return `SGST @ ${gstRate / 2}% i.e. ${halfAmount.toFixed(
               2
-            )}<br>CGST @ ${gstRate / 2}% say Rs ${halfAmount.toFixed(2)}`;
+            )}<br>CGST @ ${gstRate / 2}% i.e. ${halfAmount.toFixed(2)}`;
           } else {
             // If different states or state info not available, show as IGST
-            return `IGST @ ${gstRate}% say Rs ${gstAmount.toFixed(2)}`;
+            return `IGST @ ${gstRate}% i.e. ${gstAmount.toFixed(2)}`;
           }
         }
       );
@@ -11788,7 +11785,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 <th>Sr No</th>
                 <th>Description</th>
                 <th>Qty</th>
-                <th>MRP</th>
+                <th>Selling Price</th>
                 <th>Discount</th>
                 <th>Taxable Value</th>
                 <th>Taxes</th>
