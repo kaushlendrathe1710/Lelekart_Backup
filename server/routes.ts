@@ -2043,10 +2043,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI-powered search endpoint removed
-
-  // Product approval routes
-
   // API endpoint for admins to reassign products to different sellers
   app.put("/api/products/:id/assign-seller", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -11573,9 +11569,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       );
 
-      // Clean, structured invoice template based on the provided image
-      const invoiceTemplate = `
-      <!DOCTYPE html>
+      // Invoice template with corrected header layout
+      const invoiceTemplate = `<!DOCTYPE html>
       <html>
       <head>
         <meta charset="utf-8">
@@ -11607,45 +11602,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           .header-info {
             display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
             border-bottom: 1px solid #000;
+            padding: 8px 10px;
+            min-height: 24px;
           }
           
-          .header-left, .header-right {
-            width: 50%;
-            padding: 8px;
+          .header-left {
+            text-align: left;
           }
           
           .header-right {
-            border-left: 1px solid #000;
             text-align: right;
           }
           
           .address-section {
             display: flex;
             border-bottom: 1px solid #000;
+            min-height: 120px;
           }
           
           .bill-to, .ship-to {
             width: 50%;
             padding: 10px;
+            box-sizing: border-box;
+          }
+          
+          .bill-to {
+            text-align: left;
+            float: left;
           }
           
           .ship-to {
             border-left: 1px solid #000;
+            text-align: right;
+            float: right;
           }
           
           .business-section {
             display: flex;
             border-bottom: 1px solid #000;
+            min-height: 120px;
+            clear: both;
           }
           
           .bill-from, .ship-from {
             width: 50%;
             padding: 10px;
+            box-sizing: border-box;
+          }
+          
+          .bill-from {
+            text-align: left;
+            float: left;
           }
           
           .ship-from {
             border-left: 1px solid #000;
+            text-align: right;
+            float: right;
           }
           
           table.items {
@@ -11806,8 +11822,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           </div>
         </div>
       </body>
-      </html>
-      `;
+      </html>`;
 
       // Additional helpers for math operations
       handlebars.registerHelper("multiply", function (a: number, b: number) {
@@ -11825,7 +11840,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       throw error;
     }
   }
-
   // Helper function to generate shipping slip HTML
   async function generateShippingSlipHtml(data: any): Promise<string> {
     try {
