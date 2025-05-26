@@ -1156,7 +1156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             mrp: productInfo.mrp
               ? productInfo.mrp.toFixed(2)
               : price.toFixed(2),
-            discount: "0.00", // You would calculate actual discount here if applicable
+            discount: (productInfo.mrp - price).toFixed(2),
             taxableValue: basePrice.toFixed(2),
             taxComponents: taxComponents,
             total: totalPrice.toFixed(2),
@@ -11787,7 +11787,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               <tr>
                 <th>Sr No</th>
                 <th>Description</th>
-                <th>HSN</th>
                 <th>Qty</th>
                 <th>MRP</th>
                 <th>Discount</th>
@@ -11801,10 +11800,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               <tr>
                 <td>{{add @index 1}}</td>
                 <td class="description-cell">{{this.product.name}}</td>
-                <td>{{#if this.product.hsn}}{{this.product.hsn}}{{else}}{{this.product.id}}{{/if}}</td>
                 <td>{{this.quantity}}</td>
                 <td>{{formatMoney this.price}}</td>
-                <td>{{#if this.discount}}{{formatMoney this.discount}}{{else}}0.00{{/if}}</td>
+                <td>{{formatMoney (subtract this.product.mrp this.price)}}</td>
                 <td>{{calculateTaxableValue this.price this.quantity this.product.gstRate}}</td>
                 <td class="taxes-cell">{{{calculateTaxes this.price this.quantity this.product.gstRate ../shippingAddress.state "Maharashtra"}}}</td>
                 <td>{{formatMoney (multiply this.price this.quantity)}}</td>
@@ -11831,6 +11829,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       handlebars.registerHelper("add", function (a: number, b: number) {
         return a + b;
+      });
+
+      handlebars.registerHelper("subtract", function (a: number, b: number) {
+        return a - b;
       });
 
       const template = handlebars.compile(invoiceTemplate);
