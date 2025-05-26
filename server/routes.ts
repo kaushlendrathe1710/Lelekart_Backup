@@ -941,20 +941,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
 
-      // Get shipping address if available
-      let shippingAddress = null;
-      if (order.addressId) {
-        try {
-          shippingAddress = await storage.getUserAddressById(order.addressId);
-        } catch (err) {
-          console.warn(
-            `Failed to get shipping address for order ${orderId}:`,
-            err
-          );
-          // Continue without address - not critical
-        }
-      }
-
       // Get product details for each order item
       const orderItemsWithProducts = await Promise.all(
         orderItems.map(async (item) => {
@@ -1016,7 +1002,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               : order.shippingDetails,
         },
         user,
-        shippingAddress,
         currentDate: new Date().toLocaleDateString("en-IN", {
           year: "numeric",
           month: "long",
@@ -1765,22 +1750,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Continue without business details - not critical
       }
 
-      // Get shipping address if available
-      let shippingAddress = null;
-      if (mainOrder.addressId) {
-        try {
-          shippingAddress = await storage.getUserAddressById(
-            mainOrder.addressId
-          );
-        } catch (err) {
-          console.warn(
-            `Failed to get shipping address for order ${mainOrder.id}:`,
-            err
-          );
-          // Continue without address - not critical
-        }
-      }
-
       // Get product details for each order item
       const orderItemsWithProducts = await Promise.all(
         orderItems.map(async (item) => {
@@ -1854,7 +1823,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         buyer,
         seller,
         businessDetails,
-        shippingAddress,
         currentDate: new Date().toLocaleDateString("en-IN", {
           year: "numeric",
           month: "long",
@@ -11527,14 +11495,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       );
 
-     handlebars.registerHelper(
-       "calculateTaxableValue",
-       function (price: number, quantity: number, gstRate: number) {
-         const totalPrice = price * quantity;
-         const taxableValue = totalPrice / (1 + gstRate / 100);
-         return taxableValue.toFixed(2);
-       }
-     );
+      handlebars.registerHelper(
+        "calculateTaxableValue",
+        function (price: number, quantity: number, gstRate: number) {
+          const totalPrice = price * quantity;
+          const taxableValue = totalPrice / (1 + gstRate / 100);
+          return taxableValue.toFixed(2);
+        }
+      );
 
       handlebars.registerHelper(
         "calculateTaxes",
@@ -11542,7 +11510,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           price: number,
           quantity: number,
           gstRate: number,
-          buyerState: string,
+          buyerState: any,
           sellerState: string
         ) {
           const totalPrice = price * quantity;
@@ -11550,11 +11518,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
             gstRate > 0 ? totalPrice / (1 + gstRate / 100) : totalPrice;
           const taxAmount = totalPrice - basePrice;
 
+          // Normalize states by trimming whitespace, converting to lowercase, and removing special characters
+          const normalizedBuyerState = String(buyerState || "")
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z]/g, "");
+          const normalizedSellerState = (sellerState || "")
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z]/g, "");
+
           // If buyer and seller are from the same state, split GST into CGST and SGST
           if (
-            buyerState &&
-            sellerState &&
-            buyerState.toLowerCase() === sellerState.toLowerCase()
+            normalizedBuyerState &&
+            normalizedSellerState &&
+            normalizedBuyerState === normalizedSellerState
           ) {
             const halfAmount = taxAmount / 2;
             return `SGST @ ${gstRate / 2}% i.e. ${halfAmount.toFixed(
@@ -11734,11 +11712,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             <div class="bill-to">
               <div class="bold">Bill To</div>
               <br>
-              {{#if shippingAddress}}
+              {{#if order.shippingDetails}}
                 <div>{{user.name}}</div>
-                <div>{{shippingAddress.address1}}</div>
-                {{#if shippingAddress.address2}}<div>{{shippingAddress.address2}}</div>{{/if}}
-                <div>{{shippingAddress.city}}, {{shippingAddress.state}} {{shippingAddress.pincode}}</div>
+                <div>{{order.shippingDetails.address}}</div>
+                {{#if order.shippingDetails.address2}}<div>{{order.shippingDetails.address2}}</div>{{/if}}
+                <div>{{order.shippingDetails.city}}, {{order.shippingDetails.state}} {{order.shippingDetails.zipCode}}</div>
               {{else}}
                 <div>{{user.name}}</div>
                 <div>{{user.email}}</div>
@@ -11748,11 +11726,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             <div class="ship-to">
               <div class="bold">Ship To</div>
               <br>
-              {{#if shippingAddress}}
+              {{#if order.shippingDetails}}
                 <div>{{user.name}}</div>
-                <div>{{shippingAddress.address1}}</div>
-                {{#if shippingAddress.address2}}<div>{{shippingAddress.address2}}</div>{{/if}}
-                <div>{{shippingAddress.city}}, {{shippingAddress.state}} {{shippingAddress.pincode}}</div>
+                 <div>{{order.shippingDetails.address}}</div>
+                {{#if order.shippingDetails.address2}}<div>{{order.shippingDetails.address2}}</div>{{/if}}
+                <div>{{order.shippingDetails.city}}, {{order.shippingDetails.state}} {{order.shippingDetails.zipCode}}</div>
               {{else}}
                 <div>{{user.name}}</div>
                 <div>{{user.email}}</div>
@@ -11802,7 +11780,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 <td>{{formatMoney this.price}}</td>
                 <td>{{formatMoney (subtract this.product.mrp this.price)}}</td>
                 <td>{{calculateTaxableValue this.price this.quantity this.product.gstRate}}</td>
-                <td class="taxes-cell">{{{calculateTaxes this.price this.quantity this.product.gstRate ../shippingAddress.state "Maharashtra"}}}</td>
+                <td class="taxes-cell">{{{calculateTaxes this.price this.quantity this.product.gstRate order.shippingDetails.state "Maharashtra"}}}</td> 
                 <td>{{formatMoney (multiply this.price this.quantity)}}</td>
               </tr>
               {{/each}}
@@ -11811,7 +11789,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           <div class="signature-section">
             <div class="bold">Authorized signatory</div>
-            <div>(option to upload admin signature)</div>
+            <img src="https://drive.google.com/uc?export=view&id=10VFdU73xSPpDMY7Uu83dBYwuQvqNqWaW" alt="Authorized Signature" style="height:60px; margin: 10px auto; display: block;" />
             <div class="signature-line">
               Authorized Signatory
             </div>
