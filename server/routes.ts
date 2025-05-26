@@ -11722,13 +11722,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             border: 2px solid #000;
           }
           
-          .invoice-title {
+          .invoice-header {
             text-align: center;
-            font-weight: bold;
-            font-size: 16px;
             padding: 10px;
             border-bottom: 2px solid #000;
             background-color: #f5f5f5;
+          }
+          
+          .invoice-logo {
+            max-width: 150px;
+            margin: 0 auto;
+          }
+          
+          .invoice-title {
+            font-weight: bold;
+            font-size: 16px;
+            margin-top: 10px;
           }
           
           .header-info {
@@ -11849,8 +11858,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       </head>
       <body>
         <div class="container">
-          <div class="invoice-title">
-            Tax Invoice
+          <div class="invoice-header">
+            <img src="https://drive.google.com/uc?export=view&id=1Gimr0v0mCwEtytk52_RHCUI_56VrovK8" alt="LeleKart Logo" class="invoice-logo">
+            <div class="invoice-title">INVOICE</div>
           </div>
           
           <div class="header-info">
