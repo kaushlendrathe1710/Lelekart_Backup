@@ -941,6 +941,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
 
+      // Get seller details and addresses
+      const sellerId = orderItems[0].product.sellerId;
+      const seller = await storage.getUser(sellerId);
+      if (!seller) {
+        return res.status(404).json({ error: "Seller not found" });
+      }
+
+      // Get seller settings for pickup and billing addresses
+      const sellerSettings = await storage.getSellerSettings(sellerId);
+      let pickupAddress = null;
+      let billingAddress = null;
+
+      if (sellerSettings) {
+        try {
+          if (sellerSettings.pickupAddress) {
+            pickupAddress = JSON.parse(sellerSettings.pickupAddress);
+          }
+          if (sellerSettings.address) {
+            billingAddress = JSON.parse(sellerSettings.address);
+          }
+        } catch (err) {
+          console.error("Error parsing seller addresses:", err);
+        }
+      }
+
+      // Fallback addresses if not found in settings
+      if (!pickupAddress) {
+        pickupAddress = {
+          businessName: seller.name || "Lele Kart Retail Private Limited",
+          line1: seller.address || "123 Commerce Street",
+          line2: "",
+          city: "Mumbai",
+          state: "Maharashtra",
+          pincode: "400001",
+          phone: seller.phone || "Phone not available",
+        };
+      }
+
+      if (!billingAddress) {
+        billingAddress = {
+          line1: seller.address || "123 Commerce Street",
+          line2: "",
+          city: "Mumbai",
+          state: "Maharashtra",
+          pincode: "400001",
+          phone: seller.phone || "Phone not available",
+        };
+      }
+
       // Get product details for each order item
       const orderItemsWithProducts = await Promise.all(
         orderItems.map(async (item) => {
@@ -1002,6 +1051,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               : order.shippingDetails,
         },
         user,
+        seller: {
+          ...seller,
+          pickupAddress,
+          billingAddress,
+        },
         currentDate: new Date().toLocaleDateString("en-IN", {
           year: "numeric",
           month: "long",
@@ -11745,18 +11799,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
             <div class="bill-from">
               <div class="bold">Bill From</div>
               <br>
-              <div class="bold">LeleKart Retail Private Limited</div>
-              <div>123 Commerce Street</div>
-              <div>Mumbai, Maharashtra 400001</div>
-              <div>GSTIN: 27AABCU9603R1ZX</div>
+              {{#if seller.pickupAddress}}
+                <div class="bold">{{seller.pickupAddress.businessName}}</div>
+                <div>{{seller.pickupAddress.line1}}</div>
+                {{#if seller.pickupAddress.line2}}<div>{{seller.pickupAddress.line2}}</div>{{/if}}
+                <div>{{seller.pickupAddress.city}}, {{seller.pickupAddress.state}} {{seller.pickupAddress.pincode}}</div>
+                {{#if seller.pickupAddress.gstin}}<div>GSTIN: {{seller.pickupAddress.gstin}}</div>{{/if}}
+                <div>Phone: {{seller.pickupAddress.phone}}</div>
+              {{else}}
+                <div class="bold">Lele Kart Retail Private Limited</div>
+                <div>123 Commerce Street</div>
+                <div>Mumbai, Maharashtra 400001</div>
+                <div>GSTIN: 27AABCU9603R1ZX</div>
+              {{/if}}
             </div>
             <div class="ship-from">
               <div class="bold">Ship From</div>
               <br>
-              <div class="bold">LeleKart Retail Private Limited</div>
-              <div>Warehouse Address: 123 Commerce Street</div>
-              <div>Mumbai, Maharashtra 400001</div>
-              <div>If warehouse address isn't available then fetch business name</div>
+              {{#if seller.pickupAddress}}
+                <div class="bold">{{seller.pickupAddress.businessName}}</div>
+                <div>{{seller.pickupAddress.line1}}</div>
+                {{#if seller.pickupAddress.line2}}<div>{{seller.pickupAddress.line2}}</div>{{/if}}
+                <div>{{seller.pickupAddress.city}}, {{seller.pickupAddress.state}} {{seller.pickupAddress.pincode}}</div>
+                {{#if seller.pickupAddress.gstin}}<div>GSTIN: {{seller.pickupAddress.gstin}}</div>{{/if}}
+                <div>Phone: {{seller.pickupAddress.phone}}</div>
+              {{else}}
+                <div class="bold">Lele Kart Retail Private Limited</div>
+                <div>Warehouse Address: 123 Commerce Street</div>
+                <div>Mumbai, Maharashtra 400001</div>
+                <div>If warehouse address isn't available then fetch business name</div>
+              {{/if}}
             </div>
           </div>
           
@@ -11783,7 +11855,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 <td>{{formatMoney (subtract this.product.mrp this.price)}}</td>
                 <td>{{calculateTaxableValue this.price this.quantity this.product.gstRate}}</td>
               
-               <td class="taxes-cell">{{{calculateTaxes this.price this.quantity this.product.gstRate ../order.shippingDetails.state "Maharashtra"}}}</td>
+               <td class="taxes-cell">{{{calculateTaxes this.price this.quantity this.product.gstRate ../order.shippingDetails.state ../seller.pickupAddress.state}}}</td>
                
                 <td>{{formatMoney (multiply this.price this.quantity)}}</td>
               </tr>
