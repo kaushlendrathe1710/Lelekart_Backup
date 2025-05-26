@@ -51,7 +51,6 @@ import {
   PackageOpen,
   Save,
   Link as LinkIcon,
-  Layers,
 } from "lucide-react";
 import { Link, useLocation, useRoute } from "wouter";
 import {
@@ -115,7 +114,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { MultiVariantTable } from "@/components/product/multi-variant-table";
 
 // Form validation schema
 const productSchema = z
@@ -1325,7 +1323,7 @@ export default function EditProductPage() {
   };
 
   // Cancel variant editing
-  const handleCancelVariant = () => {
+  const handleCancelVariantEdit = () => {
     // Only clear the current variant and images
     setCurrentVariant(null);
     setVariantImages([]);
@@ -3222,381 +3220,560 @@ export default function EditProductPage() {
               </TabsContent>
 
               {/* Variants Tab */}
-              <TabsContent value="variants" className="mt-0">
-                <Card>
-                  <CardHeader className="bg-slate-50 rounded-t-lg">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <Layers className="h-5 w-5 text-primary" />
-                        <CardTitle>Product Variants</CardTitle>
-                      </div>
-                      <Badge variant="outline">Optional</Badge>
-                    </div>
-                    <CardDescription>
-                      Add different variations of your product (colors, sizes,
-                      etc.)
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6 pt-6">
-                    {/* Display Existing Variants in Table if they exist */}
-                    {variants.length > 0 && (
-                      <Card className="mb-6">
-                        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-                          <div>
-                            <CardTitle>Existing Product Variants</CardTitle>
-                            <CardDescription>
-                              The following variants have been saved for this
-                              product
-                            </CardDescription>
-                          </div>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="h-8"
-                            onClick={() => {
-                              if (
-                                window.confirm(
-                                  `Are you sure you want to delete all ${variants.length} variants? This action cannot be undone.`
-                                )
-                              ) {
-                                // Add all variant IDs to the deleted list
-                                const variantIds = variants
-                                  .filter(
-                                    (v) => typeof v.id === "number" && v.id > 0
-                                  )
-                                  .map((v) => v.id as number);
-
-                                setDeletedVariantIds((prev) => [
-                                  ...prev,
-                                  ...variantIds,
-                                ]);
-
-                                // Clear variants from state
-                                setVariants([]);
-                                setDraftVariants([]);
-
-                                // Attempt to delete each variant from the server immediately
-                                const deleteVariants = async () => {
-                                  console.log(
-                                    `Attempting to delete ${variantIds.length} variants`
-                                  );
-
-                                  for (const id of variantIds) {
-                                    try {
-                                      const deleteResponse = await fetch(
-                                        `/api/products/${productId}/variants/${id}`,
-                                        {
-                                          method: "DELETE",
-                                          headers: {
-                                            "Content-Type": "application/json",
-                                          },
-                                        }
-                                      );
-                                    } catch (error) {
-                                      // Handle deletion error silently - will still be removed from UI
-                                    }
-                                  }
-
-                                  // Refresh variants from server to ensure our state is in sync
-                                  try {
-                                    const response = await fetch(
-                                      `/api/products/${productId}/variants`
-                                    );
-                                    if (response.ok) {
-                                      const data = await response.json();
-                                    }
-                                  } catch (error) {
-                                    // Silent error handling for verification step
-                                  }
-                                };
-
-                                deleteVariants();
-
-                                toast({
-                                  title: "All variants deleted",
-                                  description: `${variants.length} variants have been deleted.`,
-                                });
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 mr-1" />
-                            Delete All Variants
-                          </Button>
-                        </CardHeader>
-                        <CardContent>
-                          {/* Existing Variants Table */}
-                          <div className="overflow-x-auto rounded-md border">
-                            <table className="min-w-full divide-y divide-border">
-                              <thead className="bg-muted text-sm">
-                                <tr>
-                                  <th
-                                    scope="col"
-                                    className="px-4 py-3 text-left font-medium text-muted-foreground"
-                                  >
-                                    Variant
-                                  </th>
-                                  <th
-                                    scope="col"
-                                    className="px-4 py-3 text-left font-medium text-muted-foreground"
-                                  >
-                                    SKU
-                                  </th>
-                                  <th
-                                    scope="col"
-                                    className="px-4 py-3 text-left font-medium text-muted-foreground"
-                                  >
-                                    Price
-                                  </th>
-                                  <th
-                                    scope="col"
-                                    className="px-4 py-3 text-left font-medium text-muted-foreground"
-                                  >
-                                    MRP
-                                  </th>
-                                  <th
-                                    scope="col"
-                                    className="px-4 py-3 text-left font-medium text-muted-foreground"
-                                  >
-                                    Stock
-                                  </th>
-                                  <th
-                                    scope="col"
-                                    className="px-4 py-3 text-left font-medium text-muted-foreground"
-                                  >
-                                    Images
-                                  </th>
-                                  <th
-                                    scope="col"
-                                    className="px-4 py-3 text-left font-medium text-muted-foreground"
-                                  >
-                                    Actions
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-border">
-                                {variants.map((variant, index) => (
-                                  <tr
-                                    key={variant.id || index}
-                                    className={
-                                      index % 2 === 0
-                                        ? "bg-background"
-                                        : "bg-muted/50"
-                                    }
-                                  >
-                                    <td className="px-4 py-3 whitespace-nowrap">
-                                      <div className="flex flex-col">
-                                        {variant.color && (
-                                          <span className="text-sm">
-                                            <strong>Color:</strong>{" "}
-                                            {variant.color}
-                                          </span>
-                                        )}
-                                        {variant.size && (
-                                          <span className="text-sm">
-                                            <strong>Size:</strong>{" "}
-                                            {variant.size}
-                                          </span>
-                                        )}
-                                      </div>
-                                    </td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                      {variant.sku}
-                                    </td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                      {variant.price}
-                                    </td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                      {variant.mrp}
-                                    </td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                      {variant.stock}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                      <div className="flex flex-wrap gap-1">
-                                        {(() => {
-                                          let displayImages = variant.images;
-
-                                          if (
-                                            currentVariants &&
-                                            Array.isArray(currentVariants)
-                                          ) {
-                                            const currentVariant =
-                                              currentVariants.find(
-                                                (v) => v.id === variant.id
-                                              );
-
-                                            if (
-                                              currentVariant &&
-                                              Array.isArray(
-                                                currentVariant.images
-                                              ) &&
-                                              currentVariant.images.length > 0
-                                            ) {
-                                              displayImages =
-                                                currentVariant.images;
-                                            }
-                                          }
-
-                                          if (
-                                            displayImages &&
-                                            Array.isArray(displayImages) &&
-                                            displayImages.length > 0
-                                          ) {
-                                            return (
-                                              <div className="flex flex-row gap-1">
-                                                {displayImages.map(
-                                                  (img, imgIndex) => (
-                                                    <img
-                                                      key={imgIndex}
-                                                      src={img}
-                                                      alt={`Variant ${index} image ${imgIndex}`}
-                                                      className="h-8 w-8 rounded object-cover"
-                                                    />
-                                                  )
-                                                )}
-                                              </div>
-                                            );
-                                          }
-
-                                          return (
-                                            <span className="text-xs text-muted-foreground italic">
-                                              No images
-                                            </span>
-                                          );
-                                        })()}
-                                      </div>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                      <div className="flex items-center space-x-2">
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="h-8 px-2 text-xs"
-                                          onClick={() => {
-                                            setSelectedVariant(variant);
-                                            setEditVariantDialogOpen(true);
-                                          }}
-                                        >
-                                          <Edit className="h-3.5 w-3.5 mr-1" />
-                                          Edit
-                                        </Button>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="h-8 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
-                                          onClick={() => {
-                                            setSelectedVariant(variant);
-                                            setDeleteVariantDialogOpen(true);
-                                          }}
-                                        >
-                                          <Trash2 className="h-3.5 w-3.5 mr-1" />
-                                          Delete
-                                        </Button>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {/* Tabs for different variant creation methods */}
-                    <Tabs defaultValue="manual" className="w-full">
-                      <TabsList className="grid w-full grid-cols-2 mb-6">
-                        <TabsTrigger value="manual">
-                          Manual Creation
-                        </TabsTrigger>
-                        <TabsTrigger value="matrix">
-                          Matrix Generator
-                        </TabsTrigger>
-                      </TabsList>
-
-                      {/* Manual Variant Creation Tab */}
-                      <TabsContent value="manual" className="mt-0">
-                        <MultiVariantTable
-                          variants={[...variants, ...draftVariants]}
-                          onAddVariant={handleAddVariant}
-                          onDeleteVariant={handleDeleteVariant}
-                          onEditVariant={handleEditVariant}
-                          onSaveNewVariant={handleSaveNewVariant}
-                          newVariantExists={isEditingVariant}
-                          currentVariant={selectedVariant}
-                          onUpdateVariantField={updateVariantField}
-                          onCancelNewVariant={handleCancelVariant}
-                        />
-                      </TabsContent>
-
-                      {/* Matrix Generator Tab */}
-                      <TabsContent value="matrix" className="mt-0">
-                        <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
-                          <h3 className="text-sm font-semibold text-blue-800 flex items-center mb-2">
-                            <HelpCircle className="h-4 w-4 mr-2" />
-                            Matrix Variant Generator
-                          </h3>
-                          <p className="text-sm text-blue-700">
-                            Use this tool to quickly create multiple variants by
-                            defining attributes like color and size. The system
-                            will generate all possible combinations
-                            automatically.
-                          </p>
+              <TabsContent value="variants" className="space-y-4 mt-6">
+                <ProductVariantErrorBoundary
+                  onError={(error, errorInfo) => {
+                    console.error(
+                      "Variant section error caught:",
+                      error,
+                      errorInfo
+                    );
+                    toast({
+                      title: "Error in variant editor",
+                      description:
+                        "An error occurred while editing variants. Technical details have been logged.",
+                      variant: "destructive",
+                    });
+                  }}
+                >
+                  {/* Display Existing Variants in Table if they exist */}
+                  {variants.length > 0 && (
+                    <Card className="mb-6">
+                      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                        <div>
+                          <CardTitle>Existing Product Variants</CardTitle>
+                          <CardDescription>
+                            The following variants have been saved for this
+                            product
+                          </CardDescription>
                         </div>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="h-8"
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                `Are you sure you want to delete all ${variants.length} variants? This action cannot be undone.`
+                              )
+                            ) {
+                              // Add all variant IDs to the deleted list
+                              const variantIds = variants
+                                .filter(
+                                  (v) => typeof v.id === "number" && v.id > 0
+                                )
+                                .map((v) => v.id as number);
 
-                        <VariantMatrixGenerator
-                          onSaveVariants={(generatedVariants) => {
-                            // Add to existing draft variants (not replace)
-                            const newDraftVariants = generatedVariants.map(
-                              (variant) => {
-                                return {
-                                  ...variant,
-                                  id:
-                                    variant.id ||
-                                    -(
-                                      Date.now() +
-                                      Math.floor(Math.random() * 1000)
-                                    ), // Generate temporary ID
-                                  productId: product?.id,
-                                  // Ensure these fields are explicitly set
-                                  sku:
-                                    variant.sku ||
-                                    `${form
-                                      .getValues("name")
-                                      .substring(0, 5)}-${variant.color}-${
-                                      variant.size
-                                    }`.replace(/\s+/g, ""),
-                                  color: variant.color || "",
-                                  size: variant.size || "",
-                                  price: Number(variant.price) || 0,
-                                  mrp: Number(variant.mrp) || 0,
-                                  stock: Number(variant.stock) || 0,
-                                  images:
-                                    variant.images &&
-                                    Array.isArray(variant.images)
-                                      ? variant.images
-                                      : [],
-                                };
-                              }
-                            );
+                              setDeletedVariantIds((prev) => [
+                                ...prev,
+                                ...variantIds,
+                              ]);
 
-                            // Keep existing variants and add new ones to drafts
-                            setDraftVariants((prevDrafts) => [
-                              ...prevDrafts,
-                              ...newDraftVariants,
-                            ]);
+                              // Clear variants from state
+                              setVariants([]);
+                              setDraftVariants([]);
 
-                            toast({
-                              title: "Variants Generated",
-                              description: `${generatedVariants.length} variants have been generated. Save the product to make them permanent.`,
-                            });
+                              // Attempt to delete each variant from the server immediately
+                              const deleteVariants = async () => {
+                                console.log(
+                                  `Attempting to delete ${variantIds.length} variants`
+                                );
+
+                                for (const id of variantIds) {
+                                  try {
+                                    const deleteResponse = await fetch(
+                                      `/api/products/${productId}/variants/${id}`,
+                                      {
+                                        method: "DELETE",
+                                        headers: {
+                                          "Content-Type": "application/json",
+                                        },
+                                      }
+                                    );
+
+                                    // Deletion process completed with status: deleteResponse.ok
+                                  } catch (error) {
+                                    // Handle deletion error silently - will still be removed from UI
+                                  }
+                                }
+
+                                // Refresh variants from server to ensure our state is in sync
+                                try {
+                                  const response = await fetch(
+                                    `/api/products/${productId}/variants`
+                                  );
+                                  if (response.ok) {
+                                    const data = await response.json();
+                                    // Check if there are any variants left (there shouldn't be)
+                                    // Verification complete - data length should be 0 after deletion
+                                  }
+                                } catch (error) {
+                                  // Silent error handling for verification step
+                                }
+                              };
+
+                              deleteVariants();
+
+                              toast({
+                                title: "All variants deleted",
+                                description: `${variants.length} variants have been deleted.`,
+                              });
+                            }
                           }}
-                          existingVariants={variants}
-                        />
-                      </TabsContent>
-                    </Tabs>
-                  </CardContent>
-                </Card>
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Delete All Variants
+                        </Button>
+                      </CardHeader>
+                      <CardContent>
+                        {/* Existing Variants Table */}
+                        <div className="overflow-x-auto rounded-md border">
+                          <table className="min-w-full divide-y divide-border">
+                            <thead className="bg-muted text-sm">
+                              <tr>
+                                <th
+                                  scope="col"
+                                  className="px-4 py-3 text-left font-medium text-muted-foreground"
+                                >
+                                  Variant
+                                </th>
+                                <th
+                                  scope="col"
+                                  className="px-4 py-3 text-left font-medium text-muted-foreground"
+                                >
+                                  SKU
+                                </th>
+                                <th
+                                  scope="col"
+                                  className="px-4 py-3 text-left font-medium text-muted-foreground"
+                                >
+                                  Price
+                                </th>
+                                <th
+                                  scope="col"
+                                  className="px-4 py-3 text-left font-medium text-muted-foreground"
+                                >
+                                  MRP
+                                </th>
+                                <th
+                                  scope="col"
+                                  className="px-4 py-3 text-left font-medium text-muted-foreground"
+                                >
+                                  Stock
+                                </th>
+                                <th
+                                  scope="col"
+                                  className="px-4 py-3 text-left font-medium text-muted-foreground"
+                                >
+                                  Images
+                                </th>
+                                <th
+                                  scope="col"
+                                  className="px-4 py-3 text-left font-medium text-muted-foreground"
+                                >
+                                  Actions
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                              {variants.map((variant, index) => (
+                                <tr
+                                  key={variant.id || index}
+                                  className={
+                                    index % 2 === 0
+                                      ? "bg-background"
+                                      : "bg-muted/50"
+                                  }
+                                >
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <div className="flex flex-col">
+                                      {variant.color && (
+                                        <span className="text-sm">
+                                          <strong>Color:</strong>{" "}
+                                          {variant.color}
+                                        </span>
+                                      )}
+                                      {variant.size && (
+                                        <span className="text-sm">
+                                          <strong>Size:</strong> {variant.size}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                    {variant.sku}
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                    {variant.price}
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                    {variant.mrp}
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                    {variant.stock}
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="flex flex-wrap gap-1">
+                                      {(() => {
+                                        // CRITICAL FIX: Look for images in currentVariants first (most up-to-date)
+                                        // This ensures we display the most recent images after editing variants
+                                        let displayImages = variant.images;
+
+                                        // If the variant exists in currentVariants, use those images instead
+                                        if (
+                                          currentVariants &&
+                                          Array.isArray(currentVariants)
+                                        ) {
+                                          const currentVariant =
+                                            currentVariants.find(
+                                              (v) => v.id === variant.id
+                                            );
+
+                                          // Log available image sources for debugging
+                                          console.log(
+                                            `Variant ${variant.id} images:`,
+                                            {
+                                              regularVariant: Array.isArray(
+                                                variant.images
+                                              )
+                                                ? variant.images.length
+                                                : "not an array",
+                                              currentVariant:
+                                                currentVariant &&
+                                                Array.isArray(
+                                                  currentVariant.images
+                                                )
+                                                  ? currentVariant.images.length
+                                                  : "not found or not an array",
+                                            }
+                                          );
+
+                                          if (
+                                            currentVariant &&
+                                            Array.isArray(
+                                              currentVariant.images
+                                            ) &&
+                                            currentVariant.images.length > 0
+                                          ) {
+                                            console.log(
+                                              `Using updated images from currentVariants for variant ${variant.id}`
+                                            );
+                                            displayImages =
+                                              currentVariant.images;
+                                          }
+                                        }
+
+                                        // If images exist, display them
+                                        if (
+                                          displayImages &&
+                                          Array.isArray(displayImages) &&
+                                          displayImages.length > 0
+                                        ) {
+                                          return (
+                                            <div className="flex flex-row gap-1">
+                                              {displayImages.map(
+                                                (img, imgIndex) => (
+                                                  <img
+                                                    key={imgIndex}
+                                                    src={img}
+                                                    alt={`Variant ${index} image ${imgIndex}`}
+                                                    className="h-8 w-8 rounded object-cover"
+                                                  />
+                                                )
+                                              )}
+                                            </div>
+                                          );
+                                        }
+
+                                        // Otherwise show no images message
+                                        return (
+                                          <span className="text-xs text-muted-foreground italic">
+                                            No images
+                                          </span>
+                                        );
+                                      })()}
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="flex items-center space-x-2">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 px-2 text-xs"
+                                        onClick={() => {
+                                          // Set the selected variant and open the edit dialog
+                                          console.log(
+                                            "Edit button clicked for variant:",
+                                            variant
+                                          );
+                                          setSelectedVariant(variant);
+                                          setEditVariantDialogOpen(true);
+                                        }}
+                                      >
+                                        <Edit className="h-3.5 w-3.5 mr-1" />
+                                        Edit
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        onClick={() => {
+                                          // Set the selected variant and open the delete dialog
+                                          console.log(
+                                            "Delete button clicked for variant:",
+                                            variant
+                                          );
+                                          setSelectedVariant(variant);
+                                          setDeleteVariantDialogOpen(true);
+                                        }}
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5 mr-1" />
+                                        Delete
+                                      </Button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Matrix Variant Generator Card */}
+                  <Card className="mb-6">
+                    <CardHeader>
+                      <CardTitle>Create Additional Variants</CardTitle>
+                      <CardDescription>
+                        Define color and size options to automatically generate
+                        additional variant combinations
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <VariantMatrixGenerator
+                        onSaveVariants={(generatedVariants) => {
+                          // Add to existing draft variants (not replace)
+                          const newDraftVariants = generatedVariants.map(
+                            (variant) => {
+                              // Process each variant from the matrix generator
+
+                              return {
+                                ...variant,
+                                id:
+                                  variant.id ||
+                                  -(
+                                    Date.now() +
+                                    Math.floor(Math.random() * 1000)
+                                  ), // Generate temporary ID
+                                productId: product?.id,
+                                // Ensure these fields are explicitly set
+                                sku:
+                                  variant.sku ||
+                                  `${form.getValues("name").substring(0, 5)}-${
+                                    variant.color
+                                  }-${variant.size}`.replace(/\s+/g, ""),
+                                color: variant.color || "",
+                                size: variant.size || "",
+                                price: Number(variant.price) || 0,
+                                mrp: Number(variant.mrp) || 0,
+                                stock: Number(variant.stock) || 0,
+                                images:
+                                  variant.images &&
+                                  Array.isArray(variant.images)
+                                    ? variant.images
+                                    : [],
+                              };
+                            }
+                          );
+
+                          // Keep existing variants and add new ones to drafts
+                          setDraftVariants((prevDrafts) => [
+                            ...prevDrafts,
+                            ...newDraftVariants,
+                          ]);
+
+                          toast({
+                            title: "Variants Generated",
+                            description: `${generatedVariants.length} variants have been generated. Save the product to make them permanent.`,
+                          });
+                        }}
+                        existingVariants={variants}
+                        productName={form.getValues("name")}
+                      />
+                    </CardContent>
+                  </Card>
+
+                  {/* Generated Variants Display */}
+                  {draftVariants.length > 0 && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle>Configure Variants</CardTitle>
+                        <CardDescription>
+                          {draftVariants.length} variants generated. Configure
+                          details and enable/disable as needed.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Use</TableHead>
+                              <TableHead>Color</TableHead>
+                              <TableHead>Size</TableHead>
+                              <TableHead>SKU</TableHead>
+                              <TableHead>Price</TableHead>
+                              <TableHead>MRP</TableHead>
+                              <TableHead>Stock</TableHead>
+                              <TableHead>Images</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {draftVariants.map((variant) => (
+                              <TableRow key={variant.id}>
+                                <TableCell>
+                                  <Checkbox
+                                    checked={true}
+                                    onCheckedChange={(checked) => {
+                                      // Update the variant's enabled status
+                                      setDraftVariants((prev) =>
+                                        prev.map((v) =>
+                                          v.id === variant.id
+                                            ? {
+                                                ...v,
+                                                enabled: checked === true,
+                                              }
+                                            : v
+                                        )
+                                      );
+                                    }}
+                                  />
+                                </TableCell>
+                                <TableCell>{variant.color}</TableCell>
+                                <TableCell>{variant.size}</TableCell>
+                                <TableCell>{variant.sku}</TableCell>
+                                <TableCell>{variant.price}</TableCell>
+                                <TableCell>{variant.mrp}</TableCell>
+                                <TableCell>{variant.stock}</TableCell>
+                                <TableCell>
+                                  <div className="flex items-center space-x-2">
+                                    <Badge variant="outline">
+                                      {variant.images.length}
+                                    </Badge>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        setCurrentVariant(variant);
+                                        setIsEditingVariant(true);
+                                      }}
+                                    >
+                                      <Edit className="h-4 w-4 mr-1" /> Edit
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                      <CardFooter className="flex justify-end">
+                        <Button
+                          className="w-full sm:w-auto"
+                          onClick={async () => {
+                            try {
+                              setIsUploading(true);
+
+                              // First, save the draft variants to the actual variants state
+                              setVariants(draftVariants);
+
+                              // Prepare the variants for submission by removing any temporary IDs
+                              const variantsToSave = draftVariants.map(
+                                (variant) => {
+                                  // If ID is negative (temporary), remove it for the API
+                                  const { id, ...rest } = variant;
+                                  if (id && id < 0) {
+                                    return {
+                                      ...rest,
+                                      productId: productId,
+                                    };
+                                  }
+                                  return variant;
+                                }
+                              );
+
+                              // Prepare variants for database save
+
+                              // Send variants to server to be saved
+                              const response = await fetch(
+                                `/api/products/${productId}/variants`,
+                                {
+                                  method: "POST",
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                  },
+                                  body: JSON.stringify(variantsToSave),
+                                }
+                              );
+
+                              if (!response.ok) {
+                                throw new Error(
+                                  `Failed to save variants: ${response.statusText}`
+                                );
+                              }
+
+                              const savedVariants = await response.json();
+                              // Update the variants state with the saved variants (including server-generated IDs)
+                              // Check if the response has a nested variants property (our API returns this structure)
+                              const variantsArray =
+                                savedVariants.variants || savedVariants;
+
+                              // Set both variant states
+                              setVariants(variantsArray);
+                              setDraftVariants(variantsArray);
+
+                              // Show success message
+                              toast({
+                                title: "Variants Saved",
+                                description: `${variantsArray.length} variants have been saved to the database.`,
+                                variant: "default",
+                              });
+
+                              // Refresh product data to get updated variants
+                              queryClient.invalidateQueries({
+                                queryKey: ["/api/products", productId],
+                              });
+                            } catch (error) {
+                              console.error("Error saving variants:", error);
+                              toast({
+                                title: "Error Saving Variants",
+                                description:
+                                  error instanceof Error
+                                    ? error.message
+                                    : "An unknown error occurred",
+                                variant: "destructive",
+                              });
+                            } finally {
+                              setIsUploading(false);
+                            }
+                          }}
+                        >
+                          {isUploading ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="h-4 w-4 mr-2" />
+                              Save Variants
+                            </>
+                          )}
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  )}
+                </ProductVariantErrorBoundary>
               </TabsContent>
             </Tabs>
           </div>
