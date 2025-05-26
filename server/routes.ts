@@ -11527,14 +11527,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       );
 
-      handlebars.registerHelper(
-        "calculateTaxableValue",
-        function (price: number, quantity: number, gstRate: number) {
-          const totalPrice = price * quantity;
-          const taxAmount = (totalPrice * gstRate) / (100 + gstRate);
-          return (totalPrice - taxAmount).toFixed(2);
-        }
-      );
+     handlebars.registerHelper(
+       "calculateTaxableValue",
+       function (price: number, quantity: number, gstRate: number) {
+         const totalPrice = price * quantity;
+         const taxableValue = totalPrice / (1 + gstRate / 100);
+         return taxableValue.toFixed(2);
+       }
+     );
 
       handlebars.registerHelper(
         "calculateTaxes",
@@ -11546,8 +11546,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           sellerState: string
         ) {
           const totalPrice = price * quantity;
-          const basePrice = (totalPrice * 100) / (100 + gstRate);
-          const gstAmount = totalPrice - basePrice;
+          const basePrice =
+            gstRate > 0 ? totalPrice / (1 + gstRate / 100) : totalPrice;
+          const taxAmount = totalPrice - basePrice;
 
           // If buyer and seller are from the same state, split GST into CGST and SGST
           if (
@@ -11555,13 +11556,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             sellerState &&
             buyerState.toLowerCase() === sellerState.toLowerCase()
           ) {
-            const halfAmount = gstAmount / 2;
+            const halfAmount = taxAmount / 2;
             return `SGST @ ${gstRate / 2}% i.e. ${halfAmount.toFixed(
               2
             )}<br>CGST @ ${gstRate / 2}% i.e. ${halfAmount.toFixed(2)}`;
           } else {
             // If different states or state info not available, show as IGST
-            return `IGST @ ${gstRate}% i.e. ${gstAmount.toFixed(2)}`;
+            return `IGST @ ${gstRate}% i.e. ${taxAmount.toFixed(2)}`;
           }
         }
       );
