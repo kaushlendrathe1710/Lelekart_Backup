@@ -11858,16 +11858,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       </head>
       <body>
         <div class="container">
-          <div class="invoice-header">
-            <img src="https://drive.google.com/uc?export=view&id=1Gimr0v0mCwEtytk52_RHCUI_56VrovK8" alt="LeleKart Logo" class="invoice-logo">
-            <div class="invoice-title">INVOICE</div>
+          <div class="invoice-header" style="background-color: #FFFFFF; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+           <img src="https://drive.google.com/uc?export=view&id=138zcFxrDkzZoVOkDd1ABPHSdbl31n-Ar" alt="LeleKart Logo" class="invoice-logo" style="max-height: 60px; width: auto; margin-bottom: 10px;">
+            <div class="invoice-title">Tax Invoice/Bill of Supply/Cash Memo</div>
           </div>
           
           <div class="header-info">
             <div class="header-left">
               <div><span class="bold">Invoice No:</span> LK-{{order.id}}</div>
-            </div>
-            <div class="header-right">
+        
               <div><span class="bold">Invoice Date:</span> {{currentDate}}</div>
               <div><span class="bold">Order No:</span> {{order.orderNumber}}</div>
             </div>
@@ -11875,7 +11874,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           <div class="address-section">
             <div class="bill-to">
-              <div class="bold">Bill To</div>
+              <div class="bold">Billing Address</div>
               <br>
               {{#if order.shippingDetails}}
                 <div>{{user.name}}</div>
@@ -11889,7 +11888,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               {{/if}}
             </div>
             <div class="ship-to">
-              <div class="bold">Ship To</div>
+              <div class="bold">Shipping Address</div>
               <br>
               {{#if order.shippingDetails}}
                 <div>{{user.name}}</div>
@@ -11972,11 +11971,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             </tbody>
           </table>
           
-          <div class="signature-section">
-            <div class="bold">Authorized signatory</div>
-            <img src="https://drive.google.com/uc?export=view&id=10VFdU73xSPpDMY7Uu83dBYwuQvqNqWaW" alt="Authorized Signature" style="height:60px; margin: 10px auto; display: block;" />
-            <div class="signature-line">
-              Authorized Signatory
+          <div class="signature-section" style="background-color: #FFFFFF; padding: 20px; border-radius: 8px; margin-top: 20px;">
+            <div class="signature-box">
+              <div class="bold">Authorized Signatory</div>
+             <img src="https://drive.google.com/uc?export=view&id=1NC3MTl6qklBjamL3bhjRMdem6rQ0mB9F" alt="Authorized Signature" style="height: 60px; margin: 10px auto; display: block;" />
+              <div class="signature-line"></div>
             </div>
           </div>
         </div>
