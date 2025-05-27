@@ -12127,7 +12127,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
               {{else}}
                 <div class="bold" style="color: #000000">{{seller.taxInformation.businessName}}</div>
               {{/if}}
-              <img src="https://drive.google.com/uc?export=view&id=1NC3MTl6qklBjamL3bhjRMdem6rQ0mB9F" alt="Authorized Signature" style="height: 60px; margin: 10px 0 10px auto; display: block;" />
+              <img 
+                src="{{#if seller.pickupAddress.authorizationSignature}}
+                  {{seller.pickupAddress.authorizationSignature}}
+                {{else}}
+                  https://drive.google.com/uc?export=view&id=1NC3MTl6qklBjamL3bhjRMdem6rQ0mB9F
+                {{/if}}" 
+                alt="Authorized Signature" 
+                style="height: 60px; margin: 10px 0 10px auto; display: block;" 
+              />
               <div class="bold">Authorized Signatory</div>
             </div>
           </div>
