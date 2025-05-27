@@ -11905,7 +11905,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           .ship-to {
-            text-align: right;
+            text-align: left;
             float: right;
           }
           
@@ -11928,7 +11928,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           .ship-from {
-            text-align: right;
+            text-align: left;
             float: right;
           }
           
