@@ -11605,6 +11605,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return value.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,");
       });
 
+      // Helper function to convert number to Indian Rupee words
+      handlebars.registerHelper("amountInWords", function (amount: number) {
+        const ones = [
+          "",
+          "One",
+          "Two",
+          "Three",
+          "Four",
+          "Five",
+          "Six",
+          "Seven",
+          "Eight",
+          "Nine",
+        ];
+        const tens = [
+          "",
+          "",
+          "Twenty",
+          "Thirty",
+          "Forty",
+          "Fifty",
+          "Sixty",
+          "Seventy",
+          "Eighty",
+          "Ninety",
+        ];
+        const teens = [
+          "Ten",
+          "Eleven",
+          "Twelve",
+          "Thirteen",
+          "Fourteen",
+          "Fifteen",
+          "Sixteen",
+          "Seventeen",
+          "Eighteen",
+          "Nineteen",
+        ];
+
+        function convertLessThanThousand(n: number): string {
+          if (n === 0) return "";
+
+          let words = "";
+
+          // Handle hundreds
+          if (n >= 100) {
+            words += ones[Math.floor(n / 100)] + " Hundred ";
+            n %= 100;
+          }
+
+          // Handle tens and ones
+          if (n > 0) {
+            if (n < 10) {
+              words += ones[n];
+            } else if (n < 20) {
+              words += teens[n - 10];
+            } else {
+              words += tens[Math.floor(n / 10)];
+              if (n % 10 > 0) {
+                words += " " + ones[n % 10];
+              }
+            }
+          }
+
+          return words.trim();
+        }
+
+        if (amount === 0) return "Zero Rupees";
+
+        let rupees = Math.floor(amount);
+        const paise = Math.round((amount - rupees) * 100);
+
+        let words = "";
+
+        // Handle crores
+        if (rupees >= 10000000) {
+          const crore = Math.floor(rupees / 10000000);
+          words += convertLessThanThousand(crore) + " Crore ";
+          rupees %= 10000000;
+        }
+
+        // Handle lakhs
+        if (rupees >= 100000) {
+          const lakh = Math.floor(rupees / 100000);
+          words += convertLessThanThousand(lakh) + " Lakh ";
+          rupees %= 100000;
+        }
+
+        // Handle thousands
+        if (rupees >= 1000) {
+          const thousand = Math.floor(rupees / 1000);
+          words += convertLessThanThousand(thousand) + " Thousand ";
+          rupees %= 1000;
+        }
+
+        // Handle remaining amount
+        if (rupees > 0) {
+          words += convertLessThanThousand(rupees);
+        }
+
+        // Add "Rupees" if there's any amount
+        if (words) {
+          words += " Rupees";
+        }
+
+        // Add paise if any
+        if (paise > 0) {
+          words += " and " + convertLessThanThousand(paise) + " Paise";
+        }
+
+        return words.trim();
+      });
+
       handlebars.registerHelper(
         "calculateGST",
         function (price: number, quantity: number, gstRate: number) {
@@ -11717,7 +11830,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       );
 
-      // Invoice template with corrected header layout
+      // Invoice template with amount in words
       const invoiceTemplate = `<!DOCTYPE html>
       <html>
       <head>
@@ -11869,6 +11982,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             font-size: 9px;
             line-height: 1.2;
           }
+          
+          .amount-in-words {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #ffffff;
+            font-family: 'Arial', sans-serif;
+            font-size: 10px;
+            line-height: 1.5;
+            color: #333;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+          }
         </style>
       </head>
       <body>
@@ -11881,9 +12006,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           <div class="header-info">
             <div class="header-left">
+              <div><span class="bold">Invoice Date:</span>{{formatDate order.date " DD MMM YYYY,dddd"}}</div>
               <div><span class="bold">Invoice No:</span> LK-{{order.id}}</div>
-        
-              <div><span class="bold">Invoice Date:</span> {{currentDate}}</div>
               <div><span class="bold">Order No:</span> {{order.orderNumber}}</div>
             </div>
           </div>
@@ -11930,7 +12054,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 <div>{{seller.billingAddress.city}}, {{seller.billingAddress.state}} {{seller.billingAddress.pincode}}</div>
                 <div>GSTIN: {{seller.taxInformation.gstin}}</div>
                 <div>PAN: {{seller.taxInformation.panNumber}}</div>
-               <div>Phone: {{seller.pickupAddress.phone}}</div>
+               
               {{else}}
                 <div class="bold">{{seller.taxInformation.businessName}}</div>
                 <div>{{seller.address}}</div>
@@ -11948,7 +12072,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 <div>{{seller.pickupAddress.city}}, {{seller.pickupAddress.state}} {{seller.pickupAddress.pincode}}</div>
                 <div>GSTIN: {{seller.taxInformation.gstin}}</div>
                 <div>PAN: {{seller.taxInformation.panNumber}}</div>
-                <div>Phone: {{seller.pickupAddress.phone}}</div>
+               
               {{else}}
                 <div class="bold">{{seller.taxInformation.businessName}}</div>
                 <div>Warehouse Address: {{seller.address}}</div>
@@ -11989,6 +12113,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             </tbody>
           </table>
           
+        
+            <div class="amount-in-words">
+              <span style="font-weight: 600; color: #2c3e50;">Amount in words:</span>
+              <span style="font-style: italic; margin-left: 5px;">{{amountInWords (calculateTotal order.items)}} Only</span>
+            </div>
+         
+          
           <div class="signature-section" style="background-color: #FFFFFF; padding: 20px; border-radius: 8px; margin-top: 20px; text-align: right;">
             <div class="signature-box" style="display: inline-block; text-align: right;">
               {{#if seller.pickupAddress.businessName}}
@@ -12003,7 +12134,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         </div>
       </body>
       </html>`;
-
+      handlebars.registerHelper("calculateTotal", function (items) {
+        return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      });
       // Additional helpers for math operations
       handlebars.registerHelper("multiply", function (a: number, b: number) {
         return a * b;
