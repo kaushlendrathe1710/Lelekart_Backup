@@ -11839,9 +11839,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         <style>
           body {
             font-family: Arial, sans-serif;
-            font-size: 11px;
-            line-height: 1.3;
-            color: #000;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #333;
             margin: 20px;
             padding: 0;
           }
@@ -11854,8 +11854,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           .invoice-header {
             text-align: center;
-            padding: 10px;
-            
+            padding: 15px;
             background-color: #f5f5f5;
           }
           
@@ -11866,8 +11865,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           .invoice-title {
             font-weight: bold;
-            font-size: 16px;
-            margin-top: 10px;
+            font-size: 18px;
+            margin-top: 12px;
+            color: #2c3e50;
           }
           
           .header-info {
@@ -11875,8 +11875,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             justify-content: space-between;
             align-items: flex-start;
             border-bottom: 1px solid #000;
-            padding: 8px 10px;
+            padding: 12px 15px;
             min-height: 24px;
+            font-size: 12px;
           }
           
           .header-left {
@@ -11891,11 +11892,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             display: flex;
             border-bottom: 1px solid #000;
             min-height: 120px;
+            font-size: 12px;
           }
           
           .bill-to, .ship-to {
             width: 50%;
-            padding: 10px;
+            padding: 12px;
             box-sizing: border-box;
           }
           
@@ -11914,11 +11916,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             border-bottom: 1px solid #000;
             min-height: 140px;
             clear: both;
+            font-size: 12px;
           }
           
           .bill-from, .ship-from {
             width: 50%;
-            padding: 10px;
+            padding: 12px;
             box-sizing: border-box;
           }
           
@@ -11936,22 +11939,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
             width: 100%;
             border-collapse: collapse;
             border-bottom: 1px solid #000;
+            font-size: 12px;
           }
           
           table.items th {
-            background-color: #e0e0e0;
+            background-color: #f8f9fa;
             border: 1px solid #000;
-            padding: 8px 4px;
+            padding: 10px 6px;
             text-align: center;
             font-weight: bold;
-            font-size: 10px;
+            font-size: 12px;
+            color: #2c3e50;
           }
           
           table.items td {
             border: 1px solid #000;
-            padding: 6px 4px;
+            padding: 8px 6px;
             text-align: center;
-            font-size: 10px;
+            font-size: 12px;
             vertical-align: top;
           }
           
@@ -11962,8 +11967,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           .signature-section {
             padding: 20px;
-            text-align: center;
+            text-align: right;
             border-bottom: 1px solid #000;
+            font-size: 12px;
           }
           
           .signature-line {
@@ -11971,16 +11977,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             width: 200px;
             margin: 40px auto 5px auto;
             padding-top: 5px;
-            font-size: 10px;
+            font-size: 12px;
           }
           
           .bold {
-            font-weight: bold;
+            font-weight: 600;
+            color: #2c3e50;
           }
           
           .taxes-cell {
-            font-size: 9px;
-            line-height: 1.2;
+            font-size: 11px;
+            line-height: 1.3;
           }
           
           .amount-in-words {
@@ -11988,11 +11995,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
             padding: 15px;
             background-color: #ffffff;
             font-family: 'Arial', sans-serif;
-            font-size: 10px;
+            font-size: 12px;
             line-height: 1.5;
-            color: #333;
+            color: #2c3e50;
             border-radius: 4px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+          }
+
+          .signature-box {
+            font-size: 12px;
+            color: #2c3e50;
+          }
+
+          .signature-box .bold {
+            font-size: 13px;
+            margin-bottom: 5px;
+          }
+
+          .signature-box img {
+            height: 60px;
+            margin: 10px 0;
+            display: block;
+          }
+
+          .signature-box div:last-child {
+            font-size: 12px;
+            margin-top: 5px;
           }
         </style>
       </head>
@@ -12181,14 +12209,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             font-size: 12px;
             line-height: 1.4;
             color: #000;
-            margin: 0;
+            margin: 20px;
             padding: 0;
           }
           
           .container {
             max-width: 800px;
             margin: 0 auto;
-            border: 1px solid #000;
+            border: 2px solid #000;
           }
           
           .slip-title {
@@ -12223,11 +12251,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           .ship-from, .ship-to {
             width: 50%;
-            padding: 10px;
+            padding: 12px;
+            box-sizing: border-box;
           }
           
           .ship-from {
-            box-sizing: border-box;
             text-align: right;
             float: right;
           }
