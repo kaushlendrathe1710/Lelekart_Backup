@@ -8,6 +8,8 @@ import templateService from "./template-service";
 import handlebars from "handlebars";
 import puppeteer, { PaperFormat, Page } from "puppeteer";
 import fs from "fs";
+import path from "path";
+import os from "os";
 
 // Template types - export for use in other modules
 export const TEMPLATES = {
@@ -30,6 +32,21 @@ const PDF_OPTIONS = {
     left: "10mm",
   },
 };
+
+// Get the Chrome executable path based on the environment
+function getChromeExecutablePath(): string | undefined {
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    return process.env.PUPPETEER_EXECUTABLE_PATH;
+  }
+
+  // For Render environment
+  if (process.env.RENDER) {
+    return "/opt/render/project/src/node_modules/puppeteer/.local-chromium/linux-*/chrome-linux/chrome";
+  }
+
+  // For local development
+  return undefined;
+}
 
 /**
  * Wait for all images to load
@@ -65,11 +82,22 @@ export async function generatePdfBuffer(
     // Render the template with data
     const html = await templateService.renderTemplate(templateHtml, data);
 
-    // Launch Puppeteer
-    const browser = await puppeteer.launch({
+    // Configure Puppeteer launch options
+    const launchOptions = {
       headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-accelerated-2d-canvas",
+        "--disable-gpu",
+        "--window-size=1920x1080",
+      ],
+      executablePath: getChromeExecutablePath(),
+    };
+
+    // Launch Puppeteer
+    const browser = await puppeteer.launch(launchOptions);
 
     try {
       // Create a new page
@@ -132,11 +160,22 @@ export async function generatePdf(
       html.substring(0, 500)
     );
 
-    // Launch Puppeteer
-    const browser = await puppeteer.launch({
+    // Configure Puppeteer launch options
+    const launchOptions = {
       headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-accelerated-2d-canvas",
+        "--disable-gpu",
+        "--window-size=1920x1080",
+      ],
+      executablePath: getChromeExecutablePath(),
+    };
+
+    // Launch Puppeteer
+    const browser = await puppeteer.launch(launchOptions);
 
     try {
       // Create a new page
