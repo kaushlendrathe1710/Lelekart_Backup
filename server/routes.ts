@@ -11951,9 +11951,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     .invoice-logo {
-      height: 75px;
+      height: 60px;
       width: auto;
-      max-width: 400px;
+      max-width: 200px;
       object-fit: contain;
     }
     
