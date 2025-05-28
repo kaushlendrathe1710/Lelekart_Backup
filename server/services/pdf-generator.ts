@@ -1,15 +1,15 @@
 /**
  * PDF Generator Service
  *
- * This file contains functions for generating PDF documents using Puppeteer.
+ * This file contains functions for generating PDF documents.
  */
 
 import templateService from "./template-service";
 import handlebars from "handlebars";
-import puppeteer, { PaperFormat, Page } from "puppeteer";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import fs from "fs";
-import path from "path";
-import os from "os";
+import { JSDOM } from "jsdom";
+import htmlPdf from "html-pdf-node";
 
 // Template types - export for use in other modules
 export const TEMPLATES = {
@@ -23,48 +23,16 @@ export const TEMPLATES = {
 
 // PDF generation options
 const PDF_OPTIONS = {
-  format: "A4" as PaperFormat,
-  printBackground: true,
+  format: "A4",
   margin: {
     top: "10mm",
     right: "10mm",
     bottom: "10mm",
     left: "10mm",
   },
+  printBackground: true,
+  preferCSSPageSize: true,
 };
-
-// Get the Chrome executable path based on the environment
-function getChromeExecutablePath(): string | undefined {
-  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-    return process.env.PUPPETEER_EXECUTABLE_PATH;
-  }
-
-  // For Render environment
-  if (process.env.RENDER) {
-    return "/opt/render/project/src/node_modules/puppeteer/.local-chromium/linux-136.0.7103.94/chrome-linux/chrome";
-  }
-
-  // For local development
-  return undefined;
-}
-
-/**
- * Wait for all images to load
- */
-async function waitForImages(page: Page): Promise<void> {
-  await page.evaluate(async () => {
-    const selectors = Array.from(document.getElementsByTagName("img"));
-    await Promise.all(
-      selectors.map((img) => {
-        if (img.complete) return;
-        return new Promise((resolve, reject) => {
-          img.addEventListener("load", resolve);
-          img.addEventListener("error", reject);
-        });
-      })
-    );
-  });
-}
 
 /**
  * Generate a PDF document from a template
@@ -82,56 +50,11 @@ export async function generatePdfBuffer(
     // Render the template with data
     const html = await templateService.renderTemplate(templateHtml, data);
 
-    // Configure Puppeteer launch options
-    const launchOptions = {
-      headless: true,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-accelerated-2d-canvas",
-        "--disable-gpu",
-        "--window-size=1920x1080",
-      ],
-      executablePath: getChromeExecutablePath(),
-    };
+    // Generate PDF from HTML using html-pdf-node
+    const file = { content: html };
+    const pdfBuffer = await htmlPdf.generatePdf(file, PDF_OPTIONS);
 
-    // Launch Puppeteer
-    const browser = await puppeteer.launch(launchOptions);
-
-    try {
-      // Create a new page
-      const page = await browser.newPage();
-
-      // Enable request interception
-      await page.setRequestInterception(true);
-
-      // Handle requests
-      page.on("request", (request) => {
-        // Continue all requests
-        request.continue();
-      });
-
-      // Set content and wait for network idle
-      await page.setContent(html, {
-        waitUntil: "networkidle0",
-      });
-
-      // Wait for all images to load
-      await waitForImages(page);
-
-      // Additional wait to ensure everything is rendered
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Generate PDF
-      const pdfBuffer = await page.pdf(PDF_OPTIONS);
-
-      // Convert Uint8Array to Buffer
-      return Buffer.from(pdfBuffer);
-    } finally {
-      // Always close the browser
-      await browser.close();
-    }
+    return pdfBuffer;
   } catch (error) {
     console.error("Error in PDF generation:", error);
     throw error;
@@ -155,62 +78,14 @@ export async function generatePdf(
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
 
     // Log the first 500 characters of the HTML to debug template issues
-    console.log(
-      "Generating PDF with HTML content (first 500 chars):",
-      html.substring(0, 500)
-    );
+    console.log("Generating PDF with HTML content (first 500 chars):", html);
 
-    // Configure Puppeteer launch options
-    const launchOptions = {
-      headless: true,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-accelerated-2d-canvas",
-        "--disable-gpu",
-        "--window-size=1920x1080",
-      ],
-      executablePath: getChromeExecutablePath(),
-    };
+    // Generate PDF from HTML
+    const file = { content: html };
+    const pdfBuffer = await htmlPdf.generatePdf(file, PDF_OPTIONS);
 
-    // Launch Puppeteer
-    const browser = await puppeteer.launch(launchOptions);
-
-    try {
-      // Create a new page
-      const page = await browser.newPage();
-
-      // Enable request interception
-      await page.setRequestInterception(true);
-
-      // Handle requests
-      page.on("request", (request) => {
-        // Continue all requests
-        request.continue();
-      });
-
-      // Set content and wait for network idle
-      await page.setContent(html, {
-        waitUntil: "networkidle0",
-      });
-
-      // Wait for all images to load
-      await waitForImages(page);
-
-      // Additional wait to ensure everything is rendered
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Generate PDF
-      const pdfBuffer = await page.pdf(PDF_OPTIONS);
-
-      // Send PDF buffer directly
-      res.contentType("application/pdf");
-      res.send(Buffer.from(pdfBuffer));
-    } finally {
-      // Always close the browser
-      await browser.close();
-    }
+    // Send PDF buffer directly
+    res.send(pdfBuffer);
   } catch (error) {
     console.error("Error in PDF generation:", error);
     res.status(500).json({ error: "Failed to generate PDF" });
