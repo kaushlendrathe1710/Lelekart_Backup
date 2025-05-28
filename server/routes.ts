@@ -12235,7 +12235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           {{#if seller.pickupAddress.businessName}}
             <div class="bold">{{seller.pickupAddress.businessName}}</div>
           {{else}}
-            <div class="bold">{{seller.taxInformation.businessName}}</div>
+            <div class="bold">Lele Kart Retail Private Limited</div>
           {{/if}}
           <img 
             src="{{#if seller.pickupAddress.authorizationSignature}}
