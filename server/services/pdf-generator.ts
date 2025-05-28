@@ -41,7 +41,7 @@ function getChromeExecutablePath(): string | undefined {
 
   // For Render environment
   if (process.env.RENDER) {
-    return "/opt/render/project/src/node_modules/puppeteer/.local-chromium/linux-*/chrome-linux/chrome";
+    return "/opt/render/project/src/node_modules/puppeteer/.local-chromium/linux-136.0.7103.94/chrome-linux/chrome";
   }
 
   // For local development
