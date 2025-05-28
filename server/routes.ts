@@ -11877,6 +11877,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       );
 
+      // Function to convert image URL to base64
+      async function getBase64FromUrl(url: string): Promise<string> {
+        try {
+          const response = await fetch(url);
+          const buffer = await response.arrayBuffer();
+          const base64 = Buffer.from(buffer).toString('base64');
+          const mimeType = response.headers.get('content-type') || 'image/png';
+          return `data:${mimeType};base64,${base64}`;
+        } catch (error) {
+          console.error('Error converting image to base64:', error);
+          return ''; // Return empty string if conversion fails
+        }
+      }
+
+      // Convert logo and signature images to base64
+      const logoUrl = "https://drive.google.com/uc?export=view&id=138zcFxrDkzZoVOkDd1ABPHSdbl31n-Ar";
+      const signatureUrl = data.seller?.pickupAddress?.authorizationSignature || 
+                          "https://drive.google.com/uc?export=view&id=1NC3MTl6qklBjamL3bhjRMdem6rQ0mB9F";
+
+      const [logoBase64, signatureBase64] = await Promise.all([
+        getBase64FromUrl(logoUrl),
+        getBase64FromUrl(signatureUrl)
+      ]);
+
       // Generate QR code with invoice details
       const qrData = `https://lelekart.in/orders/${data.order.id}`;
 
@@ -12178,7 +12202,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     <!-- Fixed Header Section with proper alignment -->
     <div class="invoice-header">
       <div class="header-left">
-        <img src="https://drive.google.com/uc?export=view&id=138zcFxrDkzZoVOkDd1ABPHSdbl31n-Ar" alt="LeleKart Logo" class="invoice-logo">
+        <img src="${logoBase64}" alt="LeleKart Logo" class="invoice-logo">
       </div>
       
       <div class="header-right">
@@ -12318,11 +12342,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             <div class="bold">Lele Kart Retail Private Limited</div>
           {{/if}}
           <img 
-            src="{{#if seller.pickupAddress.authorizationSignature}}
-              {{seller.pickupAddress.authorizationSignature}}
-            {{else}}
-              https://drive.google.com/uc?export=view&id=1NC3MTl6qklBjamL3bhjRMdem6rQ0mB9F
-            {{/if}}" 
+            src="${signatureBase64}"
             alt="Authorized Signature"
           />
           <div class="bold">Authorized Signatory</div>
