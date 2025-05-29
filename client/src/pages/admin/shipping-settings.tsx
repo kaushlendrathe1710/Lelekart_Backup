@@ -58,6 +58,11 @@ interface ShippingCourier {
   id: number;
   name: string;
   serviceable_zones: string;
+  rate: {
+    price: number;
+    estimated_days: number;
+    is_available: boolean;
+  };
 }
 
 interface ShippingShipment {
@@ -697,8 +702,37 @@ export default function ShippingSettingsPage() {
                             </div>
                           ) : couriers && couriers.length > 0 ? (
                             couriers.map((courier: ShippingCourier) => (
-                              <SelectItem key={courier.id} value={courier.name}>
-                                {courier.name}
+                              <SelectItem
+                                key={courier.id}
+                                value={courier.name}
+                                disabled={
+                                  courier.rate && !courier.rate.is_available
+                                }
+                              >
+                                <div className="flex flex-col">
+                                  <div className="font-medium">
+                                    {courier.name}
+                                  </div>
+                                  {courier.rate && (
+                                    <>
+                                      <div className="text-sm">
+                                        <span className="font-medium">
+                                          ₹{courier.rate.price}
+                                        </span>
+                                      </div>
+                                      <div className="text-xs text-gray-500">
+                                        {courier.rate.estimated_days
+                                          ? `Estimated delivery: ${courier.rate.estimated_days} days`
+                                          : ""}
+                                        {!courier.rate.is_available && (
+                                          <span className="text-red-500 ml-1">
+                                            (Not available)
+                                          </span>
+                                        )}
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
                               </SelectItem>
                             ))
                           ) : (

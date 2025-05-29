@@ -62,12 +62,19 @@ interface Courier {
     reverse: number;
   };
   rating: number;
-  rate: number;
-  etd: string; // Estimated time of delivery
+  rate: {
+    price: number;
+    estimated_days: number;
+    is_available: boolean;
+  };
+  etd: string;
   freight_charge: number;
   courier_company_id: number;
   company_id: number;
   courier_name: string;
+  price: number;
+  cod_charge: number;
+  cod_limit: number;
 }
 
 const PendingShipments = () => {
@@ -78,6 +85,11 @@ const PendingShipments = () => {
   const [isShippingDialogOpen, setIsShippingDialogOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [selectedCourier, setSelectedCourier] = useState<string>("");
+
+  // Add pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalOrders, setTotalOrders] = useState(0);
 
   // Generate token mutation for manual refresh
   const generateTokenMutation = useMutation({
@@ -116,11 +128,11 @@ const PendingShipments = () => {
     error: pendingOrdersError,
     refetch: refetchOrders,
   } = useQuery({
-    queryKey: ["/api/shiprocket/orders/pending"],
+    queryKey: ["/api/shiprocket/orders/pending", currentPage, pageSize],
     queryFn: async () => {
       const response = await apiRequest(
         "GET",
-        "/api/shiprocket/orders/pending"
+        `/api/shiprocket/orders/pending?page=${currentPage}&limit=${pageSize}`
       );
 
       try {
@@ -143,7 +155,12 @@ const PendingShipments = () => {
           }
         }
 
-        return data;
+        // Update total orders count if available in response
+        if (data.total) {
+          setTotalOrders(data.total);
+        }
+
+        return data.orders || data; // Handle both paginated and non-paginated responses
       } catch (error) {
         console.error("Pending orders API error:", error);
         throw error;
@@ -163,6 +180,20 @@ const PendingShipments = () => {
       return failureCount < 2;
     },
   });
+
+  // Calculate total pages
+  const totalPages = Math.ceil(totalOrders / pageSize);
+
+  // Handle page change
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+  };
+
+  // Handle page size change
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setCurrentPage(1); // Reset to first page when changing page size
+  };
 
   // Get available couriers
   const {
@@ -197,108 +228,72 @@ const PendingShipments = () => {
           );
         }
 
-        // Handle various error status codes from the parsed JSON
-        if (!response.ok) {
-          console.log("Shiprocket API error:", data);
-
-          // If token is being refreshed (401)
-          if (
-            response.status === 401 &&
-            data?.error === "Token refresh required"
-          ) {
-            toast({
-              title: "Refreshing Shiprocket token",
-              description:
-                "Please wait a moment while we refresh the connection to Shiprocket",
-            });
-            // Wait a short time then retry
-            await new Promise((resolve) => setTimeout(resolve, 2000));
-            return [];
-          }
-
-          // If permissions error (403)
-          if (response.status === 403) {
-            // Don't retry on permission errors as they won't resolve with retries
-            throw new Error(
-              `Permissions error: ${
-                data?.message ||
-                data?.error ||
-                "You don't have the required permissions in Shiprocket"
-              }`
-            );
-          }
-
-          // Handle token or authentication errors with more specific messages
-          if (data?.code === "TOKEN_MISSING") {
-            throw new Error(
-              `Token not found: ${
-                data?.message || "Your Shiprocket account token is missing"
-              }`
-            );
-          }
-
-          if (data?.code === "TOKEN_ERROR") {
-            throw new Error(
-              `Token error: ${
-                data?.message ||
-                "There was a problem with your Shiprocket token"
-              }`
-            );
-          }
-
-          if (data?.code === "TOKEN_EXPIRED") {
-            throw new Error(
-              `Token expired: ${
-                data?.message || "Your Shiprocket token has expired"
-              }`
-            );
-          }
-
-          if (data?.code === "AUTH_FAILED") {
-            throw new Error(
-              `Authentication failed: ${
-                data?.message || "Your Shiprocket credentials are invalid"
-              }`
-            );
-          }
-
-          if (data?.code === "PERMISSION_ERROR") {
-            throw new Error(
-              `Permission denied: ${
-                data?.message ||
-                "Your Shiprocket account doesn't have API access"
-              }`
-            );
-          }
-
-          // For other errors
-          throw new Error(
-            data?.message || data?.error || "Error fetching couriers"
-          );
+        // Handle different response formats
+        if (data?.data && Array.isArray(data.data)) {
+          // If response has a data property that's an array
+          return data.data;
+        } else if (data?.courier_data && Array.isArray(data.courier_data)) {
+          // If response has a courier_data property that's an array
+          return data.courier_data;
+        } else if (Array.isArray(data)) {
+          // If response is directly an array
+          return data;
+        } else if (data?.couriers && Array.isArray(data.couriers)) {
+          // If response has a couriers property that's an array
+          return data.couriers;
         }
 
-        return data?.courier_data || [];
+        // If none of the above formats match, throw error
+        console.error("Unexpected courier data format:", data);
+        throw new Error(
+          "Invalid courier data format: API response does not contain an array of couriers"
+        );
       } catch (error) {
-        console.error("Couriers API error:", error);
+        console.error("Error fetching couriers:", error);
         throw error;
       }
     },
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
     retry: (failureCount, error) => {
-      // Don't retry HTML responses or permission errors
+      // Don't retry if we get HTML response or invalid data format
       if (
         error instanceof Error &&
-        (error.message.includes("returned HTML") ||
-          error.message.includes("<!DOCTYPE") ||
+        (error.message.includes("<!DOCTYPE") ||
           error.message.includes("<html") ||
-          error.message.includes("Permissions error"))
+          error.message.includes("returned HTML") ||
+          error.message.includes("Invalid courier data format"))
       ) {
         return false;
       }
-      // For other errors, retry up to 3 times
-      return failureCount < 3;
+      // For other errors, retry up to 2 times
+      return failureCount < 2;
     },
-    retryDelay: 1000, // Wait 1 second between retries
   });
+
+  // Memoize the courier options to prevent unnecessary re-renders
+  const courierOptions = React.useMemo(() => {
+    if (!Array.isArray(couriers)) return [];
+
+    return couriers.map((courier: Courier) => {
+      // Get the rate information
+      const rate = courier.rate || {
+        price: courier.freight_charge || courier.price || 0,
+        estimated_days: courier.etd ? parseInt(courier.etd) : null,
+        is_available: true,
+      };
+
+      return {
+        id: courier.id,
+        name: courier.name,
+        rate: rate.price,
+        estimatedDays: rate.estimated_days,
+        isAvailable: rate.is_available,
+        serviceability: courier.serviceability?.forward,
+        codCharge: courier.cod_charge || 0,
+        codLimit: courier.cod_limit || 0,
+      };
+    });
+  }, [couriers]);
 
   // Ship order mutation
   const shipOrderMutation = useMutation({
@@ -788,82 +783,171 @@ const PendingShipments = () => {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Order ID</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Items</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {pendingOrders?.map((order: any) => (
-                  <TableRow key={order.id}>
-                    <TableCell className="font-medium">#{order.id}</TableCell>
-                    <TableCell>
-                      {new Date(order.date).toLocaleDateString()}{" "}
-                      <span className="text-xs text-gray-500 block">
-                        {formatDistanceToNow(new Date(order.date), {
-                          addSuffix: true,
-                        })}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {order.user?.name || "Unknown"}
-                      <span className="text-xs text-gray-500 block">
-                        {order.address?.city}, {order.address?.state}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {order.items?.length || 0} items
-                      <span className="text-xs text-gray-500 block">
-                        {order.items
-                          ?.map(
-                            (item: any) =>
-                              item.productDetails?.name ||
-                              `Item #${item.productId}`
-                          )
-                          .join(", ")
-                          .substring(0, 30)}
-                        {(order.items
-                          ?.map(
-                            (item: any) =>
-                              item.productDetails?.name ||
-                              `Item #${item.productId}`
-                          )
-                          .join(", ").length || 0) > 30
-                          ? "..."
-                          : ""}
-                      </span>
-                    </TableCell>
-                    <TableCell>{formatCurrency(order.total)}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className="bg-amber-50 text-amber-700 border-amber-200"
-                      >
-                        {order.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => openShippingDialog(order.id)}
-                        className="flex items-center gap-1"
-                      >
-                        <TruckIcon className="h-4 w-4" /> Ship
-                      </Button>
-                    </TableCell>
+          <div className="space-y-4">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Order ID</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Items</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {pendingOrders?.map((order: any) => (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-medium">#{order.id}</TableCell>
+                      <TableCell>
+                        {new Date(order.date).toLocaleDateString()}{" "}
+                        <span className="text-xs text-gray-500 block">
+                          {formatDistanceToNow(new Date(order.date), {
+                            addSuffix: true,
+                          })}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {order.user?.name || "Unknown"}
+                        <span className="text-xs text-gray-500 block">
+                          {order.address?.city}, {order.address?.state}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {order.items?.length || 0} items
+                        <span className="text-xs text-gray-500 block">
+                          {order.items
+                            ?.map(
+                              (item: any) =>
+                                item.productDetails?.name ||
+                                `Item #${item.productId}`
+                            )
+                            .join(", ")
+                            .substring(0, 30)}
+                          {(order.items
+                            ?.map(
+                              (item: any) =>
+                                item.productDetails?.name ||
+                                `Item #${item.productId}`
+                            )
+                            .join(", ").length || 0) > 30
+                            ? "..."
+                            : ""}
+                        </span>
+                      </TableCell>
+                      <TableCell>{formatCurrency(order.total)}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className="bg-amber-50 text-amber-700 border-amber-200"
+                        >
+                          {order.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => openShippingDialog(order.id)}
+                          className="flex items-center gap-1"
+                        >
+                          <TruckIcon className="h-4 w-4" /> Ship
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Add pagination controls */}
+            <div className="flex items-center justify-between px-2">
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-gray-500">
+                  Showing {(currentPage - 1) * pageSize + 1} to{" "}
+                  {Math.min(currentPage * pageSize, totalOrders)} of{" "}
+                  {totalOrders} orders
+                </p>
+                <Select
+                  value={pageSize.toString()}
+                  onValueChange={(value) => handlePageSizeChange(Number(value))}
+                >
+                  <SelectTrigger className="h-8 w-[70px]">
+                    <SelectValue placeholder={pageSize} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-1">
+                {/* Render a limited range of page numbers */}
+                {(() => {
+                  const pages = [];
+                  const maxPagesToShow = 5; // Maximum number of page buttons to show
+                  const totalPages = Math.ceil(totalOrders / pageSize); // Ensure totalPages is calculated correctly
+
+                  // Determine the start and end page numbers to display
+                  let startPage, endPage;
+
+                  if (totalPages <= maxPagesToShow) {
+                    // If total pages are less than or equal to max, show all pages
+                    startPage = 1;
+                    endPage = totalPages;
+                  } else {
+                    // Calculate start and end pages to keep the current page centered
+                    const halfPagesToShow = Math.floor(maxPagesToShow / 2);
+                    startPage = Math.max(1, currentPage - halfPagesToShow);
+                    endPage = Math.min(
+                      totalPages,
+                      currentPage + halfPagesToShow
+                    );
+
+                    // Adjust start and end if they hit boundaries
+                    if (endPage - startPage + 1 < maxPagesToShow) {
+                      if (startPage === 1) {
+                        endPage = Math.min(
+                          totalPages,
+                          startPage + maxPagesToShow - 1
+                        );
+                      } else if (endPage === totalPages) {
+                        startPage = Math.max(1, endPage - maxPagesToShow + 1);
+                      }
+                    }
+                  }
+
+                  // Render page buttons
+                  for (let i = startPage; i <= endPage; i++) {
+                    pages.push(
+                      <Button
+                        key={i}
+                        variant={currentPage === i ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(i)}
+                        className="w-8 h-8"
+                      >
+                        {i}
+                      </Button>
+                    );
+                  }
+
+                  return pages;
+                })()}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </Button>
+            </div>
           </div>
         )}
       </CardContent>
@@ -983,23 +1067,49 @@ const PendingShipments = () => {
                   <SelectValue placeholder="Select a courier" />
                 </SelectTrigger>
                 <SelectContent>
-                  {couriers?.map((courier: Courier) => (
-                    <SelectItem key={courier.id} value={courier.id}>
-                      <div className="flex flex-col">
-                        <div>
-                          {courier.name} - ₹
-                          {courier.rate || courier.freight_charge || 0}
+                  {courierOptions.length > 0 ? (
+                    courierOptions.map((courier) => (
+                      <SelectItem
+                        key={courier.id}
+                        value={courier.id}
+                        disabled={!courier.isAvailable}
+                      >
+                        <div className="flex flex-col">
+                          <div className="font-medium">{courier.name}</div>
+                          <div className="text-sm">
+                            <span className="font-medium">₹{courier.rate}</span>
+                            {courier.codCharge > 0 && (
+                              <span className="text-gray-500 ml-2">
+                                (COD: ₹{courier.codCharge})
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {courier.estimatedDays
+                              ? `Estimated delivery: ${courier.estimatedDays} days`
+                              : ""}
+                            {courier.serviceability
+                              ? ` (${courier.serviceability} serviceable)`
+                              : ""}
+                            {courier.codLimit > 0 && (
+                              <span className="ml-1">
+                                (COD Limit: ₹{courier.codLimit})
+                              </span>
+                            )}
+                            {!courier.isAvailable && (
+                              <span className="text-red-500 ml-1">
+                                (Not available for this order)
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-500">
-                          {courier.etd ? `ETD: ${courier.etd}` : ""}
-                          {courier.serviceability &&
-                          courier.serviceability.forward
-                            ? ` (${courier.serviceability.forward} serviceable)`
-                            : ""}
-                        </div>
-                      </div>
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-couriers" disabled>
+                      No couriers available
                     </SelectItem>
-                  ))}
+                  )}
                 </SelectContent>
               </Select>
             )}
