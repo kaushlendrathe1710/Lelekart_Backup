@@ -91,7 +91,7 @@ import {
 // Form validation schema
 const productSchema = z
   .object({
-    name: z.string().min(3, "Product name must be at least 3 characters"),
+    name: z.string().min(5, "Product name must be at least 5 characters"),
     brand: z.string().optional().nullable(),
     category: z.string().min(2, "Category is required"),
     subcategory: z.string().optional().nullable(),

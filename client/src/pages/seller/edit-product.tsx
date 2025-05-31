@@ -1407,44 +1407,39 @@ export default function EditProductPage() {
         name: data.name,
         description: data.description,
         specifications: data.specifications,
-        price: parseInt(data.price), // Convert to number
-        mrp: parseInt(data.mrp),
+        price: parseFloat(data.price),
+        mrp: parseFloat(data.mrp),
         purchasePrice: data.purchasePrice
           ? parseFloat(data.purchasePrice)
           : undefined,
-        gstRate: gstRateValue || "0", // Make sure to include GST rate as a string
+        gstRate: gstRateValue || "0",
         category: data.category,
         subcategory:
-          data.subcategory === "none" ? null : data.subcategory || null, // Add subcategory, convert "none" to null
-        subcategoryId: data.subcategoryId || null, // Add subcategoryId
+          data.subcategory === "none" ? null : data.subcategory || null,
+        subcategoryId: data.subcategoryId || null,
         brand: data.brand,
         color: data.color,
         size: data.size,
         imageUrl: imageUrl,
-        images: JSON.stringify(uploadedImages), // Add the images array as a JSON string
-        // If variants exist, calculate total stock from variants
-        // Only use currentVariants to avoid duplicate stock counting, as variants are already in currentVariants
+        images: JSON.stringify(uploadedImages),
         stock:
           currentVariants.length > 0
             ? currentVariants.reduce(
                 (sum, variant) => sum + (Number(variant.stock) || 0),
                 0
               )
-            : parseInt(data.stock || "0"), // Otherwise use the main stock field with fallback
+            : parseInt(data.stock || "0"),
         weight: data.weight ? parseFloat(data.weight) : undefined,
         height: data.height ? parseFloat(data.height) : undefined,
         width: data.width ? parseFloat(data.width) : undefined,
         length: data.length ? parseFloat(data.length) : undefined,
         warranty: data.warranty ? parseInt(data.warranty) : undefined,
-        tax: gstRateValue || "0", // Make sure tax and gstRate are synchronized
         hsn: data.hsn,
         productType: data.productType,
-        returnPolicy:
-          data.returnPolicy === "custom"
-            ? data.customReturnPolicy || "0"
-            : data.returnPolicy,
-        // Add the __preserveVariants flag to ensure existing variants are preserved when category is changed
-        __preserveVariants: true,
+        returnPolicy: isStandardReturnPolicy(data.returnPolicy)
+          ? data.returnPolicy
+          : data.customReturnPolicy,
+        variants: [...variants, ...draftVariants],
       };
       console.log("productData", productData.width);
       console.log("Full product data:", JSON.stringify(productData, null, 2));

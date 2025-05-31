@@ -714,8 +714,8 @@ export default function BulkImportPage() {
                           </h4>
                           <ul className="list-disc pl-6 mt-2 text-sm text-gray-600 space-y-1">
                             <li>
-                              <span className="font-medium">Name</span>: at
-                              least 3 characters
+                              <span className="font-medium">Name</span>: 3-200
+                              characters
                             </li>
                             <li>
                               <span className="font-medium">Description</span>:
