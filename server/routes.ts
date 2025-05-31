@@ -7121,14 +7121,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Validate required fields
             if (
               !row["name"] ||
-              !row["description"] ||
               row["price"] === undefined ||
               row["stock"] === undefined ||
               !row["category"]
             ) {
+              const missingFields = [];
+              if (!row["name"]) missingFields.push("name");
+              if (row["price"] === undefined) missingFields.push("price");
+              if (row["stock"] === undefined) missingFields.push("stock");
+              if (!row["category"]) missingFields.push("category");
+
               results.errors.push({
                 row: rowNum,
-                message: "Missing required fields",
+                message: `Missing required fields: ${missingFields.join(", ")}`,
               });
               results.failed++;
               continue;
@@ -7348,7 +7353,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Create product object
             const productData = {
               name: row["name"],
-              description: row["description"],
+              description: row["description"] || null, // Description is now optional
               price: price,
               stock: stock,
               mrp: mrp,
@@ -7407,8 +7412,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const missingFields = [];
             if (!row["name"] || row["name"].trim() === "")
               missingFields.push("name");
-            if (!row["description"] || row["description"].trim() === "")
-              missingFields.push("description");
             if (!row["price"] || isNaN(parseFloat(row["price"])))
               missingFields.push("price");
             if (!row["category"] || row["category"].trim() === "")
@@ -7432,8 +7435,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               if (error.message.includes("violates not-null constraint")) {
                 if (error.message.includes("name")) {
                   errorMessage = "Product name is required";
-                } else if (error.message.includes("description")) {
-                  errorMessage = "Product description is required";
                 } else if (error.message.includes("price")) {
                   errorMessage = "Price is required";
                 } else if (error.message.includes("category")) {
