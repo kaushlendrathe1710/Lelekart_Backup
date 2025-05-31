@@ -1,9 +1,16 @@
-import { ReactNode, useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Button } from './button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './card';
-import { Loader2, AlertCircle, HelpCircle, CheckCircle2 } from 'lucide-react';
-import { useLocation } from 'wouter';
+import { ReactNode, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Button } from "./button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "./card";
+import { Loader2, AlertCircle, HelpCircle, CheckCircle2 } from "lucide-react";
+import { useLocation } from "wouter";
 
 interface ApprovalCheckProps {
   children: ReactNode;
@@ -13,26 +20,34 @@ export default function ApprovalCheck({ children }: ApprovalCheckProps) {
   const [location, setLocation] = useLocation();
   const [showRejectionReason, setShowRejectionReason] = useState(false);
 
-  const { data: sellerStatus, isLoading, isError } = useQuery({
-    queryKey: ['/api/seller/status'],
+  const {
+    data: sellerStatus,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["/api/seller/status"],
     queryFn: async () => {
       try {
-        const res = await fetch('/api/seller/status');
+        const res = await fetch("/api/seller/status");
         if (!res.ok) {
-          throw new Error('Failed to fetch seller status');
+          throw new Error("Failed to fetch seller status");
         }
         return res.json();
       } catch (error) {
-        console.error('Error fetching seller status:', error);
+        console.error("Error fetching seller status:", error);
         throw error;
       }
-    }
+    },
   });
 
   // Redirect to profile if status isn't available and we're not already on the profile page
   useEffect(() => {
-    if (sellerStatus && sellerStatus.rejected && !location.includes('/seller/profile')) {
-      setLocation('/seller/profile');
+    if (
+      sellerStatus &&
+      sellerStatus.rejected &&
+      !location.includes("/seller/profile")
+    ) {
+      setLocation("/seller/profile");
     }
   }, [sellerStatus, location, setLocation]);
 
@@ -55,7 +70,8 @@ export default function ApprovalCheck({ children }: ApprovalCheckProps) {
         </CardHeader>
         <CardContent>
           <p className="text-red-600">
-            There was an error checking your seller approval status. Please try again later or contact support.
+            There was an error checking your seller approval status. Please try
+            again later or contact support.
           </p>
         </CardContent>
         <CardFooter>
@@ -89,15 +105,19 @@ export default function ApprovalCheck({ children }: ApprovalCheckProps) {
             <div className="space-y-4">
               <p className="text-red-600 font-medium">Reason for rejection:</p>
               <div className="bg-white p-3 rounded border border-red-200">
-                <p className="text-gray-700">{sellerStatus.message || "No specific reason provided."}</p>
+                <p className="text-gray-700">
+                  {sellerStatus.message || "No specific reason provided."}
+                </p>
               </div>
               <p className="text-sm text-gray-600">
-                Please update your seller profile with the required information and resubmit your application.
+                Please update your seller profile with the required information
+                and resubmit your application.
               </p>
             </div>
           ) : (
             <p className="text-red-600">
-              Your seller application has been reviewed and rejected. Please update your profile and resubmit.
+              Your seller application has been reviewed and rejected. Please
+              update your profile and resubmit.
             </p>
           )}
         </CardContent>
@@ -109,7 +129,7 @@ export default function ApprovalCheck({ children }: ApprovalCheckProps) {
           >
             {showRejectionReason ? "Hide Details" : "View Details"}
           </Button>
-          <Button onClick={() => setLocation('/seller/profile')}>
+          <Button onClick={() => setLocation("/seller/profile")}>
             Update Profile
           </Button>
         </CardFooter>
@@ -132,25 +152,36 @@ export default function ApprovalCheck({ children }: ApprovalCheckProps) {
         </CardHeader>
         <CardContent>
           <p className="text-amber-700">
-            Our team is reviewing your seller information. You'll be notified once your account is approved.
-            In the meantime, you can update your seller profile.
+            Our team is reviewing your seller information. You'll be notified
+            once your account is approved. In the meantime, you can update your
+            seller profile.
           </p>
           <div className="mt-4 bg-white p-3 rounded border border-amber-200">
             <h4 className="font-medium text-amber-700 mb-2">While you wait:</h4>
             <ul className="list-disc pl-5 space-y-1 text-sm text-gray-600">
-              <li>Make sure your profile information is complete and accurate</li>
+              <li>
+                Make sure your profile information is complete and accurate
+              </li>
               <li>Prepare product information you want to list</li>
               <li>Review our seller policies and guidelines</li>
+              <li>Update your details in Settings</li>
             </ul>
           </div>
         </CardContent>
-        <CardFooter>
+        <CardFooter className="flex justify-between">
           <Button
             variant="outline"
-            onClick={() => setLocation('/seller/profile')}
+            onClick={() => setLocation("/seller/profile")}
             className="text-amber-600 border-amber-200 hover:bg-amber-50"
           >
             View Profile
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setLocation("/seller/settings")}
+            className="text-amber-600 border-amber-200 hover:bg-amber-50"
+          >
+            View Settings
           </Button>
         </CardFooter>
       </Card>
@@ -161,12 +192,15 @@ export default function ApprovalCheck({ children }: ApprovalCheckProps) {
   return (
     <div className="space-y-6">
       {/* Show small approved notification on some pages */}
-      {!location.includes('/seller/dashboard') && !location.includes('/seller/profile') && (
-        <div className="flex items-center gap-2 p-3 bg-green-50 rounded-md border border-green-100 mb-4">
-          <CheckCircle2 className="h-5 w-5 text-green-600" />
-          <span className="text-sm text-green-700 font-medium">Your seller account is approved and active</span>
-        </div>
-      )}
+      {!location.includes("/seller/dashboard") &&
+        !location.includes("/seller/profile") && (
+          <div className="flex items-center gap-2 p-3 bg-green-50 rounded-md border border-green-100 mb-4">
+            <CheckCircle2 className="h-5 w-5 text-green-600" />
+            <span className="text-sm text-green-700 font-medium">
+              Your seller account is approved and active
+            </span>
+          </div>
+        )}
       {children}
     </div>
   );

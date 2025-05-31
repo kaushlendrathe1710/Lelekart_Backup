@@ -3353,6 +3353,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Not authorized" });
 
       try {
+        // Check if seller is approved (skip for admin)
+        if (req.user.role === "seller") {
+          const seller = await storage.getUser(req.user.id);
+          if (!seller || !seller.approved) {
+            return res.status(403).json({
+              error: "Seller account not approved",
+              message:
+                "Your seller account needs to be approved before you can list products.",
+            });
+          }
+        }
+
         const { productData, variants } = req.body;
 
         console.log("Creating product with data:", JSON.stringify(productData));
@@ -3530,6 +3542,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(403).json({ error: "Not authorized" });
 
     try {
+      // Check if seller is approved (skip for admin)
+      if (req.user.role === "seller") {
+        const seller = await storage.getUser(req.user.id);
+        if (!seller || !seller.approved) {
+          return res.status(403).json({
+            error: "Seller account not approved",
+            message:
+              "Your seller account needs to be approved before you can create draft products.",
+          });
+        }
+      }
+
       const { productData, variants } = req.body;
 
       console.log(
