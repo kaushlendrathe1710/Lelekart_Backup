@@ -986,8 +986,8 @@ export default function AddProductPage() {
         name: data.name,
         description: data.description,
         specifications: data.specifications,
-        price: parseInt(data.price),
-        mrp: parseInt(data.mrp),
+        price: parseFloat(data.price),
+        mrp: parseFloat(data.mrp),
         purchasePrice: data.purchasePrice
           ? parseFloat(data.purchasePrice)
           : undefined,
