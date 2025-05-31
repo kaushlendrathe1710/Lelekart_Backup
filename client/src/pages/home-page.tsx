@@ -51,6 +51,7 @@ export default function HomePage() {
         approved: true,
         isDraft: true,
         rejected: true,
+        status: "approved",
       },
     ],
     queryFn: async ({ queryKey }) => {
@@ -63,13 +64,14 @@ export default function HomePage() {
           approved: boolean;
           isDraft: boolean;
           rejected: boolean;
+          status: string;
         }
       ];
       // Add cache busting parameter
       const cacheBuster = new Date().getTime();
       const url = `/api/products?page=${params.page}&limit=${params.limit}${
         params.category ? `&category=${params.category}` : ""
-      }&approved=true&isDraft=true&rejected=true&_=${cacheBuster}`;
+      }&approved=true&isDraft=true&rejected=true&status=approved&_=${cacheBuster}`;
       const res = await fetch(url, {
         headers: {
           "Cache-Control": "no-cache, no-store, must-revalidate",
@@ -97,7 +99,9 @@ export default function HomePage() {
   const { data: heroProducts, isLoading: isLoadingHero } = useQuery({
     queryKey: ["/api/featured-hero-products"],
     queryFn: async () => {
-      const res = await fetch("/api/featured-hero-products");
+      const res = await fetch(
+        "/api/featured-hero-products?approved=true&status=approved"
+      );
       if (!res.ok) throw new Error("Failed to fetch hero products");
       return res.json();
     },
@@ -111,7 +115,9 @@ export default function HomePage() {
   const { data: dealOfTheDay, isLoading: isLoadingDeal } = useQuery({
     queryKey: ["/api/deal-of-the-day"],
     queryFn: async () => {
-      const res = await fetch("/api/deal-of-the-day");
+      const res = await fetch(
+        "/api/deal-of-the-day?approved=true&status=approved"
+      );
       if (!res.ok) throw new Error("Failed to fetch deal of the day");
       return res.json();
     },
