@@ -1,20 +1,20 @@
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Loader2, 
-  Download, 
-  Upload, 
-  AlertCircle, 
-  CheckCircle, 
-  Info, 
+import {
+  Loader2,
+  Download,
+  Upload,
+  AlertCircle,
+  CheckCircle,
+  Info,
   FileText,
   FilePlus,
-  CheckSquare, 
+  CheckSquare,
   XSquare,
   AlertTriangle,
   X,
-  Trash2
+  Trash2,
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -67,7 +67,7 @@ export default function BulkImportPage() {
   // Mutation for uploading file
   // Reference to the progress interval
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // Clear the progress interval when unmounting
   useEffect(() => {
     return () => {
@@ -76,7 +76,7 @@ export default function BulkImportPage() {
       }
     };
   }, []);
-  
+
   const uploadMutation = useMutation({
     mutationFn: async (formData: FormData) => {
       const response = await fetch("/api/seller/products/bulk-import", {
@@ -84,12 +84,12 @@ export default function BulkImportPage() {
         body: formData,
         credentials: "include",
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to process bulk import");
       }
-      
+
       return response.json();
     },
     onSuccess: (data) => {
@@ -98,7 +98,7 @@ export default function BulkImportPage() {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
-      
+
       setUploadResults({
         successful: data.successful || 0,
         failed: data.failed || 0,
@@ -107,9 +107,9 @@ export default function BulkImportPage() {
       });
       setProcessingState("complete");
       setUploadProgress(100);
-      
+
       queryClient.invalidateQueries({ queryKey: ["/api/seller/products"] });
-      
+
       toast({
         title: "Bulk import processed",
         description: `Successfully added ${data.successful} products. ${data.failed} products failed to import.`,
@@ -122,25 +122,29 @@ export default function BulkImportPage() {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
-      
+
       setProcessingState("error");
       setUploadProgress(0);
-      
+
       // Set an error result to display in the Flipkart-style error box
       setUploadResults({
         successful: 0,
         failed: 1,
-        errors: [{
-          row: 0,
-          message: error instanceof Error ? error.message : "Unknown error occurred"
-        }],
-        products: []
+        errors: [
+          {
+            row: 0,
+            message:
+              error instanceof Error ? error.message : "Unknown error occurred",
+          },
+        ],
+        products: [],
       });
-      
+
       // Also show a toast notification for immediate feedback
       toast({
         title: "Bulk import failed",
-        description: error instanceof Error ? error.message : "Unknown error occurred",
+        description:
+          error instanceof Error ? error.message : "Unknown error occurred",
         variant: "destructive",
       });
     },
@@ -150,9 +154,11 @@ export default function BulkImportPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      if (selectedFile.type !== "text/csv" && 
-          !selectedFile.type.includes("spreadsheet") &&
-          !selectedFile.name.endsWith('.xlsx')) {
+      if (
+        selectedFile.type !== "text/csv" &&
+        !selectedFile.type.includes("spreadsheet") &&
+        !selectedFile.name.endsWith(".xlsx")
+      ) {
         toast({
           title: "Invalid file format",
           description: "Please upload a CSV or Excel file",
@@ -160,7 +166,7 @@ export default function BulkImportPage() {
         });
         return;
       }
-      
+
       setFile(selectedFile);
       setProcessingState("idle");
       setUploadResults(null);
@@ -176,13 +182,13 @@ export default function BulkImportPage() {
     setProcessingState("idle");
     setUploadProgress(0);
     setUploadResults(null);
-    
+
     if (progressIntervalRef.current) {
       clearInterval(progressIntervalRef.current);
       progressIntervalRef.current = null;
     }
   };
-  
+
   // Function to handle file upload
   const handleUpload = async () => {
     if (!file) {
@@ -201,10 +207,10 @@ export default function BulkImportPage() {
 
     setProcessingState("uploading");
     setUploadProgress(0);
-    
+
     const formData = new FormData();
     formData.append("file", file);
-    
+
     // Simulate progress for better UX
     progressIntervalRef.current = setInterval(() => {
       setUploadProgress((prev) => {
@@ -220,7 +226,7 @@ export default function BulkImportPage() {
         return newProgress;
       });
     }, 200);
-    
+
     uploadMutation.mutate(formData);
   };
 
@@ -229,7 +235,7 @@ export default function BulkImportPage() {
     try {
       const response = await fetch("/api/seller/products/bulk-import/template");
       if (!response.ok) throw new Error("Failed to download template");
-      
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -239,7 +245,7 @@ export default function BulkImportPage() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
+
       toast({
         title: "Template downloaded",
         description: "Product import template has been downloaded successfully",
@@ -247,7 +253,8 @@ export default function BulkImportPage() {
     } catch (error) {
       toast({
         title: "Download failed",
-        description: error instanceof Error ? error.message : "Unknown error occurred",
+        description:
+          error instanceof Error ? error.message : "Unknown error occurred",
         variant: "destructive",
       });
     }
@@ -257,7 +264,9 @@ export default function BulkImportPage() {
     <SellerDashboardLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Bulk Product Import</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Bulk Product Import
+          </h1>
           <p className="text-muted-foreground">
             Import multiple products at once using a CSV or Excel file
           </p>
@@ -268,7 +277,7 @@ export default function BulkImportPage() {
             <TabsTrigger value="import">Import Products</TabsTrigger>
             <TabsTrigger value="help">Help & Instructions</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="import" className="space-y-4 mt-4">
             {/* Flipkart-style Upload Section */}
             <Card className="border-0 shadow-sm">
@@ -279,17 +288,17 @@ export default function BulkImportPage() {
                     Upload your product data using the template format
                   </p>
                 </div>
-                
+
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <Button 
-                    onClick={handleDownloadTemplate} 
-                    variant="outline" 
+                  <Button
+                    onClick={handleDownloadTemplate}
+                    variant="outline"
                     className="h-10 border-blue-500 text-blue-500 hover:bg-blue-50"
                   >
                     <Download className="mr-2 h-4 w-4" />
                     Download Template
                   </Button>
-                  
+
                   <input
                     type="file"
                     accept=".csv,.xlsx,.xls"
@@ -297,7 +306,7 @@ export default function BulkImportPage() {
                     ref={fileInputRef}
                     className="hidden"
                   />
-                  
+
                   <Button
                     onClick={() => fileInputRef.current?.click()}
                     variant="outline"
@@ -306,16 +315,23 @@ export default function BulkImportPage() {
                     <FileText className="mr-2 h-4 w-4" />
                     Select File
                   </Button>
-                  
-                  <Button 
+
+                  <Button
                     onClick={handleUpload}
-                    disabled={!file || processingState === "uploading" || processingState === "processing"}
+                    disabled={
+                      !file ||
+                      processingState === "uploading" ||
+                      processingState === "processing"
+                    }
                     className="h-10 bg-blue-500 hover:bg-blue-600"
                   >
-                    {processingState === "uploading" || processingState === "processing" ? (
+                    {processingState === "uploading" ||
+                    processingState === "processing" ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {processingState === "uploading" ? "Uploading..." : "Processing..."}
+                        {processingState === "uploading"
+                          ? "Uploading..."
+                          : "Processing..."}
                       </>
                     ) : (
                       <>
@@ -335,21 +351,33 @@ export default function BulkImportPage() {
                         ({(file.size / 1024).toFixed(2)} KB)
                       </span>
                     </div>
-                    <button 
+                    <button
                       onClick={handleRemoveFile}
                       className="text-gray-500 hover:text-red-500 focus:outline-none"
-                      disabled={processingState === "uploading" || processingState === "processing"}
+                      disabled={
+                        processingState === "uploading" ||
+                        processingState === "processing"
+                      }
                       title="Remove file"
                     >
-                      {processingState === "error" ? <Trash2 className="h-5 w-5" /> : <X className="h-5 w-5" />}
+                      {processingState === "error" ? (
+                        <Trash2 className="h-5 w-5" />
+                      ) : (
+                        <X className="h-5 w-5" />
+                      )}
                     </button>
                   </div>
                 )}
 
-                {(processingState === "uploading" || processingState === "processing") && (
+                {(processingState === "uploading" ||
+                  processingState === "processing") && (
                   <div className="space-y-2 mt-4">
                     <div className="flex justify-between text-sm">
-                      <span>{processingState === "uploading" ? "Uploading..." : "Processing..."}</span>
+                      <span>
+                        {processingState === "uploading"
+                          ? "Uploading..."
+                          : "Processing..."}
+                      </span>
                       <span>{Math.round(uploadProgress)}%</span>
                     </div>
                     <Progress value={uploadProgress} className="h-2" />
@@ -368,25 +396,33 @@ export default function BulkImportPage() {
                       Summary of your bulk import operation
                     </p>
                   </div>
-                  
+
                   <div className="flex flex-row gap-6 mb-6">
                     <div className="flex items-center">
                       <div className="rounded-full bg-green-100 p-3 mr-3">
                         <CheckSquare className="h-6 w-6 text-green-500" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-medium text-gray-500">Successful</h3>
-                        <p className="text-2xl font-bold">{uploadResults.successful}</p>
+                        <h3 className="text-sm font-medium text-gray-500">
+                          Successful
+                        </h3>
+                        <p className="text-2xl font-bold">
+                          {uploadResults.successful}
+                        </p>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center">
                       <div className="rounded-full bg-red-100 p-3 mr-3">
                         <XSquare className="h-6 w-6 text-red-500" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-medium text-gray-500">Failed</h3>
-                        <p className="text-2xl font-bold">{uploadResults.failed}</p>
+                        <h3 className="text-sm font-medium text-gray-500">
+                          Failed
+                        </h3>
+                        <p className="text-2xl font-bold">
+                          {uploadResults.failed}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -402,7 +438,8 @@ export default function BulkImportPage() {
                               Bulk import successful
                             </h3>
                             <p className="text-sm mt-1">
-                              Successfully added {uploadResults.successful} products.
+                              Successfully added {uploadResults.successful}{" "}
+                              products.
                             </p>
                           </div>
                         </div>
@@ -422,12 +459,13 @@ export default function BulkImportPage() {
                                 Error Occurred
                               </h3>
                               <p className="text-sm mt-1 text-red-700">
-                                {uploadResults.failed} products failed to import.
+                                {uploadResults.failed} products failed to
+                                import.
                               </p>
                             </div>
                           </div>
-                          
-                          <Button 
+
+                          <Button
                             onClick={handleRemoveFile}
                             variant="outline"
                             size="sm"
@@ -443,57 +481,100 @@ export default function BulkImportPage() {
 
                   {uploadResults.errors.length > 0 && (
                     <div className="mt-5">
-                      <h3 className="font-medium mb-3 text-gray-800">Error Details</h3>
+                      <h3 className="font-medium mb-3 text-gray-800">
+                        Error Details
+                      </h3>
                       <div className="rounded-md border overflow-x-auto">
                         <Table>
                           <TableHeader>
                             <TableRow className="bg-gray-50">
-                              <TableHead className="w-20 py-3 text-gray-700">Row</TableHead>
-                              <TableHead className="py-3 text-gray-700">Error</TableHead>
-                              <TableHead className="w-40 py-3 text-gray-700">Recommendation</TableHead>
+                              <TableHead className="w-20 py-3 text-gray-700">
+                                Row
+                              </TableHead>
+                              <TableHead className="py-3 text-gray-700">
+                                Error
+                              </TableHead>
+                              <TableHead className="w-40 py-3 text-gray-700">
+                                Recommendation
+                              </TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {uploadResults.errors.map((error, index) => {
                               // Determine a helpful recommendation based on the error message
                               let recommendation = "Check input format";
-                              
-                              if (error.message.includes("Missing required fields")) {
-                                const missingFields = error.message.replace("Missing required fields: ", "");
+
+                              if (
+                                error.message.includes(
+                                  "Missing required fields"
+                                )
+                              ) {
+                                const missingFields = error.message.replace(
+                                  "Missing required fields: ",
+                                  ""
+                                );
                                 recommendation = `Add values for: ${missingFields}`;
-                              } else if (error.message.includes("name must be between")) {
+                              } else if (
+                                error.message.includes("name must be between")
+                              ) {
                                 recommendation = "Fix product name length";
                               } else if (error.message.includes("category")) {
                                 recommendation = "Use valid category";
-                              } else if (error.message.includes("price") || error.message.includes("stock")) {
+                              } else if (
+                                error.message.includes("price") ||
+                                error.message.includes("stock")
+                              ) {
                                 recommendation = "Use valid numbers";
                               }
-                              
+
                               return (
-                                <TableRow key={index} className="border-t border-gray-100">
-                                  <TableCell className="font-medium py-3 text-center">{error.row}</TableCell>
+                                <TableRow
+                                  key={index}
+                                  className="border-t border-gray-100"
+                                >
+                                  <TableCell className="font-medium py-3 text-center">
+                                    {error.row}
+                                  </TableCell>
                                   <TableCell className="py-3">
                                     <div className="text-red-600">
                                       {error.message}
                                     </div>
                                   </TableCell>
                                   <TableCell className="py-3">
-                                    {error.message.includes("Missing required fields") ? (
+                                    {error.message.includes(
+                                      "Missing required fields"
+                                    ) ? (
                                       <div className="space-y-1">
-                                        <Badge variant="outline" className="bg-blue-50 text-blue-600 font-normal border-blue-200">
+                                        <Badge
+                                          variant="outline"
+                                          className="bg-blue-50 text-blue-600 font-normal border-blue-200"
+                                        >
                                           {recommendation}
                                         </Badge>
                                         <div className="mt-1 text-xs text-gray-600">
-                                          Add these fields in your CSV file: 
-                                          {error.message.replace("Missing required fields: ", "").split(", ").map((field) => (
-                                            <Badge key={field} variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 ml-1">
-                                              {field}
-                                            </Badge>
-                                          ))}
+                                          Add these fields in your CSV file:
+                                          {error.message
+                                            .replace(
+                                              "Missing required fields: ",
+                                              ""
+                                            )
+                                            .split(", ")
+                                            .map((field) => (
+                                              <Badge
+                                                key={field}
+                                                variant="outline"
+                                                className="bg-yellow-50 text-yellow-700 border-yellow-200 ml-1"
+                                              >
+                                                {field}
+                                              </Badge>
+                                            ))}
                                         </div>
                                       </div>
                                     ) : (
-                                      <Badge variant="outline" className="bg-blue-50 text-blue-600 font-normal border-blue-200">
+                                      <Badge
+                                        variant="outline"
+                                        className="bg-blue-50 text-blue-600 font-normal border-blue-200"
+                                      >
                                         {recommendation}
                                       </Badge>
                                     )}
@@ -507,52 +588,71 @@ export default function BulkImportPage() {
                     </div>
                   )}
 
-                  {uploadResults.products.length > 0 && uploadResults.successful > 0 && (
-                    <div className="mt-5">
-                      <h3 className="font-medium mb-3 text-gray-800">Successfully Imported Products</h3>
-                      <div className="rounded-md border overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow className="bg-gray-50">
-                              <TableHead className="w-20 py-3 text-gray-700">ID</TableHead>
-                              <TableHead className="py-3 text-gray-700">Name</TableHead>
-                              <TableHead className="w-30 py-3 text-gray-700">Status</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {uploadResults.products
-                              .filter(product => product.status === "success")
-                              .map((product) => (
-                                <TableRow key={product.id} className="border-t border-gray-100">
-                                  <TableCell className="font-medium py-3">{product.id}</TableCell>
-                                  <TableCell className="py-3">{product.name}</TableCell>
-                                  <TableCell className="py-3">
-                                    <Badge className="bg-green-50 text-green-600 font-normal border-green-200">
-                                      Success
-                                    </Badge>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                          </TableBody>
-                        </Table>
+                  {uploadResults.products.length > 0 &&
+                    uploadResults.successful > 0 && (
+                      <div className="mt-5">
+                        <h3 className="font-medium mb-3 text-gray-800">
+                          Successfully Imported Products
+                        </h3>
+                        <div className="rounded-md border overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="bg-gray-50">
+                                <TableHead className="w-20 py-3 text-gray-700">
+                                  ID
+                                </TableHead>
+                                <TableHead className="py-3 text-gray-700">
+                                  Name
+                                </TableHead>
+                                <TableHead className="w-30 py-3 text-gray-700">
+                                  Status
+                                </TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {uploadResults.products
+                                .filter(
+                                  (product) => product.status === "success"
+                                )
+                                .map((product) => (
+                                  <TableRow
+                                    key={product.id}
+                                    className="border-t border-gray-100"
+                                  >
+                                    <TableCell className="font-medium py-3">
+                                      {product.id}
+                                    </TableCell>
+                                    <TableCell className="py-3">
+                                      {product.name}
+                                    </TableCell>
+                                    <TableCell className="py-3">
+                                      <Badge className="bg-green-50 text-green-600 font-normal border-green-200">
+                                        Success
+                                      </Badge>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                            </TableBody>
+                          </Table>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                 </CardContent>
               </Card>
             )}
           </TabsContent>
-          
+
           <TabsContent value="help" className="space-y-4 mt-4">
             <Card className="border-0 shadow-sm">
               <CardContent className="p-6 pb-2">
                 <div className="mb-4">
                   <h2 className="text-xl font-semibold">Help & Instructions</h2>
                   <p className="text-gray-500 text-sm">
-                    Follow these guidelines to ensure your bulk import is successful
+                    Follow these guidelines to ensure your bulk import is
+                    successful
                   </p>
                 </div>
-                
+
                 <div className="bg-blue-50 border border-blue-100 rounded-md p-4 mb-6">
                   <div className="flex">
                     <Info className="h-5 w-5 text-blue-500 mr-3 flex-shrink-0" />
@@ -561,7 +661,9 @@ export default function BulkImportPage() {
                         Important Information
                       </h3>
                       <p className="text-sm mt-1 text-blue-700">
-                        Please follow these guidelines carefully to ensure your bulk product import is successful. The template has specific formatting requirements.
+                        Please follow these guidelines carefully to ensure your
+                        bulk product import is successful. The template has
+                        specific formatting requirements.
                       </p>
                     </div>
                   </div>
@@ -573,14 +675,19 @@ export default function BulkImportPage() {
                       <span className="font-semibold text-blue-600">1</span>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg">Download Template</h3>
+                      <h3 className="font-semibold text-lg">
+                        Download Template
+                      </h3>
                       <p className="text-gray-600 mt-1">
-                        Download the CSV template which contains all required columns for product import.
+                        Download the CSV template which contains all required
+                        columns for product import.
                       </p>
                       <ul className="list-disc pl-6 mt-2 text-sm text-gray-600 space-y-1">
                         <li>Do not delete or rename any column headers</li>
                         <li>Follow the format specified for each column</li>
-                        <li>The order of columns matters - do not rearrange them</li>
+                        <li>
+                          The order of columns matters - do not rearrange them
+                        </li>
                       </ul>
                     </div>
                   </div>
@@ -590,51 +697,115 @@ export default function BulkImportPage() {
                       <span className="font-semibold text-blue-600">2</span>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg">Fill Product Data</h3>
+                      <h3 className="font-semibold text-lg">
+                        Fill Product Data
+                      </h3>
                       <p className="text-gray-600 mt-1">
-                        Fill in your product information following these guidelines:
+                        Fill in your product information following these
+                        guidelines:
                       </p>
                       <div className="mt-3 space-y-4">
                         <div className="rounded-md border border-gray-200 p-4 bg-gray-50">
                           <h4 className="font-medium text-gray-800 flex items-center">
-                            <span className="h-6 w-6 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs mr-2">!</span> 
+                            <span className="h-6 w-6 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs mr-2">
+                              !
+                            </span>
                             Required Fields
                           </h4>
                           <ul className="list-disc pl-6 mt-2 text-sm text-gray-600 space-y-1">
-                            <li><span className="font-medium">Name</span>: 3-200 characters</li>
-                            <li><span className="font-medium">Description</span>: up to 2000 characters</li>
-                            <li><span className="font-medium">Price</span>: numeric value (e.g. 499.99)</li>
-                            <li><span className="font-medium">Stock Quantity</span>: numeric value (e.g. 100)</li>
-                            <li><span className="font-medium">MRP</span>: numeric value, must be ≥ Price</li>
-                            <li><span className="font-medium">Category</span>: must match one of: {categories?.map(c => c.name).join(", ")}</li>
+                            <li>
+                              <span className="font-medium">Name</span>: at
+                              least 3 characters
+                            </li>
+                            <li>
+                              <span className="font-medium">Description</span>:
+                              up to 2000 characters
+                            </li>
+                            <li>
+                              <span className="font-medium">Price</span>:
+                              numeric value (e.g. 499.99)
+                            </li>
+                            <li>
+                              <span className="font-medium">
+                                Stock Quantity
+                              </span>
+                              : numeric value (e.g. 100)
+                            </li>
+                            <li>
+                              <span className="font-medium">MRP</span>: numeric
+                              value, must be ≥ Price
+                            </li>
+                            <li>
+                              <span className="font-medium">Category</span>:
+                              must match one of:{" "}
+                              {categories?.map((c) => c.name).join(", ")}
+                            </li>
                           </ul>
                         </div>
-                        
+
                         <div className="rounded-md border border-gray-200 p-4">
                           <h4 className="font-medium text-gray-800 flex items-center">
-                            <span className="h-6 w-6 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center text-xs mr-2">★</span>
+                            <span className="h-6 w-6 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center text-xs mr-2">
+                              ★
+                            </span>
                             Recommended Fields
                           </h4>
                           <ul className="list-disc pl-6 mt-2 text-sm text-gray-600 space-y-1">
-                            <li><span className="font-medium">At least one Image URL</span> (imageUrl1)</li>
-                            <li><span className="font-medium">Brand</span>: your product's brand name</li>
-                            <li><span className="font-medium">SKU</span>: unique identifier for your product</li>
-                            <li><span className="font-medium">Subcategory</span>: must match existing subcategory</li>
-                            <li><span className="font-medium">GST Rate</span>: applicable tax rate for the product</li>
+                            <li>
+                              <span className="font-medium">
+                                At least one Image URL
+                              </span>{" "}
+                              (imageUrl1)
+                            </li>
+                            <li>
+                              <span className="font-medium">Brand</span>: your
+                              product's brand name
+                            </li>
+                            <li>
+                              <span className="font-medium">SKU</span>: unique
+                              identifier for your product
+                            </li>
+                            <li>
+                              <span className="font-medium">Subcategory</span>:
+                              must match existing subcategory
+                            </li>
+                            <li>
+                              <span className="font-medium">GST Rate</span>:
+                              applicable tax rate for the product
+                            </li>
                           </ul>
                         </div>
-                        
+
                         <div className="rounded-md border border-gray-200 p-4">
                           <h4 className="font-medium text-gray-800 flex items-center">
-                            <span className="h-6 w-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs mr-2">+</span>
+                            <span className="h-6 w-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs mr-2">
+                              +
+                            </span>
                             Additional Fields
                           </h4>
                           <ul className="list-disc pl-6 mt-2 text-sm text-gray-600 space-y-1">
-                            <li><span className="font-medium">Variants</span>: Color, Size, Type</li>
-                            <li><span className="font-medium">Dimensions</span>: length, width, height, weight</li>
-                            <li><span className="font-medium">Warranty</span>: in days (e.g. 365 for 1 year)</li>
-                            <li><span className="font-medium">Return Policy</span>: in days (e.g. 30)</li>
-                            <li><span className="font-medium">Specifications</span>: technical details</li>
+                            <li>
+                              <span className="font-medium">Variants</span>:
+                              Color, Size, Type
+                            </li>
+                            <li>
+                              <span className="font-medium">Dimensions</span>:
+                              length, width, height, weight
+                            </li>
+                            <li>
+                              <span className="font-medium">Warranty</span>: in
+                              days (e.g. 365 for 1 year)
+                            </li>
+                            <li>
+                              <span className="font-medium">Return Policy</span>
+                              : in days (e.g. 30)
+                            </li>
+                            <li>
+                              <span className="font-medium">
+                                Specifications
+                              </span>
+                              : technical details
+                            </li>
                           </ul>
                         </div>
                       </div>
@@ -646,20 +817,27 @@ export default function BulkImportPage() {
                       <span className="font-semibold text-blue-600">3</span>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg">Upload and Process</h3>
+                      <h3 className="font-semibold text-lg">
+                        Upload and Process
+                      </h3>
                       <p className="text-gray-600 mt-1">
-                        Save your completed template and upload it through the interface.
+                        Save your completed template and upload it through the
+                        interface.
                       </p>
                       <div className="mt-3 flex space-x-6">
                         <div className="flex-1">
-                          <h4 className="font-medium text-gray-800">Accepted Formats</h4>
+                          <h4 className="font-medium text-gray-800">
+                            Accepted Formats
+                          </h4>
                           <ul className="list-disc pl-6 mt-2 text-sm text-gray-600 space-y-1">
                             <li>CSV (.csv) - Recommended</li>
                             <li>Excel Spreadsheet (.xlsx)</li>
                           </ul>
                         </div>
                         <div className="flex-1">
-                          <h4 className="font-medium text-gray-800">Size Limits</h4>
+                          <h4 className="font-medium text-gray-800">
+                            Size Limits
+                          </h4>
                           <ul className="list-disc pl-6 mt-2 text-sm text-gray-600 space-y-1">
                             <li>Maximum 500 products per file</li>
                             <li>Maximum file size: 5MB</li>
@@ -670,7 +848,10 @@ export default function BulkImportPage() {
                         <div className="flex">
                           <AlertTriangle className="h-5 w-5 text-yellow-500 mr-2 flex-shrink-0" />
                           <p className="text-sm text-yellow-700">
-                            After processing, you'll see import results showing successful and failed products. Any errors will be displayed with specific row numbers and reasons for failure to help you troubleshoot.
+                            After processing, you'll see import results showing
+                            successful and failed products. Any errors will be
+                            displayed with specific row numbers and reasons for
+                            failure to help you troubleshoot.
                           </p>
                         </div>
                       </div>
@@ -682,56 +863,79 @@ export default function BulkImportPage() {
                       <span className="font-semibold text-blue-600">?</span>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg">Common Issues and Solutions</h3>
+                      <h3 className="font-semibold text-lg">
+                        Common Issues and Solutions
+                      </h3>
                       <div className="mt-3 space-y-3">
                         <div className="border border-gray-200 rounded-md overflow-hidden">
                           <div className="bg-gray-50 p-3 border-b border-gray-200">
-                            <h4 className="font-medium text-gray-800">Invalid Category</h4>
+                            <h4 className="font-medium text-gray-800">
+                              Invalid Category
+                            </h4>
                           </div>
                           <div className="p-3">
                             <p className="text-gray-600 text-sm">
-                              Ensure your category exactly matches one of our categories: {categories?.map(c => c.name).join(", ")}
+                              Ensure your category exactly matches one of our
+                              categories:{" "}
+                              {categories?.map((c) => c.name).join(", ")}
                             </p>
                           </div>
                         </div>
-                        
+
                         <div className="border border-gray-200 rounded-md overflow-hidden">
                           <div className="bg-gray-50 p-3 border-b border-gray-200">
-                            <h4 className="font-medium text-gray-800">Price Format</h4>
+                            <h4 className="font-medium text-gray-800">
+                              Price Format
+                            </h4>
                           </div>
                           <div className="p-3">
                             <p className="text-gray-600 text-sm">
-                              Prices should be entered as numbers without currency symbols (e.g., "99.99" not "₹99.99")
+                              Prices should be entered as numbers without
+                              currency symbols (e.g., "99.99" not "₹99.99")
                             </p>
                           </div>
                         </div>
-                        
+
                         <div className="border border-gray-200 rounded-md overflow-hidden">
                           <div className="bg-gray-50 p-3 border-b border-gray-200">
-                            <h4 className="font-medium text-gray-800">Image URLs</h4>
+                            <h4 className="font-medium text-gray-800">
+                              Image URLs
+                            </h4>
                           </div>
                           <div className="p-3">
                             <p className="text-gray-600 text-sm">
-                              Image URLs must be publicly accessible and end with image extensions (.jpg, .png, etc.). Image URLs are optional.
+                              Image URLs must be publicly accessible and end
+                              with image extensions (.jpg, .png, etc.). Image
+                              URLs are optional.
                             </p>
                           </div>
                         </div>
-                        
+
                         <div className="border border-gray-200 rounded-md overflow-hidden mt-4">
                           <div className="bg-gray-50 p-3 border-b border-gray-200">
-                            <h4 className="font-medium text-gray-800">Required vs Optional Fields</h4>
+                            <h4 className="font-medium text-gray-800">
+                              Required vs Optional Fields
+                            </h4>
                           </div>
                           <div className="p-3">
                             <p className="text-gray-600 text-sm mb-2">
-                              <strong>Required Fields:</strong> name, description, price, category
+                              <strong>Required Fields:</strong> name,
+                              description, price, category
                             </p>
                             <p className="text-gray-600 text-sm">
-                              <strong>Optional Fields:</strong> imageUrl1-4, mrp, purchase_price, stock, subcategory, sku, hsn, 
-                              brand, color, size, specifications, warranty, returnPolicy, tax, GST,
-                              length, width, height, weight, sellerId
+                              <strong>Optional Fields:</strong> imageUrl1-4,
+                              mrp, purchase_price, stock, subcategory, sku, hsn,
+                              brand, color, size, specifications, warranty,
+                              returnPolicy, tax, GST, length, width, height,
+                              weight, sellerId
                             </p>
                             <p className="text-gray-600 text-sm mt-2">
-                              <span className="text-amber-600 font-medium">Note:</span> Imported products will be visible in your Products list with a "Pending" status. They require admin approval before appearing to buyers.
+                              <span className="text-amber-600 font-medium">
+                                Note:
+                              </span>{" "}
+                              Imported products will be visible in your Products
+                              list with a "Pending" status. They require admin
+                              approval before appearing to buyers.
                             </p>
                           </div>
                         </div>
@@ -741,8 +945,8 @@ export default function BulkImportPage() {
                 </div>
               </CardContent>
               <CardFooter className="pt-0 pb-6 flex justify-center">
-                <Button 
-                  onClick={handleDownloadTemplate} 
+                <Button
+                  onClick={handleDownloadTemplate}
                   className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-md"
                 >
                   <Download className="mr-2 h-5 w-5" />
