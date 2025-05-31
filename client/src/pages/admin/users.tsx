@@ -32,7 +32,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, RefreshCw, UserPlus, Loader2, Trash2, UserCog } from "lucide-react";
+import {
+  Search,
+  RefreshCw,
+  UserPlus,
+  Loader2,
+  Trash2,
+  UserCog,
+} from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -53,7 +60,7 @@ export default function AdminUsers() {
     currentRole: "",
     newRole: "",
   });
-  
+
   // State for delete user confirmation
   const [confirmDelete, setConfirmDelete] = useState<{
     open: boolean;
@@ -64,7 +71,7 @@ export default function AdminUsers() {
     userId: null,
     username: "",
   });
-  
+
   // State for impersonation confirmation
   const [confirmImpersonate, setConfirmImpersonate] = useState<{
     open: boolean;
@@ -90,18 +97,10 @@ export default function AdminUsers() {
 
   // Update user role mutation
   const updateRoleMutation = useMutation({
-    mutationFn: async ({
-      userId,
-      role,
-    }: {
-      userId: number;
-      role: string;
-    }) => {
-      const res = await apiRequest(
-        "PUT",
-        `/api/users/${userId}/role`,
-        { role }
-      );
+    mutationFn: async ({ userId, role }: { userId: number; role: string }) => {
+      const res = await apiRequest("PUT", `/api/users/${userId}/role`, {
+        role,
+      });
       return res.json();
     },
     onSuccess: () => {
@@ -119,7 +118,7 @@ export default function AdminUsers() {
       });
     },
   });
-  
+
   // Delete user mutation
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: number) => {
@@ -140,7 +139,7 @@ export default function AdminUsers() {
       });
     },
   });
-  
+
   // Impersonate user mutation
   const impersonateUserMutation = useMutation({
     mutationFn: async (userId: number) => {
@@ -150,46 +149,51 @@ export default function AdminUsers() {
     onSuccess: (data) => {
       // Invalidate user data
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      
+
       toast({
         title: "Impersonation started",
-        description: data.message || "You are now impersonating the selected user.",
+        description:
+          data.message || "You are now impersonating the selected user.",
       });
-      
+
       // Redirect based on the impersonated user's role
       const role = data.user?.role;
-      if (role === 'seller') {
+      if (role === "seller") {
         // When impersonating a seller, also invalidate seller-specific data to ensure
         // product lists and other data are fetched fresh with the new seller ID
-        console.log('Impersonating seller - invalidating seller-specific queries');
+        console.log(
+          "Impersonating seller - invalidating seller-specific queries"
+        );
         // Include the seller ID in the query key to ensure proper cache invalidation
         const sellerId = data.user?.id;
         if (sellerId) {
-          queryClient.invalidateQueries({ 
-            queryKey: ['/api/seller/products', sellerId],
-            exact: false 
+          queryClient.invalidateQueries({
+            queryKey: ["/api/seller/products", sellerId],
+            exact: false,
           });
-          queryClient.invalidateQueries({ 
-            queryKey: ['/api/seller/inventory', sellerId],
-            exact: false 
+          queryClient.invalidateQueries({
+            queryKey: ["/api/seller/inventory", sellerId],
+            exact: false,
           });
-          queryClient.invalidateQueries({ 
-            queryKey: ['/api/seller/orders', sellerId],
-            exact: false 
+          queryClient.invalidateQueries({
+            queryKey: ["/api/seller/orders", sellerId],
+            exact: false,
           });
         } else {
           // Fallback to general invalidation
-          queryClient.invalidateQueries({ queryKey: ['/api/seller/products'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/seller/inventory'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/seller/orders'] });
+          queryClient.invalidateQueries({ queryKey: ["/api/seller/products"] });
+          queryClient.invalidateQueries({
+            queryKey: ["/api/seller/inventory"],
+          });
+          queryClient.invalidateQueries({ queryKey: ["/api/seller/orders"] });
         }
-        setLocation('/seller/dashboard');
-      } else if (role === 'buyer') {
-        setLocation('/buyer/dashboard');
-      } else if (role === 'admin') {
-        setLocation('/admin');
+        setLocation("/seller/dashboard");
+      } else if (role === "buyer") {
+        setLocation("/buyer/dashboard");
+      } else if (role === "admin") {
+        setLocation("/admin");
       } else {
-        setLocation('/');
+        setLocation("/");
       }
     },
     onError: (error: Error) => {
@@ -202,9 +206,13 @@ export default function AdminUsers() {
   });
 
   // Handle role change confirmation
-  const handleRoleChange = (userId: number, currentRole: string, newRole: string) => {
+  const handleRoleChange = (
+    userId: number,
+    currentRole: string,
+    newRole: string
+  ) => {
     if (currentRole === newRole) return;
-    
+
     setConfirmRoleChange({
       open: true,
       userId,
@@ -226,7 +234,7 @@ export default function AdminUsers() {
       newRole: "",
     });
   };
-  
+
   // Handle delete user confirmation
   const handleDeleteUser = (userId: number, username: string) => {
     setConfirmDelete({
@@ -235,7 +243,7 @@ export default function AdminUsers() {
       username,
     });
   };
-  
+
   // Confirm delete user
   const confirmDeleteUser = async () => {
     const { userId } = confirmDelete;
@@ -257,9 +265,13 @@ export default function AdminUsers() {
       }
     }
   };
-  
+
   // Handle impersonate user
-  const handleImpersonateUser = (userId: number, username: string, role: string) => {
+  const handleImpersonateUser = (
+    userId: number,
+    username: string,
+    role: string
+  ) => {
     setConfirmImpersonate({
       open: true,
       userId,
@@ -267,7 +279,7 @@ export default function AdminUsers() {
       role,
     });
   };
-  
+
   // Confirm impersonation
   const confirmImpersonateUser = async () => {
     const { userId } = confirmImpersonate;
@@ -293,24 +305,24 @@ export default function AdminUsers() {
   };
 
   // Filter users by search term
-  const filteredUsers = users?.filter((user) => {
-    if (!search) return true;
-    const searchLower = search.toLowerCase();
-    return (
-      user.username.toLowerCase().includes(searchLower) ||
-      (user.email && user.email.toLowerCase().includes(searchLower))
-    );
-  });
+  const filteredUsers = users
+    ?.filter((user) => {
+      if (!search) return true;
+      const searchLower = search.toLowerCase();
+      return (
+        user.username.toLowerCase().includes(searchLower) ||
+        (user.email && user.email.toLowerCase().includes(searchLower))
+      );
+    })
+    .sort((a, b) => a.id - b.id);
 
   // Count users by role
-  const roleCounts = users?.reduce(
-    (acc, user) => {
+  const roleCounts =
+    users?.reduce((acc, user) => {
       const role = user.role || "unknown";
       acc[role] = (acc[role] || 0) + 1;
       return acc;
-    },
-    {} as Record<string, number>
-  ) || {};
+    }, {} as Record<string, number>) || {};
 
   // Loading state for role stats
   const RoleStatsLoading = () => (
@@ -318,7 +330,9 @@ export default function AdminUsers() {
       {["admin", "seller", "buyer"].map((role) => (
         <Card key={role} className="bg-white">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium capitalize">{role}s</CardTitle>
+            <CardTitle className="text-sm font-medium capitalize">
+              {role}s
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <Skeleton className="h-8 w-12" />
@@ -350,12 +364,24 @@ export default function AdminUsers() {
           <TableBody>
             {[...Array(5)].map((_, i) => (
               <TableRow key={i}>
-                <TableCell><Skeleton className="h-5 w-8" /></TableCell>
-                <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                <TableCell><Skeleton className="h-5 w-40" /></TableCell>
-                <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
+                <TableCell>
+                  <Skeleton className="h-5 w-8" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-5 w-32" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-5 w-40" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-5 w-32" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-5 w-16" />
+                </TableCell>
+                <TableCell className="text-right">
+                  <Skeleton className="h-8 w-24 ml-auto" />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -384,7 +410,9 @@ export default function AdminUsers() {
                 <CardTitle className="text-sm font-medium">Admins</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{roleCounts["admin"] || 0}</div>
+                <div className="text-2xl font-bold">
+                  {roleCounts["admin"] || 0}
+                </div>
               </CardContent>
             </Card>
             <Card className="bg-white">
@@ -392,7 +420,9 @@ export default function AdminUsers() {
                 <CardTitle className="text-sm font-medium">Sellers</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{roleCounts["seller"] || 0}</div>
+                <div className="text-2xl font-bold">
+                  {roleCounts["seller"] || 0}
+                </div>
               </CardContent>
             </Card>
             <Card className="bg-white">
@@ -400,7 +430,9 @@ export default function AdminUsers() {
                 <CardTitle className="text-sm font-medium">Buyers</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{roleCounts["buyer"] || 0}</div>
+                <div className="text-2xl font-bold">
+                  {roleCounts["buyer"] || 0}
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -417,14 +449,12 @@ export default function AdminUsers() {
                 <Input
                   type="search"
                   placeholder="Search users..."
-                  className="pl-8 pr-24 w-full"
-                  disabled
-                  onClick={() => alert('Search functionality is being improved. Please check back later!')}
+                  className="pl-8 w-full"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
                 />
-                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400">
-                  Coming soon
-                </span>
               </div>
+
               <div className="flex items-center space-x-2">
                 <Button
                   variant="outline"
@@ -467,7 +497,7 @@ export default function AdminUsers() {
                         <TableCell className="font-medium">{user.id}</TableCell>
                         <TableCell>{user.username}</TableCell>
                         <TableCell>{user.email}</TableCell>
-                        <TableCell>{user.name || 'Not provided'}</TableCell>
+                        <TableCell>{user.name || "Not provided"}</TableCell>
                         <TableCell>
                           <Badge
                             className={`${
@@ -499,24 +529,30 @@ export default function AdminUsers() {
                                 <SelectItem value="buyer">Buyer</SelectItem>
                               </SelectContent>
                             </Select>
-                            
+
                             {/* Impersonate User Button */}
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
+                            <Button
+                              variant="outline"
+                              size="sm"
                               className="h-8 px-2 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
-                              onClick={() => handleImpersonateUser(user.id, user.username, user.role)}
+                              onClick={() =>
+                                handleImpersonateUser(
+                                  user.id,
+                                  user.username,
+                                  user.role
+                                )
+                              }
                               disabled={impersonateUserMutation.isPending}
                             >
                               <UserCog className="h-4 w-4" />
                             </Button>
-                            
+
                             {/* Delete User Button */}
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
+                                <Button
+                                  variant="outline"
+                                  size="sm"
                                   className="h-8 px-2 text-red-500 hover:text-red-600 hover:bg-red-50"
                                   onClick={(e) => {
                                     e.preventDefault(); // Prevent triggering the dialog twice
@@ -548,7 +584,7 @@ export default function AdminUsers() {
                 </TableBody>
               </Table>
             </div>
-            
+
             {filteredUsers?.length ? (
               <div className="text-xs text-muted-foreground text-right">
                 Showing {filteredUsers.length} of {users?.length} users
@@ -594,7 +630,7 @@ export default function AdminUsers() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
+
       {/* Confirmation Dialog for Delete User */}
       <AlertDialog
         open={confirmDelete.open}
@@ -608,15 +644,17 @@ export default function AdminUsers() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete User</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the user <strong>{confirmDelete.username}</strong>?
+              Are you sure you want to delete the user{" "}
+              <strong>{confirmDelete.username}</strong>?
               <br />
               <br />
-              This action cannot be undone. All data associated with this user will be permanently deleted.
+              This action cannot be undone. All data associated with this user
+              will be permanently deleted.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={confirmDeleteUser}
               className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
             >
@@ -632,7 +670,7 @@ export default function AdminUsers() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
+
       {/* Confirmation Dialog for Impersonating User */}
       <AlertDialog
         open={confirmImpersonate.open}
@@ -646,12 +684,19 @@ export default function AdminUsers() {
           <AlertDialogHeader>
             <AlertDialogTitle>Impersonate User</AlertDialogTitle>
             <AlertDialogDescription>
-              You are about to impersonate <strong>{confirmImpersonate.username}</strong> ({confirmImpersonate.role}).
-              <br /><br />
-              While impersonating, you will see the application as this user would, with their permissions and data.
-              A banner will appear at the top of the screen reminding you that you're in impersonation mode.
-              <br /><br />
-              You can exit impersonation mode at any time by clicking the banner.
+              You are about to impersonate{" "}
+              <strong>{confirmImpersonate.username}</strong> (
+              {confirmImpersonate.role}).
+              <br />
+              <br />
+              While impersonating, you will see the application as this user
+              would, with their permissions and data. A banner will appear at
+              the top of the screen reminding you that you're in impersonation
+              mode.
+              <br />
+              <br />
+              You can exit impersonation mode at any time by clicking the
+              banner.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
