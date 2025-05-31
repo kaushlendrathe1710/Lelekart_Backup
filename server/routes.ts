@@ -7135,10 +7135,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
 
             // Validate product name length
-            if (row["name"].length < 3 || row["name"].length > 100) {
+            if (row["name"].length < 3) {
               results.errors.push({
                 row: rowNum,
-                message: "Product name must be between 3 and 100 characters",
+                message: "Product name must be at least 3 characters",
               });
               results.failed++;
               continue;
