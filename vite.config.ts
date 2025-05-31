@@ -11,7 +11,7 @@ const cartographerPlugin =
     : null;
 
 export default defineConfig({
-  base: "./", // ✅ This fixes broken styling on Render or other production builds
+  base: "/", // Changed from "./" to "/" for production
   plugins: [
     react(),
     runtimeErrorOverlay(),
@@ -29,5 +29,12 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ["react", "react-dom", "wouter"],
+        },
+      },
+    },
   },
 });
