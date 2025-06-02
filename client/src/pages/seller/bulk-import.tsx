@@ -719,7 +719,7 @@ export default function BulkImportPage() {
                             </li>
                             <li>
                               <span className="font-medium">Description</span>:
-                              up to 2000 characters
+                              optional, up to 2000 characters
                             </li>
                             <li>
                               <span className="font-medium">Price</span>:
@@ -920,7 +920,7 @@ export default function BulkImportPage() {
                           <div className="p-3">
                             <p className="text-gray-600 text-sm mb-2">
                               <strong>Required Fields:</strong> name,
-                              description, price, category
+                               price, category
                             </p>
                             <p className="text-gray-600 text-sm">
                               <strong>Optional Fields:</strong> imageUrl1-4,

@@ -53,6 +53,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 // Define a ProductWithSKU interface that extends the base Product type
 interface Product extends Omit<SchemaProduct, "sku"> {
@@ -90,6 +91,23 @@ export default function SellerProductsPage() {
   const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
+
+  // Get page from URL or localStorage
+  const urlParams = new URLSearchParams(window.location.search);
+  const pageFromUrl = urlParams.get("page");
+  const storedPage = localStorage.getItem("sellerProductsPage");
+
+  // Initialize currentPage with URL param, stored value, or default to 1
+  const [currentPage, setCurrentPage] = useState(() => {
+    const page = pageFromUrl || storedPage || "1";
+    return parseInt(page);
+  });
+
+  // Store page number in localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem("sellerProductsPage", currentPage.toString());
+  }, [currentPage]);
 
   // Try to use context first if available
   const authContext = useContext(AuthContext);
@@ -104,7 +122,6 @@ export default function SellerProductsPage() {
   const user = authContext?.user || apiUser;
 
   // State for pagination and search
-  const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -524,6 +541,7 @@ export default function SellerProductsPage() {
         const response = await fetch("/api/seller/status");
         if (response.ok) {
           const data = await response.json();
+          console.log("Seller status response:", data); // Debug log
           setIsSellerApproved(data.status === "approved");
         }
       } catch (error) {
@@ -535,6 +553,11 @@ export default function SellerProductsPage() {
       checkSellerStatus();
     }
   }, [user?.id]);
+
+  // Debug log for seller approval status
+  useEffect(() => {
+    console.log("Current seller approval status:", isSellerApproved);
+  }, [isSellerApproved]);
 
   return (
     <SellerDashboardLayout>
@@ -551,29 +574,14 @@ export default function SellerProductsPage() {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div>
-                      <Button
-                        className="flex items-center gap-2"
-                        asChild={isSellerApproved}
-                        disabled={!isSellerApproved}
-                      >
-                        <Link
-                          href={isSellerApproved ? "/seller/products/add" : "#"}
-                        >
-                          <Plus className="h-4 w-4" />
-                          Add Product
-                        </Link>
-                      </Button>
-                    </div>
+                    <Button
+                      className="flex items-center gap-2"
+                      onClick={() => setLocation("/seller/products/add")}
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add Product
+                    </Button>
                   </TooltipTrigger>
-                  {!isSellerApproved && (
-                    <TooltipContent>
-                      <p>
-                        Your seller account needs to be approved before you can
-                        add products
-                      </p>
-                    </TooltipContent>
-                  )}
                 </Tooltip>
               </TooltipProvider>
               {/* Bulk upload functionality removed */}
