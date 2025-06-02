@@ -6507,7 +6507,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all co-admins
   app.get("/api/co-admins", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    if (req.user.role !== "admin" || req.user.isCoAdmin) {
+    if (req.user.role !== "admin") {
       return res.status(403).json({ error: "Not authorized" });
     }
 
@@ -6543,7 +6543,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a new co-admin
   app.post("/api/co-admins", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    if (req.user.role !== "admin" || req.user.isCoAdmin) {
+    if (req.user.role !== "admin") {
       return res.status(403).json({ error: "Not authorized" });
     }
 
@@ -6645,7 +6645,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update co-admin permissions
   app.put("/api/co-admins/:id/permissions", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    if (req.user.role !== "admin" || req.user.isCoAdmin) {
+    if (req.user.role !== "admin") {
       return res.status(403).json({ error: "Not authorized" });
     }
 
@@ -6675,7 +6675,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete a co-admin
   app.delete("/api/co-admins/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    if (req.user.role !== "admin" || req.user.isCoAdmin) {
+    if (req.user.role !== "admin") {
       return res.status(403).json({ error: "Not authorized" });
     }
 
