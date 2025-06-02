@@ -1689,9 +1689,12 @@ export default function EditProductPage() {
           : "Your product has been updated and is pending review.",
       });
 
-      // Redirect to products page after a brief delay using wouter
+      // Get the stored page number from localStorage
+      const storedPage = localStorage.getItem("sellerProductsPage") || "1";
+
+      // Redirect to products page with the stored page number
       setTimeout(() => {
-        setLocation("/seller/products");
+        setLocation(`/seller/products?page=${storedPage}`);
       }, 1500);
 
       // Invalidate the products query to refresh the products list
