@@ -1,23 +1,24 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { 
-  ShoppingCart, 
-  Home, 
-  User, 
-  Package, 
-  LogOut, 
-  Heart, 
-  Gift, 
+import {
+  ShoppingCart,
+  Home,
+  User,
+  Package,
+  LogOut,
+  Heart,
+  Gift,
   CreditCard,
   ShoppingBag,
-  Settings, 
+  Settings,
   ChevronRight,
   Bell,
   LineChart,
   TrendingUp,
   MapPin,
   Star,
-  RefreshCcw
+  RefreshCcw,
+  Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -25,9 +26,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AuthContext } from "@/hooks/use-auth";
 import { useContext } from "react";
 import { User as UserType } from "@shared/schema";
-import { 
-  SidebarProvider, 
-  Sidebar, 
+import {
+  SidebarProvider,
+  Sidebar,
   SidebarHeader,
   SidebarContent,
   SidebarFooter,
@@ -35,9 +36,14 @@ import {
   SidebarMenuItem,
   SidebarInset,
   SidebarSeparator,
-  SidebarTrigger
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -45,54 +51,54 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [location, setLocation] = useLocation();
-  
+
   // Try to use context first if available
   const authContext = useContext(AuthContext);
-  
+
   // Get user data from direct API if context is not available
   const { data: apiUser, isLoading: apiLoading } = useQuery<UserType | null>({
-    queryKey: ['/api/user'],
+    queryKey: ["/api/user"],
     queryFn: async () => {
-      const res = await fetch('/api/user', {
-        credentials: 'include',
+      const res = await fetch("/api/user", {
+        credentials: "include",
       });
-      
+
       if (!res.ok) {
         if (res.status === 401) return null;
-        throw new Error('Failed to fetch user');
+        throw new Error("Failed to fetch user");
       }
-      
+
       return res.json();
     },
     staleTime: 60000, // 1 minute
   });
-  
+
   // Use context user if available, otherwise use API user
   const user = authContext?.user || apiUser;
   const isLoading = authContext ? authContext.isLoading : apiLoading;
-  
+
   // Always define all hooks, regardless of conditions (to satisfy React rules of hooks)
   // Use React Query to fetch cart data
   const { data: cartItems = [] } = useQuery({
-    queryKey: ['/api/cart'],
+    queryKey: ["/api/cart"],
     queryFn: async () => {
       if (!user) return [];
-      
-      const res = await fetch('/api/cart', {
-        credentials: 'include',
+
+      const res = await fetch("/api/cart", {
+        credentials: "include",
       });
-      
+
       if (!res.ok) {
-        throw new Error('Failed to fetch cart');
+        throw new Error("Failed to fetch cart");
       }
-      
+
       return res.json();
     },
     enabled: !!user,
     staleTime: 60000, // 1 minute
     refetchOnWindowFocus: false,
   });
-  
+
   // Show loading state while fetching user data
   if (isLoading) {
     return (
@@ -101,33 +107,38 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       </div>
     );
   }
-  
+
   // Calculate cart item count
-  const cartItemCount = cartItems.length > 0 
-    ? cartItems.reduce((sum: number, item: { quantity: number }) => sum + (item.quantity || 0), 0)
-    : 0;
-  
+  const cartItemCount =
+    cartItems.length > 0
+      ? cartItems.reduce(
+          (sum: number, item: { quantity: number }) =>
+            sum + (item.quantity || 0),
+          0
+        )
+      : 0;
+
   // Always define all hooks (React rules of hooks)
   const queryClient = useQueryClient();
-  
+
   // If no user, redirect to auth page
   if (!user) {
-    setLocation('/auth');
+    setLocation("/auth");
     return null;
   }
-  
+
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include'
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
       });
-      queryClient.setQueryData(['/api/user'], null);
-      queryClient.setQueryData(['/api/cart'], []);
+      queryClient.setQueryData(["/api/user"], null);
+      queryClient.setQueryData(["/api/cart"], []);
       // Use wouter for navigation
-      setLocation('/');
+      setLocation("/");
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error("Logout failed:", error);
     }
   };
 
@@ -202,9 +213,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   >
                     <Avatar className="h-8 w-8 border-2 border-white">
                       {user.profileImage ? (
-                        <AvatarImage src={user.profileImage} alt={user.username} />
+                        <AvatarImage
+                          src={user.profileImage}
+                          alt={user.username}
+                        />
                       ) : null}
-                      <AvatarFallback>{getInitials(user.username)}</AvatarFallback>
+                      <AvatarFallback>
+                        {getInitials(user.username)}
+                      </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
@@ -212,7 +228,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <div className="flex items-center justify-start gap-2 p-2">
                     <div className="flex flex-col space-y-1 leading-none">
                       <p className="font-medium">{user.username}</p>
-                      <p className="text-xs text-muted-foreground">{user.email}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {user.email}
+                      </p>
                     </div>
                   </div>
                   <DropdownMenuItem asChild>
@@ -245,7 +263,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 </Avatar>
                 <div className="flex flex-col">
                   <span className="font-medium leading-none">Hello,</span>
-                  <span className="text-xs text-muted-foreground">{user.username}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {user.username}
+                  </span>
                 </div>
               </div>
             </SidebarHeader>
@@ -258,7 +278,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                       <Button
                         variant="ghost"
                         asChild
-                        className={`w-full justify-start ${isActive('/seller/products') ? 'bg-primary/10 text-primary' : ''}`}
+                        className={`w-full justify-start ${
+                          isActive("/seller/products")
+                            ? "bg-primary/10 text-primary"
+                            : ""
+                        }`}
                       >
                         <Link href="/seller/products">
                           <Package className="mr-2 h-4 w-4" />
@@ -270,7 +294,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                       <Button
                         variant="ghost"
                         asChild
-                        className={`w-full justify-start ${isActive('/seller/orders') ? 'bg-primary/10 text-primary' : ''}`}
+                        className={`w-full justify-start ${
+                          isActive("/seller/orders")
+                            ? "bg-primary/10 text-primary"
+                            : ""
+                        }`}
                       >
                         <Link href="/seller/orders">
                           <ShoppingBag className="mr-2 h-4 w-4" />
@@ -282,7 +310,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                       <Button
                         variant="ghost"
                         asChild
-                        className={`w-full justify-start ${isActive('/seller/returns') ? 'bg-primary/10 text-primary' : ''}`}
+                        className={`w-full justify-start ${
+                          isActive("/seller/returns")
+                            ? "bg-primary/10 text-primary"
+                            : ""
+                        }`}
                       >
                         <Link href="/seller/returns">
                           <RefreshCcw className="mr-2 h-4 w-4" />
@@ -294,7 +326,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                       <Button
                         variant="ghost"
                         asChild
-                        className={`w-full justify-start ${isActive('/seller/smart-inventory') ? 'bg-primary/10 text-primary' : ''}`}
+                        className={`w-full justify-start ${
+                          isActive("/seller/smart-inventory")
+                            ? "bg-primary/10 text-primary"
+                            : ""
+                        }`}
                       >
                         <Link href="/seller/smart-inventory">
                           <TrendingUp className="mr-2 h-4 w-4" />
@@ -306,7 +342,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                       <Button
                         variant="ghost"
                         asChild
-                        className={`w-full justify-start ${isActive('/seller/add-product') ? 'bg-primary/10 text-primary' : ''}`}
+                        className={`w-full justify-start ${
+                          isActive("/seller/add-product")
+                            ? "bg-primary/10 text-primary"
+                            : ""
+                        }`}
                       >
                         <Link href="/seller/add-product">
                           <Package className="mr-2 h-4 w-4" />
@@ -318,7 +358,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                       <Button
                         variant="ghost"
                         asChild
-                        className={`w-full justify-start ${isActive('/seller/bulk-import') ? 'bg-primary/10 text-primary' : ''}`}
+                        className={`w-full justify-start ${
+                          isActive("/seller/bulk-import")
+                            ? "bg-primary/10 text-primary"
+                            : ""
+                        }`}
                       >
                         <Link href="/seller/bulk-import">
                           <Upload className="mr-2 h-4 w-4" />
@@ -335,7 +379,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <Button
                     variant="ghost"
                     asChild
-                    className={`w-full justify-start ${isActive('/buyer/dashboard') ? 'bg-primary/10 text-primary' : ''}`}
+                    className={`w-full justify-start ${
+                      isActive("/buyer/dashboard")
+                        ? "bg-primary/10 text-primary"
+                        : ""
+                    }`}
                   >
                     <Link href="/buyer/dashboard">
                       <User className="mr-2 h-4 w-4" />
@@ -347,7 +395,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <Button
                     variant="ghost"
                     asChild
-                    className={`w-full justify-start ${isActive('/orders') ? 'bg-primary/10 text-primary' : ''}`}
+                    className={`w-full justify-start ${
+                      isActive("/orders") ? "bg-primary/10 text-primary" : ""
+                    }`}
                   >
                     <Link href="/orders">
                       <ShoppingBag className="mr-2 h-4 w-4" />
@@ -359,7 +409,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <Button
                     variant="ghost"
                     asChild
-                    className={`w-full justify-start ${isActive('/buyer/returns') ? 'bg-primary/10 text-primary' : ''}`}
+                    className={`w-full justify-start ${
+                      isActive("/buyer/returns")
+                        ? "bg-primary/10 text-primary"
+                        : ""
+                    }`}
                   >
                     <Link href="/buyer/returns">
                       <RefreshCcw className="mr-2 h-4 w-4" />
@@ -371,7 +425,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <Button
                     variant="ghost"
                     asChild
-                    className={`w-full justify-start ${isActive('/buyer/wishlist') ? 'bg-primary/10 text-primary' : ''}`}
+                    className={`w-full justify-start ${
+                      isActive("/buyer/wishlist")
+                        ? "bg-primary/10 text-primary"
+                        : ""
+                    }`}
                   >
                     <Link href="/buyer/wishlist">
                       <Heart className="mr-2 h-4 w-4" />
@@ -383,7 +441,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <Button
                     variant="ghost"
                     asChild
-                    className={`w-full justify-start ${isActive('/buyer/reviews') ? 'bg-primary/10 text-primary' : ''}`}
+                    className={`w-full justify-start ${
+                      isActive("/buyer/reviews")
+                        ? "bg-primary/10 text-primary"
+                        : ""
+                    }`}
                   >
                     <Link href="/buyer/reviews">
                       <Star className="mr-2 h-4 w-4" />
@@ -395,7 +457,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <Button
                     variant="ghost"
                     asChild
-                    className={`w-full justify-start ${isActive('/buyer/addresses') ? 'bg-primary/10 text-primary' : ''}`}
+                    className={`w-full justify-start ${
+                      isActive("/buyer/addresses")
+                        ? "bg-primary/10 text-primary"
+                        : ""
+                    }`}
                   >
                     <Link href="/buyer/addresses">
                       <MapPin className="mr-2 h-4 w-4" />
@@ -407,7 +473,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <Button
                     variant="ghost"
                     asChild
-                    className={`w-full justify-start ${isActive('/buyer/rewards') ? 'bg-primary/10 text-primary' : ''}`}
+                    className={`w-full justify-start ${
+                      isActive("/buyer/rewards")
+                        ? "bg-primary/10 text-primary"
+                        : ""
+                    }`}
                   >
                     <Link href="/buyer/rewards">
                       <Gift className="mr-2 h-4 w-4" />
@@ -419,7 +489,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <Button
                     variant="ghost"
                     asChild
-                    className={`w-full justify-start ${isActive('/buyer/gift-cards') ? 'bg-primary/10 text-primary' : ''}`}
+                    className={`w-full justify-start ${
+                      isActive("/buyer/gift-cards")
+                        ? "bg-primary/10 text-primary"
+                        : ""
+                    }`}
                   >
                     <Link href="/buyer/gift-cards">
                       <CreditCard className="mr-2 h-4 w-4" />
@@ -431,7 +505,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <Button
                     variant="ghost"
                     asChild
-                    className={`w-full justify-start ${isActive('/buyer/wallet') ? 'bg-primary/10 text-primary' : ''}`}
+                    className={`w-full justify-start ${
+                      isActive("/buyer/wallet")
+                        ? "bg-primary/10 text-primary"
+                        : ""
+                    }`}
                   >
                     <Link href="/buyer/wallet">
                       <CreditCard className="mr-2 h-4 w-4" />
@@ -458,7 +536,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <Button
                     variant="ghost"
                     asChild
-                    className={`w-full justify-start ${isActive('/buyer/settings') ? 'bg-primary/10 text-primary' : ''}`}
+                    className={`w-full justify-start ${
+                      isActive("/buyer/settings")
+                        ? "bg-primary/10 text-primary"
+                        : ""
+                    }`}
                   >
                     <Link href="/buyer/settings">
                       <Settings className="mr-2 h-4 w-4" />
@@ -484,9 +566,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </div>
             </SidebarFooter>
           </Sidebar>
-          <SidebarInset className="w-full p-4 md:p-6">
-            {children}
-          </SidebarInset>
+          <SidebarInset className="w-full p-4 md:p-6">{children}</SidebarInset>
         </div>
       </div>
     </SidebarProvider>

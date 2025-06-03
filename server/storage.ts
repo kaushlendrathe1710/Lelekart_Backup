@@ -3542,11 +3542,8 @@ export class DatabaseStorage implements IStorage {
 
       console.log("TS Query string:", tsQueryString);
 
-      // Add approval filter for regular buyers
-      const approvalFilter =
-        userRole === "buyer"
-          ? ` AND p.approved = true AND (p.is_draft IS NULL OR p.is_draft = false)`
-          : "";
+      // Add approval filter for all users using this search function
+      const approvalFilter = ` AND p.approved = true AND (p.is_draft IS NULL OR p.is_draft = false)`;
 
       // Simplified query that doesn't rely on column aliases in ORDER BY
       const finalQuery = `
