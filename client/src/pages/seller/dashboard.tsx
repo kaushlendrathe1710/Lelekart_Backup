@@ -68,15 +68,27 @@ export default function SellerDashboardPage() {
       console.log("Checking seller account status");
       const res = await fetch("/api/seller/status");
       if (!res.ok) {
+        console.error(
+          "Failed to fetch seller status:",
+          res.status,
+          res.statusText
+        );
         throw new Error("Failed to fetch seller status");
       }
-      return res.json();
+      const data = await res.json();
+      console.log("Seller status response:", data);
+      return data;
     },
     staleTime: Infinity, // Status doesn't change often
   });
 
   // Determine if seller is approved
-  const isSellerApproved = sellerStatus?.status === "approved";
+  const isSellerApproved = sellerStatus?.approved === true;
+  console.log("Seller approval check:", {
+    status: sellerStatus,
+    isApproved: isSellerApproved,
+    rawApproved: sellerStatus?.approved,
+  });
 
   // Fetch dashboard summary data only if seller is approved
   const {
@@ -109,8 +121,20 @@ export default function SellerDashboardPage() {
         }
 
         const data = await res.json();
-        console.log("Dashboard summary loaded successfully:", data);
-        return data;
+        console.log("Raw API Response:", data);
+
+        // Log the specific values we're interested in
+        console.log("Products count:", data.totalProducts);
+        console.log("Orders count:", data.totalOrders);
+        console.log("Seller approval status:", isSellerApproved);
+
+        return {
+          totalProducts: data.totalProducts || 0,
+          totalOrders: data.totalOrders || 0,
+          totalRevenue: data.totalRevenue || 0,
+          avgPrice: data.avgPrice || 0,
+          recentOrders: data.recentOrders || [],
+        };
       } catch (error) {
         console.error("Error fetching dashboard summary:", error);
         toast({
@@ -124,12 +148,20 @@ export default function SellerDashboardPage() {
     enabled: isSellerApproved, // Only enable the query if seller is approved
     staleTime: 60000, // 1 minute
     retry: 2,
-    placeholderData: {
-      totalProducts: 0,
-      totalOrders: 0,
-      totalRevenue: 0,
-      avgPrice: 0,
-    },
+  });
+
+  // Add debug logging for seller status
+  console.log("Seller Status:", {
+    isApproved: isSellerApproved,
+    status: sellerStatus?.status,
+    isLoading: isLoadingSellerStatus,
+  });
+
+  // Add debug logging for dashboard data
+  console.log("Dashboard Data:", {
+    summary: dashboardSummary,
+    isLoading: isLoadingSummary,
+    error: summaryError,
   });
 
   // Function to refresh dashboard data
@@ -200,7 +232,7 @@ export default function SellerDashboardPage() {
                       </div>
                     ) : (
                       <p className="text-2xl font-bold">
-                        {dashboardSummary?.totalProducts || 0}
+                        {dashboardSummary?.totalProducts ?? 0}
                       </p>
                     )}
                   </div>
@@ -223,7 +255,7 @@ export default function SellerDashboardPage() {
                       </div>
                     ) : (
                       <p className="text-2xl font-bold">
-                        {dashboardSummary?.totalOrders || 0}
+                        {dashboardSummary?.totalOrders ?? 0}
                       </p>
                     )}
                   </div>
