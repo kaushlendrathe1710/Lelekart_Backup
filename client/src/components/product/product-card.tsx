@@ -1,9 +1,11 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
 import { useCart } from "@/context/cart-context";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import { User } from "@shared/schema";
 
 interface ProductCardProps {
   id: number;
@@ -13,11 +15,47 @@ interface ProductCardProps {
   category: string;
 }
 
-export function ProductCard({ id, name, price, imageUrl, category }: ProductCardProps) {
+export function ProductCard({
+  id,
+  name,
+  price,
+  imageUrl,
+  category,
+}: ProductCardProps) {
   const { addToCart } = useCart();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
+
+  // Get user data to check if logged in
+  const { data: user } = useQuery<User | null>({
+    queryKey: ["/api/user"],
+    retry: false,
+    staleTime: 60000,
+  });
 
   const handleAddToCart = () => {
+    // If user is not logged in, redirect to auth
+    if (!user) {
+      toast({
+        title: "Please log in",
+        description: "You need to be logged in to add items to cart",
+        variant: "default",
+      });
+      setLocation("/auth", { replace: false });
+      return;
+    }
+
+    // Only buyers can add to cart
+    if (user.role !== "buyer") {
+      toast({
+        title: "Action Not Allowed",
+        description:
+          "Only buyers can add items to cart. Please switch to a buyer account.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     addToCart({
       id,
       name,
@@ -26,7 +64,7 @@ export function ProductCard({ id, name, price, imageUrl, category }: ProductCard
       category,
       quantity: 1,
     });
-    
+
     toast({
       title: "Added to Cart",
       description: `${name} has been added to your cart.`,
@@ -44,26 +82,26 @@ export function ProductCard({ id, name, price, imageUrl, category }: ProductCard
             onError={(e) => {
               console.log("Image load error for:", name);
               const target = e.target as HTMLImageElement;
-              target.src = 'https://via.placeholder.com/300x300?text=Product';
+              target.src = "https://via.placeholder.com/300x300?text=Product";
             }}
           />
         </Link>
       </div>
-      
+
       <div className="p-4">
         <Link href={`/product/${id}`} className="block">
           <h3 className="font-medium text-lg truncate">{name}</h3>
         </Link>
-        
+
         <div className="mt-1 text-sm text-muted-foreground truncate">
           {category}
         </div>
-        
+
         <div className="mt-2 flex items-center justify-between">
           <div className="font-bold text-lg">₹{price}</div>
-          
-          <Button 
-            size="sm" 
+
+          <Button
+            size="sm"
             variant="outline"
             className="flex items-center gap-1"
             onClick={handleAddToCart}

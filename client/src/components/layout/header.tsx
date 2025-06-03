@@ -1,16 +1,16 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { 
-  Menu, 
-  X, 
-  ShoppingCart, 
-  ChevronDown, 
-  User, 
+import {
+  Menu,
+  X,
+  ShoppingCart,
+  ChevronDown,
+  User,
   LogOut,
   LayoutDashboard,
   Store,
   ShoppingBag,
-  Heart
+  Heart,
 } from "lucide-react";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { Button } from "@/components/ui/button";
@@ -44,13 +44,13 @@ export function Header() {
           description: "You have been successfully logged out",
           variant: "default",
         });
-      }
+      },
     });
   };
 
   const getDashboardLink = () => {
     if (!user) return "/auth";
-    
+
     // Return relative paths without domain to prevent double-slash issues
     switch (user.role) {
       case "admin":
@@ -79,19 +79,22 @@ export function Header() {
               </span>
             </Link>
           </div>
-          
+
           {/* Search Bar (Centered) */}
           <div className="w-full md:flex-1 flex justify-center mb-3 md:mb-0 order-last md:order-none">
             <SimplifiedSearch className="w-full max-w-xl" />
           </div>
-          
+
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center justify-end flex-shrink-0 md:w-52 space-x-4 md:space-x-5">
             {/* User Controls */}
             {!user ? (
               // If not logged in, show a direct login button
               <Link href="/auth">
-                <Button variant="secondary" className="flex items-center py-1 px-2 md:px-4 bg-white text-primary font-medium rounded-sm hover:bg-gray-100">
+                <Button
+                  variant="secondary"
+                  className="flex items-center py-1 px-2 md:px-4 bg-white text-primary font-medium rounded-sm hover:bg-gray-100"
+                >
                   <User className="mr-2 h-4 w-4" />
                   <span>Login</span>
                 </Button>
@@ -100,16 +103,21 @@ export function Header() {
               // If logged in, show user menu dropdown
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="secondary" className="flex items-center py-1 px-2 md:px-4 bg-white text-primary font-medium rounded-sm hover:bg-gray-100">
+                  <Button
+                    variant="secondary"
+                    className="flex items-center py-1 px-2 md:px-4 bg-white text-primary font-medium rounded-sm hover:bg-gray-100"
+                  >
                     {user.profileImage ? (
                       <div className="h-6 w-6 rounded-full overflow-hidden mr-2 border border-primary">
-                        <img 
-                          src={user.profileImage} 
-                          alt="Profile" 
+                        <img
+                          src={user.profileImage}
+                          alt="Profile"
                           className="h-full w-full object-cover"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
-                            target.src = `https://ui-avatars.com/api/?name=${user.name || user.username}&background=random&color=fff`;
+                            target.src = `https://ui-avatars.com/api/?name=${
+                              user.name || user.username
+                            }&background=random&color=fff`;
                           }}
                         />
                       </div>
@@ -121,14 +129,18 @@ export function Header() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-60">
-                  <DropdownMenuLabel>Hello, {user.name || user.username}</DropdownMenuLabel>
+                  <DropdownMenuLabel>
+                    Hello, {user.name || user.username}
+                  </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link href={getDashboardLink()} className="cursor-pointer">
-                      <LayoutDashboard className="mr-2 h-4 w-4" /> 
-                      {user.role === "admin" ? "Admin Dashboard" : 
-                       user.role === "seller" ? "Seller Dashboard" :
-                       "My Profile"}
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
+                      {user.role === "admin"
+                        ? "Admin Dashboard"
+                        : user.role === "seller"
+                        ? "Seller Dashboard"
+                        : "My Profile"}
                     </Link>
                   </DropdownMenuItem>
                   {user.role === "buyer" && (
@@ -145,34 +157,46 @@ export function Header() {
                       </Link>
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="cursor-pointer"
+                  >
                     <LogOut className="mr-2 h-4 w-4" /> Logout
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
-            
-            {!user || (user.role !== "buyer" && user.role !== "seller") && (
-              <Link href="/seller/dashboard">
-                <Button variant="link" className="text-white hover:text-gray-200">
-                  Become a Seller
-                </Button>
-              </Link>
-            )}
-            
+
+            {!user ||
+              (user.role !== "buyer" && user.role !== "seller" && (
+                <Link href="/seller/dashboard">
+                  <Button
+                    variant="link"
+                    className="text-white hover:text-gray-200"
+                  >
+                    Become a Seller
+                  </Button>
+                </Link>
+              ))}
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="link" className="text-white flex items-center hover:text-gray-200">
+                <Button
+                  variant="link"
+                  className="text-white flex items-center hover:text-gray-200"
+                >
                   <span>More</span>
                   <ChevronDown className="ml-1 h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-60">
                 <DropdownMenuItem className="cursor-pointer">
-                  <span className="mr-2 text-primary">📢</span> Notification Preferences
+                  <span className="mr-2 text-primary">📢</span> Notification
+                  Preferences
                 </DropdownMenuItem>
                 <DropdownMenuItem className="cursor-pointer">
-                  <span className="mr-2 text-primary">🎧</span> 24x7 Customer Care
+                  <span className="mr-2 text-primary">🎧</span> 24x7 Customer
+                  Care
                 </DropdownMenuItem>
                 <DropdownMenuItem className="cursor-pointer">
                   <span className="mr-2 text-primary">📈</span> Advertise
@@ -182,26 +206,28 @@ export function Header() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            
+
             {user && (
               <div className="text-white">
                 <NotificationBell />
               </div>
             )}
-            
-            <Button
-              variant="link"
-              className="text-white flex items-center hover:text-gray-200 relative"
-              onClick={toggleCart}
-            >
-              <ShoppingCart className="h-5 w-5" />
-              <span className="ml-1">Cart</span>
-              {cartItemCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-yellow-400 text-primary text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {cartItemCount}
-                </span>
-              )}
-            </Button>
+
+            {(!user || user.role === "buyer") && (
+              <Button
+                variant="link"
+                className="text-white flex items-center hover:text-gray-200 relative"
+                onClick={toggleCart}
+              >
+                <ShoppingCart className="h-5 w-5" />
+                <span className="ml-1">Cart</span>
+                {cartItemCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-yellow-400 text-primary text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {cartItemCount}
+                  </span>
+                )}
+              </Button>
+            )}
           </nav>
 
           {/* Mobile Menu Button */}
@@ -211,26 +237,32 @@ export function Header() {
                 <NotificationBell />
               </div>
             )}
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="text-white"
-              onClick={toggleCart}
-            >
-              <ShoppingCart className="h-6 w-6" />
-              {cartItemCount > 0 && (
-                <span className="absolute top-1 right-1 bg-yellow-400 text-primary text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                  {cartItemCount}
-                </span>
-              )}
-            </Button>
-            <Button 
-              variant="ghost" 
+            {(!user || user.role === "buyer") && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-white"
+                onClick={toggleCart}
+              >
+                <ShoppingCart className="h-6 w-6" />
+                {cartItemCount > 0 && (
+                  <span className="absolute top-1 right-1 bg-yellow-400 text-primary text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                    {cartItemCount}
+                  </span>
+                )}
+              </Button>
+            )}
+            <Button
+              variant="ghost"
               size="icon"
               className="text-white"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
-              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              {mobileMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
             </Button>
           </div>
         </div>
@@ -240,37 +272,46 @@ export function Header() {
           <div className="md:hidden py-3 border-t border-primary-foreground/20">
             <ul className="space-y-3">
               <li>
-                <Link href={user ? getDashboardLink() : "/auth"} className="flex items-center text-white py-1">
+                <Link
+                  href={user ? getDashboardLink() : "/auth"}
+                  className="flex items-center text-white py-1"
+                >
                   {user && user.profileImage ? (
                     <div className="h-5 w-5 rounded-full overflow-hidden mr-2 border border-white">
-                      <img 
-                        src={user.profileImage} 
-                        alt="Profile" 
+                      <img
+                        src={user.profileImage}
+                        alt="Profile"
                         className="h-full w-full object-cover"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
-                          target.src = `https://ui-avatars.com/api/?name=${user.name || user.username}&background=random&color=fff`;
+                          target.src = `https://ui-avatars.com/api/?name=${
+                            user.name || user.username
+                          }&background=random&color=fff`;
                         }}
                       />
                     </div>
                   ) : (
                     <User className="mr-2 h-5 w-5" />
                   )}
-                  {user ? (user.name || user.username) : "Login / Sign Up"}
+                  {user ? user.name || user.username : "Login / Sign Up"}
                 </Link>
               </li>
-              {!user || (user.role !== "buyer" && user.role !== "seller") && (
-                <li>
-                  <Link href="/seller/dashboard" className="flex items-center text-white py-1">
-                    <Store className="mr-2 h-5 w-5" />
-                    Become a Seller
-                  </Link>
-                </li>
-              )}
+              {!user ||
+                (user.role !== "buyer" && user.role !== "seller" && (
+                  <li>
+                    <Link
+                      href="/seller/dashboard"
+                      className="flex items-center text-white py-1"
+                    >
+                      <Store className="mr-2 h-5 w-5" />
+                      Become a Seller
+                    </Link>
+                  </li>
+                ))}
               {user && (
                 <li>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     className="flex items-center text-white py-1 w-full justify-start px-0 hover:bg-transparent"
                     onClick={handleLogout}
                   >
