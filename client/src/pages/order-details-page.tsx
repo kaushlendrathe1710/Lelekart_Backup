@@ -449,6 +449,14 @@ export default function OrderDetailsPage() {
             <Button
               variant="outline"
               className="flex items-center gap-1"
+              onClick={() => navigate(`/track-order/${orderId}`)}
+            >
+              <Truck className="h-4 w-4" />
+              Track Order
+            </Button>
+            <Button
+              variant="outline"
+              className="flex items-center gap-1"
               onClick={handleViewInvoice}
               disabled={viewInvoiceLoading}
             >

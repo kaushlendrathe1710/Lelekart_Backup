@@ -357,6 +357,29 @@ export default function OrderConfirmationPage() {
               <p className="font-medium capitalize">{orderDetails.status}</p>
             </div>
           </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              className="flex items-center gap-1"
+              onClick={() => setLocation(`/track-order/${orderId}`)}
+            >
+              <Truck className="h-4 w-4" />
+              Track Order
+            </Button>
+            <Button
+              variant="outline"
+              className="flex items-center gap-1"
+              onClick={handleViewInvoice}
+              disabled={viewInvoiceLoading}
+            >
+              {viewInvoiceLoading ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              ) : (
+                <FileText className="h-4 w-4" />
+              )}
+              View Invoice
+            </Button>
+          </div>
         </div>
 
         {/* Order Items - only show if items exist */}
@@ -364,19 +387,6 @@ export default function OrderConfirmationPage() {
           <div className="mb-8">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold">Order Items</h2>
-              <Button
-                variant="outline"
-                className="flex items-center gap-1"
-                onClick={handleViewInvoice}
-                disabled={viewInvoiceLoading}
-              >
-                {viewInvoiceLoading ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                ) : (
-                  <FileText className="h-4 w-4" />
-                )}
-                View Invoice
-              </Button>
             </div>
             <div className="border border-gray-200 rounded-lg overflow-hidden">
               <table className="min-w-full divide-y divide-gray-200">
@@ -495,19 +505,6 @@ export default function OrderConfirmationPage() {
           <div className="mb-8">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold">Order Summary</h2>
-              <Button
-                variant="outline"
-                className="flex items-center gap-1"
-                onClick={handleViewInvoice}
-                disabled={viewInvoiceLoading}
-              >
-                {viewInvoiceLoading ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                ) : (
-                  <FileText className="h-4 w-4" />
-                )}
-                View Invoice
-              </Button>
             </div>
             <div className="border border-gray-200 rounded-lg p-6 text-center">
               <p className="text-gray-500 mb-4">
