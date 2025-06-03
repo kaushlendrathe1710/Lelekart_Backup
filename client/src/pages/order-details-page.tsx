@@ -6,14 +6,14 @@ import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Phone, 
-  Mail, 
-  ExternalLink, 
-  FileText, 
-  Download, 
-  MapPin, 
-  User, 
-  Calendar, 
+  Phone,
+  Mail,
+  ExternalLink,
+  FileText,
+  Download,
+  MapPin,
+  User,
+  Calendar,
   CreditCard,
   Truck,
   CheckCircle2,
@@ -21,7 +21,7 @@ import {
   XCircle,
   ArrowRight,
   ShoppingBag,
-  Package
+  Package,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -99,28 +99,28 @@ interface Order {
 
 function formatDate(dateString: string) {
   const options: Intl.DateTimeFormatOptions = {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   };
-  return new Date(dateString).toLocaleDateString('en-US', options);
+  return new Date(dateString).toLocaleDateString("en-US", options);
 }
 
 function getStatusColor(status: string) {
   switch (status.toLowerCase()) {
-    case 'pending':
+    case "pending":
       return "bg-yellow-100 text-yellow-800 border-yellow-200";
-    case 'processing':
+    case "processing":
       return "bg-blue-100 text-blue-800 border-blue-200";
-    case 'shipped':
+    case "shipped":
       return "bg-indigo-100 text-indigo-800 border-indigo-200";
-    case 'delivered':
+    case "delivered":
       return "bg-green-100 text-green-800 border-green-200";
-    case 'cancelled':
+    case "cancelled":
       return "bg-red-100 text-red-800 border-red-200";
-    case 'refunded':
+    case "refunded":
       return "bg-purple-100 text-purple-800 border-purple-200";
     default:
       return "bg-gray-100 text-gray-800 border-gray-200";
@@ -129,17 +129,17 @@ function getStatusColor(status: string) {
 
 function StatusIcon({ status }: { status: string }) {
   switch (status.toLowerCase()) {
-    case 'pending':
+    case "pending":
       return <Clock className="h-4 w-4 mr-1" />;
-    case 'processing':
+    case "processing":
       return <ArrowRight className="h-4 w-4 mr-1" />;
-    case 'shipped':
+    case "shipped":
       return <Truck className="h-4 w-4 mr-1" />;
-    case 'delivered':
+    case "delivered":
       return <CheckCircle2 className="h-4 w-4 mr-1" />;
-    case 'cancelled':
+    case "cancelled":
       return <XCircle className="h-4 w-4 mr-1" />;
-    case 'refunded':
+    case "refunded":
       return <CreditCard className="h-4 w-4 mr-1" />;
     default:
       return <Package className="h-4 w-4 mr-1" />;
@@ -149,11 +149,11 @@ function StatusIcon({ status }: { status: string }) {
 function getExpectedDeliveryDate(orderDate: string) {
   const date = new Date(orderDate);
   date.setDate(date.getDate() + 7); // adding 7 days delivery time
-  
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
+
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   });
 }
 
@@ -162,12 +162,12 @@ function getProductImageUrl(product: Product): string {
   if (product.imageUrl) {
     return product.imageUrl;
   }
-  
+
   // Then try product.image_url
   if (product.image_url) {
     return product.image_url;
   }
-  
+
   // Finally try to get first image from product.images JSON
   if (product.images) {
     try {
@@ -180,7 +180,7 @@ function getProductImageUrl(product: Product): string {
       return product.images;
     }
   }
-  
+
   // Return a default image if nothing found
   return "https://placehold.co/100x100?text=No+Image";
 }
@@ -195,7 +195,9 @@ export default function OrderDetailsPage() {
   const [items, setItems] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [invoiceLoading, setInvoiceLoading] = useState<boolean>(false);
-  const [shippingLabelLoading, setShippingLabelLoading] = useState<boolean>(false);
+  const [viewInvoiceLoading, setViewInvoiceLoading] = useState<boolean>(false);
+  const [shippingLabelLoading, setShippingLabelLoading] =
+    useState<boolean>(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
@@ -206,14 +208,14 @@ export default function OrderDetailsPage() {
     try {
       setLoading(true);
       const response = await fetch(`/api/orders/${orderId}`);
-      
+
       if (!response.ok) {
-        throw new Error('Failed to fetch order details');
+        throw new Error("Failed to fetch order details");
       }
-      
+
       const orderData = await response.json();
       setOrder(orderData);
-      
+
       // Fetch order items
       if (orderData) {
         const itemsResponse = await fetch(`/api/orders/${orderId}/items`);
@@ -223,7 +225,7 @@ export default function OrderDetailsPage() {
         }
       }
     } catch (error) {
-      console.error('Error fetching order details:', error);
+      console.error("Error fetching order details:", error);
       toast({
         title: "Error",
         description: "Failed to fetch order details. Please try again.",
@@ -238,20 +240,20 @@ export default function OrderDetailsPage() {
     try {
       setLoading(true);
       const response = await fetch(`/api/orders/${orderId}`);
-      
+
       if (!response.ok) {
-        throw new Error('Failed to refresh order details');
+        throw new Error("Failed to refresh order details");
       }
-      
+
       const orderData = await response.json();
       setOrder(orderData);
-      
+
       toast({
         title: "Success",
         description: "Order details refreshed successfully.",
       });
     } catch (error) {
-      console.error('Error refreshing order details:', error);
+      console.error("Error refreshing order details:", error);
       toast({
         title: "Error",
         description: "Failed to refresh order details. Please try again.",
@@ -262,41 +264,80 @@ export default function OrderDetailsPage() {
     }
   };
 
+  const handleViewInvoice = async () => {
+    try {
+      setViewInvoiceLoading(true);
+
+      // Use fetch with credentials to maintain session
+      const response = await fetch(`/api/orders/${orderId}/invoice`, {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to view invoice");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      // Open in new tab
+      window.open(url, "_blank");
+
+      // Clean up
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Success",
+        description: "Invoice opened in new tab.",
+      });
+    } catch (error) {
+      console.error("Error viewing invoice:", error);
+      toast({
+        title: "Error",
+        description: "Failed to view invoice. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setViewInvoiceLoading(false);
+    }
+  };
+
   const handleDownloadInvoice = async () => {
     try {
       setInvoiceLoading(true);
-      
+
       // Use fetch with credentials to maintain session
       const response = await fetch(`/api/orders/${orderId}/invoice`, {
-        method: 'GET',
-        credentials: 'include',
+        method: "GET",
+        credentials: "include",
       });
-      
+
       if (!response.ok) {
-        throw new Error('Failed to download invoice');
+        throw new Error("Failed to download invoice");
       }
-      
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      
+
       // Create a temporary link and trigger download
-      const a = document.createElement('a');
-      a.style.display = 'none';
+      const a = document.createElement("a");
+      a.style.display = "none";
       a.href = url;
       a.download = `invoice-order-${orderId}.pdf`;
       document.body.appendChild(a);
       a.click();
-      
+
       // Clean up
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
+
       toast({
         title: "Success",
         description: "Invoice downloaded successfully.",
       });
     } catch (error) {
-      console.error('Error downloading invoice:', error);
+      console.error("Error downloading invoice:", error);
       toast({
         title: "Error",
         description: "Failed to download invoice. Please try again.",
@@ -310,38 +351,38 @@ export default function OrderDetailsPage() {
   const handleDownloadShippingLabel = async () => {
     try {
       setShippingLabelLoading(true);
-      
+
       // Use fetch with credentials to maintain session
       const response = await fetch(`/api/orders/${orderId}/shipping-label`, {
-        method: 'GET',
-        credentials: 'include',
+        method: "GET",
+        credentials: "include",
       });
-      
+
       if (!response.ok) {
-        throw new Error('Failed to download shipping label');
+        throw new Error("Failed to download shipping label");
       }
-      
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      
+
       // Create a temporary link and trigger download
-      const a = document.createElement('a');
-      a.style.display = 'none';
+      const a = document.createElement("a");
+      a.style.display = "none";
       a.href = url;
       a.download = `shipping-label-order-${orderId}.pdf`;
       document.body.appendChild(a);
       a.click();
-      
+
       // Clean up
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
+
       toast({
         title: "Success",
         description: "Shipping label downloaded successfully.",
       });
     } catch (error) {
-      console.error('Error downloading shipping label:', error);
+      console.error("Error downloading shipping label:", error);
       toast({
         title: "Error",
         description: "Failed to download shipping label. Please try again.",
@@ -360,37 +401,42 @@ export default function OrderDetailsPage() {
         </div>
       );
     }
-    
+
     if (!order) {
       return (
         <div className="text-center">
           <h2 className="text-2xl font-bold">Order Not Found</h2>
-          <p className="text-muted-foreground mt-2">The order you're looking for doesn't exist or you don't have permission to view it.</p>
-          <Button onClick={() => navigate("/")} className="mt-4">Return to Home</Button>
+          <p className="text-muted-foreground mt-2">
+            The order you're looking for doesn't exist or you don't have
+            permission to view it.
+          </p>
+          <Button onClick={() => navigate("/")} className="mt-4">
+            Return to Home
+          </Button>
         </div>
       );
     }
-    
+
     // Parse shipping details
     let shippingDetails: ShippingDetails;
-    if (typeof order.shippingDetails === 'string') {
+    if (typeof order.shippingDetails === "string") {
       try {
         shippingDetails = JSON.parse(order.shippingDetails);
       } catch (error) {
         shippingDetails = {
-          name: 'Unknown',
-          email: 'Unknown',
-          phone: 'Unknown',
-          address: 'Unknown',
-          city: 'Unknown',
-          state: 'Unknown',
-          zipCode: 'Unknown'
+          name: "Unknown",
+          email: "Unknown",
+          phone: "Unknown",
+          address: "Unknown",
+          city: "Unknown",
+          state: "Unknown",
+          zipCode: "Unknown",
         };
       }
     } else {
       shippingDetails = order.shippingDetails;
     }
-    
+
     // Use a single div to wrap all components to avoid adjacent JSX elements
     return (
       <div className="order-details-container">
@@ -400,30 +446,53 @@ export default function OrderDetailsPage() {
             <p className="text-muted-foreground">Order #{order.id}</p>
           </div>
           <div className="mt-4 md:mt-0 flex gap-2">
-            <Button 
-              variant="outline" 
-              className="flex items-center gap-1" 
+            <Button
+              variant="outline"
+              className="flex items-center gap-1"
+              onClick={handleViewInvoice}
+              disabled={viewInvoiceLoading}
+            >
+              {viewInvoiceLoading ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              ) : (
+                <FileText className="h-4 w-4" />
+              )}
+              View Invoice
+            </Button>
+            <Button
+              variant="outline"
+              className="flex items-center gap-1"
               onClick={handleDownloadInvoice}
               disabled={invoiceLoading}
             >
-              {invoiceLoading ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" /> : <FileText className="h-4 w-4" />}
+              {invoiceLoading ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
               Download Invoice
             </Button>
-            
-            {user?.role === 'seller' || user?.role === 'admin' || user?.role === 'co-admin' ? (
-              <Button 
-                variant="outline" 
-                className="flex items-center gap-1" 
+
+            {user?.role === "seller" ||
+            user?.role === "admin" ||
+            user?.role === "co-admin" ? (
+              <Button
+                variant="outline"
+                className="flex items-center gap-1"
                 onClick={handleDownloadShippingLabel}
                 disabled={shippingLabelLoading}
               >
-                {shippingLabelLoading ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" /> : <Download className="h-4 w-4" />}
+                {shippingLabelLoading ? (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
                 Shipping Label
               </Button>
             ) : null}
           </div>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <Card className="p-6">
             <h2 className="text-lg font-semibold mb-4 flex items-center">
@@ -431,19 +500,25 @@ export default function OrderDetailsPage() {
               Order Status
             </h2>
             <div>
-              <div className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(order.status)}`}>
+              <div
+                className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(
+                  order.status
+                )}`}
+              >
                 <StatusIcon status={order.status} />
                 {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
               </div>
-              <p className="text-sm text-muted-foreground mt-2">Ordered on {formatDate(order.date)}</p>
-              {order.status !== 'cancelled' && order.status !== 'delivered' && (
+              <p className="text-sm text-muted-foreground mt-2">
+                Ordered on {formatDate(order.date)}
+              </p>
+              {order.status !== "cancelled" && order.status !== "delivered" && (
                 <p className="text-sm text-muted-foreground">
                   Expected delivery by {getExpectedDeliveryDate(order.date)}
                 </p>
               )}
             </div>
           </Card>
-          
+
           <Card className="p-6">
             <h2 className="text-lg font-semibold mb-4 flex items-center">
               <CreditCard className="h-5 w-5 mr-2 text-muted-foreground" />
@@ -461,7 +536,14 @@ export default function OrderDetailsPage() {
               <div className="mt-3">
                 <div className="flex justify-between">
                   <span>Subtotal:</span>
-                  <span>₹{(order.total - (order.shippingCharges || 0) + (order.discount || 0)).toFixed(2)}</span>
+                  <span>
+                    ₹
+                    {(
+                      order.total -
+                      (order.shippingCharges || 0) +
+                      (order.discount || 0)
+                    ).toFixed(2)}
+                  </span>
                 </div>
                 {order.discount && order.discount > 0 && (
                   <div className="flex justify-between text-green-600">
@@ -480,7 +562,7 @@ export default function OrderDetailsPage() {
               </div>
             </div>
           </Card>
-          
+
           {order.trackingId && (
             <Card className="p-6">
               <h2 className="text-lg font-semibold mb-4 flex items-center">
@@ -490,7 +572,7 @@ export default function OrderDetailsPage() {
               <div>
                 <p>
                   <span className="font-medium">Courier: </span>
-                  <span>{order.courierName || 'Not specified'}</span>
+                  <span>{order.courierName || "Not specified"}</span>
                 </p>
                 <p className="mt-1">
                   <span className="font-medium">Tracking ID: </span>
@@ -499,7 +581,12 @@ export default function OrderDetailsPage() {
                 {order.trackingUrl && (
                   <div className="mt-3">
                     <Button variant="outline" size="sm" asChild>
-                      <a href={order.trackingUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
+                      <a
+                        href={order.trackingUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1"
+                      >
                         <ExternalLink className="h-4 w-4" />
                         Track Package
                       </a>
@@ -510,20 +597,24 @@ export default function OrderDetailsPage() {
             </Card>
           )}
         </div>
-        
+
         <Card className="p-6 mb-6">
           <h2 className="text-lg font-semibold mb-4">Order Items</h2>
           <div className="space-y-4">
             {items.map((item) => (
-              <div key={item.id} className="border border-gray-200 rounded-lg p-4">
+              <div
+                key={item.id}
+                className="border border-gray-200 rounded-lg p-4"
+              >
                 <div className="flex flex-col md:flex-row gap-4">
                   <div className="relative w-20 h-20 rounded bg-gray-100 flex-shrink-0">
-                    <img 
-                      src={getProductImageUrl(item.product)} 
+                    <img
+                      src={getProductImageUrl(item.product)}
                       alt={item.product.name}
                       className="absolute inset-0 w-full h-full object-cover rounded"
-                      onError={(e) => { 
-                        (e.target as HTMLImageElement).src = "https://placehold.co/100x100?text=No+Image"; 
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src =
+                          "https://placehold.co/100x100?text=No+Image";
                       }}
                     />
                   </div>
@@ -541,13 +632,16 @@ export default function OrderDetailsPage() {
                     )}
                     <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
                       <p className="text-sm">
-                        <span className="font-medium">Unit Price:</span> ₹{item.price.toFixed(2)}
+                        <span className="font-medium">Unit Price:</span> ₹
+                        {item.price.toFixed(2)}
                       </p>
                       <p className="text-sm">
-                        <span className="font-medium">Quantity:</span> {item.quantity}
+                        <span className="font-medium">Quantity:</span>{" "}
+                        {item.quantity}
                       </p>
                       <p className="text-sm">
-                        <span className="font-medium">Total:</span> ₹{(item.price * item.quantity).toFixed(2)}
+                        <span className="font-medium">Total:</span> ₹
+                        {(item.price * item.quantity).toFixed(2)}
                       </p>
                     </div>
                   </div>
@@ -556,9 +650,9 @@ export default function OrderDetailsPage() {
             ))}
           </div>
         </Card>
-        
+
         {/* Shiprocket integration is currently disabled */}
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <Card className="p-6">
             <h2 className="text-lg font-semibold mb-4 flex items-center">
@@ -580,16 +674,21 @@ export default function OrderDetailsPage() {
               </p>
               <Separator className="my-3" />
               <p className="text-muted-foreground">{shippingDetails.address}</p>
-              <p className="text-muted-foreground">{shippingDetails.city}, {shippingDetails.state} {shippingDetails.zipCode}</p>
+              <p className="text-muted-foreground">
+                {shippingDetails.city}, {shippingDetails.state}{" "}
+                {shippingDetails.zipCode}
+              </p>
               {shippingDetails.notes && (
                 <div className="mt-3">
                   <p className="font-medium">Notes:</p>
-                  <p className="text-muted-foreground">{shippingDetails.notes}</p>
+                  <p className="text-muted-foreground">
+                    {shippingDetails.notes}
+                  </p>
                 </div>
               )}
             </div>
           </Card>
-          
+
           <Card className="p-6">
             <h2 className="text-lg font-semibold mb-4 flex items-center">
               <FileText className="h-5 w-5 mr-2 text-muted-foreground" />
@@ -610,11 +709,14 @@ export default function OrderDetailsPage() {
               </p>
               <Separator className="my-3" />
               <p className="text-muted-foreground">{shippingDetails.address}</p>
-              <p className="text-muted-foreground">{shippingDetails.city}, {shippingDetails.state} {shippingDetails.zipCode}</p>
+              <p className="text-muted-foreground">
+                {shippingDetails.city}, {shippingDetails.state}{" "}
+                {shippingDetails.zipCode}
+              </p>
             </div>
           </Card>
         </div>
-        
+
         {/* Tax Invoice */}
         <div className="mt-6">
           <Card className="p-6">
@@ -622,38 +724,66 @@ export default function OrderDetailsPage() {
               <FileText className="h-5 w-5 mr-2 text-muted-foreground" />
               Tax Invoice Information
             </h2>
-            
+
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-100">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Base Price</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">GST</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Item
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Quantity
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Base Price
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      GST
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Unit Price
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Total
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {items.map((item) => {
-                    const gstDetails = item.product.gstDetails || { 
+                    const gstDetails = item.product.gstDetails || {
                       gstRate: 18, // Default GST rate
                       basePrice: item.price / 1.18, // Approximate base price
-                      gstAmount: item.price - (item.price / 1.18) // Approximate GST amount
+                      gstAmount: item.price - item.price / 1.18, // Approximate GST amount
                     };
-                    
+
                     return (
                       <tr key={item.id}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {item.product.name}
-                          {item.variant && <span className="text-gray-500"> ({item.variant})</span>}
+                          {item.variant && (
+                            <span className="text-gray-500">
+                              {" "}
+                              ({item.variant})
+                            </span>
+                          )}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.quantity}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{gstDetails.basePrice.toFixed(2)}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{gstDetails.gstRate}% (₹{gstDetails.gstAmount.toFixed(2)})</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{item.price.toFixed(2)}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{(item.price * item.quantity).toFixed(2)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {item.quantity}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          ₹{gstDetails.basePrice.toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {gstDetails.gstRate}% (₹
+                          {gstDetails.gstAmount.toFixed(2)})
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          ₹{item.price.toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          ₹{(item.price * item.quantity).toFixed(2)}
+                        </td>
                       </tr>
                     );
                   })}
@@ -661,37 +791,90 @@ export default function OrderDetailsPage() {
                 <tfoot className="bg-gray-50">
                   {(() => {
                     // Calculate totals
-                    const subtotal = items.reduce((total, item) => total + (item.price * item.quantity), 0);
+                    const subtotal = items.reduce(
+                      (total, item) => total + item.price * item.quantity,
+                      0
+                    );
                     const gstTotal = items.reduce((total, item) => {
-                      const gstDetails = item.product.gstDetails || { 
-                        gstAmount: item.price - (item.price / 1.18) 
+                      const gstDetails = item.product.gstDetails || {
+                        gstAmount: item.price - item.price / 1.18,
                       };
-                      return total + (gstDetails.gstAmount * item.quantity);
+                      return total + gstDetails.gstAmount * item.quantity;
                     }, 0);
-                    
+
                     return (
                       <>
                         <tr>
-                          <td colSpan={4} className="px-6 py-3 text-right text-sm font-medium">Subtotal:</td>
-                          <td colSpan={2} className="px-6 py-3 text-left text-sm">₹{subtotal.toFixed(2)}</td>
+                          <td
+                            colSpan={4}
+                            className="px-6 py-3 text-right text-sm font-medium"
+                          >
+                            Subtotal:
+                          </td>
+                          <td
+                            colSpan={2}
+                            className="px-6 py-3 text-left text-sm"
+                          >
+                            ₹{subtotal.toFixed(2)}
+                          </td>
                         </tr>
                         <tr>
-                          <td colSpan={4} className="px-6 py-3 text-right text-sm font-medium">GST Total:</td>
-                          <td colSpan={2} className="px-6 py-3 text-left text-sm">₹{gstTotal.toFixed(2)}</td>
+                          <td
+                            colSpan={4}
+                            className="px-6 py-3 text-right text-sm font-medium"
+                          >
+                            GST Total:
+                          </td>
+                          <td
+                            colSpan={2}
+                            className="px-6 py-3 text-left text-sm"
+                          >
+                            ₹{gstTotal.toFixed(2)}
+                          </td>
                         </tr>
                         <tr>
-                          <td colSpan={4} className="px-6 py-3 text-right text-sm font-medium">Shipping:</td>
-                          <td colSpan={2} className="px-6 py-3 text-left text-sm">₹{(order.shippingCharges || 0).toFixed(2)}</td>
+                          <td
+                            colSpan={4}
+                            className="px-6 py-3 text-right text-sm font-medium"
+                          >
+                            Shipping:
+                          </td>
+                          <td
+                            colSpan={2}
+                            className="px-6 py-3 text-left text-sm"
+                          >
+                            ₹{(order.shippingCharges || 0).toFixed(2)}
+                          </td>
                         </tr>
                         {order.discount && order.discount > 0 && (
                           <tr>
-                            <td colSpan={4} className="px-6 py-3 text-right text-sm font-medium text-green-600">Discount:</td>
-                            <td colSpan={2} className="px-6 py-3 text-left text-sm text-green-600">-₹{order.discount.toFixed(2)}</td>
+                            <td
+                              colSpan={4}
+                              className="px-6 py-3 text-right text-sm font-medium text-green-600"
+                            >
+                              Discount:
+                            </td>
+                            <td
+                              colSpan={2}
+                              className="px-6 py-3 text-left text-sm text-green-600"
+                            >
+                              -₹{order.discount.toFixed(2)}
+                            </td>
                           </tr>
                         )}
                         <tr className="bg-gray-100">
-                          <td colSpan={4} className="px-6 py-3 text-right text-sm font-bold">Grand Total:</td>
-                          <td colSpan={2} className="px-6 py-3 text-left text-sm font-bold">₹{order.total.toFixed(2)}</td>
+                          <td
+                            colSpan={4}
+                            className="px-6 py-3 text-right text-sm font-bold"
+                          >
+                            Grand Total:
+                          </td>
+                          <td
+                            colSpan={2}
+                            className="px-6 py-3 text-left text-sm font-bold"
+                          >
+                            ₹{order.total.toFixed(2)}
+                          </td>
                         </tr>
                       </>
                     );
@@ -699,19 +882,30 @@ export default function OrderDetailsPage() {
                 </tfoot>
               </table>
             </div>
-            
+
             <div className="border-t mt-8 pt-6 text-sm text-gray-600">
               <h3 className="font-semibold mb-2">Terms & Conditions</h3>
               <ul className="list-disc ml-5 space-y-1">
                 <li>All prices are inclusive of GST.</li>
-                <li>Returns accepted within 7 days of delivery for most items.</li>
-                <li>Damaged or defective products should be reported within 48 hours of receipt.</li>
+                <li>
+                  Returns accepted within 7 days of delivery for most items.
+                </li>
+                <li>
+                  Damaged or defective products should be reported within 48
+                  hours of receipt.
+                </li>
               </ul>
-              
+
               <div className="mt-6">
                 <p>Thank you for shopping with Lelekart!</p>
-                <p>For any questions, please contact our customer service at support@lelekart.com</p>
-                <p>This is a computer-generated invoice and does not require a signature.</p>
+                <p>
+                  For any questions, please contact our customer service at
+                  support@lelekart.com
+                </p>
+                <p>
+                  This is a computer-generated invoice and does not require a
+                  signature.
+                </p>
               </div>
             </div>
           </Card>
@@ -719,10 +913,6 @@ export default function OrderDetailsPage() {
       </div>
     );
   };
-  
-  return (
-    <DashboardLayout>
-      {renderContent()}
-    </DashboardLayout>
-  );
+
+  return <DashboardLayout>{renderContent()}</DashboardLayout>;
 }
