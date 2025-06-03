@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
 import { ProductCard } from "@/components/ui/product-card";
@@ -11,58 +11,95 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { FashionProductCardFixed } from "@/components/ui/fashion-product-card-fixed";
 
+// Memoize categories to prevent unnecessary re-renders
+const allCategories = [
+  "Electronics",
+  "Fashion",
+  "Home",
+  "Appliances",
+  "Mobiles",
+  "Beauty",
+  "Toys",
+  "Grocery",
+] as const;
+
+interface ProductData {
+  products: Product[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    total: number;
+  };
+}
+
+interface SliderImage {
+  url: string;
+  alt: string;
+  title?: string;
+  subtitle?: string;
+  link?: string;
+}
+
+interface DealOfTheDay {
+  title: string;
+  subtitle: string;
+  image: string;
+  originalPrice: string | number;
+  discountPrice: string | number;
+  discountPercentage: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+  productId?: number;
+}
+
 export default function HomePage() {
   const [location] = useLocation();
   const [category, setCategory] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 36;
 
-  useEffect(() => {
-    const searchParams = new URLSearchParams(location.split("?")[1]);
-    const categoryParam = searchParams.get("category");
-    setCategory(categoryParam);
+  // Memoize URL params parsing
+  const searchParams = useMemo(() => {
+    return new URLSearchParams(location.split("?")[1]);
   }, [location]);
 
   useEffect(() => {
-    const searchParams = new URLSearchParams(location.split("?")[1]);
+    const categoryParam = searchParams.get("category");
+    setCategory(categoryParam);
+  }, [searchParams]);
+
+  useEffect(() => {
     const pageParam = searchParams.get("page");
     if (pageParam) {
       setCurrentPage(parseInt(pageParam));
     } else {
       setCurrentPage(1);
     }
-  }, [location]);
+  }, [searchParams]);
 
-  const allCategories = [
-    "Electronics",
-    "Fashion",
-    "Home",
-    "Appliances",
-    "Mobiles",
-    "Beauty",
-    "Toys",
-    "Grocery",
-  ];
+  // Memoize the fetch function
+  const fetchProductsByCategory = useMemo(() => {
+    return async (category: string): Promise<ProductData> => {
+      const cacheBuster = new Date().getTime();
+      const url = `/api/products?category=${category}&page=${currentPage}&limit=${itemsPerPage}&approved=true&status=approved&_=${cacheBuster}`;
+      const res = await fetch(url, {
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      });
+      if (!res.ok) throw new Error(`Failed to fetch products for ${category}`);
+      return res.json();
+    };
+  }, [currentPage, itemsPerPage]);
 
-  const fetchProductsByCategory = async (category) => {
-    const cacheBuster = new Date().getTime();
-    const url = `/api/products?category=${category}&page=${currentPage}&limit=${itemsPerPage}&approved=true&status=approved&_=${cacheBuster}`;
-    const res = await fetch(url, {
-      headers: {
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
-    });
-    if (!res.ok) throw new Error(`Failed to fetch products for ${category}`);
-    return res.json();
-  };
-
-  const { data: productsData, isLoading } = useQuery({
+  // Optimize product fetching with parallel requests and caching
+  const { data: productsData, isLoading } = useQuery<ProductData>({
     queryKey: ["/api/products", { currentPage, itemsPerPage, category }],
     queryFn: async () => {
       if (category) {
-        // Fetch products for a specific category
         const data = await fetchProductsByCategory(category);
         return {
           products: data.products || [],
@@ -73,30 +110,46 @@ export default function HomePage() {
           },
         };
       } else {
-        // Fetch products for all categories
-        const results = await Promise.all(
+        // Use Promise.allSettled to handle partial failures gracefully
+        const results = await Promise.allSettled(
           allCategories.map((cat) => fetchProductsByCategory(cat))
         );
-        const products = results.flatMap((result) => result.products || []);
+        const products = results
+          .filter(
+            (result): result is PromiseFulfilledResult<ProductData> =>
+              result.status === "fulfilled"
+          )
+          .flatMap((result) => result.value.products || []);
         return {
           products,
           pagination: { currentPage: 1, totalPages: 1, total: products.length },
         };
       }
     },
-    staleTime: 0,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    refetchOnMount: false, // Don't refetch on mount if we have cached data
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 
-  const products = productsData?.products || [];
-  const pagination = productsData?.pagination || {
-    currentPage: 1,
-    totalPages: 1,
-    total: 0,
-  };
+  // Memoize derived data
+  const products = useMemo(
+    () => productsData?.products || [],
+    [productsData?.products]
+  );
+  const pagination = useMemo(
+    () =>
+      productsData?.pagination || {
+        currentPage: 1,
+        totalPages: 1,
+        total: 0,
+      },
+    [productsData?.pagination]
+  );
 
-  const { data: heroProducts, isLoading: isLoadingHero } = useQuery({
+  // Optimize hero products fetching
+  const { data: heroProducts, isLoading: isLoadingHero } = useQuery<
+    SliderImage[]
+  >({
     queryKey: ["/api/featured-hero-products"],
     queryFn: async () => {
       const res = await fetch(
@@ -105,63 +158,84 @@ export default function HomePage() {
       if (!res.ok) throw new Error("Failed to fetch hero products");
       return res.json();
     },
-    staleTime: 300000,
-    refetchOnWindowFocus: true,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    refetchOnWindowFocus: false,
   });
 
-  const { data: dealOfTheDay, isLoading: isLoadingDeal } = useQuery({
-    queryKey: ["/api/deal-of-the-day"],
-    queryFn: async () => {
-      const res = await fetch(
-        "/api/deal-of-the-day?approved=true&status=approved"
-      );
-      if (!res.ok) throw new Error("Failed to fetch deal of the day");
-      return res.json();
-    },
-    staleTime: 300000,
-  });
+  // Optimize deal of the day fetching
+  const { data: dealOfTheDay, isLoading: isLoadingDeal } =
+    useQuery<DealOfTheDay>({
+      queryKey: ["/api/deal-of-the-day"],
+      queryFn: async () => {
+        const res = await fetch(
+          "/api/deal-of-the-day?approved=true&status=approved"
+        );
+        if (!res.ok) throw new Error("Failed to fetch deal of the day");
+        return res.json();
+      },
+      staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    });
 
-  const getProductsByCategory = (categoryName) => {
-    return products
-      .filter((p) => p.category?.toLowerCase() === categoryName.toLowerCase())
-      .slice(0, 6);
-  };
+  // Memoize product filtering functions
+  const getProductsByCategory = useMemo(() => {
+    return (categoryName: string) => {
+      return products
+        .filter(
+          (p: Product) =>
+            p.category?.toLowerCase() === categoryName.toLowerCase()
+        )
+        .slice(0, 6);
+    };
+  }, [products]);
 
-  const featuredProducts = category
-    ? products.slice(0, 5)
-    : products.filter((p) => p.id <= 5).slice(0, 5);
+  const featuredProducts = useMemo(() => {
+    return category
+      ? products.slice(0, 5)
+      : products.filter((p: Product) => p.id <= 5).slice(0, 5);
+  }, [category, products]);
 
-  const categorizedProducts = allCategories
-    .map((cat) => ({
-      name: cat,
-      title: `Top ${cat}`,
-      products: getProductsByCategory(cat),
-    }))
-    .filter((catGroup) => catGroup.products.length > 0);
+  const categorizedProducts = useMemo(() => {
+    return allCategories
+      .map((cat) => ({
+        name: cat,
+        title: `Top ${cat}`,
+        products: getProductsByCategory(cat),
+      }))
+      .filter((catGroup) => catGroup.products.length > 0);
+  }, [getProductsByCategory]);
 
-  const ProductsLoading = () => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-      {[...Array(5)].map((_, i) => (
-        <div key={i} className="flex flex-col items-center">
-          <Skeleton className="h-40 w-32 mb-3" />
-          <Skeleton className="h-4 w-28 mb-2" />
-          <Skeleton className="h-3 w-16 mb-2" />
-          <Skeleton className="h-3 w-24" />
+  // Memoize loading components
+  const ProductsLoading = useMemo(
+    () => () =>
+      (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="flex flex-col items-center">
+              <Skeleton className="h-40 w-32 mb-3" />
+              <Skeleton className="h-4 w-28 mb-2" />
+              <Skeleton className="h-3 w-16 mb-2" />
+              <Skeleton className="h-3 w-24" />
+            </div>
+          ))}
         </div>
-      ))}
-    </div>
+      ),
+    []
   );
 
-  const CategoryProductsLoading = () => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-      {[...Array(6)].map((_, i) => (
-        <div key={i} className="flex flex-col items-center">
-          <Skeleton className="h-32 w-28 mb-2" />
-          <Skeleton className="h-4 w-24 mb-2" />
-          <Skeleton className="h-3 w-16" />
+  const CategoryProductsLoading = useMemo(
+    () => () =>
+      (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="flex flex-col items-center">
+              <Skeleton className="h-32 w-28 mb-2" />
+              <Skeleton className="h-4 w-24 mb-2" />
+              <Skeleton className="h-3 w-16" />
+            </div>
+          ))}
         </div>
-      ))}
-    </div>
+      ),
+    []
   );
 
   return (
