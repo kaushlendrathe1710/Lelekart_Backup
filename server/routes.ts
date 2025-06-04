@@ -54,6 +54,7 @@ import {
   exportAllProductsToExcel,
 } from "./handlers/export-handler"; // Import export handlers
 import QRCode from "qrcode";
+import { sendEmail, EMAIL_TEMPLATES } from "./services/email-service";
 
 // Helper function to apply product display settings
 function applyProductDisplaySettings(products: any[], settings: any) {
@@ -472,8 +473,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: seller.approved
           ? "Your seller account is approved. You can now list products and manage your store."
           : seller.rejected
-          ? "Your seller account has been rejected. Please contact customer support for more information."
-          : "Your profile is pending approval by admin. Please update your profile details ASAP so it can be approved quickly.",
+            ? "Your seller account has been rejected. Please contact customer support for more information."
+            : "Your profile is pending approval by admin. Please update your profile details ASAP so it can be approved quickly.",
       });
     } catch (error) {
       console.error("Error checking seller status:", error);
@@ -940,14 +941,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Group order items by seller
-      const itemsBySeller = orderItems.reduce((acc, item) => {
-        const sellerId = item.product.sellerId;
-        if (!acc[sellerId]) {
-          acc[sellerId] = [];
-        }
-        acc[sellerId].push(item);
-        return acc;
-      }, {} as Record<number, typeof orderItems>);
+      const itemsBySeller = orderItems.reduce(
+        (acc, item) => {
+          const sellerId = item.product.sellerId;
+          if (!acc[sellerId]) {
+            acc[sellerId] = [];
+          }
+          acc[sellerId].push(item);
+          return acc;
+        },
+        {} as Record<number, typeof orderItems>
+      );
 
       // Generate invoice for each seller
       const sellerInvoices = await Promise.all(
@@ -3257,9 +3261,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (variantsToCreate.length > 0) {
         console.log(`Bulk creating ${variantsToCreate.length} new variants`);
         try {
-          const newVariants = await storage.createProductVariantsBulk(
-            variantsToCreate
-          );
+          const newVariants =
+            await storage.createProductVariantsBulk(variantsToCreate);
           console.log(`Successfully created ${newVariants.length} variants`);
           results.created = newVariants;
         } catch (error) {
@@ -3475,26 +3478,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   typeof cleanVariant.price === "number"
                     ? cleanVariant.price
                     : typeof cleanVariant.price === "string"
-                    ? parseFloat(cleanVariant.price)
-                    : 0,
+                      ? parseFloat(cleanVariant.price)
+                      : 0,
                 mrp:
                   typeof cleanVariant.mrp === "number"
                     ? cleanVariant.mrp
                     : typeof cleanVariant.mrp === "string"
-                    ? parseFloat(cleanVariant.mrp)
-                    : null,
+                      ? parseFloat(cleanVariant.mrp)
+                      : null,
                 stock:
                   typeof cleanVariant.stock === "number"
                     ? cleanVariant.stock
                     : typeof cleanVariant.stock === "string"
-                    ? parseInt(cleanVariant.stock)
-                    : 0,
+                      ? parseInt(cleanVariant.stock)
+                      : 0,
                 // Ensure images is properly formatted as a JSON string
                 images: Array.isArray(cleanVariant.images)
                   ? JSON.stringify(cleanVariant.images)
                   : typeof cleanVariant.images === "string"
-                  ? cleanVariant.images
-                  : "[]",
+                    ? cleanVariant.images
+                    : "[]",
               };
             });
 
@@ -3504,9 +3507,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             );
 
             // Create all variants in bulk
-            createdVariants = await storage.createProductVariantsBulk(
-              cleanedVariants
-            );
+            createdVariants =
+              await storage.createProductVariantsBulk(cleanedVariants);
             console.log(
               "Successfully created variants:",
               createdVariants.length
@@ -3603,8 +3605,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           typeof productData.price === "number"
             ? productData.price
             : typeof productData.price === "string"
-            ? parseFloat(productData.price) || 0
-            : 0,
+              ? parseFloat(productData.price) || 0
+              : 0,
         // Handle dimension fields
         weight: productData.weight ? Number(productData.weight) : null,
         length: productData.length ? Number(productData.length) : null,
@@ -3673,26 +3675,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 typeof cleanVariant.price === "number"
                   ? cleanVariant.price
                   : typeof cleanVariant.price === "string"
-                  ? parseFloat(cleanVariant.price)
-                  : 0,
+                    ? parseFloat(cleanVariant.price)
+                    : 0,
               mrp:
                 typeof cleanVariant.mrp === "number"
                   ? cleanVariant.mrp
                   : typeof cleanVariant.mrp === "string"
-                  ? parseFloat(cleanVariant.mrp)
-                  : null,
+                    ? parseFloat(cleanVariant.mrp)
+                    : null,
               stock:
                 typeof cleanVariant.stock === "number"
                   ? cleanVariant.stock
                   : typeof cleanVariant.stock === "string"
-                  ? parseInt(cleanVariant.stock)
-                  : 0,
+                    ? parseInt(cleanVariant.stock)
+                    : 0,
               // Ensure images is properly formatted as a JSON string
               images: Array.isArray(cleanVariant.images)
                 ? JSON.stringify(cleanVariant.images)
                 : typeof cleanVariant.images === "string"
-                ? cleanVariant.images
-                : "[]",
+                  ? cleanVariant.images
+                  : "[]",
             };
           });
 
@@ -3702,9 +3704,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           );
 
           // Create all variants in bulk
-          createdVariants = await storage.createProductVariantsBulk(
-            cleanedVariants
-          );
+          createdVariants =
+            await storage.createProductVariantsBulk(cleanedVariants);
           console.log(
             "Successfully created draft variants:",
             createdVariants.length
@@ -3814,9 +3815,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             typeof productData.gstRate === "number"
               ? productData.gstRate
               : typeof productData.gstRate === "string" &&
-                productData.gstRate !== ""
-              ? parseFloat(productData.gstRate)
-              : null;
+                  productData.gstRate !== ""
+                ? parseFloat(productData.gstRate)
+                : null;
 
           console.log("Processed GST rate:", processedProductData.gstRate);
         }
@@ -4063,9 +4064,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   stock: Number(variantWithoutId.stock) || 0,
                 };
 
-                const newVariant = await storage.createProductVariant(
-                  validVariant
-                );
+                const newVariant =
+                  await storage.createProductVariant(validVariant);
                 console.log(
                   `Successfully created new variant with ID: ${newVariant.id}`
                 );
@@ -5360,14 +5360,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Group cart items by seller
-      const itemsBySeller = cartItems.reduce((acc, item) => {
-        const sellerId = item.product.sellerId;
-        if (!acc[sellerId]) {
-          acc[sellerId] = [];
-        }
-        acc[sellerId].push(item);
-        return acc as Record<number, typeof cartItems>;
-      }, {} as Record<number, typeof cartItems>);
+      const itemsBySeller = cartItems.reduce(
+        (acc, item) => {
+          const sellerId = item.product.sellerId;
+          if (!acc[sellerId]) {
+            acc[sellerId] = [];
+          }
+          acc[sellerId].push(item);
+          return acc as Record<number, typeof cartItems>;
+        },
+        {} as Record<number, typeof cartItems>
+      );
 
       console.log(
         `Cart items grouped by seller: ${
@@ -5537,9 +5540,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           );
 
           try {
-            const sellerOrder = await storage.createSellerOrder(
-              sellerOrderData
-            );
+            const sellerOrder =
+              await storage.createSellerOrder(sellerOrderData);
             console.log(
               `Created seller order ${sellerOrder.id} for seller ${sellerId}`
             );
@@ -7221,44 +7223,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const gstRate = row["GST"]
               ? parseFloat(row["GST"])
               : row["gst"]
-              ? parseFloat(row["gst"])
-              : row["gstRate"]
-              ? parseFloat(row["gstRate"])
-              : null;
+                ? parseFloat(row["gst"])
+                : row["gstRate"]
+                  ? parseFloat(row["gstRate"])
+                  : null;
 
             // Handle dimensions and weight - improved version using exactly the same pattern as GST
             // Declared without const to avoid duplication with the variables from getDimensionValue
             let weightVal = row["Weight"]
               ? parseFloat(row["Weight"])
               : row["weight"]
-              ? parseFloat(row["weight"])
-              : row["WEIGHT"]
-              ? parseFloat(row["WEIGHT"])
-              : 0;
+                ? parseFloat(row["weight"])
+                : row["WEIGHT"]
+                  ? parseFloat(row["WEIGHT"])
+                  : 0;
 
             let lengthVal = row["Length"]
               ? parseFloat(row["Length"])
               : row["length"]
-              ? parseFloat(row["length"])
-              : row["LENGTH"]
-              ? parseFloat(row["LENGTH"])
-              : 0;
+                ? parseFloat(row["length"])
+                : row["LENGTH"]
+                  ? parseFloat(row["LENGTH"])
+                  : 0;
 
             let widthVal = row["Width"]
               ? parseFloat(row["Width"])
               : row["width"]
-              ? parseFloat(row["width"])
-              : row["WIDTH"]
-              ? parseFloat(row["WIDTH"])
-              : 0;
+                ? parseFloat(row["width"])
+                : row["WIDTH"]
+                  ? parseFloat(row["WIDTH"])
+                  : 0;
 
             let heightVal = row["Height"]
               ? parseFloat(row["Height"])
               : row["height"]
-              ? parseFloat(row["height"])
-              : row["HEIGHT"]
-              ? parseFloat(row["HEIGHT"])
-              : 0;
+                ? parseFloat(row["height"])
+                : row["HEIGHT"]
+                  ? parseFloat(row["HEIGHT"])
+                  : 0;
 
             // Use these values directly in the dimensions object
             let dimensions = {
@@ -7870,8 +7872,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         req.query.active === "true"
           ? true
           : req.query.active === "false"
-          ? false
-          : undefined;
+            ? false
+            : undefined;
 
       const banners = await storage.getBanners(active);
       res.json(banners);
@@ -8092,6 +8094,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             alt: banner.title,
             buttonText: banner.buttonText,
             category: banner.category,
+            subcategory: banner.subcategory, // Include subcategory
             badgeText: banner.badgeText,
             // Only include productId if the product is approved
             productId: isProductApproved ? banner.productId : null,
@@ -10085,8 +10088,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: seller.approved
           ? "Your seller account is approved. You can now list products and manage your store."
           : seller.rejected
-          ? "Your seller account has been rejected. Please contact customer support for more information."
-          : "Your seller account is pending approval. Please wait for an admin to review your application.",
+            ? "Your seller account has been rejected. Please contact customer support for more information."
+            : "Your seller account is pending approval. Please wait for an admin to review your application.",
       });
     } catch (error) {
       console.error("Error checking seller status:", error);
@@ -10942,6 +10945,136 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     // Otherwise, proceed to serve the actual app
     next();
+  });
+
+  // Career form submission route
+  app.post("/api/careers/submit", upload.single("resume"), async (req, res) => {
+    try {
+      const {
+        name,
+        fatherName,
+        maritalStatus,
+        address,
+        highestQualification,
+        specialization,
+        workExperience,
+        idNumber,
+        email,
+        country,
+        phone,
+        whatsapp,
+        message,
+      } = req.body;
+
+      // Validate required fields
+      const requiredFields = [
+        "name",
+        "fatherName",
+        "maritalStatus",
+        "address",
+        "highestQualification",
+        "specialization",
+        "workExperience",
+        "idNumber",
+        "email",
+        "country",
+        "phone",
+        "message",
+      ];
+
+      const missingFields = requiredFields.filter((field) => !req.body[field]);
+      if (missingFields.length > 0) {
+        return res.status(400).json({
+          error: "Missing required fields",
+          required: missingFields,
+        });
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({
+          error: "Invalid email format",
+        });
+      }
+
+      // Validate phone number format (Indian numbers)
+      const phoneRegex = /^\+?[1-9]\d{9,14}$/;
+      if (!phoneRegex.test(phone)) {
+        return res.status(400).json({
+          error: "Invalid phone number format",
+        });
+      }
+
+      // Validate WhatsApp number if provided
+      if (whatsapp && !phoneRegex.test(whatsapp)) {
+        return res.status(400).json({
+          error: "Invalid WhatsApp number format",
+        });
+      }
+
+      // Upload resume to S3 if provided
+      let resumeUrl = null;
+      if (req.file) {
+        try {
+          resumeUrl = await uploadFileToS3(req.file);
+        } catch (error) {
+          console.error("Error uploading resume:", error);
+          return res.status(500).json({
+            error: "Failed to upload resume",
+            details: error instanceof Error ? error.message : "Unknown error",
+          });
+        }
+      }
+
+      // Prepare email data
+      const emailData = {
+        name,
+        fatherName,
+        maritalStatus,
+        address,
+        highestQualification,
+        specialization,
+        workExperience,
+        idNumber,
+        email,
+        country,
+        phone,
+        whatsapp: whatsapp || "Not provided",
+        message: message || "No additional message provided",
+        resumeUrl,
+        submissionDate: new Date().toLocaleString(),
+      };
+
+      // Send email
+      const emailSent = await sendEmail({
+        to: "marketing.lelekart@gmail.com",
+        subject: "New Career Application",
+        template: EMAIL_TEMPLATES.CAREER_APPLICATION,
+        data: emailData,
+      });
+
+      if (!emailSent) {
+        console.error("Failed to send career application email");
+        // Don't fail the request if email fails, just log it
+      }
+
+      // Return success response
+      res.status(200).json({
+        message: "Application submitted successfully",
+        data: {
+          name,
+          email,
+          submissionDate: emailData.submissionDate,
+        },
+      });
+    } catch (error) {
+      console.error("Error processing career application:", error);
+      res.status(500).json({
+        error: "Failed to process application",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
   });
 
   // Simple ping endpoint for deployment health checks

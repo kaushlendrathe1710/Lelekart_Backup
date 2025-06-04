@@ -11,6 +11,7 @@ interface SliderImage {
   subtitle?: string;
   buttonText?: string;
   category?: string;
+  subcategory?: string;
   badgeText?: string;
   productId?: number;
 }
@@ -65,20 +66,20 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
     const category = dealOfTheDay?.subtitle.includes("Electronics")
       ? "electronics"
       : dealOfTheDay?.subtitle.includes("Fashion")
-      ? "fashion"
-      : dealOfTheDay?.subtitle.includes("Home")
-      ? "home"
-      : dealOfTheDay?.subtitle.includes("Appliances")
-      ? "appliances"
-      : dealOfTheDay?.subtitle.includes("Mobiles")
-      ? "mobiles"
-      : dealOfTheDay?.subtitle.includes("Beauty")
-      ? "beauty"
-      : dealOfTheDay?.subtitle.includes("Toys")
-      ? "toys"
-      : dealOfTheDay?.subtitle.includes("Grocery")
-      ? "grocery"
-      : "general";
+        ? "fashion"
+        : dealOfTheDay?.subtitle.includes("Home")
+          ? "home"
+          : dealOfTheDay?.subtitle.includes("Appliances")
+            ? "appliances"
+            : dealOfTheDay?.subtitle.includes("Mobiles")
+              ? "mobiles"
+              : dealOfTheDay?.subtitle.includes("Beauty")
+                ? "beauty"
+                : dealOfTheDay?.subtitle.includes("Toys")
+                  ? "toys"
+                  : dealOfTheDay?.subtitle.includes("Grocery")
+                    ? "grocery"
+                    : "general";
 
     return `/images/categories/${category}.svg`;
   };
@@ -150,7 +151,11 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
       // Use Wouter navigation instead of direct location change
       navigate(`/product/${image.productId}`);
     } else if (image.category) {
-      navigate(`/category/${image.category.toLowerCase()}`);
+      let url = `/category/${image.category.toLowerCase()}`;
+      if (image.subcategory) {
+        url += `?subcategory=${image.subcategory.toLowerCase()}`;
+      }
+      navigate(url);
     }
   };
 
@@ -349,16 +354,16 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
                       {typeof dealOfTheDay.discountPrice === "number"
                         ? dealOfTheDay.discountPrice.toFixed(2)
                         : typeof dealOfTheDay.discountPrice === "string"
-                        ? parseFloat(dealOfTheDay.discountPrice).toFixed(2)
-                        : "0.00"}
+                          ? parseFloat(dealOfTheDay.discountPrice).toFixed(2)
+                          : "0.00"}
                     </span>
                     <span className="text-gray-500 line-through ml-2">
                       ₹
                       {typeof dealOfTheDay.originalPrice === "number"
                         ? dealOfTheDay.originalPrice.toFixed(2)
                         : typeof dealOfTheDay.originalPrice === "string"
-                        ? parseFloat(dealOfTheDay.originalPrice).toFixed(2)
-                        : "0.00"}
+                          ? parseFloat(dealOfTheDay.originalPrice).toFixed(2)
+                          : "0.00"}
                     </span>
                     <span className="text-green-600 ml-2 text-sm">
                       {dealOfTheDay.discountPercentage}% off
