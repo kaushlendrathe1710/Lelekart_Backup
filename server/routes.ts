@@ -11017,7 +11017,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let resumeUrl = null;
       if (req.file) {
         try {
-          resumeUrl = await uploadFileToS3(req.file);
+          const uploadResult = await uploadFileToS3(req.file);
+          resumeUrl = uploadResult.Location; // Get just the URL from the upload result
+          console.log("Resume uploaded successfully:", resumeUrl);
         } catch (error) {
           console.error("Error uploading resume:", error);
           return res.status(500).json({

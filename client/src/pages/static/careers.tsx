@@ -39,6 +39,7 @@ const careerFormSchema = z.object({
   idNumber: z.string().min(1, "Please enter your valid ID number"),
   email: z.string().email("Please enter a valid email address"),
   country: z.string().min(1, "Please select your country"),
+  position: z.string().min(1, "Please select a position"),
   phoneCode: z.string().min(1, "Please select a country code"),
   phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
   whatsappCode: z.string().min(1, "Please select a country code"),
@@ -69,6 +70,7 @@ export default function CareersPage() {
       idNumber: "",
       email: "",
       country: "",
+      position: "",
       phoneCode: "+91",
       phoneNumber: "",
       whatsappCode: "+91",
@@ -99,13 +101,13 @@ export default function CareersPage() {
       idNumber: "",
       email: "",
       country: "",
-      // Preserve existing phoneCode and whatsappCode values on reset
+      position: "",
       phoneCode: form.getValues("phoneCode"),
       phoneNumber: "",
       whatsappCode: form.getValues("whatsappCode"),
       whatsappNumber: "",
       message: "",
-      resume: undefined, // Reset file input
+      resume: undefined,
     });
   };
 
@@ -120,6 +122,9 @@ export default function CareersPage() {
         formData.append(key, (data as any)[key]);
       }
     });
+
+    // Add phone field by combining code and number
+    formData.append("phone", `${data.phoneCode}${data.phoneNumber}`);
 
     // Append the resume file if it exists
     if (data.resume) {
@@ -262,6 +267,45 @@ export default function CareersPage() {
             <h2 className="text-xl font-semibold">Education & Experience</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={control}
+                name="position"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Position Applied For</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select position" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Software Developer">
+                          Software Developer
+                        </SelectItem>
+                        <SelectItem value="UI/UX Designer">
+                          UI/UX Designer
+                        </SelectItem>
+                        <SelectItem value="Product Manager">
+                          Product Manager
+                        </SelectItem>
+                        <SelectItem value="Business Analyst">
+                          Business Analyst
+                        </SelectItem>
+                        <SelectItem value="Marketing Executive">
+                          Marketing Executive
+                        </SelectItem>
+                        <SelectItem value="Customer Support">
+                          Customer Support
+                        </SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={control}
                 name="highestQualification"
