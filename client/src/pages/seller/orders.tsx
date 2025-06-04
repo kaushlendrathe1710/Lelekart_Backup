@@ -21,12 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,9 +42,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, Download, Eye, FileText, Filter, MoreVertical, 
-  Package, PackageCheck, Printer, Search, Truck, XCircle, ShoppingBag, Clock, CheckCircle2 } from "lucide-react";
+import {
+  AlertCircle,
+  Download,
+  Eye,
+  FileText,
+  Filter,
+  MoreVertical,
+  Package,
+  PackageCheck,
+  Printer,
+  Search,
+  Truck,
+  XCircle,
+  ShoppingBag,
+  Clock,
+  CheckCircle2,
+} from "lucide-react";
 import { format } from "date-fns";
+import { InvoiceDialog } from "@/components/order/invoice-dialog";
 
 // Define types for orders and order items
 interface Product {
@@ -99,27 +110,34 @@ type OrderWithItems = Order & { items: OrderItem[] };
 export default function SellerOrdersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(
+    null
+  );
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   // Status dialog state removed - only admins can update order status
   const invoiceRef = useRef<HTMLDivElement>(null);
   const shippingLabelRef = useRef<HTMLDivElement>(null);
-  
+
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  
+
   // Fetch seller orders
-  const { data: orders = [], isLoading, isError } = useQuery<OrderWithItems[]>({
-    queryKey: ['/api/orders'],
+  const {
+    data: orders = [],
+    isLoading,
+    isError,
+  } = useQuery<OrderWithItems[]>({
+    queryKey: ["/api/orders"],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/orders');
+      const response = await apiRequest("GET", "/api/orders");
       const data = await response.json();
-      
+
       // Process each order to ensure shipping details are parsed
       return data.map((order: Order) => {
-        if (typeof order.shippingDetails === 'string') {
+        if (typeof order.shippingDetails === "string") {
           try {
             order.shippingDetails = JSON.parse(order.shippingDetails);
           } catch (e) {
@@ -130,20 +148,21 @@ export default function SellerOrdersPage() {
       });
     },
   });
-  
+
   // Status update mutation removed - only admins can update order status
-  
+
   // Filter orders by search query and status
-  const filteredOrders = orders.filter(order => {
-    const matchesSearch = searchQuery === "" || 
-      order.id.toString().includes(searchQuery) || 
+  const filteredOrders = orders.filter((order) => {
+    const matchesSearch =
+      searchQuery === "" ||
+      order.id.toString().includes(searchQuery) ||
       getCustomerName(order).toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     const matchesStatus = !statusFilter || order.status === statusFilter;
-    
+
     return matchesSearch && matchesStatus;
   });
-  
+
   // Get status counts for tabs
   const getStatusCounts = () => {
     const counts = {
@@ -154,64 +173,77 @@ export default function SellerOrdersPage() {
       delivered: 0,
       cancelled: 0,
     };
-    
-    orders.forEach(order => {
+
+    orders.forEach((order) => {
       if (counts.hasOwnProperty(order.status)) {
         // @ts-ignore
         counts[order.status]++;
       }
     });
-    
+
     return counts;
   };
-  
+
   const statusCounts = getStatusCounts();
-  
+
   // Helper to get formatted date
   const formatDate = (dateString: string) => {
-    return format(new Date(dateString), 'dd MMM yyyy, hh:mm a');
+    return format(new Date(dateString), "dd MMM yyyy, hh:mm a");
   };
-  
+
   // Helper to get status badge color
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'pending':
+      case "pending":
         return (
-          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 flex items-center gap-1">
+          <Badge
+            variant="outline"
+            className="bg-yellow-50 text-yellow-700 border-yellow-200 flex items-center gap-1"
+          >
             <Clock className="h-3 w-3" /> Pending
           </Badge>
         );
-      case 'processing':
+      case "processing":
         return (
-          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 flex items-center gap-1">
+          <Badge
+            variant="outline"
+            className="bg-blue-50 text-blue-700 border-blue-200 flex items-center gap-1"
+          >
             <Package className="h-3 w-3" /> Processing
           </Badge>
         );
-      case 'shipped':
+      case "shipped":
         return (
-          <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 flex items-center gap-1">
+          <Badge
+            variant="outline"
+            className="bg-indigo-50 text-indigo-700 border-indigo-200 flex items-center gap-1"
+          >
             <Truck className="h-3 w-3" /> Shipped
           </Badge>
         );
-      case 'delivered':
+      case "delivered":
         return (
-          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1">
+          <Badge
+            variant="outline"
+            className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1"
+          >
             <CheckCircle2 className="h-3 w-3" /> Delivered
           </Badge>
         );
-      case 'cancelled':
+      case "cancelled":
         return (
-          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 flex items-center gap-1">
+          <Badge
+            variant="outline"
+            className="bg-red-50 text-red-700 border-red-200 flex items-center gap-1"
+          >
             <XCircle className="h-3 w-3" /> Cancelled
           </Badge>
         );
       default:
-        return (
-          <Badge variant="outline">{status}</Badge>
-        );
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
-  
+
   // Format payment method for display
   const formatPaymentMethod = (method: string) => {
     switch (method) {
@@ -227,33 +259,34 @@ export default function SellerOrdersPage() {
         return method;
     }
   };
-  
+
   // Get customer name from shipping details
   const getCustomerName = (order: Order) => {
     if (!order.shippingDetails) return "Customer";
-    
-    const details = typeof order.shippingDetails === 'string' 
-      ? JSON.parse(order.shippingDetails) 
-      : order.shippingDetails;
-    
+
+    const details =
+      typeof order.shippingDetails === "string"
+        ? JSON.parse(order.shippingDetails)
+        : order.shippingDetails;
+
     return details.name || "Customer";
   };
-  
+
   // Open order details dialog
   const viewOrderDetails = async (orderId: number) => {
     try {
-      const response = await apiRequest('GET', `/api/orders/${orderId}`);
+      const response = await apiRequest("GET", `/api/orders/${orderId}`);
       const orderData = await response.json();
-      
+
       // Make sure shipping details are parsed
-      if (typeof orderData.shippingDetails === 'string') {
+      if (typeof orderData.shippingDetails === "string") {
         try {
           orderData.shippingDetails = JSON.parse(orderData.shippingDetails);
         } catch (e) {
           console.error("Error parsing shipping details", e);
         }
       }
-      
+
       setSelectedOrder(orderData);
       setIsViewDialogOpen(true);
     } catch (error) {
@@ -264,23 +297,31 @@ export default function SellerOrdersPage() {
       });
     }
   };
-  
+
+  const handleViewInvoice = () => {
+    if (selectedOrder) {
+      setInvoiceDialogOpen(true);
+      setIsViewDialogOpen(false);
+    }
+  };
+
   // Status update functions removed - only admins can update order status
-  
+
   // Print invoice
   const printInvoice = () => {
     if (!invoiceRef.current) return;
-    
-    const printWindow = window.open('', '_blank');
+
+    const printWindow = window.open("", "_blank");
     if (!printWindow) {
       toast({
         title: "Error",
-        description: "Could not open print window. Please check your browser settings.",
+        description:
+          "Could not open print window. Please check your browser settings.",
         variant: "destructive",
       });
       return;
     }
-    
+
     printWindow.document.write(`
       <html>
         <head>
@@ -306,7 +347,7 @@ export default function SellerOrdersPage() {
         </body>
       </html>
     `);
-    
+
     printWindow.document.close();
     printWindow.focus();
     setTimeout(() => {
@@ -314,7 +355,7 @@ export default function SellerOrdersPage() {
       printWindow.close();
     }, 500);
   };
-  
+
   // Download invoice as PDF
   const downloadInvoice = async () => {
     try {
@@ -334,22 +375,23 @@ export default function SellerOrdersPage() {
 
       // Create a blob from the fetch response and open it in a new window
       const response = await fetch(`/api/orders/${selectedOrder.id}/invoice`, {
-        method: 'GET',
-        credentials: 'include', // Important: Include credentials for authentication
+        method: "GET",
+        credentials: "include", // Important: Include credentials for authentication
       });
-      
+
       if (!response.ok) {
         throw new Error(`Error: ${response.status} ${response.statusText}`);
       }
-      
+
       // Get the PDF blob and create an object URL
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      window.open(url, '_blank');
-      
+      window.open(url, "_blank");
+
       toast({
         title: "Invoice Generated",
-        description: "Your invoice has been opened in a new tab. You can save it from there.",
+        description:
+          "Your invoice has been opened in a new tab. You can save it from there.",
       });
     } catch (error) {
       console.error("Error downloading invoice:", error);
@@ -360,7 +402,7 @@ export default function SellerOrdersPage() {
       });
     }
   };
-  
+
   // Download tax invoice as PDF
   const downloadTaxInvoice = async () => {
     try {
@@ -379,23 +421,27 @@ export default function SellerOrdersPage() {
       });
 
       // Create a blob from the fetch response and open it in a new window
-      const response = await fetch(`/api/orders/${selectedOrder.id}/tax-invoice`, {
-        method: 'GET',
-        credentials: 'include', // Important: Include credentials for authentication
-      });
-      
+      const response = await fetch(
+        `/api/orders/${selectedOrder.id}/tax-invoice`,
+        {
+          method: "GET",
+          credentials: "include", // Important: Include credentials for authentication
+        }
+      );
+
       if (!response.ok) {
         throw new Error(`Error: ${response.status} ${response.statusText}`);
       }
-      
+
       // Get the PDF blob and create an object URL
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      window.open(url, '_blank');
-      
+      window.open(url, "_blank");
+
       toast({
         title: "Tax Invoice Generated",
-        description: "Your tax invoice has been opened in a new tab. You can save it from there.",
+        description:
+          "Your tax invoice has been opened in a new tab. You can save it from there.",
       });
     } catch (error) {
       console.error("Error downloading tax invoice:", error);
@@ -406,21 +452,22 @@ export default function SellerOrdersPage() {
       });
     }
   };
-  
+
   // Print shipping label
   const printShippingLabel = () => {
     if (!shippingLabelRef.current) return;
-    
-    const printWindow = window.open('', '_blank');
+
+    const printWindow = window.open("", "_blank");
     if (!printWindow) {
       toast({
         title: "Error",
-        description: "Could not open print window. Please check your browser settings.",
+        description:
+          "Could not open print window. Please check your browser settings.",
         variant: "destructive",
       });
       return;
     }
-    
+
     printWindow.document.write(`
       <html>
         <head>
@@ -459,7 +506,7 @@ export default function SellerOrdersPage() {
         </body>
       </html>
     `);
-    
+
     printWindow.document.close();
     printWindow.focus();
     setTimeout(() => {
@@ -467,35 +514,39 @@ export default function SellerOrdersPage() {
       printWindow.close();
     }, 500);
   };
-  
+
   // Download shipping label
   const downloadShippingLabel = async () => {
     try {
       if (!selectedOrder) return;
-      
+
       toast({
         title: "Preparing Shipping Label",
         description: "Your shipping label is being generated...",
       });
 
       // Create a blob from the fetch response and open it in a new window
-      const response = await fetch(`/api/orders/${selectedOrder.id}/shipping-label`, {
-        method: 'GET',
-        credentials: 'include', // Important: Include credentials for authentication
-      });
-      
+      const response = await fetch(
+        `/api/orders/${selectedOrder.id}/shipping-label`,
+        {
+          method: "GET",
+          credentials: "include", // Important: Include credentials for authentication
+        }
+      );
+
       if (!response.ok) {
         throw new Error(`Error: ${response.status} ${response.statusText}`);
       }
-      
+
       // Get the PDF blob and create an object URL
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      window.open(url, '_blank');
-      
+      window.open(url, "_blank");
+
       toast({
         title: "Shipping Label Generated",
-        description: "Your shipping label has been opened in a new tab. You can save it from there.",
+        description:
+          "Your shipping label has been opened in a new tab. You can save it from there.",
       });
     } catch (error) {
       console.error("Error downloading shipping label:", error);
@@ -506,14 +557,16 @@ export default function SellerOrdersPage() {
       });
     }
   };
-  
+
   return (
     <SellerDashboardLayout>
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold">Order Management</h1>
-            <p className="text-muted-foreground">Manage and track your customer orders</p>
+            <p className="text-muted-foreground">
+              Manage and track your customer orders
+            </p>
           </div>
           <div className="w-full md:w-auto">
             <div className="relative">
@@ -522,7 +575,11 @@ export default function SellerOrdersPage() {
                 placeholder="Search by order ID or customer"
                 className="pl-10 pr-24 w-full md:w-80"
                 disabled
-                onClick={() => alert('Search functionality is being improved. Please check back later!')}
+                onClick={() =>
+                  alert(
+                    "Search functionality is being improved. Please check back later!"
+                  )
+                }
               />
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400">
@@ -531,7 +588,7 @@ export default function SellerOrdersPage() {
             </div>
           </div>
         </div>
-        
+
         {/* Order Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           {isLoading ? (
@@ -551,7 +608,9 @@ export default function SellerOrdersPage() {
             <>
               <Card className="bg-white">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Total Orders
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{statusCounts.all}</div>
@@ -562,15 +621,21 @@ export default function SellerOrdersPage() {
                   <CardTitle className="text-sm font-medium">Pending</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{statusCounts.pending}</div>
+                  <div className="text-2xl font-bold">
+                    {statusCounts.pending}
+                  </div>
                 </CardContent>
               </Card>
               <Card className="bg-white">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Processing</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Processing
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{statusCounts.processing}</div>
+                  <div className="text-2xl font-bold">
+                    {statusCounts.processing}
+                  </div>
                 </CardContent>
               </Card>
               <Card className="bg-white">
@@ -578,34 +643,58 @@ export default function SellerOrdersPage() {
                   <CardTitle className="text-sm font-medium">Shipped</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{statusCounts.shipped}</div>
+                  <div className="text-2xl font-bold">
+                    {statusCounts.shipped}
+                  </div>
                 </CardContent>
               </Card>
               <Card className="bg-white">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Delivered</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Delivered
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{statusCounts.delivered}</div>
+                  <div className="text-2xl font-bold">
+                    {statusCounts.delivered}
+                  </div>
                 </CardContent>
               </Card>
             </>
           )}
         </div>
-        
+
         {/* Order Tabs */}
-        <Tabs defaultValue="all" className="w-full" onValueChange={(value) => setStatusFilter(value === 'all' ? null : value)}>
+        <Tabs
+          defaultValue="all"
+          className="w-full"
+          onValueChange={(value) =>
+            setStatusFilter(value === "all" ? null : value)
+          }
+        >
           <TabsList className="mb-4">
-            <TabsTrigger value="all">All Orders ({statusCounts.all})</TabsTrigger>
-            <TabsTrigger value="pending">Pending ({statusCounts.pending})</TabsTrigger>
-            <TabsTrigger value="processing">Processing ({statusCounts.processing})</TabsTrigger>
-            <TabsTrigger value="shipped">Shipped ({statusCounts.shipped})</TabsTrigger>
-            <TabsTrigger value="delivered">Delivered ({statusCounts.delivered})</TabsTrigger>
-            <TabsTrigger value="cancelled">Cancelled ({statusCounts.cancelled})</TabsTrigger>
+            <TabsTrigger value="all">
+              All Orders ({statusCounts.all})
+            </TabsTrigger>
+            <TabsTrigger value="pending">
+              Pending ({statusCounts.pending})
+            </TabsTrigger>
+            <TabsTrigger value="processing">
+              Processing ({statusCounts.processing})
+            </TabsTrigger>
+            <TabsTrigger value="shipped">
+              Shipped ({statusCounts.shipped})
+            </TabsTrigger>
+            <TabsTrigger value="delivered">
+              Delivered ({statusCounts.delivered})
+            </TabsTrigger>
+            <TabsTrigger value="cancelled">
+              Cancelled ({statusCounts.cancelled})
+            </TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="all">
-            <OrderTable 
+            <OrderTable
               orders={filteredOrders}
               isLoading={isLoading}
               viewOrderDetails={viewOrderDetails}
@@ -613,25 +702,29 @@ export default function SellerOrdersPage() {
               formatDate={formatDate}
               formatPaymentMethod={formatPaymentMethod}
               getCustomerName={getCustomerName}
+              toast={toast}
             />
           </TabsContent>
-          
-          {['pending', 'processing', 'shipped', 'delivered', 'cancelled'].map((status) => (
-            <TabsContent key={status} value={status}>
-              <OrderTable 
-                orders={filteredOrders}
-                isLoading={isLoading}
-                viewOrderDetails={viewOrderDetails}
-                getStatusBadge={getStatusBadge}
-                formatDate={formatDate}
-                formatPaymentMethod={formatPaymentMethod}
-                getCustomerName={getCustomerName}
-              />
-            </TabsContent>
-          ))}
+
+          {["pending", "processing", "shipped", "delivered", "cancelled"].map(
+            (status) => (
+              <TabsContent key={status} value={status}>
+                <OrderTable
+                  orders={filteredOrders}
+                  isLoading={isLoading}
+                  viewOrderDetails={viewOrderDetails}
+                  getStatusBadge={getStatusBadge}
+                  formatDate={formatDate}
+                  formatPaymentMethod={formatPaymentMethod}
+                  getCustomerName={getCustomerName}
+                  toast={toast}
+                />
+              </TabsContent>
+            )
+          )}
         </Tabs>
       </div>
-      
+
       {/* Order Details Dialog */}
       {selectedOrder && (
         <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
@@ -642,7 +735,7 @@ export default function SellerOrdersPage() {
                 Placed on {formatDate(selectedOrder.date)}
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="grid gap-6">
               {/* Order Status and Actions */}
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -650,15 +743,14 @@ export default function SellerOrdersPage() {
                   {getStatusBadge(selectedOrder.status)}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {/* Update Status button removed - only admins can update order status */}
                   <Button
                     variant="outline"
                     size="sm"
                     className="flex items-center gap-1"
-                    onClick={downloadInvoice}
+                    onClick={handleViewInvoice}
                   >
                     <FileText className="h-4 w-4" />
-                    Download Invoice
+                    View Invoice
                   </Button>
                   <Button
                     variant="outline"
@@ -671,46 +763,68 @@ export default function SellerOrdersPage() {
                   </Button>
                 </div>
               </div>
-              
+
               {/* Order Summary */}
               <div className="grid md:grid-cols-2 gap-6">
                 {/* Customer Information */}
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">Customer Information</CardTitle>
+                    <CardTitle className="text-lg">
+                      Customer Information
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {typeof selectedOrder.shippingDetails === 'object' && (
+                    {typeof selectedOrder.shippingDetails === "object" && (
                       <div className="space-y-2">
-                        <p><span className="font-medium">Name:</span> {selectedOrder.shippingDetails.name}</p>
-                        <p><span className="font-medium">Email:</span> {selectedOrder.shippingDetails.email}</p>
-                        <p><span className="font-medium">Phone:</span> {selectedOrder.shippingDetails.phone}</p>
+                        <p>
+                          <span className="font-medium">Name:</span>{" "}
+                          {selectedOrder.shippingDetails.name}
+                        </p>
+                        <p>
+                          <span className="font-medium">Email:</span>{" "}
+                          {selectedOrder.shippingDetails.email}
+                        </p>
+                        <p>
+                          <span className="font-medium">Phone:</span>{" "}
+                          {selectedOrder.shippingDetails.phone}
+                        </p>
                       </div>
                     )}
                   </CardContent>
                 </Card>
-                
+
                 {/* Shipping Information */}
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">Shipping Information</CardTitle>
+                    <CardTitle className="text-lg">
+                      Shipping Information
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {typeof selectedOrder.shippingDetails === 'object' && (
+                    {typeof selectedOrder.shippingDetails === "object" && (
                       <div className="space-y-2">
-                        <p><span className="font-medium">Address:</span> {selectedOrder.shippingDetails.address}</p>
                         <p>
-                          <span className="font-medium">City/State/Zip:</span> {selectedOrder.shippingDetails.city}, {selectedOrder.shippingDetails.state}, {selectedOrder.shippingDetails.zipCode}
+                          <span className="font-medium">Address:</span>{" "}
+                          {selectedOrder.shippingDetails.address}
+                        </p>
+                        <p>
+                          <span className="font-medium">City/State/Zip:</span>{" "}
+                          {selectedOrder.shippingDetails.city},{" "}
+                          {selectedOrder.shippingDetails.state},{" "}
+                          {selectedOrder.shippingDetails.zipCode}
                         </p>
                         {selectedOrder.shippingDetails.notes && (
-                          <p><span className="font-medium">Notes:</span> {selectedOrder.shippingDetails.notes}</p>
+                          <p>
+                            <span className="font-medium">Notes:</span>{" "}
+                            {selectedOrder.shippingDetails.notes}
+                          </p>
                         )}
                       </div>
                     )}
                   </CardContent>
                 </Card>
               </div>
-              
+
               {/* Order Items */}
               <Card>
                 <CardHeader className="pb-2">
@@ -729,21 +843,33 @@ export default function SellerOrdersPage() {
                     <TableBody>
                       {selectedOrder.items?.map((item) => (
                         <TableRow key={item.id}>
-                          <TableCell className="font-medium">{item.product.name}</TableCell>
-                          <TableCell className="text-right">{item.quantity}</TableCell>
-                          <TableCell className="text-right">₹{item.price.toFixed(2)}</TableCell>
-                          <TableCell className="text-right">₹{(item.price * item.quantity).toFixed(2)}</TableCell>
+                          <TableCell className="font-medium">
+                            {item.product.name}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {item.quantity}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            ₹{item.price.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            ₹{(item.price * item.quantity).toFixed(2)}
+                          </TableCell>
                         </TableRow>
                       ))}
                       <TableRow>
-                        <TableCell colSpan={3} className="text-right font-bold">Total:</TableCell>
-                        <TableCell className="text-right font-bold">₹{selectedOrder.total.toFixed(2)}</TableCell>
+                        <TableCell colSpan={3} className="text-right font-bold">
+                          Total:
+                        </TableCell>
+                        <TableCell className="text-right font-bold">
+                          ₹{selectedOrder.total.toFixed(2)}
+                        </TableCell>
                       </TableRow>
                     </TableBody>
                   </Table>
                 </CardContent>
               </Card>
-              
+
               {/* Payment Information */}
               <Card>
                 <CardHeader className="pb-2">
@@ -751,200 +877,46 @@ export default function SellerOrdersPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    <p><span className="font-medium">Payment Method:</span> {formatPaymentMethod(selectedOrder.paymentMethod)}</p>
-                    <p><span className="font-medium">Payment Status:</span> {selectedOrder.status === 'delivered' ? 'Paid' : 'Pending'}</p>
+                    <p>
+                      <span className="font-medium">Payment Method:</span>{" "}
+                      {formatPaymentMethod(selectedOrder.paymentMethod)}
+                    </p>
+                    <p>
+                      <span className="font-medium">Payment Status:</span>{" "}
+                      {selectedOrder.status === "delivered"
+                        ? "Paid"
+                        : "Pending"}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
-              
-              {/* Hidden Invoice Template for Printing */}
-              <div className="hidden">
-                <div ref={invoiceRef} className="invoice-container">
-                  <div className="invoice-header">
-                    <div className="logo">
-                      <div style={{ fontSize: '24px', fontWeight: 'bold' }}>Lelekart</div>
-                      <div>Online Marketplace</div>
-                    </div>
-                    <div className="company-details">
-                      <div>Lelekart Internet Private Limited</div>
-                      <div>123 Commerce Street, Bangalore</div>
-                      <div>Karnataka, India 560001</div>
-                      <div>GST: 29AABCT1332L1ZT</div>
-                    </div>
-                  </div>
-                  
-                  <div className="invoice-title">TAX INVOICE</div>
-                  
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <div className="customer-details">
-                      <div className="section-title">Bill To:</div>
-                      {typeof selectedOrder.shippingDetails === 'object' && (
-                        <>
-                          <div>{selectedOrder.shippingDetails.name}</div>
-                          <div>{selectedOrder.shippingDetails.address}</div>
-                          <div>{selectedOrder.shippingDetails.city}, {selectedOrder.shippingDetails.state}</div>
-                          <div>{selectedOrder.shippingDetails.zipCode}</div>
-                          <div>Phone: {selectedOrder.shippingDetails.phone}</div>
-                          <div>Email: {selectedOrder.shippingDetails.email}</div>
-                        </>
-                      )}
-                    </div>
-                    
-                    <div className="order-details">
-                      <div className="section-title">Invoice Details:</div>
-                      <div><strong>Invoice Number:</strong> INV-{selectedOrder.id}</div>
-                      <div><strong>Order Number:</strong> ORD-{selectedOrder.id}</div>
-                      <div><strong>Date:</strong> {format(new Date(selectedOrder.date), 'dd/MM/yyyy')}</div>
-                      <div><strong>Payment Method:</strong> {formatPaymentMethod(selectedOrder.paymentMethod)}</div>
-                    </div>
-                  </div>
-                  
-                  <div style={{ marginTop: '20px' }}>
-                    <table>
-                      <thead>
-                        <tr>
-                          <th style={{ width: '50%' }}>Item Description</th>
-                          <th>Quantity</th>
-                          <th>Unit Price</th>
-                          <th>Total</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedOrder.items?.map((item) => (
-                          <tr key={item.id}>
-                            <td>{item.product.name}</td>
-                            <td>{item.quantity}</td>
-                            <td>₹{item.price.toFixed(2)}</td>
-                            <td>₹{(item.price * item.quantity).toFixed(2)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  
-                  <div className="total-section">
-                    <div><strong>Subtotal:</strong> ₹{selectedOrder.total.toFixed(2)}</div>
-                    <div><strong>Shipping:</strong> ₹0.00</div>
-                    <div><strong>Tax:</strong> Included</div>
-                    <div style={{ marginTop: '10px', fontSize: '18px', fontWeight: 'bold' }}>
-                      <strong>Grand Total:</strong> ₹{selectedOrder.total.toFixed(2)}
-                    </div>
-                  </div>
-                  
-                  <div className="footer">
-                    <p>Thank you for shopping with Lelekart!</p>
-                    <p>For any questions, please contact our customer service at support@lelekart.com</p>
-                    <p>This is a computer-generated invoice and does not require a signature.</p>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Hidden Shipping Label Template for Printing */}
-              <div className="hidden">
-                <div ref={shippingLabelRef} className="shipping-container">
-                  {/* Meesho-style Header */}
-                  <div className="meesho-header">
-                    <div className="meesho-logo">LELEKART</div>
-                    <div className="label-type">SHIPPING LABEL</div>
-                  </div>
-
-                  {/* Order Box */}
-                  <div className="order-box">
-                    {/* Order Header */}
-                    <div className="order-header">
-                      <div className="order-id">Order ID: #{selectedOrder.id}</div>
-                      <div className="order-date">
-                        Date: {format(new Date(selectedOrder.date), 'dd/MM/yyyy')}
-                        <span className="ml-3 cod-badge">
-                          {selectedOrder.paymentMethod === 'cod' ? 'COD' : 'PREPAID'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Shipping Information */}
-                    <div className="shipping-info">
-                      {/* Delivery Address */}
-                      <div className="address-box to">
-                        <div className="address-title">DELIVER TO:</div>
-                        <div className="address-content">
-                          {typeof selectedOrder.shippingDetails === 'object' && (
-                            <>
-                              <div className="customer-name">{selectedOrder.shippingDetails.name}</div>
-                              <div>{selectedOrder.shippingDetails.address}</div>
-                              <div>{selectedOrder.shippingDetails.city}, {selectedOrder.shippingDetails.state} {selectedOrder.shippingDetails.zipCode}</div>
-                              <div>Phone: {selectedOrder.shippingDetails.phone}</div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Sender Address */}
-                      <div className="address-box from">
-                        <div className="address-title">SHIP FROM:</div>
-                        <div className="address-content">
-                          <div className="customer-name">Lelekart Fulfillment Center</div>
-                          <div>123 Commerce Street</div>
-                          <div>Bengaluru, Karnataka 560001</div>
-                          <div>India</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Barcode Section */}
-                    <div className="barcode-section">
-                      <div className="barcode-text">
-                        *LK{selectedOrder.id.toString().padStart(10, '0')}*
-                      </div>
-                    </div>
-
-                    {/* Product Details */}
-                    <div className="product-details">
-                      <div className="product-title">PACKAGE CONTENTS:</div>
-                      <table className="product-table">
-                        <thead>
-                          <tr>
-                            <th>Item</th>
-                            <th style={{width: '70px', textAlign: 'center'}}>Qty</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {selectedOrder.items && selectedOrder.items.map((item) => (
-                            <tr key={item.id}>
-                              <td>{item.product.name}</td>
-                              <td style={{textAlign: 'center'}}>{item.quantity}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* Delivery Information */}
-                    <div className="delivery-info">
-                      <p><strong>Special Instructions:</strong> {typeof selectedOrder.shippingDetails === 'object' && selectedOrder.shippingDetails.notes || 'None'}</p>
-                      <p>Please inspect your package before signing. Thank you for shopping with Lelekart!</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
           </DialogContent>
         </Dialog>
       )}
-      
-      {/* Status Update Dialog removed - only admins can update order status */}
+
+      {/* Invoice Dialog */}
+      {selectedOrder && (
+        <InvoiceDialog
+          open={invoiceDialogOpen}
+          onOpenChange={setInvoiceDialogOpen}
+          orderId={selectedOrder.id}
+        />
+      )}
     </SellerDashboardLayout>
   );
 }
 
 // Order Table Component
-function OrderTable({ 
-  orders, 
-  isLoading, 
+function OrderTable({
+  orders,
+  isLoading,
   viewOrderDetails,
-  getStatusBadge, 
+  getStatusBadge,
   formatDate,
   formatPaymentMethod,
-  getCustomerName
+  getCustomerName,
+  toast,
 }: {
   orders: OrderWithItems[];
   isLoading: boolean;
@@ -953,6 +925,7 @@ function OrderTable({
   formatDate: (dateString: string) => string;
   formatPaymentMethod: (method: string) => string;
   getCustomerName: (order: Order) => string;
+  toast: any;
 }) {
   if (isLoading) {
     return (
@@ -1018,13 +991,13 @@ function OrderTable({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => viewOrderDetails(order.id)}>
+                    <DropdownMenuItem
+                      onClick={() => viewOrderDetails(order.id)}
+                    >
                       <Eye className="h-4 w-4 mr-2" />
                       View Details
                     </DropdownMenuItem>
-                    {/* Update Status option removed - only admins can update order status */}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={async () => {
                         const handleDownloadInvoice = async () => {
                           try {
@@ -1032,127 +1005,147 @@ function OrderTable({
                               title: "Preparing Invoice",
                               description: "Your invoice is being generated...",
                             });
-                            
-                            // Create a blob from the fetch response and open it in a new window
-                            const response = await fetch(`/api/orders/${order.id}/invoice`, {
-                              method: 'GET',
-                              credentials: 'include', // Important: Include credentials for authentication
-                            });
-                            
+
+                            const response = await fetch(
+                              `/api/orders/${order.id}/invoice`,
+                              {
+                                method: "GET",
+                                credentials: "include",
+                              }
+                            );
+
                             if (!response.ok) {
-                              throw new Error(`Error: ${response.status} ${response.statusText}`);
+                              throw new Error(
+                                `Error: ${response.status} ${response.statusText}`
+                              );
                             }
-                            
-                            // Get the PDF blob and create an object URL
+
                             const blob = await response.blob();
                             const url = window.URL.createObjectURL(blob);
-                            window.open(url, '_blank');
+                            window.open(url, "_blank");
+
+                            toast({
+                              title: "Invoice Generated",
+                              description:
+                                "Your invoice has been opened in a new tab. You can save it from there.",
+                            });
                           } catch (error) {
                             console.error("Error downloading invoice:", error);
                             toast({
                               title: "Generation Failed",
-                              description: "Failed to generate the invoice. Please try again.",
+                              description:
+                                "Failed to generate the invoice. Please try again.",
                               variant: "destructive",
                             });
                           }
                         };
                         await handleDownloadInvoice();
-                      }}>
+                      }}
+                    >
                       <FileText className="h-4 w-4 mr-2" />
                       Download Invoice
                     </DropdownMenuItem>
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={async () => {
                         const handleDownloadTaxInvoice = async () => {
                           try {
                             toast({
                               title: "Preparing Tax Invoice",
-                              description: "Your tax invoice is being generated...",
+                              description:
+                                "Your tax invoice is being generated...",
                             });
-                            
-                            // Create a blob from the fetch response and open it in a new window
-                            const response = await fetch(`/api/orders/${order.id}/tax-invoice`, {
-                              method: 'GET',
-                              credentials: 'include', // Important: Include credentials for authentication
-                            });
-                            
+
+                            const response = await fetch(
+                              `/api/orders/${order.id}/tax-invoice`,
+                              {
+                                method: "GET",
+                                credentials: "include",
+                              }
+                            );
+
                             if (!response.ok) {
-                              throw new Error(`Error: ${response.status} ${response.statusText}`);
+                              throw new Error(
+                                `Error: ${response.status} ${response.statusText}`
+                              );
                             }
-                            
-                            // Get the PDF blob and create an object URL
+
                             const blob = await response.blob();
                             const url = window.URL.createObjectURL(blob);
-                            window.open(url, '_blank');
+                            window.open(url, "_blank");
+
+                            toast({
+                              title: "Tax Invoice Generated",
+                              description:
+                                "Your tax invoice has been opened in a new tab. You can save it from there.",
+                            });
                           } catch (error) {
-                            console.error("Error downloading tax invoice:", error);
+                            console.error(
+                              "Error downloading tax invoice:",
+                              error
+                            );
                             toast({
                               title: "Generation Failed",
-                              description: "Failed to generate the tax invoice. Please try again.",
+                              description:
+                                "Failed to generate the tax invoice. Please try again.",
                               variant: "destructive",
                             });
                           }
                         };
                         await handleDownloadTaxInvoice();
-                      }}>
+                      }}
+                    >
                       <FileText className="h-4 w-4 mr-2" />
                       Tax Invoice
                     </DropdownMenuItem>
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={async () => {
                         const handleDownloadShippingLabel = async () => {
                           try {
-                            // Store the seller order ID in the selected order object for future use
-                            if (!order.sellerOrderId) {
-                              console.log(`Finding seller order ID for order ${order.id}`);
-                              // Get the seller order ID for this main order
-                              const sellerOrderRes = await apiRequest('GET', `/api/orders/${order.id}/seller-orders`);
-                              const sellerOrders = await sellerOrderRes.json();
-                              const sellerOrder = sellerOrders.find(so => so.sellerId === user?.id);
-                              
-                              if (!sellerOrder) {
-                                toast({
-                                  title: "Error",
-                                  description: "Cannot find seller order for this order.",
-                                  variant: "destructive",
-                                });
-                                return;
-                              }
-                              
-                              // Save the seller order ID for future use
-                              order.sellerOrderId = sellerOrder.id;
-                            }
-                            
                             toast({
                               title: "Preparing Shipping Label",
-                              description: "Your shipping label is being generated...",
+                              description:
+                                "Your shipping label is being generated...",
                             });
-                            
-                            // Create a blob from the fetch response and open it in a new window
-                            const response = await fetch(`/api/orders/${order.id}/shipping-label`, {
-                              method: 'GET',
-                              credentials: 'include', // Important: Include credentials for authentication
-                            });
-                            
+
+                            const response = await fetch(
+                              `/api/orders/${order.id}/shipping-label`,
+                              {
+                                method: "GET",
+                                credentials: "include",
+                              }
+                            );
+
                             if (!response.ok) {
-                              throw new Error(`Error: ${response.status} ${response.statusText}`);
+                              throw new Error(
+                                `Error: ${response.status} ${response.statusText}`
+                              );
                             }
-                            
-                            // Get the PDF blob and create an object URL
+
                             const blob = await response.blob();
                             const url = window.URL.createObjectURL(blob);
-                            window.open(url, '_blank');
+                            window.open(url, "_blank");
+
+                            toast({
+                              title: "Shipping Label Generated",
+                              description:
+                                "Your shipping label has been opened in a new tab. You can save it from there.",
+                            });
                           } catch (error) {
-                            console.error("Error downloading shipping label:", error);
+                            console.error(
+                              "Error downloading shipping label:",
+                              error
+                            );
                             toast({
                               title: "Generation Failed",
-                              description: "Failed to generate the shipping label. Please try again.",
+                              description:
+                                "Failed to generate the shipping label. Please try again.",
                               variant: "destructive",
                             });
                           }
                         };
                         await handleDownloadShippingLabel();
-                      }}>
+                      }}
+                    >
                       <Printer className="h-4 w-4 mr-2" />
                       Shipping Label
                     </DropdownMenuItem>
