@@ -243,39 +243,7 @@ export default function ProductPreviewPage() {
                 </div>
 
                 {/* Available offers */}
-                <div className="space-y-2">
-                  <h2 className="font-medium">Available offers</h2>
-                  <ul className="space-y-2">
-                    <li className="text-sm flex items-start gap-2">
-                      <span className="text-green-600 font-medium flex-shrink-0 mt-0.5">
-                        <Tag className="h-4 w-4" />
-                      </span>
-                      <span>
-                        <span className="font-medium">Bank Offer:</span> 10% off
-                        on HDFC Bank Credit Card, up to ₹1500. On orders of
-                        ₹5000 and above
-                      </span>
-                    </li>
-                    <li className="text-sm flex items-start gap-2">
-                      <span className="text-green-600 font-medium flex-shrink-0 mt-0.5">
-                        <Tag className="h-4 w-4" />
-                      </span>
-                      <span>
-                        <span className="font-medium">No cost EMI:</span> Avail
-                        No Cost EMI on select cards for orders above ₹3000
-                      </span>
-                    </li>
-                    <li className="text-sm flex items-start gap-2">
-                      <span className="text-green-600 font-medium flex-shrink-0 mt-0.5">
-                        <Tag className="h-4 w-4" />
-                      </span>
-                      <span>
-                        <span className="font-medium">Partner Offer:</span> Get
-                        GST invoice and save up to 28% on business purchases
-                      </span>
-                    </li>
-                  </ul>
-                </div>
+                
 
                 {/* Delivery options */}
                 <div className="space-y-3">

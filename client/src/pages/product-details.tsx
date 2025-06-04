@@ -538,8 +538,8 @@ function ProductImageSlider({
                       activeImage < validImages.length
                         ? validImages[activeImage]
                         : validImages && validImages.length > 0
-                        ? validImages[0]
-                        : defaultImage
+                          ? validImages[0]
+                          : defaultImage
                     }
                     alt={name}
                     className="max-w-full max-h-full object-contain"
@@ -1712,36 +1712,7 @@ export default function ProductDetailsPage() {
                   </div>
                 </div>
 
-                {/* Available Offers */}
-                <div className="mt-4">
-                  <h3 className="font-medium text-gray-900 mb-2">
-                    Available offers
-                  </h3>
-                  <ul className="space-y-2">
-                    <li className="flex">
-                      <span className="text-green-600 mr-2">•</span>
-                      <span className="text-sm">
-                        <span className="font-medium">Bank Offer:</span> 10% off
-                        on HDFC Bank Credit Card, up to ₹1500
-                      </span>
-                    </li>
-                    <li className="flex">
-                      <span className="text-green-600 mr-2">•</span>
-                      <span className="text-sm">
-                        <span className="font-medium">Special Price:</span> Get
-                        extra 5% off (price inclusive of discount)
-                      </span>
-                    </li>
-                    <li className="flex">
-                      <span className="text-green-600 mr-2">•</span>
-                      <span className="text-sm">
-                        <span className="font-medium">Partner Offer:</span> Sign
-                        up for Lelekart Pay Later and get Lelekart Gift Card
-                        worth up to ₹1000
-                      </span>
-                    </li>
-                  </ul>
-                </div>
+                {/* Available Offers - Hidden */}
 
                 {/* Delivery Options with Shiprocket Pincode Check */}
                 <div className="mt-6 grid grid-cols-12 gap-4">
@@ -2153,8 +2124,8 @@ export default function ProductDetailsPage() {
                     product.variants.length > 0
                       ? "SELECT OPTIONS"
                       : selectedVariant && selectedVariant.stock <= 0
-                      ? "OUT OF STOCK"
-                      : "ADD TO CART"}
+                        ? "OUT OF STOCK"
+                        : "ADD TO CART"}
                   </Button>
                   <Button
                     size="lg"
