@@ -59,32 +59,30 @@ interface AdminLayoutProps {
 export function AdminLayout({ children }: AdminLayoutProps) {
   const [location] = useLocation();
   const [heroMenuOpen, setHeroMenuOpen] = useState(
-    location.includes("/admin/banner-management") || 
-    
-    location.includes("/admin/category-management") || 
-    location.includes("/admin/design-hero")
+    location.includes("/admin/banner-management") ||
+      location.includes("/admin/category-management") ||
+      location.includes("/admin/design-hero")
   );
-  
+
   const [footerMenuOpen, setFooterMenuOpen] = useState(
     location.includes("/admin/footer-management")
   );
 
   const [usersMenuOpen, setUsersMenuOpen] = useState(
-    location.includes("/admin/users") || 
-    location.includes("/admin/create-user")
+    location.includes("/admin/users") || location.includes("/admin/create-user")
   );
-  
+
   const [shippingMenuOpen, setShippingMenuOpen] = useState(
-    location.includes("/admin/shipping-management") || 
-    location.includes("/admin/shipping-settings") ||
-    location.includes("/admin/shipping-dashboard") ||
-    location.includes("/admin/pending-shipments") ||
-    location.includes("/admin/shipping-rates") ||
-    location.includes("/admin/tracking-management") ||
-    location.includes("/admin/shiprocket-dashboard") ||
-    location.includes("/admin/shiprocket-pending-shipments")
+    location.includes("/admin/shipping-management") ||
+      location.includes("/admin/shipping-settings") ||
+      location.includes("/admin/shipping-dashboard") ||
+      location.includes("/admin/pending-shipments") ||
+      location.includes("/admin/shipping-rates") ||
+      location.includes("/admin/tracking-management") ||
+      location.includes("/admin/shiprocket-dashboard") ||
+      location.includes("/admin/shiprocket-pending-shipments")
   );
-  
+
   const [productDisplayMenuOpen, setProductDisplayMenuOpen] = useState(
     location.includes("/admin/product-display-settings")
   );
@@ -195,7 +193,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           title: "Tracking Management",
           href: "/admin/tracking-management",
           icon: <Search className="h-5 w-5" />,
-        }
+        },
       ],
     },
     {
@@ -238,24 +236,24 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const handleLogout = async () => {
     try {
       // Call the server-side logout endpoint
-      const response = await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
         headers: {
-          'Content-Type': 'application/json'
-        }
+          "Content-Type": "application/json",
+        },
       });
-      
+
       if (!response.ok) {
-        console.error('Logout failed:', response.statusText);
+        console.error("Logout failed:", response.statusText);
       }
-      
+
       // Redirect to auth page after successful logout
-      window.location.href = '/auth';
+      window.location.href = "/auth";
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
       // Redirect anyway as fallback
-      window.location.href = '/auth';
+      window.location.href = "/auth";
     }
   };
 
@@ -267,8 +265,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           <div className="flex items-center space-x-4">
             {/* Logo - using Link instead of window.location for client-side routing to maintain session */}
             <Link href="/">
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 className="p-0 hover:bg-transparent focus:bg-transparent"
               >
                 <div className="flex items-center space-x-2 text-xl font-bold">
@@ -279,31 +277,17 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
             {/* AI-powered Search Box */}
             <div className="relative hidden md:flex items-center ml-4 w-64">
-              <SimpleSearch 
-                className="w-full"
-                variant="admin" 
-              />
+              <SimpleSearch className="w-full" variant="admin" />
             </div>
           </div>
 
           {/* Right Side Elements */}
           <div className="flex items-center space-x-3">
-            {/* Cart - using Link instead of window.location to maintain session */}
-            <Link href="/cart">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative text-white hover:bg-[#2874f0]/90"
-              >
-                <ShoppingCart className="h-5 w-5" />
-              </Button>
-            </Link>
-
             {/* Notifications */}
             <div className="relative text-white">
-              <NotificationBell 
-                className="text-white hover:bg-[#2874f0]/90" 
-                iconClassName="text-white" 
+              <NotificationBell
+                className="text-white hover:bg-[#2874f0]/90"
+                iconClassName="text-white"
                 badgeClassName="bg-red-500"
               />
             </div>
@@ -311,10 +295,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             {/* User Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="text-white hover:bg-[#2874f0]/90">
-                  <span className="font-medium mr-1">
-                    Kaushlendra Admin
-                  </span>
+                <Button
+                  variant="ghost"
+                  className="text-white hover:bg-[#2874f0]/90"
+                >
+                  <span className="font-medium mr-1">Kaushlendra Admin</span>
                   <ChevronDown className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -360,10 +345,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                   <div
                     className={cn(
                       "flex items-center justify-between rounded-lg px-3 py-2 cursor-pointer transition-all hover:bg-gray-100",
-                      (location.includes("/admin/banner-management") || 
-                       
-                       location.includes("/admin/category-management") || 
-                       location.includes("/admin/design-hero"))
+                      location.includes("/admin/banner-management") ||
+                        location.includes("/admin/category-management") ||
+                        location.includes("/admin/design-hero")
                         ? "bg-primary/10 text-primary font-medium"
                         : "text-gray-700"
                     )}
@@ -424,7 +408,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                   </Link>
                 </CollapsibleContent>
               </Collapsible>
-              
+
               {/* Footer Management Dropdown */}
               <Collapsible
                 open={footerMenuOpen}
@@ -469,9 +453,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                   </Link>
                 </CollapsibleContent>
               </Collapsible>
-              
+
               {/* Regular Nav Items */}
-              {navItems.map((item, index) => 
+              {navItems.map((item, index) =>
                 item.collapsible ? (
                   <Collapsible
                     key={`collapsible-${index}`}
@@ -483,7 +467,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                       <div
                         className={cn(
                           "flex items-center justify-between rounded-lg px-3 py-2 cursor-pointer transition-all hover:bg-gray-100",
-                          (location.includes(`/admin/${item.title.toLowerCase().replace(/\s+/g, '-')}`))
+                          location.includes(
+                            `/admin/${item.title
+                              .toLowerCase()
+                              .replace(/\s+/g, "-")}`
+                          )
                             ? "bg-primary/10 text-primary font-medium"
                             : "text-gray-700"
                         )}
@@ -503,7 +491,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                     </CollapsibleTrigger>
                     <CollapsibleContent className="pl-6 pt-1">
                       {item.items?.map((subItem, subIndex) => (
-                        <Link key={`${subItem.href}-${subIndex}`} href={subItem.href || ""}>
+                        <Link
+                          key={`${subItem.href}-${subIndex}`}
+                          href={subItem.href || ""}
+                        >
                           <div
                             className={cn(
                               "flex items-center space-x-3 rounded-lg px-3 py-2 transition-all hover:bg-gray-100",
@@ -549,4 +540,3 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 }
 
 export default AdminLayout;
-
