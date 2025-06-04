@@ -8,17 +8,31 @@ import nodemailer from "nodemailer";
 import * as templateService from "./template-service";
 import { JSDOM } from "jsdom";
 import { generatePdf } from "./pdf-generator";
-
-const EMAIL_FROM = process.env.EMAIL_USER || "verification@lelekart.com";
+import dotenv from "dotenv";
 
 // Email configuration
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: parseInt(process.env.EMAIL_PORT || "587"),
-  secure: process.env.EMAIL_SECURE === "true",
+// Environment variables for email configuration
+const EMAIL_HOST = process.env.EMAIL_HOST || "";
+const EMAIL_PORT = process.env.EMAIL_PORT
+  ? parseInt(process.env.EMAIL_PORT)
+  : 587;
+const EMAIL_USER = process.env.EMAIL_USER || "";
+const EMAIL_PASS = process.env.EMAIL_PASS || "";
+const EMAIL_FROM = process.env.EMAIL_FROM || "verification@lelekart.com";
+
+// Log email configuration (without exposing password)
+console.log(
+  `Email configuration: HOST=${EMAIL_HOST}, PORT=${EMAIL_PORT}, USER=${EMAIL_USER}, FROM=${EMAIL_FROM}`
+);
+
+// Create a transporter
+export const transporter = nodemailer.createTransport({
+  host: EMAIL_HOST,
+  port: EMAIL_PORT,
+  secure: EMAIL_PORT === 465, // true for 465, false for other ports
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    user: EMAIL_USER,
+    pass: EMAIL_PASS,
   },
 });
 
@@ -1332,7 +1346,10 @@ function getDefaultTemplate(templateType: string): string {
           {{#if resumeUrl}}
           <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
             <h3 style="color: #333; margin-top: 0;">Resume</h3>
-            <p><a href="{{resumeUrl}}" style="color: #007bff; text-decoration: none;">Download Resume</a></p>
+            <div style="word-break: break-all; padding: 10px; background-color: #fff; border: 1px solid #ddd; border-radius: 4px;">
+              <p style="margin: 0; color: #007bff; font-family: monospace;">{{resumeUrl}}</p>
+            </div>
+            <p style="margin-top: 10px; color: #666; font-size: 0.9em;">Copy and paste the above URL in your browser to access the resume</p>
           </div>
           {{/if}}
 
