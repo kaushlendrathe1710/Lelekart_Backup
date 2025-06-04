@@ -24,6 +24,7 @@ import {
   Package,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { InvoiceDialog } from "@/components/order/invoice-dialog";
 
 interface GstDetails {
   gstRate: number;
@@ -199,6 +200,7 @@ export default function OrderDetailsPage() {
   const [shippingLabelLoading, setShippingLabelLoading] =
     useState<boolean>(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchOrderDetails();
@@ -264,43 +266,8 @@ export default function OrderDetailsPage() {
     }
   };
 
-  const handleViewInvoice = async () => {
-    try {
-      setViewInvoiceLoading(true);
-
-      // Use fetch with credentials to maintain session
-      const response = await fetch(`/api/orders/${orderId}/invoice`, {
-        method: "GET",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to view invoice");
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-
-      // Open in new tab
-      window.open(url, "_blank");
-
-      // Clean up
-      window.URL.revokeObjectURL(url);
-
-      toast({
-        title: "Success",
-        description: "Invoice opened in new tab.",
-      });
-    } catch (error) {
-      console.error("Error viewing invoice:", error);
-      toast({
-        title: "Error",
-        description: "Failed to view invoice. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setViewInvoiceLoading(false);
-    }
+  const handleViewInvoice = () => {
+    setInvoiceDialogOpen(true);
   };
 
   const handleDownloadInvoice = async () => {
@@ -922,5 +889,14 @@ export default function OrderDetailsPage() {
     );
   };
 
-  return <DashboardLayout>{renderContent()}</DashboardLayout>;
+  return (
+    <div className="container mx-auto py-8">
+      <DashboardLayout>{renderContent()}</DashboardLayout>
+      <InvoiceDialog
+        open={invoiceDialogOpen}
+        onOpenChange={setInvoiceDialogOpen}
+        orderId={orderId}
+      />
+    </div>
+  );
 }

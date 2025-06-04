@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useHeroButtons } from "@/hooks/use-hero-buttons";
 import { queryClient } from "@/lib/queryClient";
+import { InvoiceDialog } from "@/components/order/invoice-dialog";
 
 // Helper component for hero buttons
 function HeroButtons({
@@ -129,7 +130,7 @@ export default function OrderConfirmationPage() {
   const orderId = params?.id;
   const [loading, setLoading] = useState(true);
   const [orderDetails, setOrderDetails] = useState<any>(null);
-  const [viewInvoiceLoading, setViewInvoiceLoading] = useState(false);
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
 
   type OrderWithShipping = Order & {
@@ -263,33 +264,8 @@ export default function OrderConfirmationPage() {
     });
   };
 
-  const handleViewInvoice = async () => {
-    try {
-      setViewInvoiceLoading(true);
-
-      // Use fetch with credentials to maintain session
-      const response = await fetch(`/api/orders/${orderId}/invoice`, {
-        method: "GET",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to view invoice");
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-
-      // Open in new tab
-      window.open(url, "_blank");
-
-      // Clean up
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Error viewing invoice:", error);
-    } finally {
-      setViewInvoiceLoading(false);
-    }
+  const handleViewInvoice = () => {
+    setInvoiceDialogOpen(true);
   };
 
   if (loading) {
@@ -357,7 +333,7 @@ export default function OrderConfirmationPage() {
               <p className="font-medium capitalize">{orderDetails.status}</p>
             </div>
           </div>
-          <div className="flex justify-end gap-2">
+          <div className="flex gap-2">
             <Button
               variant="outline"
               className="flex items-center gap-1"
@@ -370,13 +346,8 @@ export default function OrderConfirmationPage() {
               variant="outline"
               className="flex items-center gap-1"
               onClick={handleViewInvoice}
-              disabled={viewInvoiceLoading}
             >
-              {viewInvoiceLoading ? (
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              ) : (
-                <FileText className="h-4 w-4" />
-              )}
+              <FileText className="h-4 w-4" />
               View Invoice
             </Button>
           </div>
@@ -577,6 +548,11 @@ export default function OrderConfirmationPage() {
 
         <HeroButtons orderId={orderId} setLocation={setLocation} />
       </div>
+      <InvoiceDialog
+        open={invoiceDialogOpen}
+        onOpenChange={setInvoiceDialogOpen}
+        orderId={parseInt(orderId || "0")}
+      />
     </div>
   );
 }
