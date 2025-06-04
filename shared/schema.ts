@@ -1330,6 +1330,7 @@ export const banners = pgTable("banners", {
   imageUrl: text("image_url").notNull(),
   buttonText: text("button_text").notNull().default("Shop Now"),
   category: text("category"),
+  subcategory: text("subcategory"), // Added subcategory field
   badgeText: text("badge_text"),
   productId: integer("product_id"),
   active: boolean("active").notNull().default(true),

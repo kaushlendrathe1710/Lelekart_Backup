@@ -56,6 +56,7 @@ export const EMAIL_TEMPLATES = {
   SELLER_REJECTION: "seller-rejection",
   ADMIN_NOTIFICATION: "admin-notification",
   SUPPORT_TICKET: "support-ticket",
+  CAREER_APPLICATION: "career-application",
 };
 
 interface EmailOptions {
@@ -399,9 +400,8 @@ export async function sendSellerOrderNotification(
     }
 
     // Get only this seller's items from the order
-    const orderItems = await storage.getOrderItemsBySellerOrderId(
-      sellerOrderId
-    );
+    const orderItems =
+      await storage.getOrderItemsBySellerOrderId(sellerOrderId);
 
     // Send email to seller
     await sendEmail({
@@ -1288,6 +1288,56 @@ function getDefaultTemplate(templateType: string): string {
           <div style="text-align: center; margin-top: 30px;">
             <a href="{{orderLink}}" style="display: inline-block; padding: 12px 24px; background-color: #1976d2; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">View Order Details</a>
             <p style="margin-top: 20px; font-size: 14px; color: #777;">This is an automated admin notification from the LeLeKart platform.</p>
+          </div>
+        </div>
+      `;
+
+    case EMAIL_TEMPLATES.CAREER_APPLICATION:
+      return `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+          <h2 style="color: #333; margin-bottom: 20px;">New Career Application</h2>
+          <p style="color: #666; margin-bottom: 20px;">A new career application has been submitted. Here are the details:</p>
+          
+          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+            <h3 style="color: #333; margin-top: 0;">Personal Information</h3>
+            <p><strong>Name:</strong> {{name}}</p>
+            <p><strong>Father's Name:</strong> {{fatherName}}</p>
+            <p><strong>Marital Status:</strong> {{maritalStatus}}</p>
+            <p><strong>Address:</strong> {{address}}</p>
+            <p><strong>Country:</strong> {{country}}</p>
+          </div>
+
+          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+            <h3 style="color: #333; margin-top: 0;">Contact Information</h3>
+            <p><strong>Email:</strong> {{email}}</p>
+            <p><strong>Phone:</strong> {{phone}}</p>
+            <p><strong>WhatsApp:</strong> {{whatsapp}}</p>
+          </div>
+
+          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+            <h3 style="color: #333; margin-top: 0;">Education & Experience</h3>
+            <p><strong>Highest Qualification:</strong> {{highestQualification}}</p>
+            <p><strong>Specialization:</strong> {{specialization}}</p>
+            <p><strong>Total Work Experience:</strong> {{workExperience}}</p>
+            <p><strong>Valid ID Number:</strong> {{idNumber}}</p>
+          </div>
+
+          {{#if message}}
+          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+            <h3 style="color: #333; margin-top: 0;">Additional Message</h3>
+            <p style="white-space: pre-wrap;">{{message}}</p>
+          </div>
+          {{/if}}
+
+          {{#if resumeUrl}}
+          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+            <h3 style="color: #333; margin-top: 0;">Resume</h3>
+            <p><a href="{{resumeUrl}}" style="color: #007bff; text-decoration: none;">Download Resume</a></p>
+          </div>
+          {{/if}}
+
+          <div style="color: #666; font-size: 0.9em; margin-top: 20px;">
+            <p>Application submitted on: {{submissionDate}}</p>
           </div>
         </div>
       `;
