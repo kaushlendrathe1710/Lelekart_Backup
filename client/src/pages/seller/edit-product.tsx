@@ -114,6 +114,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { processImageUrl } from "@/lib/image";
 
 // Form validation schema
 const productSchema = z
@@ -1837,7 +1838,7 @@ export default function EditProductPage() {
     );
   };
 
-  const handleAddImageUrl = () => {
+  const handleAddImageUrl = async () => {
     setAddUrlError("");
     const url = imageUrlInput.trim();
     if (!url) {
@@ -1852,12 +1853,35 @@ export default function EditProductPage() {
       setAddUrlError("This image is already added.");
       return;
     }
-    setUploadedImages([...uploadedImages, url]);
-    setImageUrlInput("");
-    toast({
-      title: "Image added",
-      description: "The image URL has been added.",
-    });
+
+    try {
+      setIsUploading(true);
+      setUploadProgress(50); // Show progress while processing
+
+      // Download and upload to AWS
+      const awsUrl = await processImageUrl(url);
+
+      // Add AWS URL to uploaded images
+      setUploadedImages((prevImages) => [...prevImages, awsUrl]);
+      setImageUrlInput("");
+
+      toast({
+        title: "Image added",
+        description:
+          "The image has been downloaded and uploaded to our servers.",
+      });
+    } catch (error) {
+      console.error("Error processing image URL:", error);
+      setAddUrlError("Failed to process image URL. Please try again.");
+      toast({
+        title: "Error",
+        description: "Failed to process image URL. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
   };
 
   if (isProductLoading) {
