@@ -100,6 +100,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { processImageUrl } from "@/lib/image";
 
 // Helper function to check if a return policy is a standard one
 const isStandardReturnPolicy = (value?: string | number | null): boolean => {
@@ -228,7 +229,9 @@ export default function AddProductPage() {
     Record<string, number>
   >({});
   const { toast } = useToast();
-  const [, navigate] = useLocation();
+  const [location, setLocation] = useLocation();
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const queryClient = useQueryClient();
 
   // Fetch categories for dropdown
@@ -558,7 +561,7 @@ export default function AddProductPage() {
         title: "Product added successfully",
         description: "Your product has been submitted for approval.",
       });
-      navigate("/seller/products");
+      setLocation("/seller/products"); // Navigate to products page after successful submission
     },
     onError: (error: Error) => {
       toast({
@@ -1173,6 +1176,72 @@ export default function AddProductPage() {
         variants: combinedVariants,
       },
     });
+  };
+
+  // Add this function near other image handling functions
+  const handleAddImageUrl = async (url: string) => {
+    try {
+      // Validate URL before adding
+      const urlObj = new URL(url);
+
+      // Check if URL uses http or https protocol
+      if (!urlObj.protocol.startsWith("http")) {
+        toast({
+          title: "Invalid URL",
+          description: "URL must start with http:// or https://",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Check if URL has an image extension
+      const validExtensions = [
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".gif",
+        ".webp",
+        ".svg",
+      ];
+      const hasValidExtension = validExtensions.some((ext) =>
+        urlObj.pathname.toLowerCase().endsWith(ext)
+      );
+
+      if (!hasValidExtension) {
+        toast({
+          title: "Warning",
+          description:
+            "The URL doesn't end with a common image extension. Please verify the image appears correctly.",
+          variant: "default",
+        });
+      }
+
+      // Show upload progress
+      setIsUploading(true);
+      setUploadProgress(50);
+
+      // Download and upload to AWS
+      const awsUrl = await processImageUrl(url);
+
+      // Add AWS URL to uploaded images
+      setUploadedImages((prevImages) => [...prevImages, awsUrl]);
+
+      toast({
+        title: "Image added",
+        description:
+          "The image has been downloaded and uploaded to our servers.",
+      });
+    } catch (error) {
+      console.error("Error processing image URL:", error);
+      toast({
+        title: "Error",
+        description: "Failed to process image URL. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
   };
 
   return (
@@ -1988,6 +2057,16 @@ export default function AddProductPage() {
                             id="image-url-input"
                             placeholder="https://example.com/product-image.jpg"
                             className="flex-1"
+                            aria-label="Image URL"
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                const input = e.target as HTMLInputElement;
+                                if (input.value) {
+                                  handleAddImageUrl(input.value);
+                                  input.value = "";
+                                }
+                              }
+                            }}
                           />
                           <Button
                             type="button"
@@ -1996,7 +2075,7 @@ export default function AddProductPage() {
                                 "image-url-input"
                               ) as HTMLInputElement;
                               if (input && input.value) {
-                                handleAddImage(input.value);
+                                handleAddImageUrl(input.value);
                                 input.value = "";
                               } else {
                                 toast({
