@@ -265,6 +265,37 @@ const isStandardReturnPolicy = (value?: string | number | null): boolean => {
   return standardValues.includes(value.toString());
 };
 
+// Add this helper function near the top of the file, after imports
+const convertUrlToAWS = async (url: string): Promise<string> => {
+  try {
+    // Download the image
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Failed to download image");
+    const blob = await response.blob();
+
+    // Create a FormData object
+    const formData = new FormData();
+    formData.append("file", blob, "image.jpg");
+
+    // Upload to AWS
+    const uploadResponse = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+      credentials: "include",
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error("Failed to upload to AWS");
+    }
+
+    const data = await uploadResponse.json();
+    return data.url;
+  } catch (error) {
+    console.error("Error converting URL to AWS:", error);
+    throw error;
+  }
+};
+
 export default function EditProductPage() {
   const { toast } = useToast();
   const [location, setLocation] = useLocation();
@@ -1837,7 +1868,7 @@ export default function EditProductPage() {
     );
   };
 
-  const handleAddImageUrl = () => {
+  const handleAddImageUrl = async () => {
     setAddUrlError("");
     const url = imageUrlInput.trim();
     if (!url) {
@@ -1852,12 +1883,38 @@ export default function EditProductPage() {
       setAddUrlError("This image is already added.");
       return;
     }
-    setUploadedImages([...uploadedImages, url]);
-    setImageUrlInput("");
-    toast({
-      title: "Image added",
-      description: "The image URL has been added.",
-    });
+
+    try {
+      setIsUploading(true);
+      setUploadProgress(50); // Show progress while downloading/uploading
+
+      // Convert URL to AWS URL
+      const awsUrl = await convertUrlToAWS(url);
+
+      // Update the images array with the new AWS URL
+      setUploadedImages([...uploadedImages, awsUrl]);
+      setImageUrlInput("");
+
+      toast({
+        title: "Image added",
+        description:
+          "The image has been uploaded to AWS and added to the product.",
+      });
+    } catch (error) {
+      console.error("Error processing image URL:", error);
+      setAddUrlError(
+        "Failed to process image URL. Please try uploading directly."
+      );
+      toast({
+        title: "Error",
+        description:
+          "Failed to process image URL. Please try uploading directly.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
   };
 
   if (isProductLoading) {

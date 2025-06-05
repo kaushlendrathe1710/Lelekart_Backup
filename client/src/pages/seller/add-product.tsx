@@ -100,6 +100,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { convertUrlToAWS, convertUrlsToAWS } from "@/lib/image-utils";
 
 // Helper function to check if a return policy is a standard one
 const isStandardReturnPolicy = (value?: string | number | null): boolean => {
@@ -376,108 +377,109 @@ export default function AddProductPage() {
   const completionStatus = getCompletionStatus();
 
   // Handle file upload for product images
-  const handleAddImage = useCallback(
-    (fileOrUrlOrUrls: File | string | string[]) => {
-      // Handle multiple URLs from multi-file upload
+  const handleAddImage = async (fileOrUrlOrUrls: File | string | string[]) => {
+    console.log("[handleAddImage] Starting image addition process");
+    try {
+      // Handle multiple URLs
       if (Array.isArray(fileOrUrlOrUrls)) {
-        // Add all URLs from the array
-        setUploadedImages((prevImages) => [...prevImages, ...fileOrUrlOrUrls]);
+        console.log(
+          "[handleAddImage] Processing multiple URLs:",
+          fileOrUrlOrUrls
+        );
+        const awsUrls = await convertUrlsToAWS(fileOrUrlOrUrls);
+        console.log(
+          "[handleAddImage] Successfully converted URLs to AWS:",
+          awsUrls
+        );
+        setUploadedImages((prev) => [...prev, ...awsUrls]);
         return;
       }
 
-      // Handle single file or URL
+      // Handle single URL
       if (typeof fileOrUrlOrUrls === "string") {
-        // Add URL directly
-        setUploadedImages((prevImages) => [...prevImages, fileOrUrlOrUrls]);
-        return;
-      }
-
-      // Check for maximum image count for single uploads
-      if (uploadedImages.length >= 8) {
-        toast({
-          title: "Maximum images reached",
-          description: "You can upload a maximum of 8 images per product",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (typeof fileOrUrlOrUrls === "string") {
-        // Validate the URL format
+        console.log("[handleAddImage] Processing single URL:", fileOrUrlOrUrls);
         try {
-          const url = new URL(fileOrUrlOrUrls);
-          if (!url.protocol.startsWith("http")) {
-            toast({
-              title: "Invalid URL",
-              description:
-                "Please enter a valid URL starting with http:// or https://",
-              variant: "destructive",
-            });
-            return;
-          }
-
-          // Add URL directly
-          setUploadedImages((prevImages) => [...prevImages, fileOrUrlOrUrls]);
-
-          // Show success message
+          // Validate URL
+          new URL(fileOrUrlOrUrls);
+          console.log("[handleAddImage] Converting URL to AWS URL");
+          const awsUrl = await convertUrlToAWS(fileOrUrlOrUrls);
+          console.log(
+            "[handleAddImage] Successfully converted to AWS URL:",
+            awsUrl
+          );
+          setUploadedImages((prev) => [...prev, awsUrl]);
           toast({
             title: "Image URL added",
-            description: "The image URL has been added to your product",
+            description:
+              "Image has been uploaded to AWS and added to the product.",
           });
-          return;
         } catch (error) {
+          console.error("[handleAddImage] Invalid URL:", error);
           toast({
             title: "Invalid URL",
-            description: "Please enter a valid image URL",
+            description: "Please enter a valid image URL.",
             variant: "destructive",
           });
-          return;
         }
+        return;
       }
 
-      try {
-        // Apply additional precautions for Firefox
-        const isFirefoxBrowser = isFirefox();
-
-        if (isFirefoxBrowser) {
-          console.log(
-            "Detected Firefox browser, using safe FileReader implementation for main image"
-          );
-        }
-
-        // Create a preview URL for the file - Firefox safe implementation
+      // Handle file upload
+      if (fileOrUrlOrUrls instanceof File) {
+        console.log(
+          "[handleAddImage] Processing file upload:",
+          fileOrUrlOrUrls.name
+        );
         const reader = new FileReader();
         reader.onload = (event) => {
-          if (event.target && event.target.result) {
-            // Use functional state update to prevent race conditions
-            setUploadedImages((prevImages) => [
-              ...prevImages,
-              event.target.result as string,
-            ]);
+          if (event.target?.result) {
+            console.log(
+              "[handleAddImage] File read successfully, uploading to AWS"
+            );
+            // Convert the file to AWS URL
+            convertUrlToAWS(event.target.result as string)
+              .then((awsUrl) => {
+                console.log("[handleAddImage] File uploaded to AWS:", awsUrl);
+                setUploadedImages((prev) => [...prev, awsUrl]);
+                toast({
+                  title: "Image uploaded",
+                  description:
+                    "Image has been uploaded to AWS and added to the product.",
+                });
+              })
+              .catch((error) => {
+                console.error(
+                  "[handleAddImage] Failed to upload file to AWS:",
+                  error
+                );
+                toast({
+                  title: "Upload failed",
+                  description:
+                    "Failed to upload image to AWS. Please try again.",
+                  variant: "destructive",
+                });
+              });
           }
         };
         reader.onerror = () => {
-          console.error("FileReader error occurred");
+          console.error("[handleAddImage] Error reading file");
           toast({
-            title: "Error processing image",
-            description:
-              "There was a problem processing your image. Please try another file.",
+            title: "Error reading file",
+            description: "Could not read the selected file. Please try again.",
             variant: "destructive",
           });
         };
         reader.readAsDataURL(fileOrUrlOrUrls);
-      } catch (error) {
-        console.error("Error handling file upload:", error);
-        toast({
-          title: "Error processing image",
-          description:
-            "There was a problem processing your image. Please try another file.",
-          variant: "destructive",
-        });
       }
-    },
-    [uploadedImages, toast]
-  );
+    } catch (error) {
+      console.error("[handleAddImage] Error handling image:", error);
+      toast({
+        title: "Error",
+        description: "Failed to process image. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Remove image at a given index
   const handleRemoveImage = (index: number) => {
@@ -1094,13 +1096,72 @@ export default function AddProductPage() {
       setSelectedVariant(null);
       setIsAddingVariant(false);
 
-      // Create the data structure expected by the server
-      const requestData = {
-        productData: productData,
-        variants: processedVariants,
-      };
+      // Convert any remaining URLs to AWS URLs
+      try {
+        console.log("[onSubmit] Starting final URL conversion process");
+        setIsSubmitting(true);
 
-      createProductMutation.mutate(requestData);
+        // Convert main product images
+        console.log(
+          `[onSubmit] Converting ${uploadedImages.length} main product images`
+        );
+        const awsImageUrls = await convertUrlsToAWS(uploadedImages);
+        console.log("[onSubmit] Main product images converted:", awsImageUrls);
+
+        // Convert variant images
+        console.log(
+          `[onSubmit] Converting images for ${variants.length} variants`
+        );
+        const processedVariants = await Promise.all(
+          variants.map(async (variant, index) => {
+            console.log(
+              `[onSubmit] Processing variant ${index + 1}/${variants.length}`
+            );
+            if (Array.isArray(variant.images)) {
+              console.log(
+                `[onSubmit] Converting ${variant.images.length} images for variant ${index + 1}`
+              );
+              const awsVariantImages = await convertUrlsToAWS(variant.images);
+              console.log(
+                `[onSubmit] Variant ${index + 1} images converted:`,
+                awsVariantImages
+              );
+              return {
+                ...variant,
+                images: awsVariantImages,
+              };
+            }
+            return variant;
+          })
+        );
+        console.log("[onSubmit] All variants processed");
+
+        // Update the form data with AWS URLs
+        const productData = {
+          ...form.getValues(),
+          imageUrl: awsImageUrls[0] || "",
+          images: awsImageUrls,
+        };
+        console.log("[onSubmit] Final product data prepared with AWS URLs");
+
+        // Create the data structure expected by the server
+        const requestData = {
+          productData: productData,
+          variants: processedVariants,
+        };
+        console.log("[onSubmit] Submitting final data to server");
+
+        createProductMutation.mutate(requestData);
+      } catch (error) {
+        console.error("[onSubmit] Error processing images:", error);
+        toast({
+          title: "Error processing images",
+          description:
+            "Failed to process some images. Please try uploading them directly.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+      }
     } catch (error) {
       console.error("Error in form submission:", error);
       toast({
@@ -1173,6 +1234,51 @@ export default function AddProductPage() {
         variants: combinedVariants,
       },
     });
+  };
+
+  // Fix the variant image URL input handler (around line 2793):
+  const handleVariantImageUrlInput = async (url: string) => {
+    console.log("[variantImageInput] Processing URL:", url);
+    try {
+      // Validate URL
+      new URL(url);
+      console.log("[variantImageInput] URL is valid, converting to AWS URL");
+
+      // Convert to AWS URL
+      setIsSubmitting(true);
+      const awsUrl = await convertUrlToAWS(url);
+      console.log(
+        "[variantImageInput] Successfully converted to AWS URL:",
+        awsUrl
+      );
+
+      const currentImages = Array.isArray(selectedVariant.images)
+        ? selectedVariant.images
+        : [];
+
+      setSelectedVariant({
+        ...selectedVariant,
+        images: [...currentImages, awsUrl],
+      });
+
+      toast({
+        title: "Image URL added",
+        description:
+          "Image has been uploaded to AWS and added to this variant.",
+      });
+      return true;
+    } catch (error) {
+      console.error("[variantImageInput] Failed to process URL:", error);
+      toast({
+        title: "Failed to process image URL",
+        description:
+          "Could not download or upload the image. Please try uploading directly.",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -2789,27 +2895,15 @@ export default function AddProductPage() {
                         type="url"
                         placeholder="Enter image URL"
                         className="flex-1 p-2 border rounded-md"
-                        onKeyDown={(e) => {
+                        onKeyDown={async (e) => {
                           if (e.key === "Enter") {
                             const url = e.currentTarget.value;
                             if (url) {
-                              const currentImages = Array.isArray(
-                                selectedVariant.images
-                              )
-                                ? selectedVariant.images
-                                : [];
-
-                              setSelectedVariant({
-                                ...selectedVariant,
-                                images: [...currentImages, url],
-                              });
-
-                              toast({
-                                title: "Image URL added",
-                                description:
-                                  "Image URL has been added to this variant.",
-                              });
-                              e.currentTarget.value = "";
+                              const success =
+                                await handleVariantImageUrlInput(url);
+                              if (success) {
+                                e.currentTarget.value = "";
+                              }
                             }
                           }
                         }}
@@ -2817,28 +2911,16 @@ export default function AddProductPage() {
                       <button
                         type="button"
                         className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           const input = e.currentTarget
                             .previousElementSibling as HTMLInputElement;
                           const url = input.value;
                           if (url) {
-                            const currentImages = Array.isArray(
-                              selectedVariant.images
-                            )
-                              ? selectedVariant.images
-                              : [];
-
-                            setSelectedVariant({
-                              ...selectedVariant,
-                              images: [...currentImages, url],
-                            });
-
-                            toast({
-                              title: "Image URL added",
-                              description:
-                                "Image URL has been added to this variant.",
-                            });
-                            input.value = "";
+                            const success =
+                              await handleVariantImageUrlInput(url);
+                            if (success) {
+                              input.value = "";
+                            }
                           }
                         }}
                       >
