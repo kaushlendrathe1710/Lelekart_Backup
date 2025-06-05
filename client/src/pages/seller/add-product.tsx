@@ -56,6 +56,7 @@ import {
   Edit,
   Trash2,
   FileText,
+  Link as LinkIcon,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import {
@@ -100,6 +101,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { processImageUrl } from "@/lib/imageUtils";
 
 // Helper function to check if a return policy is a standard one
 const isStandardReturnPolicy = (value?: string | number | null): boolean => {
@@ -230,6 +232,8 @@ export default function AddProductPage() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // Fetch categories for dropdown
   const { data: categories = [] } = useQuery({
@@ -1175,6 +1179,124 @@ export default function AddProductPage() {
     });
   };
 
+  // Handler for adding image by URL
+  const handleAddImageUrl = async (url: string) => {
+    try {
+      setIsUploading(true);
+      setUploadProgress(0);
+      console.log(`[AddProduct] Starting to process image URL: ${url}`);
+
+      // Process the image URL - download and upload to AWS
+      const awsUrl = await processImageUrl(url);
+      console.log(
+        `[AddProduct] Successfully processed image URL, got AWS URL: ${awsUrl}`
+      );
+
+      setUploadedImages([...uploadedImages, awsUrl]);
+      toast({
+        title: "Image added",
+        description:
+          "The image has been downloaded and uploaded to our servers.",
+      });
+    } catch (error) {
+      console.error("[AddProduct] Error processing image URL:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to add image",
+        description: "Failed to process image URL. Please try again.",
+      });
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  // Fix the event handler type safety
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      const input = e.currentTarget;
+      if (input.value) {
+        handleAddImageUrl(input.value);
+        input.value = "";
+      }
+    }
+  };
+
+  // Fix the input handler type safety
+  const handleInputClick = () => {
+    const input = document.getElementById(
+      "image-url-input"
+    ) as HTMLInputElement | null;
+    if (input?.value) {
+      handleAddImageUrl(input.value);
+      input.value = "";
+    }
+  };
+
+  // Fix the variant image URL handler
+  const handleAddVariantImageUrl = async (url: string) => {
+    if (!selectedVariant) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No variant selected",
+      });
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      // Process the image URL - download and upload to AWS
+      const awsUrl = await processImageUrl(url);
+
+      // Make sure we're working with a proper array of images
+      let currentImages: string[] = [];
+      if (selectedVariant.images) {
+        if (Array.isArray(selectedVariant.images)) {
+          currentImages = [...selectedVariant.images];
+        } else if (typeof selectedVariant.images === "string") {
+          const imagesStr = selectedVariant.images as string;
+          try {
+            if (imagesStr.startsWith("[")) {
+              const parsed = JSON.parse(imagesStr);
+              currentImages = Array.isArray(parsed) ? parsed : [];
+            } else {
+              currentImages = [imagesStr];
+            }
+          } catch (e) {
+            console.error("Error parsing images:", e);
+            currentImages = [];
+          }
+        }
+      }
+
+      // Add new AWS URL to current images
+      const updatedImages = [...currentImages, awsUrl];
+
+      // Update the selected variant with the new images array
+      setSelectedVariant({
+        ...selectedVariant,
+        images: updatedImages,
+        sku: selectedVariant.sku || "", // Ensure sku is always a string
+      });
+
+      toast({
+        title: "Image added",
+        description:
+          "The image has been downloaded and uploaded to our servers.",
+      });
+    } catch (error) {
+      console.error("Error processing variant image URL:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to add image",
+        description: "Failed to process image URL. Please try again.",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
     <SellerDashboardLayout>
       <div className="p-6">
@@ -1988,31 +2110,53 @@ export default function AddProductPage() {
                             id="image-url-input"
                             placeholder="https://example.com/product-image.jpg"
                             className="flex-1"
+                            disabled={isUploading}
+                            onKeyDown={handleKeyDown}
+                            aria-label="Image URL input"
+                            aria-labelledby="image-url-label"
                           />
                           <Button
                             type="button"
-                            onClick={() => {
-                              const input = document.getElementById(
-                                "image-url-input"
-                              ) as HTMLInputElement;
-                              if (input && input.value) {
-                                handleAddImage(input.value);
-                                input.value = "";
-                              } else {
-                                toast({
-                                  title: "URL required",
-                                  description: "Please enter an image URL",
-                                  variant: "destructive",
-                                });
-                              }
-                            }}
+                            onClick={handleInputClick}
+                            disabled={isUploading}
+                            title="Add image by URL"
+                            aria-label="Add image by URL"
+                            aria-labelledby="image-url-label"
                           >
-                            Add URL
+                            {isUploading ? (
+                              <>
+                                <Loader2
+                                  className="h-4 w-4 mr-2 animate-spin"
+                                  aria-hidden="true"
+                                />
+                                <span>Uploading...</span>
+                              </>
+                            ) : (
+                              <span>Add URL</span>
+                            )}
                           </Button>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          Enter a direct link to an image (JPG, PNG, GIF)
-                        </p>
+                        {isUploading && (
+                          <div
+                            className="w-full mt-2"
+                            role="progressbar"
+                            aria-label="Upload progress"
+                          >
+                            <Progress
+                              value={uploadProgress}
+                              className="h-2 w-full"
+                            />
+                            <p
+                              className="text-xs text-right mt-1"
+                              aria-live="polite"
+                            >
+                              {uploadProgress}% uploaded
+                            </p>
+                          </div>
+                        )}
+                        <div className="text-xs text-muted-foreground mb-2">
+                          Enter a direct link to an image (JPG, PNG, GIF, WEBP)
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2814,10 +2958,11 @@ export default function AddProductPage() {
                           }
                         }}
                       />
-                      <button
+                      <Button
                         type="button"
+                        variant="default"
                         className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                        onClick={(e) => {
+                        onClick={() => {
                           const input = e.currentTarget
                             .previousElementSibling as HTMLInputElement;
                           const url = input.value;
@@ -2842,8 +2987,8 @@ export default function AddProductPage() {
                           }
                         }}
                       >
-                        Add
-                      </button>
+                        Add Image URL
+                      </Button>
                     </div>
                   </div>
                 </div>

@@ -114,6 +114,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { processImageUrl } from "@/lib/imageUtils";
 
 // Form validation schema
 const productSchema = z
@@ -1837,7 +1838,7 @@ export default function EditProductPage() {
     );
   };
 
-  const handleAddImageUrl = () => {
+  const handleAddImageUrl = async () => {
     setAddUrlError("");
     const url = imageUrlInput.trim();
     if (!url) {
@@ -1852,12 +1853,88 @@ export default function EditProductPage() {
       setAddUrlError("This image is already added.");
       return;
     }
-    setUploadedImages([...uploadedImages, url]);
-    setImageUrlInput("");
-    toast({
-      title: "Image added",
-      description: "The image URL has been added.",
-    });
+
+    try {
+      setIsUploading(true);
+      // Process the image URL - download and upload to AWS
+      const awsUrl = await processImageUrl(url);
+      setUploadedImages([...uploadedImages, awsUrl]);
+      setImageUrlInput("");
+      toast({
+        title: "Image added",
+        description:
+          "The image has been downloaded and uploaded to our servers.",
+      });
+    } catch (error) {
+      console.error("Error processing image URL:", error);
+      setAddUrlError("Failed to process image URL. Please try again.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Variant image URL handler
+  const handleAddVariantImageUrl = async (url: string) => {
+    if (!selectedVariant) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No variant selected",
+      });
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      // Process the image URL - download and upload to AWS
+      const awsUrl = await processImageUrl(url);
+
+      // Make sure we're working with a proper array of images
+      let currentImages: string[] = [];
+      if (selectedVariant.images) {
+        if (Array.isArray(selectedVariant.images)) {
+          currentImages = [...selectedVariant.images];
+        } else if (typeof selectedVariant.images === "string") {
+          const imagesStr = selectedVariant.images as string;
+          try {
+            if (imagesStr.startsWith("[")) {
+              const parsed = JSON.parse(imagesStr);
+              currentImages = Array.isArray(parsed) ? parsed : [];
+            } else {
+              currentImages = [imagesStr];
+            }
+          } catch (e) {
+            console.error("Error parsing images:", e);
+            currentImages = [];
+          }
+        }
+      }
+
+      // Add new AWS URL to current images
+      const updatedImages = [...currentImages, awsUrl];
+
+      // Update the selected variant with the new images array
+      setSelectedVariant({
+        ...selectedVariant,
+        images: updatedImages,
+        sku: selectedVariant.sku || "", // Ensure sku is always a string
+      });
+
+      toast({
+        title: "Image added",
+        description:
+          "The image has been downloaded and uploaded to our servers.",
+      });
+    } catch (error) {
+      console.error("Error processing variant image URL:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to add image",
+        description: "Failed to process image URL. Please try again.",
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   if (isProductLoading) {
@@ -4310,27 +4387,15 @@ export default function EditProductPage() {
                       type="button"
                       variant="outline"
                       size="sm"
+                      title="Add image by URL"
+                      aria-label="Add image by URL"
                       onClick={() => {
-                        const url = window.prompt("Enter image URL:");
-                        if (url && url.trim()) {
-                          // Add the URL to variant images
-                          const updatedImages = selectedVariant.images
-                            ? Array.isArray(selectedVariant.images)
-                              ? [...selectedVariant.images, url.trim()]
-                              : [url.trim()]
-                            : [url.trim()];
-
-                          // Update the selected variant with the new images
-                          setSelectedVariant({
-                            ...selectedVariant,
-                            images: updatedImages,
-                          });
-
-                          toast({
-                            title: "Image added",
-                            description:
-                              "The image URL has been added to this variant.",
-                          });
+                        const urlInput = window.prompt("Enter image URL:");
+                        if (urlInput && typeof urlInput === "string") {
+                          const trimmedUrl = urlInput.trim();
+                          if (trimmedUrl) {
+                            handleAddVariantImageUrl(trimmedUrl);
+                          }
                         }
                       }}
                     >
