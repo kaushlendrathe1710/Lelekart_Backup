@@ -3084,7 +3084,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Get the variant to verify it exists and belongs to this product
-        const variant = await storage.getProductVariantById(variantId);
+        const variant = await storage.getProductVariant(variantId);
 
         if (!variant || variant.productId !== productId) {
           return res.status(404).json({

@@ -114,7 +114,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { processImageUrl } from "@/lib/image";
 
 // Form validation schema
 const productSchema = z
@@ -264,6 +263,43 @@ const isStandardReturnPolicy = (value?: string | number | null): boolean => {
   if (value === undefined || value === null) return true;
   const standardValues = ["0", "7", "10", "15", "30"];
   return standardValues.includes(value.toString());
+};
+
+// Move processImageUrl inside the component
+const processImageUrl = async (imageUrl: string): Promise<string> => {
+  console.log("Processing image URL through AWS:", imageUrl);
+  try {
+    // First download the image
+    const imageResponse = await fetch(imageUrl);
+    if (!imageResponse.ok) {
+      throw new Error(`Failed to download image: ${imageResponse.statusText}`);
+    }
+    const blob = await imageResponse.blob();
+    console.log("Successfully downloaded image, size:", blob.size);
+
+    // Create form data for upload
+    const formData = new FormData();
+    formData.append("file", blob, "image.jpg");
+
+    // Upload to AWS through our API
+    const uploadResponse = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+      credentials: "include",
+    });
+
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text();
+      throw new Error(`Failed to upload to AWS: ${errorText}`);
+    }
+
+    const data = await uploadResponse.json();
+    console.log("Successfully uploaded to AWS:", data.url);
+    return data.url;
+  } catch (error) {
+    console.error("Error processing image URL:", error);
+    throw error;
+  }
 };
 
 export default function EditProductPage() {
@@ -873,41 +909,30 @@ export default function EditProductPage() {
     setUploadedImages(newImages);
   };
 
-  // Variant image upload handler
+  // Modify handleVariantImageUpload to use proper variable names
   const handleVariantImageUpload = async (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+    const selectedFiles = e.target.files;
+    if (!selectedFiles || selectedFiles.length === 0) return;
 
-    // Start the real upload process
     setIsUploading(true);
     setUploadProgress(0);
 
-    const uploadedUrls: string[] = [];
+    const processedUrls: string[] = [];
 
     try {
-      // Process each file
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        setUploadProgress(Math.round((i / selectedFiles.length) * 50));
 
-        // Calculate progress
-        setUploadProgress(Math.round((i / files.length) * 50)); // First half is for processing
-
-        // Create a FormData object to send the file
         const formData = new FormData();
-
-        // CRITICAL FIX: Ensure the form field name is "file" as expected by the server
-        // Do not include any extra form fields, and make sure field name exactly matches backend
         formData.append("file", file);
 
-        // Make the actual API request to upload to S3
-        // Make sure no extra headers are interfering with the multipart form
         const response = await fetch("/api/upload", {
           method: "POST",
           body: formData,
           credentials: "include",
-          // Explicitly remove content-type header to let browser set it with boundary
         });
 
         if (!response.ok) {
@@ -916,38 +941,21 @@ export default function EditProductPage() {
         }
 
         const data = await response.json();
-
-        // Add the real URL from S3
-        uploadedUrls.push(data.url);
-
-        // Update progress (second half is for uploads)
-        setUploadProgress(50 + Math.round(((i + 1) / files.length) * 50));
+        processedUrls.push(data.url);
       }
 
-      // Update state with real uploaded image URLs
-      setVariantImages([...variantImages, ...uploadedUrls]);
-
-      toast({
-        title: "Variant images uploaded",
-        description: `${files.length} image${
-          files.length > 1 ? "s" : ""
-        } uploaded successfully.`,
-      });
+      setVariantImages((prev) => [...prev, ...processedUrls]);
+      setUploadProgress(100);
     } catch (error) {
       console.error("Error uploading variant images:", error);
       toast({
+        title: "Error",
+        description: "Failed to upload variant images. Please try again.",
         variant: "destructive",
-        title: "Variant image upload failed",
-        description:
-          error instanceof Error
-            ? error.message
-            : "There was an error uploading your variant images. Please try again.",
       });
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
-
-      // Reset the input field
       e.target.value = "";
     }
   };
@@ -1212,115 +1220,124 @@ export default function EditProductPage() {
     setVariantImages([]);
   };
 
-  // Save the currently editing variant
-  const handleSaveNewVariant = (updatedVariant: ProductVariant) => {
-    // More robust validation for the current variant's required fields
-    if (!updatedVariant.sku || updatedVariant.sku.trim() === "") {
-      toast({
-        title: "Missing required field: SKU",
-        description: "Please enter a valid SKU for this variant",
-        variant: "destructive",
-      });
-      return;
-    }
+  // Modify handleSaveNewVariant to process images
+  const handleSaveNewVariant = async (updatedVariant: ProductVariant) => {
+    console.log("Starting to save new variant:", updatedVariant);
+    try {
+      setIsUploading(true);
+      console.log("Processing variant images through AWS");
 
-    // Validate price (must be a positive number)
-    if (
-      updatedVariant.price === undefined ||
-      updatedVariant.price === null ||
-      isNaN(Number(updatedVariant.price)) ||
-      Number(updatedVariant.price) <= 0
-    ) {
-      toast({
-        title: "Invalid price",
-        description: "Please enter a valid price greater than zero",
-        variant: "destructive",
-      });
-      return;
-    }
+      // Process each image through AWS
+      const processedImages = await Promise.all(
+        (variantImages || []).map(async (image) => {
+          // If it's already an AWS URL, keep it
+          if (image.startsWith("https://lelekart.s3.amazonaws.com/")) {
+            console.log("Image is already an AWS URL:", image);
+            return image;
+          }
 
-    // Validate stock (must be a non-negative number)
-    if (
-      updatedVariant.stock === undefined ||
-      updatedVariant.stock === null ||
-      isNaN(Number(updatedVariant.stock)) ||
-      Number(updatedVariant.stock) < 0
-    ) {
-      toast({
-        title: "Invalid stock quantity",
-        description: "Please enter a valid stock quantity (zero or greater)",
-        variant: "destructive",
-      });
-      return;
-    }
+          // If it's a URL, process it through AWS
+          if (image.startsWith("http://") || image.startsWith("https://")) {
+            console.log("Processing external URL through AWS:", image);
+            try {
+              const awsUrl = await processImageUrl(image);
+              console.log("Successfully processed to AWS URL:", awsUrl);
+              return awsUrl;
+            } catch (error) {
+              console.error("Error processing image through AWS:", error);
+              throw error;
+            }
+          }
 
-    // Create variant with images and ensure numeric properties have correct type
-    const variantWithImages = {
-      ...updatedVariant,
-      images: variantImages,
-      // Clean up any dash characters and ensure fields have proper values
-      color:
-        updatedVariant.color === "—" || updatedVariant.color === "-"
-          ? ""
-          : updatedVariant.color,
-      size:
-        updatedVariant.size === "—" || updatedVariant.size === "-"
-          ? ""
-          : updatedVariant.size,
-      // Ensure numeric properties have correct type and valid values
-      price: Number(updatedVariant.price) || 0,
-      mrp: Number(updatedVariant.mrp) || 0,
-      stock: Number(updatedVariant.stock) || 0,
-    };
+          // If it's not a URL, return as is
+          console.log("Image is not a URL, keeping as is:", image);
+          return image;
+        })
+      );
 
-    // Check if we're editing an existing variant
-    if (
-      currentVariant?.id &&
-      (variants.some((v) => v.id === currentVariant.id) ||
-        draftVariants.some((v) => v.id === currentVariant.id))
-    ) {
-      // Update existing variant
-      if (variants.some((v) => v.id === currentVariant.id)) {
-        // Update in regular variants array
-        const updatedVariants = [...variants];
-        const existingIndex = updatedVariants.findIndex(
-          (v) => v.id === currentVariant.id
+      console.log("All images processed successfully:", processedImages);
+
+      // Create variant with processed images
+      const variantWithImages = {
+        ...updatedVariant,
+        images: processedImages,
+        // Clean up any dash characters and ensure fields have proper values
+        color:
+          updatedVariant.color === "—" || updatedVariant.color === "-"
+            ? ""
+            : updatedVariant.color,
+        size:
+          updatedVariant.size === "—" || updatedVariant.size === "-"
+            ? ""
+            : updatedVariant.size,
+        // Ensure numeric properties have correct type
+        price:
+          typeof updatedVariant.price === "string"
+            ? parseFloat(updatedVariant.price)
+            : updatedVariant.price,
+        mrp:
+          typeof updatedVariant.mrp === "string"
+            ? parseFloat(updatedVariant.mrp)
+            : updatedVariant.mrp,
+        stock:
+          typeof updatedVariant.stock === "string"
+            ? parseInt(updatedVariant.stock)
+            : updatedVariant.stock,
+      };
+
+      console.log("Saving processed variant:", variantWithImages);
+
+      // Update the variant in the appropriate state
+      if (variantWithImages.id) {
+        // Update existing variant
+        setVariants((prevVariants) =>
+          prevVariants.map((v) =>
+            v.id === variantWithImages.id ? variantWithImages : v
+          )
         );
 
-        if (existingIndex !== -1) {
-          updatedVariants[existingIndex] = variantWithImages;
-          setVariants(updatedVariants);
-        }
+        // Also update in currentVariants
+        setCurrentVariants((prevCurrentVariants) => {
+          const currentIndex = prevCurrentVariants.findIndex(
+            (v) => v.id === variantWithImages.id
+          );
+          if (currentIndex >= 0) {
+            const newCurrentVariants = [...prevCurrentVariants];
+            newCurrentVariants[currentIndex] = variantWithImages;
+            return newCurrentVariants;
+          }
+          return [...prevCurrentVariants, variantWithImages];
+        });
       } else {
-        // Update in draft variants array
-        const updatedDraftVariants = [...draftVariants];
-        const existingIndex = updatedDraftVariants.findIndex(
-          (v) => v.id === currentVariant.id
-        );
-
-        if (existingIndex !== -1) {
-          updatedDraftVariants[existingIndex] = variantWithImages;
-          setDraftVariants(updatedDraftVariants);
-        }
+        // Add new variant
+        const newVariant = {
+          ...variantWithImages,
+          id: Math.floor(Math.random() * -1000000), // Negative ID for new variants
+        };
+        setVariants((prev) => [...prev, newVariant]);
+        setCurrentVariants((prev) => [...prev, newVariant]);
       }
-    } else {
-      // Add as new variant to draftVariants array
-      setDraftVariants([...draftVariants, variantWithImages]);
+
+      // Reset state
+      setCurrentVariant(null);
+      setVariantImages([]);
+      setIsEditingVariant(false);
+      setNewVariantRow(false);
+
+      toast({
+        title: "Success",
+        description: "Product variant has been updated successfully",
+      });
+    } catch (error) {
+      console.error("Error saving variant:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save product variant. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
     }
-
-    // Clean up the editing state to allow editing of any variant
-    setIsEditingVariant(false);
-    setCurrentVariant(null);
-    setVariantImages([]);
-    setNewVariantRow(false);
-
-    // Show success toast
-    toast({
-      title: currentVariant?.id ? "Variant updated" : "Variant added",
-      description: currentVariant?.id
-        ? "Variant has been updated successfully"
-        : "Variant has been added successfully",
-    });
   };
 
   // Cancel variant editing
@@ -4448,208 +4465,162 @@ export default function EditProductPage() {
             <Button
               type="submit"
               disabled={isUploading}
-              onClick={() => {
+              onClick={async () => {
                 if (selectedVariant) {
-                  console.log("Saving variant changes for:", selectedVariant);
-
-                  // Ensure we have well-processed images that will survive the trip to the server
-                  // and back again through various serialization/deserialization cycles
-                  let processedImages = selectedVariant.images || [];
-
-                  // Ensure the images array is properly formatted
-                  if (typeof processedImages === "string") {
-                    try {
-                      const parsedImages = JSON.parse(processedImages);
-                      processedImages = Array.isArray(parsedImages)
-                        ? parsedImages
-                        : [];
-                    } catch (error) {
-                      console.error(
-                        "Error parsing variant images string:",
-                        error
-                      );
-                      processedImages = [];
-                    }
-                  } else if (!Array.isArray(processedImages)) {
-                    processedImages = [];
-                  }
-
-                  // Create a properly formatted variant with clean images
-                  const processedVariant = {
-                    ...selectedVariant,
-                    images: processedImages,
-                    // Ensure numeric values are numbers
-                    price: Number(selectedVariant.price) || 0,
-                    mrp: Number(selectedVariant.mrp) || 0,
-                    stock: Number(selectedVariant.stock) || 0,
-                  };
-
-                  console.log(
-                    "Processed variant for update:",
-                    processedVariant
-                  );
-                  console.log(
-                    "Processed variant images type:",
-                    typeof processedVariant.images
-                  );
-                  console.log(
-                    "Processed variant images:",
-                    processedVariant.images
-                  );
-
-                  // Make absolutely sure images is an array before proceeding
-                  if (!Array.isArray(processedVariant.images)) {
-                    console.warn(
-                      "Variant images is not an array after processing in dialog. Converting to empty array."
-                    );
-                    processedVariant.images = [];
-                  }
-
-                  // Check if the variant is in the regular variants list (has a positive ID)
-                  const isRegularVariant =
-                    typeof processedVariant.id === "number" &&
-                    processedVariant.id > 0;
-
-                  // IMPORTANT: Update ALL fields, not just images
-                  const updatedVariant = {
-                    ...processedVariant,
-                    price: Number(processedVariant.price) || 0,
-                    mrp: Number(processedVariant.mrp) || 0,
-                    stock: Number(processedVariant.stock) || 0,
-                    color: processedVariant.color || "",
-                    size: processedVariant.size || "",
-                    images: processedVariant.images,
-                  };
-
-                  console.log("Saving processed variant:", updatedVariant);
-
-                  if (isRegularVariant) {
-                    // Update in the variants list
-                    console.log("Updating regular variant in variants list");
-                    setVariants((prevVariants) =>
-                      prevVariants.map((v) =>
-                        v.id === updatedVariant.id ? updatedVariant : v
-                      )
-                    );
-                  } else {
-                    // Update in the draft variants list
+                  try {
+                    setIsUploading(true);
                     console.log(
-                      "Updating draft variant in draft variants list"
-                    );
-                    setDraftVariants((prevDrafts) =>
-                      prevDrafts.map((d) =>
-                        d.id === updatedVariant.id ? updatedVariant : d
-                      )
+                      "Starting to process variant images through AWS"
                     );
 
-                    // Also update in the main variants list (if it exists there)
-                    setVariants((prevVariants) => {
-                      const variantExists = prevVariants.some(
-                        (v) => v.id === updatedVariant.id
-                      );
-                      if (variantExists) {
-                        return prevVariants.map((v) =>
-                          v.id === updatedVariant.id ? updatedVariant : v
+                    // Process each image through AWS
+                    const processedImages = await Promise.all(
+                      (selectedVariant.images || []).map(async (image) => {
+                        // If it's already an AWS URL, keep it
+                        if (
+                          image.startsWith("https://lelekart.s3.amazonaws.com/")
+                        ) {
+                          console.log("Image is already an AWS URL:", image);
+                          return image;
+                        }
+
+                        // If it's a URL, process it through AWS
+                        if (
+                          image.startsWith("http://") ||
+                          image.startsWith("https://")
+                        ) {
+                          console.log(
+                            "Processing external URL through AWS:",
+                            image
+                          );
+                          try {
+                            const awsUrl = await processImageUrl(image);
+                            console.log(
+                              "Successfully processed to AWS URL:",
+                              awsUrl
+                            );
+                            return awsUrl;
+                          } catch (error) {
+                            console.error(
+                              "Error processing image through AWS:",
+                              error
+                            );
+                            throw error;
+                          }
+                        }
+
+                        // If it's not a URL, return as is
+                        console.log(
+                          "Image is not a URL, keeping as is:",
+                          image
                         );
-                      }
-                      return prevVariants;
-                    });
-                  }
+                        return image;
+                      })
+                    );
 
-                  // Update the current variants directly to ensure all changes persist
-                  // This ensures the API receives the correct data when the product is updated
-                  if (updatedVariant.id && currentVariants) {
                     console.log(
-                      `Making sure variant ${updatedVariant.id} changes are preserved`
+                      "All images processed successfully:",
+                      processedImages
                     );
 
-                    // Create a copy of the current variants and update the one with matching ID
-                    const updatedVariants = [...currentVariants];
-                    const existingIndex = updatedVariants.findIndex(
-                      (v) => v.id === updatedVariant.id
-                    );
-
-                    if (existingIndex !== -1) {
-                      // Update the entire variant - critically important for prices
-                      updatedVariants[existingIndex] = {
-                        ...updatedVariants[existingIndex],
-                        price: Number(updatedVariant.price),
-                        mrp: Number(updatedVariant.mrp),
-                        stock: Number(updatedVariant.stock),
-                        color: updatedVariant.color,
-                        size: updatedVariant.size,
-                        images: updatedVariant.images,
-                      };
-                      setCurrentVariants(updatedVariants);
-                      console.log(
-                        "Updated variant in currentVariants:",
-                        updatedVariants[existingIndex]
-                      );
-                    }
-                  }
-
-                  // Add direct database update for this variant (critical for price updates)
-                  if (
-                    updatedVariant.id &&
-                    typeof updatedVariant.id === "number" &&
-                    updatedVariant.id > 0
-                  ) {
-                    console.log(
-                      "Sending direct variant update to server:",
-                      updatedVariant
-                    );
-
-                    // Create an optimized variant object with only the fields we need to update
-                    const variantUpdateData = {
-                      id: updatedVariant.id,
-                      price: Number(updatedVariant.price),
-                      mrp: Number(updatedVariant.mrp),
-                      stock: Number(updatedVariant.stock),
-                      color: updatedVariant.color,
-                      size: updatedVariant.size,
-                      images: updatedVariant.images,
+                    // Create a properly formatted variant with processed images
+                    const processedVariant = {
+                      ...selectedVariant,
+                      images: processedImages,
+                      // Ensure numeric values are numbers
+                      price: Number(selectedVariant.price) || 0,
+                      mrp: Number(selectedVariant.mrp) || 0,
+                      stock: Number(selectedVariant.stock) || 0,
+                      color: selectedVariant.color || "",
+                      size: selectedVariant.size || "",
                     };
 
-                    // Send the update to the server
-                    fetch(
-                      `/api/products/${productId}/variants/${updatedVariant.id}`,
-                      {
-                        method: "PATCH",
-                        headers: {
-                          "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify(variantUpdateData),
-                      }
-                    )
-                      .then((response) => {
-                        if (!response.ok) {
-                          throw new Error("Failed to update variant");
+                    console.log("Saving processed variant:", processedVariant);
+
+                    // Update the variant in the appropriate state
+                    if (processedVariant.id) {
+                      // Update existing variant
+                      setVariants((prevVariants) =>
+                        prevVariants.map((v) =>
+                          v.id === processedVariant.id ? processedVariant : v
+                        )
+                      );
+
+                      // Also update in currentVariants
+                      setCurrentVariants((prevCurrentVariants) => {
+                        const currentIndex = prevCurrentVariants.findIndex(
+                          (v) => v.id === processedVariant.id
+                        );
+                        if (currentIndex >= 0) {
+                          const newCurrentVariants = [...prevCurrentVariants];
+                          newCurrentVariants[currentIndex] = processedVariant;
+                          return newCurrentVariants;
                         }
-                        return response.json();
-                      })
-                      .then((data) => {
-                        console.log("Variant updated successfully:", data);
-                      })
-                      .catch((error) => {
-                        console.error("Error updating variant:", error);
-                        // Continue with the UI update even if the server update fails
+                        return [...prevCurrentVariants, processedVariant];
                       });
+
+                      // If it's a regular variant (positive ID), update on the server
+                      if (processedVariant.id > 0) {
+                        const variantUpdateData = {
+                          ...processedVariant,
+                          images: processedImages, // Ensure images are included in the update
+                        };
+
+                        // Send the update to the server
+                        const response = await fetch(
+                          `/api/products/${productId}/variants/${processedVariant.id}`,
+                          {
+                            method: "PATCH",
+                            headers: {
+                              "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify(variantUpdateData),
+                          }
+                        );
+
+                        if (!response.ok) {
+                          throw new Error("Failed to update variant on server");
+                        }
+
+                        const data = await response.json();
+                        console.log(
+                          "Variant updated successfully on server:",
+                          data
+                        );
+                      }
+                    } else {
+                      // Add new variant
+                      const newVariant = {
+                        ...processedVariant,
+                        id: Math.floor(Math.random() * -1000000), // Negative ID for new variants
+                      };
+                      setVariants((prev) => [...prev, newVariant]);
+                      setCurrentVariants((prev) => [...prev, newVariant]);
+                    }
+
+                    toast({
+                      title: "Variant updated",
+                      description: "The variant has been updated successfully.",
+                    });
+
+                    setEditVariantDialogOpen(false);
+                  } catch (error) {
+                    console.error("Error saving variant:", error);
+                    toast({
+                      title: "Error",
+                      description: "Failed to save variant. Please try again.",
+                      variant: "destructive",
+                    });
+                  } finally {
+                    setIsUploading(false);
                   }
-
-                  toast({
-                    title: "Variant updated",
-                    description:
-                      "The variant has been updated. Save the product to apply changes.",
-                  });
-
-                  setEditVariantDialogOpen(false);
                 }
               }}
             >
               {isUploading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Uploading...
+                  Processing images...
                 </>
               ) : (
                 "Save changes"
