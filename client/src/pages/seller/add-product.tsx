@@ -622,7 +622,7 @@ export default function AddProductPage() {
         description:
           "Your product draft has been saved and can be edited later.",
       });
-      navigate("/seller/products");
+      setLocation("/seller/products");
     },
     onError: (error: Error) => {
       toast({
@@ -798,37 +798,55 @@ export default function AddProductPage() {
   };
 
   // Traditional save variant (for edit modal)
-  const handleSaveVariant = (variant: ProductVariant, images: string[]) => {
-    // Add images to the variant
-    const updatedVariant = {
-      ...variant,
-      images: images,
-    };
+  const handleSaveVariant = async (
+    variant: ProductVariant,
+    images: string[]
+  ) => {
+    try {
+      setIsUploading(true);
+      // Process images through AWS
+      const processedImages = await processVariantImages(images);
 
-    // Check if we're editing an existing variant or adding a new one
-    const existingVariantIndex = variants.findIndex(
-      (v) => v.id === updatedVariant.id
-    );
+      // Add processed images to the variant
+      const updatedVariant = {
+        ...variant,
+        images: processedImages,
+      };
 
-    if (existingVariantIndex >= 0) {
-      // Update existing variant
-      const updatedVariants = [...variants];
-      updatedVariants[existingVariantIndex] = updatedVariant;
-      setVariants(updatedVariants);
-    } else {
-      // Add new variant
-      setVariants([...variants, updatedVariant]);
+      // Check if we're editing an existing variant or adding a new one
+      const existingVariantIndex = variants.findIndex(
+        (v) => v.id === updatedVariant.id
+      );
+
+      if (existingVariantIndex >= 0) {
+        // Update existing variant
+        const updatedVariants = [...variants];
+        updatedVariants[existingVariantIndex] = updatedVariant;
+        setVariants(updatedVariants);
+      } else {
+        // Add new variant
+        setVariants([...variants, updatedVariant]);
+      }
+
+      // Reset the form
+      setSelectedVariant(null);
+      setVariantImages([]);
+      setIsAddingVariant(false);
+
+      toast({
+        title: "Variant saved",
+        description: "Product variant has been added successfully",
+      });
+    } catch (error) {
+      console.error("Error saving variant:", error);
+      toast({
+        title: "Error saving variant",
+        description: "Failed to process variant images. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
     }
-
-    // Reset the form
-    setSelectedVariant(null);
-    setVariantImages([]);
-    setIsAddingVariant(false);
-
-    toast({
-      title: "Variant saved",
-      description: "Product variant has been added successfully",
-    });
   };
 
   // Cancel variant editing - handles both inline and modal editing
@@ -964,9 +982,10 @@ export default function AddProductPage() {
 
   // Form submission handler
   const onSubmit = async (data: z.infer<typeof productSchema>) => {
-    setIsSubmitting(true);
-
     try {
+      setIsSubmitting(true);
+      // ... existing validation code ...
+
       // Generate SKU if not provided or empty
       let sku = data.sku?.trim();
       if (!sku) {
@@ -1103,7 +1122,20 @@ export default function AddProductPage() {
         variants: processedVariants,
       };
 
-      createProductMutation.mutate(requestData);
+      createProductMutation.mutate(requestData, {
+        onSuccess: () => {
+          setLocation("/seller/products");
+        },
+        onError: (error: Error) => {
+          toast({
+            title: "Error",
+            description:
+              error.message || "Failed to create product. Please try again.",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+        },
+      });
     } catch (error) {
       console.error("Error in form submission:", error);
       toast({
@@ -1118,64 +1150,90 @@ export default function AddProductPage() {
 
   // Save as draft handler - less strict validation
   const onSaveAsDraft = () => {
-    setIsSavingDraft(true);
+    try {
+      setIsSavingDraft(true);
+      // Get form data
+      const formData = form.getValues();
 
-    // Get form data
-    const formData = form.getValues();
+      // Create the data structure expected by the server
+      const productData = {
+        name: formData.name,
+        description: formData.description,
+        specifications: formData.specifications,
+        price: parseInt(formData.price),
+        mrp: parseInt(formData.mrp),
+        purchasePrice: formData.purchasePrice
+          ? parseFloat(formData.purchasePrice)
+          : undefined,
+        gstRate:
+          formData.gstRate ||
+          formData.tax ||
+          getSelectedCategoryGstRate().toString() ||
+          "0",
+        category: formData.category,
+        subcategory:
+          formData.subcategory === "none" ? null : formData.subcategory || null,
+        subcategoryId: formData.subcategoryId || null,
+        brand: formData.brand,
+        color: formData.color,
+        size: formData.size,
+        imageUrl:
+          uploadedImages[0] ||
+          "https://placehold.co/600x400?text=Product+Image",
+        images: JSON.stringify(uploadedImages),
+        stock: parseInt(formData.stock),
+        weight: formData.weight ? parseFloat(formData.weight) : undefined,
+        height: formData.height ? parseFloat(formData.height) : undefined,
+        width: formData.width ? parseFloat(formData.width) : undefined,
+        length: formData.length ? parseFloat(formData.length) : undefined,
+        warranty: formData.warranty ? parseInt(formData.warranty) : undefined,
+        hsn: formData.hsn,
+        productType: formData.productType,
+        returnPolicy: isStandardReturnPolicy(formData.returnPolicy)
+          ? formData.returnPolicy
+          : formData.customReturnPolicy,
+        variants: [...variants, ...draftVariants],
+        isDraft: true,
+      };
 
-    // Create the data structure expected by the server
-    const productData = {
-      name: formData.name,
-      description: formData.description,
-      specifications: formData.specifications,
-      price: parseInt(formData.price),
-      mrp: parseInt(formData.mrp),
-      purchasePrice: formData.purchasePrice
-        ? parseFloat(formData.purchasePrice)
-        : undefined,
-      gstRate:
-        formData.gstRate ||
-        formData.tax ||
-        getSelectedCategoryGstRate().toString() ||
-        "0",
-      category: formData.category,
-      subcategory:
-        formData.subcategory === "none" ? null : formData.subcategory || null,
-      subcategoryId: formData.subcategoryId || null,
-      brand: formData.brand,
-      color: formData.color,
-      size: formData.size,
-      imageUrl:
-        uploadedImages[0] || "https://placehold.co/600x400?text=Product+Image",
-      images: JSON.stringify(uploadedImages),
-      stock: parseInt(formData.stock),
-      weight: formData.weight ? parseFloat(formData.weight) : undefined,
-      height: formData.height ? parseFloat(formData.height) : undefined,
-      width: formData.width ? parseFloat(formData.width) : undefined,
-      length: formData.length ? parseFloat(formData.length) : undefined,
-      warranty: formData.warranty ? parseInt(formData.warranty) : undefined,
-      hsn: formData.hsn,
-      productType: formData.productType,
-      returnPolicy: isStandardReturnPolicy(formData.returnPolicy)
-        ? formData.returnPolicy
-        : formData.customReturnPolicy,
-      variants: [...variants, ...draftVariants],
-      isDraft: true,
-    };
+      // Combine regular variants and draft variants for submission
+      const combinedVariants = [...variants, ...draftVariants];
 
-    // Combine regular variants and draft variants for submission
-    const combinedVariants = [...variants, ...draftVariants];
+      console.log("Saving product draft:", productData);
+      console.log("With variants:", combinedVariants.length);
 
-    console.log("Saving product draft:", productData);
-    console.log("With variants:", combinedVariants.length);
-
-    // Create the data structure expected by the server
-    saveDraftMutation.mutate({
-      productData: {
-        ...productData,
-        variants: combinedVariants,
-      },
-    });
+      // Create the data structure expected by the server
+      saveDraftMutation.mutate(
+        {
+          productData: {
+            ...productData,
+            variants: combinedVariants,
+          },
+        },
+        {
+          onSuccess: () => {
+            setLocation("/seller/products");
+          },
+          onError: (error: Error) => {
+            toast({
+              title: "Failed to save draft",
+              description:
+                error.message || "Failed to save draft. Please try again.",
+              variant: "destructive",
+            });
+            setIsSavingDraft(false);
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Error in save draft:", error);
+      toast({
+        title: "Error",
+        description: "There was an error saving the draft. Please try again.",
+        variant: "destructive",
+      });
+      setIsSavingDraft(false);
+    }
   };
 
   // Add this function near other image handling functions
@@ -1244,6 +1302,43 @@ export default function AddProductPage() {
     }
   };
 
+  // Add a helper function for processing variant images
+  const processVariantImages = async (images: string[]) => {
+    const processedImages: string[] = [];
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      for (let i = 0; i < images.length; i++) {
+        const image = images[i];
+        setUploadProgress((i / images.length) * 100);
+
+        // If it's already an AWS URL, keep it
+        if (image.startsWith("https://lelekart.s3.amazonaws.com/")) {
+          processedImages.push(image);
+          continue;
+        }
+
+        // If it's a URL, process it
+        if (image.startsWith("http://") || image.startsWith("https://")) {
+          const awsUrl = await processImageUrl(image);
+          processedImages.push(awsUrl);
+        } else {
+          // If it's a base64 or other format, handle accordingly
+          // You might need to implement additional processing here
+          processedImages.push(image);
+        }
+      }
+      return processedImages;
+    } catch (error) {
+      console.error("Error processing variant images:", error);
+      throw error;
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
   return (
     <SellerDashboardLayout>
       <div className="p-6">
@@ -1258,7 +1353,7 @@ export default function AddProductPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate("/seller/products")}
+              onClick={() => setLocation("/seller/products")}
             >
               Cancel
             </Button>
@@ -2425,24 +2520,70 @@ export default function AddProductPage() {
                       </div>
 
                       <VariantMatrixGenerator
-                        onSaveVariants={(newVariants) => {
-                          console.log("Generated variants:", newVariants);
+                        onSaveVariants={async (generatedVariants) => {
+                          try {
+                            setIsUploading(true);
+                            setUploadProgress(0);
 
-                          // Create draft variants for each generated variant
-                          const drafts = newVariants.map((variant, index) => ({
-                            ...variant,
-                            id: -(Date.now() + index), // Negative ID to indicate it's a draft
-                          }));
+                            // Process all variants and their images
+                            const processedVariants = await Promise.all(
+                              generatedVariants.map(async (variant) => {
+                                // Process images for each variant
+                                const processedImages =
+                                  await processVariantImages(
+                                    variant.images || []
+                                  );
 
-                          // Add these to our draft variants
-                          setDraftVariants((prev) => [...prev, ...drafts]);
+                                return {
+                                  ...variant,
+                                  id:
+                                    variant.id ||
+                                    -(
+                                      Date.now() +
+                                      Math.floor(Math.random() * 1000)
+                                    ),
+                                  productId: product?.id,
+                                  sku:
+                                    variant.sku ||
+                                    `${form.getValues("name").substring(0, 5)}-${variant.color}-${variant.size}`.replace(
+                                      /\s+/g,
+                                      ""
+                                    ),
+                                  color: variant.color || "",
+                                  size: variant.size || "",
+                                  price: Number(variant.price) || 0,
+                                  mrp: Number(variant.mrp) || 0,
+                                  stock: Number(variant.stock) || 0,
+                                  images: processedImages,
+                                };
+                              })
+                            );
 
-                          // Show success toast
-                          toast({
-                            title: `${newVariants.length} variants generated`,
-                            description:
-                              "The variants have been added to your product. Save the product to apply changes.",
-                          });
+                            // Add processed variants to draft variants
+                            setDraftVariants((prevDrafts) => [
+                              ...prevDrafts,
+                              ...processedVariants,
+                            ]);
+
+                            toast({
+                              title: "Variants Generated",
+                              description: `${processedVariants.length} variants have been generated. Save the product to make them permanent.`,
+                            });
+                          } catch (error) {
+                            console.error(
+                              "Error processing matrix variants:",
+                              error
+                            );
+                            toast({
+                              title: "Error generating variants",
+                              description:
+                                "Failed to process variant images. Please try again.",
+                              variant: "destructive",
+                            });
+                          } finally {
+                            setIsUploading(false);
+                            setUploadProgress(0);
+                          }
                         }}
                         existingVariants={[...variants, ...draftVariants]}
                         productName={form.getValues("name")}
