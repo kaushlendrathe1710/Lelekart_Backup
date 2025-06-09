@@ -6,7 +6,7 @@ import { ShoppingCart } from "lucide-react";
 import { CartContext } from "@/context/cart-context"; // Import context directly
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useContext } from "react";
+import { useContext, memo } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { WishlistButton } from "./wishlist-button";
 import { ProductImage } from "./product-image";
@@ -29,9 +29,14 @@ interface ExtendedProduct extends Product {
 interface ProductCardProps {
   product: ExtendedProduct;
   featured?: boolean;
+  priority?: boolean; // For above-the-fold images
 }
 
-export function ProductCard({ product, featured = false }: ProductCardProps) {
+export const ProductCard = memo(function ProductCard({
+  product,
+  featured = false,
+  priority = false,
+}: ProductCardProps) {
   const cartContext = useContext(CartContext); // Use context directly with optional chaining
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -129,6 +134,9 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
     }
   };
 
+  // Determine if this should be a priority image (featured products or first few products)
+  const shouldPrioritize = priority || featured;
+
   // Use the same dimensions and styling for all product cards regardless of featured status
   return (
     <div className="relative">
@@ -139,8 +147,13 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
       <Link href={`/product/${product.id}`} className="block">
         <Card className="product-card h-full flex flex-col items-center p-3 transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1">
           <CardContent className="p-0 w-full flex flex-col items-center h-full">
-            <div className="w-full flex-shrink-0 h-40 flex items-center justify-center mb-3 bg-slate-50 rounded-md">
-              <ProductImage product={product} className="rounded-sm" />
+            <div className="w-full flex-shrink-0 h-40 flex items-center justify-center mb-3 bg-slate-50 rounded-md overflow-hidden">
+              <ProductImage
+                product={product}
+                className="rounded-sm"
+                priority={shouldPrioritize}
+                sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 20vw"
+              />
             </div>
 
             <div className="flex flex-col flex-grow w-full">
@@ -175,4 +188,4 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
       </Link>
     </div>
   );
-}
+});

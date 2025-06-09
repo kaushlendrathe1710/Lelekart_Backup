@@ -30,11 +30,13 @@ const FASHION_IMAGES = [
 interface FashionProductCardFixedProps {
   product: Product;
   className?: string;
+  priority?: boolean; // For above-the-fold images
 }
 
 export function FashionProductCardFixed({
   product,
   className,
+  priority = false,
 }: FashionProductCardFixedProps) {
   const cartContext = useContext(CartContext);
   const queryClient = useQueryClient();

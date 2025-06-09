@@ -17,6 +17,11 @@ import {
   useCategoryProducts,
 } from "@/hooks/use-infinite-products";
 import { usePerformanceMonitor } from "@/hooks/use-performance-monitor";
+import {
+  preloadProductImages,
+  preloadCategoryImages,
+} from "@/lib/image-preloader";
+import { PerformanceMonitor } from "@/components/ui/performance-monitor";
 
 // Memoize categories to prevent unnecessary re-renders
 const allCategories = [
@@ -121,9 +126,7 @@ export default function HomePage() {
       queryFn: async () => {
         startTimer("api:deal-of-the-day");
         try {
-          const res = await fetch(
-            "/api/deal-of-the-day?approved=true&status=approved"
-          );
+          const res = await fetch("/api/deal-of-the-day");
           if (!res.ok) throw new Error("Failed to fetch deal of the day");
           const data = await res.json();
           endTimer("api:deal-of-the-day", { success: true });
@@ -133,10 +136,11 @@ export default function HomePage() {
           throw error;
         }
       },
-      staleTime: 10 * 60 * 1000, // 10 minutes cache
+      staleTime: 5 * 60 * 1000, // 5 minutes cache
+      refetchOnWindowFocus: false,
     });
 
-  // Use infinite scroll for main products when no specific category
+  // Use infinite scroll for main products
   const {
     products: infiniteProducts,
     pagination: infinitePagination,
@@ -150,60 +154,57 @@ export default function HomePage() {
     enabled: !category, // Only use infinite scroll for main page
   });
 
-  // Use traditional pagination for category-specific pages
-  const { data: productsData, isLoading: isLoadingProducts } =
-    useQuery<ProductData>({
-      queryKey: ["/api/products", { currentPage, itemsPerPage, category }],
-      queryFn: async () => {
-        if (!category)
-          return {
-            products: [],
-            pagination: { currentPage: 1, totalPages: 1, total: 0 },
-          };
+  // Use traditional pagination for category-specific products
+  const { data: categoryData, isLoading: isLoadingCategory } =
+    useCategoryProducts(category || "", itemsPerPage);
 
-        startTimer(`api:products-${category}`);
-        try {
-          const cacheBuster = new Date().getTime();
-          const url = `/api/products?category=${category}&page=${currentPage}&limit=${itemsPerPage}&approved=true&status=approved&_=${cacheBuster}`;
-          const res = await fetch(url, {
-            headers: {
-              "Cache-Control": "no-cache, no-store, must-revalidate",
-              Pragma: "no-cache",
-              Expires: "0",
-            },
-          });
-          if (!res.ok)
-            throw new Error(`Failed to fetch products for ${category}`);
-          const data = await res.json();
-          endTimer(`api:products-${category}`, {
-            count: data.products?.length || 0,
-          });
-          recordProductsLoaded(data.products?.length || 0);
-          return data;
-        } catch (error) {
-          endTimer(`api:products-${category}`, { error });
-          throw error;
-        }
-      },
-      enabled: !!category,
-      staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-      refetchOnMount: false,
-      refetchOnWindowFocus: false,
-    });
+  // Extract products and pagination from the appropriate data source
+  const { products, pagination } = useMemo(() => {
+    if (category) {
+      return {
+        products: categoryData?.products || [],
+        pagination: categoryData?.pagination || {
+          currentPage: 1,
+          totalPages: 1,
+          total: 0,
+        },
+      };
+    } else {
+      return {
+        products: infiniteProducts,
+        pagination: infinitePagination,
+      };
+    }
+  }, [category, categoryData, infiniteProducts, infinitePagination]);
 
-  // Determine which products to use
-  const products = category ? productsData?.products || [] : infiniteProducts;
-  const pagination = category
-    ? productsData?.pagination || { currentPage: 1, totalPages: 1, total: 0 }
-    : infinitePagination;
-  const isLoading = category ? isLoadingProducts : isLoadingInfinite;
+  const isLoading = category ? isLoadingCategory : isLoadingInfinite;
 
-  // Memoize featured products (first 5 products)
+  // Get featured products (first 5 products for priority loading)
   const featuredProducts = useMemo(() => {
     return products.slice(0, 5);
   }, [products]);
 
-  // Memoize product filtering functions
+  // Preload critical images when products change
+  useEffect(() => {
+    if (featuredProducts.length > 0) {
+      preloadProductImages(featuredProducts, 5);
+    }
+  }, [featuredProducts]);
+
+  // Preload category images
+  useEffect(() => {
+    if (category) {
+      preloadCategoryImages(category);
+    }
+  }, [category]);
+
+  // Record products loaded for performance monitoring
+  useEffect(() => {
+    if (products.length > 0) {
+      recordProductsLoaded(products.length);
+    }
+  }, [products, recordProductsLoaded]);
+
   const getProductsByCategory = useMemo(() => {
     return (categoryName: string) => {
       return products
@@ -275,7 +276,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Featured Deals - Lazy load */}
+      {/* Featured Deals - Priority loading for first 5 products */}
       <LazySection
         fallback={<ProductsLoading />}
         threshold={0.2}
@@ -288,11 +289,12 @@ export default function HomePage() {
               <ProductsLoading />
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                {featuredProducts.map((product) => (
+                {featuredProducts.map((product, index) => (
                   <ProductCard
                     key={product.id}
                     product={product}
                     featured={true}
+                    priority={index < 3} // Priority loading for first 3 products
                   />
                 ))}
               </div>
@@ -349,8 +351,12 @@ export default function HomePage() {
                   onLoadMore={loadMore}
                 >
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-                    {infiniteProducts.map((product) => (
-                      <ProductCard key={product.id} product={product} />
+                    {infiniteProducts.map((product, index) => (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        priority={index < 6} // Priority loading for first 6 products
+                      />
                     ))}
                   </div>
                 </InfiniteScroll>
@@ -393,11 +399,19 @@ export default function HomePage() {
           </h2>
           <div className="bg-white p-4 rounded shadow-sm">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
-              {products.map((product) =>
+              {products.map((product, index) =>
                 category?.toLowerCase() === "fashion" ? (
-                  <FashionProductCardFixed key={product.id} product={product} />
+                  <FashionProductCardFixed
+                    key={product.id}
+                    product={product}
+                    priority={index < 6} // Priority loading for first 6 fashion products
+                  />
                 ) : (
-                  <ProductCard key={product.id} product={product} />
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    priority={index < 6} // Priority loading for first 6 products
+                  />
                 )
               )}
             </div>
@@ -432,6 +446,7 @@ export default function HomePage() {
         </div>
       )}
 
+      {/* No products found message */}
       {category && products.length === 0 && !isLoading && (
         <div className="container mx-auto px-4 py-6 text-center">
           <div className="bg-white p-8 rounded shadow-sm">
@@ -487,15 +502,20 @@ function CategorySection({
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-            {products.map((product) =>
+            {products.map((product, productIndex) =>
               category === "Fashion" ? (
                 <FashionProductCardFixed
                   key={product.id}
                   product={product}
                   className="h-full"
+                  priority={productIndex < 3} // Priority loading for first 3 fashion products
                 />
               ) : (
-                <ProductCard key={product.id} product={product} />
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  priority={productIndex < 3} // Priority loading for first 3 products
+                />
               )
             )}
           </div>
