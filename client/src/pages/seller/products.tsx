@@ -122,8 +122,16 @@ export default function SellerProductsPage() {
   const user = authContext?.user || apiUser;
 
   // State for pagination and search
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(() => {
+    const stored = localStorage.getItem("sellerProductsItemsPerPage");
+    return stored ? parseInt(stored) : 10;
+  });
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Store items per page in localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem("sellerProductsItemsPerPage", itemsPerPage.toString());
+  }, [itemsPerPage]);
 
   // State for category and subcategory editing
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
@@ -292,7 +300,7 @@ export default function SellerProductsPage() {
           limit: number;
           search: string;
           includeDrafts: boolean;
-        }
+        },
       ];
 
       let url = `/api/seller/products?page=${params.page}&limit=${params.limit}&includeDrafts=true`;
