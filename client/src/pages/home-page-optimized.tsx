@@ -6,9 +6,7 @@ import { Product } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { HeroSection } from "@/components/ui/hero-section";
 import { Loader2 } from "lucide-react";
-import { Pagination } from "@/components/ui/pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from "@/hooks/use-auth";
 import { FashionProductCardFixed } from "@/components/ui/fashion-product-card-fixed";
 import { LazySection } from "@/components/ui/lazy-section";
 import { InfiniteScroll } from "@/components/ui/infinite-scroll";
@@ -16,7 +14,6 @@ import {
   useInfiniteProducts,
   useCategoryProducts,
 } from "@/hooks/use-infinite-products";
-import { usePerformanceMonitor } from "@/hooks/use-performance-monitor";
 
 // Memoize categories to prevent unnecessary re-renders
 const allCategories = [
@@ -29,15 +26,6 @@ const allCategories = [
   "Toys",
   "Grocery",
 ] as const;
-
-interface ProductData {
-  products: Product[];
-  pagination: {
-    currentPage: number;
-    totalPages: number;
-    total: number;
-  };
-}
 
 interface SliderImage {
   url: string;
@@ -60,16 +48,9 @@ interface DealOfTheDay {
   productId?: number;
 }
 
-export default function HomePage() {
+export default function HomePageOptimized() {
   const [location] = useLocation();
   const [category, setCategory] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 36;
-
-  // Performance monitoring
-  const { startTimer, endTimer, recordProductsLoaded } = usePerformanceMonitor({
-    enableLogging: process.env.NODE_ENV === "development",
-  });
 
   // Memoize URL params parsing
   const searchParams = useMemo(() => {
@@ -81,34 +62,17 @@ export default function HomePage() {
     setCategory(categoryParam);
   }, [searchParams]);
 
-  useEffect(() => {
-    const pageParam = searchParams.get("page");
-    if (pageParam) {
-      setCurrentPage(parseInt(pageParam));
-    } else {
-      setCurrentPage(1);
-    }
-  }, [searchParams]);
-
   // Optimized hero products fetching with longer cache
   const { data: heroProducts, isLoading: isLoadingHero } = useQuery<
     SliderImage[]
   >({
     queryKey: ["/api/featured-hero-products"],
     queryFn: async () => {
-      startTimer("api:hero-products");
-      try {
-        const res = await fetch(
-          "/api/featured-hero-products?approved=true&status=approved"
-        );
-        if (!res.ok) throw new Error("Failed to fetch hero products");
-        const data = await res.json();
-        endTimer("api:hero-products", { count: data.length });
-        return data;
-      } catch (error) {
-        endTimer("api:hero-products", { error });
-        throw error;
-      }
+      const res = await fetch(
+        "/api/featured-hero-products?approved=true&status=approved"
+      );
+      if (!res.ok) throw new Error("Failed to fetch hero products");
+      return res.json();
     },
     staleTime: 15 * 60 * 1000, // 15 minutes cache
     refetchOnWindowFocus: false,
@@ -119,111 +83,33 @@ export default function HomePage() {
     useQuery<DealOfTheDay>({
       queryKey: ["/api/deal-of-the-day"],
       queryFn: async () => {
-        startTimer("api:deal-of-the-day");
-        try {
-          const res = await fetch(
-            "/api/deal-of-the-day?approved=true&status=approved"
-          );
-          if (!res.ok) throw new Error("Failed to fetch deal of the day");
-          const data = await res.json();
-          endTimer("api:deal-of-the-day", { success: true });
-          return data;
-        } catch (error) {
-          endTimer("api:deal-of-the-day", { error });
-          throw error;
-        }
+        const res = await fetch(
+          "/api/deal-of-the-day?approved=true&status=approved"
+        );
+        if (!res.ok) throw new Error("Failed to fetch deal of the day");
+        return res.json();
       },
       staleTime: 10 * 60 * 1000, // 10 minutes cache
     });
 
-  // Use infinite scroll for main products when no specific category
+  // Use infinite scroll for main products
   const {
-    products: infiniteProducts,
-    pagination: infinitePagination,
+    products,
+    pagination,
     hasMore,
-    isLoading: isLoadingInfinite,
+    isLoading: isLoadingProducts,
     isFetchingNextPage,
     loadMore,
   } = useInfiniteProducts({
-    category: category || undefined,
-    pageSize: 24,
-    enabled: !category, // Only use infinite scroll for main page
+    category,
+    pageSize: 24, // Load more products per page
+    enabled: true,
   });
-
-  // Use traditional pagination for category-specific pages
-  const { data: productsData, isLoading: isLoadingProducts } =
-    useQuery<ProductData>({
-      queryKey: ["/api/products", { currentPage, itemsPerPage, category }],
-      queryFn: async () => {
-        if (!category)
-          return {
-            products: [],
-            pagination: { currentPage: 1, totalPages: 1, total: 0 },
-          };
-
-        startTimer(`api:products-${category}`);
-        try {
-          const cacheBuster = new Date().getTime();
-          const url = `/api/products?category=${category}&page=${currentPage}&limit=${itemsPerPage}&approved=true&status=approved&_=${cacheBuster}`;
-          const res = await fetch(url, {
-            headers: {
-              "Cache-Control": "no-cache, no-store, must-revalidate",
-              Pragma: "no-cache",
-              Expires: "0",
-            },
-          });
-          if (!res.ok)
-            throw new Error(`Failed to fetch products for ${category}`);
-          const data = await res.json();
-          endTimer(`api:products-${category}`, {
-            count: data.products?.length || 0,
-          });
-          recordProductsLoaded(data.products?.length || 0);
-          return data;
-        } catch (error) {
-          endTimer(`api:products-${category}`, { error });
-          throw error;
-        }
-      },
-      enabled: !!category,
-      staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-      refetchOnMount: false,
-      refetchOnWindowFocus: false,
-    });
-
-  // Determine which products to use
-  const products = category ? productsData?.products || [] : infiniteProducts;
-  const pagination = category
-    ? productsData?.pagination || { currentPage: 1, totalPages: 1, total: 0 }
-    : infinitePagination;
-  const isLoading = category ? isLoadingProducts : isLoadingInfinite;
 
   // Memoize featured products (first 5 products)
   const featuredProducts = useMemo(() => {
     return products.slice(0, 5);
   }, [products]);
-
-  // Memoize product filtering functions
-  const getProductsByCategory = useMemo(() => {
-    return (categoryName: string) => {
-      return products
-        .filter(
-          (p: Product) =>
-            p.category?.toLowerCase() === categoryName.toLowerCase()
-        )
-        .slice(0, 6);
-    };
-  }, [products]);
-
-  const categorizedProducts = useMemo(() => {
-    return allCategories
-      .map((cat) => ({
-        name: cat,
-        title: `Top ${cat}`,
-        products: getProductsByCategory(cat),
-      }))
-      .filter((catGroup) => catGroup.products.length > 0);
-  }, [getProductsByCategory]);
 
   // Memoize loading components
   const ProductsLoading = useMemo(
@@ -284,7 +170,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4 py-6">
           <h2 className="text-2xl font-medium mb-4">Featured Deals</h2>
           <div className="bg-white p-4 rounded shadow-sm">
-            {isLoading ? (
+            {isLoadingProducts ? (
               <ProductsLoading />
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -314,7 +200,7 @@ export default function HomePage() {
           </LazySection>
         ))}
 
-      {/* All Products Section - Lazy load with infinite scroll for main page */}
+      {/* All Products Section - Lazy load with infinite scroll */}
       {!category && (
         <LazySection
           fallback={<CategoryProductsLoading />}
@@ -349,16 +235,15 @@ export default function HomePage() {
                   onLoadMore={loadMore}
                 >
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-                    {infiniteProducts.map((product) => (
+                    {products.map((product) => (
                       <ProductCard key={product.id} product={product} />
                     ))}
                   </div>
                 </InfiniteScroll>
 
-                {!hasMore && infiniteProducts.length > 0 && (
+                {!hasMore && products.length > 0 && (
                   <div className="text-sm text-gray-500 text-center mt-4">
-                    Showing {infiniteProducts.length} of{" "}
-                    {infinitePagination.total} products
+                    Showing {products.length} of {pagination.total} products
                   </div>
                 )}
               </TabsContent>
@@ -385,54 +270,49 @@ export default function HomePage() {
         </LazySection>
       )}
 
-      {/* Category-specific products with traditional pagination */}
-      {category && products.length > 0 && (
-        <div className="container mx-auto px-4 py-6">
-          <h2 className="text-2xl font-medium mb-4 capitalize">
-            {category} Products
-          </h2>
-          <div className="bg-white p-4 rounded shadow-sm">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
-              {products.map((product) =>
-                category?.toLowerCase() === "fashion" ? (
-                  <FashionProductCardFixed key={product.id} product={product} />
-                ) : (
-                  <ProductCard key={product.id} product={product} />
-                )
+      {/* Category-specific products with infinite scroll */}
+      {category && (
+        <LazySection
+          fallback={<CategoryProductsLoading />}
+          threshold={0.1}
+          rootMargin="100px"
+        >
+          <div className="container mx-auto px-4 py-6">
+            <h2 className="text-2xl font-medium mb-4 capitalize">
+              {category} Products
+            </h2>
+            <div className="bg-white p-4 rounded shadow-sm">
+              <InfiniteScroll
+                hasMore={hasMore}
+                isLoading={isFetchingNextPage}
+                onLoadMore={loadMore}
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
+                  {products.map((product) =>
+                    category?.toLowerCase() === "fashion" ? (
+                      <FashionProductCardFixed
+                        key={product.id}
+                        product={product}
+                      />
+                    ) : (
+                      <ProductCard key={product.id} product={product} />
+                    )
+                  )}
+                </div>
+              </InfiniteScroll>
+
+              {!hasMore && products.length > 0 && (
+                <div className="text-sm text-gray-500 text-center mt-4">
+                  Showing {products.length} of {pagination.total} products
+                </div>
               )}
             </div>
-
-            {pagination && pagination.totalPages > 1 && (
-              <div className="mt-6 flex justify-center">
-                <Pagination
-                  currentPage={pagination.currentPage}
-                  totalPages={pagination.totalPages}
-                  onPageChange={(page) => {
-                    const params = new URLSearchParams(
-                      location.split("?")[1] || ""
-                    );
-                    params.set("page", page.toString());
-                    const newUrl = `/?category=${category}&${params.toString()}`;
-                    window.location.href = newUrl;
-                    window.scrollTo(0, 0);
-                  }}
-                />
-              </div>
-            )}
-
-            <div className="text-sm text-gray-500 text-center mt-2">
-              Showing {(pagination.currentPage - 1) * itemsPerPage + 1} to{" "}
-              {Math.min(
-                pagination.currentPage * itemsPerPage,
-                pagination.total
-              )}{" "}
-              of {pagination.total} products
-            </div>
           </div>
-        </div>
+        </LazySection>
       )}
 
-      {category && products.length === 0 && !isLoading && (
+      {/* No products found */}
+      {category && products.length === 0 && !isLoadingProducts && (
         <div className="container mx-auto px-4 py-6 text-center">
           <div className="bg-white p-8 rounded shadow-sm">
             <h2 className="text-2xl font-medium mb-2">No Products Found</h2>
