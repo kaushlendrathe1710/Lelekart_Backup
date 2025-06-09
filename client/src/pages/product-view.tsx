@@ -14,6 +14,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { ProductImageGallery } from "@/components/ui/product-image-gallery";
 import { VariantSelector } from "@/components/product/variant-selector";
 import { ProductVariant } from "@/components/product/multi-variant-table";
+import { RichTextContent } from "@/components/ui/rich-text-content";
 
 /**
  * This is a standalone product view page that doesn't use React Router parameters
@@ -426,7 +427,10 @@ export default function ProductViewPage() {
 
                 <div className="mt-6">
                   <h3 className="font-medium text-gray-900">Description:</h3>
-                  <p className="mt-1 text-gray-600">{product.description}</p>
+                  <RichTextContent
+                    content={product.description}
+                    className="mt-1 text-gray-600"
+                  />
                 </div>
 
                 <div className="mt-6">
@@ -439,10 +443,10 @@ export default function ProductViewPage() {
                           : "In stock"
                         : "Out of stock"
                       : product.stock > 0
-                      ? product.stock <= 5
-                        ? "Only a few left in stock!"
-                        : "In stock"
-                      : "Out of stock"}
+                        ? product.stock <= 5
+                          ? "Only a few left in stock!"
+                          : "In stock"
+                        : "Out of stock"}
                   </p>
                 </div>
 

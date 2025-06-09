@@ -62,6 +62,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { RichTextContent } from "@/components/ui/rich-text-content";
 
 // Define interface for paginated API response
 interface PaginatedResponse {
@@ -83,21 +84,21 @@ function ProductApprovalContent() {
   const [search, setSearch] = useState("");
   const [searchValue, setSearchValue] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
-  
+
   // Bulk approval state
   const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
-  
+
   // Debounce search to prevent too many API calls
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearch(searchValue);
     }, 500); // 500ms debounce
-    
+
     return () => clearTimeout(timer);
   }, [searchValue]);
-  
+
   // Reset to page 1 when search or filter changes
   useEffect(() => {
     setPage(1);
@@ -113,25 +114,28 @@ function ProductApprovalContent() {
     isError,
     refetch,
   } = useQuery<PaginatedResponse>({
-    queryKey: ["/api/products/pending", { page, limit: pageSize, search, category: categoryFilter }],
+    queryKey: [
+      "/api/products/pending",
+      { page, limit: pageSize, search, category: categoryFilter },
+    ],
     queryFn: async () => {
       let url = `/api/products/pending?page=${page}&limit=${pageSize}`;
-      
+
       // Add search parameter if provided
       if (search) {
         url += `&search=${encodeURIComponent(search)}`;
       }
-      
+
       // Add category filter if provided
       if (categoryFilter) {
         url += `&category=${encodeURIComponent(categoryFilter)}`;
       }
-      
+
       const res = await apiRequest("GET", url);
       return res.json();
     },
   });
-  
+
   // Extract products array and pagination info from response
   const products = pendingProductsData?.products || [];
   const pagination = pendingProductsData?.pagination;
@@ -158,7 +162,7 @@ function ProductApprovalContent() {
       });
     },
   });
-  
+
   // Reject product mutation
   const rejectMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -181,33 +185,35 @@ function ProductApprovalContent() {
       });
     },
   });
-  
+
   // Bulk approve products mutation
   const bulkApproveMutation = useMutation({
     mutationFn: async (productIds: number[]) => {
       // Ensure all IDs are valid numbers before sending
-      const validIds = productIds.map(id => Number(id)).filter(id => 
-        !isNaN(id) && Number.isInteger(id) && id > 0
-      );
-      
+      const validIds = productIds
+        .map((id) => Number(id))
+        .filter((id) => !isNaN(id) && Number.isInteger(id) && id > 0);
+
       console.log("Sending validated product IDs for bulk approval:", validIds);
-      
+
       if (validIds.length === 0) {
         throw new Error("No valid product IDs to process");
       }
-      
-      const res = await apiRequest("PUT", "/api/products/bulk/approve", { productIds: validIds });
+
+      const res = await apiRequest("PUT", "/api/products/bulk/approve", {
+        productIds: validIds,
+      });
       return res.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/products/pending"] });
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
-      
+
       // Reset selection after successful operation
       setSelectedProducts([]);
       setSelectAll(false);
       setIsBulkProcessing(false);
-      
+
       toast({
         title: "Bulk approval successful",
         description: `${data.summary.approved} products approved, ${data.summary.failed} failed.`,
@@ -222,33 +228,38 @@ function ProductApprovalContent() {
       });
     },
   });
-  
+
   // Bulk reject products mutation
   const bulkRejectMutation = useMutation({
     mutationFn: async (productIds: number[]) => {
       // Ensure all IDs are valid numbers before sending
-      const validIds = productIds.map(id => Number(id)).filter(id => 
-        !isNaN(id) && Number.isInteger(id) && id > 0
+      const validIds = productIds
+        .map((id) => Number(id))
+        .filter((id) => !isNaN(id) && Number.isInteger(id) && id > 0);
+
+      console.log(
+        "Sending validated product IDs for bulk rejection:",
+        validIds
       );
-      
-      console.log("Sending validated product IDs for bulk rejection:", validIds);
-      
+
       if (validIds.length === 0) {
         throw new Error("No valid product IDs to process");
       }
-      
-      const res = await apiRequest("PUT", "/api/products/bulk/reject", { productIds: validIds });
+
+      const res = await apiRequest("PUT", "/api/products/bulk/reject", {
+        productIds: validIds,
+      });
       return res.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/products/pending"] });
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
-      
+
       // Reset selection after successful operation
       setSelectedProducts([]);
       setSelectAll(false);
       setIsBulkProcessing(false);
-      
+
       toast({
         title: "Bulk rejection successful",
         description: `${data.summary.rejected} products rejected, ${data.summary.failed} failed.`,
@@ -268,12 +279,12 @@ function ProductApprovalContent() {
   const handleApproveProduct = async (product: Product) => {
     await approveMutation.mutateAsync(product.id);
   };
-  
+
   // Handle product rejection
   const handleRejectProduct = async (product: Product) => {
     await rejectMutation.mutateAsync(product.id);
   };
-  
+
   // Handle bulk actions
   const handleBulkApprove = async () => {
     if (selectedProducts.length === 0) {
@@ -284,18 +295,18 @@ function ProductApprovalContent() {
       });
       return;
     }
-    
+
     // Add debug logging to see what's being sent
     console.log("Sending product IDs for bulk approval:", selectedProducts);
-    
+
     // Filter out any invalid IDs before sending
-    const validProductIds = selectedProducts.filter(id => {
+    const validProductIds = selectedProducts.filter((id) => {
       const numId = Number(id);
       return !isNaN(numId) && Number.isInteger(numId) && numId > 0;
     });
-    
+
     console.log("Filtered valid product IDs:", validProductIds);
-    
+
     if (validProductIds.length === 0) {
       toast({
         title: "No valid products selected",
@@ -304,11 +315,11 @@ function ProductApprovalContent() {
       });
       return;
     }
-    
+
     setIsBulkProcessing(true);
     await bulkApproveMutation.mutateAsync(validProductIds);
   };
-  
+
   const handleBulkReject = async () => {
     if (selectedProducts.length === 0) {
       toast({
@@ -318,18 +329,18 @@ function ProductApprovalContent() {
       });
       return;
     }
-    
+
     // Add debug logging to see what's being sent
     console.log("Sending product IDs for bulk rejection:", selectedProducts);
-    
+
     // Filter out any invalid IDs before sending
-    const validProductIds = selectedProducts.filter(id => {
+    const validProductIds = selectedProducts.filter((id) => {
       const numId = Number(id);
       return !isNaN(numId) && Number.isInteger(numId) && numId > 0;
     });
-    
+
     console.log("Filtered valid product IDs:", validProductIds);
-    
+
     if (validProductIds.length === 0) {
       toast({
         title: "No valid products selected",
@@ -338,39 +349,52 @@ function ProductApprovalContent() {
       });
       return;
     }
-    
+
     setIsBulkProcessing(true);
     await bulkRejectMutation.mutateAsync(validProductIds);
   };
-  
+
   // Handle checkbox selection
   const handleSelectProduct = (productId: number, isChecked: boolean) => {
     // Validate product ID
-    if (typeof productId !== 'number' || isNaN(productId) || !Number.isInteger(productId) || productId <= 0) {
-      console.error('Invalid product ID:', productId);
+    if (
+      typeof productId !== "number" ||
+      isNaN(productId) ||
+      !Number.isInteger(productId) ||
+      productId <= 0
+    ) {
+      console.error("Invalid product ID:", productId);
       return;
     }
-    
-    console.log('Handling product selection:', productId, isChecked);
-    
+
+    console.log("Handling product selection:", productId, isChecked);
+
     if (isChecked) {
-      setSelectedProducts(prev => [...prev, productId]);
+      setSelectedProducts((prev) => [...prev, productId]);
     } else {
-      setSelectedProducts(prev => prev.filter(id => id !== productId));
+      setSelectedProducts((prev) => prev.filter((id) => id !== productId));
     }
   };
-  
+
   // Handle select all checkbox
   const handleSelectAll = (isChecked: boolean) => {
     setSelectAll(isChecked);
     if (isChecked) {
       // Get all product IDs from the current page and ensure they're valid numbers
-      const allProductIds = pendingProducts?.map(product => {
-        const id = product.id;
-        // Ensure ID is a valid number
-        return typeof id === 'number' && !isNaN(id) && Number.isInteger(id) && id > 0 ? id : null;
-      }).filter(id => id !== null) as number[] || [];
-      
+      const allProductIds =
+        (pendingProducts
+          ?.map((product) => {
+            const id = product.id;
+            // Ensure ID is a valid number
+            return typeof id === "number" &&
+              !isNaN(id) &&
+              Number.isInteger(id) &&
+              id > 0
+              ? id
+              : null;
+          })
+          .filter((id) => id !== null) as number[]) || [];
+
       console.log("Selected all valid product IDs:", allProductIds);
       setSelectedProducts(allProductIds);
     } else {
@@ -380,22 +404,21 @@ function ProductApprovalContent() {
 
   // Client-side filtering for search and category
   // Note: The backend already filters for pending products only (not approved and not rejected)
-  const pendingProducts = products
-    ?.filter((product) => {
-      // Text search
-      const matchesSearch = !search
-        ? true
-        : product.name.toLowerCase().includes(search.toLowerCase()) ||
-          product.description.toLowerCase().includes(search.toLowerCase());
+  const pendingProducts = products?.filter((product) => {
+    // Text search
+    const matchesSearch = !search
+      ? true
+      : product.name.toLowerCase().includes(search.toLowerCase()) ||
+        product.description.toLowerCase().includes(search.toLowerCase());
 
-      // Category filter
-      const matchesCategory = !categoryFilter
-        ? true
-        : product.category === categoryFilter;
+    // Category filter
+    const matchesCategory = !categoryFilter
+      ? true
+      : product.category === categoryFilter;
 
-      return matchesSearch && matchesCategory;
-    }); 
-    // Note: Sorting is handled by the backend with ORDER BY
+    return matchesSearch && matchesCategory;
+  });
+  // Note: Sorting is handled by the backend with ORDER BY
 
   // Extract unique categories for filtering
   const categories = [
@@ -415,7 +438,9 @@ function ProductApprovalContent() {
         <Card key={stat} className="bg-white">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium capitalize">
-              {stat === "total pending" ? "Pending Approval" : `${stat} Products`}
+              {stat === "total pending"
+                ? "Pending Approval"
+                : `${stat} Products`}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -521,7 +546,9 @@ function ProductApprovalContent() {
                   <div className="p-2">
                     <div className="flex flex-col space-y-2 max-h-48 overflow-y-auto">
                       <Button
-                        variant={categoryFilter === null ? "secondary" : "outline"}
+                        variant={
+                          categoryFilter === null ? "secondary" : "outline"
+                        }
                         size="sm"
                         onClick={() => setCategoryFilter(null)}
                         className="justify-start"
@@ -532,7 +559,9 @@ function ProductApprovalContent() {
                         <Button
                           key={category}
                           variant={
-                            categoryFilter === category ? "secondary" : "outline"
+                            categoryFilter === category
+                              ? "secondary"
+                              : "outline"
                           }
                           size="sm"
                           onClick={() => setCategoryFilter(category)}
@@ -567,11 +596,12 @@ function ProductApprovalContent() {
           {pendingProducts?.length > 0 && !isLoading && (
             <div className="flex flex-wrap gap-2 items-center mb-4">
               <span className="text-sm text-gray-500">
-                {selectedProducts.length} of {pendingProducts.length} products selected
+                {selectedProducts.length} of {pendingProducts.length} products
+                selected
               </span>
-              
+
               <div className="flex-1"></div>
-              
+
               <Button
                 variant="outline"
                 size="sm"
@@ -580,7 +610,7 @@ function ProductApprovalContent() {
               >
                 {selectAll ? "Deselect All" : "Select All"}
               </Button>
-              
+
               <Button
                 variant="outline"
                 size="sm"
@@ -595,7 +625,7 @@ function ProductApprovalContent() {
                 )}
                 Approve Selected
               </Button>
-              
+
               <Button
                 variant="outline"
                 size="sm"
@@ -612,7 +642,7 @@ function ProductApprovalContent() {
               </Button>
             </div>
           )}
-        
+
           {isLoading ? (
             <div className="rounded-md border">
               <Table>
@@ -663,7 +693,9 @@ function ProductApprovalContent() {
                     <TableHead className="w-[50px]">
                       <Checkbox
                         checked={selectAll}
-                        onCheckedChange={(checked) => handleSelectAll(checked === true)}
+                        onCheckedChange={(checked) =>
+                          handleSelectAll(checked === true)
+                        }
                         aria-label="Select all products"
                       />
                     </TableHead>
@@ -680,7 +712,9 @@ function ProductApprovalContent() {
                       <TableCell>
                         <Checkbox
                           checked={selectedProducts.includes(product.id)}
-                          onCheckedChange={(checked) => handleSelectProduct(product.id, checked === true)}
+                          onCheckedChange={(checked) =>
+                            handleSelectProduct(product.id, checked === true)
+                          }
                           aria-label={`Select product ${product.name}`}
                         />
                       </TableCell>
@@ -690,7 +724,7 @@ function ProductApprovalContent() {
                             {(() => {
                               // Determine which image source to use
                               let imageSrc = "";
-                              
+
                               try {
                                 // Check for image_url (snake_case) first - this is what's in our data
                                 if ((product as any).image_url) {
@@ -699,24 +733,38 @@ function ProductApprovalContent() {
                                 // Check for imageUrl (camelCase)
                                 else if (product.imageUrl) {
                                   imageSrc = product.imageUrl;
-                                } 
+                                }
                                 // Check for images array or string
                                 else if (product.images) {
                                   // Handle array of images
-                                  if (Array.isArray(product.images) && product.images.length > 0) {
+                                  if (
+                                    Array.isArray(product.images) &&
+                                    product.images.length > 0
+                                  ) {
                                     imageSrc = product.images[0];
-                                  } 
+                                  }
                                   // Handle string (single image URL)
-                                  else if (typeof product.images === 'string') {
+                                  else if (typeof product.images === "string") {
                                     // Check if it's a JSON string
-                                    if (product.images.startsWith('[') && product.images.includes(']')) {
+                                    if (
+                                      product.images.startsWith("[") &&
+                                      product.images.includes("]")
+                                    ) {
                                       try {
-                                        const parsedImages = JSON.parse(product.images);
-                                        if (Array.isArray(parsedImages) && parsedImages.length > 0) {
+                                        const parsedImages = JSON.parse(
+                                          product.images
+                                        );
+                                        if (
+                                          Array.isArray(parsedImages) &&
+                                          parsedImages.length > 0
+                                        ) {
                                           imageSrc = parsedImages[0];
                                         }
                                       } catch (e) {
-                                        console.error('Failed to parse image JSON:', e);
+                                        console.error(
+                                          "Failed to parse image JSON:",
+                                          e
+                                        );
                                       }
                                     } else {
                                       // It's a single URL
@@ -727,17 +775,21 @@ function ProductApprovalContent() {
                               } catch (err) {
                                 console.error("Error processing image:", err);
                               }
-                              
+
                               // Always use category-specific fallback as default
-                              const categoryImage = `../images/${(product.category || 'general').toLowerCase()}.svg`;
-                              const genericFallback = "https://placehold.co/100?text=No+Image";
-                              
+                              const categoryImage = `../images/${(product.category || "general").toLowerCase()}.svg`;
+                              const genericFallback =
+                                "https://placehold.co/100?text=No+Image";
+
                               // If this is a Lelekart image, use our proxy
-                              const useProxy = imageSrc && (imageSrc.includes('flixcart.com') || imageSrc.includes('lelekart.com'));
-                              const displaySrc = useProxy 
-                                ? `/api/image-proxy?url=${encodeURIComponent(imageSrc)}&category=${encodeURIComponent(product.category || 'general')}`
-                                : (imageSrc || categoryImage);
-                              
+                              const useProxy =
+                                imageSrc &&
+                                (imageSrc.includes("flixcart.com") ||
+                                  imageSrc.includes("lelekart.com"));
+                              const displaySrc = useProxy
+                                ? `/api/image-proxy?url=${encodeURIComponent(imageSrc)}&category=${encodeURIComponent(product.category || "general")}`
+                                : imageSrc || categoryImage;
+
                               return (
                                 <img
                                   key={`product-image-${product.id}`}
@@ -746,34 +798,47 @@ function ProductApprovalContent() {
                                   className="object-contain h-full w-full"
                                   loading="lazy"
                                   onError={(e) => {
-                                    console.error("Failed to load image:", displaySrc);
-                                    
+                                    console.error(
+                                      "Failed to load image:",
+                                      displaySrc
+                                    );
+
                                     // If using proxy failed, try direct URL
                                     if (useProxy && imageSrc) {
-                                      console.log("Proxy failed, trying direct URL:", imageSrc);
-                                      (e.target as HTMLImageElement).src = imageSrc;
+                                      console.log(
+                                        "Proxy failed, trying direct URL:",
+                                        imageSrc
+                                      );
+                                      (e.target as HTMLImageElement).src =
+                                        imageSrc;
                                       return;
                                     }
-                                    
+
                                     // Try category-specific fallback
-                                    (e.target as HTMLImageElement).src = categoryImage;
-                                    
+                                    (e.target as HTMLImageElement).src =
+                                      categoryImage;
+
                                     // Add a second error handler for the category fallback
-                                    (e.target as HTMLImageElement).onerror = () => {
-                                      (e.target as HTMLImageElement).src = genericFallback;
-                                      (e.target as HTMLImageElement).onerror = null; // Prevent infinite loop
-                                    };
+                                    (e.target as HTMLImageElement).onerror =
+                                      () => {
+                                        (e.target as HTMLImageElement).src =
+                                          genericFallback;
+                                        (e.target as HTMLImageElement).onerror =
+                                          null; // Prevent infinite loop
+                                      };
                                   }}
-                                  style={{ 
-                                    maxHeight: '48px',
-                                    background: '#f9f9f9'
+                                  style={{
+                                    maxHeight: "48px",
+                                    background: "#f9f9f9",
                                   }}
                                 />
                               );
                             })()}
                           </div>
-                          <div className="font-medium hover:text-primary cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap max-w-xs"
-                               onClick={() => setViewProduct(product)}>
+                          <div
+                            className="font-medium hover:text-primary cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap max-w-xs"
+                            onClick={() => setViewProduct(product)}
+                          >
                             {product.name}
                           </div>
                         </div>
@@ -782,9 +847,9 @@ function ProductApprovalContent() {
                       <TableCell>₹{Number(product.price).toFixed(2)}</TableCell>
                       <TableCell>
                         {/* Use seller name if available, or fallback to seller ID */}
-                        {(product as any).sellerName || 
-                         (product as any).seller_username || 
-                         `Seller ID: ${product.sellerId || 'Unknown'}`}
+                        {(product as any).sellerName ||
+                          (product as any).seller_username ||
+                          `Seller ID: ${product.sellerId || "Unknown"}`}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
@@ -796,8 +861,8 @@ function ProductApprovalContent() {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="icon"
                             className="text-green-600 border-green-600 hover:bg-green-50"
                             onClick={() => handleApproveProduct(product)}
@@ -805,8 +870,8 @@ function ProductApprovalContent() {
                           >
                             <Check className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="icon"
                             className="text-red-600 border-red-600 hover:bg-red-50"
                             onClick={() => handleRejectProduct(product)}
@@ -820,15 +885,15 @@ function ProductApprovalContent() {
                   ))}
                 </TableBody>
               </Table>
-              
+
               {/* Pagination Controls */}
               {pagination && (
                 <div className="px-4 py-4 sm:px-6 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
                   {/* Page Size Selector */}
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-500">Rows per page</span>
-                    <Select 
-                      value={String(pageSize)} 
+                    <Select
+                      value={String(pageSize)}
                       onValueChange={(value) => {
                         setPageSize(Number(value));
                         setPage(1); // Reset to first page when changing page size
@@ -844,12 +909,17 @@ function ProductApprovalContent() {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   {/* Page Status Information */}
                   <div className="text-sm text-gray-500">
-                    Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} products
+                    Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
+                    {Math.min(
+                      pagination.page * pagination.limit,
+                      pagination.total
+                    )}{" "}
+                    of {pagination.total} products
                   </div>
-                  
+
                   {/* Pagination Buttons */}
                   <div className="flex items-center gap-2">
                     <Button
@@ -876,8 +946,8 @@ function ProductApprovalContent() {
                       size="sm"
                       onClick={() => setPage(page + 1)}
                       disabled={
-                        page === pagination.totalPages || 
-                        pagination.totalPages === 0 || 
+                        page === pagination.totalPages ||
+                        pagination.totalPages === 0 ||
                         isLoading
                       }
                     >
@@ -888,8 +958,8 @@ function ProductApprovalContent() {
                       size="sm"
                       onClick={() => setPage(pagination.totalPages)}
                       disabled={
-                        page === pagination.totalPages || 
-                        pagination.totalPages === 0 || 
+                        page === pagination.totalPages ||
+                        pagination.totalPages === 0 ||
                         isLoading
                       }
                     >
@@ -912,7 +982,10 @@ function ProductApprovalContent() {
       </div>
 
       {/* Product View Dialog */}
-      <Dialog open={!!viewProduct} onOpenChange={(open) => !open && setViewProduct(null)}>
+      <Dialog
+        open={!!viewProduct}
+        onOpenChange={(open) => !open && setViewProduct(null)}
+      >
         {viewProduct && (
           <DialogContent className="max-w-3xl">
             <DialogHeader>
@@ -921,60 +994,80 @@ function ProductApprovalContent() {
                 Review the product information below
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
               {/* Product Images */}
               <div className="flex flex-col gap-4">
                 <div className="aspect-square bg-gray-100 rounded-md overflow-hidden relative">
-                  <ProductImageGallery 
-                    imageUrl={viewProduct.imageUrl || "/images/placeholder.svg"} 
+                  <ProductImageGallery
+                    imageUrl={viewProduct.imageUrl || "/images/placeholder.svg"}
                     additionalImages={
-                      typeof viewProduct.images === 'string' 
-                        ? viewProduct.images 
+                      typeof viewProduct.images === "string"
+                        ? viewProduct.images
                         : JSON.stringify(viewProduct.images)
-                    } 
+                    }
                   />
                 </div>
               </div>
-              
+
               {/* Product Details */}
               <div className="flex flex-col gap-4">
                 <div>
                   <h3 className="text-xl font-semibold">{viewProduct.name}</h3>
-                  <Badge variant="outline" className="mt-1">{viewProduct.category}</Badge>
+                  <Badge variant="outline" className="mt-1">
+                    {viewProduct.category}
+                  </Badge>
                 </div>
-                
-                <div className="text-lg font-semibold">₹{Number(viewProduct.price).toFixed(2)}</div>
-                
+
+                <div className="text-lg font-semibold">
+                  ₹{Number(viewProduct.price).toFixed(2)}
+                </div>
+
                 <div className="mt-1">
-                  <div className="text-sm font-medium text-gray-500">Description</div>
-                  <div className="mt-1">{viewProduct.description}</div>
+                  <div className="text-sm font-medium text-gray-500">
+                    Description
+                  </div>
+                  <RichTextContent
+                    content={viewProduct.description}
+                    className="mt-1"
+                  />
                 </div>
-                
+
                 {viewProduct.specifications && (
                   <div className="mt-1">
-                    <div className="text-sm font-medium text-gray-500">Specifications</div>
-                    <div className="mt-1 text-sm">{viewProduct.specifications}</div>
+                    <div className="text-sm font-medium text-gray-500">
+                      Specifications
+                    </div>
+                    <RichTextContent
+                      content={viewProduct.specifications}
+                      className="mt-1 text-sm"
+                    />
                   </div>
                 )}
-                
+
                 <div className="mt-1">
-                  <div className="text-sm font-medium text-gray-500">Inventory</div>
-                  <div className="mt-1 text-sm">Stock: {viewProduct.stock || 'Not specified'}</div>
-                </div>
-                
-                <div className="mt-1">
-                  <div className="text-sm font-medium text-gray-500">Seller Information</div>
+                  <div className="text-sm font-medium text-gray-500">
+                    Inventory
+                  </div>
                   <div className="mt-1 text-sm">
-                    {(viewProduct as any).sellerName || 
-                     (viewProduct as any).seller_username || 
-                     `Seller ID: ${viewProduct.sellerId || 'Unknown'}`}
+                    Stock: {viewProduct.stock || "Not specified"}
                   </div>
                 </div>
-                
+
+                <div className="mt-1">
+                  <div className="text-sm font-medium text-gray-500">
+                    Seller Information
+                  </div>
+                  <div className="mt-1 text-sm">
+                    {(viewProduct as any).sellerName ||
+                      (viewProduct as any).seller_username ||
+                      `Seller ID: ${viewProduct.sellerId || "Unknown"}`}
+                  </div>
+                </div>
+
                 <div className="flex gap-4 mt-6">
-                  <Button 
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white" 
+                  <Button
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                     onClick={() => {
                       handleApproveProduct(viewProduct);
                       setViewProduct(null);
@@ -982,9 +1075,9 @@ function ProductApprovalContent() {
                   >
                     <Check className="mr-2 h-4 w-4" /> Approve Product
                   </Button>
-                  <Button 
-                    variant="destructive" 
-                    className="flex-1" 
+                  <Button
+                    variant="destructive"
+                    className="flex-1"
                     onClick={() => {
                       handleRejectProduct(viewProduct);
                       setViewProduct(null);
