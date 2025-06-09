@@ -123,7 +123,13 @@ export function SimpleHeader() {
         <div className="flex items-center justify-between w-full py-2">
           <div className="flex items-center space-x-8">
             <Link href="/">
-              <div className="text-2xl font-bold pt-0.5">Lelekart</div>
+              <div className="flex items-center">
+                <img
+                  src="https://drive.google.com/thumbnail?id=1LTlPnVbtn6oiDsYoVX7-umnZH5JnWZBN&sz=w1000"
+                  alt="Lelekart Logo"
+                  className="h-10 w-auto"
+                />
+              </div>
             </Link>
 
             <div className="flex-grow max-w-xl">
@@ -163,8 +169,8 @@ export function SimpleHeader() {
                         user.role === "admin"
                           ? "/admin"
                           : user.role === "seller"
-                          ? "/seller/dashboard"
-                          : "/buyer/dashboard"
+                            ? "/seller/dashboard"
+                            : "/buyer/dashboard"
                       }
                       className="cursor-pointer"
                     >
@@ -213,7 +219,13 @@ export function SimpleHeader() {
             </button>
 
             <Link href="/">
-              <div className="text-2xl font-bold">Lelekart</div>
+              <div className="flex items-center">
+                <img
+                  src="https://drive.google.com/thumbnail?id=1LTlPnVbtn6oiDsYoVX7-umnZH5JnWZBN&sz=w1000"
+                  alt="Lelekart Logo"
+                  className="h-8 w-auto"
+                />
+              </div>
             </Link>
           </div>
 
@@ -276,8 +288,8 @@ export function SimpleHeader() {
                         user.role === "admin"
                           ? "/admin"
                           : user.role === "seller"
-                          ? "/seller/dashboard"
-                          : "/buyer/dashboard"
+                            ? "/seller/dashboard"
+                            : "/buyer/dashboard"
                       )
                     }
                     className="block w-full text-left py-3 border-b border-primary-foreground/20"

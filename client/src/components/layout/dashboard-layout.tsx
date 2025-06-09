@@ -161,12 +161,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="flex items-center gap-4">
               <SidebarTrigger className="text-white hover:bg-primary-foreground/10 hover:text-white" />
               <Link href="/" className="flex items-center">
-                <span className="text-xl font-bold text-white">Lelekart</span>
-                <span className="text-xs italic text-yellow-400 flex items-end ml-1">
-                  <span>Explore</span>
-                  <span className="ml-1 text-yellow-400">Plus</span>
-                  <span className="text-yellow-400 ml-1">+</span>
-                </span>
+                <img
+                  src="https://drive.google.com/thumbnail?id=1LTlPnVbtn6oiDsYoVX7-umnZH5JnWZBN&sz=w1000"
+                  alt="Lelekart Logo"
+                  className="h-10 w-auto"
+                />
               </Link>
             </div>
             <div className="flex items-center gap-3">
