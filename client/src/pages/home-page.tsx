@@ -22,6 +22,7 @@ import {
   preloadCategoryImages,
 } from "@/lib/image-preloader";
 import { PerformanceMonitor } from "@/components/ui/performance-monitor";
+import { useProductLoader } from "@/lib/product-loader";
 
 // Memoize categories to prevent unnecessary re-renders
 const allCategories = [
@@ -75,6 +76,9 @@ export default function HomePage() {
   const { startTimer, endTimer, recordProductsLoaded } = usePerformanceMonitor({
     enableLogging: process.env.NODE_ENV === "development",
   });
+
+  // Product loader for faster loading
+  const { preloadProductPages } = useProductLoader();
 
   // Memoize URL params parsing
   const searchParams = useMemo(() => {
@@ -150,7 +154,7 @@ export default function HomePage() {
     loadMore,
   } = useInfiniteProducts({
     category: category || undefined,
-    pageSize: 24,
+    pageSize: 36,
     enabled: !category, // Only use infinite scroll for main page
   });
 
@@ -197,6 +201,26 @@ export default function HomePage() {
       preloadCategoryImages(category);
     }
   }, [category]);
+
+  // Preload next pages of products for faster infinite scroll
+  useEffect(() => {
+    if (
+      !category &&
+      infinitePagination &&
+      infinitePagination.currentPage < infinitePagination.totalPages
+    ) {
+      // Preload next 2 pages in background
+      preloadProductPages(
+        "/api/products",
+        infinitePagination.currentPage,
+        infinitePagination.totalPages,
+        {
+          preloadPages: 2,
+          concurrency: 3,
+        }
+      );
+    }
+  }, [category, infinitePagination, preloadProductPages]);
 
   // Record products loaded for performance monitoring
   useEffect(() => {
@@ -349,13 +373,15 @@ export default function HomePage() {
                   hasMore={hasMore}
                   isLoading={isFetchingNextPage}
                   onLoadMore={loadMore}
+                  threshold={0.05}
+                  rootMargin="200px"
                 >
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
                     {infiniteProducts.map((product, index) => (
                       <ProductCard
                         key={product.id}
                         product={product}
-                        priority={index < 6} // Priority loading for first 6 products
+                        priority={index < 6}
                       />
                     ))}
                   </div>

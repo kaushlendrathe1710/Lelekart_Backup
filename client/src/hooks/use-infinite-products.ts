@@ -1,5 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
+import {
+  useQuery,
+  useInfiniteQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { Product } from "@shared/schema";
 
 interface ProductData {
@@ -23,11 +27,10 @@ export function useInfiniteProducts({
   category,
   search,
   sellerId,
-  pageSize = 12,
+  pageSize = 24,
   enabled = true,
 }: UseInfiniteProductsOptions = {}) {
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
-  const [hasMore, setHasMore] = useState(true);
+  const queryClient = useQueryClient();
 
   // Fetch products with infinite query
   const {
@@ -41,7 +44,7 @@ export function useInfiniteProducts({
     refetch,
   } = useInfiniteQuery({
     queryKey: ["infinite-products", { category, search, sellerId, pageSize }],
-    queryFn: async ({ pageParam = 1 }) => {
+    queryFn: async ({ pageParam = 1 }: { pageParam: number }) => {
       const params = new URLSearchParams({
         page: pageParam.toString(),
         limit: pageSize.toString(),
@@ -54,21 +57,69 @@ export function useInfiniteProducts({
       if (search) params.append("search", search);
       if (sellerId) params.append("sellerId", sellerId.toString());
 
-      const response = await fetch(`/api/products?${params.toString()}`);
+      // Add cache buster for better caching
+      const cacheBuster = Math.floor(Date.now() / (5 * 60 * 1000)); // 5 minute cache
+      params.append("_cb", cacheBuster.toString());
+
+      const response = await fetch(`/api/products?${params.toString()}`, {
+        headers: {
+          "Cache-Control": "max-age=300", // 5 minutes cache
+        },
+      });
+
       if (!response.ok) {
         throw new Error("Failed to fetch products");
       }
-      return response.json() as Promise<ProductData>;
+
+      const data = (await response.json()) as ProductData;
+
+      // Prefetch next page if available
+      if (data.pagination.currentPage < data.pagination.totalPages) {
+        const nextPage = data.pagination.currentPage + 1;
+        const nextParams = new URLSearchParams(params);
+        nextParams.set("page", nextPage.toString());
+
+        // Prefetch next page in background
+        queryClient.prefetchInfiniteQuery({
+          queryKey: [
+            "infinite-products",
+            { category, search, sellerId, pageSize },
+          ],
+          queryFn: async () => {
+            const nextResponse = await fetch(
+              `/api/products?${nextParams.toString()}`,
+              {
+                headers: {
+                  "Cache-Control": "max-age=300",
+                },
+              }
+            );
+            if (!nextResponse.ok) throw new Error("Failed to prefetch");
+            return nextResponse.json();
+          },
+          getNextPageParam: (lastPage: ProductData) => {
+            const { currentPage, totalPages } = lastPage.pagination;
+            return currentPage < totalPages ? currentPage + 1 : undefined;
+          },
+          initialPageParam: 1,
+        });
+      }
+
+      return data;
     },
-    getNextPageParam: (lastPage, pages) => {
+    getNextPageParam: (lastPage: ProductData) => {
       const { currentPage, totalPages } = lastPage.pagination;
       return currentPage < totalPages ? currentPage + 1 : undefined;
     },
+    initialPageParam: 1,
     enabled,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 10 * 60 * 1000, // Increased from 5 to 10 minutes
+    gcTime: 30 * 60 * 1000, // Increased cache time to 30 minutes
     refetchOnWindowFocus: false,
     refetchOnMount: false,
+    refetchOnReconnect: false,
+    retry: 2, // Reduce retries for faster failure
+    retryDelay: 1000, // Faster retry delay
   });
 
   // Combine all pages into a single products array
@@ -77,12 +128,7 @@ export function useInfiniteProducts({
     return data.pages.flatMap((page) => page.products);
   }, [data?.pages]);
 
-  // Update hasMore based on query result
-  useEffect(() => {
-    setHasMore(hasNextPage ?? false);
-  }, [hasNextPage]);
-
-  // Load more products
+  // Load more products with optimized logic
   const loadMore = useCallback(() => {
     if (!isFetchingNextPage && hasNextPage) {
       fetchNextPage();
@@ -102,7 +148,7 @@ export function useInfiniteProducts({
   return {
     products,
     pagination,
-    hasMore,
+    hasMore: hasNextPage ?? false,
     isLoading,
     isFetchingNextPage,
     isError,
@@ -112,8 +158,8 @@ export function useInfiniteProducts({
   };
 }
 
-// Hook for category-specific product loading
-export function useCategoryProducts(category: string, limit: number = 6) {
+// Hook for category-specific product loading with optimizations
+export function useCategoryProducts(category: string, limit: number = 12) {
   return useQuery({
     queryKey: ["category-products", category, limit],
     queryFn: async () => {
@@ -125,14 +171,29 @@ export function useCategoryProducts(category: string, limit: number = 6) {
         status: "approved",
       });
 
-      const response = await fetch(`/api/products?${params.toString()}`);
+      // Add cache buster
+      const cacheBuster = Math.floor(Date.now() / (10 * 60 * 1000)); // 10 minute cache
+      params.append("_cb", cacheBuster.toString());
+
+      const response = await fetch(`/api/products?${params.toString()}`, {
+        headers: {
+          "Cache-Control": "max-age=600", // 10 minutes cache
+        },
+      });
+
       if (!response.ok) {
         throw new Error(`Failed to fetch ${category} products`);
       }
+
       return response.json() as Promise<ProductData>;
     },
     enabled: !!category,
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 15 * 60 * 1000, // Increased to 15 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes cache
     refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    retry: 2,
+    retryDelay: 1000,
   });
 }
