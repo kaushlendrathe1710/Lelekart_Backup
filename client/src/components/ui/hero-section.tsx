@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
+import { useCart } from "@/context/cart-context";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 // Hero slider image interface
 interface SliderImage {
@@ -37,6 +40,9 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
   const sliderRef = useRef<HTMLDivElement>(null);
   const intervalRef = useRef<number | null>(null);
   const [, navigate] = useLocation();
+  const { addToCart } = useCart();
+  const { toast } = useToast();
+  const { user } = useAuth();
 
   // Helper function to get category-specific image
   const getCategoryImage = (category?: string) => {
@@ -204,6 +210,50 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
     }
   };
 
+  const handleDealAddToCart = async () => {
+    if (!dealOfTheDay?.productId) return;
+
+    // Check if user is logged in
+    if (!user) {
+      toast({
+        title: "Please log in",
+        description: "You need to be logged in to add items to cart",
+        variant: "default",
+      });
+      navigate("/auth");
+      return;
+    }
+
+    // Check if user is admin or seller
+    if (user.role === "admin" || user.role === "seller") {
+      toast({
+        title: "Action Not Allowed",
+        description:
+          "Only buyers can add items to cart. Please switch to a buyer account.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/products/${dealOfTheDay.productId}`);
+      if (!response.ok) throw new Error("Failed to fetch product");
+      const product = await response.json();
+
+      await addToCart(product, 1);
+      toast({
+        title: "Added to cart",
+        description: "The deal of the day has been added to your cart",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add product to cart",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <>
       {/* Main hero slider */}
@@ -314,7 +364,7 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
             <div className="bg-white rounded-lg shadow-sm p-4 md:p-6">
               <div className="flex flex-col md:flex-row">
                 {/* Left side - Deal info */}
-                <div className="md:w-1/2 md:pr-8">
+                <div className="md:w-1/2 mb-4 md:mb-0 md:pr-8">
                   <div className="flex items-center mb-4">
                     <div className="bg-red-600 text-white text-xs font-medium px-2 py-1 rounded">
                       DEAL OF THE DAY
@@ -372,26 +422,21 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
 
                   <Button
                     className="bg-blue-600 hover:bg-blue-700"
-                    onClick={() => {
-                      if (dealOfTheDay.productId) {
-                        // Use direct location change to ensure proper page loading
-                        navigate(`/product/${dealOfTheDay.productId}`);
-                      }
-                    }}
-                    aria-label="Shop Now"
-                    title="Shop Now"
+                    onClick={handleDealAddToCart}
+                    aria-label="Add to Cart"
+                    title="Add to Cart"
                   >
-                    Shop Now
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    Add to Cart
                   </Button>
                 </div>
 
                 {/* Right side - Product image */}
-                <div className="md:w-1/2 mt-6 md:mt-0">
+                <div className="md:w-1/2">
                   <div
                     className="cursor-pointer"
                     onClick={() => {
                       if (dealOfTheDay.productId) {
-                        // Use direct location change to ensure proper page loading
                         navigate(`/product/${dealOfTheDay.productId}`);
                       }
                     }}
@@ -406,9 +451,8 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
                       alt={dealOfTheDay.title}
                       className="w-full max-h-48 object-contain bg-slate-50 rounded-md p-2"
                       onError={(e) => {
-                        // Use a category-specific fallback image for deal of the day
                         const target = e.target as HTMLImageElement;
-                        target.onerror = null; // Prevent infinite loop
+                        target.onerror = null;
                         target.src = getDealCategory();
                       }}
                     />
