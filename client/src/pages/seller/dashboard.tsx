@@ -15,7 +15,6 @@ import {
   Tag,
   BarChart4,
   Truck,
-  Calendar,
   TrendingUp,
   User,
   Loader2,
@@ -487,53 +486,6 @@ export default function SellerDashboardPage() {
                   </Button>
                 </div>
               )}
-            </CardContent>
-          </Card>
-
-          {/* Upcoming Events */}
-          <Card className="shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="pb-2">
-              <CardTitle>Upcoming Events</CardTitle>
-              <CardDescription>
-                Important dates and events for sellers
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-md">
-                  <div className="p-2 bg-blue-100 rounded-full">
-                    <Calendar className="h-5 w-5 text-blue-700" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Lelekart Sale Event</p>
-                    <p className="text-xs text-muted-foreground">
-                      May 15, 2025 - May 20, 2025
-                    </p>
-                    <p className="text-xs mt-1">
-                      Prepare your inventory for the upcoming sale event.
-                      Special discounts and promotions.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-3 bg-orange-50 rounded-md">
-                  <div className="p-2 bg-orange-100 rounded-full">
-                    <Calendar className="h-5 w-5 text-orange-700" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">
-                      Seller Performance Review
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      June 1, 2025
-                    </p>
-                    <p className="text-xs mt-1">
-                      Quarterly seller performance review. Maintain good metrics
-                      to qualify for benefits.
-                    </p>
-                  </div>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </div>
