@@ -124,14 +124,43 @@ export default function SellerProductsPage() {
   // State for pagination and search
   const [itemsPerPage, setItemsPerPage] = useState(() => {
     const stored = localStorage.getItem("sellerProductsItemsPerPage");
-    return stored ? parseInt(stored) : 10;
+    const value = stored ? parseInt(stored) : 10;
+    console.log(
+      "Initializing itemsPerPage from localStorage:",
+      stored,
+      "parsed as:",
+      value
+    );
+    return value;
   });
   const [searchTerm, setSearchTerm] = useState("");
 
   // Store items per page in localStorage when it changes
   useEffect(() => {
     localStorage.setItem("sellerProductsItemsPerPage", itemsPerPage.toString());
+    console.log("Stored itemsPerPage in localStorage:", itemsPerPage);
   }, [itemsPerPage]);
+
+  // Debug effect to log state changes
+  useEffect(() => {
+    console.log(
+      "Pagination state changed - currentPage:",
+      currentPage,
+      "itemsPerPage:",
+      itemsPerPage
+    );
+  }, [currentPage, itemsPerPage]);
+
+  // Invalidate query cache on mount to ensure fresh data after page reload
+  useEffect(() => {
+    if (user?.id) {
+      console.log("Invalidating query cache on mount for user:", user.id);
+      queryClient.invalidateQueries({
+        queryKey: ["/api/seller/products", user.id],
+        exact: false,
+      });
+    }
+  }, [user?.id, queryClient]);
 
   // State for category and subcategory editing
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
@@ -310,11 +339,16 @@ export default function SellerProductsPage() {
         url += `&search=${encodeURIComponent(params.search)}`;
       }
 
+      console.log("Fetching products with URL:", url);
+      console.log("Query params:", params);
+
       const res = await fetch(url);
       if (!res.ok) {
         throw new Error("Failed to fetch products");
       }
-      return res.json();
+      const data = await res.json();
+      console.log("Products API response:", data);
+      return data;
     },
     enabled: !!user?.id,
     staleTime: 0, // Always consider data stale to ensure fresh fetches
