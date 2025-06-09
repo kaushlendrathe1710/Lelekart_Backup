@@ -117,13 +117,19 @@ export function SimpleHeader() {
   };
 
   return (
-    <header className="bg-primary text-white fixed top-0 left-0 right-0 z-40">
+    <header className="bg-orange-400 text-white fixed top-0 left-0 right-0 z-40">
       {/* Desktop Header - with improved padding and spacing */}
       <div className="container mx-auto px-4 h-14 hidden md:flex md:items-center">
         <div className="flex items-center justify-between w-full py-2">
           <div className="flex items-center space-x-8">
             <Link href="/">
-              <div className="text-2xl font-bold pt-0.5">Lelekart</div>
+              <div className="flex items-center">
+                <img
+                  src="https://drive.google.com/thumbnail?id=1RNjADzUc3bRdEpavAv5lxcN1P9VLG-PC&sz=w1000"
+                  alt="Lelekart Logo"
+                  className="h-10 w-auto"
+                />
+              </div>
             </Link>
 
             <div className="flex-grow max-w-xl">
@@ -163,8 +169,8 @@ export function SimpleHeader() {
                         user.role === "admin"
                           ? "/admin"
                           : user.role === "seller"
-                          ? "/seller/dashboard"
-                          : "/buyer/dashboard"
+                            ? "/seller/dashboard"
+                            : "/buyer/dashboard"
                       }
                       className="cursor-pointer"
                     >
@@ -213,7 +219,13 @@ export function SimpleHeader() {
             </button>
 
             <Link href="/">
-              <div className="text-2xl font-bold">Lelekart</div>
+              <div className="flex items-center">
+                <img
+                  src="https://drive.google.com/thumbnail?id=1RNjADzUc3bRdEpavAv5lxcN1P9VLG-PC&sz=w1000"
+                  alt="Lelekart Logo"
+                  className="h-8 w-auto"
+                />
+              </div>
             </Link>
           </div>
 
@@ -235,14 +247,14 @@ export function SimpleHeader() {
       </div>
 
       {/* Mobile Search - in a separate fixed position below the header */}
-      <div className="md:hidden fixed top-14 left-0 right-0 bg-primary px-4 pb-3 pt-1 z-40 shadow-md">
+      <div className="md:hidden fixed top-14 left-0 right-0 bg-orange-400 px-4 pb-3 pt-1 z-40 shadow-md">
         <SimpleSearch />
       </div>
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 bg-black bg-opacity-50">
-          <div className="bg-primary h-full w-3/4 max-w-xs p-5">
+          <div className="bg-orange-400 h-full w-3/4 max-w-xs p-5">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold">Menu</h2>
               <button
@@ -276,8 +288,8 @@ export function SimpleHeader() {
                         user.role === "admin"
                           ? "/admin"
                           : user.role === "seller"
-                          ? "/seller/dashboard"
-                          : "/buyer/dashboard"
+                            ? "/seller/dashboard"
+                            : "/buyer/dashboard"
                       )
                     }
                     className="block w-full text-left py-3 border-b border-primary-foreground/20"

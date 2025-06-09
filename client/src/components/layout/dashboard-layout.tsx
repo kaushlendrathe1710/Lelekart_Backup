@@ -156,17 +156,16 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     <SidebarProvider defaultOpen={true}>
       <div className="flex min-h-screen flex-col">
         {/* Top Navigation Bar - fixed height of 56px (h-14) */}
-        <header className="fixed top-0 left-0 right-0 z-50 h-14 border-b bg-primary px-4 shadow-sm">
+        <header className="fixed top-0 left-0 right-0 z-50 h-14 border-b bg-orange-400 px-4 shadow-sm">
           <div className="flex h-full items-center justify-between">
             <div className="flex items-center gap-4">
               <SidebarTrigger className="text-white hover:bg-primary-foreground/10 hover:text-white" />
               <Link href="/" className="flex items-center">
-                <span className="text-xl font-bold text-white">Lelekart</span>
-                <span className="text-xs italic text-yellow-400 flex items-end ml-1">
-                  <span>Explore</span>
-                  <span className="ml-1 text-yellow-400">Plus</span>
-                  <span className="text-yellow-400 ml-1">+</span>
-                </span>
+                <img
+                  src="https://drive.google.com/thumbnail?id=1RNjADzUc3bRdEpavAv5lxcN1P9VLG-PC&sz=w1000"
+                  alt="Lelekart Logo"
+                  className="h-10 w-auto"
+                />
               </Link>
             </div>
             <div className="flex items-center gap-3">

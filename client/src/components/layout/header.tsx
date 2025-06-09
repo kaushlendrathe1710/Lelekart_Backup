@@ -65,18 +65,17 @@ export function Header() {
   };
 
   return (
-    <header className="bg-primary text-white sticky top-0 z-50 shadow-md">
+    <header className="bg-orange-400 text-white sticky top-0 z-50 shadow-md">
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row items-center py-4 justify-between">
           {/* Logo */}
           <div className="flex-shrink-0 md:w-52">
             <Link href="/" className="flex items-center mb-2 md:mb-0">
-              <span className="text-2xl font-bold mr-1">Lelekart</span>
-              <span className="text-xs italic text-yellow-400 flex items-end">
-                <span>Explore</span>
-                <span className="ml-1 text-yellow-400">Plus</span>
-                <span className="text-yellow-400 ml-1">+</span>
-              </span>
+              <img
+                src="https://drive.google.com/thumbnail?id=1RNjADzUc3bRdEpavAv5lxcN1P9VLG-PC&sz=w1000"
+                alt="Lelekart Logo"
+                className="h-12 w-auto"
+              />
             </Link>
           </div>
 
@@ -139,8 +138,8 @@ export function Header() {
                       {user.role === "admin"
                         ? "Admin Dashboard"
                         : user.role === "seller"
-                        ? "Seller Dashboard"
-                        : "My Profile"}
+                          ? "Seller Dashboard"
+                          : "My Profile"}
                     </Link>
                   </DropdownMenuItem>
                   {user.role === "buyer" && (
@@ -270,6 +269,15 @@ export function Header() {
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden py-3 border-t border-primary-foreground/20">
+            <div className="flex items-center mb-4">
+              <Link href="/" className="flex items-center">
+                <img
+                  src="https://drive.google.com/thumbnail?id=1RNjADzUc3bRdEpavAv5lxcN1P9VLG-PC&sz=w1000"
+                  alt="Lelekart Logo"
+                  className="h-10 w-auto"
+                />
+              </Link>
+            </div>
             <ul className="space-y-3">
               <li>
                 <Link
