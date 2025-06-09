@@ -65,14 +65,14 @@ export function Header() {
   };
 
   return (
-    <header className="bg-primary text-white sticky top-0 z-50 shadow-md">
+    <header className="bg-orange-400 text-white sticky top-0 z-50 shadow-md">
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row items-center py-4 justify-between">
           {/* Logo */}
           <div className="flex-shrink-0 md:w-52">
             <Link href="/" className="flex items-center mb-2 md:mb-0">
               <img
-                src="https://drive.google.com/thumbnail?id=1LTlPnVbtn6oiDsYoVX7-umnZH5JnWZBN&sz=w1000"
+                src="https://drive.google.com/thumbnail?id=1RNjADzUc3bRdEpavAv5lxcN1P9VLG-PC&sz=w1000"
                 alt="Lelekart Logo"
                 className="h-12 w-auto"
               />
@@ -272,7 +272,7 @@ export function Header() {
             <div className="flex items-center mb-4">
               <Link href="/" className="flex items-center">
                 <img
-                  src="https://drive.google.com/thumbnail?id=1LTlPnVbtn6oiDsYoVX7-umnZH5JnWZBN&sz=w1000"
+                  src="https://drive.google.com/thumbnail?id=1RNjADzUc3bRdEpavAv5lxcN1P9VLG-PC&sz=w1000"
                   alt="Lelekart Logo"
                   className="h-10 w-auto"
                 />

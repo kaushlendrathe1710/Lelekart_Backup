@@ -94,12 +94,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
-      <div className="w-64 border-r bg-card hidden md:block">
+      <div className="w-64 border-r bg-orange-400 hidden md:block">
         <div className="p-4 border-b">
           <Link href="/admin/dashboard">
             <div className="flex items-center">
               <img
-                src="https://drive.google.com/thumbnail?id=1LTlPnVbtn6oiDsYoVX7-umnZH5JnWZBN&sz=w1000"
+                src="https://drive.google.com/thumbnail?id=1RNjADzUc3bRdEpavAv5lxcN1P9VLG-PC&sz=w1000"
                 alt="Lelekart Logo"
                 className="h-10 w-auto"
               />
