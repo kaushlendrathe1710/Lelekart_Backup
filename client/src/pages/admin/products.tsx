@@ -98,6 +98,7 @@ import {
   FileDown,
 } from "lucide-react";
 import { ProductImageGallery } from "@/components/ui/product-image-gallery";
+import { RichTextContent } from "@/components/ui/rich-text-content";
 
 export default function AdminProducts() {
   const [_, setLocation] = useLocation();
@@ -231,10 +232,10 @@ function AdminProductsContent({
           approvalFilter === "approved"
             ? "&approved=true"
             : approvalFilter === "rejected"
-            ? "&rejected=true"
-            : approvalFilter === "pending"
-            ? "&pending=true"
-            : ""
+              ? "&rejected=true"
+              : approvalFilter === "pending"
+                ? "&pending=true"
+                : ""
         }${search ? `&search=${encodeURIComponent(search)}` : ""}`
       );
       return res.json();
@@ -837,10 +838,10 @@ function AdminProductsContent({
         approvalFilter === null
           ? true
           : approvalFilter === "approved"
-          ? product.approved
-          : approvalFilter === "rejected"
-          ? product.rejected
-          : !product.approved && !product.rejected; // pending products (not approved and not rejected)
+            ? product.approved
+            : approvalFilter === "rejected"
+              ? product.rejected
+              : !product.approved && !product.rejected; // pending products (not approved and not rejected)
 
       // Price range filter
       const [minPrice, maxPrice] = priceRangeFilter;
@@ -852,8 +853,8 @@ function AdminProductsContent({
       const matchesStock = !stockFilter
         ? true
         : stockFilter === "inStock"
-        ? product.stockQuantity && product.stockQuantity > 0
-        : product.stockQuantity === 0 || !product.stockQuantity;
+          ? product.stockQuantity && product.stockQuantity > 0
+          : product.stockQuantity === 0 || !product.stockQuantity;
 
       return (
         matchesSearch &&
@@ -1040,16 +1041,16 @@ function AdminProductsContent({
                       {searchField === "all"
                         ? "All Fields"
                         : searchField === "name"
-                        ? "Name"
-                        : searchField === "description"
-                        ? "Description"
-                        : searchField === "category"
-                        ? "Category"
-                        : searchField === "sku"
-                        ? "SKU"
-                        : searchField === "seller"
-                        ? "Seller"
-                        : "All Fields"}
+                          ? "Name"
+                          : searchField === "description"
+                            ? "Description"
+                            : searchField === "category"
+                              ? "Category"
+                              : searchField === "sku"
+                                ? "SKU"
+                                : searchField === "seller"
+                                  ? "Seller"
+                                  : "All Fields"}
                       <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -1186,8 +1187,8 @@ function AdminProductsContent({
                                       {stockFilter === "inStock"
                                         ? "In Stock"
                                         : stockFilter === "outOfStock"
-                                        ? "Out of Stock"
-                                        : "Any"}
+                                          ? "Out of Stock"
+                                          : "Any"}
                                       <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </Button>
                                   </DropdownMenuTrigger>
@@ -1223,16 +1224,16 @@ function AdminProductsContent({
                                     {sortBy === "newest"
                                       ? "Newest First"
                                       : sortBy === "oldest"
-                                      ? "Oldest First"
-                                      : sortBy === "name-asc"
-                                      ? "Name (A-Z)"
-                                      : sortBy === "name-desc"
-                                      ? "Name (Z-A)"
-                                      : sortBy === "price-low"
-                                      ? "Price (Low to High)"
-                                      : sortBy === "price-high"
-                                      ? "Price (High to Low)"
-                                      : "Newest First"}
+                                        ? "Oldest First"
+                                        : sortBy === "name-asc"
+                                          ? "Name (A-Z)"
+                                          : sortBy === "name-desc"
+                                            ? "Name (Z-A)"
+                                            : sortBy === "price-low"
+                                              ? "Price (Low to High)"
+                                              : sortBy === "price-high"
+                                                ? "Price (High to Low)"
+                                                : "Newest First"}
                                     <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                   </Button>
                                 </DropdownMenuTrigger>
@@ -1506,14 +1507,14 @@ function AdminProductsContent({
                         {sortBy === "oldest"
                           ? "Oldest First"
                           : sortBy === "name-asc"
-                          ? "Name (A-Z)"
-                          : sortBy === "name-desc"
-                          ? "Name (Z-A)"
-                          : sortBy === "price-low"
-                          ? "Price (Low to High)"
-                          : sortBy === "price-high"
-                          ? "Price (High to Low)"
-                          : "Newest First"}
+                            ? "Name (A-Z)"
+                            : sortBy === "name-desc"
+                              ? "Name (Z-A)"
+                              : sortBy === "price-low"
+                                ? "Price (Low to High)"
+                                : sortBy === "price-high"
+                                  ? "Price (High to Low)"
+                                  : "Newest First"}
                       </span>
                     </Badge>
                   )}
@@ -2275,8 +2276,8 @@ function AdminProductsContent({
                               return subcategoryMatch
                                 ? subcategoryMatch.name
                                 : product.subcategoryId
-                                ? `ID: ${product.subcategoryId}`
-                                : "-";
+                                  ? `ID: ${product.subcategoryId}`
+                                  : "-";
                             })()}
                           </div>
                         )}
@@ -2289,15 +2290,15 @@ function AdminProductsContent({
                               product.approved
                                 ? "bg-green-100 text-green-800 hover:bg-green-100"
                                 : product.rejected
-                                ? "bg-red-100 text-red-800 hover:bg-red-100"
-                                : "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                                  ? "bg-red-100 text-red-800 hover:bg-red-100"
+                                  : "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
                             }
                           >
                             {product.approved
                               ? "Approved"
                               : product.rejected
-                              ? "Rejected"
-                              : "Pending"}
+                                ? "Rejected"
+                                : "Pending"}
                           </Badge>
                         ) : (
                           <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
@@ -2559,15 +2560,15 @@ function AdminProductsContent({
                       viewProduct.approved
                         ? "bg-green-100 text-green-800"
                         : viewProduct.rejected
-                        ? "bg-red-100 text-red-800"
-                        : "bg-yellow-100 text-yellow-800"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-yellow-100 text-yellow-800"
                     }
                   >
                     {viewProduct.approved
                       ? "Approved"
                       : viewProduct.rejected
-                      ? "Rejected"
-                      : "Pending Approval"}
+                        ? "Rejected"
+                        : "Pending Approval"}
                   </Badge>
                 </div>
 
@@ -2607,9 +2608,10 @@ function AdminProductsContent({
                   <h3 className="text-sm font-medium text-gray-500">
                     Description
                   </h3>
-                  <p className="text-sm whitespace-pre-line">
-                    {viewProduct.description}
-                  </p>
+                  <RichTextContent
+                    content={viewProduct.description}
+                    className="text-sm"
+                  />
                 </div>
 
                 {viewProduct.specifications && (
@@ -2617,9 +2619,10 @@ function AdminProductsContent({
                     <h3 className="text-sm font-medium text-gray-500">
                       Specifications
                     </h3>
-                    <p className="text-sm whitespace-pre-line">
-                      {viewProduct.specifications}
-                    </p>
+                    <RichTextContent
+                      content={viewProduct.specifications}
+                      className="text-sm"
+                    />
                   </div>
                 )}
               </div>
