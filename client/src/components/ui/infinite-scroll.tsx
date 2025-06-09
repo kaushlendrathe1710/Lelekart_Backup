@@ -13,6 +13,7 @@ interface InfiniteScrollProps {
   isLoading: boolean;
   onLoadMore: () => void;
   threshold?: number;
+  rootMargin?: string;
   className?: string;
 }
 
@@ -21,46 +22,55 @@ export function InfiniteScroll({
   hasMore,
   isLoading,
   onLoadMore,
-  threshold = 100,
+  threshold = 0.1,
+  rootMargin = "100px",
   className = "",
 }: InfiniteScrollProps) {
-  const [isIntersecting, setIsIntersecting] = useState(false);
-  const observerRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const loadingRef = useRef<HTMLDivElement>(null);
 
-  const handleObserver = useCallback(
-    (entries: IntersectionObserverEntry[]) => {
-      const [target] = entries;
-      setIsIntersecting(target.isIntersecting);
-
-      if (target.isIntersecting && hasMore && !isLoading) {
-        onLoadMore();
-      }
-    },
-    [hasMore, isLoading, onLoadMore]
-  );
+  const handleLoadMore = useCallback(() => {
+    if (!isLoading && hasMore) {
+      onLoadMore();
+    }
+  }, [isLoading, hasMore, onLoadMore]);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(handleObserver, {
-      threshold: 0.1,
-      rootMargin: `${threshold}px`,
-    });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && hasMore && !isLoading) {
+            setTimeout(() => {
+              handleLoadMore();
+            }, 100);
+          }
+        });
+      },
+      {
+        threshold,
+        rootMargin,
+      }
+    );
 
-    if (observerRef.current) {
-      observer.observe(observerRef.current);
+    observerRef.current = observer;
+
+    if (loadingRef.current) {
+      observer.observe(loadingRef.current);
     }
 
-    return () => observer.disconnect();
-  }, [handleObserver, threshold]);
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [hasMore, isLoading, threshold, rootMargin, handleLoadMore]);
 
   return (
     <div className={className}>
       {children}
 
       {hasMore && (
-        <div
-          ref={observerRef}
-          className="flex justify-center items-center py-8"
-        >
+        <div ref={loadingRef} className="flex justify-center items-center py-8">
           {isLoading ? (
             <div className="flex items-center gap-2">
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -69,14 +79,16 @@ export function InfiniteScroll({
               </span>
             </div>
           ) : (
-            <div className="h-8" /> // Invisible trigger element
+            <div className="h-8" /> // Invisible spacer to trigger intersection
           )}
         </div>
       )}
 
       {!hasMore && (
-        <div className="text-center py-8 text-gray-500">
-          <p>No more products to load</p>
+        <div className="text-center py-8">
+          <p className="text-sm text-gray-500">
+            You've reached the end of the products
+          </p>
         </div>
       )}
     </div>
