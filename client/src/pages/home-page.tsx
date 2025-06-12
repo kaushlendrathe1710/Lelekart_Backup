@@ -23,6 +23,8 @@ import {
 } from "@/lib/image-preloader";
 import { PerformanceMonitor } from "@/components/ui/performance-monitor";
 import { useProductLoader } from "@/lib/product-loader";
+import { Button } from "@/components/ui/button";
+import { ChevronDown } from "lucide-react";
 
 // Memoize categories to prevent unnecessary re-renders
 const allCategories = [
@@ -369,23 +371,37 @@ export default function HomePage() {
                   </Link>
                 </div>
 
-                <InfiniteScroll
-                  hasMore={hasMore}
-                  isLoading={isFetchingNextPage}
-                  onLoadMore={loadMore}
-                  threshold={0.05}
-                  rootMargin="200px"
-                >
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-                    {infiniteProducts.map((product, index) => (
-                      <ProductCard
-                        key={product.id}
-                        product={product}
-                        priority={index < 6}
-                      />
-                    ))}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                  {infiniteProducts.map((product, index) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      priority={index < 6}
+                    />
+                  ))}
+                </div>
+
+                {hasMore && (
+                  <div className="mt-6 flex justify-center">
+                    <Button
+                      onClick={loadMore}
+                      disabled={isFetchingNextPage}
+                      className="flex items-center gap-2"
+                    >
+                      {isFetchingNextPage ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Loading...
+                        </>
+                      ) : (
+                        <>
+                          View More
+                          <ChevronDown className="h-4 w-4" />
+                        </>
+                      )}
+                    </Button>
                   </div>
-                </InfiniteScroll>
+                )}
 
                 {!hasMore && infiniteProducts.length > 0 && (
                   <div className="text-sm text-gray-500 text-center mt-4">
