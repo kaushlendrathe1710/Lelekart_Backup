@@ -6,9 +6,9 @@ import { scheduleDailyBackup } from "./services/scheduler-service";
 import dotenv from "dotenv";
 dotenv.config();
 const app = express();
-// Increase JSON payload limit to 50MB for large payloads
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ limit: "50mb", extended: true }));
+// Increase JSON payload limit to 100MB for large payloads
+app.use(express.json({ limit: "100mb" }));
+app.use(express.urlencoded({ limit: "100mb", extended: true }));
 app.use(express.urlencoded({ extended: false }));
 
 // Add CORS middleware to support mobile app requests
@@ -133,4 +133,7 @@ app.use((req, res, next) => {
       scheduleDailyBackup(0, 0);
     }
   );
+
+  // Set a longer timeout for the server to handle large file uploads
+  server.setTimeout(120000); // 120 seconds
 })();
