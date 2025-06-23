@@ -963,6 +963,19 @@ function AdminProductsContent({
     </div>
   );
 
+  // On mount, check for approval filter in URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const approvalParam = urlParams.get("approval");
+    if (approvalParam === "rejected") {
+      setApprovalFilter("rejected");
+    } else if (approvalParam === "approved") {
+      setApprovalFilter("approved");
+    } else if (approvalParam === "pending") {
+      setApprovalFilter("pending");
+    }
+  }, []);
+
   return (
     <AdminLayout>
       <div className="space-y-6">
