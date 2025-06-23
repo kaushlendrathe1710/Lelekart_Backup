@@ -306,6 +306,14 @@ export default function AdminDashboardPage() {
                       {productStats?.rejected?.toLocaleString() || "0"}
                     </p>
                   )}
+                  <div className="mt-2">
+                    <Link href="/admin/products?approval=rejected">
+                      <Button variant="destructive" size="sm" className="w-full flex items-center gap-2 justify-center">
+                        <XCircle className="h-4 w-4" />
+                        See Rejected Products
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
                 <div className="p-2 bg-red-100 rounded-full">
                   <XCircle className="h-6 w-6 text-red-700" />
