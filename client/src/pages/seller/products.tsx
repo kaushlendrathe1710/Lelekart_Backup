@@ -80,6 +80,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function SellerProductsPage() {
   // State for deletion dialog
@@ -700,344 +701,352 @@ export default function SellerProductsPage() {
               </div>
 
               <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[40px]">
-                        <Checkbox
-                          checked={
-                            products.length > 0 &&
-                            selectedProducts.length === products.length
-                          }
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              // Select all products
-                              setSelectedProducts(
-                                products.map((p: Product) => p.id)
-                              );
-                            } else {
-                              // Deselect all products
-                              setSelectedProducts([]);
-                            }
-                          }}
-                        />
-                      </TableHead>
-                      <TableHead className="w-[80px]">Image</TableHead>
-                      <TableHead>Product Name</TableHead>
-                      <TableHead>SKU</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead>Stock</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Subcategory</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {products.map((product: Product) => (
-                      <TableRow key={product.id}>
-                        <TableCell>
+                {isLoading ? (
+                  <div className="flex justify-center items-center h-60">
+                    <Loader2 className="w-12 h-12 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[40px]">
                           <Checkbox
-                            checked={selectedProducts.includes(product.id)}
+                            checked={
+                              products.length > 0 &&
+                              selectedProducts.length === products.length
+                            }
                             onCheckedChange={(checked) => {
                               if (checked) {
-                                setSelectedProducts([
-                                  ...selectedProducts,
-                                  product.id,
-                                ]);
-                              } else {
+                                // Select all products
                                 setSelectedProducts(
-                                  selectedProducts.filter(
-                                    (id) => id !== product.id
-                                  )
+                                  products.map((p: Product) => p.id)
                                 );
+                              } else {
+                                // Deselect all products
+                                setSelectedProducts([]);
                               }
                             }}
                           />
-                        </TableCell>
-                        <TableCell>
-                          <ProductImage product={product} size="small" />
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {product.name}
-                        </TableCell>
-                        <TableCell>{product.sku}</TableCell>
-                        <TableCell>₹{product.price.toLocaleString()}</TableCell>
-                        <TableCell>
-                          <span
-                            className={
-                              product.stock < 20
-                                ? "text-red-500 font-medium"
-                                : ""
-                            }
-                          >
-                            {product.stock}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          {editingProductId === product.id ? (
-                            <div className="space-y-2">
-                              <Select
-                                value={editingCategory || product.category}
-                                onValueChange={(value) => {
-                                  setEditingCategory(value);
-                                  setEditingSubcategory(""); // Reset subcategory when category changes
-                                }}
-                              >
-                                <SelectTrigger className="h-8">
-                                  <SelectValue placeholder="Select category" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {categoriesData?.map(
-                                    (category: {
-                                      id: number;
-                                      name: string;
-                                    }) => (
-                                      <SelectItem
-                                        key={category.id}
-                                        value={category.name}
-                                      >
-                                        {category.name}
-                                      </SelectItem>
+                        </TableHead>
+                        <TableHead className="w-[80px]">Image</TableHead>
+                        <TableHead>Product Name</TableHead>
+                        <TableHead>SKU</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead>Stock</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Subcategory</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {products.map((product: Product) => (
+                        <TableRow key={product.id}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedProducts.includes(product.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedProducts([
+                                    ...selectedProducts,
+                                    product.id,
+                                  ]);
+                                } else {
+                                  setSelectedProducts(
+                                    selectedProducts.filter(
+                                      (id) => id !== product.id
                                     )
-                                  )}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          ) : (
-                            <div
-                              className="cursor-pointer hover:text-primary"
-                              onClick={() => {
-                                setEditingProductId(product.id);
-                                setEditingCategory(product.category || "");
-                                setEditingSubcategory(
-                                  product.subcategory || ""
-                                );
+                                  );
+                                }
                               }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <ProductImage product={product} size="small" />
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {product.name}
+                          </TableCell>
+                          <TableCell>{product.sku}</TableCell>
+                          <TableCell>
+                            ₹{product.price.toLocaleString()}
+                          </TableCell>
+                          <TableCell>
+                            <span
+                              className={
+                                product.stock < 20
+                                  ? "text-red-500 font-medium"
+                                  : ""
+                              }
                             >
-                              {product.category || "-"}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {editingProductId === product.id ? (
-                            <div className="space-y-2">
-                              <Select
-                                value={editingSubcategory}
-                                onValueChange={setEditingSubcategory}
-                                disabled={!editingCategory}
-                              >
-                                <SelectTrigger className="h-8 w-full">
-                                  <SelectValue
-                                    placeholder={
-                                      !editingCategory
-                                        ? "Select category first"
-                                        : "Select subcategory"
-                                    }
-                                  />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="_none">None</SelectItem>
-                                  {(() => {
-                                    // Get current category
-                                    const currentCategory =
-                                      editingCategory || "";
-
-                                    if (!currentCategory) {
-                                      console.log(
-                                        "No current category selected, cannot filter subcategories"
-                                      );
-                                      return [];
-                                    }
-
-                                    // Find category object to get ID
-                                    const categoryObj = categoriesData?.find(
-                                      (c: any) => c.name === currentCategory
-                                    );
-
-                                    if (!categoryObj) {
-                                      console.log(
-                                        `Category "${currentCategory}" not found in categories list`
-                                      );
-                                      return [];
-                                    }
-
-                                    // Filter subcategories to only those matching this category's ID
-                                    const allSubcategories =
-                                      subcategoriesData || [];
-                                    const filteredSubcategories =
-                                      allSubcategories.filter(
-                                        (subcategory: any) => {
-                                          return (
-                                            subcategory.categoryId ===
-                                            categoryObj.id
-                                          );
-                                        }
-                                      );
-
-                                    // Limited logging to avoid console spam
-                                    console.log(
-                                      `Category "${currentCategory}" (ID: ${categoryObj.id}): Found ${filteredSubcategories.length} matching subcategories`
-                                    );
-
-                                    // If there are no subcategories for this category, return empty array
-                                    // The "None" option is already included in the SelectContent
-                                    if (filteredSubcategories.length === 0) {
-                                      console.log(
-                                        "No subcategories found for this category"
-                                      );
-                                      return [];
-                                    }
-
-                                    return filteredSubcategories.map(
-                                      (subcategory: {
+                              {product.stock}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {editingProductId === product.id ? (
+                              <div className="space-y-2">
+                                <Select
+                                  value={editingCategory || product.category}
+                                  onValueChange={(value) => {
+                                    setEditingCategory(value);
+                                    setEditingSubcategory(""); // Reset subcategory when category changes
+                                  }}
+                                >
+                                  <SelectTrigger className="h-8">
+                                    <SelectValue placeholder="Select category" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {categoriesData?.map(
+                                      (category: {
                                         id: number;
                                         name: string;
                                       }) => (
                                         <SelectItem
-                                          key={subcategory.id}
-                                          value={subcategory.name}
+                                          key={category.id}
+                                          value={category.name}
                                         >
-                                          {subcategory.name}
+                                          {category.name}
                                         </SelectItem>
                                       )
-                                    );
-                                  })()}
-                                </SelectContent>
-                              </Select>
-                              <div className="flex gap-2 mt-2">
-                                <Button
-                                  size="sm"
-                                  className="h-7 px-2 py-1 text-xs"
-                                  onClick={() => {
-                                    // Save the changes
-                                    updateCategoryMutation.mutate({
-                                      productId: product.id,
-                                      category: editingCategory,
-                                      subcategory:
-                                        editingSubcategory === "_none"
-                                          ? ""
-                                          : editingSubcategory,
-                                    });
-                                  }}
-                                  disabled={updateCategoryMutation.isPending}
-                                >
-                                  {updateCategoryMutation.isPending ? (
-                                    <>
-                                      <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                                      Saving...
-                                    </>
-                                  ) : (
-                                    "Save"
-                                  )}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-7 px-2 py-1 text-xs"
-                                  onClick={() => {
-                                    // Cancel editing
-                                    setEditingProductId(null);
-                                    setEditingCategory("");
-                                    setEditingSubcategory("");
-                                  }}
-                                >
-                                  Cancel
-                                </Button>
+                                    )}
+                                  </SelectContent>
+                                </Select>
                               </div>
-                            </div>
-                          ) : (
-                            <div
-                              className="cursor-pointer hover:text-primary"
-                              onClick={() => {
-                                setEditingProductId(product.id);
-                                setEditingCategory(product.category || "");
-                                setEditingSubcategory(
-                                  product.subcategory
-                                    ? product.subcategory
-                                    : "_none"
-                                );
-                              }}
-                            >
-                              {product.subcategory || "-"}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {product.isDraft ? (
-                            <Badge
-                              variant="outline"
-                              className="bg-blue-50 text-blue-700 hover:bg-blue-50 border-blue-200"
-                            >
-                              <FileEdit className="h-3 w-3 mr-1" />
-                              Draft
-                            </Badge>
-                          ) : product.approved ? (
-                            <Badge
-                              variant="outline"
-                              className="bg-green-50 text-green-700 hover:bg-green-50 border-green-200"
-                            >
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Approved
-                            </Badge>
-                          ) : (
-                            <Badge
-                              variant="outline"
-                              className="bg-amber-50 text-amber-700 hover:bg-amber-50 border-amber-200"
-                            >
-                              <XCircle className="h-3 w-3 mr-1" />
-                              Pending
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              asChild
-                            >
-                              <Link
-                                href={`/seller/products/preview/${product.id}`}
+                            ) : (
+                              <div
+                                className="cursor-pointer hover:text-primary"
+                                onClick={() => {
+                                  setEditingProductId(product.id);
+                                  setEditingCategory(product.category || "");
+                                  setEditingSubcategory(
+                                    product.subcategory || ""
+                                  );
+                                }}
                               >
-                                <Eye className="h-4 w-4" />
-                                <span className="sr-only">Preview</span>
-                              </Link>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              asChild
-                            >
-                              <Link
-                                href={
-                                  product.isDraft
-                                    ? `/seller/drafts/edit/${product.id}`
-                                    : `/seller/products/edit/${product.id}`
-                                }
+                                {product.category || "-"}
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {editingProductId === product.id ? (
+                              <div className="space-y-2">
+                                <Select
+                                  value={editingSubcategory}
+                                  onValueChange={setEditingSubcategory}
+                                  disabled={!editingCategory}
+                                >
+                                  <SelectTrigger className="h-8 w-full">
+                                    <SelectValue
+                                      placeholder={
+                                        !editingCategory
+                                          ? "Select category first"
+                                          : "Select subcategory"
+                                      }
+                                    />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="_none">None</SelectItem>
+                                    {(() => {
+                                      // Get current category
+                                      const currentCategory =
+                                        editingCategory || "";
+
+                                      if (!currentCategory) {
+                                        console.log(
+                                          "No current category selected, cannot filter subcategories"
+                                        );
+                                        return [];
+                                      }
+
+                                      // Find category object to get ID
+                                      const categoryObj = categoriesData?.find(
+                                        (c: any) => c.name === currentCategory
+                                      );
+
+                                      if (!categoryObj) {
+                                        console.log(
+                                          `Category "${currentCategory}" not found in categories list`
+                                        );
+                                        return [];
+                                      }
+
+                                      // Filter subcategories to only those matching this category's ID
+                                      const allSubcategories =
+                                        subcategoriesData || [];
+                                      const filteredSubcategories =
+                                        allSubcategories.filter(
+                                          (subcategory: any) => {
+                                            return (
+                                              subcategory.categoryId ===
+                                              categoryObj.id
+                                            );
+                                          }
+                                        );
+
+                                      // Limited logging to avoid console spam
+                                      console.log(
+                                        `Category "${currentCategory}" (ID: ${categoryObj.id}): Found ${filteredSubcategories.length} matching subcategories`
+                                      );
+
+                                      // If there are no subcategories for this category, return empty array
+                                      // The "None" option is already included in the SelectContent
+                                      if (filteredSubcategories.length === 0) {
+                                        console.log(
+                                          "No subcategories found for this category"
+                                        );
+                                        return [];
+                                      }
+
+                                      return filteredSubcategories.map(
+                                        (subcategory: {
+                                          id: number;
+                                          name: string;
+                                        }) => (
+                                          <SelectItem
+                                            key={subcategory.id}
+                                            value={subcategory.name}
+                                          >
+                                            {subcategory.name}
+                                          </SelectItem>
+                                        )
+                                      );
+                                    })()}
+                                  </SelectContent>
+                                </Select>
+                                <div className="flex gap-2 mt-2">
+                                  <Button
+                                    size="sm"
+                                    className="h-7 px-2 py-1 text-xs"
+                                    onClick={() => {
+                                      // Save the changes
+                                      updateCategoryMutation.mutate({
+                                        productId: product.id,
+                                        category: editingCategory,
+                                        subcategory:
+                                          editingSubcategory === "_none"
+                                            ? ""
+                                            : editingSubcategory,
+                                      });
+                                    }}
+                                    disabled={updateCategoryMutation.isPending}
+                                  >
+                                    {updateCategoryMutation.isPending ? (
+                                      <>
+                                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                        Saving...
+                                      </>
+                                    ) : (
+                                      "Save"
+                                    )}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 px-2 py-1 text-xs"
+                                    onClick={() => {
+                                      // Cancel editing
+                                      setEditingProductId(null);
+                                      setEditingCategory("");
+                                      setEditingSubcategory("");
+                                    }}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div
+                                className="cursor-pointer hover:text-primary"
+                                onClick={() => {
+                                  setEditingProductId(product.id);
+                                  setEditingCategory(product.category || "");
+                                  setEditingSubcategory(
+                                    product.subcategory
+                                      ? product.subcategory
+                                      : "_none"
+                                  );
+                                }}
                               >
-                                <Edit className="h-4 w-4" />
-                                <span className="sr-only">Edit</span>
-                              </Link>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-red-500 hover:text-red-600"
-                              onClick={() => confirmDelete(product.id)}
-                              disabled={deleteMutation.isPending}
-                            >
-                              <Trash className="h-4 w-4" />
-                              <span className="sr-only">Delete</span>
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                                {product.subcategory || "-"}
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {product.isDraft ? (
+                              <Badge
+                                variant="outline"
+                                className="bg-blue-50 text-blue-700 hover:bg-blue-50 border-blue-200"
+                              >
+                                <FileEdit className="h-3 w-3 mr-1" />
+                                Draft
+                              </Badge>
+                            ) : product.approved ? (
+                              <Badge
+                                variant="outline"
+                                className="bg-green-50 text-green-700 hover:bg-green-50 border-green-200"
+                              >
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Approved
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="bg-amber-50 text-amber-700 hover:bg-amber-50 border-amber-200"
+                              >
+                                <XCircle className="h-3 w-3 mr-1" />
+                                Pending
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end items-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                asChild
+                              >
+                                <Link
+                                  href={`/seller/products/preview/${product.id}`}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                  <span className="sr-only">Preview</span>
+                                </Link>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                asChild
+                              >
+                                <Link
+                                  href={
+                                    product.isDraft
+                                      ? `/seller/drafts/edit/${product.id}`
+                                      : `/seller/products/edit/${product.id}`
+                                  }
+                                >
+                                  <Edit className="h-4 w-4" />
+                                  <span className="sr-only">Edit</span>
+                                </Link>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-red-500 hover:text-red-600"
+                                onClick={() => confirmDelete(product.id)}
+                                disabled={deleteMutation.isPending}
+                              >
+                                <Trash className="h-4 w-4" />
+                                <span className="sr-only">Delete</span>
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </div>
             </CardContent>
           </Card>
