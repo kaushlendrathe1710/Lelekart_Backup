@@ -11179,7 +11179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         // Get total revenue
         const totalRevenueResult = await pool.query(`
-          SELECT COALESCE(SUM(total), 0) as total FROM orders WHERE status != 'cancelled'
+          SELECT COALESCE(SUM(total), 0) as total FROM orders WHERE status NOT IN ('cancelled', 'returned', 'refunded')
         `);
         totalRevenue = totalRevenueResult.rows[0]?.total || 0;
       } catch (err) {
