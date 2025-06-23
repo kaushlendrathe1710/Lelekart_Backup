@@ -11652,6 +11652,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/media", upload.array("file", 10), async (req, res) => {
     try {
       console.log("Media upload request received");
+      console.log("Request headers:", req.headers);
+      console.log("Request body keys:", Object.keys(req.body));
+      console.log("Request files:", req.files ? `Found ${Array.isArray(req.files) ? req.files.length : "unknown"} files` : "No files found");
 
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: "Authentication required" });
@@ -11659,9 +11662,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const user = req.user;
       console.log(
-        `User: ${user.username}, Role: ${user.role}, Co-Admin: ${
-          user.isCoAdmin ? "Yes" : "No"
-        }`
+        `User: ${user.username}, Role: ${user.role}, Co-Admin: ${user.isCoAdmin ? "Yes" : "No"}`
       );
 
       // Only admin, co-admin, or sellers can upload to the media library
@@ -11669,19 +11670,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Access denied" });
       }
 
-      // Log request details
-      console.log("Request body keys:", Object.keys(req.body));
-      console.log(
-        "Request files:",
-        req.files
-          ? `Found ${
-              Array.isArray(req.files) ? req.files.length : "unknown"
-            } files`
-          : "No files found"
-      );
-
       // Check if files were uploaded
       if (!req.files || (Array.isArray(req.files) && req.files.length === 0)) {
+        console.error("No files uploaded in request");
         return res.status(400).json({ error: "No files uploaded" });
       }
 
@@ -11726,11 +11717,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             `Error processing file ${file.originalname}:`,
             fileError
           );
-          // Continue with other files even if one fails
+          // Return the S3 or storage error to the frontend for debugging
+          return res.status(500).json({ error: `Failed to upload file: ${file.originalname}. ${fileError instanceof Error ? fileError.message : fileError}` });
         }
       }
 
       if (uploadedItems.length === 0) {
+        console.error("Failed to upload any files (all failed)");
         return res.status(500).json({ error: "Failed to upload any files" });
       }
 
@@ -11746,7 +11739,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       console.error("Error uploading media items:", error);
-      res.status(500).json({ error: "Failed to upload media items" });
+      // Return the real error message for debugging
+      res.status(500).json({ error: error instanceof Error ? error.message : "Failed to upload media items" });
     }
   });
 
