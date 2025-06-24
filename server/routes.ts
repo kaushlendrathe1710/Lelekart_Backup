@@ -5134,28 +5134,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.createOrderItem(orderItemData);
       }
 
-      // Check if this is a multi-seller order and process it
-      const sellerIds = new Set(cartItems.map((item) => item.product.sellerId));
-      console.log(`Order contains products from ${sellerIds.size} sellers`);
-
-      if (sellerIds.size > 1) {
-        console.log(
-          "This is a multi-seller order. Processing seller-specific orders..."
-        );
-        try {
-          await multiSellerOrderHandler.processMultiSellerOrder(order.id);
-          console.log("Multi-seller order processing completed successfully");
-        } catch (multiSellerError) {
-          console.error(
-            "Error processing multi-seller order:",
-            multiSellerError
-          );
-          // Continue with the order even if multi-seller processing fails
+      // Award first purchase wallet coins if eligible
+      try {
+        const rewardResult = await storage.processFirstPurchaseReward(req.user.id, order.id);
+        if (rewardResult) {
+          console.log(`Awarded first purchase wallet coins to user ${req.user.id} for order #${order.id}`);
+        } else {
+          console.log(`No first purchase reward given (already awarded or not eligible) for user ${req.user.id} and order #${order.id}`);
         }
-      } else {
-        console.log(
-          "This is a single-seller order. No need for special processing."
+      } catch (rewardError) {
+        console.error(`Error awarding first purchase wallet coins for user ${req.user.id} and order #${order.id}:`, rewardError);
+      }
+
+      // Always process order for admin/seller notifications (single or multi-seller)
+      try {
+        await multiSellerOrderHandler.processMultiSellerOrder(order.id);
+        console.log("Order processing for notifications completed successfully");
+      } catch (multiSellerError) {
+        console.error(
+          "Error processing order for notifications:",
+          multiSellerError
         );
+        // Continue with the order even if notification processing fails
       }
 
       // Process wallet redemption if needed
@@ -5511,6 +5511,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         console.log("Creating order item:", orderItemData);
         await storage.createOrderItem(orderItemData);
+      }
+
+      // Award first purchase wallet coins if eligible
+      try {
+        const rewardResult = await storage.processFirstPurchaseReward(req.user.id, order.id);
+        if (rewardResult) {
+          console.log(`Awarded first purchase wallet coins to user ${req.user.id} for order #${order.id}`);
+        } else {
+          console.log(`No first purchase reward given (already awarded or not eligible) for user ${req.user.id} and order #${order.id}`);
+        }
+      } catch (rewardError) {
+        console.error(`Error awarding first purchase wallet coins for user ${req.user.id} and order #${order.id}:`, rewardError);
       }
 
       // Create seller-specific sub-orders

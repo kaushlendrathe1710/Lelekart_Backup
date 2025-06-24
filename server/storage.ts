@@ -9154,9 +9154,11 @@ export class DatabaseStorage implements IStorage {
     orderId: number
   ): Promise<SelectWallet | null> {
     try {
+      console.log(`[WALLET] processFirstPurchaseReward called for user ${userId}, order ${orderId}`);
       // Check if this is the user's first purchase
       const wallet = await this.getUserWallet(userId);
       if (!wallet) {
+        console.log(`[WALLET] No wallet found for user ${userId}`);
         return null;
       }
 
@@ -9172,26 +9174,31 @@ export class DatabaseStorage implements IStorage {
 
       // If user already has a first purchase reward, don't give another
       if (transactions.length > 0) {
+        console.log(`[WALLET] User ${userId} already received first purchase reward, skipping.`);
         return null;
       }
 
       // Get wallet settings
       const settings = await this.getWalletSettings();
       if (!settings || !settings.isEnabled) {
+        console.log(`[WALLET] Wallet settings not found or not enabled for user ${userId}`);
         return null;
       }
 
       // Add first purchase reward
       const coinsToAdd = settings.firstPurchaseCoins;
       const description = "First purchase reward";
+      console.log(`[WALLET] Awarding ${coinsToAdd} coins to user ${userId} for first purchase (order ${orderId})`);
 
-      return await this.addCoinsToWallet(
+      const updatedWallet = await this.addCoinsToWallet(
         userId,
         coinsToAdd,
         "FIRST_PURCHASE",
         orderId,
         description
       );
+      console.log(`[WALLET] Coins added. New balance for user ${userId}: ${updatedWallet.balance}`);
+      return updatedWallet;
     } catch (error) {
       console.error(
         `Error processing first purchase reward for user ${userId}:`,
