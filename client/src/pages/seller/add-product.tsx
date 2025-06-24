@@ -145,17 +145,8 @@ const productSchema = z.object({
     .optional(),
   sku: z.string().optional(), // Made SKU optional
   category: z.string().min(1, "Please select a category"),
-  subcategory: z.string().optional(),
-  subcategoryId: z
-    .union([
-      z.number().nullable(),
-      z
-        .string()
-        .nullable()
-        .transform((val) => (val ? Number(val) : null)),
-    ])
-    .optional()
-    .nullable(),
+  subcategory1: z.string().optional(),
+  subcategory2: z.string().optional(),
   brand: z.string().optional().nullable(),
   stock: z.coerce
     .number()
@@ -287,27 +278,21 @@ export default function AddProductPage() {
       gstRate: "",
       sku: "", // Initialize as empty string
       category: "",
-      subcategory: "",
-      subcategoryId: null,
+      subcategory1: "",
+      subcategory2: "",
       brand: "",
       color: "",
       size: "",
-      stock: 0,
-      weight: null,
-      height: null,
-      width: null,
-      length: null,
-      warranty: null,
-      hsn: "",
-      tax: "18",
-      productType: "physical",
-      returnPolicy: "7",
-      customReturnPolicy: "",
+      stock: "",
+      weight: "",
+      height: "",
+      width: "",
+      length: "",
     },
   });
 
   // Watch important fields to calculate completion and for GST calculation
-  const watchedFields = form.watch([
+  const [watchedName, watchedCategory, watchedPrice, watchedDescription, watchedStock, watchedGstRate] = form.watch([
     "name",
     "category",
     "price",
@@ -350,15 +335,11 @@ export default function AddProductPage() {
   const getCompletionStatus = () => {
     const basicFields = ["name", "category", "price"];
     const descriptionComplete =
-      watchedFields.description && watchedFields.description.length >= 20;
+      watchedDescription && watchedDescription.length >= 20;
     const inventoryFields = ["stock"];
 
-    const basicComplete = basicFields.every(
-      (field) => watchedFields[field as keyof typeof watchedFields]
-    );
-    const inventoryComplete = inventoryFields.every(
-      (field) => watchedFields[field as keyof typeof watchedFields]
-    );
+    const basicComplete = watchedName && watchedCategory && watchedPrice;
+    const inventoryComplete = watchedStock !== undefined && watchedStock !== "";
     const imagesComplete = uploadedImages.length > 0;
 
     const total = [
@@ -1113,16 +1094,15 @@ export default function AddProductPage() {
         name: data.name,
         description: data.description,
         specifications: data.specifications,
-        price: parseFloat(data.price),
-        mrp: parseFloat(data.mrp),
+        price: data.price ? parseFloat(data.price) : 0,
+        mrp: data.mrp ? parseFloat(data.mrp) : 0,
         purchasePrice: data.purchasePrice
           ? parseFloat(data.purchasePrice)
           : undefined,
         gstRate: data.gstRate || getSelectedCategoryGstRate().toString() || "0",
         category: data.category,
-        subcategory:
-          data.subcategory === "none" ? null : data.subcategory || null,
-        subcategoryId: data.subcategoryId || null,
+        subcategory1: data.subcategory1 || null,
+        subcategory2: data.subcategory2 || null,
         brand: data.brand,
         color: data.color,
         size: data.size,
@@ -1130,7 +1110,7 @@ export default function AddProductPage() {
           uploadedImages[0] ||
           "https://placehold.co/600x400?text=Product+Image",
         images: JSON.stringify(uploadedImages),
-        stock: parseInt(data.stock),
+        stock: data.stock ? parseInt(data.stock) : 0,
         weight: data.weight ? parseFloat(data.weight) : undefined,
         height: data.height ? parseFloat(data.height) : undefined,
         width: data.width ? parseFloat(data.width) : undefined,
@@ -1189,20 +1169,18 @@ export default function AddProductPage() {
         name: formData.name,
         description: formData.description,
         specifications: formData.specifications,
-        price: parseInt(formData.price),
-        mrp: parseInt(formData.mrp),
+        price: formData.price ? parseInt(formData.price) : 0,
+        mrp: formData.mrp ? parseInt(formData.mrp) : 0,
         purchasePrice: formData.purchasePrice
           ? parseFloat(formData.purchasePrice)
           : undefined,
         gstRate:
           formData.gstRate ||
-          formData.tax ||
           getSelectedCategoryGstRate().toString() ||
           "0",
         category: formData.category,
-        subcategory:
-          formData.subcategory === "none" ? null : formData.subcategory || null,
-        subcategoryId: formData.subcategoryId || null,
+        subcategory1: formData.subcategory1 || null,
+        subcategory2: formData.subcategory2 || null,
         brand: formData.brand,
         color: formData.color,
         size: formData.size,
@@ -1210,17 +1188,11 @@ export default function AddProductPage() {
           uploadedImages[0] ||
           "https://placehold.co/600x400?text=Product+Image",
         images: JSON.stringify(uploadedImages),
-        stock: parseInt(formData.stock),
+        stock: formData.stock ? parseInt(formData.stock) : 0,
         weight: formData.weight ? parseFloat(formData.weight) : undefined,
         height: formData.height ? parseFloat(formData.height) : undefined,
         width: formData.width ? parseFloat(formData.width) : undefined,
         length: formData.length ? parseFloat(formData.length) : undefined,
-        warranty: formData.warranty ? parseInt(formData.warranty) : undefined,
-        hsn: formData.hsn,
-        productType: formData.productType,
-        returnPolicy: isStandardReturnPolicy(formData.returnPolicy)
-          ? formData.returnPolicy
-          : formData.customReturnPolicy,
         variants: [...variants, ...draftVariants],
         isDraft: true,
       };
@@ -1496,9 +1468,9 @@ export default function AddProductPage() {
                           <Select
                             onValueChange={(value) => {
                               field.onChange(value);
-                              // Clear subcategory when category changes
-                              form.setValue("subcategory", "");
-                              form.setValue("subcategoryId", null);
+                              // Clear subcategory1 and subcategory2 when category changes
+                              form.setValue("subcategory1", "");
+                              form.setValue("subcategory2", "");
                             }}
                             defaultValue={field.value}
                           >
@@ -1522,83 +1494,47 @@ export default function AddProductPage() {
                         </FormItem>
                       )}
                     />
+                  </div>
 
+                  {/* New Subcategory1 and Subcategory2 fields */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
                       control={form.control}
-                      name="subcategory"
-                      render={({ field }) => {
-                        // Get currently selected category
-                        const selectedCategory = form.watch("category");
-
-                        // Find the category object to get its ID
-                        const categoryObject = categories?.find(
-                          (c: any) => c.name === selectedCategory
-                        );
-
-                        // Filter subcategories by the selected category
-                        const filteredSubcategories =
-                          subcategories?.filter((sc: any) => {
-                            return (
-                              categoryObject &&
-                              sc.categoryId === categoryObject.id
-                            );
-                          }) || [];
-
-                        return (
-                          <FormItem>
-                            <FormLabel>Subcategory</FormLabel>
-                            <FormControl>
-                              <Select
-                                onValueChange={(value) => {
-                                  // Update the subcategory name
-                                  field.onChange(value);
-
-                                  if (value === "none") {
-                                    // If None is selected, set subcategoryId to null
-                                    form.setValue("subcategoryId", null);
-                                    // Also set subcategory to empty string for consistency
-                                    form.setValue("subcategory", "");
-                                  } else {
-                                    // Find the subcategory in the data to get its ID
-                                    const subcategory = subcategories?.find(
-                                      (sc: any) => sc.name === value
-                                    );
-                                    if (subcategory) {
-                                      form.setValue(
-                                        "subcategoryId",
-                                        subcategory.id
-                                      );
-                                    }
-                                  }
-                                }}
-                                value={field.value || "none"}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select a subcategory (optional)" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="none">None</SelectItem>
-                                  {filteredSubcategories.map(
-                                    (subcategory: any) => (
-                                      <SelectItem
-                                        key={subcategory.id}
-                                        value={subcategory.name}
-                                      >
-                                        {subcategory.name}
-                                      </SelectItem>
-                                    )
-                                  )}
-                                </SelectContent>
-                              </Select>
-                            </FormControl>
-                            <FormDescription>
-                              Choose a subcategory for better product
-                              classification
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        );
-                      }}
+                      name="subcategory1"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Subcategory 1</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Type any subcategory related to this product"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            You can type any subcategory related to the category above.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="subcategory2"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Subcategory 2</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Type another subcategory (optional)"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            You can add a second subcategory if needed.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
                   </div>
 
@@ -1626,7 +1562,7 @@ export default function AddProductPage() {
                               />
                             </div>
                           </FormControl>
-                          {watchedFields.category && (
+                          {watchedCategory && (
                             <FormDescription className="text-sm text-blue-600 mt-1 flex items-center">
                               <InfoIcon className="h-4 w-4 mr-1" />
                               This price includes GST (
@@ -1730,7 +1666,7 @@ export default function AddProductPage() {
                   />
 
                   {/* GST Information Display */}
-                  {watchedFields.price > 0 && watchedFields.category && (
+                  {watchedPrice > 0 && watchedCategory && (
                     <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
                       <div className="flex items-center mb-2">
                         <InfoIcon className="h-5 w-5 text-blue-500 mr-2" />
@@ -1749,7 +1685,7 @@ export default function AddProductPage() {
                             <>
                               <p className="text-slate-600">
                                 <span className="font-medium">Category:</span>{" "}
-                                {watchedFields.category}
+                                {watchedCategory}
                               </p>
                               <p className="text-slate-600">
                                 <span className="font-medium">

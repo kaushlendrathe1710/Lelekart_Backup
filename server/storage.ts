@@ -3211,6 +3211,14 @@ export class DatabaseStorage implements IStorage {
       console.log("Setting gstRate from gst_rate:", productToInsert.gstRate);
     }
 
+    // Handle subcategory1 and subcategory2 (free text fields)
+    if (insertProduct.subcategory1 !== undefined) {
+      productToInsert.subcategory1 = insertProduct.subcategory1;
+    }
+    if (insertProduct.subcategory2 !== undefined) {
+      productToInsert.subcategory2 = insertProduct.subcategory2;
+    }
+
     console.log("Creating product with final data:", {
       imageUrl: productToInsert.imageUrl,
       image_url: productToInsert.image_url,
@@ -3218,6 +3226,8 @@ export class DatabaseStorage implements IStorage {
       purchasePrice: productToInsert.purchasePrice,
       gst_rate: productToInsert.gst_rate,
       gstRate: productToInsert.gstRate,
+      subcategory1: productToInsert.subcategory1,
+      subcategory2: productToInsert.subcategory2,
     });
 
     try {

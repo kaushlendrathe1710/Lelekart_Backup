@@ -158,17 +158,8 @@ const productSchema = z
       .optional(),
     sku: z.string().min(2, "SKU is required"),
     category: z.string().min(1, "Please select a category"),
-    subcategory: z.string().optional(),
-    subcategoryId: z
-      .union([
-        z.number().nullable(),
-        z
-          .string()
-          .nullable()
-          .transform((val) => (val ? Number(val) : null)),
-      ])
-      .optional()
-      .nullable(),
+    subcategory1: z.string().optional(),
+    subcategory2: z.string().optional(),
     brand: z.string().min(2, "Brand name is required"),
     // The stock field validation will be skipped when variants are present
     stock: z
@@ -471,7 +462,8 @@ export default function EditProductPage() {
       gstRate: "",
       sku: "",
       category: "",
-      subcategory: "",
+      subcategory1: "",
+      subcategory2: "",
       brand: "",
       color: "",
       size: "",
@@ -783,8 +775,8 @@ export default function EditProductPage() {
         gstRate: gstRateValue,
         sku: product.sku || product.id?.toString() || "",
         category: product.category || "",
-        subcategory: product.subcategory || "none",
-        subcategoryId: product.subcategoryId || null,
+        subcategory1: product.subcategory1 || "",
+        subcategory2: product.subcategory2 || "",
         brand: product.brand || "Brand",
         color: product.color || "",
         size: product.size || "",
@@ -1432,9 +1424,8 @@ export default function EditProductPage() {
           : undefined,
         gstRate: gstRateValue || "0",
         category: data.category,
-        subcategory:
-          data.subcategory === "none" ? null : data.subcategory || null,
-        subcategoryId: data.subcategoryId || null,
+        subcategory1: data.subcategory1 || null,
+        subcategory2: data.subcategory2 || null,
         brand: data.brand,
         color: data.color,
         size: data.size,
@@ -2519,11 +2510,11 @@ export default function EditProductPage() {
                                 <Select
                                   onValueChange={(value) => {
                                     field.onChange(value);
-                                    // Clear subcategory when category changes
-                                    form.setValue("subcategory", "");
-                                    form.setValue("subcategoryId", null);
+                                    // Clear subcategory1 and subcategory2 when category changes
+                                    form.setValue("subcategory1", "");
+                                    form.setValue("subcategory2", "");
                                   }}
-                                  value={field.value}
+                                  defaultValue={field.value}
                                 >
                                   <FormControl>
                                     <SelectTrigger>
@@ -2531,7 +2522,7 @@ export default function EditProductPage() {
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    {categories.map((category: any) => (
+                                    {categories?.map((category: any) => (
                                       <SelectItem
                                         key={category.id}
                                         value={category.name}
@@ -2548,88 +2539,50 @@ export default function EditProductPage() {
                               </FormItem>
                             )}
                           />
-
+                        </div>
+                        {/* New Subcategory1 and Subcategory2 fields */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <FormField
                             control={form.control}
-                            name="subcategory"
-                            render={({ field }) => {
-                              // Get currently selected category
-                              const selectedCategory = form.watch("category");
-
-                              // Find the category object to get its ID
-                              const categoryObject = categories?.find(
-                                (c: any) => c.name === selectedCategory
-                              );
-
-                              // Filter subcategories by the selected category
-                              const filteredSubcategories =
-                                subcategories?.filter((sc: any) => {
-                                  return (
-                                    categoryObject &&
-                                    sc.categoryId === categoryObject.id
-                                  );
-                                }) || [];
-
-                              return (
-                                <FormItem>
-                                  <FormLabel>Subcategory</FormLabel>
-                                  <FormControl>
-                                    <Select
-                                      onValueChange={(value) => {
-                                        // Update the subcategory name
-                                        field.onChange(value);
-
-                                        if (value === "none") {
-                                          // If None is selected, set subcategoryId to null
-                                          form.setValue("subcategoryId", null);
-                                          // Also set subcategory to empty string for consistency
-                                          form.setValue("subcategory", "");
-                                        } else {
-                                          // Find the subcategory in the data to get its ID
-                                          const subcategory =
-                                            subcategories?.find(
-                                              (sc: any) => sc.name === value
-                                            );
-                                          if (subcategory) {
-                                            form.setValue(
-                                              "subcategoryId",
-                                              subcategory.id
-                                            );
-                                          }
-                                        }
-                                      }}
-                                      value={field.value || "none"}
-                                    >
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select a subcategory (optional)" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="none">
-                                          None
-                                        </SelectItem>
-                                        {filteredSubcategories.map(
-                                          (subcategory: any) => (
-                                            <SelectItem
-                                              key={subcategory.id}
-                                              value={subcategory.name}
-                                            >
-                                              {subcategory.name}
-                                            </SelectItem>
-                                          )
-                                        )}
-                                      </SelectContent>
-                                    </Select>
-                                  </FormControl>
-                                  <FormDescription>
-                                    Choose a subcategory for better product
-                                    classification
-                                  </FormDescription>
-                                  <FormMessage />
-                                </FormItem>
-                              );
-                            }}
+                            name="subcategory1"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Subcategory 1</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    placeholder="Type any subcategory related to this product"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormDescription>
+                                  You can type any subcategory related to the category above.
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
                           />
+                          <FormField
+                            control={form.control}
+                            name="subcategory2"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Subcategory 2</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    placeholder="Type another subcategory (optional)"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormDescription>
+                                  You can add a second subcategory if needed.
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
 
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <FormField
                             control={form.control}
                             name="tax"

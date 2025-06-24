@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Link, useLocation } from "wouter";
 import { AuthContext } from "@/hooks/use-auth";
-import { useContext } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { User } from "@shared/schema";
 import { 
@@ -76,6 +76,66 @@ export default function BuyerDashboardPage() {
     "Loading:", isLoading,
     "API Error:", apiError?.message || "none"
   );
+  
+  // Fetch recent orders (limit 3)
+  interface OrderSummary { id: number; date: string; status: string; }
+  const { data: recentOrders = [], isLoading: loadingOrders } = useQuery<OrderSummary[]>({
+    queryKey: ["/api/orders", { limit: 3 }],
+    queryFn: async () => {
+      const res = await fetch("/api/orders", { credentials: "include" });
+      if (!res.ok) return [];
+      const data = await res.json();
+      // Sort by date desc, take 3
+      return (data || []).sort((a: OrderSummary, b: OrderSummary) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 3);
+    },
+    enabled: !!user,
+  });
+
+  // Fetch recent reviews (limit 3)
+  interface ReviewSummary { id: number; createdAt: string; rating: number; product?: { id: number; name: string }; }
+  const { data: recentReviews = [], isLoading: loadingReviews } = useQuery<ReviewSummary[]>({
+    queryKey: ["/api/user/reviews", { limit: 3 }],
+    queryFn: async () => {
+      const res = await fetch("/api/user/reviews", { credentials: "include" });
+      if (!res.ok) return [];
+      const data = await res.json();
+      // Sort by date desc, take 3
+      return (data || []).sort((a: ReviewSummary, b: ReviewSummary) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 3);
+    },
+    enabled: !!user,
+  });
+  
+  // Recently viewed products state
+  const [recentlyViewed, setRecentlyViewed] = useState<any[]>([]);
+  const [loadingRecentlyViewed, setLoadingRecentlyViewed] = useState(true);
+
+  useEffect(() => {
+    async function fetchRecentlyViewed() {
+      setLoadingRecentlyViewed(true);
+      try {
+        // Get product IDs from localStorage (most recent first)
+        const ids = JSON.parse(localStorage.getItem('recently_viewed_products') || '[]');
+        if (!Array.isArray(ids) || ids.length === 0) {
+          setRecentlyViewed([]);
+          setLoadingRecentlyViewed(false);
+          return;
+        }
+        // Fetch product details for up to 6 products
+        const limitedIds = ids.slice(0, 6);
+        const res = await fetch(`/api/products?ids=${limitedIds.join(',')}`);
+        if (!res.ok) throw new Error('Failed to fetch products');
+        const data = await res.json();
+        // Keep the order as in limitedIds
+        const ordered = limitedIds.map((id: number) => data.find((p: any) => p.id === id)).filter(Boolean);
+        setRecentlyViewed(ordered);
+      } catch (e) {
+        setRecentlyViewed([]);
+      } finally {
+        setLoadingRecentlyViewed(false);
+      }
+    }
+    fetchRecentlyViewed();
+  }, []);
   
   // Show loading state while fetching user data
   if (isLoading) {
@@ -179,7 +239,7 @@ export default function BuyerDashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center cursor-pointer" onClick={() => setLocation('/orders')}>
                   <div className="flex items-center">
                     <div className="bg-blue-100 rounded-full p-2 mr-3">
                       <ShoppingBag className="h-5 w-5 text-primary" />
@@ -192,7 +252,7 @@ export default function BuyerDashboardPage() {
                   <ChevronRight className="h-5 w-5 text-muted-foreground" />
                 </div>
                 
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center cursor-pointer" onClick={() => setLocation('/buyer/wishlist')}>
                   <div className="flex items-center">
                     <div className="bg-purple-100 rounded-full p-2 mr-3">
                       <Heart className="h-5 w-5 text-purple-500" />
@@ -205,7 +265,7 @@ export default function BuyerDashboardPage() {
                   <ChevronRight className="h-5 w-5 text-muted-foreground" />
                 </div>
                 
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center cursor-pointer" onClick={() => setLocation('/buyer/reviews')}>
                   <div className="flex items-center">
                     <div className="bg-orange-100 rounded-full p-2 mr-3">
                       <AlertCircle className="h-5 w-5 text-orange-500" />
@@ -234,34 +294,73 @@ export default function BuyerDashboardPage() {
                   <TabsTrigger value="reviews" className="flex-1">Reviews</TabsTrigger>
                 </TabsList>
                 <TabsContent value="orders" className="pt-4">
-                  <div className="space-y-4">
+                  {loadingOrders ? (
+                    <div className="flex items-center justify-center py-8 text-center flex-col">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
+                      <h3 className="text-sm font-medium">Loading recent orders...</h3>
+                    </div>
+                  ) : recentOrders.length > 0 ? (
+                    <div className="space-y-4">
+                      {recentOrders.map((order: OrderSummary) => (
+                        <div key={order.id} className="flex justify-between items-center border rounded-md p-3">
+                          <div>
+                            <div className="font-medium">Order #{order.id}</div>
+                            <div className="text-xs text-muted-foreground">{new Date(order.date).toLocaleDateString()} &middot; {order.status}</div>
+                          </div>
+                          <Button asChild variant="link" size="sm">
+                            <Link href={`/orders/${order.id}`}>View</Link>
+                          </Button>
+                        </div>
+                      ))}
+                      <Button asChild variant="outline" size="sm" className="w-full mt-2">
+                        <Link href="/orders">View All Orders</Link>
+                      </Button>
+                    </div>
+                  ) : (
                     <div className="flex items-center justify-center py-8 text-center flex-col">
                       <div className="bg-gray-100 rounded-full p-3 mb-3">
                         <Package className="h-6 w-6 text-muted-foreground" />
                       </div>
                       <h3 className="text-sm font-medium">No recent orders</h3>
                       <p className="text-xs text-muted-foreground mt-1">Your recent orders will appear here</p>
-                      <Button 
-                        variant="link" 
-                        size="sm"
-                        className="mt-2"
-                        asChild
-                      >
-                        <Link href="/">
-                          Browse Products
-                        </Link>
+                      <Button variant="link" size="sm" className="mt-2" asChild>
+                        <Link href="/">Browse Products</Link>
                       </Button>
                     </div>
-                  </div>
+                  )}
                 </TabsContent>
                 <TabsContent value="reviews" className="pt-4">
-                  <div className="flex items-center justify-center py-8 text-center flex-col">
-                    <div className="bg-gray-100 rounded-full p-3 mb-3">
-                      <ClipboardList className="h-6 w-6 text-muted-foreground" />
+                  {loadingReviews ? (
+                    <div className="flex items-center justify-center py-8 text-center flex-col">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
+                      <h3 className="text-sm font-medium">Loading recent reviews...</h3>
                     </div>
-                    <h3 className="text-sm font-medium">No reviews yet</h3>
-                    <p className="text-xs text-muted-foreground mt-1">Your product reviews will appear here</p>
-                  </div>
+                  ) : recentReviews.length > 0 ? (
+                    <div className="space-y-4">
+                      {recentReviews.map((review: ReviewSummary) => (
+                        <div key={review.id} className="flex justify-between items-center border rounded-md p-3">
+                          <div>
+                            <div className="font-medium">{review.product?.name || "Product"}</div>
+                            <div className="text-xs text-muted-foreground">{new Date(review.createdAt).toLocaleDateString()} &middot; {review.rating}/5</div>
+                          </div>
+                          <Button asChild variant="link" size="sm">
+                            <Link href={`/product/${review.product?.id}`}>View</Link>
+                          </Button>
+                        </div>
+                      ))}
+                      <Button asChild variant="outline" size="sm" className="w-full mt-2">
+                        <Link href="/buyer/reviews">View All Reviews</Link>
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center py-8 text-center flex-col">
+                      <div className="bg-gray-100 rounded-full p-3 mb-3">
+                        <ClipboardList className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                      <h3 className="text-sm font-medium">No reviews yet</h3>
+                      <p className="text-xs text-muted-foreground mt-1">Your product reviews will appear here</p>
+                    </div>
+                  )}
                 </TabsContent>
               </Tabs>
             </CardContent>
@@ -335,23 +434,34 @@ export default function BuyerDashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-center py-8 text-center flex-col">
-              <div className="bg-gray-100 rounded-full p-3 mb-3">
-                <Clock className="h-6 w-6 text-muted-foreground" />
+            {loadingRecentlyViewed ? (
+              <div className="flex items-center justify-center py-8 text-center flex-col">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
+                <h3 className="text-sm font-medium">Loading recently viewed products...</h3>
               </div>
-              <h3 className="text-sm font-medium">No recently viewed products</h3>
-              <p className="text-xs text-muted-foreground mt-1">Products you view will appear here</p>
-              <Button 
-                variant="link" 
-                size="sm"
-                className="mt-2"
-                asChild
-              >
-                <Link href="/">
-                  Browse Products
-                </Link>
-              </Button>
-            </div>
+            ) : recentlyViewed.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+                {recentlyViewed.map((product: any) => (
+                  <div key={product.id} className="flex flex-col items-center border rounded-md p-2">
+                    <a href={`/product/${product.id}`} className="block w-full">
+                      <img src={product.imageUrl || (product.images && JSON.parse(product.images)[0]) || 'https://via.placeholder.com/100?text=Product'} alt={product.name} className="w-20 h-20 object-cover rounded mb-2 mx-auto" />
+                      <div className="text-xs font-medium text-center line-clamp-2">{product.name}</div>
+                    </a>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center py-8 text-center flex-col">
+                <div className="bg-gray-100 rounded-full p-3 mb-3">
+                  <Clock className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <h3 className="text-sm font-medium">No recently viewed products</h3>
+                <p className="text-xs text-muted-foreground mt-1">Products you view will appear here</p>
+                <Button variant="link" size="sm" className="mt-2" asChild>
+                  <Link href="/">Browse Products</Link>
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

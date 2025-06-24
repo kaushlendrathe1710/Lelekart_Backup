@@ -92,6 +92,8 @@ export const products = pgTable("products", {
   category: text("category").notNull(),
   categoryId: integer("category_id").references(() => categories.id), // Reference to categories table
   subcategoryId: integer("subcategory_id").references(() => subcategories.id), // Reference to subcategories table
+  subcategory1: text("subcategory1"), // Free text subcategory 1
+  subcategory2: text("subcategory2"), // Free text subcategory 2
   color: text("color"), // Product color
   size: text("size"), // Product size
   imageUrl: text("image_url"), // Now optional
@@ -123,6 +125,8 @@ export const insertProductSchema = createInsertSchema(products).pick({
   category: true,
   categoryId: true,
   subcategoryId: true,
+  subcategory1: true,
+  subcategory2: true,
   color: true,
   size: true,
   imageUrl: true,
