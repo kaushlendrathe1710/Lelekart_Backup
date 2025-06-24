@@ -5134,28 +5134,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.createOrderItem(orderItemData);
       }
 
-      // Check if this is a multi-seller order and process it
-      const sellerIds = new Set(cartItems.map((item) => item.product.sellerId));
-      console.log(`Order contains products from ${sellerIds.size} sellers`);
-
-      if (sellerIds.size > 1) {
-        console.log(
-          "This is a multi-seller order. Processing seller-specific orders..."
-        );
-        try {
-          await multiSellerOrderHandler.processMultiSellerOrder(order.id);
-          console.log("Multi-seller order processing completed successfully");
-        } catch (multiSellerError) {
-          console.error(
-            "Error processing multi-seller order:",
-            multiSellerError
-          );
-          // Continue with the order even if multi-seller processing fails
+      // Award first purchase wallet coins if eligible
+      try {
+        const rewardResult = await storage.processFirstPurchaseReward(req.user.id, order.id);
+        if (rewardResult) {
+          console.log(`Awarded first purchase wallet coins to user ${req.user.id} for order #${order.id}`);
+        } else {
+          console.log(`No first purchase reward given (already awarded or not eligible) for user ${req.user.id} and order #${order.id}`);
         }
-      } else {
-        console.log(
-          "This is a single-seller order. No need for special processing."
+      } catch (rewardError) {
+        console.error(`Error awarding first purchase wallet coins for user ${req.user.id} and order #${order.id}:`, rewardError);
+      }
+
+      // Always process order for admin/seller notifications (single or multi-seller)
+      try {
+        await multiSellerOrderHandler.processMultiSellerOrder(order.id);
+        console.log("Order processing for notifications completed successfully");
+      } catch (multiSellerError) {
+        console.error(
+          "Error processing order for notifications:",
+          multiSellerError
         );
+        // Continue with the order even if notification processing fails
       }
 
       // Process wallet redemption if needed
@@ -5511,6 +5511,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         console.log("Creating order item:", orderItemData);
         await storage.createOrderItem(orderItemData);
+      }
+
+      // Award first purchase wallet coins if eligible
+      try {
+        const rewardResult = await storage.processFirstPurchaseReward(req.user.id, order.id);
+        if (rewardResult) {
+          console.log(`Awarded first purchase wallet coins to user ${req.user.id} for order #${order.id}`);
+        } else {
+          console.log(`No first purchase reward given (already awarded or not eligible) for user ${req.user.id} and order #${order.id}`);
+        }
+      } catch (rewardError) {
+        console.error(`Error awarding first purchase wallet coins for user ${req.user.id} and order #${order.id}:`, rewardError);
       }
 
       // Create seller-specific sub-orders
@@ -11652,6 +11664,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/media", upload.array("file", 10), async (req, res) => {
     try {
       console.log("Media upload request received");
+      console.log("Request headers:", req.headers);
+      console.log("Request body keys:", Object.keys(req.body));
+      console.log("Request files:", req.files ? `Found ${Array.isArray(req.files) ? req.files.length : "unknown"} files` : "No files found");
 
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: "Authentication required" });
@@ -11659,9 +11674,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const user = req.user;
       console.log(
-        `User: ${user.username}, Role: ${user.role}, Co-Admin: ${
-          user.isCoAdmin ? "Yes" : "No"
-        }`
+        `User: ${user.username}, Role: ${user.role}, Co-Admin: ${user.isCoAdmin ? "Yes" : "No"}`
       );
 
       // Only admin, co-admin, or sellers can upload to the media library
@@ -11669,19 +11682,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Access denied" });
       }
 
-      // Log request details
-      console.log("Request body keys:", Object.keys(req.body));
-      console.log(
-        "Request files:",
-        req.files
-          ? `Found ${
-              Array.isArray(req.files) ? req.files.length : "unknown"
-            } files`
-          : "No files found"
-      );
-
       // Check if files were uploaded
       if (!req.files || (Array.isArray(req.files) && req.files.length === 0)) {
+        console.error("No files uploaded in request");
         return res.status(400).json({ error: "No files uploaded" });
       }
 
@@ -11726,11 +11729,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             `Error processing file ${file.originalname}:`,
             fileError
           );
-          // Continue with other files even if one fails
+          // Return the S3 or storage error to the frontend for debugging
+          return res.status(500).json({ error: `Failed to upload file: ${file.originalname}. ${fileError instanceof Error ? fileError.message : fileError}` });
         }
       }
 
       if (uploadedItems.length === 0) {
+        console.error("Failed to upload any files (all failed)");
         return res.status(500).json({ error: "Failed to upload any files" });
       }
 
@@ -11746,7 +11751,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       console.error("Error uploading media items:", error);
-      res.status(500).json({ error: "Failed to upload media items" });
+      // Return the real error message for debugging
+      res.status(500).json({ error: error instanceof Error ? error.message : "Failed to upload media items" });
     }
   });
 
