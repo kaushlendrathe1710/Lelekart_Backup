@@ -3417,6 +3417,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           height: productData.height ? Number(productData.height) : null,
           // Handle warranty
           warranty: productData.warranty ? Number(productData.warranty) : null,
+          // Add subcategory1 and subcategory2 (free text)
+          subcategory1: productData.subcategory1 || null,
+          subcategory2: productData.subcategory2 || null,
         };
 
         // Validate numeric fields
@@ -3614,6 +3617,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         height: productData.height ? Number(productData.height) : null,
         // Handle warranty
         warranty: productData.warranty ? Number(productData.warranty) : null,
+        // Add subcategory1 and subcategory2 (free text)
+        subcategory1: productData.subcategory1 || null,
+        subcategory2: productData.subcategory2 || null,
       };
 
       // Validate numeric fields

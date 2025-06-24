@@ -84,6 +84,7 @@ export function NotificationBell({
         </Tabs>
       </PopoverContent>
     </Popover>
+  );
 }
 
 function NotificationActions() {
