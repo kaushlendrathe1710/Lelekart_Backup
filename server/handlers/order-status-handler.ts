@@ -6,6 +6,7 @@
 
 import { storage } from "../storage";
 import { sendEmail } from "../services/email-service";
+import { sendNotificationToUser } from "../websocket";
 
 /**
  * Handle order status change, including related business logic like refunds
@@ -59,8 +60,48 @@ export async function handleOrderStatusChange(
     }
     
     // Update the order status
-    const updatedOrder = await storage.updateOrder(orderId, { status });
+    console.log(`Current order status: ${order.status}, Next status: ${status}`);
+    let updatedOrder;
+    try {
+      updatedOrder = await storage.updateOrderStatus(orderId, status);
+    } catch (err) {
+      console.error('Error updating order status:', err);
+      throw new Error('Order status update failed: ' + (err && err.message ? err.message : err));
+    }
     console.log(`Updated order #${orderId} status to ${status}`);
+    
+    // After notifying buyer and seller, notify all admins
+    const adminUsers = await storage.getAllAdminUsers(false); // false = exclude co-admins
+    for (const admin of adminUsers) {
+      await storage.createNotification({
+        userId: admin.id,
+        type: "ORDER_STATUS",
+        title: `Order #${orderId} ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+        message: `Order #${orderId} status updated to ${status}.`,
+        read: false,
+        link: `/admin/orders/${orderId}`,
+        metadata: JSON.stringify({ orderId, status })
+      });
+      await sendNotificationToUser(admin.id, {
+        type: "ORDER_STATUS",
+        title: `Order #${orderId} ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+        message: `Order #${orderId} status updated to ${status}.`,
+        read: false,
+        link: `/admin/orders/${orderId}`,
+        metadata: JSON.stringify({ orderId, status })
+      });
+    }
+    
+    // Always create a permanent notification for the buyer
+    await storage.createNotification({
+      userId: order.userId,
+      type: "ORDER_STATUS",
+      title: `Order #${orderId} ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+      message: `Your order #${orderId} status updated to ${status}.`,
+      read: false,
+      link: `/orders/${orderId}`,
+      metadata: JSON.stringify({ orderId, status })
+    });
     
     return updatedOrder;
   } catch (error) {
@@ -128,6 +169,28 @@ export async function updateOrderStatus(
           }
         });
       }
+      // Permanent in-app notification for seller
+      if (seller) {
+        const notifTitle = `Order #${orderId} ${status.charAt(0).toUpperCase() + status.slice(1)}`;
+        const notifMsg = `Order #${orderId} (Seller Order #${sellerOrder.id}) status updated to ${status}.`;
+        await storage.createNotification({
+          userId: seller.id,
+          type: "seller_order",
+          title: notifTitle,
+          message: notifMsg,
+          read: false,
+          link: `/seller/orders/${sellerOrder.id}`,
+          metadata: JSON.stringify({ orderId, sellerOrderId: sellerOrder.id, status })
+        });
+        await sendNotificationToUser(seller.id, {
+          type: "seller_order",
+          title: notifTitle,
+          message: notifMsg,
+          read: false,
+          link: `/seller/orders/${sellerOrder.id}`,
+          metadata: JSON.stringify({ orderId, sellerOrderId: sellerOrder.id, status })
+        });
+      }
     }
     
     // Check if all seller orders have the same status
@@ -150,6 +213,27 @@ export async function updateOrderStatus(
             status,
             buyerName: buyer.username
           }
+        });
+      }
+      // Send notification to buyer
+      if (buyer) {
+        await sendNotificationToUser(buyer.id, {
+          type: "ORDER_STATUS",
+          title: `Order #${orderId} ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+          message: `Your order #${orderId} has been ${status}.`,
+          read: false,
+          link: `/orders/${orderId}`,
+          metadata: JSON.stringify({ orderId, status })
+        });
+        // Always create a permanent notification for the buyer
+        await storage.createNotification({
+          userId: buyer.id,
+          type: "ORDER_STATUS",
+          title: `Order #${orderId} ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+          message: `Your order #${orderId} has been ${status}.`,
+          read: false,
+          link: `/orders/${orderId}`,
+          metadata: JSON.stringify({ orderId, status })
         });
       }
     }

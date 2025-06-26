@@ -195,7 +195,10 @@ export default function HomePage() {
     if (featuredProducts.length > 0) {
       preloadProductImages(featuredProducts, 5);
     }
-  }, [featuredProducts]);
+    if (products.length > 0) {
+      preloadProductImages(products, products.length);
+    }
+  }, [featuredProducts, products]);
 
   // Preload category images
   useEffect(() => {

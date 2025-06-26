@@ -25,12 +25,16 @@ import { SimpleSearch } from "@/components/ui/simple-search";
 import { VoiceSearchDialog } from "@/components/search/voice-search-dialog";
 import { AISearchService } from "@/services/ai-search-service";
 import { useToast } from "@/hooks/use-toast";
+import { useCart } from "@/context/cart-context";
 
 export function SimpleHeader() {
   const queryClient = useQueryClient();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [, setLocation] = useLocation();
+
+  // Use cart context for both guest and logged-in users
+  const { cartItems } = useCart();
 
   // Use React Query to fetch user data
   const { data: user } = useQuery({
@@ -51,44 +55,8 @@ export function SimpleHeader() {
     refetchOnWindowFocus: false,
   });
 
-  // Use React Query to fetch cart data with real-time updates
-  const { data: cartItems = [] } = useQuery({
-    queryKey: ["/api/cart"],
-    queryFn: async () => {
-      if (!user) return [];
-
-      const res = await fetch("/api/cart", {
-        credentials: "include",
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch cart");
-      }
-
-      return res.json();
-    },
-    enabled: !!user,
-    staleTime: 30000, // Cache for 30 seconds
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
-    // Removed frequent polling to avoid performance issues
-  });
-
-  // Handle cart navigation
-  const toggleCart = () => {
-    // Navigate to cart page or auth page if not logged in
-    setLocation(user ? "/cart" : "/auth");
-  };
-
-  // Get cart item count for notification badge
-  const cartItemCount =
-    cartItems.length > 0
-      ? cartItems.reduce(
-          (sum: number, item: { quantity: number }) =>
-            sum + (item.quantity || 0),
-          0
-        )
-      : 0;
+  // Get cart item count for notification badge (from context)
+  const cartItemCount = cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
 
   // Handle logout
   const handleLogout = async () => {
@@ -114,6 +82,10 @@ export function SimpleHeader() {
   const navigateTo = (path: string) => {
     setLocation(path);
     setMobileMenuOpen(false);
+  };
+
+  const handleCartClick = () => {
+    setLocation('/cart');
   };
 
   return (
@@ -192,7 +164,7 @@ export function SimpleHeader() {
                 variant="ghost"
                 size="icon"
                 className="text-white hover:bg-primary-foreground/10 relative h-10 w-10 flex items-center justify-center"
-                onClick={toggleCart}
+                onClick={handleCartClick}
                 title="Shopping Cart"
               >
                 <ShoppingCart className="h-5 w-5" />
@@ -214,6 +186,7 @@ export function SimpleHeader() {
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="text-white hover:text-gray-200 mr-3 p-1"
+              title="Open menu"
             >
               <Menu size={24} />
             </button>
@@ -231,7 +204,7 @@ export function SimpleHeader() {
 
           {(!user || user.role === "buyer") && (
             <button
-              onClick={toggleCart}
+              onClick={handleCartClick}
               className="text-white hover:text-gray-200 relative p-1"
               title="Shopping Cart"
             >
@@ -260,6 +233,7 @@ export function SimpleHeader() {
               <button
                 onClick={() => setMobileMenuOpen(false)}
                 className="text-white hover:text-gray-200 p-1"
+                title="Close menu"
               >
                 <X size={24} />
               </button>
@@ -306,8 +280,9 @@ export function SimpleHeader() {
               )}
 
               <button
-                onClick={toggleCart}
+                onClick={handleCartClick}
                 className="block w-full text-left py-3 border-b border-primary-foreground/20"
+                title="Shopping Cart"
               >
                 Cart {cartItemCount > 0 && `(${cartItemCount})`}
               </button>

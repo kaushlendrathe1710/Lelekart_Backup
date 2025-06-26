@@ -158,6 +158,7 @@ const productSchema = z.object({
   height: z.coerce.number().optional().nullable(),
   color: z.string().optional().nullable(),
   size: z.string().optional().nullable(),
+  deliveryCharges: z.coerce.number().min(0, 'Delivery charges cannot be negative').default(0).optional(),
 });
 
 // Helper function to generate SKU
@@ -283,11 +284,12 @@ export default function AddProductPage() {
       brand: "",
       color: "",
       size: "",
-      stock: "",
-      weight: "",
-      height: "",
-      width: "",
-      length: "",
+      stock: 0,
+      weight: 0,
+      height: 0,
+      width: 0,
+      length: 0,
+      deliveryCharges: 0,
     },
   });
 
@@ -333,13 +335,11 @@ export default function AddProductPage() {
 
   // Calculate form completion status
   const getCompletionStatus = () => {
-    const basicFields = ["name", "category", "price"];
     const descriptionComplete =
       watchedDescription && watchedDescription.length >= 20;
-    const inventoryFields = ["stock"];
 
-    const basicComplete = watchedName && watchedCategory && watchedPrice;
-    const inventoryComplete = watchedStock !== undefined && watchedStock !== "";
+    const basicComplete = Boolean(watchedName) && Boolean(watchedCategory) && Boolean(watchedPrice);
+    const inventoryComplete = typeof watchedStock === 'number' && watchedStock >= 0;
     const imagesComplete = uploadedImages.length > 0;
 
     const total = [
@@ -1117,6 +1117,7 @@ export default function AddProductPage() {
         length: data.length ? parseFloat(data.length) : undefined,
         sku: sku,
         variants: processedVariants, // Use the processed variants with AWS images
+        deliveryCharges: data.deliveryCharges ?? 0,
       };
 
       console.log("Submitting product data:", productData);
@@ -1195,6 +1196,7 @@ export default function AddProductPage() {
         length: formData.length ? parseFloat(formData.length) : undefined,
         variants: [...variants, ...draftVariants],
         isDraft: true,
+        deliveryCharges: formData.deliveryCharges ?? 0,
       };
 
       // Combine regular variants and draft variants for submission
@@ -1659,6 +1661,28 @@ export default function AddProductPage() {
                           category ({getSelectedCategoryGstRate()}%). This
                           allows you to set a custom GST rate specifically for
                           this product.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="deliveryCharges"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Delivery Charges (₹)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="0"
+                            placeholder="e.g. 100 (leave 0 for Free)"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Enter delivery charges for this product. Leave 0 for Free delivery.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>

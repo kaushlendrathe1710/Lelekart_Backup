@@ -51,6 +51,7 @@ import {
 } from "@/components/ui/collapsible";
 import { SimpleSearch } from "@/components/ui/simple-search";
 import { useToast } from "@/hooks/use-toast";
+import { useNotifications } from '@/contexts/notification-context';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -86,6 +87,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const [productDisplayMenuOpen, setProductDisplayMenuOpen] = useState(
     location.includes("/admin/product-display-settings")
   );
+
+  const { unreadCount, notifications } = useNotifications();
+  const [, setLocation] = useLocation();
 
   const navItems = [
     {
@@ -285,11 +289,19 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           <div className="flex items-center space-x-3">
             {/* Notifications */}
             <div className="relative text-white">
-              <NotificationBell
-                className="text-white hover:bg-[#2874f0]/90"
-                iconClassName="text-white"
-                badgeClassName="bg-red-500"
-              />
+              <Button
+                variant="ghost"
+                className="relative p-2"
+                aria-label="Notifications"
+                onClick={() => setLocation('/admin/notifications')}
+              >
+                <Bell className="w-6 h-6" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </Button>
             </div>
 
             {/* User Menu */}

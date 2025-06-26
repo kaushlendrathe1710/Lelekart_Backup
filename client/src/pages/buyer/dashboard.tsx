@@ -23,6 +23,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 export default function BuyerDashboardPage() {
   console.log("BuyerDashboardPage: Component mounted");
@@ -113,20 +114,26 @@ export default function BuyerDashboardPage() {
     async function fetchRecentlyViewed() {
       setLoadingRecentlyViewed(true);
       try {
-        // Get product IDs from localStorage (most recent first)
         const ids = JSON.parse(localStorage.getItem('recently_viewed_products') || '[]');
         if (!Array.isArray(ids) || ids.length === 0) {
           setRecentlyViewed([]);
           setLoadingRecentlyViewed(false);
           return;
         }
-        // Fetch product details for up to 6 products
-        const limitedIds = ids.slice(0, 6);
-        const res = await fetch(`/api/products?ids=${limitedIds.join(',')}`);
-        if (!res.ok) throw new Error('Failed to fetch products');
-        const data = await res.json();
-        // Keep the order as in limitedIds
-        const ordered = limitedIds.map((id: number) => data.find((p: any) => p.id === id)).filter(Boolean);
+        // Fetch all product details in batches of 20
+        const batchSize = 20;
+        let allProducts: any[] = [];
+        for (let i = 0; i < ids.length; i += batchSize) {
+          const batchIds = ids.slice(i, i + batchSize);
+          const res = await fetch(`/api/products?ids=${batchIds.join(',')}`);
+          if (!res.ok) continue;
+          const data = await res.json();
+          allProducts = allProducts.concat(data.products || []);
+        }
+        const apiProductsMap = new Map(allProducts.map((p: any) => [p.id, p]));
+        const ordered = ids
+          .map((id: number) => apiProductsMap.get(id))
+          .filter((p, idx, arr) => p && arr.findIndex(x => x && x.id === p.id) === idx);
         setRecentlyViewed(ordered);
       } catch (e) {
         setRecentlyViewed([]);
@@ -149,28 +156,35 @@ export default function BuyerDashboardPage() {
     );
   }
   
-  // If no user (not authenticated) or wrong role, redirect to auth page
+  // If no user (not authenticated) or wrong role, show a minimal fallback (do not redirect)
   if (!user || user.role !== 'buyer') {
-    console.log("BuyerDashboardPage: No authenticated buyer found, redirecting to /auth");
-    console.log("User data:", user?.id, user?.username, user?.role);
-    
-    // Use wouter for navigation - add a small delay to ensure rendering completes
-    setTimeout(() => {
-      setLocation('/auth');
-    }, 100);
-    
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <p className="mb-2">Redirecting to login page...</p>
-          <div className="animate-spin inline-block rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <p className="mb-2">Please log in as a buyer to access your dashboard.</p>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
   
   return (
     <DashboardLayout>
+      {/* Notification Bell for buyers */}
+      <div className="flex justify-end items-center mb-4">
+        <Button
+          variant="ghost"
+          className="bg-transparent text-primary hover:bg-primary-foreground/10 border-2 border-primary font-medium flex items-center gap-2"
+          onClick={() => setLocation('/buyer/notifications')}
+        >
+          <NotificationBell
+            className="text-primary"
+            iconClassName="text-primary"
+            badgeClassName="bg-red-600 text-white"
+          />
+        </Button>
+      </div>
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold">My Account</h1>
@@ -427,10 +441,6 @@ export default function BuyerDashboardPage() {
           <CardHeader className="pb-3">
             <CardTitle className="flex justify-between items-center">
               <span>Recently Viewed Products</span>
-              <Button variant="link" size="sm" className="text-primary p-0 h-auto flex items-center">
-                <span>View All</span>
-                <ChevronRight className="ml-1 h-4 w-4" />
-              </Button>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -439,27 +449,31 @@ export default function BuyerDashboardPage() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
                 <h3 className="text-sm font-medium">Loading recently viewed products...</h3>
               </div>
-            ) : recentlyViewed.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+            ) : recentlyViewed.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 mt-4">
                 {recentlyViewed.map((product: any) => (
-                  <div key={product.id} className="flex flex-col items-center border rounded-md p-2">
-                    <a href={`/product/${product.id}`} className="block w-full">
-                      <img src={product.imageUrl || (product.images && JSON.parse(product.images)[0]) || 'https://via.placeholder.com/100?text=Product'} alt={product.name} className="w-20 h-20 object-cover rounded mb-2 mx-auto" />
-                      <div className="text-xs font-medium text-center line-clamp-2">{product.name}</div>
-                    </a>
+                  <div
+                    key={product.id}
+                    className="flex flex-col items-center border rounded-lg shadow-sm p-3 bg-white hover:shadow-md transition cursor-pointer group"
+                    onClick={() => setLocation(`/product/${product.id}`)}
+                    tabIndex={0}
+                    role="button"
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setLocation(`/product/${product.id}`); }}
+                    title={product.name}
+                  >
+                    <img
+                      src={product.imageUrl || (product.images && Array.isArray(product.images) ? product.images[0] : (product.images && JSON.parse(product.images)[0])) || 'https://via.placeholder.com/100?text=Product'}
+                      alt={product.name}
+                      className="w-20 h-20 object-cover rounded mb-2 mx-auto group-hover:scale-105 transition"
+                    />
+                    <div className="text-xs font-semibold text-center line-clamp-2 mb-1 text-gray-800 group-hover:text-primary">
+                      {product.name}
+                    </div>
+                    {product.price && product.price > 0 && (
+                      <div className="text-xs text-gray-600 font-medium">₹{product.price.toLocaleString('en-IN')}</div>
+                    )}
                   </div>
                 ))}
-              </div>
-            ) : (
-              <div className="flex items-center justify-center py-8 text-center flex-col">
-                <div className="bg-gray-100 rounded-full p-3 mb-3">
-                  <Clock className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <h3 className="text-sm font-medium">No recently viewed products</h3>
-                <p className="text-xs text-muted-foreground mt-1">Products you view will appear here</p>
-                <Button variant="link" size="sm" className="mt-2" asChild>
-                  <Link href="/">Browse Products</Link>
-                </Button>
               </div>
             )}
           </CardContent>

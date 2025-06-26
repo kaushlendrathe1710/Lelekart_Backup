@@ -121,10 +121,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   // Always define all hooks (React rules of hooks)
   const queryClient = useQueryClient();
 
-  // If no user, redirect to auth page
+  // If no user, just render children or a minimal fallback (do not redirect)
   if (!user) {
-    setLocation("/auth");
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-gray-500">Please log in to access the dashboard.</div>
+      </div>
+    );
   }
 
   const handleLogout = async () => {

@@ -38,10 +38,35 @@ export const CartContext = createContext<CartContextType | undefined>(undefined)
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [guestCart, setGuestCart] = useState<CartItem[]>([]);
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
   
+  // Helper: localStorage key
+  const GUEST_CART_KEY = 'lelekart_guest_cart';
+
+  // Load guest cart from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(GUEST_CART_KEY);
+      if (stored) {
+        try {
+          setGuestCart(JSON.parse(stored));
+        } catch {
+          setGuestCart([]);
+        }
+      }
+    }
+  }, []);
+
+  // Save guest cart to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(GUEST_CART_KEY, JSON.stringify(guestCart));
+    }
+  }, [guestCart]);
+
   // Get user data with better error handling and logging
   const { data: user, error: userError, isLoading: isUserLoading } = useQuery<User>({
     queryKey: ['/api/user'],
@@ -80,11 +105,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   });
 
   // Fetch cart items using React Query for real-time updates
-  const { data: cartItems = [], isLoading: isCartLoading } = useQuery<CartItem[]>({
+  const { data: serverCartItems = [], isLoading: isCartLoading } = useQuery<CartItem[]>({
     queryKey: ['/api/cart'],
     queryFn: async () => {
       if (!user) {
-        // User not authenticated, return empty cart
         return [];
       }
       
@@ -125,6 +149,67 @@ export function CartProvider({ children }: { children: ReactNode }) {
     retryDelay: 1000,
     // Removed frequent polling to avoid performance issues
   });
+
+  // Merge guest cart into server cart on login
+  useEffect(() => {
+    const mergeGuestCart = async () => {
+      // Only proceed if we have a user and guest cart items
+      if (!user || guestCart.length === 0) return;
+
+      try {
+        // Show toast to indicate merging process
+        toast({
+          title: "Merging cart items",
+          description: "Adding your items to your account...",
+        });
+
+        // Add each guest cart item to server cart sequentially
+        for (const item of guestCart) {
+          try {
+            await apiRequest("POST", "/api/cart", {
+              productId: item.product.id,
+              quantity: item.quantity,
+              variantId: item.variant?.id,
+            });
+          } catch (error: any) {
+            console.error("Error merging cart item:", error);
+            // Show error for this specific item but continue with others
+            toast({
+              title: "Couldn't add item",
+              description: `Failed to add ${item.product.name} to your cart: ${error.message}`,
+              variant: "destructive",
+            });
+          }
+        }
+
+        // Clear guest cart only after all items are processed
+        setGuestCart([]);
+        localStorage.removeItem(GUEST_CART_KEY);
+        
+        // Refresh server cart data
+        await queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+
+        // Show success message
+        toast({
+          title: "Cart merged successfully",
+          description: "Your items have been added to your account",
+        });
+      } catch (error) {
+        console.error("Error during cart merge:", error);
+        toast({
+          title: "Error merging cart",
+          description: "Some items may not have been added to your cart",
+          variant: "destructive",
+        });
+      }
+    };
+
+    // Call the merge function
+    mergeGuestCart();
+  }, [user, queryClient]);
+
+  // Helper: get current cart items (guest or server)
+  const cartItems = user ? serverCartItems : guestCart;
 
   // Add to cart API mutation
   const addToCartMutation = useMutation({
@@ -303,138 +388,173 @@ export function CartProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  // Add product to cart with optional variant
+  // Add to cart function (for both guest and logged-in users)
   const addToCart = async (product: Product, quantity = 1, variant?: ProductVariant) => {
-    if (!user) {
-      // Redirect to auth page if not logged in
-      toast({
-        title: "Please log in",
-        description: "You need to be logged in to add items to your cart",
-        variant: "default",
-      });
-      navigate("/auth");
-      return;
-    }
-    
-    // Only buyers can add to cart
-    if (user.role !== 'buyer') {
-      toast({
-        title: "Action Not Allowed",
-        description: "Only buyers can add items to cart. Please switch to a buyer account.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Check for available stock
-    const availableStock = variant?.stock ?? product.stock ?? 0;
-    if (availableStock <= 0) {
-      toast({
-        title: "Out of Stock",
-        description: "This product is currently out of stock.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Limit quantity to available stock
-    const requestedQuantity = Math.min(quantity, availableStock);
-    if (requestedQuantity < quantity) {
-      toast({
-        title: "Limited Stock",
-        description: `Only ${availableStock} units available. Added maximum available quantity to cart.`,
-        variant: "default",
-      });
-    }
-    
-    // Validate that the product ID is valid
-    if (!product || !product.id || typeof product.id !== 'number' || isNaN(product.id)) {
-      toast({
-        title: "Invalid Product",
-        description: "The selected product cannot be added to cart.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Check if product has variants but none are selected
-    if ((product.hasVariants || (product.variants && product.variants.length > 0)) && !variant) {
-      toast({
-        title: "Selection Required",
-        description: "Please select product options before adding to cart",
-        variant: "default",
-      });
-      
-      // Don't add to cart - user needs to select variant first
-      return;
-    }
-    
-    // Add to server cart and immediately refresh the cart data
-    addToCartMutation.mutate({
-      productId: product.id,
-      quantity: requestedQuantity, // Use stock-limited quantity
-      variantId: variant?.id
-    }, {
-      onSuccess: () => {
-        // Force refresh cart data immediately
-        queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
-        
-        // Show a toast with variant details if applicable
-        let productName = product.name;
-        if (variant) {
-          productName += ` (${variant.color}${variant.size ? `, ${variant.size}` : ''})`;
-        }
-        
+    // Check if user is logged in
+    if (user) {
+      // User is logged in, use server-side cart
+      try {
+        await addToCartMutation.mutateAsync({
+          productId: product.id,
+          quantity,
+          variantId: variant?.id,
+        });
         toast({
           title: "Added to cart",
-          description: `${productName} has been added to your cart`,
-          variant: "default",
+          description: `${product.name} has been added to your cart`,
         });
+      } catch (error) {
+        // Error toast is handled in mutation's onError
       }
-    });
-  };
+    } else {
+      // User is a guest, use local storage cart
+      setGuestCart(prevCart => {
+        const existingItemIndex = prevCart.findIndex(item => 
+          item.product.id === product.id && item.variant?.id === variant?.id
+        );
 
-  // Remove item from cart
-  const removeFromCart = (itemId: number) => {
-    // If user is logged in, call the API directly with the item ID
-    if (user) {
-      removeFromCartMutation.mutate(itemId);
-    }
-  };
-
-  // Update item quantity
-  const updateQuantity = (itemId: number, newQuantity: number) => {
-    // If user is logged in, call the API directly with the item ID
-    if (user) {
-      updateCartMutation.mutate({
-        cartItemId: itemId,
-        quantity: newQuantity,
+        let newCart;
+        if (existingItemIndex > -1) {
+          // Update quantity if item exists
+          newCart = [...prevCart];
+          newCart[existingItemIndex].quantity += quantity;
+        } else {
+          // Add new item to cart
+          const newItem: CartItem = { 
+            product, 
+            quantity, 
+            variant,
+            // Use a temporary unique ID for guest cart items (timestamp + random)
+            id: Date.now() + Math.random(),
+          };
+          newCart = [...prevCart, newItem];
+        }
+        
+        localStorage.setItem(GUEST_CART_KEY, JSON.stringify(newCart));
+        return newCart;
+      });
+      
+      toast({
+        title: "Added to cart",
+        description: `${product.name} has been added to your cart`,
       });
     }
   };
 
-  // Clear the cart
+  // Remove from cart function
+  const removeFromCart = (itemId: number) => {
+    if (user) {
+      removeFromCartMutation.mutate(itemId, {
+        onSuccess: () => {
+          toast({
+            title: "Item removed",
+            description: "The item has been removed from your cart",
+          });
+        },
+        onError: (error: Error) => {
+          toast({
+            title: "Failed to remove item",
+            description: error.message || "An error occurred",
+            variant: "destructive",
+          });
+        },
+      });
+    } else {
+      // Guest cart: itemId is the index
+      setGuestCart(prevCart => {
+        const newCart = prevCart.filter((_, index) => index !== itemId);
+        localStorage.setItem(GUEST_CART_KEY, JSON.stringify(newCart));
+        return newCart;
+      });
+      toast({
+        title: "Item removed",
+        description: "The item has been removed from your cart",
+      });
+    }
+  };
+
+  // Update quantity function
+  const updateQuantity = (itemId: number, newQuantity: number) => {
+    if (newQuantity < 1) return;
+
+    if (user) {
+      // Optimistically update the cart in the UI
+      const prevCart = [...serverCartItems];
+      const cartItemIdx = serverCartItems.findIndex(item => item.id === itemId);
+      if (cartItemIdx > -1) {
+        const updatedCart = [...serverCartItems];
+        updatedCart[cartItemIdx] = {
+          ...updatedCart[cartItemIdx],
+          quantity: newQuantity,
+        };
+        queryClient.setQueryData(["/api/cart"], updatedCart);
+      }
+      // Send update to server
+      updateCartMutation.mutate(
+        { cartItemId: itemId, quantity: newQuantity },
+        {
+          onError: () => {
+            // Roll back to previous cart if server call fails
+            queryClient.setQueryData(["/api/cart"], prevCart);
+          },
+        }
+      );
+    } else {
+      // Guest cart: itemId is the index
+      setGuestCart(prevCart => {
+        const newCart = prevCart.map((item, index) => {
+          if (index === itemId) {
+            return { ...item, quantity: newQuantity };
+          }
+          return item;
+        });
+        localStorage.setItem(GUEST_CART_KEY, JSON.stringify(newCart));
+        return newCart;
+      });
+    }
+  };
+
+  // Clear cart API mutation
+  const clearCartMutation = useMutation({
+    mutationFn: async () => {
+      if (user) {
+        await apiRequest("POST", "/api/cart/clear", {});
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to clear cart",
+        description: error.message || "An error occurred",
+        variant: "destructive",
+      });
+    },
+  });
+
   const clearCart = async () => {
     if (user) {
       try {
-        // Use the dedicated clear cart endpoint instead of removing items one by one
-        await apiRequest("POST", "/api/cart/clear", {});
-        
-        // Force refresh cart data immediately
-        queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
-        
+        await clearCartMutation.mutateAsync();
         toast({
-          title: "Cart Cleared",
-          description: "Your cart has been cleared successfully.",
-          variant: "default",
+          title: "Cart cleared",
+          description: "All items have been removed from your cart",
         });
-      } catch (error) {
+      } catch (error: any) {
         toast({
           title: "Failed to clear cart",
-          description: "There was an error clearing your cart. Please try again.",
+          description: error.message || "An error occurred",
           variant: "destructive",
         });
       }
+    } else {
+      setGuestCart([]);
+      localStorage.removeItem(GUEST_CART_KEY);
+      toast({
+        title: "Cart cleared",
+        description: "All items have been removed from your cart",
+      });
     }
   };
 
@@ -729,20 +849,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const contextValue: CartContextType = {
+    cartItems,
+    addToCart,
+    removeFromCart,
+    updateQuantity,
+    clearCart,
+    isOpen,
+    toggleCart,
+    buyNow,
+    validateCart,
+    cleanupInvalidCartItems,
+  };
+
   return (
     <CartContext.Provider
-      value={{
-        cartItems,
-        addToCart,
-        removeFromCart,
-        updateQuantity,
-        clearCart,
-        isOpen,
-        toggleCart,
-        buyNow,
-        validateCart,
-        cleanupInvalidCartItems,
-      }}
+      value={contextValue}
     >
       {children}
     </CartContext.Provider>

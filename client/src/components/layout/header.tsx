@@ -64,6 +64,10 @@ export function Header() {
     }
   };
 
+  const handleCartClick = () => {
+    setLocation('/cart');
+  };
+
   return (
     <header className="bg-orange-400 text-white sticky top-0 z-50 shadow-md">
       <div className="container mx-auto px-4">
@@ -212,21 +216,19 @@ export function Header() {
               </div>
             )}
 
-            {(!user || user.role === "buyer") && (
-              <Button
-                variant="link"
-                className="text-white flex items-center hover:text-gray-200 relative"
-                onClick={toggleCart}
-              >
-                <ShoppingCart className="h-5 w-5" />
-                <span className="ml-1">Cart</span>
-                {cartItemCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-yellow-400 text-primary text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {cartItemCount}
-                  </span>
-                )}
-              </Button>
-            )}
+            <Button
+              variant="link"
+              className="text-white flex items-center hover:text-gray-200 relative"
+              onClick={handleCartClick}
+            >
+              <ShoppingCart className="h-5 w-5" />
+              <span className="ml-1">Cart</span>
+              {cartItemCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-yellow-400 text-primary text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {cartItemCount}
+                </span>
+              )}
+            </Button>
           </nav>
 
           {/* Mobile Menu Button */}
@@ -236,21 +238,19 @@ export function Header() {
                 <NotificationBell />
               </div>
             )}
-            {(!user || user.role === "buyer") && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-white"
-                onClick={toggleCart}
-              >
-                <ShoppingCart className="h-6 w-6" />
-                {cartItemCount > 0 && (
-                  <span className="absolute top-1 right-1 bg-yellow-400 text-primary text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                    {cartItemCount}
-                  </span>
-                )}
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white"
+              onClick={handleCartClick}
+            >
+              <ShoppingCart className="h-6 w-6" />
+              {cartItemCount > 0 && (
+                <span className="absolute top-1 right-1 bg-yellow-400 text-primary text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                  {cartItemCount}
+                </span>
+              )}
+            </Button>
             <Button
               variant="ghost"
               size="icon"

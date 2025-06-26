@@ -205,6 +205,15 @@ export function ProductImage({
     fallbackImg.src = getCategoryImage();
   }, [getCategoryImage]);
 
+  // Show image instantly if already cached/preloaded (for ALL images, not just priority)
+  useEffect(() => {
+    if (imgRef.current && imageSrc) {
+      if (imgRef.current.complete && imgRef.current.naturalWidth !== 0) {
+        setIsLoaded(true);
+      }
+    }
+  }, [imageSrc]);
+
   const handleImageError = useCallback(
     (e: React.SyntheticEvent<HTMLImageElement>) => {
       if (!hasError) {

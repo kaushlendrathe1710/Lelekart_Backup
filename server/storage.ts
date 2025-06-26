@@ -2969,6 +2969,7 @@ export class DatabaseStorage implements IStorage {
             warranty: products.warranty,
             returnPolicy: products.returnPolicy,
             createdAt: products.createdAt,
+            deliveryCharges: products.deliveryCharges,
           },
           categoryGstRate: categories.gstRate,
           sellerName: users.name,
@@ -3067,6 +3068,7 @@ export class DatabaseStorage implements IStorage {
               warranty: products.warranty,
               returnPolicy: products.returnPolicy,
               createdAt: products.createdAt,
+              deliveryCharges: products.deliveryCharges,
             },
             sellerName: users.name,
             sellerUsername: users.username,
@@ -3125,6 +3127,7 @@ export class DatabaseStorage implements IStorage {
             warranty: products.warranty,
             returnPolicy: products.returnPolicy,
             createdAt: products.createdAt,
+            deliveryCharges: products.deliveryCharges,
           })
           .from(products)
           .where(
@@ -4982,15 +4985,20 @@ export class DatabaseStorage implements IStorage {
       processing: ["confirmed", "shipped", "cancelled"],
       confirmed: ["shipped", "cancelled"],
       shipped: ["delivered", "returned"],
-      delivered: ["returned", "completed"],
+      delivered: ["returned", "completed", "marked_for_return"],
       returned: ["refunded"],
       cancelled: ["refunded"],
       refunded: [],
       completed: [],
+      marked_for_return: ["processing", "completed", "cancelled"],
     };
 
     // Check if the status transition is allowed
     const allowedNextStatuses = allowedTransitions[currentOrder.status] || [];
+    if (currentOrder.status === status) {
+      console.log(`Order ${id} is already in status '${status}', skipping update.`);
+      return currentOrder;
+    }
     if (!allowedNextStatuses.includes(status)) {
       throw new Error(
         `Cannot transition order from '${
@@ -5007,7 +5015,9 @@ export class DatabaseStorage implements IStorage {
     );
 
     // If transition is valid, proceed with the update
-    return this.updateOrder(id, { status });
+    const updatedOrder = await this.updateOrder(id, { status });
+    console.log(`Order ${id} status after update: ${updatedOrder.status}`);
+    return updatedOrder;
   }
 
   async updateOrderShipment(
@@ -9549,16 +9559,27 @@ export class DatabaseStorage implements IStorage {
     offset: number = 0
   ): Promise<ReturnRequest[]> {
     try {
-      return await db
+      const requests = await db
         .select()
         .from(returnRequests)
         .where(eq(returnRequests.buyerId, buyerId))
         .orderBy(desc(returnRequests.createdAt))
         .limit(limit)
         .offset(offset);
+
+      // Attach orderNumber to each return request (always fetch)
+      await Promise.all(requests.map(async (req) => {
+        const order = await this.getOrder(req.orderId);
+        req.orderNumber = order && order.orderNumber ? order.orderNumber : String(req.orderId);
+      }));
+
+      return requests;
     } catch (error) {
-      console.error("Error getting return requests by buyer ID:", error);
-      throw error;
+      console.error(
+        `Error getting return requests for buyer ${buyerId}:`,
+        error
+      );
+      return [];
     }
   }
 
@@ -10367,6 +10388,12 @@ export class DatabaseStorage implements IStorage {
         .limit(limit)
         .offset(offset);
 
+      // Attach orderNumber to each return request
+      await Promise.all(requests.map(async (req) => {
+        const order = await this.getOrder(req.orderId);
+        req.orderNumber = order && order.orderNumber ? order.orderNumber : String(req.orderId);
+      }));
+
       return requests;
     } catch (error) {
       console.error(
@@ -10959,6 +10986,19 @@ export class DatabaseStorage implements IStorage {
         avgProcessingDays: "0.00",
         totalRefundAmount: "0.00",
       };
+    }
+  }
+
+  async getOrdersMarkedForReturn(): Promise<Order[]> {
+    try {
+      const ordersMarked = await db
+        .select()
+        .from(orders)
+        .where(eq(orders.status, 'marked_for_return'));
+      return ordersMarked;
+    } catch (error) {
+      console.error('Error fetching orders marked for return:', error);
+      return [];
     }
   }
 }

@@ -64,67 +64,11 @@ export const ProductCard = memo(function ProductCard({
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
-    // If user is not logged in, redirect to auth
-    if (!user) {
-      toast({
-        title: "Please log in",
-        description: "You need to be logged in to add items to cart",
-        variant: "default",
-      });
-      setLocation("/auth", { replace: false });
-      return;
-    }
-
-    // Only buyers can add to cart
-    // After null check, the user is definitely a User type with a role property
-    const userRole = user?.role as string;
-    if (userRole && userRole !== "buyer") {
-      toast({
-        title: "Action Not Allowed",
-        description:
-          "Only buyers can add items to cart. Please switch to a buyer account.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Check if product has variants - if so, redirect to product detail page
-    if (
-      product.hasVariants ||
-      (product.variants && product.variants.length > 0)
-    ) {
-      toast({
-        title: "Selection Required",
-        description: "Please select product options before adding to cart",
-        variant: "default",
-      });
-
-      // Redirect to product detail page to allow variant selection
-      setLocation(`/product/${product.id}`, { replace: false });
-      return;
-    }
-
     try {
-      // Use direct API call if context is not available
       if (cartContext) {
         cartContext.addToCart(product);
-      } else {
-        // Fallback to direct API call
-        await apiRequest("POST", "/api/cart", {
-          productId: product.id,
-          quantity: 1,
-        });
-
-        // Refresh cart data
-        queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
-
-        toast({
-          title: "Added to cart",
-          description: `${product.name} has been added to your cart`,
-          variant: "default",
-        });
       }
+      // Show toast is handled in context
     } catch (error) {
       toast({
         title: "Failed to add to cart",

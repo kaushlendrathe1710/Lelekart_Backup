@@ -8,6 +8,7 @@ import { Router } from "express";
 import { storage } from "../storage";
 import * as returnHandlers from "../handlers/return-handlers";
 import { checkReturnEligibility } from "../services/return-eligibility";
+import { handleOrderStatusChange } from '../handlers/order-status-handler';
 
 const router = Router();
 
@@ -22,17 +23,39 @@ router.get("/", async (req, res) => {
     
     // If user is a buyer, get buyer returns
     if (user.role === "buyer") {
-      console.log(`Fetching returns for buyer: ${user.id}`);
       const limitStr = req.query.limit ? String(req.query.limit) : "10";
       const offsetStr = req.query.offset ? String(req.query.offset) : "0";
       
-      const returns = await storage.getReturnRequestsByBuyerId(
+      // 1. Get return requests with status marked_for_return
+      const returnRequests = await storage.getReturnRequestsByBuyerId(
         user.id,
         parseInt(limitStr),
         parseInt(offsetStr)
       );
-      
-      return res.json(returns || []);
+      const markedReturnRequests = returnRequests.filter(r => r.status === 'marked_for_return');
+
+      // 2. Get all orders with status marked_for_return for this user
+      const allOrders = await storage.getOrders(user.id);
+      const markedOrders = allOrders.filter(o => o.status === 'marked_for_return');
+
+      // 3. For each marked order, check if a return request exists, if not, add a pseudo-return-request object
+      const orderIdsWithReturnRequest = new Set(markedReturnRequests.map(r => r.orderId));
+      const pseudoReturnRequests = markedOrders
+        .filter(o => !orderIdsWithReturnRequest.has(o.id))
+        .map(o => ({
+          id: `order-${o.id}`,
+          orderId: o.id,
+          orderNumber: String(o.id),
+          requestType: 'return',
+          status: 'marked_for_return',
+          createdAt: o.date,
+          updatedAt: o.date,
+          isOrderOnly: true // flag to distinguish
+        }));
+
+      // 4. Merge and return
+      const combined = [...markedReturnRequests, ...pseudoReturnRequests];
+      return res.json(combined);
     } 
     // If user is a seller, get seller returns
     else if (user.role === "seller") {
@@ -54,26 +77,30 @@ router.get("/", async (req, res) => {
       const limitStr = req.query.limit ? String(req.query.limit) : "10";
       const offsetStr = req.query.offset ? String(req.query.offset) : "0";
       
-      // Create filters
-      const filters: Record<string, any> = {};
-      if (req.query.status) filters.status = String(req.query.status);
-      if (req.query.sellerId) filters.sellerId = parseInt(String(req.query.sellerId));
-      if (req.query.buyerId) filters.buyerId = parseInt(String(req.query.buyerId));
-      
-      const returns = await storage.getReturnRequests(
-        filters,
-        parseInt(limitStr),
-        parseInt(offsetStr)
-      );
-      
-      return res.json(returns || []);
+      // 2. Get all orders with status marked_for_return
+      const markedOrders = await storage.getOrdersMarkedForReturn();
+      console.log('[ADMIN RETURNS DEBUG] getOrdersMarkedForReturn result:', markedOrders);
+      const pseudoReturnRequests = markedOrders.map(o => ({
+        id: `order-${o.id}`,
+        orderId: o.id,
+        orderNumber: String(o.id),
+        requestType: 'return',
+        status: 'marked_for_return',
+        createdAt: o.date,
+        updatedAt: o.date,
+        isOrderOnly: true // flag to distinguish
+      }));
+      console.log('[ADMIN RETURNS DEBUG] markedOrders:', markedOrders);
+      console.log('[ADMIN RETURNS DEBUG] pseudoReturnRequests:', pseudoReturnRequests);
+      return res.json(pseudoReturnRequests);
     }
     
     // If user role is not recognized
     return res.status(403).json({ error: "Access denied" });
   } catch (error) {
-    console.error("Error getting return requests:", error);
-    return res.status(500).json({ error: "Failed to get return requests" });
+    const err = error as Error;
+    console.error("Error getting return requests:", err.message || err);
+    return res.status(500).json({ error: err.message || "Failed to get return requests" });
   }
 });
 
@@ -101,8 +128,9 @@ router.get("/check-eligibility/:orderId/:orderItemId", async (req, res) => {
     
     return res.json(eligibility);
   } catch (error) {
-    console.error("Error checking return eligibility:", error);
-    return res.status(500).json({ error: "Failed to check return eligibility" });
+    const err = error as Error;
+    console.error("Error checking return eligibility:", err.message || err);
+    return res.status(500).json({ error: err.message || "Failed to check return eligibility" });
   }
 });
 
@@ -113,8 +141,9 @@ router.get("/reasons", async (req, res) => {
     const reasons = await storage.getActiveReturnReasons(requestType as string);
     return res.json(reasons);
   } catch (error) {
-    console.error("Error getting return reasons:", error);
-    return res.status(500).json({ error: "Failed to get return reasons" });
+    const err = error as Error;
+    console.error("Error getting return reasons:", err.message || err);
+    return res.status(500).json({ error: err.message || "Failed to get return reasons" });
   }
 });
 
@@ -151,8 +180,9 @@ router.post("/request", async (req, res) => {
     
     return res.status(201).json(returnRequest);
   } catch (error) {
-    console.error("Error creating return request:", error);
-    return res.status(500).json({ error: error.message || "Failed to create return request" });
+    const err = error as Error;
+    console.error("Error creating return request:", err.message || err);
+    return res.status(500).json({ error: err.message || "Failed to create return request" });
   }
 });
 
@@ -174,8 +204,9 @@ router.get("/buyer", async (req, res) => {
     
     return res.json(returns);
   } catch (error) {
-    console.error("Error getting buyer return requests:", error);
-    return res.status(500).json({ error: "Failed to get return requests" });
+    const err = error as Error;
+    console.error("Error getting buyer return requests:", err.message || err);
+    return res.status(500).json({ error: err.message || "Failed to get buyer return requests" });
   }
 });
 
@@ -213,12 +244,10 @@ router.get("/admin", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Authentication required" });
     }
-    
     // Check if user is admin or co-admin
     if (req.user.role !== "admin" && !req.user.isCoAdmin) {
       return res.status(403).json({ error: "Access denied" });
     }
-    
     const { 
       limit = 10, 
       offset = 0,
@@ -226,21 +255,37 @@ router.get("/admin", async (req, res) => {
       sellerId,
       buyerId
     } = req.query;
-    
     // Create filters
     const filters: any = {};
     if (status) filters.status = status;
     if (sellerId) filters.sellerId = parseInt(sellerId as string);
     if (buyerId) filters.buyerId = parseInt(buyerId as string);
-    
-    // Get return requests
+    // Get real return requests
     const returns = await storage.getReturnRequests(
       filters,
       parseInt(limit as string),
       parseInt(offset as string)
     );
-    
-    return res.json(returns);
+    // Get all orders with status marked_for_return
+    const markedOrders = await storage.getOrdersMarkedForReturn();
+    // Get all orderIds that already have a return request
+    const orderIdsWithReturnRequest = new Set(returns.map(r => r.orderId));
+    // Create pseudo return requests for orders without a return request
+    const pseudoReturnRequests = markedOrders
+      .filter(o => !orderIdsWithReturnRequest.has(o.id))
+      .map(o => ({
+        id: `order-${o.id}`,
+        orderId: o.id,
+        orderNumber: String(o.id),
+        requestType: 'return',
+        status: 'marked_for_return',
+        createdAt: o.date,
+        updatedAt: o.date,
+        isOrderOnly: true // flag to distinguish
+      }));
+    // Merge and return
+    const combined = [...returns, ...pseudoReturnRequests];
+    return res.json(combined);
   } catch (error) {
     console.error("Error getting all return requests:", error);
     return res.status(500).json({ error: "Failed to get return requests" });
@@ -281,8 +326,9 @@ router.get("/:id", async (req, res) => {
     
     return res.json(returnRequest);
   } catch (error) {
-    console.error("Error getting return request:", error);
-    return res.status(500).json({ error: "Failed to get return request" });
+    const err = error as Error;
+    console.error("Error getting return request:", err.message || err);
+    return res.status(500).json({ error: err.message || "Failed to get return request" });
   }
 });
 
@@ -323,8 +369,9 @@ router.get("/:id/messages", async (req, res) => {
     
     return res.json(messages);
   } catch (error) {
-    console.error("Error getting return messages:", error);
-    return res.status(500).json({ error: "Failed to get return messages" });
+    const err = error as Error;
+    console.error("Error getting return messages:", err.message || err);
+    return res.status(500).json({ error: err.message || "Failed to get return messages" });
   }
 });
 
@@ -371,8 +418,9 @@ router.post("/:id/messages", async (req, res) => {
     
     return res.status(201).json(newMessage);
   } catch (error) {
-    console.error("Error adding return message:", error);
-    return res.status(500).json({ error: "Failed to add return message" });
+    const err = error as Error;
+    console.error("Error adding return message:", err.message || err);
+    return res.status(500).json({ error: err.message || "Failed to add return message" });
   }
 });
 
@@ -399,8 +447,9 @@ router.post("/:id/cancel", async (req, res) => {
     
     return res.json(updatedReturn);
   } catch (error) {
-    console.error("Error cancelling return request:", error);
-    return res.status(500).json({ error: error.message || "Failed to cancel return request" });
+    const err = error as Error;
+    console.error("Error cancelling return request:", err.message || err);
+    return res.status(500).json({ error: err.message || "Failed to cancel return request" });
   }
 });
 
@@ -428,8 +477,9 @@ router.post("/:id/status", async (req, res) => {
     
     return res.json(updatedReturn);
   } catch (error) {
-    console.error("Error updating return status:", error);
-    return res.status(500).json({ error: error.message || "Failed to update return status" });
+    const err = error as Error;
+    console.error("Error updating return status:", err.message || err);
+    return res.status(500).json({ error: err.message || "Failed to update return status" });
   }
 });
 
@@ -456,8 +506,9 @@ router.post("/:id/return-tracking", async (req, res) => {
     
     return res.json(updatedReturn);
   } catch (error) {
-    console.error("Error adding return tracking:", error);
-    return res.status(500).json({ error: error.message || "Failed to add return tracking" });
+    const err = error as Error;
+    console.error("Error adding return tracking:", err.message || err);
+    return res.status(500).json({ error: err.message || "Failed to add return tracking" });
   }
 });
 
@@ -484,8 +535,9 @@ router.post("/:id/replacement-tracking", async (req, res) => {
     
     return res.json(updatedReturn);
   } catch (error) {
-    console.error("Error adding replacement tracking:", error);
-    return res.status(500).json({ error: error.message || "Failed to add replacement tracking" });
+    const err = error as Error;
+    console.error("Error adding replacement tracking:", err.message || err);
+    return res.status(500).json({ error: err.message || "Failed to add replacement tracking" });
   }
 });
 
@@ -513,8 +565,9 @@ router.post("/:id/mark-received", async (req, res) => {
     
     return res.json(updatedReturn);
   } catch (error) {
-    console.error("Error marking return as received:", error);
-    return res.status(500).json({ error: error.message || "Failed to mark return as received" });
+    const err = error as Error;
+    console.error("Error marking return as received:", err.message || err);
+    return res.status(500).json({ error: err.message || "Failed to mark return as received" });
   }
 });
 
@@ -539,8 +592,9 @@ router.post("/:id/complete", async (req, res) => {
     
     return res.json(updatedReturn);
   } catch (error) {
-    console.error("Error completing return request:", error);
-    return res.status(500).json({ error: error.message || "Failed to complete return request" });
+    const err = error as Error;
+    console.error("Error completing return request:", err.message || err);
+    return res.status(500).json({ error: err.message || "Failed to complete return request" });
   }
 });
 
@@ -561,7 +615,8 @@ router.get("/policies/seller", async (req, res) => {
     const policies = await storage.getReturnPoliciesBySellerId(req.user.id);
     return res.json(policies);
   } catch (error) {
-    console.error("Error getting seller return policies:", error);
+    const err = error as Error;
+    console.error("Error getting seller return policies:", err.message || err);
     return res.status(500).json({ error: "Failed to get return policies" });
   }
 });
@@ -590,7 +645,8 @@ router.post("/policies", async (req, res) => {
     
     return res.status(201).json(policy);
   } catch (error) {
-    console.error("Error creating return policy:", error);
+    const err = error as Error;
+    console.error("Error creating return policy:", err.message || err);
     return res.status(500).json({ error: "Failed to create return policy" });
   }
 });
@@ -633,8 +689,85 @@ router.put("/policies/:id", async (req, res) => {
     
     return res.json(updatedPolicy);
   } catch (error) {
-    console.error("Error updating return policy:", error);
+    const err = error as Error;
+    console.error("Error updating return policy:", err.message || err);
     return res.status(500).json({ error: "Failed to update return policy" });
+  }
+});
+
+router.post('/orders/:orderId/mark-for-return', async (req, res) => {
+  console.log('HIT /orders/:orderId/mark-for-return', { orderId: req.params.orderId, userId: req.user && req.user.id });
+  try {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    const orderId = parseInt(req.params.orderId);
+    if (isNaN(orderId)) {
+      return res.status(400).json({ error: 'Invalid orderId' });
+    }
+    // Only buyers can mark for return
+    if (req.user.role !== 'buyer') {
+      return res.status(403).json({ error: 'Only buyers can mark orders for return' });
+    }
+    console.log('Calling handleOrderStatusChange for order', orderId);
+    // 1. Update order status
+    const updatedOrder = await handleOrderStatusChange(orderId, 'marked_for_return');
+    console.log('handleOrderStatusChange finished for order', orderId, 'status now', updatedOrder.status);
+    // 2. Create return requests for each order item (if not already present)
+    const orderItems = await storage.getOrderItems(orderId);
+    // Use a default reasonId (e.g., 1) and description
+    const defaultReasonId = 1;
+    const defaultDescription = 'Return requested by buyer from order page.';
+    const createdReturnRequests = [];
+    for (const item of orderItems) {
+      // Check if a return request already exists for this item
+      const existingRequests = await storage.getReturnRequestsForOrderItem(item.id);
+      if (!existingRequests || existingRequests.length === 0) {
+        // Create return request
+        try {
+          let returnRequest = await returnHandlers.createReturnRequest(
+            req.user.id,
+            orderId,
+            item.id,
+            'return',
+            defaultReasonId,
+            defaultDescription,
+            []
+          );
+          // Update the return request status to 'marked_for_return'
+          returnRequest = await storage.updateReturnRequest(returnRequest.id, { status: 'marked_for_return' });
+          createdReturnRequests.push(returnRequest);
+        } catch (err) {
+          // Log and continue
+          console.error('Error creating return request for item', item.id, err);
+        }
+      }
+    }
+    return res.json({ updatedOrder, createdReturnRequests });
+  } catch (error) {
+    const err = error as Error;
+    console.error('Error marking order for return:', err.message || err);
+    return res.status(500).json({ error: err.message || 'Failed to mark order for return' });
+  }
+});
+
+// Admin: Update order status directly for pseudo orders
+router.post('/admin/orders/:orderId/update-status', async (req, res) => {
+  try {
+    if (!req.isAuthenticated() || req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    const orderId = parseInt(req.params.orderId);
+    const { status } = req.body;
+    if (!orderId || !status) {
+      return res.status(400).json({ error: 'Missing orderId or status' });
+    }
+    const updatedOrder = await storage.updateOrderStatus(orderId, status);
+    return res.json(updatedOrder);
+  } catch (error) {
+    const err = error as Error;
+    console.error('Error updating order status (admin):', err.message || err);
+    return res.status(500).json({ error: err.message || 'Failed to update order status' });
   }
 });
 
