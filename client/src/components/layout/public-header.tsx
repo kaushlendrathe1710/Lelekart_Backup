@@ -30,6 +30,10 @@ export function PublicHeader() {
     setMobileMenuOpen(false);
   };
 
+  const handleCartClick = () => {
+    setLocation('/cart');
+  };
+
   return (
     <header className="bg-primary text-white">
       {/* Desktop Header */}
@@ -57,7 +61,8 @@ export function PublicHeader() {
             <Button
               variant="outline"
               className="text-white border-white hover:bg-white hover:text-primary"
-              onClick={() => toggleCart()}
+              onClick={handleCartClick}
+              title="View Cart"
             >
               <ShoppingCart className="h-5 w-5 mr-1" />
               <span>Cart</span>
@@ -87,8 +92,9 @@ export function PublicHeader() {
 
           <div className="flex items-center space-x-3">
             <button
-              onClick={() => toggleCart()}
+              onClick={handleCartClick}
               className="relative text-white hover:text-gray-200"
+              title="View Cart"
             >
               <ShoppingCart size={24} />
               {cartItemCount > 0 && (

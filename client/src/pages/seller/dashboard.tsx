@@ -6,7 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { SellerDashboardLayout } from "@/components/layout/seller-dashboard-layout";
 import {
   Box,
@@ -20,6 +20,8 @@ import {
   Loader2,
   AlertTriangle,
   RefreshCw,
+  AlertCircle,
+  Bell,
 } from "lucide-react";
 import { useContext, useState } from "react";
 import { AuthContext } from "@/hooks/use-auth";
@@ -28,7 +30,8 @@ import { ApprovalCheck } from "@/components/seller/approval-check";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertCircle } from "lucide-react";
+import { NotificationBell } from "@/components/notifications/notification-bell";
+import { useNotifications } from "@/contexts/notification-context";
 
 // Define the type for dashboard summary data
 interface DashboardSummary {
@@ -42,6 +45,8 @@ interface DashboardSummary {
 export default function SellerDashboardPage() {
   const { toast } = useToast();
   const [refreshCounter, setRefreshCounter] = useState(0);
+  const [location, setLocation] = useLocation();
+  const { unreadCount } = useNotifications();
 
   // Try to use context first if available
   const authContext = useContext(AuthContext);
@@ -174,7 +179,20 @@ export default function SellerDashboardPage() {
         <div className="flex-1 space-y-4 p-8 pt-6">
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold">Seller Dashboard</h1>
-            <div className="flex gap-3">
+            <div className="flex gap-3 items-center">
+              <Button
+                variant="ghost"
+                className="relative p-2"
+                aria-label="Notifications"
+                onClick={() => setLocation("/seller/notifications")}
+              >
+                <Bell className="w-6 h-6" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </Button>
               <Button
                 variant="outline"
                 className="flex items-center gap-2"

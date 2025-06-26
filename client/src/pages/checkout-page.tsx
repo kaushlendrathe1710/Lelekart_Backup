@@ -42,6 +42,7 @@ import { UserAddress } from "@shared/schema";
 import { useWallet } from "@/context/wallet-context";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useNotifications } from '@/contexts/notification-context';
 
 // Define form schema with Zod - with more permissive validation
 const checkoutSchema = z.object({
@@ -94,6 +95,7 @@ interface CartItem {
     color?: string;
     size?: string;
     stock: number;
+    deliveryCharges?: number;
   };
 }
 
@@ -111,6 +113,7 @@ export default function CheckoutPage() {
   const { toast } = useToast();
   const { wallet, settings, isLoading: isWalletLoading } = useWallet();
   const { cartItems, validateCart, clearCart, cleanupInvalidCartItems } = useCart();
+  const { refetchNotifications } = useNotifications();
 
   // State for direct checkout data from localStorage
   const [directCheckoutData, setDirectCheckoutData] = useState<any>(null);
@@ -403,10 +406,16 @@ export default function CheckoutPage() {
     return maxCoinValue;
   };
   
-  // Calculate totals
-  const subtotal = cartItems.reduce((total, item) => 
-    total + (item.product.price * item.quantity), 0);
-  const shipping = 0; // Always free shipping
+  // Calculate subtotal and delivery charges
+  const subtotal = cartItems.reduce((total, item) => {
+    const price = item.variant ? item.variant.price : item.product.price;
+    return total + (price * item.quantity);
+  }, 0);
+  const deliveryCharges = cartItems.reduce((total, item) => {
+    const charge = item.product.deliveryCharges ?? 0;
+    return total + (charge * item.quantity);
+  }, 0);
+  const total = subtotal + deliveryCharges;
   
   // Calculate wallet discount
   const maxWalletDiscount = calculateMaxWalletDiscount();
@@ -438,8 +447,6 @@ export default function CheckoutPage() {
     }
   }, [useWalletCoins, wallet, settings, maxWalletDiscount, cartItems, subtotal]);
   
-  const total = subtotal + shipping - walletDiscount;
-
   // Handle form submission
   const onSubmit = async (values: CheckoutFormValues) => {
     setProcessingOrder(true);
@@ -646,6 +653,9 @@ export default function CheckoutPage() {
       }
       
       const order = await orderResponse.json();
+      
+      // Refetch notifications so the buyer sees the order placed notification
+      await refetchNotifications();
       
       // If wallet coins were used, process the redemption
       if (useWalletCoins && walletDiscount > 0 && wallet) {
@@ -1238,8 +1248,12 @@ export default function CheckoutPage() {
               <span className="font-medium">₹{subtotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between mb-2">
-              <span className="text-gray-600">Shipping</span>
-              <span className="font-medium text-green-600">FREE</span>
+              <span className="text-gray-600">Delivery Charges</span>
+              {deliveryCharges > 0 ? (
+                <span className="font-medium text-blue-600">₹{deliveryCharges.toFixed(2)}</span>
+              ) : (
+                <span className="font-medium text-green-600">Free</span>
+              )}
             </div>
             
             {/* Wallet integration */}

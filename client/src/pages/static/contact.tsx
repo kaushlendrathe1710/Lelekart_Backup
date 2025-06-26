@@ -164,16 +164,12 @@ export default function ContactUsPage() {
                             titleFilter="Corporate Address"
                             defaultContent={
                               <p className="text-gray-600">
-                                Lelekart Internet Private Limited,
-                                <br />
-                                Buildings Alyssa, Begonia &<br />
-                                Clove Embassy Tech Village,
-                                <br />
-                                Outer Ring Road, Devarabeesanahalli Village,
-                                <br />
-                                Bengaluru, 560103,
-                                <br />
-                                Karnataka, India
+                                Building no 2072, Chandigarh Royale City<br />
+                                Bollywood Gully<br />
+                                Banur<br />
+                                SAS Nagar<br />
+                                Mohali<br />
+                                140601
                               </p>
                             }
                           />

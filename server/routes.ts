@@ -328,6 +328,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register return management routes
   app.use("/api/returns", returnRoutes);
 
+  // --- FIX: Proxy /api/orders/:orderId/mark-for-return to returnRoutes ---
+  app.post("/api/orders/:orderId/mark-for-return", (req, res, next) => {
+    req.url = `/orders/${req.params.orderId}/mark-for-return`;
+    returnRoutes(req, res, next);
+  });
+
   // Database backup routes - admin only
   app.post("/api/admin/backups/run", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

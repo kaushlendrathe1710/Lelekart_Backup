@@ -118,6 +118,25 @@ export async function processMultiSellerOrder(orderId: number): Promise<void> {
     
     // Send in-app notifications to admin users (not co-admins) about this new order
     await notifyAdminsAboutOrder(order, buyer);
+    // Send notification to buyer about order placed
+    await sendNotificationToUser(buyer.id, {
+      type: "ORDER_STATUS",
+      title: `Order #${order.id} Placed`,
+      message: `Your order #${order.id} has been placed successfully!`,
+      read: false,
+      link: `/orders/${order.id}`,
+      metadata: JSON.stringify({ orderId: order.id, status: order.status })
+    });
+    // Also create a permanent notification in the DB for the buyer
+    await storage.createNotification({
+      userId: buyer.id,
+      type: "ORDER_STATUS",
+      title: `Order #${order.id} Placed`,
+      message: `Your order #${order.id} has been placed successfully!`,
+      read: false,
+      link: `/orders/${order.id}`,
+      metadata: JSON.stringify({ orderId: order.id, status: order.status })
+    });
     
     // Create a seller order for each seller
     for (const sellerId in itemsBySeller) {
@@ -128,8 +147,11 @@ export async function processMultiSellerOrder(orderId: number): Promise<void> {
         return total + (item.price * item.quantity);
       }, 0);
       
-      // Always set delivery charge to zero (free delivery for all orders)
-      const deliveryCharge = 0;
+      // Sum delivery charges for this seller's items
+      const deliveryCharge = sellerItems.reduce((total, item) => {
+        const charge = item.product.deliveryCharges ?? 0;
+        return total + (charge * item.quantity);
+      }, 0);
       
       console.log(`Free delivery applied for seller ${sellerId} order items`);
       
@@ -166,6 +188,17 @@ export async function processMultiSellerOrder(orderId: number): Promise<void> {
         }
       }
     }
+    
+    // Update main order total to include all delivery charges
+    const allOrderItems = await storage.getOrderItems(orderId);
+    const allDeliveryCharges = allOrderItems.reduce((total, item) => {
+      const charge = item.product.deliveryCharges ?? 0;
+      return total + (charge * item.quantity);
+    }, 0);
+    const allSubtotal = allOrderItems.reduce((total, item) => {
+      return total + (item.price * item.quantity);
+    }, 0);
+    await storage.updateOrder(orderId, { total: allSubtotal + allDeliveryCharges });
     
     console.log(`Multi-seller order ${orderId} processed successfully`);
   } catch (error) {

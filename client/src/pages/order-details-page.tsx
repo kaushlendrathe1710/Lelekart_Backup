@@ -201,6 +201,7 @@ export default function OrderDetailsPage() {
     useState<boolean>(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
+  const [returning, setReturning] = useState(false);
 
   useEffect(() => {
     fetchOrderDetails();
@@ -360,6 +361,32 @@ export default function OrderDetailsPage() {
     }
   };
 
+  const handleReturnOrder = async () => {
+    setReturning(true);
+    try {
+      const response = await fetch(`/api/orders/${orderId}/mark-for-return`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to mark order for return');
+      }
+      toast({
+        title: 'Return Initiated',
+        description: 'Order marked for return. You can track it in My Returns.',
+      });
+      fetchOrderDetails();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to mark order for return. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setReturning(false);
+    }
+  };
+
   const renderContent = () => {
     if (loading) {
       return (
@@ -465,6 +492,20 @@ export default function OrderDetailsPage() {
                 Shipping Label
               </Button>
             ) : null}
+
+            {order.status === 'delivered' && user?.role === 'buyer' && (
+              <Button
+                variant="outline"
+                className="flex items-center gap-1 text-blue-500 border-blue-200 hover:bg-blue-50"
+                disabled={returning}
+                onClick={handleReturnOrder}
+              >
+                {returning ? (
+                  <span className="animate-spin mr-2">⟳</span>
+                ) : null}
+                Return
+              </Button>
+            )}
           </div>
         </div>
 

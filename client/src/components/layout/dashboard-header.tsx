@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 interface DashboardHeaderProps {
   userRole: string;
@@ -32,6 +33,15 @@ export function DashboardHeader({ userRole }: DashboardHeaderProps) {
                 Go Shopping
               </Link>
             </Button>
+            {/* Notification Bell for buyers */}
+            {userRole === 'buyer' && (
+              <NotificationBell 
+                className="bg-transparent text-white hover:bg-primary-foreground/10 border-2 border-white font-medium flex items-center gap-2"
+                iconClassName="text-white"
+                badgeClassName="bg-red-600 text-white"
+                onClick={() => window.location.href = '/buyer/notifications'}
+              />
+            )}
             <Button 
               variant="secondary" 
               className="bg-white text-primary hover:bg-gray-100 border-2 border-white font-medium flex items-center gap-2 shadow-sm"

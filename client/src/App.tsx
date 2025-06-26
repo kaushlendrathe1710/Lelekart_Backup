@@ -79,6 +79,7 @@ import AgreementManagementPage from "./pages/admin/agreements-page";
 import GSTManagementPage from "./pages/admin/gst-management";
 import MediaLibraryPage from "./pages/admin/media-library";
 import AdminBackupsPage from "./pages/admin/backups";
+import AdminNotificationsPage from './pages/admin/notifications';
 // Import shared components
 import { SuspenseWrapper } from "./components/shared/suspense-wrapper";
 
@@ -119,6 +120,7 @@ import SellerPaymentsPage from "./pages/seller/payments";
 import SellerSettingsPage from "./pages/seller/settings";
 import SellerHelpPage from "./pages/seller/help";
 import PublicSellerProfileWrapper from "./pages/seller/public-profile-wrapper";
+import SellerNotificationsPage from "./pages/seller/notifications";
 
 // Buyer pages
 import BuyerDashboardPage from "./pages/buyer/dashboard";
@@ -134,6 +136,7 @@ import ProductViewPage from "./pages/product-view";
 import BuyerReturnsList from "./pages/buyer/returns/index";
 import BuyerReturnDetails from "./pages/buyer/returns/[id]";
 import BuyerCreateReturn from "./pages/buyer/returns/create";
+import BuyerNotificationsPage from "./pages/buyer/notifications";
 
 // Seller return management
 import SellerReturnsList from "./pages/seller/returns/index";
@@ -145,6 +148,7 @@ import AdminReturnDetails from "./pages/admin/returns/[id]";
 
 // Import the Track Order Page
 import TrackOrderPage from "./pages/track-order-page";
+import RecentlyViewedPage from "./pages/buyer/recently-viewed";
 
 function App() {
   return (
@@ -377,11 +381,7 @@ function App() {
                       <Route path="/cart">
                         {() => (
                           <Layout>
-                            <ProtectedRoute
-                              path="/cart"
-                              role="buyer"
-                              component={() => <CartPage />}
-                            />
+                            <CartPage />
                           </Layout>
                         )}
                       </Route>
@@ -950,6 +950,16 @@ function App() {
                         )}
                       </Route>
 
+                      <Route path="/admin/notifications">
+                        {() => (
+                          <ProtectedRoute
+                            path="/admin/notifications"
+                            role="admin"
+                            component={AdminNotificationsPage}
+                          />
+                        )}
+                      </Route>
+
                       {/* Seller Routes */}
                       <Route path="/seller/dashboard">
                         {() => (
@@ -1134,6 +1144,11 @@ function App() {
                         )}
                       </Route>
 
+                      {/* Seller notifications page */}
+                      <Route path="/seller/notifications">
+                        {() => <SellerNotificationsPage />}
+                      </Route>
+
                       {/* Buyer Pages */}
                       <Route path="/buyer/dashboard">
                         {() => (
@@ -1242,6 +1257,26 @@ function App() {
                             path="/buyer/reviews"
                             role="buyer"
                             component={BuyerReviewsPage}
+                          />
+                        )}
+                      </Route>
+
+                      <Route path="/buyer/recently-viewed">
+                        {() => (
+                          <ProtectedRoute
+                            path="/buyer/recently-viewed"
+                            role="buyer"
+                            component={RecentlyViewedPage}
+                          />
+                        )}
+                      </Route>
+
+                      <Route path="/buyer/notifications">
+                        {() => (
+                          <ProtectedRoute
+                            path="/buyer/notifications"
+                            role="buyer"
+                            component={BuyerNotificationsPage}
                           />
                         )}
                       </Route>

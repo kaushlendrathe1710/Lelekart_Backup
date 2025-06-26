@@ -93,6 +93,7 @@ export default function OrdersPage() {
   const [sortDescending, setSortDescending] = useState(true); // Default to newest first
   const [orderToCancel, setOrderToCancel] = useState<Order | null>(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [returningOrderId, setReturningOrderId] = useState<number | null>(null);
   const { toast } = useToast();
   
   // Cancel order mutation
@@ -206,6 +207,32 @@ export default function OrdersPage() {
     setFilteredOrders(result);
   }, [searchQuery, orders, sortDescending]);
   
+  const handleReturnOrder = async (orderId: number) => {
+    setReturningOrderId(orderId);
+    try {
+      const response = await fetch(`/api/orders/${orderId}/mark-for-return`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to mark order for return');
+      }
+      toast({
+        title: 'Return Initiated',
+        description: 'Order marked for return. You can track it in My Returns.',
+      });
+      fetchOrders();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to mark order for return. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setReturningOrderId(null);
+    }
+  };
+  
   const renderContent = () => {
     if (loading) {
       return (
@@ -318,6 +345,24 @@ export default function OrdersPage() {
                         >
                           <X className="mr-1 h-4 w-4" />
                           Cancel Order
+                        </Button>
+                      )}
+                      
+                      {order.status === 'delivered' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center text-blue-500 border-blue-200 hover:bg-blue-50"
+                          disabled={returningOrderId === order.id}
+                          onClick={e => {
+                            e.stopPropagation();
+                            handleReturnOrder(order.id);
+                          }}
+                        >
+                          {returningOrderId === order.id ? (
+                            <span className="animate-spin mr-2">⟳</span>
+                          ) : null}
+                          Return
                         </Button>
                       )}
                       

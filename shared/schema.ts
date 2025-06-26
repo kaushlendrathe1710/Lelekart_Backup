@@ -112,6 +112,7 @@ export const products = pgTable("products", {
   warranty: integer("warranty"), // Warranty period in months
   returnPolicy: text("return_policy"), // Return policy details
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  deliveryCharges: integer("delivery_charges").notNull().default(0), // Delivery charges for this product
 });
 
 export const insertProductSchema = createInsertSchema(products).pick({
@@ -144,6 +145,7 @@ export const insertProductSchema = createInsertSchema(products).pick({
   height: true,
   warranty: true,
   returnPolicy: true,
+  deliveryCharges: true,
 });
 
 // Product Variants Schema

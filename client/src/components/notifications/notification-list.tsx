@@ -1,6 +1,7 @@
 import { useNotifications } from '@/contexts/notification-context';
+import { useAuth } from '@/hooks/use-auth';
 import { formatDistanceToNow } from 'date-fns';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { 
   Trash2, 
   CheckSquare, 
@@ -16,15 +17,46 @@ import { Button } from '@/components/ui/button';
 import { NotificationType } from '@shared/schema';
 import { Badge } from '@/components/ui/badge';
 
-interface NotificationListProps {
-  filter?: 'all' | 'unread' | 'important';
+// Extend notification type to include metadata
+interface NotificationWithMetadata {
+  id: number;
+  userId?: number;
+  title: string;
+  message: string;
+  type: NotificationType;
+  link?: string | null;
+  read: boolean;
+  createdAt: string;
+  metadata?: { [key: string]: any };
 }
 
-export function NotificationList({ filter = 'all' }: NotificationListProps) {
+interface NotificationListProps {
+  filter?: 'all' | 'unread' | 'important';
+  sellerId?: number;
+}
+
+export function NotificationList({ filter = 'all', sellerId }: NotificationListProps) {
   const { notifications, isLoading, markAsRead, deleteNotification } = useNotifications();
+  const { user } = useAuth();
+  const [, navigate] = useLocation();
   
-  // Filter notifications based on tab
-  const filteredNotifications = notifications.filter(notification => {
+  // Cast notifications to NotificationWithMetadata for filtering
+  const filteredNotifications = (notifications as NotificationWithMetadata[]).filter(notification => {
+    // If sellerId is provided, show all notifications for this seller
+    if (sellerId) {
+      return notification.userId === sellerId;
+    }
+    
+    // For buyers, hide ORDER_STATUS notifications only if they are admin notifications
+    if (user?.role === 'buyer' && notification.type === NotificationType.ORDER_STATUS) {
+      // Hide if link is for admin
+      if (notification.link && notification.link.startsWith('/admin')) {
+        return false;
+      }
+      // Otherwise, show (for buyer)
+      return true;
+    }
+    
     if (filter === 'all') return true;
     if (filter === 'unread') return !notification.read;
     if (filter === 'important') {
@@ -71,6 +103,7 @@ export function NotificationList({ filter = 'all' }: NotificationListProps) {
           notification={notification}
           onMarkAsRead={markAsRead}
           onDelete={deleteNotification}
+          sellerId={sellerId}
         />
       ))}
     </div>
@@ -89,9 +122,11 @@ interface NotificationItemProps {
   };
   onMarkAsRead: (id: number) => void;
   onDelete: (id: number) => void;
+  sellerId?: number;
 }
 
-function NotificationItem({ notification, onMarkAsRead, onDelete }: NotificationItemProps) {
+function NotificationItem({ notification, onMarkAsRead, onDelete, sellerId }: NotificationItemProps) {
+  const [, navigate] = useLocation();
   const handleClick = () => {
     if (!notification.read) {
       onMarkAsRead(notification.id);
@@ -190,11 +225,33 @@ function NotificationItem({ notification, onMarkAsRead, onDelete }: Notification
           <p className="text-xs text-muted-foreground">
             {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
           </p>
-          {notification.link && (
-            <div className="text-xs text-primary font-medium">
+          {/* For seller notifications, always go to /seller/orders */}
+          {sellerId ? (
+            <button
+              className="text-xs text-primary font-medium underline"
+              onClick={() => navigate('/seller/orders')}
+            >
               View Details
-            </div>
-          )}
+            </button>
+          ) : (notification.link && notification.link.startsWith('/admin/')) ? (
+            <button
+              className="text-xs text-primary font-medium underline"
+              onClick={() => {
+                const match = (notification.link ? notification.link.replace('/admin/roders/', '/admin/orders/') : '').match(/\/admin\/orders\/(\d+)/);
+                if (match && match[1]) {
+                  navigate(`/admin/orders?viewOrder=${match[1]}`);
+                } else {
+                  navigate('/admin/orders');
+                }
+              }}
+            >
+              View Details
+            </button>
+          ) : notification.link ? (
+            <Link to={notification.link ? notification.link.replace('/admin/roders/', '/admin/orders/') : ''} className="text-xs text-primary font-medium">
+              View Details
+            </Link>
+          ) : null}
         </div>
       </div>
     </div>
@@ -208,18 +265,7 @@ function NotificationItem({ notification, onMarkAsRead, onDelete }: Notification
       <div className={`flex-shrink-0 rounded-full p-2 mt-1 ${getTypeIconBackground(notification.type)}`}>
         {getTypeIcon(notification.type)}
       </div>
-      
-      {notification.link ? (
-        <Link 
-          to={notification.link} 
-          className="flex-1"
-          onClick={handleClick}
-        >
-          <NotificationContent />
-        </Link>
-      ) : (
-        <NotificationContent />
-      )}
+      <NotificationContent />
       <div className="flex flex-col gap-1 ml-2">
         {!notification.read && (
           <Button

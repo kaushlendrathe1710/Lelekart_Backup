@@ -35,6 +35,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [socket, setSocket] = useState<WebSocket | null>(null);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   
   // Get notifications
   const { 
@@ -287,9 +289,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                 console.log('WebSocket heartbeat acknowledged');
               } else if (data.type === 'notification') {
                 // Handle new notification
+                // Add to notifications state instantly
+                setNotifications((prev) => [data.notification, ...prev]);
+                setUnreadCount((prev) => prev + 1);
+                // Also invalidate queries for consistency
                 queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
                 queryClient.invalidateQueries({ queryKey: ['/api/notifications/unread/count'] });
-                
                 // Show toast for new notification
                 toast({
                   title: data.notification.title,
@@ -390,6 +395,27 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     };
   }, [user, queryClient, toast]);
   
+  // Set notifications from API
+  useEffect(() => {
+    if (notificationsData && user) {
+      // Filter: Only show notifications for this user (should already be the case),
+      // and for buyers, filter out admin notifications (e.g., 'New Order Received')
+      let filtered = notificationsData.notifications;
+      if (user.role === 'buyer') {
+        filtered = filtered.filter(
+          (n) =>
+            // Exclude admin notifications (e.g., 'New Order Received')
+            !(
+              n.type === NotificationType.ORDER_STATUS &&
+              n.title &&
+              n.title.toLowerCase().includes('new order received')
+            )
+        );
+      }
+      setNotifications(filtered);
+    }
+  }, [notificationsData, user]);
+  
   // Function to mark notification as read
   const markAsRead = (id: number) => {
     markAsReadMutation.mutate(id);
@@ -413,8 +439,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   return (
     <NotificationContext.Provider
       value={{
-        notifications: notificationsData?.notifications || [],
-        unreadCount: unreadCountData?.count || 0,
+        notifications: notifications,
+        unreadCount: unreadCount,
         isLoading: isLoadingNotifications,
         refetchNotifications,
         refetchUnreadCount,

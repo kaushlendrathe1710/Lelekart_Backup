@@ -138,7 +138,7 @@ function ProductImageSlider({
     if (typeof source === "string" && source.trim().startsWith("[")) {
       const parsed = parseJson(source);
       if (Array.isArray(parsed)) {
-        parsed.forEach((url: unknown) => {
+        (Array.isArray(parsed) ? parsed : []).forEach((url: string) => {
           if (typeof url === "string" && url.includes("http")) {
             images.push(url);
           }
@@ -462,18 +462,15 @@ function ProductImageSlider({
           {(() => {
             const images = validImages || [];
 
-            if (images.length > 0) {
-              return images.map((image, index) => (
+            if (Array.isArray(images) && images.length > 0) {
+              return images.map((image: string, index: number) => (
                 <div
                   key={index}
                   className={`w-16 h-16 border cursor-pointer hover:border-primary ${
                     index === activeImage ? "border-primary" : "border-gray-200"
                   }`}
                   onClick={() => {
-                    // No conditional check - just set the active image directly
                     setActiveImage(index);
-
-                    // Reset to normal view when changing images
                     if (viewMode !== "normal") setViewMode("normal");
                   }}
                 >
@@ -697,6 +694,34 @@ export default function ProductDetailsPage() {
   // Track slider update trigger for debugging purposes
   const [sliderUpdateCount, setSliderUpdateCount] = useState(0);
 
+  // --- Recently Viewed Products Tracking ---
+  useEffect(() => {
+    // Ensure productId is a valid number
+    if (typeof productId !== "number" || isNaN(productId) || productId <= 0) return;
+    try {
+      const key = "recently_viewed_products";
+      const existing = localStorage.getItem(key);
+      let ids: number[] = [];
+      if (existing) {
+        try {
+          ids = JSON.parse(existing);
+        } catch {
+          ids = [];
+        }
+      }
+      // Remove if already present
+      ids = ids.filter((id) => id !== productId);
+      // Add to start
+      ids.unshift(productId);
+      // Keep only latest 20
+      if (ids.length > 20) ids = ids.slice(0, 20);
+      localStorage.setItem(key, JSON.stringify(ids));
+      console.log("[Recently Viewed] Updated localStorage:", ids);
+    } catch (e) {
+      // Ignore localStorage errors
+    }
+  }, [productId]);
+
   // Function to check pincode deliverability
   const checkPincodeAvailability = async () => {
     if (pincode.length !== 6) {
@@ -836,24 +861,24 @@ export default function ProductDetailsPage() {
   const handleAddToCart = async () => {
     if (!product) return;
 
-    // If user is not logged in, redirect to auth
-    if (!user) {
-      toast({
-        title: "Please log in",
-        description: "You need to be logged in to add items to cart",
-        variant: "default",
-      });
-      setLocation("/auth");
-      return;
-    }
-
-    // Only buyers can add to cart
-    const userRole = user?.role as string;
-    if (userRole && userRole !== "buyer") {
+    // Only buyers can add to cart (guests and buyers)
+    if (user && user.role !== "buyer") {
       toast({
         title: "Action Not Allowed",
         description:
           "Only buyers can add items to cart. Please switch to a buyer account.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // If product has both color and size options, require both to be selected
+    const hasColor = Array.isArray(uniqueColors) && uniqueColors.length > 0;
+    const hasSize = Array.isArray(uniqueSizes) && uniqueSizes.length > 0;
+    if (hasColor && hasSize && (!selectedColor || !selectedSize)) {
+      toast({
+        title: "Selection Required",
+        description: "Please select both color and size before adding to cart.",
         variant: "destructive",
       });
       return;
@@ -870,24 +895,20 @@ export default function ProductDetailsPage() {
     }
 
     try {
-      // Try to use context if available
+      // Use cart context for both guest and logged-in users
       if (cartContext) {
         if (selectedVariant) {
-          // Check if the variant ID is invalid (negative or suspiciously large)
-          // Most product IDs should be in a reasonable range (e.g., under 10000)
-          // If the ID is outside this range, it's likely invalid/internal ID
           const isValidId =
             typeof selectedVariant.id === "number" &&
             selectedVariant.id > 0 &&
             selectedVariant.id < 10000;
 
-          const variantId = isValidId ? selectedVariant.id : product.id; // Use parent product ID if variant has invalid ID
+          const variantId = isValidId ? selectedVariant.id : product.id;
 
-          // Add the variant to cart with validated ID
           cartContext.addToCart(
             {
               ...product,
-              id: variantId, // Use validated ID
+              id: variantId,
               price: selectedVariant.price,
               mrp: selectedVariant.mrp,
               isVariant: true,
@@ -898,48 +919,9 @@ export default function ProductDetailsPage() {
             quantity
           );
         } else {
-          // Add the main product to cart
           cartContext.addToCart(product, quantity);
         }
-      } else {
-        // Fallback to direct API call
-        let productIdToUse;
-
-        if (selectedVariant) {
-          // Check if the variant ID is invalid (negative or suspiciously large)
-          // Most product IDs should be in a reasonable range (e.g., under 10000)
-          // If the ID is outside this range, it's likely invalid/internal ID
-          const isValidId =
-            typeof selectedVariant.id === "number" &&
-            selectedVariant.id > 0 &&
-            selectedVariant.id < 10000;
-
-          productIdToUse = isValidId ? selectedVariant.id : product.id; // Use parent product ID if variant has invalid ID
-        } else {
-          productIdToUse = product.id;
-        }
-
-        // Verify that the product ID is a valid number
-        if (
-          !productIdToUse ||
-          typeof productIdToUse !== "number" ||
-          isNaN(productIdToUse)
-        ) {
-          throw new Error("Invalid product ID");
-        }
-
-        const cartData = {
-          productId: productIdToUse,
-          quantity: quantity,
-          isVariant: selectedVariant ? true : false,
-          parentProductId: selectedVariant ? product.id : undefined,
-          color: selectedVariant?.color,
-          size: selectedVariant?.size,
-        };
-
-        await addToCartMutation.mutateAsync(cartData);
       }
-
       toast({
         title: "Added to Cart",
         description: `${product.name} ${
@@ -1516,12 +1498,16 @@ export default function ProductDetailsPage() {
     priceDetails;
 
   // Parse color and size options
-  const colorOptions = product?.color
+  const colorOptions = product && product.color
     ? product.color.split(/,\s*/).filter(Boolean)
     : [];
-  const sizeOptions = product?.size
+  const sizeOptions = product && product.size
     ? product.size.split(/,\s*/).filter(Boolean)
     : [];
+
+  // --- HARD FILTER: Prevent accidental 0 rendering in GST breakdown ---
+  let safeBasePrice = typeof basePrice === "number" && basePrice > 0 ? basePrice : undefined;
+  let safeGstAmount = typeof gstAmount === "number" && gstAmount > 0 ? gstAmount : undefined;
 
   return (
     <CartProvider>
@@ -1597,46 +1583,44 @@ export default function ProductDetailsPage() {
                 </div>
 
                 {/* Pricing */}
+                {console.log('DEBUG PRICE BLOCK', {price, discount, original, hasGst, gstRate, basePrice, gstAmount, safeBasePrice, safeGstAmount})}
                 <div className="flex flex-col mt-1">
                   <div className="flex items-baseline">
-                    <span className="text-3xl font-medium text-gray-800">
-                      {formatPrice(price)}
-                    </span>
-                    <span className="text-sm text-gray-500 line-through ml-2">
-                      ₹
-                      {product?.mrp?.toLocaleString("en-IN") ||
-                        original.toLocaleString("en-IN")}
-                    </span>
-                    <span className="text-sm text-green-600 ml-2">
-                      {Math.round(
-                        (((product?.mrp || original) - price) /
-                          (product?.mrp || original)) *
+                    {typeof price === 'number' && price > 0 && (
+                      <span className="text-3xl font-medium text-gray-800">
+                        {formatPrice(price)}
+                      </span>
+                    )}
+                    {((product?.mrp && product?.mrp > 0) || (original && original > 0)) && (
+                      <span className="text-sm text-gray-500 line-through ml-2">
+                        ₹
+                        {product?.mrp?.toLocaleString("en-IN") ||
+                          original.toLocaleString("en-IN")}
+                      </span>
+                    )}
+                    {((product?.mrp && product?.mrp > 0) || (original && original > 0)) && price > 0 && (
+                      <span className="text-sm text-green-600 ml-2">
+                        {Math.round(
+                          (((product?.mrp || original) - price) /
+                            (product?.mrp || original)) *
                           100
-                      )}
-                      % off
-                    </span>
+                        )}
+                        % off
+                      </span>
+                    )}
                   </div>
-
                   {/* GST Breakdown */}
                   {hasGst &&
-                    gstRate &&
-                    typeof gstRate === "string" &&
-                    parseFloat(gstRate) > 0 && (
-                      <div className="text-sm text-gray-500 mt-1">
-                        <div>Price includes GST at {gstRate}%</div>
-                        <div>
-                          Base Price:{" "}
-                          {basePrice !== undefined
-                            ? formatPrice(basePrice)
-                            : "₹0"}
-                          + GST:{" "}
-                          {gstAmount !== undefined
-                            ? formatPrice(gstAmount)
-                            : "₹0"}
-                        </div>
+                    ((typeof gstRate === "string" && parseFloat(gstRate) > 0) || (typeof gstRate === "number" && gstRate > 0)) &&
+                    typeof basePrice === "number" && basePrice > 0 &&
+                    typeof gstAmount === "number" && gstAmount > 0 && (
+                      <div className="text-sm text-gray-600 mt-1 font-medium">
+                        Price includes GST ({gstRate}%): {formatPrice(basePrice + gstAmount)}
+                        <span className="text-xs text-gray-500 ml-2">
+                          (Base: {formatPrice(basePrice)} + GST: {formatPrice(gstAmount)})
+                        </span>
                       </div>
                     )}
-
                   {/* Stock availability for selected variant */}
                   {selectedVariant && (
                     <div
@@ -1661,41 +1645,32 @@ export default function ProductDetailsPage() {
                     </div>
                     <div className="flex items-center">
                       <div className="flex items-center">
-                        <button
-                          className="h-10 w-10 flex items-center justify-center border border-gray-300 rounded-l"
-                          onClick={() =>
-                            setQuantity((prevQty) =>
-                              prevQty > 1 ? prevQty - 1 : 1
-                            )
-                          }
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 rounded-l"
+                          title="Decrease quantity"
+                          onClick={() => setQuantity(Math.max(1, quantity - 1))}
                           disabled={quantity <= 1}
                         >
-                          <Minus className="h-4 w-4 text-gray-600" />
-                        </button>
-                        <div className="flex items-center justify-center h-10 w-12 border-t border-b border-gray-300 text-center">
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                        <span className="w-10 h-8 bg-white flex items-center justify-center text-lg border-t border-b">
                           {quantity}
-                        </div>
-                        <button
-                          className="h-10 w-10 flex items-center justify-center border border-gray-300 rounded-r"
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 rounded-r"
+                          title="Increase quantity"
                           onClick={() => {
-                            // If variant has stock, use it, otherwise use product stock or a high number
-                            const maxStock =
-                              selectedVariant?.stock || product?.stock || 999;
-                            setQuantity((prevQty) =>
-                              prevQty < maxStock ? prevQty + 1 : prevQty
-                            );
+                            const availableStock = selectedVariant?.stock || product?.stock || 999;
+                            setQuantity(Math.min(availableStock, quantity + 1));
                           }}
-                          disabled={
-                            (selectedVariant &&
-                              selectedVariant.stock > 0 &&
-                              quantity >= selectedVariant.stock) ||
-                            (!selectedVariant &&
-                              product?.stock &&
-                              quantity >= product.stock)
-                          }
+                          disabled={selectedVariant?.stock ? quantity >= selectedVariant.stock : product?.stock ? quantity >= product.stock : false}
                         >
-                          <Plus className="h-4 w-4 text-gray-600" />
-                        </button>
+                          <Plus className="h-4 w-4" />
+                        </Button>
                       </div>
 
                       {((selectedVariant &&
@@ -2039,11 +2014,11 @@ export default function ProductDetailsPage() {
                   </div>
                   <div className="col-span-10">
                     <ul className="text-sm space-y-1">
-                      {specifications.slice(0, 4).map((spec, i) => (
+                      {Array.isArray(specifications) ? specifications.slice(0, 4).map((spec, i) => (
                         <li key={i}>
                           • {spec.key}: {spec.value}
                         </li>
-                      ))}
+                      )) : null}
                     </ul>
                   </div>
                 </div>
@@ -2117,6 +2092,7 @@ export default function ProductDetailsPage() {
                         product.variants.length > 0) ||
                       (selectedVariant && selectedVariant.stock <= 0)
                     }
+                    title="Add to Cart"
                   >
                     <ShoppingCart className="h-5 w-5 mr-2" />
                     {!isValidSelection &&
@@ -2137,6 +2113,7 @@ export default function ProductDetailsPage() {
                         product.variants.length > 0) ||
                       (selectedVariant && selectedVariant.stock <= 0)
                     }
+                    title="Buy Now"
                   >
                     <Zap className="h-5 w-5 mr-2" />
                     {selectedVariant && selectedVariant.stock <= 0
@@ -2239,7 +2216,7 @@ export default function ProductDetailsPage() {
                       <div className="p-0">
                         <table className="w-full">
                           <tbody>
-                            {specifications.map((spec, index) => (
+                            {Array.isArray(specifications) ? specifications.map((spec, index) => (
                               <tr
                                 key={index}
                                 className={
@@ -2253,7 +2230,7 @@ export default function ProductDetailsPage() {
                                   {spec.value}
                                 </td>
                               </tr>
-                            ))}
+                            )) : null}
                           </tbody>
                         </table>
                       </div>
@@ -2346,10 +2323,12 @@ export default function ProductDetailsPage() {
                                   </td>
                                   <td className="px-4 py-3 whitespace-nowrap">
                                     <div className="flex flex-col">
-                                      <span className="text-sm font-medium">
-                                        ₹{formatPrice(variant.price)}
-                                      </span>
-                                      {variant.mrp && (
+                                      {typeof variant.price === 'number' && variant.price > 0 && (
+                                        <span className="text-sm font-medium">
+                                          ₹{formatPrice(variant.price)}
+                                        </span>
+                                      )}
+                                      {typeof variant.mrp === 'number' && variant.mrp > 0 && (
                                         <span className="text-xs text-gray-500 line-through">
                                           ₹{formatPrice(variant.mrp)}
                                         </span>

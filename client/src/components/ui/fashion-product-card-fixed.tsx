@@ -95,43 +95,11 @@ export function FashionProductCardFixed({
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
-    // If user is not logged in, redirect to auth
-    if (!user) {
-      toast({
-        title: "Please log in",
-        description: "You need to be logged in to add items to cart",
-        variant: "default",
-      });
-      setLocation("/auth", { replace: false });
-      return;
-    }
-
-    // Only buyers can add to cart
-    if (user.role !== "buyer") {
-      toast({
-        title: "Action Not Allowed",
-        description:
-          "Only buyers can add items to cart. Please switch to a buyer account.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
-      await apiRequest("POST", "/api/cart", {
-        productId: product.id,
-        quantity: 1,
-      });
-
-      // Refresh cart data
-      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
-
-      toast({
-        title: "Added to cart",
-        description: `${product.name} has been added to your cart`,
-        variant: "default",
-      });
+      if (cartContext) {
+        cartContext.addToCart(product);
+      }
+      // Show toast is handled in context
     } catch (error) {
       toast({
         title: "Failed to add to cart",
