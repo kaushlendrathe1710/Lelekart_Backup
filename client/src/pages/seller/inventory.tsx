@@ -497,12 +497,12 @@ export default function InventoryPage() {
                         {formatPrice(product.price)}
                       </td>
                       <td className="px-4 py-4 text-sm">
-                        {product.stockQuantity <= 0 ? (
+                        {((product.stockQuantity ?? product.stock) <= 0) ? (
                           <span className="text-red-600 font-medium">Out of stock</span>
-                        ) : product.stockQuantity <= 10 ? (
-                          <span className="text-amber-600 font-medium">{product.stockQuantity} left</span>
+                        ) : ((product.stockQuantity ?? product.stock) <= 10) ? (
+                          <span className="text-amber-600 font-medium">Low stock ({product.stockQuantity ?? product.stock} left)</span>
                         ) : (
-                          <span className="text-green-600 font-medium">{product.stockQuantity} in stock</span>
+                          <span className="text-green-600 font-medium">In stock ({product.stockQuantity ?? product.stock})</span>
                         )}
                       </td>
                       <td className="px-4 py-4 text-sm">
@@ -587,7 +587,7 @@ export default function InventoryPage() {
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">
-                {products.filter((p: any) => p.stockQuantity > 0 && p.stockQuantity <= 10).length}
+                {products.filter((p: any) => (p.stockQuantity ?? p.stock) > 0 && (p.stockQuantity ?? p.stock) <= 10).length}
               </p>
               <p className="text-sm text-muted-foreground">
                 Products with 10 or fewer items in stock
@@ -611,7 +611,7 @@ export default function InventoryPage() {
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">
-                {products.filter((p: any) => p.stockQuantity <= 0).length}
+                {products.filter((p: any) => (p.stockQuantity ?? p.stock) <= 0).length}
               </p>
               <p className="text-sm text-muted-foreground">
                 Products that are currently unavailable

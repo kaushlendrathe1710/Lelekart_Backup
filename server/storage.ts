@@ -4990,7 +4990,11 @@ export class DatabaseStorage implements IStorage {
       cancelled: ["refunded"],
       refunded: [],
       completed: [],
-      marked_for_return: ["processing", "completed", "cancelled"],
+      marked_for_return: ["approve_return", "reject_return"],
+      approve_return: ["process_return", "reject_return"],
+      process_return: ["completed_return", "reject_return"],
+      completed_return: ["reject_return"],
+      reject_return: [],
     };
 
     // Check if the status transition is allowed

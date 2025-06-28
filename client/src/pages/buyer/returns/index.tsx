@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'wouter';
+import { Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { 
   Table, 
@@ -13,51 +13,34 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { 
   CalendarIcon, 
-  ClockIcon, 
-  RefreshCcwIcon, 
-  CheckCircleIcon, 
-  XCircleIcon,
-  ChevronRightIcon,
-  Loader2Icon
+  Loader2Icon, 
+  RefreshCcwIcon,
+  Package
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { useAuth } from '@/hooks/use-auth';
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from '@/components/ui/breadcrumb';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
+import React from 'react';
 
-// Return request interface
-interface ReturnRequest {
+// Order interface
+interface Order {
   id: number;
-  orderId: number;
-  orderNumber: string;
-  requestType: 'return' | 'refund' | 'replacement';
+  date: string;
   status: string;
-  createdAt: string;
-  updatedAt: string;
+  total: number;
+  paymentMethod: string;
+  items: any[];
 }
 
 // Return status badge colors
 const statusColors = {
-  pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  approved: 'bg-blue-100 text-blue-800 border-blue-200',
-  item_in_transit: 'bg-purple-100 text-purple-800 border-purple-200',
-  item_received: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-  replacement_in_transit: 'bg-cyan-100 text-cyan-800 border-cyan-200',
-  refund_initiated: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  refund_processed: 'bg-green-100 text-green-800 border-green-200',
-  completed: 'bg-green-100 text-green-800 border-green-200',
-  rejected: 'bg-red-100 text-red-800 border-red-200',
-  cancelled: 'bg-gray-100 text-gray-800 border-gray-200',
-};
-
-// Return type labels
-const requestTypeLabels = {
-  return: 'Return',
-  refund: 'Refund',
-  replacement: 'Replacement'
+  marked_for_return: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  approve_return: 'bg-blue-100 text-blue-800 border-blue-200',
+  process_return: 'bg-purple-100 text-purple-800 border-purple-200',
+  completed_return: 'bg-green-100 text-green-800 border-green-200',
+  reject_return: 'bg-red-100 text-red-800 border-red-200',
 };
 
 // Format status labels for display
@@ -67,30 +50,54 @@ const formatStatus = (status: string) => {
   ).join(' ');
 };
 
+// Format payment method
+const formatPaymentMethod = (method: string) => {
+  switch (method) {
+    case 'cod':
+      return 'Cash on Delivery';
+    case 'online':
+      return 'Online Payment';
+    default:
+      return method.charAt(0).toUpperCase() + method.slice(1);
+  }
+};
+
 export default function ReturnsList() {
   const { user } = useAuth();
-  // const [activeTab, setActiveTab] = useState('all'); // Commented out tabs
   const { toast } = useToast();
-  
-  // Fetch user's return requests
-  const { 
-    data: returnRequests, 
-    isLoading, 
-    error, 
-    refetch 
-  } = useQuery<ReturnRequest[]>({
-    queryKey: ['/api/returns'],
+
+  // Fetch user's orders
+  const {
+    data: orders,
+    isLoading,
+    error,
+  } = useQuery<Order[]>({
+    queryKey: ['/api/orders'],
+    queryFn: async () => {
+      const res = await fetch('/api/orders', { credentials: 'include' });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data || [];
+    },
     enabled: !!user
   });
-  
-  // Only show marked_for_return
-  const filteredReturns = (returnRequests || []).filter(r => r.status === 'marked_for_return');
+
+  // Only show orders with these return statuses
+  const allowedStatuses = [
+    'marked_for_return',
+    'approve_return',
+    'reject_return',
+    'process_return',
+    'completed_return',
+  ];
+
+  const filteredOrders = (orders || []).filter(order => allowedStatuses.includes(order.status));
 
   useEffect(() => {
     if (error) {
       toast({
-        title: "Error fetching returns",
-        description: "Could not load your return requests. Please try again.",
+        title: "Error fetching orders",
+        description: "Could not load your orders. Please try again.",
         variant: "destructive"
       });
     }
@@ -111,27 +118,16 @@ export default function ReturnsList() {
     <DashboardLayout>
       <div className="container max-w-6xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold tracking-tight mb-8">My Returns</h1>
-        {/*
-        <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="mb-8">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="all">All Returns</TabsTrigger>
-            <TabsTrigger value="active">Active</TabsTrigger>
-            <TabsTrigger value="marked_for_return">Marked for Return</TabsTrigger>
-            <TabsTrigger value="completed">Completed</TabsTrigger>
-            <TabsTrigger value="cancelled">Cancelled/Rejected</TabsTrigger>
-          </TabsList>
-        </Tabs>
-        */}
         {isLoading ? (
           <div className="flex justify-center items-center h-64">
             <Loader2Icon className="h-8 w-8 animate-spin text-primary" />
           </div>
-        ) : filteredReturns.length > 0 ? (
+        ) : filteredOrders.length > 0 ? (
           <Card>
             <CardHeader className="px-6">
-              <CardTitle>Marked for Return Orders</CardTitle>
+              <CardTitle>Orders with Return Status</CardTitle>
               <CardDescription>
-                {filteredReturns.length} order{filteredReturns.length === 1 ? '' : 's'} marked for return
+                {filteredOrders.length} order{filteredOrders.length === 1 ? '' : 's'} with return status found
               </CardDescription>
             </CardHeader>
             <CardContent className="px-0">
@@ -139,40 +135,45 @@ export default function ReturnsList() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Return ID</TableHead>
+                      <TableHead>Order ID</TableHead>
                       <TableHead>Date</TableHead>
-                      <TableHead>Order</TableHead>
-                      <TableHead>Type</TableHead>
+                      <TableHead>Items</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Payment</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredReturns.map((returnRequest: ReturnRequest) => (
-                      <TableRow key={returnRequest.id}>
-                        <TableCell className="font-medium">#{returnRequest.id}</TableCell>
+                    {filteredOrders.map((order: Order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-medium">#{order.id}</TableCell>
                         <TableCell>
                           <div className="flex items-center">
                             <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
-                            {format(new Date(returnRequest.createdAt), 'MMM d, yyyy')}
+                            {format(new Date(order.date), 'MMM d, yyyy')}
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Link to={`/orders/${returnRequest.orderId}`} className="text-primary hover:underline">
-                            #{returnRequest.orderNumber}
-                          </Link>
+                          <div className="flex items-center">
+                            <Package className="mr-2 h-4 w-4 text-gray-500" />
+                            {order.items?.length || 0} item{(order.items?.length || 0) === 1 ? '' : 's'}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          ₹{order.total.toFixed(2)}
                         </TableCell>
                         <TableCell>
-                          {returnRequest.requestType && requestTypeLabels[returnRequest.requestType as keyof typeof requestTypeLabels]}
+                          {formatPaymentMethod(order.paymentMethod)}
                         </TableCell>
                         <TableCell>
-                          <Badge className={`${statusColors[returnRequest.status as keyof typeof statusColors]} font-normal`}>
-                            {formatStatus(returnRequest.status)}
+                          <Badge className={`${statusColors[order.status as keyof typeof statusColors] || ''} font-normal`}>
+                            {formatStatus(order.status)}
                           </Badge>
                         </TableCell>
                         <TableCell>
                           <Button asChild variant="outline" size="sm">
-                            <Link to={`/returns/${returnRequest.id}`}>View</Link>
+                            <Link to={`/orders/${order.id}`}>View Order</Link>
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -185,10 +186,13 @@ export default function ReturnsList() {
         ) : (
           <div className="flex flex-col items-center justify-center h-64">
             <RefreshCcwIcon className="h-8 w-8 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900">No orders marked for return</h3>
+            <h3 className="text-lg font-medium text-gray-900">No orders with return status found</h3>
             <p className="text-gray-500 text-center mt-1">
-              You have no orders currently marked for return.
+              You have no orders with return statuses (marked_for_return, approve_return, reject_return, process_return, completed_return).
             </p>
+            <Button asChild variant="outline" className="mt-4">
+              <Link to="/orders">View All Orders</Link>
+            </Button>
           </div>
         )}
       </div>

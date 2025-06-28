@@ -697,27 +697,44 @@ export default function ProductDetailsPage() {
   // --- Recently Viewed Products Tracking ---
   useEffect(() => {
     // Ensure productId is a valid number
-    if (typeof productId !== "number" || isNaN(productId) || productId <= 0) return;
+    if (typeof productId !== "number" || isNaN(productId) || productId <= 0) {
+      console.log("[ProductDetails] Invalid productId for recently viewed tracking:", productId);
+      return;
+    }
+    
     try {
       const key = "recently_viewed_products";
       const existing = localStorage.getItem(key);
       let ids: number[] = [];
+      
       if (existing) {
         try {
           ids = JSON.parse(existing);
-        } catch {
+          console.log("[ProductDetails] Existing recently viewed products:", ids);
+        } catch (parseError) {
+          console.error("[ProductDetails] Error parsing existing recently viewed products:", parseError);
           ids = [];
         }
+      } else {
+        console.log("[ProductDetails] No existing recently viewed products found");
       }
+      
       // Remove if already present
-      ids = ids.filter((id) => id !== productId);
+      const filteredIds = ids.filter((id) => id !== productId);
+      console.log("[ProductDetails] IDs after removing current product:", filteredIds);
+      
       // Add to start
-      ids.unshift(productId);
+      filteredIds.unshift(productId);
+      console.log("[ProductDetails] IDs after adding current product to start:", filteredIds);
+      
       // Keep only latest 20
-      if (ids.length > 20) ids = ids.slice(0, 20);
-      localStorage.setItem(key, JSON.stringify(ids));
-      console.log("[Recently Viewed] Updated localStorage:", ids);
+      const finalIds = filteredIds.length > 20 ? filteredIds.slice(0, 20) : filteredIds;
+      console.log("[ProductDetails] Final IDs (max 20):", finalIds);
+      
+      localStorage.setItem(key, JSON.stringify(finalIds));
+      console.log("[ProductDetails] Successfully updated localStorage with recently viewed products:", finalIds);
     } catch (e) {
+      console.error("[ProductDetails] Error updating recently viewed products:", e);
       // Ignore localStorage errors
     }
   }, [productId]);

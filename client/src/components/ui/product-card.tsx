@@ -89,7 +89,34 @@ export const ProductCard = memo(function ProductCard({
 
       {/* Use normalized path that starts with a slash to prevent double slashes */}
       <Link href={`/product/${product.id}`} className="block">
-        <Card className="product-card h-full flex flex-col items-center p-3 transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1">
+        <Card 
+          className="product-card h-full flex flex-col items-center p-3 transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1"
+          onClick={() => {
+            // Manually add to recently viewed products as backup
+            try {
+              const key = "recently_viewed_products";
+              const existing = localStorage.getItem(key);
+              let ids: number[] = [];
+              if (existing) {
+                try {
+                  ids = JSON.parse(existing);
+                } catch {
+                  ids = [];
+                }
+              }
+              // Remove if already present
+              ids = ids.filter((id: number) => id !== product.id);
+              // Add to start
+              ids.unshift(product.id);
+              // Keep only latest 20
+              if (ids.length > 20) ids = ids.slice(0, 20);
+              localStorage.setItem(key, JSON.stringify(ids));
+              console.log("[ProductCard] Added product to recently viewed:", product.id, ids);
+            } catch (e) {
+              console.error("[ProductCard] Error adding to recently viewed:", e);
+            }
+          }}
+        >
           <CardContent className="p-0 w-full flex flex-col items-center h-full">
             <div className="w-full flex-shrink-0 h-40 flex items-center justify-center mb-3 bg-slate-50 rounded-md overflow-hidden">
               <ProductImage

@@ -398,21 +398,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   // Set notifications from API
   useEffect(() => {
     if (notificationsData && user) {
-      // Filter: Only show notifications for this user (should already be the case),
-      // and for buyers, filter out admin notifications (e.g., 'New Order Received')
-      let filtered = notificationsData.notifications;
-      if (user.role === 'buyer') {
-        filtered = filtered.filter(
-          (n) =>
-            // Exclude admin notifications (e.g., 'New Order Received')
-            !(
-              n.type === NotificationType.ORDER_STATUS &&
-              n.title &&
-              n.title.toLowerCase().includes('new order received')
-            )
-        );
-      }
-      setNotifications(filtered);
+      // Filter: Only show notifications for this user (should already be the case)
+      setNotifications(notificationsData.notifications);
     }
   }, [notificationsData, user]);
   

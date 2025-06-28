@@ -74,25 +74,27 @@ router.get("/", async (req, res) => {
     // If user is an admin, get all returns with optional filters
     else if (user.role === "admin" || (user.isCoAdmin === true)) {
       console.log(`Fetching returns for admin: ${user.id}`);
-      const limitStr = req.query.limit ? String(req.query.limit) : "10";
-      const offsetStr = req.query.offset ? String(req.query.offset) : "0";
-      
+      // 1. Get all return requests with status marked_for_return
+      const returnRequests = await storage.getReturnRequests({ status: 'marked_for_return' });
       // 2. Get all orders with status marked_for_return
       const markedOrders = await storage.getOrdersMarkedForReturn();
-      console.log('[ADMIN RETURNS DEBUG] getOrdersMarkedForReturn result:', markedOrders);
-      const pseudoReturnRequests = markedOrders.map(o => ({
-        id: `order-${o.id}`,
-        orderId: o.id,
-        orderNumber: String(o.id),
-        requestType: 'return',
-        status: 'marked_for_return',
-        createdAt: o.date,
-        updatedAt: o.date,
-        isOrderOnly: true // flag to distinguish
-      }));
-      console.log('[ADMIN RETURNS DEBUG] markedOrders:', markedOrders);
-      console.log('[ADMIN RETURNS DEBUG] pseudoReturnRequests:', pseudoReturnRequests);
-      return res.json(pseudoReturnRequests);
+      // 3. For each marked order, check if a return request exists, if not, add a pseudo-return-request object
+      const orderIdsWithReturnRequest = new Set(returnRequests.map(r => r.orderId));
+      const pseudoReturnRequests = markedOrders
+        .filter(o => !orderIdsWithReturnRequest.has(o.id))
+        .map(o => ({
+          id: `order-${o.id}`,
+          orderId: o.id,
+          orderNumber: String(o.id),
+          requestType: 'return',
+          status: 'marked_for_return',
+          createdAt: o.date,
+          updatedAt: o.date,
+          isOrderOnly: true // flag to distinguish
+        }));
+      // 4. Merge and return
+      const combined = [...returnRequests, ...pseudoReturnRequests];
+      return res.json(combined);
     }
     
     // If user role is not recognized
