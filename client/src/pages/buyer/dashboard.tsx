@@ -13,7 +13,7 @@ import {
   Mail, 
   MapPin, 
   ChevronRight,
-  Package, 
+  Package,
   Truck,
   ClipboardList,
   Heart,
@@ -115,27 +115,48 @@ export default function BuyerDashboardPage() {
       setLoadingRecentlyViewed(true);
       try {
         const ids = JSON.parse(localStorage.getItem('recently_viewed_products') || '[]');
+        console.log('[BuyerDashboard] Recently viewed IDs from localStorage:', ids);
+        
         if (!Array.isArray(ids) || ids.length === 0) {
+          console.log('[BuyerDashboard] No recently viewed products found');
           setRecentlyViewed([]);
           setLoadingRecentlyViewed(false);
           return;
         }
-        // Fetch all product details in batches of 20
-        const batchSize = 20;
+        
+        // Fetch each product individually to ensure all are fetched
         let allProducts: any[] = [];
-        for (let i = 0; i < ids.length; i += batchSize) {
-          const batchIds = ids.slice(i, i + batchSize);
-          const res = await fetch(`/api/products?ids=${batchIds.join(',')}`);
-          if (!res.ok) continue;
-          const data = await res.json();
-          allProducts = allProducts.concat(data.products || []);
+        
+        for (const id of ids) {
+          try {
+            console.log(`[BuyerDashboard] Fetching individual product ${id}`);
+            const res = await fetch(`/api/products/${id}`);
+            if (res.ok) {
+              const product = await res.json();
+              allProducts.push(product);
+              console.log(`[BuyerDashboard] Successfully fetched product ${id}:`, product.name);
+            } else {
+              console.warn(`[BuyerDashboard] Failed to fetch product ${id}:`, res.status);
+            }
+          } catch (error) {
+            console.error(`[BuyerDashboard] Error fetching product ${id}:`, error);
+          }
         }
-        const apiProductsMap = new Map(allProducts.map((p: any) => [p.id, p]));
+        
+        console.log('[BuyerDashboard] All fetched products:', allProducts);
+        console.log('[BuyerDashboard] Total products fetched:', allProducts.length);
+        
+        // Keep the order as in localStorage
         const ordered = ids
-          .map((id: number) => apiProductsMap.get(id))
-          .filter((p, idx, arr) => p && arr.findIndex(x => x && x.id === p.id) === idx);
+          .map((id: number) => allProducts.find(p => p.id === id))
+          .filter((p) => p !== undefined && p !== null);
+        
+        console.log('[BuyerDashboard] Final ordered products:', ordered);
+        console.log('[BuyerDashboard] Final product count:', ordered.length);
+        
         setRecentlyViewed(ordered);
       } catch (e) {
+        console.error('[BuyerDashboard] Error in fetchRecentlyViewed:', e);
         setRecentlyViewed([]);
       } finally {
         setLoadingRecentlyViewed(false);
@@ -389,23 +410,49 @@ export default function BuyerDashboardPage() {
               <CardDescription>Track the status of your recent orders</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-center py-8 text-center flex-col">
-                <div className="bg-gray-100 rounded-full p-3 mb-3">
-                  <Truck className="h-6 w-6 text-muted-foreground" />
+              {loadingOrders ? (
+                <div className="flex items-center justify-center py-8 text-center flex-col">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
+                  <h3 className="text-sm font-medium">Loading orders...</h3>
                 </div>
-                <h3 className="text-sm font-medium">No active orders</h3>
-                <p className="text-xs text-muted-foreground mt-1">Your active orders will appear here</p>
-                <Button 
-                  variant="link" 
-                  size="sm"
-                  className="mt-2"
-                  asChild
-                >
-                  <Link href="/orders">
-                    View All Orders
-                  </Link>
-                </Button>
-              </div>
+              ) : recentOrders.length > 0 ? (
+                <div className="space-y-4">
+                  {recentOrders.map((order: OrderSummary) => (
+                    <div key={order.id} className="flex justify-between items-center border rounded-md p-3">
+                      <div>
+                        <div className="font-medium">Order #{order.id}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(order.date).toLocaleDateString()} • {order.status}
+                        </div>
+                      </div>
+                      <Button asChild variant="link" size="sm">
+                        <Link href={`/orders/${order.id}`}>View</Link>
+                      </Button>
+                    </div>
+                  ))}
+                  <Button asChild variant="outline" size="sm" className="w-full mt-2">
+                    <Link href="/orders">View All Orders</Link>
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center py-8 text-center flex-col">
+                  <div className="bg-gray-100 rounded-full p-3 mb-3">
+                    <Truck className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-sm font-medium">No active orders</h3>
+                  <p className="text-xs text-muted-foreground mt-1">Your active orders will appear here</p>
+                  <Button 
+                    variant="link" 
+                    size="sm"
+                    className="mt-2"
+                    asChild
+                  >
+                    <Link href="/orders">
+                      View All Orders
+                    </Link>
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
           
@@ -441,6 +488,42 @@ export default function BuyerDashboardPage() {
           <CardHeader className="pb-3">
             <CardTitle className="flex justify-between items-center">
               <span>Recently Viewed Products</span>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  console.log('[BuyerDashboard] Manual refresh of recently viewed products');
+                  const ids = JSON.parse(localStorage.getItem('recently_viewed_products') || '[]');
+                  console.log('[BuyerDashboard] Current localStorage IDs:', ids);
+                  // Force re-fetch
+                  setLoadingRecentlyViewed(true);
+                  setTimeout(() => {
+                    const event = new Event('storage');
+                    window.dispatchEvent(event);
+                  }, 100);
+                }}
+              >
+                Refresh
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  console.log('[BuyerDashboard] Adding test product to recently viewed');
+                  const ids = JSON.parse(localStorage.getItem('recently_viewed_products') || '[]');
+                  const testId = 1; // Assuming product ID 1 exists
+                  const newIds = [testId, ...ids.filter((id: number) => id !== testId)].slice(0, 20);
+                  localStorage.setItem('recently_viewed_products', JSON.stringify(newIds));
+                  console.log('[BuyerDashboard] Updated localStorage with test product:', newIds);
+                  // Force re-fetch
+                  setLoadingRecentlyViewed(true);
+                  setTimeout(() => {
+                    window.location.reload();
+                  }, 500);
+                }}
+              >
+                Test
+              </Button>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -449,7 +532,7 @@ export default function BuyerDashboardPage() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
                 <h3 className="text-sm font-medium">Loading recently viewed products...</h3>
               </div>
-            ) : recentlyViewed.length > 0 && (
+            ) : recentlyViewed.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 mt-4">
                 {recentlyViewed.map((product: any) => (
                   <div
@@ -474,6 +557,25 @@ export default function BuyerDashboardPage() {
                     )}
                   </div>
                 ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center py-8 text-center flex-col">
+                <div className="bg-gray-100 rounded-full p-3 mb-3">
+                  <Package className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <h3 className="text-sm font-medium">No recently viewed products</h3>
+                <p className="text-xs text-muted-foreground mt-1 mb-4">Products you view will appear here</p>
+                <div className="space-y-2">
+                  <Button variant="link" size="sm" asChild>
+                    <Link href="/">Browse Products</Link>
+                  </Button>
+                  <div className="text-xs text-gray-500">
+                    <p>Debug Info:</p>
+                    <p>localStorage IDs: {JSON.stringify(JSON.parse(localStorage.getItem('recently_viewed_products') || '[]'))}</p>
+                    <p>Expected: {JSON.parse(localStorage.getItem('recently_viewed_products') || '[]').length} products</p>
+                    <p>Fetched: {recentlyViewed.length} products</p>
+                  </div>
+                </div>
               </div>
             )}
           </CardContent>

@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
 import { useCart } from "@/context/cart-context";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Hero slider image interface
 interface SliderImage {
@@ -43,6 +44,7 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
   const { addToCart } = useCart();
   const { toast } = useToast();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   // Helper function to get category-specific image
   const getCategoryImage = (category?: string) => {
@@ -97,9 +99,17 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
     seconds: dealOfTheDay?.seconds || 0,
   });
 
+  // Reset countdown when dealOfTheDay changes
+  useEffect(() => {
+    setCountdown({
+      hours: dealOfTheDay?.hours || 0,
+      minutes: dealOfTheDay?.minutes || 0,
+      seconds: dealOfTheDay?.seconds || 0,
+    });
+  }, [dealOfTheDay]);
+
   // Update countdown timer - only if we have a deal of the day
   useEffect(() => {
-    // Only start countdown if dealOfTheDay exists
     if (!dealOfTheDay) return;
 
     const timer = setInterval(() => {
@@ -118,8 +128,9 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
           newHours--;
         }
 
-        if (newHours < 0) {
-          // Reset or stop timer when reaches 0
+        if (newHours < 0 || (newHours === 0 && newMinutes === 0 && newSeconds === 0)) {
+          // When timer ends, refetch the deal and reset timer
+          queryClient.invalidateQueries(["/api/deal-of-the-day"]);
           return { hours: 0, minutes: 0, seconds: 0 };
         }
 
@@ -128,7 +139,7 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [dealOfTheDay]);
+  }, [dealOfTheDay, queryClient]);
 
   const goToSlide = (slideIndex: number) => {
     let newIndex = slideIndex;

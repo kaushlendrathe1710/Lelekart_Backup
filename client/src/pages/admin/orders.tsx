@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/layout/admin-layout";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Order, Product } from "@shared/schema";
+import { Order } from "@shared/schema";
 import { format } from 'date-fns';
 import {
   Table,
@@ -65,7 +65,7 @@ interface GstDetails {
 }
 
 // Define Product type with GST details
-interface Product {
+interface AdminProduct {
   id: number;
   name: string;
   price: number;
@@ -88,7 +88,7 @@ type OrderItemWithProduct = {
   productId: number;
   quantity: number;
   price: number;
-  product: Product;
+  product: AdminProduct;
   variant?: string;
   variantId?: number;
 };
@@ -112,6 +112,22 @@ type OrderWithItems = Order & {
   shippingCharges?: number;
   discount?: number;
 };
+
+// Add a type guard for AdminShippingDetails
+interface AdminShippingDetails {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  notes?: string;
+}
+
+function isAdminShippingDetails(details: any): details is AdminShippingDetails {
+  return details && typeof details === 'object' && 'name' in details && 'address' in details;
+}
 
 export default function AdminOrders() {
   const { toast } = useToast();
@@ -781,97 +797,128 @@ export default function AdminOrders() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredOrders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-medium">#{order.id}</TableCell>
-                      <TableCell>
-                        {new Date(order.date).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>User #{order.userId}</TableCell>
-                      <TableCell>{getStatusBadge(order.status)}</TableCell>
-                      <TableCell>₹{order.total.toFixed(2)}</TableCell>
-                      <TableCell className="capitalize">
-                        {formatPaymentMethod(order.paymentMethod)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Open menu</span>
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem
-                              onClick={() => fetchOrderDetails(order.id)}
-                            >
-                              <Eye className="mr-2 h-4 w-4" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuLabel>Change Status</DropdownMenuLabel>
-                            {order.status !== "pending" && (
+                  {filteredOrders.map((order) => {
+                    const isReturnStatusRow = [
+                      "marked_for_return",
+                      "approve_return",
+                      "reject_return",
+                      "process_return",
+                      "completed_return"
+                    ].includes(order.status);
+
+                    return (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-medium">#{order.id}</TableCell>
+                        <TableCell>
+                          {new Date(order.date).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>User #{order.userId}</TableCell>
+                        <TableCell>{getStatusBadge(order.status)}</TableCell>
+                        <TableCell>₹{order.total.toFixed(2)}</TableCell>
+                        <TableCell className="capitalize">
+                          {formatPaymentMethod(order.paymentMethod)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
                               <DropdownMenuItem
-                                onClick={() =>
-                                  updateOrderStatus(order.id, "pending")
-                                }
-                                disabled={updateStatusMutation.isPending}
+                                onClick={() => fetchOrderDetails(order.id)}
                               >
-                                <Clock className="mr-2 h-4 w-4" />
-                                Mark as Pending
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
                               </DropdownMenuItem>
-                            )}
-                            {order.status !== "processing" && (
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  updateOrderStatus(order.id, "processing")
-                                }
-                                disabled={updateStatusMutation.isPending}
-                              >
-                                <RefreshCw className="mr-2 h-4 w-4" />
-                                Mark as Processing
-                              </DropdownMenuItem>
-                            )}
-                            {order.status !== "shipped" && (
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  updateOrderStatus(order.id, "shipped")
-                                }
-                                disabled={updateStatusMutation.isPending}
-                              >
-                                <Truck className="mr-2 h-4 w-4" />
-                                Mark as Shipped
-                              </DropdownMenuItem>
-                            )}
-                            {order.status !== "delivered" && (
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  updateOrderStatus(order.id, "delivered")
-                                }
-                                disabled={updateStatusMutation.isPending}
-                              >
-                                <CheckCircle2 className="mr-2 h-4 w-4" />
-                                Mark as Delivered
-                              </DropdownMenuItem>
-                            )}
-                            {order.status !== "cancelled" && (
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  updateOrderStatus(order.id, "cancelled")
-                                }
-                                disabled={updateStatusMutation.isPending}
-                                className="text-red-600"
-                              >
-                                <XCircle className="mr-2 h-4 w-4" />
-                                Cancel Order
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuLabel>Change Status</DropdownMenuLabel>
+                              {isReturnStatusRow ? (
+                                <>
+                                  <DropdownMenuItem
+                                    onClick={() => updateOrderStatus(order.id, "approve_return")}
+                                    disabled={updateStatusMutation.isPending}
+                                  >
+                                    Approve Return
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => updateOrderStatus(order.id, "reject_return")}
+                                    disabled={updateStatusMutation.isPending}
+                                  >
+                                    Reject Return
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => updateOrderStatus(order.id, "process_return")}
+                                    disabled={updateStatusMutation.isPending}
+                                  >
+                                    Process Return
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => updateOrderStatus(order.id, "completed_return")}
+                                    disabled={updateStatusMutation.isPending}
+                                  >
+                                    Completed Return
+                                  </DropdownMenuItem>
+                                </>
+                              ) : (
+                                <>
+                                  {order.status !== "pending" && (
+                                    <DropdownMenuItem
+                                      onClick={() => updateOrderStatus(order.id, "pending")}
+                                      disabled={updateStatusMutation.isPending}
+                                    >
+                                      <Clock className="mr-2 h-4 w-4" />
+                                      Mark as Pending
+                                    </DropdownMenuItem>
+                                  )}
+                                  {order.status !== "processing" && (
+                                    <DropdownMenuItem
+                                      onClick={() => updateOrderStatus(order.id, "processing")}
+                                      disabled={updateStatusMutation.isPending}
+                                    >
+                                      <RefreshCw className="mr-2 h-4 w-4" />
+                                      Mark as Processing
+                                    </DropdownMenuItem>
+                                  )}
+                                  {order.status !== "shipped" && (
+                                    <DropdownMenuItem
+                                      onClick={() => updateOrderStatus(order.id, "shipped")}
+                                      disabled={updateStatusMutation.isPending}
+                                    >
+                                      <Truck className="mr-2 h-4 w-4" />
+                                      Mark as Shipped
+                                    </DropdownMenuItem>
+                                  )}
+                                  {order.status !== "delivered" && (
+                                    <DropdownMenuItem
+                                      onClick={() => updateOrderStatus(order.id, "delivered")}
+                                      disabled={updateStatusMutation.isPending}
+                                    >
+                                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                                      Mark as Delivered
+                                    </DropdownMenuItem>
+                                  )}
+                                  {order.status !== "cancelled" && (
+                                    <DropdownMenuItem
+                                      onClick={() => updateOrderStatus(order.id, "cancelled")}
+                                      disabled={updateStatusMutation.isPending}
+                                      className="text-red-600"
+                                    >
+                                      <XCircle className="mr-2 h-4 w-4" />
+                                      Cancel Order
+                                    </DropdownMenuItem>
+                                  )}
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -981,52 +1028,91 @@ export default function AdminOrders() {
                         Current status: <span className="font-medium">{viewOrder.status}</span>
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        <Button
-                          size="sm"
-                          variant={viewOrder.status === "pending" ? "secondary" : "outline"}
-                          onClick={() => updateOrderStatus(viewOrder.id, "pending")}
-                          disabled={viewOrder.status === "pending" || updateStatusMutation.isPending}
-                        >
-                          <Clock className="mr-2 h-4 w-4" />
-                          Pending
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={viewOrder.status === "processing" ? "secondary" : "outline"}
-                          onClick={() => updateOrderStatus(viewOrder.id, "processing")}
-                          disabled={viewOrder.status === "processing" || updateStatusMutation.isPending}
-                        >
-                          <RefreshCw className="mr-2 h-4 w-4" />
-                          Processing
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={viewOrder.status === "shipped" ? "secondary" : "outline"}
-                          onClick={() => updateOrderStatus(viewOrder.id, "shipped")}
-                          disabled={viewOrder.status === "shipped" || updateStatusMutation.isPending}
-                        >
-                          <Truck className="mr-2 h-4 w-4" />
-                          Shipped
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={viewOrder.status === "delivered" ? "secondary" : "outline"}
-                          onClick={() => updateOrderStatus(viewOrder.id, "delivered")}
-                          disabled={viewOrder.status === "delivered" || updateStatusMutation.isPending}
-                        >
-                          <CheckCircle2 className="mr-2 h-4 w-4" />
-                          Delivered
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={viewOrder.status === "cancelled" ? "secondary" : "outline"}
-                          className={viewOrder.status === "cancelled" ? "" : "bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"}
-                          onClick={() => updateOrderStatus(viewOrder.id, "cancelled")}
-                          disabled={viewOrder.status === "cancelled" || updateStatusMutation.isPending}
-                        >
-                          <XCircle className="mr-2 h-4 w-4" />
-                          Cancelled
-                        </Button>
+                        {viewOrder.status === "marked_for_return" ? (
+                          <>
+                            <Button
+                              size="sm"
+                              variant={viewOrder.status === "approve_return" ? "secondary" : "outline"}
+                              onClick={() => updateOrderStatus(viewOrder.id, "approve_return")}
+                              disabled={viewOrder.status === "approve_return" || updateStatusMutation.isPending}
+                            >
+                              Approve Return
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={viewOrder.status === "reject_return" ? "secondary" : "outline"}
+                              onClick={() => updateOrderStatus(viewOrder.id, "reject_return")}
+                              disabled={viewOrder.status === "reject_return" || updateStatusMutation.isPending}
+                            >
+                              Reject Return
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={viewOrder.status === "process_return" ? "secondary" : "outline"}
+                              onClick={() => updateOrderStatus(viewOrder.id, "process_return")}
+                              disabled={viewOrder.status === "process_return" || updateStatusMutation.isPending}
+                            >
+                              Process Return
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={viewOrder.status === "completed_return" ? "secondary" : "outline"}
+                              onClick={() => updateOrderStatus(viewOrder.id, "completed_return")}
+                              disabled={viewOrder.status === "completed_return" || updateStatusMutation.isPending}
+                            >
+                              Completed Return
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              size="sm"
+                              variant={viewOrder.status === "pending" ? "secondary" : "outline"}
+                              onClick={() => updateOrderStatus(viewOrder.id, "pending")}
+                              disabled={viewOrder.status === "pending" || updateStatusMutation.isPending}
+                            >
+                              <Clock className="mr-2 h-4 w-4" />
+                              Pending
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={viewOrder.status === "processing" ? "secondary" : "outline"}
+                              onClick={() => updateOrderStatus(viewOrder.id, "processing")}
+                              disabled={viewOrder.status === "processing" || updateStatusMutation.isPending}
+                            >
+                              <RefreshCw className="mr-2 h-4 w-4" />
+                              Processing
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={viewOrder.status === "shipped" ? "secondary" : "outline"}
+                              onClick={() => updateOrderStatus(viewOrder.id, "shipped")}
+                              disabled={viewOrder.status === "shipped" || updateStatusMutation.isPending}
+                            >
+                              <Truck className="mr-2 h-4 w-4" />
+                              Shipped
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={viewOrder.status === "delivered" ? "secondary" : "outline"}
+                              onClick={() => updateOrderStatus(viewOrder.id, "delivered")}
+                              disabled={viewOrder.status === "delivered" || updateStatusMutation.isPending}
+                            >
+                              <CheckCircle2 className="mr-2 h-4 w-4" />
+                              Delivered
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={viewOrder.status === "cancelled" ? "secondary" : "outline"}
+                              className={viewOrder.status === "cancelled" ? "" : "bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800"}
+                              onClick={() => updateOrderStatus(viewOrder.id, "cancelled")}
+                              disabled={viewOrder.status === "cancelled" || updateStatusMutation.isPending}
+                            >
+                              <XCircle className="mr-2 h-4 w-4" />
+                              Cancelled
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </CardContent>
                   </Card>

@@ -10,14 +10,14 @@ import { sendNotificationToUser } from "../websocket";
  * and linking order items to the appropriate seller
  */
 /**
- * Send in-app notifications to admin users (not co-admin) about a new order
+ * Send in-app notifications to all admin users (including co-admins) about a new order
  */
 async function notifyAdminsAboutOrder(order: any, buyer: User): Promise<void> {
   try {
     console.log(`Sending in-app notifications to admin users about order #${order.id}`);
     
-    // Get all admin users (excluding co-admin users)
-    const adminUsers = await storage.getAllAdminUsers(false); // false = exclude co-admins
+    // Get all admin users (including co-admins)
+    const adminUsers = await storage.getAllAdminUsers(true); // true = include co-admins
     
     if (!adminUsers || adminUsers.length === 0) {
       console.log('No admin users found to notify about the new order');
@@ -35,9 +35,9 @@ async function notifyAdminsAboutOrder(order: any, buyer: User): Promise<void> {
       // Create an in-app notification for this admin
       const notification: InsertNotification = {
         userId: admin.id,
-        type: "ORDER_STATUS", // Using existing notification type
+        type: "ORDER_STATUS",
         title: "New Order Received",
-        message: `Order #${order.id} received from ${buyer.name || buyer.username || 'Customer'} for ₹${order.total}`,
+        message: `Order #${order.id} received from ${buyer.name || buyer.username || 'Customer'} for \u20b9${order.total}`,
         read: false,
         link: `/admin/orders/${order.id}`,
         metadata: JSON.stringify({
@@ -54,9 +54,9 @@ async function notifyAdminsAboutOrder(order: any, buyer: User): Promise<void> {
       
       // Send real-time notification via WebSocket if the admin is online
       await sendNotificationToUser(admin.id, {
-        type: "ORDER_STATUS", 
+        type: "ORDER_STATUS",
         title: "New Order Received",
-        message: `Order #${order.id} received from ${buyer.name || buyer.username || 'Customer'} for ₹${order.total}`,
+        message: `Order #${order.id} received from ${buyer.name || buyer.username || 'Customer'} for \u20b9${order.total}`,
         read: false,
         link: `/admin/orders/${order.id}`,
         metadata: JSON.stringify({
@@ -116,22 +116,23 @@ export async function processMultiSellerOrder(orderId: number): Promise<void> {
       throw new Error(`Buyer with ID ${order.userId} not found`);
     }
     
-    // Send in-app notifications to admin users (not co-admins) about this new order
+    // Send in-app notifications to all admin users (including co-admins) about this new order
     await notifyAdminsAboutOrder(order, buyer);
-    // Send notification to buyer about order placed
-    await sendNotificationToUser(buyer.id, {
+    console.log('Admin notifications created for order placement');
+    // Send notification to buyer about order placed (permanent + real-time)
+    await storage.createNotification({
+      userId: buyer.id,
       type: "ORDER_STATUS",
-      title: `Order #${order.id} Placed`,
+      title: `Order Placed Successfully`,
       message: `Your order #${order.id} has been placed successfully!`,
       read: false,
       link: `/orders/${order.id}`,
       metadata: JSON.stringify({ orderId: order.id, status: order.status })
     });
-    // Also create a permanent notification in the DB for the buyer
-    await storage.createNotification({
-      userId: buyer.id,
+    console.log('Buyer notification created for order placement (Order Placed Successfully)');
+    await sendNotificationToUser(buyer.id, {
       type: "ORDER_STATUS",
-      title: `Order #${order.id} Placed`,
+      title: `Order Placed Successfully`,
       message: `Your order #${order.id} has been placed successfully!`,
       read: false,
       link: `/orders/${order.id}`,
@@ -177,6 +178,7 @@ export async function processMultiSellerOrder(orderId: number): Promise<void> {
       
       // Notify the seller about their order
       await notifySellerAboutOrder(sellerOrder.id, parseInt(sellerId), buyer);
+      console.log(`Seller notification created for sellerId ${sellerId} and orderId ${sellerOrder.id}`);
       
       // Update stock levels for this seller's items
       for (const item of sellerItems) {
@@ -277,14 +279,27 @@ async function notifySellerAboutOrder(sellerOrderId: number, sellerId: number, b
     // Get only this seller's items from the order
     const orderItems = await storage.getOrderItemsBySellerOrderId(sellerOrderId);
     
-    // Create in-app notification
+    // Create in-app notification for seller (permanent + real-time)
     await storage.createNotification({
       userId: sellerId,
-      type: "seller_order",
+      type: "ORDER_STATUS",
       title: "New Order Received",
       message: `You have received a new order #${mainOrder.id}-${sellerOrderId}`,
       link: `/seller/orders/${sellerOrderId}`,
       read: false,
+      metadata: JSON.stringify({
+        mainOrderId: mainOrder.id,
+        sellerOrderId: sellerOrderId,
+        itemCount: orderItems.length,
+        total: sellerOrder.subtotal + sellerOrder.deliveryCharge
+      })
+    });
+    await sendNotificationToUser(sellerId, {
+      type: "ORDER_STATUS",
+      title: "New Order Received",
+      message: `You have received a new order #${mainOrder.id}-${sellerOrderId}`,
+      read: false,
+      link: `/seller/orders/${sellerOrderId}`,
       metadata: JSON.stringify({
         mainOrderId: mainOrder.id,
         sellerOrderId: sellerOrderId,
@@ -349,13 +364,13 @@ export async function getSellerOrderWithDetails(sellerOrderId: number): Promise<
       id: buyer?.id,
       name: buyer?.name || buyer?.username,
       email: buyer?.email,
-      phone: shippingDetails?.phone,
+      phone: shippingDetails?.phone || '',
     },
     shipping: {
-      address: shippingDetails?.address,
-      city: shippingDetails?.city,
-      state: shippingDetails?.state,
-      zipCode: shippingDetails?.zipCode,
+      address: shippingDetails?.address || '',
+      city: shippingDetails?.city || '',
+      state: shippingDetails?.state || '',
+      zipCode: shippingDetails?.zipCode || '',
       country: shippingDetails?.country || "India",
     }
   };

@@ -34,7 +34,7 @@ export async function backupUsers(): Promise<string> {
       SELECT 
         id, username, email, role, name, phone, address, 
         profile_image as "profileImage", approved, rejected, 
-        is_co_admin as "isCoAdmin", created_at as "createdAt"
+        is_co_admin as "isCoAdmin"
       FROM users
       ORDER BY id
     `);
@@ -57,8 +57,7 @@ export async function backupUsers(): Promise<string> {
         { id: 'profileImage', title: 'Profile Image URL' },
         { id: 'approved', title: 'Approved' },
         { id: 'rejected', title: 'Rejected' },
-        { id: 'isCoAdmin', title: 'Is Co-Admin' },
-        { id: 'createdAt', title: 'Created At' }
+        { id: 'isCoAdmin', title: 'Is Co-Admin' }
       ]
     });
     

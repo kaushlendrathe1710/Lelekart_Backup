@@ -8,6 +8,7 @@ import nodemailer from "nodemailer";
 import * as templateService from "./template-service";
 import { JSDOM } from "jsdom";
 import { generatePdf } from "./pdf-generator";
+import { generatePdfBuffer } from "./pdf-generator";
 import dotenv from "dotenv";
 
 // Email configuration
@@ -143,26 +144,38 @@ export async function sendOrderConfirmationEmail(
   email: string
 ): Promise<boolean> {
   try {
-    // Get PDF invoice
-    const invoicePdf = await generatePdf("invoice", { order });
-
-    return await sendEmail({
+    // No invoice PDF generation or attachment
+    let emailOptions = {
       to: email,
-      subject: `Order Confirmation: #${order.orderNumber}`,
+      subject: `Order Confirmation: #${order.id}`,
       template: EMAIL_TEMPLATES.ORDER_CONFIRMATION,
       data: {
         order,
         date: new Date().toLocaleDateString(),
         orderLink: `${process.env.SITE_URL}/orders/${order.id}`,
+        shippingDetails: order.shippingDetails || order.shipping_details || order.shipping_address || {},
       },
-      attachments: [
-        {
-          filename: `Invoice_${order.orderNumber}.pdf`,
-          content: invoicePdf,
-          contentType: "application/pdf",
-        },
-      ],
-    });
+      attachments: [] as any[],
+    };
+
+    try {
+      return await sendEmail(emailOptions);
+    } catch (templateError) {
+      console.error("Error rendering order confirmation template, sending fallback plain text email:", templateError);
+      // Fallback: send plain text email
+      try {
+        await transporter.sendMail({
+          from: EMAIL_FROM,
+          to: email,
+          subject: `Order Confirmation: #${order.id}`,
+          text: `Your order #${order.id} has been placed successfully.\nOrder total: ₹${order.total}.\nThank you for shopping with us!`,
+        });
+        return true;
+      } catch (fallbackError) {
+        console.error("Error sending fallback plain text order confirmation email:", fallbackError);
+        return false;
+      }
+    }
   } catch (error) {
     console.error("Error sending order confirmation email:", error);
     return false;
@@ -557,8 +570,8 @@ export async function sendOrderShippedEmails(
         buyerName: buyer.name || buyer.username,
         date: new Date().toLocaleDateString(),
         orderLink: `${process.env.SITE_URL}/orders/${orderId}`,
-        trackingNumber: order.trackingNumber || "Not available",
-        courierName: order.courierName || "Not specified",
+        trackingNumber: (order as any).trackingNumber || "Not available",
+        courierName: (order as any).courierName || "Not specified",
       },
     });
     console.log(`Shipped email sent to buyer: ${buyer.email}`);
@@ -604,6 +617,24 @@ export async function sendOrderPlacedEmails(orderId: number): Promise<boolean> {
           typeof order.shippingDetails === "string"
             ? JSON.parse(order.shippingDetails)
             : order.shippingDetails;
+      } else if (order.addressId) {
+        // Fetch address from DB if shippingDetails is empty but addressId exists
+        try {
+          const address = await storage.getUserAddress(order.addressId);
+          if (address) {
+            shippingDetails = {
+              name: address.fullName || address.addressName || "",
+              address: address.address || "",
+              city: address.city || "",
+              state: address.state || "",
+              zipCode: address.pincode || "",
+              country: "India",
+              phone: address.phone || "",
+            };
+          }
+        } catch (addressError) {
+          console.error("Error fetching address for order email:", addressError);
+        }
       }
     } catch (e) {
       console.error("Error parsing shipping details", e);
@@ -692,7 +723,7 @@ export async function sendOrderPlacedEmails(orderId: number): Promise<boolean> {
                 id: buyer.id,
                 name: buyer.name || buyer.username || "Unknown Buyer",
                 email: buyer.email || "Not available",
-                phone: buyer.phone || shippingDetails?.phone || "Not provided",
+                phone: ((buyer as any).phone || (shippingDetails as any)?.phone || "Not provided"),
               },
               sellerInfo,
               date: new Date().toLocaleDateString(),

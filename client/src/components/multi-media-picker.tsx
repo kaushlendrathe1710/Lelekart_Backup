@@ -242,7 +242,7 @@ export function MultiMediaPicker({
           <DialogTrigger asChild>
             <Button variant="outline">{buttonLabel}</Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-hidden flex flex-col">
             <DialogHeader>
               <DialogTitle>Media Library</DialogTitle>
               <DialogDescription>
@@ -270,7 +270,7 @@ export function MultiMediaPicker({
                       </Button>
                     )}
                   </div>
-                  <ScrollArea className="whitespace-nowrap h-16">
+                  <ScrollArea className="whitespace-nowrap max-h-28 h-20">
                     <div className="flex gap-2 items-center">
                       {selectedMediaItems.map((item) => (
                         <div
@@ -466,7 +466,6 @@ export function MultiMediaPicker({
                             document.querySelector('[role="dialog"]');
                           if (dialogContent) dialogContent.scrollTop = 0;
                         }}
-                        siblingCount={1}
                       />
                     </div>
                   )}
@@ -557,12 +556,16 @@ export function MultiMediaPicker({
                           </p>
                         </div>
                       )}
+                      {/* Accessibility label for hidden file input */}
+                      <label htmlFor="multi-media-upload" className="sr-only">Upload files</label>
                       <input
                         type="file"
                         id="multi-media-upload"
                         className="hidden"
                         multiple
                         onChange={handleFileChange}
+                        title="Upload files"
+                        placeholder="Select files to upload"
                       />
                     </div>
 

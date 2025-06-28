@@ -5968,6 +5968,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "shipped",
         "delivered",
         "cancelled",
+        // Add return-related statuses
+        "approve_return",
+        "reject_return",
+        "process_return",
+        "completed_return",
       ];
       if (!validStatuses.includes(status)) {
         return res.status(400).json({ error: "Invalid status" });
@@ -6186,6 +6191,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "shipped",
         "delivered",
         "cancelled",
+        // Add return-related statuses
+        "approve_return",
+        "reject_return",
+        "process_return",
+        "completed_return",
       ];
       if (!validStatuses.includes(status)) {
         return res.status(400).json({ error: "Invalid status" });
@@ -8223,8 +8233,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const readyProducts = products.filter((p) => !p.isDraft && !p.deleted);
 
       // If no products, try a different category
-      let dealProduct = null;
-      if (readyProducts.length === 0) {
+      let dealProducts = readyProducts;
+      if (dealProducts.length === 0) {
         // Try Mobiles category as fallback
         const mobileProducts = await storage.getProducts(
           "Mobiles",
@@ -8235,11 +8245,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           (p) => !p.isDraft && !p.deleted
         );
         if (readyMobileProducts.length > 0) {
-          dealProduct = readyMobileProducts[0];
+          dealProducts = readyMobileProducts;
         }
 
         // Try Fashion as a third option
-        if (!dealProduct) {
+        if (dealProducts.length === 0) {
           const fashionProducts = await storage.getProducts(
             "Fashion",
             undefined,
@@ -8249,16 +8259,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
             (p) => !p.isDraft && !p.deleted
           );
           if (readyFashionProducts.length > 0) {
-            dealProduct = readyFashionProducts[0];
+            dealProducts = readyFashionProducts;
           }
         }
-      } else {
-        dealProduct = readyProducts[0];
       }
 
-      if (!dealProduct) {
+      if (!dealProducts || dealProducts.length === 0) {
         return res.status(200).json(null); // Return null instead of 404 to avoid error in console
       }
+
+      // Deterministically select a deal based on the current day (rotates daily)
+      // Use UTC date to avoid timezone issues
+      const now = new Date();
+      const dayOfYear = Math.floor((Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - Date.UTC(now.getUTCFullYear(), 0, 0)) / 86400000);
+      const dealIndex = dayOfYear % dealProducts.length;
+      const dealProduct = dealProducts[dealIndex];
 
       // Get product image - use actual product images with fallback
       let imageUrl = "";
@@ -8279,7 +8294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // If no image found, use category placeholder
       if (!imageUrl) {
-        const categoryPlaceholders: Record<string, string> = {
+        const categoryPlaceholders = {
           Electronics: "/images/categories/electronics.svg",
           Fashion: "/images/categories/fashion.svg",
           Home: "/images/categories/home.svg",
@@ -8300,6 +8315,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const discountPercentage = 15; // 15% off
       const discountPrice = originalPrice * (1 - discountPercentage / 100);
 
+      // Calculate time remaining until next UTC midnight
+      const nowUTC = new Date();
+      const nextMidnightUTC = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate() + 1, 0, 0, 0));
+      const diffMs = nextMidnightUTC.getTime() - nowUTC.getTime();
+      const totalSeconds = Math.floor(diffMs / 1000);
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+
       res.json({
         title: `Deal of the Day: ${dealProduct.name}`,
         subtitle: `Limited time offer on premium ${dealProduct.category}`,
@@ -8308,9 +8332,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         discountPrice: discountPrice,
         discountPercentage: discountPercentage,
         productId: dealProduct.id,
-        hours: 47,
-        minutes: 53,
-        seconds: 41,
+        hours,
+        minutes,
+        seconds,
       });
     } catch (error) {
       console.error("Error fetching deal of the day:", error);

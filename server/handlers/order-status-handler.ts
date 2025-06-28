@@ -92,6 +92,11 @@ export async function handleOrderStatusChange(
       });
     }
     
+    // Custom logic for return-related statuses (approve_return, reject_return, process_return, completed_return)
+    if (["approve_return", "reject_return", "process_return", "completed_return"].includes(status)) {
+      // TODO: Add any custom business logic for these statuses if needed
+    }
+    
     // Always create a permanent notification for the buyer
     await storage.createNotification({
       userId: order.userId,
