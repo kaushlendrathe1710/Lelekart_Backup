@@ -5652,6 +5652,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Don't fail the order creation if email sending fails
       }
 
+      // Process order for notifications (single or multi-seller)
+      try {
+        await multiSellerOrderHandler.processMultiSellerOrder(order.id);
+        console.log("Order processing for notifications completed successfully");
+      } catch (multiSellerError) {
+        console.error(
+          "Error processing order for notifications:",
+          multiSellerError
+        );
+        // Continue with the order even if notification processing fails
+      }
+
       res.status(201).json(order);
     } catch (error) {
       if (error instanceof z.ZodError) {

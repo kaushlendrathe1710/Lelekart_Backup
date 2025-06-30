@@ -96,6 +96,7 @@ interface Order {
   trackingUrl?: string;
   shippingCharges?: number;
   discount?: number;
+  walletDiscount?: number;
 }
 
 function formatDate(dateString: string) {
@@ -554,11 +555,7 @@ export default function OrderDetailsPage() {
                   <span>Subtotal:</span>
                   <span>
                     ₹
-                    {(
-                      order.total -
-                      (order.shippingCharges || 0) +
-                      (order.discount || 0)
-                    ).toFixed(2)}
+                    {(order.total - (order.shippingCharges || 0) + (order.discount || 0) + (order.walletDiscount || 0)).toFixed(2)}
                   </span>
                 </div>
                 {order.discount && order.discount > 0 && (
@@ -567,6 +564,16 @@ export default function OrderDetailsPage() {
                     <span>-₹{order.discount.toFixed(2)}</span>
                   </div>
                 )}
+                {order.walletDiscount && order.walletDiscount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Wallet Discount:</span>
+                    <span>-₹{order.walletDiscount.toFixed(2)}</span>
+                  </div>
+                )}
+                {/*
+                  IMPORTANT: The wallet discount is subtracted from the total only once below.
+                  Do NOT subtract walletDiscount again elsewhere in the summary or total.
+                */}
                 <div className="flex justify-between">
                   <span>Shipping:</span>
                   <span>₹{(order.shippingCharges || 0).toFixed(2)}</span>

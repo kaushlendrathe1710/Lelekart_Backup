@@ -168,7 +168,7 @@ export async function redeemCoins(req: Request, res: Response) {
         
         // Check if the category is applicable (if categories are restricted)
         if (settings.applicableCategories) {
-          const categories = settings.applicableCategories.split(',').map(c => c.trim().toLowerCase());
+          const categories = settings.applicableCategories.split(',').map((c: string) => c.trim().toLowerCase());
           const orderCategory = req.body.category ? req.body.category.toLowerCase() : '';
           
           if (categories.length > 0 && orderCategory && !categories.includes(orderCategory)) {
@@ -194,10 +194,10 @@ export async function redeemCoins(req: Request, res: Response) {
     }
     
     // Process the redemption
-    const result = await storage.redeemCoins(
-      wallet.id, 
+    const result = await storage.redeemCoinsFromWallet(
+      req.user.id,
       amount, 
-      referenceType, 
+      referenceType || 'REDEMPTION', 
       referenceId, 
       description
     );
@@ -207,7 +207,6 @@ export async function redeemCoins(req: Request, res: Response) {
     
     return res.json({
       wallet: result.wallet,
-      transaction: result.transaction,
       discountAmount
     });
   } catch (error) {
@@ -224,8 +223,8 @@ export async function processExpiredCoins(req: Request, res: Response) {
     
     const result = await storage.processExpiredCoins();
     return res.json({
-      processedCount: result.length,
-      expiredTransactions: result
+      processedCount: result,
+      message: `Processed ${result} expired coins`
     });
   } catch (error) {
     console.error("Error processing expired coins:", error);

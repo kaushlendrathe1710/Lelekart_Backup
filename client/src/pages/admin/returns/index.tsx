@@ -104,7 +104,7 @@ export default function AdminReturnManagement() {
     filteredOrders.forEach((order) => {
       if (counts.hasOwnProperty(order.status)) {
         counts[order.status as keyof typeof counts]++;
-      }
+    }
     });
 
     return counts;
@@ -119,7 +119,7 @@ export default function AdminReturnManagement() {
         <p className="text-lg text-gray-600 mb-4">Access denied. Admin privileges required.</p>
       </div>
     );
-  }
+    }
 
   return (
     <AdminLayout>

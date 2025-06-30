@@ -36,6 +36,18 @@ interface Product {
   stock?: number;
 }
 
+// Add the homepage category order for consistent cycling
+const allCategories = [
+  "Electronics",
+  "Fashion",
+  "Home",
+  "Appliances",
+  "Mobiles",
+  "Beauty",
+  "Toys",
+  "Grocery",
+];
+
 export default function AllProductsPage() {
   const params = useParams();
   const [, navigate] = useLocation();
@@ -79,17 +91,15 @@ export default function AllProductsPage() {
   const sellerId = searchParams.get('sellerId');
   const sellerName = searchParams.get('sellerName');
 
-  // Fetch products with pagination and optional sellerId filter
+  // Fetch a larger pool of products for better mixing
+  const LARGE_POOL_SIZE = 100;
   const { data: productsData, isLoading, error } = useQuery({
-    queryKey: ['/api/products', { page: currentPage, limit: pageSize, sellerId }],
+    queryKey: ['/api/products', { page: 1, limit: LARGE_POOL_SIZE, sellerId }],
     queryFn: async () => {
-      let url = `/api/products?page=${currentPage}&limit=${pageSize}`;
-      
-      // Add sellerId filter if provided
+      let url = `/api/products?page=1&limit=${LARGE_POOL_SIZE}`;
       if (sellerId) {
         url += `&sellerId=${sellerId}`;
       }
-      
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error('Failed to fetch products');
@@ -153,30 +163,85 @@ export default function AllProductsPage() {
           </Card>
         ) : productsData && productsData.products && productsData.products.length > 0 ? (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {productsData.products.map((product: Product) => (
-                <ProductCard 
-                  key={product.id}
-                  product={{
-                    ...product,
-                    imageUrl: getProductImageUrl(product),
-                  }}
-                />
-              ))}
+            {/* True mixup: each row contains products from different categories, as much as possible */}
+            <div className="space-y-8">
+              {(() => {
+                const products = productsData.products;
+                // Group products by category (case-insensitive)
+                const categoryMap: Record<string, Product[]> = {};
+                const foundCategories: Set<string> = new Set();
+                products.forEach((product: Product) => {
+                  // Find matching category from allCategories (case-insensitive)
+                  let cat = allCategories.find(
+                    (c) => c.toLowerCase() === (product.category || "").toLowerCase()
+                  );
+                  if (!cat) {
+                    cat = product.category ? product.category.trim() : "Others";
+                  }
+                  foundCategories.add(cat);
+                  if (!categoryMap[cat]) categoryMap[cat] = [];
+                  categoryMap[cat].push(product);
+                });
+                // Build the round-robin order: allCategories first, then any new categories found in data
+                const roundRobinCategories = [
+                  ...allCategories,
+                  ...Array.from(foundCategories).filter(
+                    (cat) => !allCategories.includes(cat)
+                  ),
+                ];
+                // Build a round-robin list of products from each category
+                const mixedProducts: Product[] = [];
+                let added = true;
+                let round = 0;
+                while (mixedProducts.length < products.length && added) {
+                  added = false;
+                  for (const cat of roundRobinCategories) {
+                    if (categoryMap[cat] && categoryMap[cat][round]) {
+                      mixedProducts.push(categoryMap[cat][round]);
+                      added = true;
+                      if (mixedProducts.length >= products.length) break;
+                    }
+                  }
+                  round++;
+                }
+                // If not enough, fill with remaining products
+                if (mixedProducts.length < products.length) {
+                  const allLeft = products.filter(
+                    (p: Product) => !mixedProducts.includes(p)
+                  );
+                  mixedProducts.push(...allLeft);
+                }
+                // Paginate the mixed products locally
+                const startIdx = (currentPage - 1) * pageSize;
+                const endIdx = startIdx + pageSize;
+                const paginatedProducts = mixedProducts.slice(startIdx, endIdx);
+                // Render as a grid
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {paginatedProducts.map((product: Product, colIndex: number) => (
+                      <ProductCard
+                        key={product.id}
+                        product={{
+                          ...product,
+                          imageUrl: getProductImageUrl(product),
+                        } as any}
+                        priority={colIndex === 0}
+                      />
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
-            
             {/* Pagination */}
             <div className="mt-8">
               <Pagination 
-                currentPage={productsData.pagination?.currentPage || currentPage}
-                totalPages={productsData.pagination?.totalPages || totalPages}
+                currentPage={currentPage}
+                totalPages={Math.ceil((productsData.products.length || 1) / pageSize)}
                 onPageChange={(page) => setCurrentPage(page)}
-                siblingCount={2}
               />
-              
               {/* Results count */}
               <div className="text-sm text-gray-500 text-center mt-4">
-                Showing {((productsData.pagination?.currentPage - 1) * pageSize) + 1} to {Math.min(productsData.pagination?.currentPage * pageSize, productsData.pagination?.total)} of {productsData.pagination?.total} products
+                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, productsData.products.length)} of {productsData.products.length} products
               </div>
             </div>
           </>
