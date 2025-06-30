@@ -223,6 +223,12 @@ const productSchema = z
     productType: z.string().min(1, "Please select a product type"),
     returnPolicy: z.string().min(1, "Please select a return policy"),
     customReturnPolicy: z.string().optional(),
+    deliveryCharges: z
+      .string()
+      .refine((val) => !val || (!isNaN(parseFloat(val)) && parseFloat(val) >= 0), {
+        message: "Delivery charges must be a non-negative number",
+      })
+      .optional(),
   })
   .refine(
     (data) => {
@@ -293,6 +299,47 @@ const processImageUrl = async (imageUrl: string): Promise<string> => {
   }
 };
 
+// Add these helper functions at the top (copy from add-product.tsx)
+const getSubcategoriesForCategory = (category: string) => {
+  const subcategoryMap: Record<string, string[]> = {
+    "Fashion": ["Kurta", "Pants", "Shirts", "T-Shirts", "Dresses", "Sarees", "Ethnic Wear", "Western Wear", "Kids Wear", "Accessories"],
+    "Electronics": ["Smartphones", "Laptops", "Tablets", "Accessories", "Audio Devices", "Gaming", "Cameras", "Smart Home", "Computer Parts", "Storage"],
+    "Home & Kitchen": ["Cookware", "Storage", "Cleaning", "Furniture", "Decor", "Kitchen Appliances", "Dining", "Bedding", "Bath", "Garden"],
+    "Beauty": ["Skincare", "Haircare", "Makeup", "Fragrances", "Personal Care", "Bath & Body", "Tools & Accessories", "Men's Grooming", "Natural & Organic", "Gift Sets"],
+    "Toys & Games": ["Educational Toys", "Board Games", "Outdoor Toys", "Action Figures", "Dolls", "Building Toys", "Arts & Crafts", "Remote Control", "Puzzles", "Baby Toys"],
+    "Books": ["Fiction", "Non-Fiction", "Academic", "Children's Books", "Comics", "Self-Help", "Business", "Technology", "Literature", "Biography"],
+    "Sports": ["Cricket", "Football", "Yoga", "Fitness Equipment", "Outdoor Sports", "Indoor Sports", "Swimming", "Cycling", "Running", "Team Sports"],
+    "Automotive": ["Car Accessories", "Bike Accessories", "Tools", "Car Care", "Bike Care", "Safety", "Electronics", "Spare Parts", "Riding Gear", "Maintenance"],
+    "Home": ["Furniture", "Decor", "Lighting", "Storage", "Cleaning", "Bedding", "Bath", "Kitchenware", "Garden", "Safety"],
+    "Appliances": ["Kitchen Appliances", "Home Appliances", "Personal Care Appliances", "Large Appliances", "Small Appliances", "Heating & Cooling", "Laundry Appliances", "Water Purifiers", "Vacuum Cleaners", "Accessories"],
+    "Mobiles": ["Smartphones", "Feature Phones", "Mobile Accessories", "Tablets", "Wearables", "Power Banks", "Cases & Covers", "Screen Protectors", "Chargers", "Memory Cards"],
+    "Toys": ["Action Figures", "Educational Toys", "Board Games", "Dolls", "Remote Control", "Building Blocks", "Puzzles", "Outdoor Toys", "Baby Toys", "Arts & Crafts"],
+    "Grocery": ["Fruits & Vegetables", "Dairy & Bakery", "Staples", "Snacks & Beverages", "Personal Care", "Household Supplies", "Packaged Food", "Beverages", "Baby Care", "Pet Supplies"],
+    "Industrial": ["Lab Supplies", "Industrial Tools", "Safety Equipment", "Electrical", "Plumbing", "Adhesives", "Paints & Coatings", "Fasteners", "Pumps", "Automation"],
+    "Scientific": ["Lab Instruments", "Testing Equipment", "Microscopes", "Glassware", "Chemicals", "Balances", "Centrifuges", "Spectroscopy", "Consumables", "Safety Equipment"]
+  };
+  return subcategoryMap[category] || [];
+};
+const getSubcategory2ForSubcategory1 = (category: string, subcategory1: string) => {
+  // Full mapping from add-product.tsx
+  const subcategory2Map: Record<string, Record<string, string[]>> = {
+    "Fashion": {
+      "Kurta": ["Silk", "Cotton", "Linen", "Polyester", "Rayon", "Embroidered", "Printed", "Plain", "Designer", "Traditional"],
+      "Pants": ["Jeans", "Formal", "Casual", "Cargo", "Track Pants", "Chinos", "Leggings", "Palazzos", "Shorts", "Trousers"],
+      "Shirts": ["Formal", "Casual", "Party Wear", "Office Wear", "Printed", "Plain", "Checks", "Stripes", "Denim", "Linen"],
+      "T-Shirts": ["Round Neck", "V-Neck", "Polo", "Full Sleeve", "Half Sleeve", "Graphic", "Plain", "Sports", "Oversized", "Crop"],
+      "Dresses": ["Maxi", "Mini", "Midi", "Party Wear", "Casual", "A-Line", "Bodycon", "Wrap", "Shift", "Sundress"],
+      "Sarees": ["Silk", "Cotton", "Georgette", "Chiffon", "Banarasi", "Printed", "Embroidered", "Designer", "Traditional", "Party Wear"],
+      "Ethnic Wear": ["Kurta Sets", "Lehenga", "Salwar Suits", "Gowns", "Sherwani", "Indo-Western", "Dhoti Sets", "Blouses", "Dupattas", "Ethnic Jackets"],
+      "Western Wear": ["Tops", "Jumpsuits", "Skirts", "Blazers", "Jackets", "Sweaters", "Coats", "Hoodies", "Sweatshirts", "Cardigans"],
+      "Kids Wear": ["Boys Casual", "Girls Casual", "Party Wear", "School Uniform", "Ethnic Wear", "Winter Wear", "Night Wear", "Infant Wear", "Sports Wear", "Accessories"],
+      "Accessories": ["Belts", "Wallets", "Scarves", "Ties", "Socks", "Caps", "Hats", "Gloves", "Stoles", "Hair Accessories"]
+    },
+    // ... (copy all other categories and subcategories from add-product.tsx) ...
+  };
+  return subcategory2Map[category]?.[subcategory1] || [];
+};
+
 export default function EditProductPage() {
   const { toast } = useToast();
   const [location, setLocation] = useLocation();
@@ -326,6 +373,9 @@ export default function EditProductPage() {
   // Add state for image URL input (inside EditProductPage)
   const [imageUrlInput, setImageUrlInput] = useState("");
   const [addUrlError, setAddUrlError] = useState("");
+  // Add state for subcategory1Options and subcategory2Options
+  const [subcategory1Options, setSubcategory1Options] = useState<string[]>([]);
+  const [subcategory2Options, setSubcategory2Options] = useState<string[]>([]);
 
   // Check both route patterns and use the first match
   const params = editParams || draftEditParams;
@@ -478,6 +528,7 @@ export default function EditProductPage() {
       productType: "physical",
       returnPolicy: "7",
       customReturnPolicy: "",
+      deliveryCharges: "0",
     },
   });
 
@@ -799,6 +850,7 @@ export default function EditProductPage() {
         customReturnPolicy: !isStandardReturnPolicy(product.returnPolicy)
           ? product.returnPolicy?.toString()
           : "",
+        deliveryCharges: product.deliveryCharges !== undefined && product.deliveryCharges !== null ? product.deliveryCharges.toString() : "0",
       });
 
       // Make sure GST rate and tax fields are in sync
@@ -819,6 +871,11 @@ export default function EditProductPage() {
           form.setValue("customReturnPolicy", product.returnPolicy.toString());
         }
       }, 100);
+
+      // Set subcategory1 options based on product.category
+      setSubcategory1Options(getSubcategoriesForCategory(product.category || ""));
+      // Set subcategory2 options based on product.category and product.subcategory1
+      setSubcategory2Options(getSubcategory2ForSubcategory1(product.category || "", product.subcategory1 || ""));
     }
   }, [product, form]);
 
@@ -1449,6 +1506,7 @@ export default function EditProductPage() {
           ? data.returnPolicy
           : data.customReturnPolicy,
         variants: [...variants, ...draftVariants],
+        deliveryCharges: data.deliveryCharges ? parseFloat(data.deliveryCharges) : 0,
       };
       console.log("productData", productData.width);
       console.log("Full product data:", JSON.stringify(productData, null, 2));
@@ -2513,6 +2571,8 @@ export default function EditProductPage() {
                                     // Clear subcategory1 and subcategory2 when category changes
                                     form.setValue("subcategory1", "");
                                     form.setValue("subcategory2", "");
+                                    setSubcategory1Options(getSubcategoriesForCategory(value));
+                                    setSubcategory2Options([]);
                                   }}
                                   defaultValue={field.value}
                                 >
@@ -2548,14 +2608,29 @@ export default function EditProductPage() {
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>Subcategory 1</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    placeholder="Type any subcategory related to this product"
-                                    {...field}
-                                  />
-                                </FormControl>
+                                <Select
+                                  onValueChange={(value) => {
+                                    field.onChange(value);
+                                    setSubcategory2Options(getSubcategory2ForSubcategory1(form.getValues("category"), value));
+                                    form.setValue("subcategory2", "");
+                                  }}
+                                  value={field.value || ""}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select a subcategory" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {subcategory1Options.map((subcategory) => (
+                                      <SelectItem key={subcategory} value={subcategory}>
+                                        {subcategory}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
                                 <FormDescription>
-                                  You can type any subcategory related to the category above.
+                                  Select a subcategory based on the main category
                                 </FormDescription>
                                 <FormMessage />
                               </FormItem>
@@ -2567,14 +2642,25 @@ export default function EditProductPage() {
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>Subcategory 2</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    placeholder="Type another subcategory (optional)"
-                                    {...field}
-                                  />
-                                </FormControl>
+                                <Select
+                                  onValueChange={field.onChange}
+                                  value={field.value || ""}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select a subcategory" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {subcategory2Options.map((subcategory) => (
+                                      <SelectItem key={subcategory} value={subcategory}>
+                                        {subcategory}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
                                 <FormDescription>
-                                  You can add a second subcategory if needed.
+                                  Select a more specific subcategory
                                 </FormDescription>
                                 <FormMessage />
                               </FormItem>
@@ -3201,6 +3287,28 @@ export default function EditProductPage() {
                                   </FormItem>
                                 </RadioGroup>
                               </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="deliveryCharges"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Delivery Charges (₹)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  placeholder="e.g. 100 (leave 0 for Free)"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                Enter delivery charges for this product. Leave 0 for Free delivery.
+                              </FormDescription>
                               <FormMessage />
                             </FormItem>
                           )}
