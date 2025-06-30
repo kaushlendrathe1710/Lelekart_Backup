@@ -1,4 +1,5 @@
 // Script to push the document templates schema to the database
+require('dotenv').config();
 const { drizzle } = require('drizzle-orm/neon-serverless');
 const { Pool, neonConfig } = require('@neondatabase/serverless');
 const ws = require('ws');
@@ -16,7 +17,7 @@ async function main() {
 
   try {
     console.log('Creating document_templates table if it doesn\'t exist...');
-    
+
     // Create the document_templates table
     await db.execute(`
       CREATE TABLE IF NOT EXISTS document_templates (
@@ -34,13 +35,13 @@ async function main() {
 
     // Add default templates
     console.log('Adding default templates...');
-    
+
     // Default invoice template
     const invoiceTemplateExists = await db.execute(`
       SELECT COUNT(*) FROM document_templates 
       WHERE type = 'invoice' AND is_default = true
     `);
-    
+
     if (invoiceTemplateExists.rows[0].count === '0') {
       // We need to escape the content for SQL, let's use a simpler version for now
       const simpleInvoiceTemplate = '<h1>Default Invoice Template</h1><p>This is a placeholder - please customize this template.</p>';
@@ -58,7 +59,7 @@ async function main() {
       SELECT COUNT(*) FROM document_templates 
       WHERE type = 'shipping_slip' AND is_default = true
     `);
-    
+
     if (shippingSlipTemplateExists.rows[0].count === '0') {
       // We need to escape the content for SQL, let's use a simpler version for now
       const simpleShippingSlipTemplate = '<h1>Default Shipping Slip Template</h1><p>This is a placeholder - please customize this template.</p>';

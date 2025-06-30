@@ -96,10 +96,10 @@ export default function WalletManagementPage() {
   });
 
   // Query for user wallet transactions
-  const { data: transactions = [], isLoading: isTransactionsLoading } = useQuery({
+  const { data: transactionsData = { transactions: [], total: 0 }, isLoading: isTransactionsLoading } = useQuery({
     queryKey: ['/api/wallet/user', selectedUser, 'transactions'],
     queryFn: async () => {
-      if (!selectedUser) return [];
+      if (!selectedUser) return { transactions: [], total: 0 };
       const res = await apiRequest('GET', `/api/wallet/user/${selectedUser}/transactions`);
       if (!res.ok) {
         throw new Error('Failed to fetch user transactions');
@@ -108,6 +108,8 @@ export default function WalletManagementPage() {
     },
     enabled: !!selectedUser,
   });
+  const transactions = transactionsData.transactions || [];
+  const transactionsTotal = transactionsData.total || 0;
 
   // Mutation for updating wallet settings
   const updateSettingsMutation = useMutation({

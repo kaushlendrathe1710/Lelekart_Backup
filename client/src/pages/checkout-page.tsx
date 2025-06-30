@@ -415,37 +415,25 @@ export default function CheckoutPage() {
     const charge = item.product.deliveryCharges ?? 0;
     return total + (charge * item.quantity);
   }, 0);
-  const total = subtotal + deliveryCharges;
-  
+  const totalBeforeWallet = subtotal + deliveryCharges;
   // Calculate wallet discount
   const maxWalletDiscount = calculateMaxWalletDiscount();
+  // The final total after wallet discount
+  const finalTotal = useWalletCoins && walletDiscount > 0 ? subtotal + deliveryCharges - walletDiscount : subtotal + deliveryCharges;
   
   // Update wallet discount state only when checkbox is checked and wallet is eligible
   useEffect(() => {
-    // Only run this logic after cart items are loaded
     if (cartItems.length === 0 || !wallet || !settings) return;
-    
-    console.log("Wallet discount calculation triggered:", {
-      useWalletCoins,
-      walletBalance: wallet?.balance,
-      subtotal
-    });
-    
     if (useWalletCoins) {
-      // Run eligibility check and apply discount if eligible
       if (checkWalletEligibility()) {
-        setWalletDiscount(maxWalletDiscount);
-        console.log("Wallet discount applied:", maxWalletDiscount);
+        setWalletDiscount(calculateMaxWalletDiscount());
       } else {
         setWalletDiscount(0);
-        console.log("Wallet not eligible, no discount applied");
       }
     } else {
-      // Reset discount if checkbox is unchecked
       setWalletDiscount(0);
-      console.log("Wallet checkbox unchecked, no discount applied");
     }
-  }, [useWalletCoins, wallet, settings, maxWalletDiscount, cartItems, subtotal]);
+  }, [useWalletCoins, wallet, settings, cartItems, subtotal]);
   
   // Handle form submission
   const onSubmit = async (values: CheckoutFormValues) => {
@@ -601,7 +589,8 @@ export default function CheckoutPage() {
       // Prepare order data
       const orderData: any = {
         userId: user.id,
-        total,
+        // Use the final total after wallet discount
+        total: finalTotal,
         // status is removed from client request and will be set by server
         paymentMethod: values.paymentMethod,
         shippingDetails: JSON.stringify({
@@ -704,7 +693,7 @@ export default function CheckoutPage() {
       });
       
       // Redirect to order confirmation page with success parameter and total
-      setLocation(`/order-confirmation/${order.id}?success=true&total=${total}`);
+      setLocation(`/order-confirmation/${order.id}?success=true&total=${finalTotal}`);
     } catch (error) {
       console.error("Error placing order:", error);
       toast({
@@ -726,6 +715,7 @@ export default function CheckoutPage() {
     );
   }
 
+  console.log("useWalletCoins:", useWalletCoins, "walletDiscount:", walletDiscount, "finalTotal:", finalTotal);
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-8">Checkout</h1>
@@ -1136,7 +1126,7 @@ export default function CheckoutPage() {
                   {form.watch("paymentMethod") === "razorpay" ? (
                     <div className="border-t pt-4 mt-4">
                       <RazorpayPayment 
-                        amount={total * 100} // Convert to paise
+                        amount={finalTotal * 100} // Convert to paise
                         shippingDetails={{
                           name: form.getValues("name") || '',
                           address: form.getValues("address") || '',
@@ -1147,7 +1137,7 @@ export default function CheckoutPage() {
                         }}
                         onSuccess={(orderId) => {
                           // Redirect to order confirmation page
-                          setLocation(`/order-confirmation/${orderId}?success=true&total=${total}`);
+                          setLocation(`/order-confirmation/${orderId}?success=true&total=${finalTotal}`);
                         }}
                         onError={(error) => {
                           toast({
@@ -1296,18 +1286,32 @@ export default function CheckoutPage() {
               </div>
             )}
             
+            {/* Show wallet discount only once, if applied */}
             {useWalletCoins && walletDiscount > 0 && (
               <div className="flex justify-between mb-2 text-green-600">
                 <span className="font-medium">Wallet Discount</span>
                 <span className="font-medium">-₹{walletDiscount.toFixed(2)}</span>
               </div>
             )}
-            
+            {/* Show original total with strikethrough and discounted total in green if wallet discount is applied */}
             <hr className="my-4" />
-            <div className="flex justify-between mb-6">
-              <span className="text-lg font-semibold">Total</span>
-              <span className="text-lg font-semibold">₹{total.toFixed(2)}</span>
-            </div>
+            {useWalletCoins && walletDiscount > 0 ? (
+              <div className="flex flex-col mb-6">
+                <div className="flex justify-between mb-1">
+                  <span className="text-lg font-semibold">Total</span>
+                  <span className="text-lg font-semibold line-through text-gray-400">₹{(subtotal + deliveryCharges).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-lg font-semibold text-green-700">Discounted Total</span>
+                  <span className="text-lg font-semibold text-green-700">₹{finalTotal.toFixed(2)}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex justify-between mb-6">
+                <span className="text-lg font-semibold">Total</span>
+                <span className="text-lg font-semibold">₹{finalTotal.toFixed(2)}</span>
+              </div>
+            )}
             
             <div className="bg-gray-50 p-4 rounded-md">
               <h3 className="font-medium text-sm mb-2">Payment Method</h3>

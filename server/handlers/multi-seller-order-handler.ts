@@ -120,16 +120,6 @@ export async function processMultiSellerOrder(orderId: number): Promise<void> {
     await notifyAdminsAboutOrder(order, buyer);
     console.log('Admin notifications created for order placement');
     // Send notification to buyer about order placed (permanent + real-time)
-    await storage.createNotification({
-      userId: buyer.id,
-      type: "ORDER_STATUS",
-      title: `Order Placed Successfully`,
-      message: `Your order #${order.id} has been placed successfully!`,
-      read: false,
-      link: `/orders/${order.id}`,
-      metadata: JSON.stringify({ orderId: order.id, status: order.status })
-    });
-    console.log('Buyer notification created for order placement (Order Placed Successfully)');
     await sendNotificationToUser(buyer.id, {
       type: "ORDER_STATUS",
       title: `Order Placed Successfully`,
@@ -191,7 +181,7 @@ export async function processMultiSellerOrder(orderId: number): Promise<void> {
       }
     }
     
-    // Update main order total to include all delivery charges
+    // Update main order total to include all delivery charges and subtract wallet discount if present
     const allOrderItems = await storage.getOrderItems(orderId);
     const allDeliveryCharges = allOrderItems.reduce((total, item) => {
       const charge = item.product.deliveryCharges ?? 0;
@@ -200,7 +190,10 @@ export async function processMultiSellerOrder(orderId: number): Promise<void> {
     const allSubtotal = allOrderItems.reduce((total, item) => {
       return total + (item.price * item.quantity);
     }, 0);
-    await storage.updateOrder(orderId, { total: allSubtotal + allDeliveryCharges });
+    // Fetch the order to get walletDiscount
+    const mainOrder = await storage.getOrder(orderId);
+    const walletDiscount = mainOrder?.walletDiscount || 0;
+    await storage.updateOrder(orderId, { total: allSubtotal + allDeliveryCharges - walletDiscount });
     
     console.log(`Multi-seller order ${orderId} processed successfully`);
   } catch (error) {
@@ -215,11 +208,12 @@ export async function processMultiSellerOrder(orderId: number): Promise<void> {
 async function updateProductStock(orderItem: OrderItem & { product: any }): Promise<void> {
   try {
     // Determine if we need to update variant stock or product stock
-    if (orderItem.variantId) {
+    const variantId = (orderItem as any).variant_id ?? (orderItem as any).variantId;
+    if (variantId) {
       // Get the current variant
-      const variant = await storage.getProductVariant(orderItem.variantId);
+      const variant = await storage.getProductVariant(variantId);
       if (!variant) {
-        throw new Error(`Variant ${orderItem.variantId} not found`);
+        throw new Error(`Variant ${variantId} not found`);
       }
       
       // If variant has its own stock tracking
@@ -228,8 +222,8 @@ async function updateProductStock(orderItem: OrderItem & { product: any }): Prom
         const newStock = Math.max(0, variant.stock - orderItem.quantity);
         
         // Update variant stock
-        await storage.updateProductVariantStock(orderItem.variantId, newStock);
-        console.log(`Updated variant ${orderItem.variantId} stock from ${variant.stock} to ${newStock}`);
+        await storage.updateProductVariantStock(variantId, newStock);
+        console.log(`Updated variant ${variantId} stock from ${variant.stock} to ${newStock}`);
         
         return;
       }
@@ -364,14 +358,14 @@ export async function getSellerOrderWithDetails(sellerOrderId: number): Promise<
       id: buyer?.id,
       name: buyer?.name || buyer?.username,
       email: buyer?.email,
-      phone: shippingDetails?.phone || '',
+      phone: (shippingDetails as any)?.phone || '',
     },
     shipping: {
-      address: shippingDetails?.address || '',
-      city: shippingDetails?.city || '',
-      state: shippingDetails?.state || '',
-      zipCode: shippingDetails?.zipCode || '',
-      country: shippingDetails?.country || "India",
+      address: (shippingDetails as any)?.address || '',
+      city: (shippingDetails as any)?.city || '',
+      state: (shippingDetails as any)?.state || '',
+      zipCode: (shippingDetails as any)?.zipCode || '',
+      country: (shippingDetails as any)?.country || "India",
     }
   };
 }

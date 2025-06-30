@@ -457,6 +457,10 @@ export default function OrderConfirmationPage() {
                       </td>
                     </tr>
                   )}
+                  {/*
+                    IMPORTANT: The wallet discount is subtracted from the total only once below.
+                    Do NOT subtract walletDiscount again elsewhere in the summary or total.
+                  */}
                   <tr>
                     <td
                       colSpan={2}

@@ -777,33 +777,30 @@ function getDefaultTemplate(templateType: string): string {
                 <th style="padding: 10px; text-align: left; border-bottom: 1px solid #e5e5e5;">Product</th>
                 <th style="padding: 10px; text-align: center; border-bottom: 1px solid #e5e5e5;">Quantity</th>
                 <th style="padding: 10px; text-align: right; border-bottom: 1px solid #e5e5e5;">Price</th>
+                <th style="padding: 10px; text-align: right; border-bottom: 1px solid #e5e5e5;">Subtotal</th>
               </tr>
               {{#each order.items}}
               <tr>
                 <td style="padding: 10px; border-bottom: 1px solid #e5e5e5;">{{this.product.name}}</td>
                 <td style="padding: 10px; text-align: center; border-bottom: 1px solid #e5e5e5;">{{this.quantity}}</td>
                 <td style="padding: 10px; text-align: right; border-bottom: 1px solid #e5e5e5;">₹{{this.price}}</td>
+                <td style="padding: 10px; text-align: right; border-bottom: 1px solid #e5e5e5;">₹{{multiply this.quantity this.price}}</td>
               </tr>
               {{/each}}
-              <tr>
-                <td colspan="2" style="padding: 10px; text-align: right; font-weight: bold;">Subtotal:</td>
-                <td style="padding: 10px; text-align: right;">₹{{order.total}}</td>
-              </tr>
               {{#if order.walletCoinsUsed}}
               <tr>
-                <td colspan="2" style="padding: 10px; text-align: right; font-weight: bold;">Wallet Points Applied:</td>
-                <td style="padding: 10px; text-align: right;">-₹{{order.walletDiscount}}</td>
+                <td colspan="3" style="padding: 10px; text-align: right; font-weight: bold; color: #388e3c;">Wallet Discount ({{order.walletCoinsUsed}} coins):</td>
+                <td style="padding: 10px; text-align: right; color: #388e3c;">-₹{{order.walletDiscount}}</td>
               </tr>
               {{/if}}
-              <tr>
-                <td colspan="2" style="padding: 10px; text-align: right; font-weight: bold;">Delivery Charges:</td>
-                <td style="padding: 10px; text-align: right;">₹0.00</td>
-              </tr>
               <tr style="background-color: #f8f8f8;">
-                <td colspan="2" style="padding: 10px; text-align: right; font-weight: bold;">Total:</td>
+                <td colspan="3" style="padding: 10px; text-align: right; font-weight: bold;">Total:</td>
                 <td style="padding: 10px; text-align: right; font-weight: bold;">₹{{order.total}}</td>
               </tr>
             </table>
+            {{#if order.walletCoinsUsed}}
+            <div style="margin-top: 10px; color: #388e3c; font-size: 14px;">You saved ₹{{order.walletDiscount}} using {{order.walletCoinsUsed}} wallet coins!</div>
+            {{/if}}
           </div>
           
           <div style="margin-bottom: 20px;">

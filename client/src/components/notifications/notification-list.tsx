@@ -133,7 +133,13 @@ function NotificationItem({ notification, onMarkAsRead, onDelete, sellerId }: No
     }
   };
 
+  // Highlight 'Order Placed Successfully' notification
+  const isOrderPlacedSuccess =
+    notification.type === NotificationType.ORDER_STATUS &&
+    notification.title === 'Order Placed Successfully';
+
   const getTypeColor = (type: NotificationType) => {
+    if (isOrderPlacedSuccess) return 'bg-green-100 text-green-800';
     switch (type) {
       case NotificationType.ORDER_STATUS:
         return 'bg-blue-100 text-blue-800';
@@ -152,6 +158,7 @@ function NotificationItem({ notification, onMarkAsRead, onDelete, sellerId }: No
   };
 
   const getTypeLabel = (type: NotificationType) => {
+    if (isOrderPlacedSuccess) return 'Order Placed';
     switch (type) {
       case NotificationType.ORDER_STATUS:
         return 'Order';
@@ -170,6 +177,7 @@ function NotificationItem({ notification, onMarkAsRead, onDelete, sellerId }: No
   };
 
   const getTypeIcon = (type: NotificationType) => {
+    if (isOrderPlacedSuccess) return <CheckCircle2 className="h-4 w-4 text-green-600" />;
     switch (type) {
       case NotificationType.ORDER_STATUS:
         return <ShoppingBag className="h-4 w-4 text-blue-600" />;
@@ -188,6 +196,7 @@ function NotificationItem({ notification, onMarkAsRead, onDelete, sellerId }: No
   };
 
   const getTypeIconBackground = (type: NotificationType) => {
+    if (isOrderPlacedSuccess) return 'bg-green-100';
     switch (type) {
       case NotificationType.ORDER_STATUS:
         return 'bg-blue-100';
