@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { StaticPageSection } from "@/components/static-page-template";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,8 @@ const successStories = [
     author: "Team Lelekart",
     excerpt:
       "How a small handicraft business from Rajasthan grew to serve customers nationwide through Lelekart's platform.",
+    content:
+      "How a small handicraft business from Rajasthan grew to serve customers nationwide through Lelekart's platform. This is the full story content. The business started in a small village and, with the help of Lelekart, expanded its reach to customers all over India. The journey was filled with challenges, but the support from the platform made it possible to scale and succeed.",
     featured: true,
   },
   {
@@ -29,6 +31,8 @@ const successStories = [
     author: "Tech Team",
     excerpt:
       "Inside Lelekart's revolutionary approach to solving India's complex delivery challenges.",
+    content:
+      "Inside Lelekart's revolutionary approach to solving India's complex delivery challenges. This is the full story content. Our logistics network leverages AI and real-time data to optimize delivery routes, reduce costs, and ensure timely deliveries even in remote areas.",
     featured: true,
   },
   {
@@ -41,6 +45,8 @@ const successStories = [
     author: "Seller Relations",
     excerpt:
       "How our dedicated programs are helping women business owners thrive in the digital marketplace.",
+    content:
+      "How our dedicated programs are helping women business owners thrive in the digital marketplace. This is the full story content. Through mentorship, funding, and training, Lelekart has enabled thousands of women to start and grow their businesses online.",
     featured: false,
   },
   {
@@ -53,6 +59,8 @@ const successStories = [
     author: "AI Team",
     excerpt:
       "The technology behind our personalized shopping experience that helps customers discover products they'll love.",
+    content:
+      "The technology behind our personalized shopping experience that helps customers discover products they'll love. This is the full story content. Our AI engine analyzes user preferences and shopping patterns to recommend the best products for each customer.",
     featured: false,
   },
   {
@@ -65,6 +73,8 @@ const successStories = [
     author: "CSR Team",
     excerpt:
       "Our initiatives to bridge the digital divide and make e-commerce accessible to everyone in India.",
+    content:
+      "Our initiatives to bridge the digital divide and make e-commerce accessible to everyone in India. This is the full story content. We have set up digital literacy camps and provided affordable internet access in hundreds of villages.",
     featured: false,
   },
   {
@@ -77,11 +87,41 @@ const successStories = [
     author: "Sustainability Team",
     excerpt:
       "How we're reducing our environmental footprint with innovative packaging solutions.",
+    content:
+      "How we're reducing our environmental footprint with innovative packaging solutions. This is the full story content. Our new packaging uses recycled materials and is 100% biodegradable, helping us move towards a greener future.",
     featured: false,
   },
 ];
 
 export default function StoriesPage() {
+  const [expandedStoryId, setExpandedStoryId] = useState<number | null>(null);
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    title: "",
+    content: "",
+  });
+
+  const handleToggleExpand = (storyId: number) => {
+    setExpandedStoryId((prev) => (prev === storyId ? null : storyId));
+  };
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitSuccess(true);
+    setTimeout(() => {
+      setShowSubmitModal(false);
+      setSubmitSuccess(false);
+      setForm({ name: "", email: "", title: "", content: "" });
+    }, 2000);
+  };
+
   return (
     <div className="bg-[#f1f3f6] min-h-screen py-4">
       <div className="container mx-auto px-4">
@@ -156,7 +196,7 @@ export default function StoriesPage() {
                                   {story.title}
                                 </h3>
                                 <p className="text-gray-600 mb-3">
-                                  {story.excerpt}
+                                  {expandedStoryId === story.id ? story.content : story.excerpt}
                                 </p>
                                 <div className="flex items-center text-sm text-gray-500">
                                   <div className="flex items-center mr-4">
@@ -168,6 +208,13 @@ export default function StoriesPage() {
                                     <span>{story.author}</span>
                                   </div>
                                 </div>
+                                <Button
+                                  variant="link"
+                                  className="p-0 h-auto text-[#2874f0]"
+                                  onClick={() => handleToggleExpand(story.id)}
+                                >
+                                  {expandedStoryId === story.id ? 'Show Less' : 'Read More'}
+                                </Button>
                               </CardContent>
                               <CardFooter className="p-5 pt-0">
                                 <Button
@@ -226,7 +273,7 @@ export default function StoriesPage() {
                                     {story.title}
                                   </h3>
                                   <p className="text-gray-600 text-sm mb-3">
-                                    {story.excerpt}
+                                    {expandedStoryId === story.id ? story.content : story.excerpt}
                                   </p>
                                   <div className="flex items-center text-xs text-gray-500">
                                     <div className="flex items-center mr-3">
@@ -243,8 +290,9 @@ export default function StoriesPage() {
                                   <Button
                                     variant="link"
                                     className="p-0 h-auto text-sm text-[#2874f0]"
+                                    onClick={() => handleToggleExpand(story.id)}
                                   >
-                                    Read More
+                                    {expandedStoryId === story.id ? 'Show Less' : 'Read More'}
                                   </Button>
                                 </CardFooter>
                               </Card>
@@ -282,7 +330,7 @@ export default function StoriesPage() {
                                       {story.title}
                                     </h3>
                                     <p className="text-gray-600 text-sm mb-3">
-                                      {story.excerpt}
+                                      {expandedStoryId === story.id ? story.content : story.excerpt}
                                     </p>
                                     <div className="flex items-center text-xs text-gray-500">
                                       <div className="flex items-center mr-3">
@@ -299,8 +347,9 @@ export default function StoriesPage() {
                                     <Button
                                       variant="link"
                                       className="p-0 h-auto text-sm text-[#2874f0]"
+                                      onClick={() => handleToggleExpand(story.id)}
                                     >
-                                      Read More
+                                      {expandedStoryId === story.id ? 'Show Less' : 'Read More'}
                                     </Button>
                                   </CardFooter>
                                 </Card>
@@ -338,7 +387,7 @@ export default function StoriesPage() {
                                       {story.title}
                                     </h3>
                                     <p className="text-gray-600 text-sm mb-3">
-                                      {story.excerpt}
+                                      {expandedStoryId === story.id ? story.content : story.excerpt}
                                     </p>
                                     <div className="flex items-center text-xs text-gray-500">
                                       <div className="flex items-center mr-3">
@@ -355,8 +404,9 @@ export default function StoriesPage() {
                                     <Button
                                       variant="link"
                                       className="p-0 h-auto text-sm text-[#2874f0]"
+                                      onClick={() => handleToggleExpand(story.id)}
                                     >
-                                      Read More
+                                      {expandedStoryId === story.id ? 'Show Less' : 'Read More'}
                                     </Button>
                                   </CardFooter>
                                 </Card>
@@ -394,7 +444,7 @@ export default function StoriesPage() {
                                       {story.title}
                                     </h3>
                                     <p className="text-gray-600 text-sm mb-3">
-                                      {story.excerpt}
+                                      {expandedStoryId === story.id ? story.content : story.excerpt}
                                     </p>
                                     <div className="flex items-center text-xs text-gray-500">
                                       <div className="flex items-center mr-3">
@@ -411,8 +461,9 @@ export default function StoriesPage() {
                                     <Button
                                       variant="link"
                                       className="p-0 h-auto text-sm text-[#2874f0]"
+                                      onClick={() => handleToggleExpand(story.id)}
                                     >
-                                      Read More
+                                      {expandedStoryId === story.id ? 'Show Less' : 'Read More'}
                                     </Button>
                                   </CardFooter>
                                 </Card>
@@ -438,7 +489,7 @@ export default function StoriesPage() {
                       experienced something remarkable as a Lelekart customer?
                       We'd love to hear from you!
                     </p>
-                    <Button size="lg">Submit Your Story</Button>
+                    <Button size="lg" onClick={() => setShowSubmitModal(true)}>Submit Your Story</Button>
                   </div>
                 }
               />
@@ -446,6 +497,83 @@ export default function StoriesPage() {
           </div>
         </div>
       </div>
+
+      {/* Submit Your Story Modal */}
+      {showSubmitModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 relative">
+            <button
+              className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 text-xl"
+              onClick={() => setShowSubmitModal(false)}
+              aria-label="Close"
+            >
+              ×
+            </button>
+            <h2 className="text-xl font-bold mb-4 text-[#2874f0]">Submit Your Story</h2>
+            {submitSuccess ? (
+              <div className="text-green-600 text-center font-semibold py-8">
+                Thank you for sharing your story!<br />Our team will review it soon.
+              </div>
+            ) : (
+              <form onSubmit={handleFormSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Name</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={form.name}
+                    onChange={handleFormChange}
+                    required
+                    className="w-full border rounded px-3 py-2"
+                    placeholder="Your Name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Email</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={form.email}
+                    onChange={handleFormChange}
+                    required
+                    className="w-full border rounded px-3 py-2"
+                    placeholder="you@email.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Story Title</label>
+                  <input
+                    type="text"
+                    name="title"
+                    value={form.title}
+                    onChange={handleFormChange}
+                    required
+                    className="w-full border rounded px-3 py-2"
+                    placeholder="Give your story a title"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Your Story</label>
+                  <textarea
+                    name="content"
+                    value={form.content}
+                    onChange={handleFormChange}
+                    required
+                    className="w-full border rounded px-3 py-2 min-h-[100px]"
+                    placeholder="Share your experience..."
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full bg-[#2874f0] text-white font-semibold py-2 rounded hover:bg-[#1851a3] transition"
+                >
+                  Submit
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
