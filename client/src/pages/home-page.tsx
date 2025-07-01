@@ -187,7 +187,8 @@ export default function HomePage() {
 
   // Get featured products (first 5 products for priority loading)
   const featuredProducts = useMemo(() => {
-    return products.slice(0, 5);
+    // Only show products with a real deal/discount (mrp > price)
+    return products.filter((p) => p.mrp && p.mrp > p.price).slice(0, 5);
   }, [products]);
 
   // Preload critical images when products change

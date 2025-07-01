@@ -81,9 +81,21 @@ export const ProductCard = memo(function ProductCard({
   // Determine if this should be a priority image (featured products or first few products)
   const shouldPrioritize = priority || featured;
 
+  // Calculate discount percentage if applicable
+  const hasDiscount = product.mrp && product.mrp > product.price;
+  const discountPercent = hasDiscount
+    ? Math.round(((product.mrp - product.price) / product.mrp) * 100)
+    : 0;
+
   // Use the same dimensions and styling for all product cards regardless of featured status
   return (
     <div className="relative">
+      {/* Discount badge */}
+      {hasDiscount && (
+        <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded z-10 shadow">
+          {discountPercent}% OFF
+        </div>
+      )}
       {/* Add Wishlist button on top right of card */}
       <WishlistButton productId={product.id} variant="card" />
 
@@ -131,10 +143,15 @@ export const ProductCard = memo(function ProductCard({
               <h3 className="font-medium text-center text-sm line-clamp-2 h-10">
                 {product.name}
               </h3>
-              <div className="text-green-600 font-medium mt-1 text-center">
+              <div className="text-green-600 font-medium mt-1 text-center flex items-center justify-center gap-2">
                 {product.gstDetails
                   ? formatPrice(product.gstDetails.priceWithGst)
                   : formatPrice(product.price)}
+                {hasDiscount && (
+                  <span className="text-gray-400 text-xs line-through ml-2">
+                    {formatPrice(product.mrp)}
+                  </span>
+                )}
               </div>
               <div className="text-xs text-gray-500 mt-1 text-center line-clamp-1">
                 {stripHtmlTags(product.description).slice(0, 30)}...

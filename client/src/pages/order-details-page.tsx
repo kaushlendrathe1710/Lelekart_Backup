@@ -548,7 +548,15 @@ export default function OrderDetailsPage() {
               </p>
               <p className="mt-1">
                 <span className="font-medium">Status: </span>
-                <span className="text-green-600 font-medium">Paid</span>
+                {order.paymentMethod === 'cod' ? (
+                  order.status === 'delivered' ? (
+                    <span className="text-green-600 font-medium">Paid</span>
+                  ) : (
+                    <span className="text-yellow-600 font-medium">To be paid on delivery</span>
+                  )
+                ) : (
+                  <span className="text-green-600 font-medium">Paid</span>
+                )}
               </p>
               <div className="mt-3">
                 <div className="flex justify-between">
