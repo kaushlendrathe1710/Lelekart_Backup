@@ -883,9 +883,9 @@ export default function SellerOrdersPage() {
                     </p>
                     <p>
                       <span className="font-medium">Payment Status:</span>{" "}
-                      {selectedOrder.status === "delivered"
-                        ? "Paid"
-                        : "Pending"}
+                      {selectedOrder.paymentMethod === 'cod'
+                        ? (selectedOrder.status === 'delivered' ? 'Paid' : 'To be paid on delivery')
+                        : 'Paid'}
                     </p>
                   </div>
                 </CardContent>

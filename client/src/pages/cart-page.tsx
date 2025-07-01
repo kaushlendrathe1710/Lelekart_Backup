@@ -27,6 +27,8 @@ interface CartItem {
     createdAt: string;
     images?: string;
     deliveryCharges?: number;
+    isDealOfTheDay?: boolean;
+    mrp?: number;
   };
   variant?: {
     id: number;
@@ -61,9 +63,14 @@ export default function CartPage() {
     setLocation('/checkout', { replace: false });
   };
 
-  // Calculate totals - use variant price if available
+  // Calculate totals - use deal price if isDealOfTheDay, else variant price if available
   const subtotal = cartItems.reduce((total, item) => {
-    const price = item.variant ? item.variant.price : item.product.price;
+    let price;
+    if (item.product.isDealOfTheDay) {
+      price = item.product.price;
+    } else {
+      price = item.variant ? item.variant.price : item.product.price;
+    }
     return total + (price * item.quantity);
   }, 0);
   // Calculate delivery charges for all items
@@ -142,7 +149,18 @@ export default function CartPage() {
                               {item.product.name}
                             </Link>
                           </h3>
-                          <p className="ml-4">₹{item.variant ? item.variant.price : item.product.price}</p>
+                          <div className="ml-4 flex items-center gap-2">
+                            {item.product.isDealOfTheDay ? (
+                              <>
+                                <span>₹{item.product.price}</span>
+                                {item.product.mrp && (
+                                  <span className="text-gray-400 text-xs line-through ml-1">₹{item.product.mrp}</span>
+                                )}
+                              </>
+                            ) : (
+                              <span>₹{item.variant ? item.variant.price : item.product.price}</span>
+                            )}
+                          </div>
                         </div>
                         <p className="mt-1 text-sm text-gray-500">{item.product.category}</p>
                         
