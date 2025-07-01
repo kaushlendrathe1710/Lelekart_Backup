@@ -1,539 +1,224 @@
-import React from 'react';
-import { StaticPageTemplate, StaticPageSection } from '@/components/static-page-template';
-import { 
-  Card, 
-  CardContent,
-} from '@/components/ui/card';
-import { 
-  RefreshCw, 
-  AlertCircle, 
-  CheckCircle, 
-  HelpCircle,
-  PackageOpen,
-  ArrowLeftRight,
-  Clock,
-  CreditCard
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
+import React, { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { AlertCircle, CheckCircle, HelpCircle, RefreshCw, Clock, PackageOpen, Phone, Mail } from "lucide-react";
+import { useLocation } from "wouter";
 
 export default function ReturnsPage() {
+  const [pincode, setPincode] = useState("");
+  const [isPincodeChecking, setIsPincodeChecking] = useState(false);
+  const [pincodeResponse, setPincodeResponse] = useState<any>(null);
+  const [showContact, setShowContact] = useState(false);
+
+  // Pincode check logic (reuse from shipping)
+  const checkPincodeAvailability = async () => {
+    if (pincode.length !== 6) {
+      setPincodeResponse({
+        isDeliverable: false,
+        message: "Please enter a valid 6-digit PIN code",
+        pincode: pincode,
+      });
+      return;
+    }
+    try {
+      setIsPincodeChecking(true);
+      const response = await fetch(`/api/shipping/check-pincode?pincode=${pincode}`);
+      const data = await response.json();
+      setPincodeResponse(data);
+      localStorage.setItem("last_used_pincode", pincode);
+    } catch (error) {
+      setPincodeResponse({
+        isDeliverable: false,
+        message: "Unable to check pickup availability. Please try again later.",
+        pincode: pincode,
+      });
+    } finally {
+      setIsPincodeChecking(false);
+    }
+  };
+
   return (
-    <StaticPageTemplate 
-      title="Cancellation & Returns" 
-      subtitle="Understanding our return, refund, and cancellation policies"
-    >
-      <StaticPageSection 
-        section="returns_page"
-        titleFilter="Returns Intro" 
-        defaultContent={
-          <div className="mb-8 text-gray-700">
-            <p className="text-lg">
-              At Lelekart, we want you to be completely satisfied with your purchase. 
-              If you're not happy with your order for any reason, we offer easy returns 
-              and refunds as part of our customer satisfaction commitment.
-            </p>
-          </div>
-        }
-      />
-      
-      {/* Return Policy Overview */}
-      <Tabs defaultValue="returns" className="w-full mb-10">
-        <TabsList className="grid w-full grid-cols-3 mb-6">
-          <TabsTrigger value="returns" className="flex items-center gap-1">
-            <RefreshCw size={16} />
-            <span>Returns</span>
-          </TabsTrigger>
-          <TabsTrigger value="refunds" className="flex items-center gap-1">
-            <CreditCard size={16} />
-            <span>Refunds</span>
-          </TabsTrigger>
-          <TabsTrigger value="cancellations" className="flex items-center gap-1">
-            <Clock size={16} />
-            <span>Cancellations</span>
-          </TabsTrigger>
-        </TabsList>
-        
-        {/* Returns Tab */}
-        <TabsContent value="returns">
-          <StaticPageSection 
-            section="returns_page"
-            titleFilter="Returns Policy" 
-            defaultContent={
-              <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-[#2874f0] flex items-center gap-2">
-                  <RefreshCw size={20} />
-                  Return Policy
-                </h2>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <Card className="border-[#efefef]">
-                    <CardContent className="p-6">
-                      <h3 className="font-semibold mb-3">Return Window</h3>
-                      <div className="space-y-3">
-                        <div className="flex items-start">
-                          <div className="min-w-9 flex items-center justify-center">
-                            <div className="w-8 h-8 bg-[#2874f0]/10 rounded-full flex items-center justify-center">
-                              <span className="text-[#2874f0] font-medium">7</span>
-                            </div>
-                          </div>
-                          <div className="ml-3">
-                            <p className="font-medium text-sm">Electronics</p>
-                            <p className="text-sm text-gray-600">7 days from delivery</p>
-                          </div>
-                        </div>
-                        <div className="flex items-start">
-                          <div className="min-w-9 flex items-center justify-center">
-                            <div className="w-8 h-8 bg-[#2874f0]/10 rounded-full flex items-center justify-center">
-                              <span className="text-[#2874f0] font-medium">10</span>
-                            </div>
-                          </div>
-                          <div className="ml-3">
-                            <p className="font-medium text-sm">Fashion & Lifestyle</p>
-                            <p className="text-sm text-gray-600">10 days from delivery</p>
-                          </div>
-                        </div>
-                        <div className="flex items-start">
-                          <div className="min-w-9 flex items-center justify-center">
-                            <div className="w-8 h-8 bg-[#2874f0]/10 rounded-full flex items-center justify-center">
-                              <span className="text-[#2874f0] font-medium">7</span>
-                            </div>
-                          </div>
-                          <div className="ml-3">
-                            <p className="font-medium text-sm">Home & Furniture</p>
-                            <p className="text-sm text-gray-600">7 days from delivery</p>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card className="border-[#efefef]">
-                    <CardContent className="p-6">
-                      <h3 className="font-semibold mb-3">Return Conditions</h3>
-                      <ul className="space-y-2 text-sm">
-                        <li className="flex items-start">
-                          <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
-                          <span className="text-gray-700">Unused and unworn condition</span>
-                        </li>
-                        <li className="flex items-start">
-                          <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
-                          <span className="text-gray-700">Original packaging and tags intact</span>
-                        </li>
-                        <li className="flex items-start">
-                          <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
-                          <span className="text-gray-700">All accessories and freebies included</span>
-                        </li>
-                        <li className="flex items-start">
-                          <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
-                          <span className="text-gray-700">Original invoice available</span>
-                        </li>
-                        <li className="flex items-start">
-                          <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 mr-2 flex-shrink-0" />
-                          <span className="text-gray-700">Products marked as non-returnable cannot be returned</span>
-                        </li>
-                      </ul>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card className="border-[#efefef]">
-                    <CardContent className="p-6">
-                      <h3 className="font-semibold mb-3">Non-Returnable Items</h3>
-                      <ul className="space-y-2 text-sm">
-                        <li className="flex items-start">
-                          <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 mr-2 flex-shrink-0" />
-                          <span className="text-gray-700">Personal care items (cosmetics, grooming products)</span>
-                        </li>
-                        <li className="flex items-start">
-                          <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 mr-2 flex-shrink-0" />
-                          <span className="text-gray-700">Innerwear, lingerie, and swimwear</span>
-                        </li>
-                        <li className="flex items-start">
-                          <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 mr-2 flex-shrink-0" />
-                          <span className="text-gray-700">Customized or personalized products</span>
-                        </li>
-                        <li className="flex items-start">
-                          <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 mr-2 flex-shrink-0" />
-                          <span className="text-gray-700">Grocery and perishable items</span>
-                        </li>
-                        <li className="flex items-start">
-                          <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 mr-2 flex-shrink-0" />
-                          <span className="text-gray-700">Products with tampered seal or packaging</span>
-                        </li>
-                      </ul>
-                    </CardContent>
-                  </Card>
-                </div>
-                
-                {/* Return Process */}
-                <div className="mt-8">
-                  <h3 className="text-xl font-semibold mb-4">Return Process</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="text-center">
-                      <div className="w-16 h-16 bg-[#2874f0]/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <span className="text-xl font-bold text-[#2874f0]">1</span>
-                      </div>
-                      <h4 className="font-medium mb-1">Initiate Return</h4>
-                      <p className="text-sm text-gray-600">Log in to your account and go to "My Orders" to request a return</p>
-                    </div>
-                    <div className="text-center">
-                      <div className="w-16 h-16 bg-[#2874f0]/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <span className="text-xl font-bold text-[#2874f0]">2</span>
-                      </div>
-                      <h4 className="font-medium mb-1">Package Item</h4>
-                      <p className="text-sm text-gray-600">Pack the item securely in its original packaging with all accessories</p>
-                    </div>
-                    <div className="text-center">
-                      <div className="w-16 h-16 bg-[#2874f0]/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <span className="text-xl font-bold text-[#2874f0]">3</span>
-                      </div>
-                      <h4 className="font-medium mb-1">Pickup/Drop-off</h4>
-                      <p className="text-sm text-gray-600">Wait for our pickup agent or drop the item at the nearest designated center</p>
-                    </div>
-                    <div className="text-center">
-                      <div className="w-16 h-16 bg-[#2874f0]/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <span className="text-xl font-bold text-[#2874f0]">4</span>
-                      </div>
-                      <h4 className="font-medium mb-1">Get Refund</h4>
-                      <p className="text-sm text-gray-600">After verification, receive your refund or replacement within 5-7 business days</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            }
-          />
-        </TabsContent>
-        
-        {/* Refunds Tab */}
-        <TabsContent value="refunds">
-          <StaticPageSection 
-            section="returns_page"
-            titleFilter="Refunds Policy" 
-            defaultContent={
-              <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-[#2874f0] flex items-center gap-2">
-                  <CreditCard size={20} />
-                  Refund Policy
-                </h2>
-                
-                <p className="text-gray-700">
-                  Once your return is received and inspected, we will process your refund. Depending on your payment method, 
-                  refunds may take different amounts of time to appear in your account.
-                </p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Card className="border-[#efefef]">
-                    <CardContent className="p-6">
-                      <h3 className="font-semibold mb-3">Refund Timelines</h3>
-                      <ul className="space-y-3">
-                        <li className="flex items-start">
-                          <Clock className="h-5 w-5 text-[#2874f0] mt-0.5 mr-3 flex-shrink-0" />
-                          <div>
-                            <p className="font-medium">Lelekart Wallet Credit</p>
-                            <p className="text-sm text-gray-600">Within 24 hours after return approval</p>
-                          </div>
-                        </li>
-                        <li className="flex items-start">
-                          <Clock className="h-5 w-5 text-[#2874f0] mt-0.5 mr-3 flex-shrink-0" />
-                          <div>
-                            <p className="font-medium">UPI/Net Banking</p>
-                            <p className="text-sm text-gray-600">3-5 business days after return approval</p>
-                          </div>
-                        </li>
-                        <li className="flex items-start">
-                          <Clock className="h-5 w-5 text-[#2874f0] mt-0.5 mr-3 flex-shrink-0" />
-                          <div>
-                            <p className="font-medium">Credit/Debit Card</p>
-                            <p className="text-sm text-gray-600">5-7 business days after return approval</p>
-                          </div>
-                        </li>
-                        <li className="flex items-start">
-                          <Clock className="h-5 w-5 text-[#2874f0] mt-0.5 mr-3 flex-shrink-0" />
-                          <div>
-                            <p className="font-medium">EMI/Pay Later</p>
-                            <p className="text-sm text-gray-600">7-10 business days after return approval</p>
-                          </div>
-                        </li>
-                        <li className="flex items-start">
-                          <Clock className="h-5 w-5 text-[#2874f0] mt-0.5 mr-3 flex-shrink-0" />
-                          <div>
-                            <p className="font-medium">Cash on Delivery</p>
-                            <p className="text-sm text-gray-600">Bank transfer in 5-7 business days</p>
-                          </div>
-                        </li>
-                      </ul>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card className="border-[#efefef]">
-                    <CardContent className="p-6">
-                      <h3 className="font-semibold mb-3">Refund Methods</h3>
-                      <ul className="space-y-3">
-                        <li className="flex items-start">
-                          <CreditCard className="h-5 w-5 text-[#2874f0] mt-0.5 mr-3 flex-shrink-0" />
-                          <div>
-                            <p className="font-medium">Original Payment Method</p>
-                            <p className="text-sm text-gray-600">Refunds are typically processed to the original payment method</p>
-                          </div>
-                        </li>
-                        <li className="flex items-start">
-                          <CreditCard className="h-5 w-5 text-[#2874f0] mt-0.5 mr-3 flex-shrink-0" />
-                          <div>
-                            <p className="font-medium">Lelekart Wallet</p>
-                            <p className="text-sm text-gray-600">Option for instant refunds to your Lelekart wallet</p>
-                          </div>
-                        </li>
-                        <li className="flex items-start">
-                          <CreditCard className="h-5 w-5 text-[#2874f0] mt-0.5 mr-3 flex-shrink-0" />
-                          <div>
-                            <p className="font-medium">Bank Transfer</p>
-                            <p className="text-sm text-gray-600">For COD orders or when original payment method is unavailable</p>
-                          </div>
-                        </li>
-                      </ul>
-                      <div className="p-3 bg-green-50 border border-green-100 rounded-md mt-4">
-                        <div className="flex items-start">
-                          <CheckCircle className="h-5 w-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                          <p className="text-sm text-green-800">
-                            <span className="font-medium">Instant refunds available!</span> Choose Lelekart Wallet refund option to receive your refund instantly.
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-                
-                <div className="p-4 border border-yellow-200 bg-yellow-50 rounded-md text-yellow-800 text-sm">
-                  <div className="flex items-start">
-                    <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-medium">Important Note on Refunds</p>
-                      <p>For damaged or defective items, we offer a full refund including shipping charges. For change of mind returns, original shipping charges (if any) are non-refundable. A return shipping fee may apply for non-quality related returns.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            }
-          />
-        </TabsContent>
-        
-        {/* Cancellations Tab */}
-        <TabsContent value="cancellations">
-          <StaticPageSection 
-            section="returns_page"
-            titleFilter="Cancellations Policy" 
-            defaultContent={
-              <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-[#2874f0] flex items-center gap-2">
-                  <Clock size={20} />
-                  Cancellation Policy
-                </h2>
-                
-                <p className="text-gray-700">
-                  You can cancel an order at any time before it is shipped. Once shipped, you will need to initiate a return.
-                </p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Card className="border-[#efefef]">
-                    <CardContent className="p-6">
-                      <h3 className="font-semibold mb-3">How to Cancel an Order</h3>
-                      <ol className="space-y-3 pl-6 list-decimal">
-                        <li className="text-gray-700">
-                          <span className="font-medium">Log in to your account</span>
-                          <p className="text-sm text-gray-600">Visit Lelekart.com and sign in to your account</p>
-                        </li>
-                        <li className="text-gray-700">
-                          <span className="font-medium">Go to My Orders</span>
-                          <p className="text-sm text-gray-600">Navigate to the My Orders section in your account</p>
-                        </li>
-                        <li className="text-gray-700">
-                          <span className="font-medium">Select the order</span>
-                          <p className="text-sm text-gray-600">Find and click on the order you wish to cancel</p>
-                        </li>
-                        <li className="text-gray-700">
-                          <span className="font-medium">Click "Cancel Order"</span>
-                          <p className="text-sm text-gray-600">Select the cancel option and choose your reason</p>
-                        </li>
-                        <li className="text-gray-700">
-                          <span className="font-medium">Confirm cancellation</span>
-                          <p className="text-sm text-gray-600">Review and confirm your cancellation request</p>
-                        </li>
-                      </ol>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card className="border-[#efefef]">
-                    <CardContent className="p-6">
-                      <h3 className="font-semibold mb-3">Cancellation Terms</h3>
-                      <ul className="space-y-3">
-                        <li className="flex items-start">
-                          <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 mr-3 flex-shrink-0" />
-                          <div>
-                            <p className="font-medium">Pre-Shipment Cancellation</p>
-                            <p className="text-sm text-gray-600">100% refund to original payment method</p>
-                          </div>
-                        </li>
-                        <li className="flex items-start">
-                          <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 mr-3 flex-shrink-0" />
-                          <div>
-                            <p className="font-medium">Partial Order Cancellation</p>
-                            <p className="text-sm text-gray-600">Available for multi-item orders that haven't been shipped</p>
-                          </div>
-                        </li>
-                        <li className="flex items-start">
-                          <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 mr-3 flex-shrink-0" />
-                          <div>
-                            <p className="font-medium">Post-Shipment</p>
-                            <p className="text-sm text-gray-600">Cannot be cancelled; please follow return process</p>
-                          </div>
-                        </li>
-                        <li className="flex items-start">
-                          <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
-                          <div>
-                            <p className="font-medium">Non-Cancellable Items</p>
-                            <p className="text-sm text-gray-600">Some items like perishables and custom orders cannot be cancelled</p>
-                          </div>
-                        </li>
-                      </ul>
-                      <div className="p-3 bg-blue-50 border border-blue-100 rounded-md mt-4">
-                        <div className="flex items-start">
-                          <HelpCircle className="h-5 w-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
-                          <p className="text-sm text-blue-800">
-                            <span className="font-medium">Need urgent help?</span> For immediate assistance with cancelling an order, please contact our customer service.
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-                
-                <div className="p-4 border border-yellow-200 bg-yellow-50 rounded-md text-yellow-800 text-sm">
-                  <div className="flex items-start">
-                    <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-medium">Important Note</p>
-                      <p>Refunds for cancelled orders are processed within 7-10 business days, depending on your payment method. For faster refunds, you can opt for Lelekart Wallet credit.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            }
-          />
-        </TabsContent>
-      </Tabs>
-      
-      <Separator className="my-10" />
-      
-      {/* Exchange Policy */}
-      <div className="mb-12">
-        <h2 className="text-2xl font-bold mb-6 text-[#2874f0]">Exchange Policy</h2>
-        <StaticPageSection 
-          section="returns_page"
-          titleFilter="Exchange Policy" 
-          defaultContent={
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="border-[#efefef]">
-                <CardContent className="p-6">
-                  <div className="flex items-start mb-4">
-                    <ArrowLeftRight className="h-6 w-6 text-[#2874f0] mr-3 flex-shrink-0" />
-                    <div>
-                      <h3 className="font-semibold mb-1">Exchange Options</h3>
-                      <p className="text-gray-600 mb-3">
-                        For eligible products, you can request an exchange for a different:
-                      </p>
-                      <ul className="space-y-2">
-                        <li className="flex items-center text-gray-700">
-                          <div className="w-1.5 h-1.5 rounded-full bg-[#2874f0] mr-2"></div>
-                          Size (clothing, footwear)
-                        </li>
-                        <li className="flex items-center text-gray-700">
-                          <div className="w-1.5 h-1.5 rounded-full bg-[#2874f0] mr-2"></div>
-                          Color (where multiple colors are available)
-                        </li>
-                        <li className="flex items-center text-gray-700">
-                          <div className="w-1.5 h-1.5 rounded-full bg-[#2874f0] mr-2"></div>
-                          Variant (same product, different configuration)
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card className="border-[#efefef]">
-                <CardContent className="p-6">
-                  <div className="flex items-start mb-4">
-                    <PackageOpen className="h-6 w-6 text-[#2874f0] mr-3 flex-shrink-0" />
-                    <div>
-                      <h3 className="font-semibold mb-1">Exchange Process</h3>
-                      <p className="text-gray-600 mb-3">
-                        To exchange a product:
-                      </p>
-                      <ol className="space-y-2 list-decimal pl-4">
-                        <li className="text-gray-700">
-                          Go to "My Orders" and find the item
-                        </li>
-                        <li className="text-gray-700">
-                          Click "Exchange" instead of "Return"
-                        </li>
-                        <li className="text-gray-700">
-                          Select the new size/color/variant
-                        </li>
-                        <li className="text-gray-700">
-                          Schedule pickup for the original item
-                        </li>
-                        <li className="text-gray-700">
-                          Receive replacement after item verification
-                        </li>
-                      </ol>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+    <div className="bg-[#f1f3f6] min-h-screen py-4">
+      <div className="container mx-auto px-4">
+        <div className="bg-white shadow-sm rounded-md overflow-hidden mb-6">
+          {/* Hero Banner */}
+          <div className="bg-[#2874f0] text-white p-8 md:p-16">
+            <div className="max-w-4xl mx-auto">
+              <h1 className="text-3xl md:text-4xl font-bold mb-4">Cancellations & Returns</h1>
+              <p className="text-lg md:text-xl mb-6">
+                Learn about our return, refund, and cancellation policies and how to initiate a return or cancellation.
+              </p>
             </div>
-          }
-        />
+          </div>
+
+          {/* Content Sections */}
+          <div className="p-6 md:p-8">
+            <div className="max-w-4xl mx-auto">
+              {/* Intro */}
+              <div className="mb-8 text-gray-700">
+                <p className="text-lg">
+                  At Lelekart, we want you to be completely satisfied with your purchase. If you're not happy with your order for any reason, we offer easy returns, refunds, and cancellations as part of our customer satisfaction commitment.
+                </p>
+              </div>
+
+              {/* Pincode Checker for Return Pickup */}
+              <div className="mb-10">
+                <Card className="border-[#efefef]">
+                  <CardContent className="p-6">
+                    <div className="flex flex-col md:flex-row items-center gap-4">
+                      <div className="flex-grow">
+                        <h3 className="text-lg font-semibold mb-2">Check Return Pickup Availability</h3>
+                        <p className="text-gray-600 mb-4">Enter your PIN code to check if return pickup is available in your area.</p>
+                        <div className="flex">
+                          <Input
+                            placeholder="Enter PIN code"
+                            className="max-w-xs rounded-r-none"
+                            value={pincode}
+                            onChange={(e) => setPincode(e.target.value)}
+                            maxLength={6}
+                          />
+                          <Button className="rounded-l-none" onClick={checkPincodeAvailability} disabled={pincode.length !== 6 || isPincodeChecking}>
+                            {isPincodeChecking ? "Checking..." : "Check"}
+                          </Button>
+                        </div>
+                        {pincodeResponse ? (
+                          <div className={`text-sm mt-2 p-2 rounded ${pincodeResponse.isDeliverable ? "bg-green-50 text-green-700 border border-green-200" : "bg-gray-50 text-gray-700 border border-gray-200"}`}>
+                            {pincodeResponse.isDeliverable ? (
+                              <div className="flex items-center">
+                                <CheckCircle className="h-4 w-4 mr-1 text-green-600" />
+                                <span className="font-medium">Return pickup available at {pincodeResponse.pincode || "this location"}</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center">
+                                <AlertCircle className="h-4 w-4 mr-1 text-gray-500" />
+                                <span>{pincodeResponse.message}</span>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-gray-600 text-sm mt-1">Enter your pincode to check return pickup availability</div>
+                        )}
+                      </div>
+                      <div className="flex-shrink-0">
+                        <PackageOpen size={48} className="text-[#2874f0]" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Policy Details */}
+              <div className="mb-12">
+                <h2 className="text-2xl font-bold mb-6 text-[#2874f0]">Return & Cancellation Policy</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card className="border-[#efefef]">
+                    <CardContent className="p-6">
+                      <h3 className="font-semibold mb-3 flex items-center gap-2"><RefreshCw size={18}/> Return Policy</h3>
+                      <ul className="space-y-2 text-sm">
+                        <li className="flex items-start"><CheckCircle className="h-4 w-4 text-green-600 mt-0.5 mr-2 flex-shrink-0" /> Most products eligible for return within 7-10 days of delivery</li>
+                        <li className="flex items-start"><CheckCircle className="h-4 w-4 text-green-600 mt-0.5 mr-2 flex-shrink-0" /> Items must be unused, unworn, and in original packaging</li>
+                        <li className="flex items-start"><CheckCircle className="h-4 w-4 text-green-600 mt-0.5 mr-2 flex-shrink-0" /> All accessories, freebies, and tags must be included</li>
+                        <li className="flex items-start"><AlertCircle className="h-4 w-4 text-red-500 mt-0.5 mr-2 flex-shrink-0" /> Non-returnable items: personal care, innerwear, perishables, customized products</li>
+                        <li className="flex items-start"><AlertCircle className="h-4 w-4 text-red-500 mt-0.5 mr-2 flex-shrink-0" /> Products marked as non-returnable cannot be returned</li>
+                      </ul>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-[#efefef]">
+                    <CardContent className="p-6">
+                      <h3 className="font-semibold mb-3 flex items-center gap-2"><Clock size={18}/> Cancellation Policy</h3>
+                      <ul className="space-y-2 text-sm">
+                        <li className="flex items-start"><CheckCircle className="h-4 w-4 text-green-600 mt-0.5 mr-2 flex-shrink-0" /> Orders can be cancelled before they are shipped</li>
+                        <li className="flex items-start"><CheckCircle className="h-4 w-4 text-green-600 mt-0.5 mr-2 flex-shrink-0" /> Instant refund to original payment method for prepaid orders</li>
+                        <li className="flex items-start"><CheckCircle className="h-4 w-4 text-green-600 mt-0.5 mr-2 flex-shrink-0" /> No cancellation charges before shipping</li>
+                        <li className="flex items-start"><AlertCircle className="h-4 w-4 text-red-500 mt-0.5 mr-2 flex-shrink-0" /> Orders cannot be cancelled after they are shipped</li>
+                      </ul>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+
+              {/* Process Steps */}
+              <div className="mb-12">
+                <h2 className="text-2xl font-bold mb-6 text-[#2874f0]">How to Return or Cancel</h2>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-[#2874f0]/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <span className="text-xl font-bold text-[#2874f0]">1</span>
+                    </div>
+                    <h4 className="font-medium mb-1">Initiate Request</h4>
+                    <p className="text-sm text-gray-600">Go to "My Orders" and select the item to return or cancel</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-[#2874f0]/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <span className="text-xl font-bold text-[#2874f0]">2</span>
+                    </div>
+                    <h4 className="font-medium mb-1">Choose Reason</h4>
+                    <p className="text-sm text-gray-600">Select the reason for return or cancellation</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-[#2874f0]/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <span className="text-xl font-bold text-[#2874f0]">3</span>
+                    </div>
+                    <h4 className="font-medium mb-1">Pickup/Drop-off</h4>
+                    <p className="text-sm text-gray-600">Wait for pickup or drop the item at the nearest center (for returns)</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-[#2874f0]/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <span className="text-xl font-bold text-[#2874f0]">4</span>
+                    </div>
+                    <h4 className="font-medium mb-1">Refund/Confirmation</h4>
+                    <p className="text-sm text-gray-600">Get refund or confirmation after verification</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* FAQs */}
+              <div className="mb-12">
+                <h2 className="text-2xl font-bold mb-6 text-[#2874f0]">Frequently Asked Questions</h2>
+                <div className="space-y-4">
+                  <Card className="border-[#efefef]">
+                    <CardContent className="p-6">
+                      <h3 className="font-semibold mb-2 flex items-center gap-2"><HelpCircle size={18}/> How do I initiate a return?</h3>
+                      <p className="text-gray-700 text-sm">Log in to your account, go to "My Orders", select the item, and click on "Return". Follow the instructions to complete your request.</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-[#efefef]">
+                    <CardContent className="p-6">
+                      <h3 className="font-semibold mb-2 flex items-center gap-2"><HelpCircle size={18}/> How long does it take to get a refund?</h3>
+                      <p className="text-gray-700 text-sm">Refunds are processed within 5-7 business days after the returned item is received and verified.</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-[#efefef]">
+                    <CardContent className="p-6">
+                      <h3 className="font-semibold mb-2 flex items-center gap-2"><HelpCircle size={18}/> Can I cancel my order after it is shipped?</h3>
+                      <p className="text-gray-700 text-sm">No, orders cannot be cancelled once they are shipped. You may initiate a return after delivery if eligible.</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+
+              {/* Contact Support */}
+              <div className="bg-gray-50 rounded-lg p-6 text-center mt-10">
+                <h3 className="text-xl font-semibold mb-4">Need Help With Returns or Cancellations?</h3>
+                <p className="text-gray-600 max-w-3xl mx-auto mb-6">Our customer service team is available to assist you with any questions about returns, refunds, or cancellations.</p>
+                <Button onClick={() => setShowContact(true)}>Contact Support</Button>
+              </div>
+              {showContact && (
+                <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40">
+                  <div className="bg-white rounded-lg shadow-lg p-8 max-w-sm w-full text-center">
+                    <h2 className="text-xl font-bold mb-4">Customer Service</h2>
+                    <p className="mb-2 flex items-center justify-center gap-2"><Mail className="h-4 w-4 text-blue-700" /> <a href="mailto:support@lelekart.com" className="text-blue-700 underline">support@lelekart.com</a></p>
+                    <p className="mb-4 flex items-center justify-center gap-2"><Phone className="h-4 w-4 text-blue-700" /> <a href="tel:+911234567890" className="text-blue-700 underline">+91 12345 67890</a></p>
+                    <Button onClick={() => setShowContact(false)} className="mt-2">Close</Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
-      
-      <StaticPageSection 
-        section="returns_page"
-        titleFilter="Returns Footer" 
-        defaultContent={
-          <div className="bg-gray-50 rounded-lg p-6">
-            <div className="flex flex-col md:flex-row items-start gap-6">
-              <div className="md:w-2/3">
-                <h3 className="text-xl font-semibold mb-3">Need Help?</h3>
-                <p className="text-gray-600 mb-4">
-                  If you have any questions about returns, refunds, or cancellations, 
-                  our customer service team is ready to assist you.
-                </p>
-                <Button>Contact Customer Service</Button>
-              </div>
-              <div className="md:w-1/3 bg-white p-4 rounded-md border">
-                <h4 className="font-medium mb-2 flex items-center">
-                  <HelpCircle className="h-4 w-4 mr-1 text-[#2874f0]" />
-                  Quick Help
-                </h4>
-                <ul className="space-y-2 text-sm">
-                  <li className="text-gray-700">
-                    <a href="#" className="hover:underline hover:text-[#2874f0]">How to package items for return</a>
-                  </li>
-                  <li className="text-gray-700">
-                    <a href="#" className="hover:underline hover:text-[#2874f0]">Track return status</a>
-                  </li>
-                  <li className="text-gray-700">
-                    <a href="#" className="hover:underline hover:text-[#2874f0]">Return pickup schedule</a>
-                  </li>
-                  <li className="text-gray-700">
-                    <a href="#" className="hover:underline hover:text-[#2874f0]">Common return problems</a>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        }
-      />
-    </StaticPageTemplate>
+    </div>
   );
 }
