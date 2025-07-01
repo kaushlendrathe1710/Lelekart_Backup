@@ -1,5 +1,5 @@
 import { useState, useContext, useRef, useEffect } from "react";
-import { useLocation, useRoute } from "wouter";
+import { useLocation, useRoute, Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Product as BaseProduct, ProductVariant, User } from "@shared/schema";
 import { VariantImageModal } from "@/components/ui/variant-image-modal";
@@ -2084,9 +2084,16 @@ export default function ProductDetailsPage() {
                   <div className="col-span-2 text-gray-600 text-sm">Seller</div>
                   <div className="col-span-10">
                     <div className="text-primary text-sm font-medium">
-                      {product?.sellerName ||
-                        product?.sellerUsername ||
-                        "Seller not found"}
+                      {product?.sellerId ? (
+                        <Link
+                          href={`/seller-products/${product.sellerId}?sellerName=${encodeURIComponent(product.sellerName || product.sellerUsername || "Seller")}`}
+                          className="hover:underline cursor-pointer text-blue-600"
+                        >
+                          {product?.sellerName || product?.sellerUsername || "Seller not found"}
+                        </Link>
+                      ) : (
+                        product?.sellerName || product?.sellerUsername || "Seller not found"
+                      )}
                     </div>
                     <div className="flex items-center">
                       <div className="flex items-center bg-green-600 text-white px-1.5 py-0.5 rounded text-xs">

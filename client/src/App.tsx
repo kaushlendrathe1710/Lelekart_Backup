@@ -82,6 +82,9 @@ import AdminBackupsPage from "./pages/admin/backups";
 import AdminNotificationsPage from './pages/admin/notifications';
 // Import shared components
 import { SuspenseWrapper } from "./components/shared/suspense-wrapper";
+import PressReleaseDetail from "./pages/static/press-release";
+import PressAllPage from "./pages/static/press-all";
+import PressArticleDetail from "./pages/static/press-article";
 
 // Import shipping pages dynamically
 const ShippingDashboard = lazy(
@@ -102,7 +105,7 @@ const ShiprocketPendingShipments = lazy(
 
 // Seller pages
 import SellerDashboardPage from "./pages/seller/dashboard";
-import SellerProductsPage from "./pages/seller/products";
+import SellerProductsPage from "./pages/seller-products";
 import AddProductPage from "./pages/seller/add-product";
 import EditProductPage from "./pages/seller/edit-product";
 import AdminAddProductPage from "./pages/admin/add-product";
@@ -492,6 +495,30 @@ function App() {
                         )}
                       </Route>
 
+                      <Route path="/press/:id">
+                        {() => (
+                          <Layout>
+                            <PressReleaseDetail />
+                          </Layout>
+                        )}
+                      </Route>
+
+                      <Route path="/press/all">
+                        {() => (
+                          <Layout>
+                            <PressAllPage />
+                          </Layout>
+                        )}
+                      </Route>
+
+                      <Route path="/press/article/:id">
+                        {() => (
+                          <Layout>
+                            <PressArticleDetail />
+                          </Layout>
+                        )}
+                      </Route>
+
                       <Route path="/corporate">
                         {() => (
                           <Layout>
@@ -516,7 +543,7 @@ function App() {
                         )}
                       </Route>
 
-                      <Route path="/return-policy">
+                      <Route path="/returns">
                         {() => (
                           <Layout>
                             <ReturnsPage />
@@ -1278,6 +1305,15 @@ function App() {
                             role="buyer"
                             component={BuyerNotificationsPage}
                           />
+                        )}
+                      </Route>
+
+                      {/* Seller's public products page */}
+                      <Route path="/seller-products/:sellerId">
+                        {(params) => (
+                          <Layout>
+                            <SellerProductsPage />
+                          </Layout>
                         )}
                       </Route>
 
