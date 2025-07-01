@@ -14,9 +14,42 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLocation } from "wouter";
 
 export default function ShippingPage() {
+  const [, navigate] = useLocation();
   const [pincode, setPincode] = React.useState("");
+  const [isPincodeChecking, setIsPincodeChecking] = React.useState(false);
+  const [pincodeResponse, setPincodeResponse] = React.useState<any>(null);
+  const [showPolicy, setShowPolicy] = React.useState(false);
+  const [showContact, setShowContact] = React.useState(false);
+
+  // Pincode check logic (adapted from product-details)
+  const checkPincodeAvailability = async () => {
+    if (pincode.length !== 6) {
+      setPincodeResponse({
+        isDeliverable: false,
+        message: "Please enter a valid 6-digit PIN code",
+        pincode: pincode,
+      });
+      return;
+    }
+    try {
+      setIsPincodeChecking(true);
+      const response = await fetch(`/api/shipping/check-pincode?pincode=${pincode}`);
+      const data = await response.json();
+      setPincodeResponse(data);
+      localStorage.setItem("last_used_pincode", pincode);
+    } catch (error) {
+      setPincodeResponse({
+        isDeliverable: false,
+        message: "Unable to check delivery availability. Please try again later.",
+        pincode: pincode,
+      });
+    } finally {
+      setIsPincodeChecking(false);
+    }
+  };
 
   return (
     <div className="bg-[#f1f3f6] min-h-screen py-4">
@@ -77,7 +110,9 @@ export default function ShippingPage() {
                             onChange={(e) => setPincode(e.target.value)}
                             maxLength={6}
                           />
-                          <Button className="rounded-l-none">Check</Button>
+                          <Button className="rounded-l-none" onClick={checkPincodeAvailability} disabled={pincode.length !== 6 || isPincodeChecking}>
+                            {isPincodeChecking ? "Checking..." : "Check"}
+                          </Button>
                         </div>
                       </div>
                       <div className="flex-shrink-0">
@@ -87,6 +122,27 @@ export default function ShippingPage() {
                   </CardContent>
                 </Card>
               </div>
+
+              {pincodeResponse ? (
+                <div className={`text-sm mt-2 p-2 rounded ${pincodeResponse.isDeliverable ? "bg-green-50 text-green-700 border border-green-200" : "bg-gray-50 text-gray-700 border border-gray-200"}`}>
+                  {pincodeResponse.isDeliverable ? (
+                    <div className="flex flex-col">
+                      <div className="flex items-center">
+                        <Truck size={16} className="h-4 w-4 mr-1" />
+                        <span className="font-medium">Delivery available to {pincodeResponse.pincode || "this location"}</span>
+                      </div>
+                      <span className="mt-1">{pincodeResponse.etd ? `Delivery in ${pincodeResponse.etd} days` : "Fast delivery available"}{pincodeResponse.cod_available ? " | Cash on delivery available" : ""}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center">
+                      <AlertCircle className="h-4 w-4 mr-1 text-gray-500" />
+                      <span>{pincodeResponse.message}</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-gray-600 text-sm mt-1">Enter your pincode to check delivery availability</div>
+              )}
 
               {/* Shipping Options */}
               <div className="mb-12">
@@ -430,7 +486,7 @@ export default function ShippingPage() {
                                 </li>
                               </ul>
                               <div className="mt-4">
-                                <Button>Track Order</Button>
+                                <Button onClick={() => navigate('/orders')}>Track Order</Button>
                               </div>
                             </div>
                           </div>
@@ -484,7 +540,7 @@ export default function ShippingPage() {
                                 </li>
                               </ul>
                               <div className="mt-4">
-                                <Button variant="outline">
+                                <Button variant="outline" onClick={() => setShowPolicy(true)}>
                                   Read Full Policy
                                 </Button>
                               </div>
@@ -510,7 +566,7 @@ export default function ShippingPage() {
                       any questions about shipping options, delivery times, or
                       tracking your order.
                     </p>
-                    <Button>Contact Customer Service</Button>
+                    <Button onClick={() => setShowContact(true)}>Contact Customer Service</Button>
                   </div>
                 }
               />
@@ -518,6 +574,35 @@ export default function ShippingPage() {
           </div>
         </div>
       </div>
+
+      {showPolicy && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-lg p-8 max-w-lg w-full text-center">
+            <h2 className="text-xl font-bold mb-4">Full Shipping Policy</h2>
+            <div className="text-left text-gray-700 max-h-96 overflow-y-auto mb-4">
+              <p>1. Order processing typically takes 1-2 business days.</p>
+              <p>2. Business days exclude weekends and national holidays.</p>
+              <p>3. Delivery times are estimates and may vary by location.</p>
+              <p>4. Orders may be delivered in multiple shipments.</p>
+              <p>5. Signature may be required for high-value items.</p>
+              <p>6. Some remote locations may have longer delivery times and limited shipping options.</p>
+              <p>7. For more details, contact our customer service.</p>
+            </div>
+            <Button onClick={() => setShowPolicy(false)}>Close</Button>
+          </div>
+        </div>
+      )}
+
+      {showContact && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-lg p-8 max-w-sm w-full text-center">
+            <h2 className="text-xl font-bold mb-4">Customer Service</h2>
+            <p className="mb-2">Email: <a href="mailto:support@lelekart.com" className="text-blue-700 underline">support@lelekart.com</a></p>
+            <p className="mb-4">Phone: <a href="tel:+911234567890" className="text-blue-700 underline">+91 12345 67890</a></p>
+            <Button onClick={() => setShowContact(false)} className="mt-2">Close</Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
