@@ -135,6 +135,11 @@ export function Header() {
                   <DropdownMenuLabel>
                     Hello, {user.name || user.username}
                   </DropdownMenuLabel>
+                  <div className="px-3 pb-2">
+                    <span className="text-xs font-semibold text-orange-500">
+                      {user.role === 'admin' ? 'Admin Account' : user.role === 'seller' ? 'Seller Account' : 'Buyer Account'}
+                    </span>
+                  </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link href={getDashboardLink()} className="cursor-pointer">

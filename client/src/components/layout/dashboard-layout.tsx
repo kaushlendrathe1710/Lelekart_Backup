@@ -233,6 +233,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                       <p className="text-xs text-muted-foreground">
                         {user.email}
                       </p>
+                      <p className="text-xs font-semibold text-orange-500">
+                        {user.role === 'admin' ? 'Admin Account' : user.role === 'seller' ? 'Seller Account' : 'Buyer Account'}
+                      </p>
                     </div>
                   </div>
                   <DropdownMenuItem asChild>

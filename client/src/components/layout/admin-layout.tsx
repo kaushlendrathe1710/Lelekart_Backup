@@ -317,6 +317,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <div className="px-3 pb-2">
+                  <span className="text-xs font-semibold text-orange-500">
+                    Admin Account
+                  </span>
+                </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
                   <UserIcon className="mr-2 h-4 w-4" />

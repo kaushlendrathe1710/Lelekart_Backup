@@ -587,46 +587,169 @@ export default function CheckoutPage() {
           return;
         }
         
-        // If cleanup was successful, continue but let the user know items were removed
-        toast({
-          title: "Cart Updated",
-          description: "Some items in your cart were no longer available and have been removed. Your order will proceed with the remaining items.",
-        });
-        
-        // Wait a moment for cart updates and toast notifications to be processed
-        await new Promise(resolve => setTimeout(resolve, 500));
+        console.log("Cart validation successful - proceeding with checkout");
       }
       
-      // Verify with a fresh server check that cart isn't empty
+      // For saved addresses, we'll ensure we have the correct information
+      // regardless of form validation state
+      if (addresses.length > 0 && selectedAddressId && !showAddressForm) {
+        console.log("Using saved address for order - bypassing validation checks");
+        
+        // Get the selected address details
+        const selectedAddress = addresses.find(a => a.id.toString() === selectedAddressId);
+        if (selectedAddress) {
+          // Override the values from the form with the values from the saved address
+          // This ensures we always have the correct address data
+          values.name = selectedAddress.fullName;
+          values.phone = selectedAddress.phone;
+          values.address = selectedAddress.address;
+          values.city = selectedAddress.city;
+          values.state = selectedAddress.state;
+          values.zipCode = selectedAddress.pincode;
+          
+          // Make sure we have an email
+          if (!values.email) {
+            values.email = user?.email ?? user?.username ?? undefined;
+          }
+        }
+      }
+      
       try {
-        const cartResponse = await fetch('/api/cart', { 
+        // Validate wallet usage if attempting to use wallet coins
+        if (useWalletCoins && wallet) {
+          if (!checkWalletEligibility()) {
+            toast({
+              title: "Wallet Error",
+              description: walletError ?? "Unable to apply wallet discount. Please check requirements.",
+              variant: "destructive",
+            });
+            setProcessingOrder(false);
+            return;
+          }
+        }
+        
+        // Prepare order data
+        const orderData: any = {
+          userId: user.id,
+          // Use the final total after wallet discount
+          total: finalOrderTotal,
+          // status is removed from client request and will be set by server
+          paymentMethod: values.paymentMethod,
+          shippingDetails: JSON.stringify({
+            name: values.name,
+            email: values.email,
+            phone: values.phone,
+            address: values.address,
+            city: values.city,
+            state: values.state,
+            zipCode: values.zipCode,
+            notes: values.notes,
+          }),
+        };
+        
+        // Add address ID if using saved address
+        if (addresses.length > 0 && selectedAddressId && !showAddressForm) {
+          orderData.addressId = parseInt(selectedAddressId);
+        }
+        
+        // Add wallet discount information if applicable
+        if (useWalletCoins && walletDiscount > 0) {
+          orderData.walletDiscount = walletDiscount;
+          orderData.walletCoinsUsed = walletDiscount; // 1 point = 1 rupee
+        }
+        // Add redeem discount information if applicable
+        if (useRedeemedCoins && redeemAmount > 0) {
+          orderData.redeemDiscount = redeemAmount;
+          orderData.redeemCoinsUsed = redeemAmount; // 1 coin = 1 rupee
+        }
+        // Add reward discount information (always send, even if zero)
+        orderData.rewardDiscount = rewardPointsInput;
+        orderData.rewardPointsUsed = rewardPointsInput;
+        
+        // Log order data before submission
+        console.log("Submitting order with data:", orderData);
+        
+        // Create order
+        const orderResponse = await fetch('/api/orders', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          },
           credentials: 'include',
-          headers: { 'Cache-Control': 'no-cache' }
+          body: JSON.stringify(orderData),
         });
         
-        if (!cartResponse.ok) {
-          throw new Error("Failed to verify cart contents with server");
+        if (!orderResponse.ok) {
+          const errorData = await orderResponse.json().catch(() => ({}));
+          console.error("Error placing order:", errorData);
+          throw new Error("Failed to create order");
         }
         
-        const serverCart = await cartResponse.json();
+        const order = await orderResponse.json();
         
-        if (serverCart.length === 0) {
-          toast({
-            title: "Empty Cart",
-            description: "Your cart appears to be empty on the server. Please add items before checkout.",
-            variant: "destructive",
-          });
-          // Redirect to home page if cart is empty
-          setLocation("/");
-          setProcessingOrder(false);
-          return;
+        // Refetch notifications so the buyer sees the order placed notification
+        await refetchNotifications();
+        
+        // If wallet coins were used, process the redemption
+        if (useWalletCoins && walletDiscount > 0 && wallet) {
+          const coinsUsed = Math.ceil(walletDiscount / (settings?.conversionRate || 0.1));
+          try {
+            // Make API call to redeem coins
+            await fetch('/api/wallet/redeem', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include',
+              body: JSON.stringify({
+                amount: coinsUsed,
+                referenceType: 'ORDER',
+                referenceId: String(order.id || ''),
+                description: String(`Used for order #${order.id}` || ''),
+              }),
+            });
+            console.log(`Successfully redeemed ${coinsUsed} coins for order #${order.id}`);
+          } catch (err) {
+            console.error("Error redeeming wallet coins:", err);
+            // We still proceed with the order even if coin redemption fails
+          }
         }
+        
+        // Use the clearCart function from the CartContext hook to clear the cart
+        try {
+          // Call the clearCart function directly from the hook
+          await clearCart();
+          console.log("Cart cleared successfully after order placement");
+          
+          // Ensure the React Query cache is invalidated
+          queryClient.invalidateQueries({ queryKey: ['/api/cart'] });
+        } catch (error) {
+          console.error("Error clearing cart:", error);
+          // Continue with order process even if cart clearing fails
+        }
+        
+        // Show success message
+        toast({
+          title: "Order Placed Successfully",
+          description: "Your order has been placed successfully. Your cart has been cleared. Thank you for shopping with us!",
+        });
+        
+        // Place this after order is successfully placed and before redirect/clear cart
+        refetchWallet && refetchWallet();
+        
+        // Redirect to order confirmation page with success parameter and total
+        setLocation(`/order-confirmation/${order.id}?success=true&total=${finalOrderTotal}`);
       } catch (error) {
-        console.error("Error verifying cart with server:", error);
-        // Continue anyway as we'll get a proper error during order creation if needed
+        console.error("Error placing order:", error);
+        toast({
+          title: "Order Failed",
+          description: "There was an error placing your order. Please try again.",
+          variant: "destructive",
+        });
+        setProcessingOrder(false);
       }
-      
-      console.log("Cart validation successful - proceeding with checkout");
     } catch (error) {
       console.error("Error during cart validation:", error);
       toast({
@@ -636,179 +759,6 @@ export default function CheckoutPage() {
       });
       setProcessingOrder(false);
       return;
-    }
-    
-    // For saved addresses, we'll ensure we have the correct information
-    // regardless of form validation state
-    if (addresses.length > 0 && selectedAddressId && !showAddressForm) {
-      console.log("Using saved address for order - bypassing validation checks");
-      
-      // Get the selected address details
-      const selectedAddress = addresses.find(a => a.id.toString() === selectedAddressId);
-      if (selectedAddress) {
-        // Override the values from the form with the values from the saved address
-        // This ensures we always have the correct address data
-        values.name = selectedAddress.fullName;
-        values.phone = selectedAddress.phone;
-        values.address = selectedAddress.address;
-        values.city = selectedAddress.city;
-        values.state = selectedAddress.state;
-        values.zipCode = selectedAddress.pincode;
-        
-        // Make sure we have an email
-        if (!values.email) {
-          values.email = user?.email ?? user?.username ?? undefined;
-        }
-      }
-    }
-    
-    try {
-      // Validate wallet usage if attempting to use wallet coins
-      if (useWalletCoins && wallet) {
-        if (!checkWalletEligibility()) {
-          toast({
-            title: "Wallet Error",
-            description: walletError ?? "Unable to apply wallet discount. Please check requirements.",
-            variant: "destructive",
-          });
-          setProcessingOrder(false);
-          return;
-        }
-      }
-      
-      // Prepare order data
-      const orderData: any = {
-        userId: user.id,
-        // Use the final total after wallet discount
-        total: finalOrderTotal,
-        // status is removed from client request and will be set by server
-        paymentMethod: values.paymentMethod,
-        shippingDetails: JSON.stringify({
-          name: values.name,
-          email: values.email,
-          phone: values.phone,
-          address: values.address,
-          city: values.city,
-          state: values.state,
-          zipCode: values.zipCode,
-          notes: values.notes,
-        }),
-      };
-      
-      // Add address ID if using saved address
-      if (addresses.length > 0 && selectedAddressId && !showAddressForm) {
-        orderData.addressId = parseInt(selectedAddressId);
-      }
-      
-      // Add wallet discount information if applicable
-      if (useWalletCoins && walletDiscount > 0) {
-        orderData.walletDiscount = walletDiscount;
-        orderData.walletCoinsUsed = walletDiscount; // 1 point = 1 rupee
-      }
-      // Add redeem discount information if applicable
-      if (useRedeemedCoins && redeemAmount > 0) {
-        orderData.redeemDiscount = redeemAmount;
-        orderData.redeemCoinsUsed = redeemAmount; // 1 coin = 1 rupee
-      }
-      // Add reward discount information (always send, even if zero)
-      orderData.rewardDiscount = rewardPointsInput;
-      orderData.rewardPointsUsed = rewardPointsInput;
-      
-      // Log order data before submission
-      console.log("Submitting order with data:", orderData);
-      
-      // Create order
-      const orderResponse = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        },
-        credentials: 'include',
-        body: JSON.stringify(orderData),
-      });
-      
-      if (!orderResponse.ok) {
-        const errorData = await orderResponse.json().catch(() => ({}));
-        console.error("Error placing order:", errorData);
-        throw new Error("Failed to create order");
-      }
-      
-      const order = await orderResponse.json();
-      
-      // Refetch notifications so the buyer sees the order placed notification
-      await refetchNotifications();
-      
-      // If wallet coins were used, process the redemption
-      if (useWalletCoins && walletDiscount > 0 && wallet) {
-        const coinsUsed = Math.ceil(walletDiscount / (settings?.conversionRate || 0.1));
-        
-        try {
-          // Make API call to redeem coins
-          await fetch('/api/wallet/redeem', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            credentials: 'include',
-            body: JSON.stringify({
-              amount: coinsUsed,
-              referenceType: 'ORDER',
-              referenceId: order.id.toString(),
-              description: `Used for order #${order.id}`
-            }),
-          });
-          
-          console.log(`Successfully redeemed ${coinsUsed} coins for order #${order.id}`);
-        } catch (err) {
-          console.error("Error redeeming wallet coins:", err);
-          // We still proceed with the order even if coin redemption fails
-        }
-      }
-      
-      // Use the clearCart function from the CartContext hook to clear the cart
-      try {
-        // Call the clearCart function directly from the hook
-        await clearCart();
-        console.log("Cart cleared successfully after order placement");
-        
-        // Ensure the React Query cache is invalidated
-        queryClient.invalidateQueries({ queryKey: ['/api/cart'] });
-      } catch (error) {
-        console.error("Error clearing cart:", error);
-        // Continue with order process even if cart clearing fails
-      }
-      
-      // Show success message
-      toast({
-        title: "Order Placed Successfully",
-        description: "Your order has been placed successfully. Your cart has been cleared. Thank you for shopping with us!",
-      });
-      
-      // Place this after order is successfully placed and before redirect/clear cart
-      refetchWallet && refetchWallet();
-      
-      // Redirect to order confirmation page with success parameter and total
-      setLocation(`/order-confirmation/${order.id}?success=true&total=${finalOrderTotal}`);
-
-      if (useRedeemedCoins && redeemAmount > 0) {
-        await fetch('/api/wallet/spend-redeemed', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ amount: redeemAmount, orderId: order.id })
-        });
-        refetchWallet && refetchWallet();
-      }
-    } catch (error) {
-      console.error("Error placing order:", error);
-      toast({
-        title: "Order Failed",
-        description: "There was an error placing your order. Please try again.",
-        variant: "destructive",
-      });
-      setProcessingOrder(false);
     }
   };
 
