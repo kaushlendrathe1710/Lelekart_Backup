@@ -181,7 +181,7 @@ export async function processMultiSellerOrder(orderId: number): Promise<void> {
       }
     }
     
-    // Update main order total to include all delivery charges and subtract wallet discount if present
+    // Update main order total to include all delivery charges and subtract ALL discounts from the sum of items and delivery charges
     const allOrderItems = await storage.getOrderItems(orderId);
     const allDeliveryCharges = allOrderItems.reduce((total, item) => {
       const charge = item.product.deliveryCharges ?? 0;
@@ -190,10 +190,13 @@ export async function processMultiSellerOrder(orderId: number): Promise<void> {
     const allSubtotal = allOrderItems.reduce((total, item) => {
       return total + (item.price * item.quantity);
     }, 0);
-    // Fetch the order to get walletDiscount
+    // Fetch the order to get all discounts
     const mainOrder = await storage.getOrder(orderId);
     const walletDiscount = mainOrder?.walletDiscount || 0;
-    await storage.updateOrder(orderId, { total: allSubtotal + allDeliveryCharges - walletDiscount });
+    const redeemDiscount = mainOrder?.redeemDiscount || 0;
+    const rewardDiscount = mainOrder?.rewardDiscount || 0;
+    const newTotal = allSubtotal + allDeliveryCharges - walletDiscount - redeemDiscount - rewardDiscount;
+    await storage.updateOrder(orderId, { total: newTotal });
     
     console.log(`Multi-seller order ${orderId} processed successfully`);
   } catch (error) {

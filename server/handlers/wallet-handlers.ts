@@ -1,6 +1,7 @@
 import { db } from '../db';
-import { wallets, walletTransactions, walletSettings, SelectWallet, SelectWalletTransaction, SelectWalletSettings } from '@shared/schema';
+import { wallets, walletTransactions, walletSettings, SelectWallet, SelectWalletTransaction, SelectWalletSettings, giftCards } from '@shared/schema';
 import { eq, and, gt, lte, desc, sql } from 'drizzle-orm';
+import { randomBytes } from 'crypto';
 
 /**
  * Get wallet settings
@@ -253,7 +254,7 @@ export async function redeemCoinsFromWallet(
   referenceType: string,
   referenceId?: number,
   description?: string
-): Promise<{ wallet: SelectWallet, discountAmount: number }> {
+): Promise<{ wallet: SelectWallet, discountAmount: number, voucherCode: string }> {
   try {
     // Get wallet and settings
     const wallet = await getUserWallet(userId);
@@ -275,6 +276,9 @@ export async function redeemCoinsFromWallet(
     // Calculate discount amount based on coin-to-currency ratio
     const discountAmount = parseFloat((amount * parseFloat(settings.coinToCurrencyRatio.toString())).toFixed(2));
     
+    // Generate a unique voucher code
+    const voucherCode = 'WALLET-' + randomBytes(6).toString('hex').toUpperCase();
+    
     // Start transaction
     const updatedWallet = await db.transaction(async (trx) => {
       // Add transaction record
@@ -287,23 +291,41 @@ export async function redeemCoinsFromWallet(
         description,
       });
       
-      // Update wallet balance
+      // Move coins from balance to redeemedBalance
       const [updatedWallet] = await trx
         .update(wallets)
         .set({
           balance: wallet.balance - amount,
+          redeemedBalance: wallet.redeemedBalance + amount,
           lifetimeRedeemed: wallet.lifetimeRedeemed + amount,
           updatedAt: new Date(),
         })
         .where(eq(wallets.id, wallet.id))
         .returning();
       
+      // Create a voucher (gift card) for this redemption
+      await trx.insert(giftCards).values({
+        code: voucherCode,
+        initialValue: Math.round(discountAmount),
+        currentBalance: Math.round(discountAmount),
+        issuedTo: userId,
+        isActive: true,
+        expiryDate: null,
+        createdAt: new Date(),
+        lastUsed: null,
+        recipientEmail: null,
+        recipientName: null,
+        message: 'Wallet redemption voucher',
+        designTemplate: 'default',
+      });
+      
       return updatedWallet;
     });
     
     return {
       wallet: updatedWallet,
-      discountAmount
+      discountAmount,
+      voucherCode
     };
   } catch (error) {
     console.error(`Error redeeming coins from wallet for user ${userId}:`, error);
@@ -462,6 +484,42 @@ export async function manualAdjustWallet(
     });
   } catch (error) {
     console.error(`Error making manual adjustment to wallet for user ${userId}:`, error);
+    throw error;
+  }
+}
+
+// Add a new function to spend redeemed coins at checkout
+export async function spendRedeemedCoinsAtCheckout(
+  userId: number,
+  amount: number,
+  orderId: number,
+  description?: string
+): Promise<SelectWallet> {
+  try {
+    const wallet = await getUserWallet(userId);
+    if (!wallet) throw new Error('Wallet not found');
+    if (amount > wallet.redeemedBalance) throw new Error('Not enough redeemed coins');
+    // Deduct from redeemedBalance
+    const [updatedWallet] = await db
+      .update(wallets)
+      .set({
+        redeemedBalance: wallet.redeemedBalance - amount,
+        updatedAt: new Date(),
+      })
+      .where(eq(wallets.id, wallet.id))
+      .returning();
+    // Add transaction record
+    await db.insert(walletTransactions).values({
+      walletId: wallet.id,
+      amount: -amount,
+      transactionType: 'REDEEMED_SPENT',
+      referenceType: 'ORDER',
+      referenceId: orderId,
+      description: description || 'Spent redeemed coins at checkout',
+    });
+    return updatedWallet;
+  } catch (error) {
+    console.error(`Error spending redeemed coins for user ${userId}:`, error);
     throw error;
   }
 }

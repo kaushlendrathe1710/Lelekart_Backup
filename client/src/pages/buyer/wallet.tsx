@@ -57,6 +57,7 @@ export default function WalletPage() {
   } = useWallet();
   
   const [activeTab, setActiveTab] = useState("overview");
+  const [voucherInfo, setVoucherInfo] = useState<{ code: string; value: number } | null>(null);
 
   // Set up form with validation
   const form = useForm<RedeemFormValues>({
@@ -69,12 +70,16 @@ export default function WalletPage() {
   // Handle form submission
   async function onSubmit(data: RedeemFormValues) {
     try {
-      await redeemCoins(data.amount, {
+      const result = await redeemCoins(data.amount, {
         referenceType: 'MANUAL',
         description: data.description || 'Manual redemption',
         orderValue: data.orderValue,
         category: data.category
       });
+      // If backend returns voucher info, show it
+      if (result && result.voucherCode && result.discountAmount) {
+        setVoucherInfo({ code: result.voucherCode, value: result.discountAmount });
+      }
       form.reset({ amount: 100 });
     } catch (error) {
       console.error("Error redeeming coins:", error);
@@ -192,6 +197,18 @@ export default function WalletPage() {
       <div className="space-y-6">
         <h1 className="text-3xl font-bold tracking-tight">My Wallet</h1>
 
+        {/* Show voucher info if available */}
+        {voucherInfo && (
+          <Alert variant="default">
+            <AlertTitle>Voucher Generated!</AlertTitle>
+            <AlertDescription>
+              Voucher Code: <b>{voucherInfo.code}</b><br />
+              Value: ₹{voucherInfo.value}<br />
+              <span>This voucher will be auto-applied to your next order.</span>
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -199,9 +216,21 @@ export default function WalletPage() {
               <CreditCard className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{wallet?.balance || 0} coins</div>
+              <div className="text-2xl font-bold">₹{wallet?.balance || 0} wallet rupees</div>
               <p className="text-xs text-muted-foreground">
                 ≈ ₹{calculateInrValue(wallet?.balance || 0)} value
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Redeemed Coins Left</CardTitle>
+              <Coins className="h-4 w-4 text-yellow-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{wallet?.redeemedBalance || 0} coins</div>
+              <p className="text-xs text-muted-foreground">
+                Coins you have redeemed and can use for discounts at checkout
               </p>
             </CardContent>
           </Card>
@@ -281,7 +310,7 @@ export default function WalletPage() {
                     <TableBody>
                       <TableRow>
                         <TableCell>Conversion Rate</TableCell>
-                        <TableCell>{settings?.conversionRate || 0} coins = ₹1</TableCell>
+                        <TableCell>1 wallet rupee = ₹1</TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell>Coin Expiry</TableCell>
@@ -289,18 +318,18 @@ export default function WalletPage() {
                       </TableRow>
                       <TableRow>
                         <TableCell>First Purchase Bonus</TableCell>
-                        <TableCell>{settings?.firstPurchaseCoins || 0} coins</TableCell>
+                        <TableCell>3000 coins</TableCell>
                       </TableRow>
-                      {settings?.maxUsagePercentage > 0 && (
+                      {settings && typeof settings.maxUsagePercentage === 'number' && settings.maxUsagePercentage > 0 && (
                         <TableRow>
                           <TableCell>Maximum Usage</TableCell>
                           <TableCell>{settings.maxUsagePercentage}% of order value</TableCell>
                         </TableRow>
                       )}
-                      {settings?.minCartValue > 0 && (
+                      {settings && typeof settings.minCartValue === 'number' && (settings?.minCartValue ?? 0) > 0 && (
                         <TableRow>
                           <TableCell>Minimum Order Value</TableCell>
-                          <TableCell>₹{settings.minCartValue}</TableCell>
+                          <TableCell>{settings?.minCartValue ?? 0}</TableCell>
                         </TableRow>
                       )}
                     </TableBody>
@@ -466,11 +495,11 @@ export default function WalletPage() {
                       <div className="rounded-lg border p-3 text-sm">
                         <div className="flex justify-between py-1">
                           <span>Current Balance:</span>
-                          <span>{wallet?.balance || 0} coins</span>
+                          <span>₹{wallet?.balance || 0} wallet rupees</span>
                         </div>
                         <div className="flex justify-between py-1">
                           <span>Amount to Redeem:</span>
-                          <span>{form.watch('amount') || 0} coins</span>
+                          <span>₹{form.watch('amount') || 0} wallet rupees</span>
                         </div>
                         <div className="flex justify-between py-1">
                           <span>Conversion Value:</span>
@@ -480,7 +509,7 @@ export default function WalletPage() {
                         <div className="flex justify-between font-medium py-1">
                           <span>Remaining Balance:</span>
                           <span>
-                            {Math.max(0, (wallet?.balance || 0) - (form.watch('amount') || 0))} coins
+                            ₹{Math.max(0, (wallet?.balance || 0) - (form.watch('amount') || 0))} wallet rupees
                           </span>
                         </div>
                       </div>
@@ -499,7 +528,7 @@ export default function WalletPage() {
                         <AlertCircle className="h-4 w-4" />
                         <AlertTitle>Insufficient Balance</AlertTitle>
                         <AlertDescription>
-                          You don't have enough coins to redeem this amount.
+                          You don't have enough wallet rupees to redeem this amount.
                         </AlertDescription>
                       </Alert>
                     )}
@@ -513,21 +542,21 @@ export default function WalletPage() {
                     The voucher will be applied automatically to your next order.
                   </p>
                   
-                  {settings?.maxUsagePercentage > 0 && (
+                  {typeof settings?.maxUsagePercentage === 'number' && settings?.maxUsagePercentage > 0 && (
                     <p>
-                      <span className="font-medium">Usage limit:</span> You can use coins for up to {settings.maxUsagePercentage}% of your order value.
+                      <span className="font-medium">Usage limit:</span> You can use wallet rupees for up to {settings.maxUsagePercentage}% of your order value.
                     </p>
                   )}
                   
-                  {settings?.minCartValue > 0 && (
+                  {typeof settings?.minCartValue === 'number' && (settings?.minCartValue ?? 0) > 0 && (
                     <p>
-                      <span className="font-medium">Minimum order:</span> Coins can only be used on orders worth ₹{settings.minCartValue} or more.
+                      <span className="font-medium">Minimum order:</span> Wallet rupees can only be used on orders worth ₹{settings?.minCartValue ?? 0} or more.
                     </p>
                   )}
                   
                   {settings?.applicableCategories && (
                     <p>
-                      <span className="font-medium">Applicable categories:</span> Coins can only be used on products in these categories: {settings.applicableCategories}.
+                      <span className="font-medium">Applicable categories:</span> Wallet rupees can only be used on products in these categories: {settings.applicableCategories}.
                     </p>
                   )}
                 </div>

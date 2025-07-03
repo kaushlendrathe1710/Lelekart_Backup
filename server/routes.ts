@@ -5422,6 +5422,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let walletDiscount = 0;
       let walletCoinsUsed = 0;
 
+      // Redeem coins logic
+      let redeemDiscount = 0;
+      let redeemCoinsUsed = 0;
+      // Reward points logic
+      let rewardDiscount = 0;
+      let rewardPointsUsed = 0;
+      if (req.body.redeemDiscount && req.body.redeemCoinsUsed) {
+        redeemDiscount = Number(req.body.redeemDiscount) || 0;
+        redeemCoinsUsed = Number(req.body.redeemCoinsUsed) || 0;
+        // Validate redeem usage if coins were provided
+        if (redeemCoinsUsed > 0) {
+          try {
+            // Get user's wallet
+            const wallet = await storage.getWalletByUserId(req.user.id);
+            if (!wallet) {
+              console.error(`Wallet for user ${req.user.id} not found`);
+              return res.status(400).json({ error: "Wallet not found" });
+            }
+            // Validate: cannot use more than redeemed balance or order total
+            const orderTotal = Number(subtotal) + Number(totalDeliveryCharges);
+            const redeemedBalanceNum = Number(wallet.redeemedBalance) || 0;
+            const redeemCoinsUsedNum = Number(redeemCoinsUsed) || 0;
+            if (redeemedBalanceNum < redeemCoinsUsedNum) {
+              return res.status(400).json({ error: "Insufficient redeemed coins" });
+            }
+            if (redeemCoinsUsedNum > orderTotal) {
+              return res.status(400).json({ error: "Cannot use more redeemed coins than order total" });
+            }
+            // Deduct redeemed coins after order creation (see below)
+          } catch (redeemError) {
+            console.error("Error validating redeemed coins:", redeemError);
+            return res.status(400).json({ error: "Error validating redeemed coins" });
+          }
+        }
+      }
+
       // Check if the request contains wallet discount information
       if (req.body.walletDiscount && req.body.walletCoinsUsed) {
         console.log("Processing order with wallet redemption:", {
@@ -5429,8 +5465,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           walletCoinsUsed: req.body.walletCoinsUsed,
         });
 
-        walletDiscount = parseFloat(req.body.walletDiscount) || 0;
-        walletCoinsUsed = parseInt(req.body.walletCoinsUsed) || 0;
+        walletDiscount = Number(req.body.walletDiscount) || 0;
+        walletCoinsUsed = Number(req.body.walletCoinsUsed) || 0;
 
         // Validate wallet usage if coins were provided
         if (walletCoinsUsed > 0) {
@@ -5446,14 +5482,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
               return res.status(400).json({ error: "Wallet not found" });
             }
 
-            if (wallet.balance < walletCoinsUsed) {
+            // Validate: cannot use more than wallet balance or order total
+            const orderTotal = Number(subtotal) + Number(totalDeliveryCharges);
+            const walletBalanceNum = Number(wallet.balance) || 0;
+            const walletCoinsUsedNum = Number(walletCoinsUsed) || 0;
+            if (walletBalanceNum < walletCoinsUsedNum) {
               console.error(
-                `Insufficient wallet balance: ${wallet.balance} < ${walletCoinsUsed}`
+                `Insufficient wallet balance: ${walletBalanceNum} < ${walletCoinsUsedNum}`
               );
               return res
                 .status(400)
                 .json({ error: "Insufficient wallet balance" });
             }
+            if (walletCoinsUsedNum > orderTotal) {
+              console.error(
+                `Cannot use more wallet coins than order total: ${walletCoinsUsedNum} > ${orderTotal}`
+              );
+              return res
+                .status(400)
+                .json({ error: "Cannot use more wallet coins than order total" });
+            }
+
+            // Deduct coins from wallet and record transaction
+            await storage.redeemCoinsFromWallet(
+              req.user.id,
+              walletCoinsUsed,
+              "ORDER",
+              null,
+              `Used for order at checkout`
+            );
           } catch (walletError) {
             console.error("Error validating wallet:", walletError);
             return res.status(400).json({ error: "Error validating wallet" });
@@ -5461,11 +5518,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Calculate final total with all adjustments
-      const total =
-        req.body.total || subtotal + totalDeliveryCharges - walletDiscount;
+      // Ensure all variables are numbers before arithmetic
+      walletDiscount = Number(walletDiscount) || 0;
+      walletCoinsUsed = Number(walletCoinsUsed) || 0;
+      redeemDiscount = Number(redeemDiscount) || 0;
+      redeemCoinsUsed = Number(redeemCoinsUsed) || 0;
+      rewardDiscount = Number(rewardDiscount) || 0;
+      rewardPointsUsed = Number(rewardPointsUsed) || 0;
+      const subtotalNum = Number(subtotal) || 0;
+      const totalDeliveryChargesNum = Number(totalDeliveryCharges) || 0;
+      // When calculating total:
+      const total = subtotalNum + totalDeliveryChargesNum - walletDiscount - rewardDiscount - redeemDiscount;
       console.log(
-        `Final order total: ₹${total} (subtotal: ₹${subtotal} + delivery: ₹${totalDeliveryCharges} - wallet: ₹${walletDiscount})`
+        `Final order total: ₹${total} (subtotal: ₹${subtotalNum} + delivery: ₹${totalDeliveryChargesNum} - wallet: ₹${walletDiscount} - reward: ₹${rewardDiscount} - redeem: ₹${redeemDiscount})`
       );
 
       // Create order with payment method from request body
@@ -5484,11 +5549,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         paymentMethod: paymentMethod || "cod",
       };
 
-      // Add wallet information if wallet redemption was applied
-      if (walletDiscount > 0 && walletCoinsUsed > 0) {
-        orderData.walletDiscount = walletDiscount;
-        orderData.walletCoinsUsed = walletCoinsUsed;
-      }
+      // Add wallet information (always, even if zero)
+      orderData.walletDiscount = Number(walletDiscount) || 0;
+      orderData.walletCoinsUsed = Number(walletCoinsUsed) || 0;
+      // Add redeem information (always, even if zero)
+      orderData.redeemDiscount = Number(redeemDiscount) || 0;
+      orderData.redeemCoinsUsed = Number(redeemCoinsUsed) || 0;
+      // Add reward information (always, even if zero)
+      orderData.rewardDiscount = Number(rewardDiscount) || 0;
+      orderData.rewardPointsUsed = Number(rewardPointsUsed) || 0;
 
       // Add validated address ID if available
       if (validatedAddressId) {
@@ -5604,36 +5673,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Clear cart
       await storage.clearCart(req.user.id);
 
-      // Apply wallet redemption if needed
-      if (walletCoinsUsed > 0) {
-        try {
-          // Deduct coins from wallet
-          console.log(
-            `Deducting ${walletCoinsUsed} coins from wallet for user ${req.user.id}`
-          );
-          // Import the redeemCoinsFromWallet function from wallet-handlers
-          const { redeemCoinsFromWallet } = await import(
-            "./handlers/wallet-handlers"
-          );
-
-          const userId = req.user.id; // Get the user ID who owns the wallet
-
-          // Process the redemption
-          await redeemCoinsFromWallet(
-            userId,
-            walletCoinsUsed,
-            "ORDER",
-            order.id,
-            `Order #${order.id} coin redemption`
-          );
-          console.log("Wallet transaction created successfully");
-        } catch (walletError) {
-          console.error("Error processing wallet redemption:", walletError);
-          // We don't want to fail the order if wallet processing fails at this point
-          // Just log the error and continue
-        }
-      }
-
       // Send order confirmation emails asynchronously
       try {
         console.log(
@@ -5662,6 +5701,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           multiSellerError
         );
         // Continue with the order even if notification processing fails
+      }
+
+      // After order creation, deduct redeemed coins if used
+      if (redeemCoinsUsed > 0) {
+        try {
+          await storage.spendRedeemedCoinsAtCheckout(req.user.id, redeemCoinsUsed, order.id, `Used for order at checkout`);
+        } catch (err) {
+          console.error("Error spending redeemed coins at checkout:", err);
+        }
       }
 
       res.status(201).json(order);
@@ -10986,6 +11034,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get users with wallets (admin only)
   app.get("/api/wallet/users", async (req, res) => {
     await walletRoutes.getUsersWithWallets(req, res);
+  });
+
+  // Spend redeemed coins at checkout
+  app.post("/api/wallet/spend-redeemed", async (req, res) => {
+    await walletRoutes.spendRedeemedCoins(req, res);
   });
 
   // Create HTTP server with port forwarding support for Replit deployment

@@ -92,7 +92,7 @@ export default function AllProductsPage() {
   const sellerName = searchParams.get('sellerName');
 
   // Fetch a larger pool of products for better mixing
-  const LARGE_POOL_SIZE = 100;
+  const LARGE_POOL_SIZE = 500;
   const { data: productsData, isLoading, error } = useQuery({
     queryKey: ['/api/products', { page: 1, limit: LARGE_POOL_SIZE, sellerId }],
     queryFn: async () => {
@@ -167,6 +167,11 @@ export default function AllProductsPage() {
             <div className="space-y-8">
               {(() => {
                 const products = productsData.products;
+                // Shuffle products to ensure random order
+                for (let i = products.length - 1; i > 0; i--) {
+                  const j = Math.floor(Math.random() * (i + 1));
+                  [products[i], products[j]] = [products[j], products[i]];
+                }
                 // Group products by category (case-insensitive)
                 const categoryMap: Record<string, Product[]> = {};
                 const foundCategories: Set<string> = new Set();

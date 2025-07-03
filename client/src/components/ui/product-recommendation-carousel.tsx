@@ -31,7 +31,7 @@ const ProductRecommendationCarousel: FC<ProductRecommendationCarouselProps> = ({
   title,
   description,
   endpoint,
-  limit = 10,
+  limit = 16,
   className,
 }) => {
   const [scrollPosition, setScrollPosition] = useState(0);
@@ -81,25 +81,31 @@ const ProductRecommendationCarousel: FC<ProductRecommendationCarouselProps> = ({
         
         <div className="flex gap-2">
           <Button
-            variant="outline"
+            variant={canScrollLeft ? "default" : "outline"}
             size="icon"
             onClick={() => handleScroll("left")}
             disabled={!canScrollLeft}
-            className="rounded-full"
+            className={cn(
+              "rounded-full transition-all shadow-md border-2",
+              canScrollLeft ? "bg-primary text-white border-primary hover:bg-primary/90 scale-110" : "bg-white text-gray-400 border-gray-200"
+            )}
             aria-label="Scroll left"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-6 w-6" />
           </Button>
           
           <Button
-            variant="outline"
+            variant={canScrollRight ? "default" : "outline"}
             size="icon"
             onClick={() => handleScroll("right")}
             disabled={!canScrollRight}
-            className="rounded-full"
+            className={cn(
+              "rounded-full transition-all shadow-md border-2 ml-2",
+              canScrollRight ? "bg-primary text-white border-primary hover:bg-primary/90 scale-110" : "bg-white text-gray-400 border-gray-200"
+            )}
             aria-label="Scroll right"
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-6 w-6" />
           </Button>
         </div>
       </div>

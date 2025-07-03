@@ -37,7 +37,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import RazorpayPayment from "@/components/payment/razorpay-payment";
-import { Home, Building2, MapPin, Phone, User, Plus, Coins, AlertCircle } from "lucide-react";
+import { Home, Building2, MapPin, Phone, User, Plus, Coins, AlertCircle, ArrowUp } from "lucide-react";
 import { UserAddress } from "@shared/schema";
 import { useWallet } from "@/context/wallet-context";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -108,10 +108,10 @@ export default function CheckoutPage() {
   const [showAddressForm, setShowAddressForm] = useState(true);
   const [useWalletCoins, setUseWalletCoins] = useState(false);
   const [walletDiscount, setWalletDiscount] = useState(0);
-  const [walletError, setWalletError] = useState<string | null>(null);
+  const [walletError, setWalletError] = useState<string | undefined>(undefined);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { wallet, settings, isLoading: isWalletLoading } = useWallet();
+  const { wallet, settings, isLoading: isWalletLoading, refetchWallet } = useWallet();
   const { cartItems, validateCart, clearCart, cleanupInvalidCartItems } = useCart();
   const { refetchNotifications } = useNotifications();
 
@@ -124,7 +124,7 @@ export default function CheckoutPage() {
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
       name: "",
-      email: user?.email || user?.username || "",
+      email: user?.email ?? user?.username ?? "",
       phone: "",
       address: "",
       city: "",
@@ -137,6 +137,35 @@ export default function CheckoutPage() {
     mode: "onChange"
   });
 
+  const [voucher, setVoucher] = useState<{ code: string; value: number } | null>(null);
+
+  // Calculate subtotal and delivery charges (put this at the top, NOT inside JSX)
+  const subtotal = cartItems.reduce((total, item) => {
+    const price = item.variant ? item.variant.price : item.product.price;
+    return total + (price * item.quantity);
+  }, 0);
+  const deliveryCharges = cartItems.reduce((total, item) => {
+    const charge = item.product.deliveryCharges ?? 0;
+    return total + (charge * item.quantity);
+  }, 0);
+
+  // Calculate max redeemable coins for this order (5% of redeemedBalance)
+  const maxRedeemableFromRedeemed = wallet && settings
+    ? Math.min(Math.floor((subtotal + deliveryCharges) * 0.05), wallet.redeemedBalance)
+    : 0;
+  const [redeemAmount, setRedeemAmount] = useState(0);
+  const [useRedeemedCoins, setUseRedeemedCoins] = useState(false);
+
+  // Show scroll-to-top button only when scrolled down
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  useEffect(() => {
+    const onScroll = () => {
+      setShowScrollTop(window.scrollY > 200);
+    };
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   // Fetch user data
   useEffect(() => {
     // Check if user is already cached
@@ -144,10 +173,10 @@ export default function CheckoutPage() {
     if (cachedUser) {
       setUser(cachedUser);
       // Pre-fill form with user data if available
-      form.setValue("name", cachedUser.name || "");
-      form.setValue("email", cachedUser.email || "");
-      form.setValue("phone", cachedUser.phone || "");
-      form.setValue("address", cachedUser.address || "");
+      form.setValue("name" as any, cachedUser.name || "");
+      form.setValue("email" as any, cachedUser.email || "");
+      form.setValue("phone" as any, cachedUser.phone || "");
+      form.setValue("address" as any, cachedUser.address || "");
     }
     
     // Fetch fresh user data
@@ -167,10 +196,10 @@ export default function CheckoutPage() {
         setUser(userData);
         queryClient.setQueryData(['/api/user'], userData);
         // Pre-fill form with user data if available
-        form.setValue("name", userData.name || "");
-        form.setValue("email", userData.email || "");
-        form.setValue("phone", userData.phone || "");
-        form.setValue("address", userData.address || "");
+        form.setValue("name" as any, userData.name || "");
+        form.setValue("email" as any, userData.email || "");
+        form.setValue("phone" as any, userData.phone || "");
+        form.setValue("address" as any, userData.address || "");
         
         // Fetch user addresses
         fetchUserAddresses();
@@ -212,7 +241,7 @@ export default function CheckoutPage() {
         setSelectedAddressId(addressToUse.id.toString());
         
         // Get email value for the address
-        const emailValue = user?.email || user?.username || "";
+        const emailValue = user?.email ?? user?.username ?? "";
         
         // Reset the form with all necessary values and explicit validation options
         form.reset({
@@ -233,7 +262,7 @@ export default function CheckoutPage() {
         
         // Clear any validation errors
         Object.keys(form.getValues()).forEach(fieldName => {
-          form.clearErrors(fieldName);
+          form.clearErrors(fieldName as any);
         });
         
         // Force validation to succeed for default addresses - using same approach as in onClick
@@ -344,15 +373,15 @@ export default function CheckoutPage() {
       return false;
     }
     
-    // Check if user has any coins
+    // Check if user has any wallet rupees
     if (!wallet.balance || wallet.balance <= 0) {
-      setWalletError("You don't have any coins in your wallet");
+      setWalletError("You don't have any wallet rupees in your wallet");
       return false;
     }
     
     // Check if cart meets minimum order value
     if (settings.minCartValue && subtotal < settings.minCartValue) {
-      setWalletError(`Wallet coins can only be used on orders worth ₹${settings.minCartValue} or more`);
+      setWalletError(`Wallet rupees can only be used on orders worth ₹${settings.minCartValue} or more`);
       return false;
     }
     
@@ -366,67 +395,44 @@ export default function CheckoutPage() {
       );
       
       if (!hasEligibleProduct) {
-        setWalletError(`Wallet coins can only be used on these categories: ${settings.applicableCategories}`);
+        setWalletError(`Wallet rupees can only be used on these categories: ${settings.applicableCategories}`);
         return false;
       }
     }
     
-    setWalletError(null);
+    setWalletError(undefined);
     return true;
   };
   
-  // Calculate maximum allowed wallet discount
+  // Calculate maximum allowed wallet discount and coins
   const calculateMaxWalletDiscount = () => {
-    if (!wallet || !settings || !settings.isActive || wallet.balance <= 0) return 0;
-    
-    // Debug outputs
-    console.log("Wallet balance:", wallet.balance);
-    console.log("Wallet settings:", settings);
-    console.log("Subtotal:", subtotal);
-    
-    // Convert coins to currency using the conversion rate from settings
-    const conversionRate = settings.coinToCurrencyRatio || 0.1;
-    console.log("Conversion rate:", conversionRate);
-    
+    if (!wallet || !settings || !settings.isActive || wallet.balance <= 0) return { maxDiscount: 0, maxCoins: 0 };
+    const conversionRate = 1; // 1 coin = 1 rupee
     const maxCoinValue = wallet.balance * conversionRate;
-    console.log("Max coin value in currency:", maxCoinValue);
-    
-    // Apply percentage limit if set
+    // Use subtotal + deliveryCharges for max usage percentage
+    const orderTotal = subtotal + deliveryCharges;
+    let maxPercentageDiscount = maxCoinValue;
     if (settings.maxUsagePercentage && settings.maxUsagePercentage > 0) {
-      const maxPercentageDiscount = subtotal * (settings.maxUsagePercentage / 100);
-      console.log("Max percentage discount:", maxPercentageDiscount);
-      
-      // Return the lower of the two values
-      const finalDiscount = Math.min(maxCoinValue, maxPercentageDiscount);
-      console.log("Final discount (after percentage limit):", finalDiscount);
-      return finalDiscount;
+      maxPercentageDiscount = orderTotal * (settings.maxUsagePercentage / 100);
     }
-    
-    console.log("Final discount (no percentage limit):", maxCoinValue);
-    return maxCoinValue;
+    const finalDiscount = Math.min(maxCoinValue, maxPercentageDiscount);
+    const maxCoins = Math.floor(finalDiscount / conversionRate);
+    return { maxDiscount: finalDiscount, maxCoins };
   };
   
-  // Calculate subtotal and delivery charges
-  const subtotal = cartItems.reduce((total, item) => {
-    const price = item.variant ? item.variant.price : item.product.price;
-    return total + (price * item.quantity);
-  }, 0);
-  const deliveryCharges = cartItems.reduce((total, item) => {
-    const charge = item.product.deliveryCharges ?? 0;
-    return total + (charge * item.quantity);
-  }, 0);
-  const totalBeforeWallet = subtotal + deliveryCharges;
   // Calculate wallet discount
-  const maxWalletDiscount = calculateMaxWalletDiscount();
-  // The final total after wallet discount
-  const finalTotal = useWalletCoins && walletDiscount > 0 ? subtotal + deliveryCharges - walletDiscount : subtotal + deliveryCharges;
+  const { maxDiscount: maxWalletDiscount, maxCoins: maxWalletCoins } = calculateMaxWalletDiscount();
+  // The final total after wallet discount and redeem coins
+  const finalOrderTotal = useWalletCoins && walletDiscount > 0
+    ? subtotal + deliveryCharges - walletDiscount - (useRedeemedCoins ? redeemAmount : 0)
+    : subtotal + deliveryCharges - (useRedeemedCoins ? redeemAmount : 0);
   
   // Update wallet discount state only when checkbox is checked and wallet is eligible
   useEffect(() => {
     if (cartItems.length === 0 || !wallet || !settings) return;
     if (useWalletCoins) {
       if (checkWalletEligibility()) {
-        setWalletDiscount(calculateMaxWalletDiscount());
+        setWalletDiscount(maxWalletDiscount);
       } else {
         setWalletDiscount(0);
       }
@@ -435,6 +441,90 @@ export default function CheckoutPage() {
     }
   }, [useWalletCoins, wallet, settings, cartItems, subtotal]);
   
+  // Fetch active wallet voucher for user on mount
+  useEffect(() => {
+    async function fetchVoucher() {
+      const res = await fetch('/api/gift-cards/active-wallet-voucher', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.code && data.currentBalance > 0) {
+          setVoucher({ code: data.code, value: data.currentBalance });
+        }
+      }
+    }
+    fetchVoucher();
+  }, []);
+
+  // Remove max usage percentage logic and add input for wallet points
+  // 1. Add state for wallet points input
+  const [walletPointsInput, setWalletPointsInput] = useState(0);
+
+  // 2. Calculate max wallet points user can use (min of wallet.balance and subtotal+deliveryCharges)
+  const maxWalletPoints = wallet ? Math.min(wallet.balance, subtotal + deliveryCharges) : 0;
+
+  // 3. Update wallet discount and total in real-time
+  useEffect(() => {
+    if (useWalletCoins && wallet && maxWalletPoints > 0) {
+      const validPoints = Math.max(0, Math.min(walletPointsInput, maxWalletPoints));
+      setWalletDiscount(validPoints); // 1 point = 1 rupee
+    } else {
+      setWalletDiscount(0);
+    }
+  }, [useWalletCoins, walletPointsInput, maxWalletPoints, wallet, subtotal, deliveryCharges]);
+
+  // 1. Add state for reward points input
+  const [rewardPointsInput, setRewardPointsInput] = useState(0);
+
+  // 2. Calculate max reward points user can use (min of 5% of order total and reward points balance)
+  const orderTotal = subtotal + deliveryCharges;
+  const maxRewardPoints = user && user.rewardPoints !== undefined
+    ? Math.min(Math.floor(orderTotal * 0.05), user.rewardPoints)
+    : 0;
+
+  // 3. Update reward discount and total in real-time
+  const [rewardDiscount, setRewardDiscount] = useState(0);
+  useEffect(() => {
+    if (rewardPointsInput > 0 && maxRewardPoints > 0) {
+      const validPoints = Math.max(0, Math.min(rewardPointsInput, maxRewardPoints));
+      setRewardDiscount(validPoints); // 1 point = 1 rupee
+    } else {
+      setRewardDiscount(0);
+    }
+  }, [rewardPointsInput, maxRewardPoints]);
+
+  // 4. In the UI, show input box for reward points if user has reward points
+  {user && user.rewardPoints > 0 && (
+    <div className="my-4 border rounded-md p-3 bg-blue-50">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center space-x-2">
+          <label className="text-sm font-medium flex items-center cursor-pointer">
+            🎁 Use Reward Points ({user.rewardPoints} points)
+          </label>
+        </div>
+        {maxRewardPoints > 0 && (
+          <span className="text-xs text-blue-600 font-medium">
+            Up to {maxRewardPoints} points (5% of order total)
+          </span>
+        )}
+      </div>
+      <div className="flex items-center gap-2 mt-2">
+        <input
+          type="number"
+          min={0}
+          max={maxRewardPoints}
+          value={rewardPointsInput}
+          onChange={e => {
+            const val = Math.max(0, Math.min(maxRewardPoints, Number(e.target.value)));
+            setRewardPointsInput(val);
+          }}
+          className="border rounded px-2 py-1 w-24"
+          placeholder={`Max ${maxRewardPoints}`}
+        />
+        <span className="text-xs text-gray-500">Enter reward points to use</span>
+      </div>
+    </div>
+  )}
+
   // Handle form submission
   const onSubmit = async (values: CheckoutFormValues) => {
     setProcessingOrder(true);
@@ -567,7 +657,7 @@ export default function CheckoutPage() {
         
         // Make sure we have an email
         if (!values.email) {
-          values.email = user?.email || user?.username || "user@example.com";
+          values.email = user?.email ?? user?.username ?? undefined;
         }
       }
     }
@@ -578,7 +668,7 @@ export default function CheckoutPage() {
         if (!checkWalletEligibility()) {
           toast({
             title: "Wallet Error",
-            description: walletError || "Unable to apply wallet discount. Please check requirements.",
+            description: walletError ?? "Unable to apply wallet discount. Please check requirements.",
             variant: "destructive",
           });
           setProcessingOrder(false);
@@ -590,7 +680,7 @@ export default function CheckoutPage() {
       const orderData: any = {
         userId: user.id,
         // Use the final total after wallet discount
-        total: finalTotal,
+        total: finalOrderTotal,
         // status is removed from client request and will be set by server
         paymentMethod: values.paymentMethod,
         shippingDetails: JSON.stringify({
@@ -612,13 +702,17 @@ export default function CheckoutPage() {
       
       // Add wallet discount information if applicable
       if (useWalletCoins && walletDiscount > 0) {
-        // Calculate coins used based on the discount amount
-        const coinsUsed = Math.ceil(walletDiscount / (settings?.coinToCurrencyRatio || 0.1));
-        
-        // Add wallet fields directly to the order data instead of using walletDetails object
         orderData.walletDiscount = walletDiscount;
-        orderData.walletCoinsUsed = coinsUsed;
+        orderData.walletCoinsUsed = walletDiscount; // 1 point = 1 rupee
       }
+      // Add redeem discount information if applicable
+      if (useRedeemedCoins && redeemAmount > 0) {
+        orderData.redeemDiscount = redeemAmount;
+        orderData.redeemCoinsUsed = redeemAmount; // 1 coin = 1 rupee
+      }
+      // Add reward discount information (always send, even if zero)
+      orderData.rewardDiscount = rewardPointsInput;
+      orderData.rewardPointsUsed = rewardPointsInput;
       
       // Log order data before submission
       console.log("Submitting order with data:", orderData);
@@ -648,7 +742,7 @@ export default function CheckoutPage() {
       
       // If wallet coins were used, process the redemption
       if (useWalletCoins && walletDiscount > 0 && wallet) {
-        const coinsUsed = Math.ceil(walletDiscount / (settings?.coinToCurrencyRatio || 0.1));
+        const coinsUsed = Math.ceil(walletDiscount / (settings?.conversionRate || 0.1));
         
         try {
           // Make API call to redeem coins
@@ -692,8 +786,21 @@ export default function CheckoutPage() {
         description: "Your order has been placed successfully. Your cart has been cleared. Thank you for shopping with us!",
       });
       
+      // Place this after order is successfully placed and before redirect/clear cart
+      refetchWallet && refetchWallet();
+      
       // Redirect to order confirmation page with success parameter and total
-      setLocation(`/order-confirmation/${order.id}?success=true&total=${finalTotal}`);
+      setLocation(`/order-confirmation/${order.id}?success=true&total=${finalOrderTotal}`);
+
+      if (useRedeemedCoins && redeemAmount > 0) {
+        await fetch('/api/wallet/spend-redeemed', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount: redeemAmount, orderId: order.id })
+        });
+        refetchWallet && refetchWallet();
+      }
     } catch (error) {
       console.error("Error placing order:", error);
       toast({
@@ -715,7 +822,7 @@ export default function CheckoutPage() {
     );
   }
 
-  console.log("useWalletCoins:", useWalletCoins, "walletDiscount:", walletDiscount, "finalTotal:", finalTotal);
+  console.log("useWalletCoins:", useWalletCoins, "walletDiscount:", walletDiscount, "finalOrderTotal:", finalOrderTotal);
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-8">Checkout</h1>
@@ -744,7 +851,7 @@ export default function CheckoutPage() {
                         setSelectedAddressId(address.id.toString());
                         
                         // Get email value
-                        const emailValue = user?.email || user?.username || "";
+                        const emailValue = user?.email ?? user?.username ?? "";
                         
                         try {
                           // Clear all validation errors by resetting form with new values
@@ -767,7 +874,7 @@ export default function CheckoutPage() {
                           
                           // Set all fields as valid manually to ensure the form is valid
                           Object.keys(form.getValues()).forEach(fieldName => {
-                            form.clearErrors(fieldName);
+                            form.clearErrors(fieldName as any);
                           });
                           
                           // Force validation to succeed for selected addresses
@@ -974,22 +1081,22 @@ export default function CheckoutPage() {
                                       .then(data => {
                                         console.log("Checkout Pincode data received:", data);
                                         // Update the state and city fields
-                                        form.setValue('state', data.state || "", { shouldValidate: true });
-                                        form.setValue('city', data.district || "", { shouldValidate: true });
+                                        form.setValue('state' as any, data.state || "", { shouldValidate: true });
+                                        form.setValue('city' as any, data.district || "", { shouldValidate: true });
                                         // Clear any existing PIN code error
-                                        form.clearErrors('zipCode');
+                                        form.clearErrors('zipCode' as any);
                                       })
                                       .catch(error => {
                                         console.error('Error fetching location data:', error);
                                         // Show error for invalid PIN code
-                                        form.setError('zipCode', {
+                                        form.setError('zipCode' as any, {
                                           type: 'manual',
                                           message: 'Invalid PIN code. Please enter a valid PIN code.'
                                         });
                                         
                                         // Clear city and state fields
-                                        form.setValue('state', "", { shouldValidate: true });
-                                        form.setValue('city', "", { shouldValidate: true });
+                                        form.setValue('state' as any, "", { shouldValidate: true });
+                                        form.setValue('city' as any, "", { shouldValidate: true });
                                         
                                         // Show toast notification for invalid PIN
                                         toast({
@@ -1000,8 +1107,8 @@ export default function CheckoutPage() {
                                       });
                                   } else if (value.length < 6) {
                                     // Clear city and state when PIN is incomplete
-                                    form.setValue('state', "", { shouldValidate: false });
-                                    form.setValue('city', "", { shouldValidate: false });
+                                    form.setValue('state' as any, "", { shouldValidate: false });
+                                    form.setValue('city' as any, "", { shouldValidate: false });
                                   }
                                 }}
                               />
@@ -1126,7 +1233,7 @@ export default function CheckoutPage() {
                   {form.watch("paymentMethod") === "razorpay" ? (
                     <div className="border-t pt-4 mt-4">
                       <RazorpayPayment 
-                        amount={finalTotal * 100} // Convert to paise
+                        amount={finalOrderTotal * 100} // Convert to paise
                         shippingDetails={{
                           name: form.getValues("name") || '',
                           address: form.getValues("address") || '',
@@ -1137,7 +1244,7 @@ export default function CheckoutPage() {
                         }}
                         onSuccess={(orderId) => {
                           // Redirect to order confirmation page
-                          setLocation(`/order-confirmation/${orderId}?success=true&total=${finalTotal}`);
+                          setLocation(`/order-confirmation/${orderId}?success=true&total=${finalOrderTotal}`);
                         }}
                         onError={(error) => {
                           toast({
@@ -1171,7 +1278,7 @@ export default function CheckoutPage() {
                               // Create a direct submission object with values from the selected address
                               const submissionValues = {
                                 name: selectedAddress.fullName,
-                                email: user?.email || user?.username || "",
+                                email: user?.email ?? user?.username ?? "",
                                 phone: selectedAddress.phone,
                                 address: selectedAddress.address,
                                 city: selectedAddress.city,
@@ -1233,6 +1340,7 @@ export default function CheckoutPage() {
               ))}
             </div>
             
+            {/* Calculate subtotal and delivery charges */}
             <div className="flex justify-between mb-2">
               <span className="text-gray-600">Subtotal</span>
               <span className="font-medium">₹{subtotal.toFixed(2)}</span>
@@ -1262,35 +1370,95 @@ export default function CheckoutPage() {
                       className="text-sm font-medium flex items-center cursor-pointer"
                     >
                       <Coins className="h-4 w-4 mr-1 text-primary" />
-                      Use Wallet Balance ({wallet.balance} coins)
+                      Use Wallet Balance ({wallet.balance} wallet rupees)
                     </label>
                   </div>
-                  {maxWalletDiscount > 0 && (
+                  {maxWalletPoints > 0 && (
                     <span className="text-xs text-green-600 font-medium">
-                      Up to ₹{maxWalletDiscount.toFixed(2)} off
+                      Up to ₹{maxWalletPoints} wallet rupees
                     </span>
                   )}
                 </div>
                 
+                {useWalletCoins && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <input
+                      type="number"
+                      min={0}
+                      max={maxWalletPoints}
+                      value={walletPointsInput}
+                      onChange={e => {
+                        const val = Math.max(0, Math.min(maxWalletPoints, Number(e.target.value)));
+                        setWalletPointsInput(val);
+                      }}
+                      className="border rounded px-2 py-1 w-24"
+                      placeholder={`Max ₹${maxWalletPoints}`}
+                    />
+                    <span className="text-xs text-gray-500">Enter wallet rupees to use</span>
+                  </div>
+                )}
                 {walletError && (
                   <div className="text-xs text-red-500 mt-1">
                     {walletError}
                   </div>
                 )}
-                
                 {wallet.balance <= 0 && (
                   <div className="text-xs text-gray-500 mt-1">
-                    No coins available in your wallet
+                    No wallet rupees available in your wallet
                   </div>
                 )}
               </div>
             )}
             
+            {/* Redeem Coins Section */}
+            <div className="mt-4">
+              <div className="flex items-center gap-2">
+                <span className="font-medium">Redeemed Coins Left:</span>
+                <span className="text-yellow-600 font-bold">{wallet ? (wallet.redeemedBalance - (useRedeemedCoins ? redeemAmount : 0)) : 0}</span>
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <span>Max you can use for this order:</span>
+                <span className="font-bold">{maxRedeemableFromRedeemed}</span>
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <input
+                  type="number"
+                  min={0}
+                  max={maxRedeemableFromRedeemed}
+                  value={redeemAmount}
+                  onChange={e => {
+                    const val = Math.max(0, Math.min(maxRedeemableFromRedeemed, Number(e.target.value)));
+                    setRedeemAmount(val);
+                  }}
+                  className="border rounded px-2 py-1 w-24"
+                  placeholder={`Max ₹${maxRedeemableFromRedeemed}`}
+                />
+                <button
+                  type="button"
+                  className="bg-yellow-500 text-white px-3 py-1 rounded disabled:opacity-50"
+                  disabled={redeemAmount <= 0 || redeemAmount > maxRedeemableFromRedeemed}
+                  onClick={() => setUseRedeemedCoins(true)}
+                >
+                  Apply Redeem
+                </button>
+              </div>
+              {redeemAmount > maxRedeemableFromRedeemed && (
+                <div className="text-red-500 text-xs mt-1">You can only redeem up to ₹{maxRedeemableFromRedeemed} wallet rupees for this order.</div>
+              )}
+            </div>
+            
             {/* Show wallet discount only once, if applied */}
             {useWalletCoins && walletDiscount > 0 && (
-              <div className="flex justify-between mb-2 text-green-600">
-                <span className="font-medium">Wallet Discount</span>
-                <span className="font-medium">-₹{walletDiscount.toFixed(2)}</span>
+              <div className="flex justify-between mb-2">
+                <span className="text-gray-600">Wallet Discount</span>
+                <span className="font-medium text-green-600">-₹{walletDiscount.toFixed(2)}</span>
+              </div>
+            )}
+            {/* Show redeem discount if applied */}
+            {useRedeemedCoins && redeemAmount > 0 && (
+              <div className="flex justify-between mb-2">
+                <span className="text-gray-600">Redeem Discount</span>
+                <span className="font-medium text-yellow-600">-₹{redeemAmount.toFixed(2)}</span>
               </div>
             )}
             {/* Show original total with strikethrough and discounted total in green if wallet discount is applied */}
@@ -1303,13 +1471,13 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-lg font-semibold text-green-700">Discounted Total</span>
-                  <span className="text-lg font-semibold text-green-700">₹{finalTotal.toFixed(2)}</span>
+                  <span className="text-lg font-semibold text-green-700">₹{finalOrderTotal.toFixed(2)}</span>
                 </div>
               </div>
             ) : (
               <div className="flex justify-between mb-6">
                 <span className="text-lg font-semibold">Total</span>
-                <span className="text-lg font-semibold">₹{finalTotal.toFixed(2)}</span>
+                <span className="text-lg font-semibold">₹{finalOrderTotal.toFixed(2)}</span>
               </div>
             )}
             
@@ -1324,6 +1492,29 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
+
+      {/* Show voucher info if available */}
+      {voucher && (
+        <Alert variant="default">
+          <AlertTitle>Wallet Voucher Auto-Applied!</AlertTitle>
+          <AlertDescription>
+            Voucher Code: <b>{voucher.code}</b><br />
+            Discount: ₹{voucher.value}<br />
+            <span>Your wallet voucher has been auto-applied to this order.</span>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Scroll to Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className="fixed bottom-8 right-8 z-50 bg-primary text-white rounded-full shadow-lg p-3 hover:bg-primary/90 transition-colors flex items-center justify-center"
+          aria-label="Scroll to top"
+        >
+          <ArrowUp className="h-6 w-6" />
+        </button>
+      )}
     </div>
   );
 }

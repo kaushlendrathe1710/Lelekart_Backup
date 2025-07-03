@@ -97,6 +97,7 @@ interface Order {
   shippingCharges?: number;
   discount?: number;
   walletDiscount?: number;
+  rewardDiscount?: number;
 }
 
 function formatDate(dateString: string) {
@@ -574,9 +575,13 @@ export default function OrderDetailsPage() {
                 )}
                 {order.walletDiscount && order.walletDiscount > 0 && (
                   <div className="flex justify-between text-green-600">
-                    <span>Wallet Discount:</span>
+                    <span>Redeemed Coins Used:</span>
                     <span>-₹{order.walletDiscount.toFixed(2)}</span>
                   </div>
+                )}
+                {/* Show reward discount if used */}
+                {order.rewardDiscount && order.rewardDiscount > 0 && (
+                  <span className="text-blue-600 text-sm">Reward Points Used: -₹{order.rewardDiscount.toFixed(2)}</span>
                 )}
                 {/*
                   IMPORTANT: The wallet discount is subtracted from the total only once below.

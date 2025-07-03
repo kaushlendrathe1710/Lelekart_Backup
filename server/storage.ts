@@ -195,6 +195,26 @@ import {
 import { db } from "./db";
 import { pool } from "./db";
 
+// Helper to get today's deal of the day product ID (standalone, outside class)
+async function getDealOfTheDayProductId(db: any) {
+  const categories = ["Electronics", "Mobiles", "Fashion"];
+  let dealProducts = [];
+  for (const cat of categories) {
+    const foundProducts = await db.select().from(products).where(
+      and(eq(products.category, cat), eq(products.approved, true), eq(products.isDraft, false), eq(products.deleted, false))
+    );
+    if (foundProducts.length > 0) {
+      dealProducts = foundProducts;
+      break;
+    }
+  }
+  if (dealProducts.length === 0) return null;
+  const now = new Date();
+  const dayOfYear = Math.floor((Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - Date.UTC(now.getUTCFullYear(), 0, 0)) / 86400000);
+  const dealProduct = dealProducts[dayOfYear % dealProducts.length];
+  return dealProduct.id;
+}
+
 export interface IStorage {
   // Media Library Methods
   getMediaItems(
@@ -507,7 +527,7 @@ export interface IStorage {
     {
       id: number;
       quantity: number;
-      product: Product;
+      product: Product & { isDealOfTheDay?: boolean };
       userId: number;
       variant?: ProductVariant;
     }[]
@@ -522,7 +542,7 @@ export interface IStorage {
   getOrders(userId?: number, sellerId?: number): Promise<Order[]>;
   getOrder(id: number): Promise<Order | undefined>;
   getLatestOrder(): Promise<Order | undefined>;
-  createOrder(order: InsertOrder): Promise<Order>;
+  createOrder(order: InsertOrder): Promise<Order & { appliedVoucherCode?: string; voucherDiscount?: number }>;
   getOrderItems(orderId: number): Promise<(OrderItem & { product: Product })[]>;
   createOrderItem(orderItem: InsertOrderItem): Promise<OrderItem>;
   updateOrderItem(id: number, data: Partial<OrderItem>): Promise<OrderItem>;
@@ -4080,15 +4100,13 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getCartItems(userId: number): Promise<
-    {
-      id: number;
-      quantity: number;
-      product: Product;
-      userId: number;
-      variant?: ProductVariant;
-    }[]
-  > {
+  async getCartItems(userId: number): Promise<{
+    id: number;
+    quantity: number;
+    product: Product & { isDealOfTheDay?: boolean };
+    userId: number;
+    variant?: ProductVariant;
+  }[]> {
     try {
       console.log(`Getting cart items for user ID: ${userId}`);
 
@@ -4112,14 +4130,17 @@ export class DatabaseStorage implements IStorage {
         return [];
       }
 
+      // Get today's deal product ID
+      const dealProductId = await getDealOfTheDayProductId(db);
+
       // For each cart item with a variant ID, get the variant info separately
       const result = await Promise.all(
         cartWithProducts.map(async (item) => {
-          const mappedItem = {
+          let mappedItem = {
             id: item.id,
             quantity: item.quantity,
             userId: item.userId,
-            product: item.product,
+            product: { ...item.product },
           };
 
           // If cart item has a variant ID, fetch the variant
@@ -4131,7 +4152,7 @@ export class DatabaseStorage implements IStorage {
                 .where(eq(productVariants.id, item.variantId));
 
               if (variant) {
-                return { ...mappedItem, variant };
+                mappedItem = { ...mappedItem, variant };
               }
             } catch (variantError) {
               console.error(
@@ -4139,6 +4160,12 @@ export class DatabaseStorage implements IStorage {
                 variantError
               );
             }
+          }
+
+          // Apply deal of the day discount if applicable
+          if (dealProductId && mappedItem.product.id === dealProductId) {
+            mappedItem.product.isDealOfTheDay = true;
+            mappedItem.product.price = parseFloat((mappedItem.product.price * 0.85).toFixed(2));
           }
 
           return mappedItem;
@@ -4515,7 +4542,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async createOrder(insertOrder: InsertOrder): Promise<Order> {
+  async createOrder(insertOrder: InsertOrder): Promise<Order & { appliedVoucherCode?: string; voucherDiscount?: number }> {
     // Handle shippingDetails - convert to string if provided as an object
     const orderToInsert = {
       ...insertOrder,
@@ -4539,11 +4566,19 @@ export class DatabaseStorage implements IStorage {
 
     // Only include the basic fields that we know exist in the database
     // Exclude any Shiprocket fields (shipping_status, etc) that might not exist yet
+    // Calculate the final total after all discounts (wallet, redeem, reward, etc)
+    let finalTotal = orderToInsert.total ?? 0;
+    if (orderToInsert.walletDiscount) finalTotal -= orderToInsert.walletDiscount;
+    if (orderToInsert.redeemDiscount) finalTotal -= orderToInsert.redeemDiscount;
+    if (orderToInsert.rewardDiscount) finalTotal -= orderToInsert.rewardDiscount;
+    // Prevent negative totals
+    if (finalTotal < 0) finalTotal = 0;
+
     const orderData = [
       {
         userId: orderToInsert.userId,
         status: orderToInsert.status,
-        total: orderToInsert.total,
+        total: finalTotal,
         date:
           typeof orderToInsert.date === "string"
             ? new Date(orderToInsert.date)
@@ -4559,6 +4594,13 @@ export class DatabaseStorage implements IStorage {
           ? { paymentId: orderToInsert.paymentId }
           : {}),
         ...(orderToInsert.orderId ? { orderId: orderToInsert.orderId } : {}),
+        // Wallet and reward fields (always include)
+        walletDiscount: orderToInsert.walletDiscount ?? 0,
+        walletCoinsUsed: orderToInsert.walletCoinsUsed ?? 0,
+        redeemDiscount: orderToInsert.redeemDiscount ?? 0,
+        redeemCoinsUsed: orderToInsert.redeemCoinsUsed ?? 0,
+        rewardDiscount: orderToInsert.rewardDiscount ?? 0,
+        rewardPointsUsed: orderToInsert.rewardPointsUsed ?? 0,
       },
     ];
 
@@ -4569,18 +4611,9 @@ export class DatabaseStorage implements IStorage {
     delete orderData[0]["awbCode"];
     delete orderData[0]["estimatedDeliveryDate"];
 
-    // Add wallet-related fields if they exist in the order input
-    if (orderToInsert.walletDiscount) {
-      orderData[0]["walletDiscount"] = orderToInsert.walletDiscount;
-    }
-
-    if (orderToInsert.walletCoinsUsed) {
-      orderData[0]["walletCoinsUsed"] = orderToInsert.walletCoinsUsed;
-    }
-
     // Debug log to verify the final data being sent to the database
     console.log("Final order data for database insertion:", orderData);
-
+    console.log("[DEBUG] rewardDiscount to save:", orderData[0].rewardDiscount, "rewardPointsUsed to save:", orderData[0].rewardPointsUsed);
     try {
       // Log the SQL that would be executed
       const query = db.insert(orders).values(orderData);
@@ -4591,6 +4624,7 @@ export class DatabaseStorage implements IStorage {
       const [order] = await query.returning();
 
       console.log("Order created successfully:", order);
+      console.log("[DEBUG] rewardDiscount in saved order:", order.rewardDiscount, "rewardPointsUsed in saved order:", order.rewardPointsUsed);
 
       // Parse shippingDetails from string to object if it exists
       if (order.shippingDetails && typeof order.shippingDetails === "string") {
@@ -4601,7 +4635,34 @@ export class DatabaseStorage implements IStorage {
         }
       }
 
-      return order;
+      // Check for active wallet voucher for this user
+      const userVouchers = await db.select().from(giftCards)
+        .where(and(eq(giftCards.issuedTo, order.userId), eq(giftCards.isActive, true), eq(giftCards.currentBalance, order.total)));
+      let appliedVoucherCode = undefined;
+      let voucherDiscount = 0;
+      if (userVouchers.length > 0) {
+        const voucher = userVouchers[0];
+        appliedVoucherCode = voucher.code;
+        voucherDiscount = voucher.currentBalance;
+        // Apply discount to order total
+        order.total = Math.max(0, order.total - voucher.currentBalance);
+        // Mark voucher as used
+        await db.update(giftCards)
+          .set({ isActive: false, currentBalance: 0, lastUsed: new Date() })
+          .where(eq(giftCards.id, voucher.id));
+        // Record voucher usage transaction
+        await db.insert(giftCardTransactions).values({
+          giftCardId: voucher.id,
+          userId: order.userId,
+          orderId: null, // can be set to order id after order is created
+          amount: -voucher.currentBalance,
+          type: 'redemption',
+          transactionDate: new Date(),
+          note: 'Auto-applied wallet voucher at checkout',
+        });
+      }
+
+      return { ...order, appliedVoucherCode, voucherDiscount };
     } catch (error) {
       console.error("Database error during order creation:", error);
 
@@ -9102,11 +9163,12 @@ export class DatabaseStorage implements IStorage {
           description,
         });
 
-        // Update wallet balance
+        // Update wallet balance ONLY (do NOT increment redeemedBalance here)
         const [updatedWallet] = await trx
           .update(wallets)
           .set({
             balance: wallet.balance - amount,
+            // Do NOT increment redeemedBalance here!
             lifetimeRedeemed: wallet.lifetimeRedeemed + amount,
             updatedAt: new Date(),
           })
@@ -11003,6 +11065,48 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error fetching orders marked for return:', error);
       return [];
+    }
+  }
+
+  async spendRedeemedCoinsAtCheckout(
+    userId: number,
+    amount: number,
+    orderId: number,
+    description?: string
+  ): Promise<SelectWallet> {
+    try {
+      const wallet = await this.getUserWallet(userId);
+      if (!wallet) throw new Error('Wallet not found');
+      if (amount > wallet.redeemedBalance) throw new Error('Not enough redeemed coins');
+      // Deduct from redeemedBalance
+      const [updatedWallet] = await db
+        .update(wallets)
+        .set({
+          redeemedBalance: wallet.redeemedBalance - amount,
+          updatedAt: new Date(),
+        })
+        .where(eq(wallets.id, wallet.id))
+        .returning();
+      // Add transaction record
+      await db.insert(walletTransactions).values({
+        walletId: wallet.id,
+        amount: -amount,
+        transactionType: 'REDEEMED_SPENT',
+        referenceType: 'ORDER',
+        referenceId: orderId,
+        description: description || 'Spent redeemed coins at checkout',
+      });
+      // Update the order's walletDiscount and walletCoinsUsed fields
+      await db.update(orders)
+        .set({
+          walletDiscount: amount,
+          walletCoinsUsed: amount,
+        })
+        .where(eq(orders.id, orderId));
+      return updatedWallet;
+    } catch (error) {
+      console.error(`Error spending redeemed coins for user ${userId}:`, error);
+      throw error;
     }
   }
 }

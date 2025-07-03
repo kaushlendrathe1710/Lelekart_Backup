@@ -38,6 +38,8 @@ interface Order {
   date: string;
   shippingDetails: string;
   paymentMethod: string;
+  walletDiscount?: number;
+  rewardDiscount?: number;
 }
 
 // Helper to format dates with time
@@ -328,7 +330,18 @@ export default function OrdersPage() {
                   </div>
                   
                   <div className="mt-4 md:mt-0 flex flex-col md:items-end justify-between">
-                    <p className="font-semibold text-xl">₹{order.total.toFixed(2)}</p>
+                    {/* Show the final total after all discounts */}
+                    <p className="font-semibold text-xl">
+                      ₹{order.total.toFixed(2)}
+                    </p>
+                    {/* Show wallet discount if used */}
+                    {order.walletDiscount && order.walletDiscount > 0 && (
+                      <p className="text-green-600 text-sm">Redeemed Coins Used: -₹{order.walletDiscount.toFixed(2)}</p>
+                    )}
+                    {/* Show reward discount if used */}
+                    {order.rewardDiscount && order.rewardDiscount > 0 && (
+                      <p className="text-blue-600 text-sm">Reward Points Used: -₹{order.rewardDiscount.toFixed(2)}</p>
+                    )}
                     
                     <div className="flex space-x-2 mt-2 md:mt-auto">
                       {/* Only show cancel button for pending/processing orders */}
