@@ -57,6 +57,11 @@ export function useInfiniteProducts({
       if (search) params.append("search", search);
       if (sellerId) params.append("sellerId", sellerId.toString());
 
+      // Add interleaved param for homepage infinite scroll (no filters)
+      if (!category && !search && !sellerId) {
+        params.append("interleaved", "true");
+      }
+
       // Add cache buster for better caching
       const cacheBuster = Math.floor(Date.now() / (5 * 60 * 1000)); // 5 minute cache
       params.append("_cb", cacheBuster.toString());

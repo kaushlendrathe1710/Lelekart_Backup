@@ -201,7 +201,11 @@ function applyProductDisplaySettings(products: any[], settings: any) {
 // Configure multer for file uploads
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50 MB per file
+    files: 20, // up to 20 files per request
+    fieldSize: 10 * 1024 * 1024, // 10 MB for non-file fields
+  },
 });
 
 // Configure AWS S3
@@ -2696,6 +2700,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         : undefined;
       const search = req.query.search as string | undefined;
       const subcategory = req.query.subcategory as string | undefined;
+      const interleaved = req.query.interleaved === "true";
 
       // Check user role to determine if we should show unapproved products
       const userRole = req.isAuthenticated() ? req.user.role : "buyer";
@@ -2749,6 +2754,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
         subcategory,
         userRole: req.isAuthenticated() ? req.user.role : "buyer",
       });
+
+      // Interleaved logic for homepage
+      if (interleaved && req.query.homepage === "true" && !category && !search && !sellerId && !subcategory) {
+        // Define the categories in the desired order (should match frontend)
+        const allCategories = [
+          "Electronics",
+          "Fashion",
+          "Home",
+          "Appliances",
+          "Mobiles",
+          "Beauty",
+          "Toys",
+          "Grocery",
+        ];
+        // How many products per category to fetch (overfetch to fill rows)
+        const limit = req.query.limit ? parseInt(req.query.limit as string) : 36;
+        const page = req.query.page ? parseInt(req.query.page as string) : 1;
+        const perCategory = Math.ceil((limit * page) / allCategories.length) + 4; // overfetch for gaps
+        // Fetch products for each category
+        const categoryProductsArr = await Promise.all(
+          allCategories.map(cat => storage.getProductsPaginated(
+            cat,
+            undefined,
+            true, // approved only
+            0,
+            perCategory,
+            undefined,
+            true, // hideDrafts
+            undefined,
+            true // hideRejected
+          ))
+        );
+        // Interleave products
+        let interleavedProducts = [];
+        let maxLen = Math.max(...categoryProductsArr.map(arr => arr.length));
+        for (let i = 0; i < maxLen; i++) {
+          for (let arr of categoryProductsArr) {
+            if (arr[i]) interleavedProducts.push(arr[i]);
+          }
+        }
+        // Remove duplicates by product id
+        const seen = new Set();
+        interleavedProducts = interleavedProducts.filter(p => {
+          if (seen.has(p.id)) return false;
+          seen.add(p.id);
+          return true;
+        });
+        // Paginate
+        const startIdx = (page - 1) * limit;
+        const endIdx = startIdx + limit;
+        const paginated = interleavedProducts.slice(startIdx, endIdx);
+        // Get total count for pagination
+        const totalCount = interleavedProducts.length;
+        const totalPages = Math.ceil(totalCount / limit);
+        // Add GST and seller info as in normal flow
+        const categories = await storage.getCategories();
+        const categoryGstMap = new Map();
+        categories.forEach((cat) => {
+          categoryGstMap.set(cat.name.toLowerCase(), Number(cat.gstRate || 0));
+        });
+        const productsWithSellerInfo = await Promise.all(
+          paginated.map(async (product) => {
+            if (!product.imageUrl) {
+              product.imageUrl = "/images/placeholder.svg";
+            }
+            const gstRate = categoryGstMap.get(product.category.toLowerCase()) || 0;
+            const priceWithGst = product.price;
+            const basePrice =
+              gstRate > 0 ? (priceWithGst * 100) / (100 + gstRate) : priceWithGst;
+            const gstAmount = priceWithGst - basePrice;
+            const productWithGst = {
+              ...product,
+              gstDetails: {
+                gstRate,
+                basePrice,
+                gstAmount,
+                priceWithGst,
+              },
+            };
+            if (product.sellerId) {
+              try {
+                const seller = await storage.getUser(product.sellerId);
+                if (seller) {
+                  return {
+                    ...productWithGst,
+                    sellerName: seller.username || "Unknown Seller",
+                    seller: seller,
+                  };
+                }
+              } catch (error) {
+                console.error(
+                  `Error fetching seller for product ${product.id}:`,
+                  error
+                );
+              }
+            }
+            return {
+              ...productWithGst,
+              sellerName: "Lele Kart Retail Private Limited",
+              seller: { username: "Lele Kart Retail Private Limited" },
+            };
+          })
+        );
+        return res.json({
+          products: productsWithSellerInfo,
+          pagination: {
+            total: totalCount,
+            totalPages,
+            currentPage: page,
+            limit,
+          },
+        });
+      }
 
       // Get total count for pagination
       const totalCount = await storage.getProductsCount(
@@ -6789,7 +6907,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const imageUpload = multer({
     storage: multer.memoryStorage(),
     limits: {
-      fileSize: 100 * 1024 * 1024, // 100MB file size limit
+      fileSize: 50 * 1024 * 1024, // 50 MB per file
+      files: 20, // up to 20 files per request
+      fieldSize: 10 * 1024 * 1024, // 10 MB for non-file fields
     },
     fileFilter: (req, file, cb) => {
       // Accept images only
