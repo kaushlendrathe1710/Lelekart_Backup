@@ -238,7 +238,9 @@ CREATE TABLE "orders" (
 	"awb_code" text,
 	"courier_name" text,
 	"tracking_details" text,
-	"estimated_delivery_date" timestamp
+	"estimated_delivery_date" timestamp,
+	"redeem_discount" integer DEFAULT 0,
+	"redeem_coins_used" integer DEFAULT 0
 );
 --> statement-breakpoint
 CREATE TABLE "price_optimizations" (

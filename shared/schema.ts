@@ -215,6 +215,12 @@ export const orders = pgTable("orders", {
   // Wallet integration fields
   walletDiscount: integer("wallet_discount").default(0), // Amount discounted using wallet coins
   walletCoinsUsed: integer("wallet_coins_used").default(0), // Number of coins used from wallet
+  // Redeemed coins integration fields
+  redeemDiscount: integer("redeem_discount").default(0), // Amount discounted using redeemed coins
+  redeemCoinsUsed: integer("redeem_coins_used").default(0), // Number of redeemed coins used
+  // Reward points integration fields
+  rewardDiscount: integer("reward_discount").default(0), // Amount discounted using reward points
+  rewardPointsUsed: integer("reward_points_used").default(0), // Number of reward points used
 
   // Shiprocket integration fields
   shippingStatus: text("shipping_status"), // Status of the order in Shiprocket
@@ -239,6 +245,11 @@ export const insertOrderSchema = createInsertSchema(orders).pick({
   // Wallet fields
   walletDiscount: true,
   walletCoinsUsed: true,
+  // Redeem fields
+  redeemDiscount: true,
+  redeemCoinsUsed: true,
+  rewardDiscount: true,
+  rewardPointsUsed: true,
   // Shiprocket fields
   shippingStatus: true,
   shiprocketOrderId: true,
@@ -2064,10 +2075,10 @@ export type InsertGiftCardTemplate = z.infer<
 // Wallet System Schema
 export const walletSettings = pgTable("wallet_settings", {
   id: serial("id").primaryKey(),
-  firstPurchaseCoins: integer("first_purchase_coins").notNull().default(500),
+  firstPurchaseCoins: integer("first_purchase_coins").notNull().default(3000),
   coinToCurrencyRatio: decimal("coin_to_currency_ratio")
     .notNull()
-    .default("0.10"),
+    .default("1.00"),
   minOrderValue: decimal("min_order_value").notNull().default("500.00"),
   maxRedeemableCoins: integer("max_redeemable_coins").notNull().default(200),
   coinExpiryDays: integer("coin_expiry_days").notNull().default(90),
@@ -2089,6 +2100,7 @@ export const wallets = pgTable("wallets", {
     .references(() => users.id, { onDelete: "cascade" })
     .unique(),
   balance: integer("balance").notNull().default(0),
+  redeemedBalance: integer("redeemed_balance").notNull().default(0), // Redeemed coins left
   lifetimeEarned: integer("lifetime_earned").notNull().default(0),
   lifetimeRedeemed: integer("lifetime_redeemed").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),

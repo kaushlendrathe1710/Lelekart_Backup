@@ -591,7 +591,7 @@ export async function sendOrderShippedEmails(
  */
 export async function sendOrderPlacedEmails(orderId: number): Promise<boolean> {
   try {
-    console.log(`Sending order confirmation emails for order #${orderId}`);
+    console.log(`[EMAIL DEBUG] Sending order confirmation emails for order #${orderId}`);
 
     // Import storage here to avoid circular dependencies
     const { storage } = await import("../storage");
@@ -599,9 +599,7 @@ export async function sendOrderPlacedEmails(orderId: number): Promise<boolean> {
     // Get the complete order with items and products
     const order = await storage.getOrder(orderId);
     if (!order) {
-      console.error(
-        `Cannot send order confirmation emails: Order #${orderId} not found`
-      );
+      console.error(`[EMAIL DEBUG] Cannot send order confirmation emails: Order #${orderId} not found`);
       return false;
     }
 
@@ -633,21 +631,20 @@ export async function sendOrderPlacedEmails(orderId: number): Promise<boolean> {
             };
           }
         } catch (addressError) {
-          console.error("Error fetching address for order email:", addressError);
+          console.error("[EMAIL DEBUG] Error fetching address for order email:", addressError);
         }
       }
     } catch (e) {
-      console.error("Error parsing shipping details", e);
+      console.error("[EMAIL DEBUG] Error parsing shipping details", e);
     }
 
     // Get the buyer
     const buyer = await storage.getUser(order.userId);
     if (!buyer || !buyer.email) {
-      console.error(
-        `Cannot send buyer order confirmation email: Buyer for order #${orderId} not found or has no email`
-      );
+      console.error(`[EMAIL DEBUG] Cannot send buyer order confirmation email: Buyer for order #${orderId} not found or has no email. User object:`, buyer);
       return false;
     } else {
+      console.log(`[EMAIL DEBUG] Sending order confirmation email to buyer: ${buyer.email} for order #${orderId}`);
       // Send detailed email to buyer
       await sendOrderConfirmationEmail(
         {
@@ -657,7 +654,7 @@ export async function sendOrderPlacedEmails(orderId: number): Promise<boolean> {
         },
         buyer.email
       );
-      console.log(`Order confirmation email sent to buyer: ${buyer.email}`);
+      console.log(`[EMAIL DEBUG] Order confirmation email sent to buyer: ${buyer.email}`);
     }
 
     // Send notification to admin(s) if configured
@@ -787,19 +784,37 @@ function getDefaultTemplate(templateType: string): string {
                 <td style="padding: 10px; text-align: right; border-bottom: 1px solid #e5e5e5;">₹{{multiply this.quantity this.price}}</td>
               </tr>
               {{/each}}
-              {{#if order.walletCoinsUsed}}
+              {{#if order.walletDiscount}}
               <tr>
-                <td colspan="3" style="padding: 10px; text-align: right; font-weight: bold; color: #388e3c;">Wallet Discount ({{order.walletCoinsUsed}} coins):</td>
+                <td colspan="3" style="padding: 10px; text-align: right; font-weight: bold; color: #388e3c;">Wallet Discount ({{order.walletCoinsUsed}} wallet rupees):</td>
                 <td style="padding: 10px; text-align: right; color: #388e3c;">-₹{{order.walletDiscount}}</td>
               </tr>
               {{/if}}
+              {{#if order.redeemDiscount}}
+              <tr>
+                <td colspan="3" style="padding: 10px; text-align: right; font-weight: bold; color: #388e3c;">Redeem Discount ({{order.redeemCoinsUsed}} coins):</td>
+                <td style="padding: 10px; text-align: right; color: #388e3c;">-₹{{order.redeemDiscount}}</td>
+              </tr>
+              {{/if}}
+              {{#if order.rewardDiscount}}
+              <tr>
+                <td colspan="3" style="padding: 10px; text-align: right; font-weight: bold; color: #388e3c;">Reward Discount ({{order.rewardPointsUsed}} points):</td>
+                <td style="padding: 10px; text-align: right; color: #388e3c;">-₹{{order.rewardDiscount}}</td>
+              </tr>
+              {{/if}}
               <tr style="background-color: #f8f8f8;">
-                <td colspan="3" style="padding: 10px; text-align: right; font-weight: bold;">Total:</td>
+                <td colspan="3" style="padding: 10px; text-align: right; font-weight: bold;">Total (after all discounts):</td>
                 <td style="padding: 10px; text-align: right; font-weight: bold;">₹{{order.total}}</td>
               </tr>
             </table>
-            {{#if order.walletCoinsUsed}}
-            <div style="margin-top: 10px; color: #388e3c; font-size: 14px;">You saved ₹{{order.walletDiscount}} using {{order.walletCoinsUsed}} wallet coins!</div>
+            {{#if order.walletDiscount}}
+            <div style="margin-top: 10px; color: #388e3c; font-size: 14px;">You saved ₹{{order.walletDiscount}} using {{order.walletCoinsUsed}} wallet rupees!</div>
+            {{/if}}
+            {{#if order.redeemDiscount}}
+            <div style="margin-top: 10px; color: #388e3c; font-size: 14px;">You saved ₹{{order.redeemDiscount}} using {{order.redeemCoinsUsed}} redeem coins!</div>
+            {{/if}}
+            {{#if order.rewardDiscount}}
+            <div style="margin-top: 10px; color: #388e3c; font-size: 14px;">You saved ₹{{order.rewardDiscount}} using {{order.rewardPointsUsed}} reward points!</div>
             {{/if}}
           </div>
           

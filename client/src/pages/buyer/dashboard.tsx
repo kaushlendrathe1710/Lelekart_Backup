@@ -505,25 +505,6 @@ export default function BuyerDashboardPage() {
               >
                 Refresh
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => {
-                  console.log('[BuyerDashboard] Adding test product to recently viewed');
-                  const ids = JSON.parse(localStorage.getItem('recently_viewed_products') || '[]');
-                  const testId = 1; // Assuming product ID 1 exists
-                  const newIds = [testId, ...ids.filter((id: number) => id !== testId)].slice(0, 20);
-                  localStorage.setItem('recently_viewed_products', JSON.stringify(newIds));
-                  console.log('[BuyerDashboard] Updated localStorage with test product:', newIds);
-                  // Force re-fetch
-                  setLoadingRecentlyViewed(true);
-                  setTimeout(() => {
-                    window.location.reload();
-                  }, 500);
-                }}
-              >
-                Test
-              </Button>
             </CardTitle>
           </CardHeader>
           <CardContent>

@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { storage } from '../storage';
 import { z } from 'zod';
+import { giftCards } from '@shared/schema';
+import { spendRedeemedCoinsAtCheckout } from './wallet-handlers';
 
 // Zod schemas for request validation
 const walletSettingsSchema = z.object({
@@ -180,11 +182,10 @@ export async function redeemCoins(req: Request, res: Response) {
         
         // Check maximum usage percentage
         if (settings.maxUsagePercentage > 0) {
-          const discountAmount = amount * settings.coinToCurrencyRatio;
+          const discountAmount = amount * 1; // 1 coin = 1 rupee
           const maxDiscount = (orderValue * settings.maxUsagePercentage) / 100;
-          
           if (discountAmount > maxDiscount) {
-            const maxCoins = Math.floor(maxDiscount / settings.coinToCurrencyRatio);
+            const maxCoins = Math.floor(maxDiscount / 1);
             return res.status(400).json({
               error: `You can use a maximum of ${maxCoins} coins (${settings.maxUsagePercentage}% of order value) for this order`
             });
@@ -203,7 +204,7 @@ export async function redeemCoins(req: Request, res: Response) {
     );
     
     // Calculate the discount amount
-    const discountAmount = amount * settings.coinToCurrencyRatio;
+    const discountAmount = amount * 1; // 1 coin = 1 rupee
     
     return res.json({
       wallet: result.wallet,
@@ -356,5 +357,38 @@ export async function getUsersWithWallets(req: Request, res: Response) {
   } catch (error) {
     console.error("Error fetching users with wallets:", error);
     return res.status(500).json({ error: "Failed to fetch users with wallets" });
+  }
+}
+
+export async function getActiveWalletVoucher(req: Request, res: Response) {
+  try {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = req.user.id;
+    const voucher = await req.storage.db.select().from(giftCards)
+      .where({ issuedTo: userId, isActive: true })
+      .orderBy('createdAt', 'desc')
+      .limit(1);
+    if (voucher && voucher.length > 0) {
+      return res.json(voucher[0]);
+    } else {
+      return res.status(404).json({ error: 'No active wallet voucher found' });
+    }
+  } catch (error) {
+    console.error('Error fetching active wallet voucher:', error);
+    return res.status(500).json({ error: 'Failed to fetch active wallet voucher' });
+  }
+}
+
+// POST /api/wallet/spend-redeemed
+export async function spendRedeemedCoins(req: Request, res: Response) {
+  try {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const { amount, orderId, description } = req.body;
+    if (!amount || !orderId) return res.status(400).json({ error: 'Amount and orderId required' });
+    const wallet = await storage.spendRedeemedCoinsAtCheckout(req.user.id, amount, orderId, description);
+    return res.json(wallet);
+  } catch (error) {
+    console.error('Error spending redeemed coins:', error);
+    return res.status(500).json({ error: 'Failed to spend redeemed coins' });
   }
 }

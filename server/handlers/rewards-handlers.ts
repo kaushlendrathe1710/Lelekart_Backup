@@ -69,14 +69,13 @@ export async function processOrderReward(req: Request, res: Response) {
     if (!userRewards) {
       userRewards = await storage.createUserRewards({
         userId,
-        availablePoints: pointsToAward,
+        points: pointsToAward,
         lifetimePoints: pointsToAward,
-        redeemedPoints: 0,
         lastUpdated: new Date()
       });
     } else {
       userRewards = await storage.updateUserRewards(userId, {
-        availablePoints: userRewards.availablePoints + pointsToAward,
+        points: userRewards.points + pointsToAward,
         lifetimePoints: userRewards.lifetimePoints + pointsToAward,
         lastUpdated: new Date()
       });
@@ -104,9 +103,8 @@ export async function getUserRewards(req: Request, res: Response) {
       // Create a new rewards record if one doesn't exist
       const newRewards = await storage.createUserRewards({
         userId,
-        availablePoints: 0,
+        points: 0,
         lifetimePoints: 0,
-        redeemedPoints: 0,
         lastUpdated: new Date()
       });
       
@@ -225,14 +223,13 @@ export async function addPointsToUser(req: Request, res: Response) {
     if (!userRewards) {
       userRewards = await storage.createUserRewards({
         userId,
-        availablePoints: points,
+        points,
         lifetimePoints: points,
-        redeemedPoints: 0,
         lastUpdated: new Date()
       });
     } else {
       userRewards = await storage.updateUserRewards(userId, {
-        availablePoints: userRewards.availablePoints + points,
+        points: userRewards.points + points,
         lifetimePoints: userRewards.lifetimePoints + points,
         lastUpdated: new Date()
       });
@@ -246,5 +243,62 @@ export async function addPointsToUser(req: Request, res: Response) {
   } catch (error) {
     console.error('Error adding points to user:', error);
     return res.status(500).json({ error: 'Failed to add points' });
+  }
+}
+
+// Redeem reward points for an order
+export async function redeemRewardPoints(req: Request, res: Response) {
+  try {
+    const userId = req.user!.id;
+    const { orderTotal, pointsToRedeem, orderId } = req.body;
+
+    if (!orderTotal || !pointsToRedeem) {
+      return res.status(400).json({ error: 'orderTotal and pointsToRedeem are required' });
+    }
+
+    // Get user rewards
+    const userRewards = await storage.getUserRewards(userId);
+    if (!userRewards) {
+      return res.status(400).json({ error: 'No rewards account found for user' });
+    }
+
+    // Calculate max redeemable points (5% of order total, floored)
+    const maxRedeemable = Math.floor(Number(orderTotal) * 0.05);
+    if (pointsToRedeem > maxRedeemable) {
+      return res.status(400).json({ error: `Cannot redeem more than ${maxRedeemable} points for this order (5% of order total)` });
+    }
+    if (pointsToRedeem > userRewards.points) {
+      return res.status(400).json({ error: 'Insufficient reward points' });
+    }
+    if (pointsToRedeem <= 0) {
+      return res.status(400).json({ error: 'Points to redeem must be greater than 0' });
+    }
+
+    // Deduct points and create transaction
+    const transaction = await storage.createRewardTransaction({
+      userId,
+      points: -pointsToRedeem, // Negative for redemption
+      type: 'redeem',
+      description: `Redeemed ${pointsToRedeem} points for order #${orderId || ''}`,
+      orderId: orderId || null,
+      transactionDate: new Date(),
+      status: 'used',
+    });
+
+    // Update user rewards balance
+    const updatedRewards = await storage.updateUserRewards(userId, {
+      points: userRewards.points - pointsToRedeem,
+      lastUpdated: new Date(),
+    });
+
+    return res.json({
+      message: 'Points redeemed successfully',
+      pointsRedeemed: pointsToRedeem,
+      transaction,
+      rewards: updatedRewards,
+    });
+  } catch (error) {
+    console.error('Error redeeming reward points:', error);
+    return res.status(500).json({ error: 'Failed to redeem reward points' });
   }
 }

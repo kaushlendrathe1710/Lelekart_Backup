@@ -25,6 +25,7 @@ import { PerformanceMonitor } from "@/components/ui/performance-monitor";
 import { useProductLoader } from "@/lib/product-loader";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
+import { ArrowUp } from "lucide-react";
 
 // Memoize categories to prevent unnecessary re-renders
 const allCategories = [
@@ -288,6 +289,16 @@ export default function HomePage() {
     []
   );
 
+  // Show scroll-to-top button only when scrolled down
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  useEffect(() => {
+    const onScroll = () => {
+      setShowScrollTop(window.scrollY > 200);
+    };
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
     <>
       {/* Hero Section - Load immediately */}
@@ -505,6 +516,18 @@ export default function HomePage() {
             </Link>
           </div>
         </div>
+      )}
+
+      {/* Scroll to Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className="fixed bottom-8 right-8 z-50 bg-primary text-white rounded-full shadow-2xl p-2 hover:bg-primary/90 transition-colors flex items-center justify-center border-4 border-white"
+          style={{ boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)' }}
+          aria-label="Scroll to top"
+        >
+          <ArrowUp className="h-6 w-6" />
+        </button>
       )}
     </>
   );

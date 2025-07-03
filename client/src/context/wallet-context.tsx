@@ -19,6 +19,7 @@ interface Wallet {
   id: number;
   userId: number;
   balance: number;
+  redeemedBalance: number; // Redeemed coins left
 }
 
 interface WalletSettings {
@@ -104,7 +105,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           }
           throw new Error('Failed to fetch wallet data');
         }
-        return res.json();
+        const data = await res.json();
+        // Ensure redeemedBalance is present
+        if (data && typeof data.redeemedBalance !== 'number') data.redeemedBalance = 0;
+        return data;
       } catch (error) {
         // Only log the error if it's not an auth issue
         if (error instanceof Error && !error.message.includes("Failed to fetch")) {
@@ -274,7 +278,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   });
 
   const redeemCoins = async (amount: number, options?: RedeemCoinsOptions) => {
-    await redeemCoinsMutation.mutateAsync({
+    return await redeemCoinsMutation.mutateAsync({
       amount,
       ...options
     });
