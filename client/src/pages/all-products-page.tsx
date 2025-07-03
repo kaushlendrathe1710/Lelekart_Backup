@@ -167,16 +167,10 @@ export default function AllProductsPage() {
             <div className="space-y-8">
               {(() => {
                 const products = productsData.products;
-                // Shuffle products to ensure random order
-                for (let i = products.length - 1; i > 0; i--) {
-                  const j = Math.floor(Math.random() * (i + 1));
-                  [products[i], products[j]] = [products[j], products[i]];
-                }
                 // Group products by category (case-insensitive)
                 const categoryMap: Record<string, Product[]> = {};
                 const foundCategories: Set<string> = new Set();
                 products.forEach((product: Product) => {
-                  // Find matching category from allCategories (case-insensitive)
                   let cat = allCategories.find(
                     (c) => c.toLowerCase() === (product.category || "").toLowerCase()
                   );
@@ -194,33 +188,37 @@ export default function AllProductsPage() {
                     (cat) => !allCategories.includes(cat)
                   ),
                 ];
-                // Build a round-robin list of products from each category
+                // Improved round-robin: always pick one from each category in order, skip empty, repeat until page is filled
                 const mixedProducts: Product[] = [];
-                let added = true;
-                let round = 0;
-                while (mixedProducts.length < products.length && added) {
-                  added = false;
+                const catIndexes: Record<string, number> = {};
+                roundRobinCategories.forEach(cat => { catIndexes[cat] = 0; });
+                while (mixedProducts.length < pageSize * currentPage) {
+                  let addedThisRound = false;
                   for (const cat of roundRobinCategories) {
-                    if (categoryMap[cat] && categoryMap[cat][round]) {
-                      mixedProducts.push(categoryMap[cat][round]);
-                      added = true;
-                      if (mixedProducts.length >= products.length) break;
+                    const idx = catIndexes[cat];
+                    if (categoryMap[cat] && categoryMap[cat][idx]) {
+                      mixedProducts.push(categoryMap[cat][idx]);
+                      catIndexes[cat]++;
+                      addedThisRound = true;
+                      if (mixedProducts.length >= pageSize * currentPage) break;
                     }
                   }
-                  round++;
+                  if (!addedThisRound) break; // No more products to add
                 }
-                // If not enough, fill with remaining products
-                if (mixedProducts.length < products.length) {
+                // If not enough, fill with any remaining products from underrepresented categories
+                if (mixedProducts.length < pageSize * currentPage) {
                   const allLeft = products.filter(
                     (p: Product) => !mixedProducts.includes(p)
                   );
-                  mixedProducts.push(...allLeft);
+                  for (const p of allLeft) {
+                    mixedProducts.push(p);
+                    if (mixedProducts.length >= pageSize * currentPage) break;
+                  }
                 }
                 // Paginate the mixed products locally
                 const startIdx = (currentPage - 1) * pageSize;
                 const endIdx = startIdx + pageSize;
                 const paginatedProducts = mixedProducts.slice(startIdx, endIdx);
-                // Render as a grid
                 return (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {paginatedProducts.map((product: Product, colIndex: number) => (

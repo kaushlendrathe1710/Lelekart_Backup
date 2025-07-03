@@ -51,6 +51,10 @@ import {
 import { Image, Upload, Trash2, MoreVertical, Search, RefreshCw } from "lucide-react";
 import AdminLayout from "@/components/layout/admin-layout";
 
+// Constants for upload limits (should match backend)
+const MAX_FILES = 20;
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
 export default function MediaLibraryPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
@@ -151,8 +155,26 @@ export default function MediaLibraryPage() {
   // Handle file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      // Convert FileList to Array
       const filesArray = Array.from(e.target.files);
+      // Check file count
+      if (filesArray.length > MAX_FILES) {
+        toast({
+          title: "Too many files",
+          description: `You can upload up to ${MAX_FILES} files at once.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      // Check file size
+      const tooLarge = filesArray.find(f => f.size > MAX_FILE_SIZE);
+      if (tooLarge) {
+        toast({
+          title: "File too large",
+          description: `File '${tooLarge.name}' exceeds the 50MB limit.`,
+          variant: "destructive",
+        });
+        return;
+      }
       setSelectedFiles(filesArray);
     }
   };
@@ -175,6 +197,25 @@ export default function MediaLibraryPage() {
       toast({
         title: "No files selected",
         description: "Please select at least one file to upload",
+        variant: "destructive",
+      });
+      return;
+    }
+    // Check file count
+    if (selectedFiles.length > MAX_FILES) {
+      toast({
+        title: "Too many files",
+        description: `You can upload up to ${MAX_FILES} files at once.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    // Check file size
+    const tooLarge = selectedFiles.find(f => f.size > MAX_FILE_SIZE);
+    if (tooLarge) {
+      toast({
+        title: "File too large",
+        description: `File '${tooLarge.name}' exceeds the 50MB limit.`,
         variant: "destructive",
       });
       return;
@@ -267,7 +308,10 @@ export default function MediaLibraryPage() {
                 <DialogHeader>
                   <DialogTitle>Upload Media</DialogTitle>
                   <DialogDescription>
-                    Upload images or other files to your media library.
+                    Upload images or other files to your media library.<br />
+                    <span className="text-xs text-muted-foreground">
+                      Max {MAX_FILES} files per upload. Max file size: 50MB each.
+                    </span>
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
@@ -343,6 +387,7 @@ export default function MediaLibraryPage() {
                     <input
                       type="file"
                       id="file-upload"
+                      name="file"
                       className="hidden"
                       multiple
                       onChange={handleFileChange}

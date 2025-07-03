@@ -24,11 +24,8 @@ export function ProductImage({
 }: ProductImageProps) {
   const [imageSrc, setImageSrc] = useState<string>("");
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
-  const [isInView, setIsInView] = useState<boolean>(priority);
   const [hasError, setHasError] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const imgRef = useRef<HTMLImageElement>(null);
-  const observerRef = useRef<IntersectionObserver | null>(null);
 
   // Default to category-specific placeholder or general placeholder
   const getCategoryImage = useCallback(() => {
@@ -124,80 +121,11 @@ export function ProductImage({
     getCategoryImage,
   ]);
 
-  // Preload critical images
+  // Always set imageSrc immediately for instant loading
   useEffect(() => {
-    if (priority) {
-      const url = getImageUrl();
-      if (url && url !== getCategoryImage()) {
-        const img = new Image();
-        img.src = url;
-        img.onload = () => {
-          setImageSrc(url);
-          setIsLoaded(true);
-        };
-        img.onerror = () => {
-          setImageSrc(getCategoryImage());
-          setHasError(true);
-        };
-      } else {
-        setImageSrc(getCategoryImage());
-      }
-    }
-  }, [priority, getImageUrl, getCategoryImage]);
-
-  // Intersection Observer for lazy loading
-  useEffect(() => {
-    if (priority) return; // Skip observer for priority images
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setIsInView(true);
-            observer.disconnect();
-          }
-        });
-      },
-      {
-        threshold: 0.1,
-        rootMargin: "50px", // Start loading 50px before the image comes into view
-      }
-    );
-
-    if (imgRef.current) {
-      observer.observe(imgRef.current);
-      observerRef.current = observer;
-    }
-
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-      }
-    };
-  }, [priority]);
-
-  // Load image when in view
-  useEffect(() => {
-    if (!isInView || isLoading) return;
-
     const url = getImageUrl();
-    setIsLoading(true);
-
-    const img = new Image();
-    img.src = url;
-
-    img.onload = () => {
-      setImageSrc(url);
-      setIsLoaded(true);
-      setIsLoading(false);
-    };
-
-    img.onerror = () => {
-      setImageSrc(getCategoryImage());
-      setHasError(true);
-      setIsLoading(false);
-    };
-  }, [isInView, getImageUrl, getCategoryImage, isLoading]);
+    setImageSrc(url);
+  }, [getImageUrl]);
 
   // Preload fallback image
   useEffect(() => {
@@ -205,7 +133,7 @@ export function ProductImage({
     fallbackImg.src = getCategoryImage();
   }, [getCategoryImage]);
 
-  // Show image instantly if already cached/preloaded (for ALL images, not just priority)
+  // Show image instantly if already cached/preloaded
   useEffect(() => {
     if (imgRef.current && imageSrc) {
       if (imgRef.current.complete && imgRef.current.naturalWidth !== 0) {
@@ -221,41 +149,28 @@ export function ProductImage({
         const target = e.target as HTMLImageElement;
         target.onerror = null; // Prevent infinite loop
         const fallbackSrc = getCategoryImage();
-        console.log(
-          `Image load failed for product ${product.id}, using fallback: ${fallbackSrc}`
-        );
         setImageSrc(fallbackSrc);
       }
     },
-    [hasError, getCategoryImage, product.id]
+    [hasError, getCategoryImage]
   );
 
-  // Show loading skeleton while image is loading
-  if (!isLoaded && !isInView && !priority) {
-    return (
-      <div
-        ref={imgRef}
-        className={`bg-gray-200 animate-pulse ${className}`}
-        style={{ aspectRatio: "1" }}
-      />
-    );
-  }
-
+  // Always show the image, no skeleton
   return (
     <img
       ref={imgRef}
       src={imageSrc || getCategoryImage()}
       alt={product.name || "Product image"}
-      className={`max-w-full max-h-full object-contain transition-opacity duration-300 ${
+      className={`max-w-full max-h-full object-contain transition-opacity duration-100 ${
         isLoaded ? "opacity-100" : "opacity-0"
       } ${className}`}
-      loading={priority ? "eager" : "lazy"}
+      loading="eager"
       sizes={sizes}
       onLoad={() => setIsLoaded(true)}
       onError={handleImageError}
       style={{
         aspectRatio: "1",
-        minHeight: "160px", // Ensure consistent height
+        minHeight: "160px",
       }}
     />
   );
