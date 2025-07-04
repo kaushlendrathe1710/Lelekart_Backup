@@ -65,6 +65,7 @@ const categorySchema = z.object({
   name: z.string().min(1, { message: 'Category name is required' }),
   slug: z.string().optional(),
   description: z.string().optional(),
+  image: z.string().min(0).default(''),
   active: z.boolean().default(true),
   featured: z.boolean().default(false),
 });
@@ -143,6 +144,7 @@ export default function CategoryManagement() {
       name: '',
       slug: '',
       description: '',
+      image: '',
       active: true,
       featured: false,
     }
@@ -184,6 +186,7 @@ export default function CategoryManagement() {
         name: editingCategory.name,
         slug: editingCategory.slug,
         description: editingCategory.description || '',
+        image: (editingCategory as any).image || '',
         active: editingCategory.active,
         featured: editingCategory.featured,
       });
@@ -209,7 +212,8 @@ export default function CategoryManagement() {
   // Create category mutation
   const createCategoryMutation = useMutation({
     mutationFn: async (data: z.infer<typeof categorySchema>) => {
-      const res = await apiRequest('POST', '/api/categories', data);
+      const payload = { ...data, image: data.image ?? '' };
+      const res = await apiRequest('POST', '/api/categories', payload);
       return await res.json();
     },
     onSuccess: () => {
@@ -232,7 +236,8 @@ export default function CategoryManagement() {
   // Update category mutation
   const updateCategoryMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number, data: z.infer<typeof categorySchema> }) => {
-      const res = await apiRequest('PUT', `/api/categories/${id}`, data);
+      const payload = { ...data, image: data.image ?? '' };
+      const res = await apiRequest('PUT', `/api/categories/${id}`, payload);
       return await res.json();
     },
     onSuccess: () => {

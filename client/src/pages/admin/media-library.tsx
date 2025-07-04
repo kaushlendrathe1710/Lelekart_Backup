@@ -152,15 +152,15 @@ export default function MediaLibraryPage() {
     setUploadProgress(0);
   };
 
-  // Handle file selection
+  // Handle file selection (limit to 10 files)
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const filesArray = Array.from(e.target.files);
-      // Check file count
-      if (filesArray.length > MAX_FILES) {
+      // Check file count (max 10)
+      if (filesArray.length > 10) {
         toast({
           title: "Too many files",
-          description: `You can upload up to ${MAX_FILES} files at once.`,
+          description: `You can upload up to 10 files at once.`,
           variant: "destructive",
         });
         return;
@@ -304,13 +304,16 @@ export default function MediaLibraryPage() {
                   Upload New
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
+              <DialogContent>
+                <div className="mb-2 text-sm text-muted-foreground">
+                  <strong>Upload Limit:</strong> You can upload up to <b>10 files</b> at a time. Each file must be <b>50MB</b> or less.
+                </div>
                 <DialogHeader>
                   <DialogTitle>Upload Media</DialogTitle>
                   <DialogDescription>
                     Upload images or other files to your media library.<br />
                     <span className="text-xs text-muted-foreground">
-                      Max {MAX_FILES} files per upload. Max file size: 50MB each.
+                      <strong>Upload Limit:</strong> You can upload up to <b>10 files</b> at a time. Each file must be <b>50MB</b> or less.
                     </span>
                   </DialogDescription>
                 </DialogHeader>
