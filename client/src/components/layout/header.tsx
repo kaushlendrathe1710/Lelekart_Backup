@@ -11,6 +11,7 @@ import {
   Store,
   ShoppingBag,
   Heart,
+  Home as HomeIcon,
 } from "lucide-react";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { Button } from "@/components/ui/button";
@@ -72,14 +73,23 @@ export function Header() {
     <header className="bg-orange-400 text-white sticky top-0 z-50 shadow-md">
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row items-center py-4 justify-between">
-          {/* Logo */}
-          <div className="flex-shrink-0 md:w-52">
-            <Link href="/" className="flex items-center mb-2 md:mb-0">
+          {/* Logo and Home Button */}
+          <div className="flex items-center gap-2 flex-shrink-0 md:w-auto mb-2 md:mb-0">
+            <Link href="/" className="flex items-center">
               <img
                 src="https://drive.google.com/thumbnail?id=1RNjADzUc3bRdEpavAv5lxcN1P9VLG-PC&sz=w1000"
                 alt="Lelekart Logo"
                 className="h-12 w-auto"
               />
+            </Link>
+            <Link href="/">
+              <Button
+                variant="secondary"
+                className="flex items-center py-1 px-2 md:px-4 bg-white text-primary font-medium rounded-sm hover:bg-gray-100"
+              >
+                <HomeIcon className="mr-2 h-4 w-4" />
+                <span>Home</span>
+              </Button>
             </Link>
           </div>
 
@@ -274,13 +284,22 @@ export function Header() {
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden py-3 border-t border-primary-foreground/20">
-            <div className="flex items-center mb-4">
+            <div className="flex items-center mb-4 gap-2">
               <Link href="/" className="flex items-center">
                 <img
                   src="https://drive.google.com/thumbnail?id=1RNjADzUc3bRdEpavAv5lxcN1P9VLG-PC&sz=w1000"
                   alt="Lelekart Logo"
                   className="h-10 w-auto"
                 />
+              </Link>
+              <Link href="/">
+                <Button
+                  variant="secondary"
+                  className="flex items-center py-1 px-2 bg-white text-primary font-medium rounded-sm hover:bg-gray-100"
+                >
+                  <HomeIcon className="mr-2 h-4 w-4" />
+                  <span>Home</span>
+                </Button>
               </Link>
             </div>
             <ul className="space-y-3">

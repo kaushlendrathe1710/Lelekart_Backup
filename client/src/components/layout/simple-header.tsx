@@ -9,6 +9,7 @@ import {
   LogOut,
   ChevronDown,
   Mic,
+  Home as HomeIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -93,7 +94,7 @@ export function SimpleHeader() {
       {/* Desktop Header - with improved padding and spacing */}
       <div className="container mx-auto px-4 h-14 hidden md:flex md:items-center">
         <div className="flex items-center justify-between w-full py-2">
-          <div className="flex items-center space-x-8">
+          <div className="flex items-center space-x-4">
             <Link href="/">
               <div className="flex items-center">
                 <img
@@ -103,13 +104,21 @@ export function SimpleHeader() {
                 />
               </div>
             </Link>
-
             <div className="flex-grow max-w-xl">
               <SimpleSearch className="z-20" />
             </div>
           </div>
-
           <div className="flex items-center space-x-5">
+            <Link href="/">
+              <Button
+                variant="ghost"
+                className="flex items-center py-1 px-2 text-white font-medium rounded-sm hover:bg-primary-foreground/10"
+                style={{ boxShadow: 'none', background: 'transparent' }}
+              >
+                <HomeIcon className="mr-2 h-4 w-4" />
+                <span>Home</span>
+              </Button>
+            </Link>
             {!user ? (
               // Show login button for non-authenticated users
               <Button
@@ -199,6 +208,16 @@ export function SimpleHeader() {
                   className="h-8 w-auto"
                 />
               </div>
+            </Link>
+            <Link href="/">
+              <Button
+                variant="ghost"
+                className="flex items-center py-1 px-2 text-white font-medium rounded-sm hover:bg-primary-foreground/10"
+                style={{ boxShadow: 'none', background: 'transparent' }}
+              >
+                <HomeIcon className="mr-2 h-4 w-4" />
+                <span>Home</span>
+              </Button>
             </Link>
           </div>
 

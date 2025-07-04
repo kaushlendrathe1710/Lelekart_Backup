@@ -46,7 +46,7 @@ export function Header() {
             <div className="relative">
               <Input
                 type="text"
-                placeholder="Search for products, brands and more"
+                placeholder="Search for roducts, brands and more"
                 className="w-full py-2 px-4 text-gray-900 rounded-sm focus:outline-none"
                 disabled
                 onClick={() => alert('Search functionality is being improved. Please check back later!')}

@@ -23,6 +23,19 @@ import { Button } from "@/components/ui/button";
 export default function FaqPage() {
   const [searchQuery, setSearchQuery] = React.useState("");
 
+  // Helper to filter accordion items by search
+  function filterAccordionItems(items: Array<{ question: string; answer: React.ReactNode }>) {
+    if (!searchQuery.trim()) return items;
+    const q = searchQuery.trim().toLowerCase();
+    return items.filter(
+      (item) =>
+        item.question.toLowerCase().includes(q) ||
+        (typeof item.answer === "string"
+          ? item.answer.toLowerCase().includes(q)
+          : false)
+    );
+  }
+
   return (
     <div className="bg-[#f1f3f6] min-h-screen py-4">
       <div className="container mx-auto px-4">
@@ -104,137 +117,50 @@ export default function FaqPage() {
                   </TabsTrigger>
                 </TabsList>
 
-                {/* Orders Tab */}
+                {/* Orders Tab with search filter */}
                 <TabsContent value="orders">
                   <h2 className="text-2xl font-bold mb-6 text-[#2874f0] flex items-center gap-2">
                     <Package size={20} />
                     Orders & Shipping
                   </h2>
-                  <StaticPageSection
-                    section="faq_page"
-                    titleFilter="Orders FAQs"
-                    defaultContent={
-                      <Accordion type="single" collapsible className="w-full">
-                        <AccordionItem value="item-1">
-                          <AccordionTrigger>
-                            How do I track my order?
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            <p>
-                              You can track your order by following these steps:
-                            </p>
-                            <ol className="list-decimal pl-5 space-y-1 mt-2">
-                              <li>Log in to your Lelekart account</li>
-                              <li>Go to "My Orders" section</li>
-                              <li>Find the order you want to track</li>
-                              <li>Click on "Track" button</li>
-                            </ol>
-                            <p className="mt-2">
-                              You'll be able to see real-time updates on your
-                              order status and expected delivery date.
-                            </p>
-                          </AccordionContent>
-                        </AccordionItem>
-                        <AccordionItem value="item-2">
-                          <AccordionTrigger>
-                            When will I receive my order?
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            <p>
-                              Delivery times vary depending on your location and
-                              the product:
-                            </p>
-                            <ul className="list-disc pl-5 space-y-1 mt-2">
-                              <li>Metro cities: 1-3 business days</li>
-                              <li>Tier 2 cities: 2-4 business days</li>
-                              <li>Other areas: 4-7 business days</li>
-                            </ul>
-                            <p className="mt-2">
-                              The estimated delivery date is shown at checkout
-                              and in your order confirmation.
-                            </p>
-                          </AccordionContent>
-                        </AccordionItem>
-                        <AccordionItem value="item-3">
-                          <AccordionTrigger>
-                            Can I modify or cancel my order?
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            <p>
-                              You can modify or cancel your order only if it
-                              hasn't been shipped yet:
-                            </p>
-                            <ol className="list-decimal pl-5 space-y-1 mt-2">
-                              <li>Go to "My Orders" in your account</li>
-                              <li>
-                                Select the order you wish to modify or cancel
-                              </li>
-                              <li>
-                                Click "Cancel" or "Modify" button (if available)
-                              </li>
-                            </ol>
-                            <p className="mt-2">
-                              If the order has already been shipped, you won't
-                              be able to cancel it directly. In that case, you
-                              can refuse the delivery or request a return once
-                              you receive it.
-                            </p>
-                          </AccordionContent>
-                        </AccordionItem>
-                        <AccordionItem value="item-4">
-                          <AccordionTrigger>
-                            How do I check my order history?
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            <p>To view your order history:</p>
-                            <ol className="list-decimal pl-5 space-y-1 mt-2">
-                              <li>Log in to your Lelekart account</li>
-                              <li>Go to "My Orders" section</li>
-                              <li>
-                                You'll see all your past and current orders
-                              </li>
-                              <li>Click on any order to view its details</li>
-                            </ol>
-                            <p className="mt-2">
-                              Your order history is available for all orders
-                              placed within the last 12 months.
-                            </p>
-                          </AccordionContent>
-                        </AccordionItem>
-                        <AccordionItem value="item-5">
-                          <AccordionTrigger>
-                            What if I'm not available during delivery?
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            <p>If you're not available during delivery:</p>
-                            <ul className="list-disc pl-5 space-y-1 mt-2">
-                              <li>
-                                Our delivery partner will attempt delivery up to
-                                3 times
-                              </li>
-                              <li>
-                                You'll receive notifications before each
-                                delivery attempt
-                              </li>
-                              <li>
-                                You can reschedule delivery through the tracking
-                                page
-                              </li>
-                              <li>
-                                For some areas, you can choose safe drop-off
-                                options
-                              </li>
-                            </ul>
-                            <p className="mt-2">
-                              If delivery cannot be completed after 3 attempts,
-                              the order will be returned to our warehouse and a
-                              refund will be processed.
-                            </p>
-                          </AccordionContent>
-                        </AccordionItem>
-                      </Accordion>
+                  {(() => {
+                    const items = [
+                      {
+                        question: "How do I track my order?",
+                        answer: `You can track your order by following these steps: Log in to your Lelekart account, Go to 'My Orders' section, Find the order you want to track, Click on 'Track' button. You'll be able to see real-time updates on your order status and expected delivery date.`
+                      },
+                      {
+                        question: "When will I receive my order?",
+                        answer: `Delivery times vary depending on your location and the product. Metro cities: 1-3 business days, Tier 2 cities: 2-4 business days, Other areas: 4-7 business days. The estimated delivery date is shown at checkout and in your order confirmation.`
+                      },
+                      {
+                        question: "Can I modify or cancel my order?",
+                        answer: `You can modify or cancel your order only if it hasn't been shipped yet. Go to 'My Orders' in your account, Select the order you wish to modify or cancel, Click 'Cancel' or 'Modify' button (if available). If the order has already been shipped, you won't be able to cancel it directly. In that case, you can refuse the delivery or request a return once you receive it.`
+                      },
+                      {
+                        question: "How do I check my order history?",
+                        answer: `To view your order history: Log in to your Lelekart account, Go to 'My Orders' section, You'll see all your past and current orders, Click on any order to view its details. Your order history is available for all orders placed within the last 12 months.`
+                      },
+                      {
+                        question: "What if I'm not available during delivery?",
+                        answer: `If you're not available during delivery: Our delivery partner will attempt delivery up to 3 times, You'll receive notifications before each delivery attempt, You can reschedule delivery through the tracking page, For some areas, you can choose safe drop-off options. If delivery cannot be completed after 3 attempts, the order will be returned to our warehouse and a refund will be processed.`
+                      },
+                    ];
+                    const filtered = filterAccordionItems(items);
+                    if (filtered.length === 0) {
+                      return <div className="text-center text-muted-foreground py-8">No matching questions found.</div>;
                     }
-                  />
+                    return (
+                      <Accordion type="single" collapsible className="w-full">
+                        {filtered.map((item, idx) => (
+                          <AccordionItem value={`item-${idx + 1}`} key={item.question}>
+                            <AccordionTrigger>{item.question}</AccordionTrigger>
+                            <AccordionContent>{item.answer}</AccordionContent>
+                          </AccordionItem>
+                        ))}
+                      </Accordion>
+                    );
+                  })()}
                 </TabsContent>
 
                 {/* Payments Tab */}
