@@ -197,7 +197,6 @@ export default function SellerProductsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {productsData.products.map((product: Product, colIndex: number) => (
                   <div key={product.id} className="flex flex-col h-full">
-                    {/* Product Card without Add to Cart button */}
                     <div className="flex-1">
                       <ProductCard
                         product={{
@@ -207,7 +206,6 @@ export default function SellerProductsPage() {
                         priority={colIndex === 0}
                       />
                     </div>
-                    {/* Status and Edit below card */}
                     <div className="flex flex-col items-center mt-2">
                       {product.approved ? (
                         <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200 mb-1">
