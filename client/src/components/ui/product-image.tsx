@@ -1,4 +1,4 @@
-git add client/src/pages/admin/media-library.tsx client/src/hooks/use-infinite-products.ts client/src/pages/all-products-page.tsx server/routes.tsimport React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 
 interface ProductImageProps {
   product: {
