@@ -73,7 +73,27 @@ export default function EditProductForm({
   onSuccess,
   onError,
 }: EditProductFormProps) {
-  // Ensure all required fields are present and properly typed
+  let normalizedImages: string[] = [];
+  if (Array.isArray(product.images)) {
+    normalizedImages = product.images;
+  } else if (typeof product.images === 'string') {
+    const imgStr = String(product.images || '');
+    try {
+      if (imgStr.startsWith('[') && imgStr.includes(']')) {
+        const parsed = JSON.parse(imgStr);
+        if (Array.isArray(parsed)) {
+          normalizedImages = parsed;
+        } else {
+          normalizedImages = [imgStr];
+        }
+      } else {
+        normalizedImages = [imgStr];
+      }
+    } catch (e) {
+      normalizedImages = [imgStr];
+    }
+  }
+
   const initialValues: Product = {
     ...product,
     // Ensure numeric fields are numbers
@@ -100,7 +120,7 @@ export default function EditProductForm({
         images: Array.isArray(variant.images) ? variant.images : [],
       })) || [],
     // Ensure images is always an array
-    images: Array.isArray(product.images) ? product.images : [],
+    images: normalizedImages,
     // Set default return policy if not present
     returnPolicy: product.returnPolicy || "7",
     // Ensure dates are strings

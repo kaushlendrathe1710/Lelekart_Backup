@@ -177,37 +177,7 @@ export default function AddProductForm({
 }: AddProductFormProps) {
   // Initialize state with values from initialValues if provided (for edit mode)
   // Ensure images are properly initialized, handling different possible formats
-  const [uploadedImages, setUploadedImages] = useState<string[]>(() => {
-    if (!initialValues?.images) return [];
-
-    // Handle array of images
-    if (Array.isArray(initialValues.images)) {
-      return initialValues.images;
-    }
-
-    // Handle string (could be JSON string or a single URL)
-    if (typeof initialValues.images === "string") {
-      try {
-        // Check if it's a JSON string
-        if (
-          initialValues.images.startsWith("[") &&
-          initialValues.images.includes("]")
-        ) {
-          const parsed = JSON.parse(initialValues.images);
-          if (Array.isArray(parsed)) {
-            return parsed;
-          }
-        }
-        // It's a single URL
-        return [initialValues.images];
-      } catch (e) {
-        console.error("Failed to parse image data:", e);
-        return [initialValues.images]; // Treat as single URL
-      }
-    }
-
-    return [];
-  });
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [variants, setVariants] = useState<ProductVariant[]>(
     initialValues?.variants?.filter((v: any) => v.id > 0) || []
   );
@@ -224,24 +194,49 @@ export default function AddProductForm({
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
 
+  // Prefill images when editing (initialValues changes)
+  useEffect(() => {
+    if (!initialValues?.images) {
+      setUploadedImages([]);
+      return;
+    }
+    if (Array.isArray(initialValues.images)) {
+      setUploadedImages(initialValues.images);
+      return;
+    }
+    if (typeof initialValues.images === "string") {
+      try {
+        if (initialValues.images.startsWith("[") && initialValues.images.includes("]")) {
+          const parsed = JSON.parse(initialValues.images);
+          if (Array.isArray(parsed)) {
+            setUploadedImages(parsed);
+            return;
+          }
+        }
+      } catch (e) {}
+      setUploadedImages([initialValues.images]);
+      return;
+    }
+    setUploadedImages([]);
+  }, [initialValues]);
+
   // Query to fetch categories with GST rates
-  const { data: categoriesData } = useQuery({
+  const { data: categoriesData, isLoading: isCategoriesLoading } = useQuery({
     queryKey: ["/api/categories"],
   });
 
   // Query to fetch all subcategories
-  const { data: subcategoriesData } = useQuery({
+  const { data: subcategoriesData, isLoading: isSubcategoriesLoading } = useQuery({
     queryKey: ["/api/subcategories/all"],
   });
 
-  // Process categories for use in select dropdown and get GST rates
-  const categories =
-    categoriesData?.map((category: any) => category.name) || [];
-  const categoryGstRates =
-    categoriesData?.reduce((acc: Record<string, number>, category: any) => {
-      acc[category.name] = parseFloat(category.gstRate) || 0;
-      return acc;
-    }, {}) || {};
+  const safeCategoriesData = Array.isArray(categoriesData) ? categoriesData : [];
+  const safeSubcategoriesData = Array.isArray(subcategoriesData) ? subcategoriesData : [];
+  const categories = safeCategoriesData.map((category: any) => category.name);
+  const categoryGstRates = safeCategoriesData.reduce((acc: Record<string, number>, category: any) => {
+    acc[category.name] = parseFloat(category.gstRate) || 0;
+    return acc;
+  }, {});
 
   // Debug: Log initial form values and subcategory info
   useEffect(() => {
@@ -311,7 +306,7 @@ export default function AddProductForm({
   });
 
   // Watch important fields to calculate completion and for GST calculation
-  const watchedFields = form.watch([
+  const [watchedName, watchedCategory, watchedPrice, watchedDescription, watchedStock, watchedGstRate] = form.watch([
     "name",
     "category",
     "price",
@@ -348,25 +343,11 @@ export default function AddProductForm({
 
   // Calculate form completion status
   const getCompletionStatus = () => {
-    const basicFields = ["name", "category", "price"];
-    const descriptionComplete =
-      watchedFields.description && watchedFields.description.length >= 20;
-    const inventoryFields = ["stock"];
-
-    const basicComplete = basicFields.every(
-      (field) => watchedFields[field as keyof typeof watchedFields]
-    );
-    const inventoryComplete = inventoryFields.every(
-      (field) => watchedFields[field as keyof typeof watchedFields]
-    );
+    const basicComplete = Boolean(watchedName && watchedCategory && watchedPrice);
+    const descriptionComplete = Boolean(watchedDescription && watchedDescription.length >= 20);
+    const inventoryComplete = Boolean(watchedStock);
     const imagesComplete = uploadedImages.length > 0;
-
-    const total = [
-      basicComplete,
-      descriptionComplete,
-      inventoryComplete,
-      imagesComplete,
-    ].filter(Boolean).length;
+    const total = [basicComplete, descriptionComplete, inventoryComplete, imagesComplete].filter(Boolean).length;
     return {
       basicComplete,
       descriptionComplete,
@@ -1024,6 +1005,7 @@ export default function AddProductForm({
       // Combine form data with images
       const productData = {
         ...processedFormValues,
+        gstRate: processedFormValues.gstRate ?? 0,
         images: uploadedImages,
         variants: [...variants, ...draftVariants],
       };
@@ -1031,7 +1013,7 @@ export default function AddProductForm({
       // Submit the product via mutation - either create or update
       if (initialValues?.id) {
         // Update existing product
-        await updateProductMutation.mutateAsync(productData);
+        await updateProductMutation.mutateAsync({ productData });
       } else {
         // Create new product
         await createProductMutation.mutateAsync(productData);
@@ -1180,6 +1162,25 @@ export default function AddProductForm({
     }
   }, [form]);
 
+  // Add loading check before rendering the form
+  if (
+    isCategoriesLoading ||
+    isSubcategoriesLoading ||
+    !categoriesData ||
+    !Array.isArray(categoriesData) ||
+    categoriesData.length === 0 ||
+    !subcategoriesData ||
+    !Array.isArray(subcategoriesData) ||
+    subcategoriesData.length === 0
+  ) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-400 mb-4" />
+        <div className="text-gray-500 text-lg">Loading product form...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <Card className="border-2 border-primary/20">
@@ -1232,7 +1233,7 @@ export default function AddProductForm({
               type="button"
               variant="default"
               onClick={handleSubmit}
-              disabled={isSubmitting || completionStatus.percentage < 100}
+              disabled={isSubmitting || (!initialValues?.id && completionStatus.percentage < 100)}
             >
               {createProductMutation.isPending ||
               updateProductMutation.isPending ? (
@@ -1441,17 +1442,14 @@ export default function AddProductForm({
                     const selectedCategory = form.watch("category");
 
                     // Find the category object to get its ID
-                    const categoryObject = categoriesData?.find(
+                    const categoryObject = safeCategoriesData.find(
                       (c: any) => c.name === selectedCategory
                     );
 
                     // Filter subcategories by the selected category
-                    const filteredSubcategories =
-                      subcategoriesData?.filter((sc: any) => {
-                        return (
-                          categoryObject && sc.categoryId === categoryObject.id
-                        );
-                      }) || [];
+                    const filteredSubcategories = safeSubcategoriesData.filter((sc: any) => {
+                      return categoryObject && sc.categoryId === categoryObject.id;
+                    });
 
                     return (
                       <FormItem>
@@ -1459,32 +1457,27 @@ export default function AddProductForm({
                         <FormControl>
                           <Select
                             onValueChange={(value) => {
-                              // Update the subcategory name
-                              field.onChange(value);
-
-                              if (value === "") {
-                                // If None is selected, set subcategoryId to null
-                                form.setValue("subcategoryId", null);
+                              if (value === '_none') {
+                                field.onChange('');
+                                form.setValue('subcategoryId', null);
                               } else {
+                                field.onChange(value);
                                 // Find the subcategory in the data to get its ID
-                                const subcategory = subcategoriesData?.find(
+                                const subcategory = safeSubcategoriesData.find(
                                   (sc: any) => sc.name === value
                                 );
                                 if (subcategory) {
-                                  form.setValue(
-                                    "subcategoryId",
-                                    subcategory.id
-                                  );
+                                  form.setValue('subcategoryId', subcategory.id);
                                 }
                               }
                             }}
-                            value={field.value || ""}
+                            value={field.value ? field.value : '_none'}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Select a subcategory (optional)" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">None</SelectItem>
+                              <SelectItem value="_none">None</SelectItem>
                               {filteredSubcategories.map((subcategory: any) => (
                                 <SelectItem
                                   key={subcategory.id}
@@ -1506,7 +1499,7 @@ export default function AddProductForm({
                 />
 
                 {/* GST information card */}
-                {watchedFields.category && (
+                {watchedCategory && (
                   <Card className="bg-muted/30">
                     <CardContent className="p-4 space-y-2">
                       <div className="flex items-center">
@@ -1516,11 +1509,11 @@ export default function AddProductForm({
                         </span>
                       </div>
                       <div className="grid grid-cols-1 gap-2 text-sm">
-                        {watchedFields.category && (
+                        {watchedCategory && (
                           <>
                             <p className="text-slate-600">
                               <span className="font-medium">Category:</span>{" "}
-                              {watchedFields.category}
+                              {watchedCategory}
                             </p>
                             <p className="text-slate-600">
                               <span className="font-medium">
@@ -1536,7 +1529,7 @@ export default function AddProductForm({
                                 {gstRate}%
                               </p>
                             )}
-                            {watchedFields.price && (
+                            {watchedPrice && (
                               <div className="pt-1 space-y-1">
                                 <p className="text-slate-600">
                                   <span className="font-medium">

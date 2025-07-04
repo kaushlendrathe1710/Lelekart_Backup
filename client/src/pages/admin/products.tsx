@@ -976,6 +976,26 @@ function AdminProductsContent({
     }
   }, []);
 
+  // Remove old search suggestion logic and replace with instant search-as-you-type dropdown
+  const [showInstantSuggestions, setShowInstantSuggestions] = useState(false);
+  const [instantSuggestions, setInstantSuggestions] = useState<string[]>([]);
+
+  // Update instant suggestions as user types
+  useEffect(() => {
+    if (searchInput.trim().length < 1) {
+      setInstantSuggestions([]);
+      setShowInstantSuggestions(false);
+      return;
+    }
+    // Filter product names for instant suggestions
+    const matches = products
+      .filter((p) => p.name.toLowerCase().includes(searchInput.toLowerCase()))
+      .map((p) => p.name)
+      .slice(0, 7);
+    setInstantSuggestions(matches);
+    setShowInstantSuggestions(true);
+  }, [searchInput, products]);
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -1098,24 +1118,28 @@ function AdminProductsContent({
 
                 {/* Search input with suggestions */}
                 <div className="relative flex-1">
-                  <Command className="rounded-lg border shadow-md overflow-visible">
+                  <div className="rounded-lg border shadow-md overflow-visible">
                     <div className="flex items-center border-b px-3">
                       <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                      <CommandInput
+                      <input
                         ref={searchInputRef}
-                        placeholder={`Search in ${
-                          searchField === "all" ? "all fields" : searchField
-                        }...`}
+                        placeholder={`Search in ${searchField === "all" ? "all fields" : searchField}...`}
                         value={searchInput}
-                        onValueChange={(value) => {
-                          setSearchInput(value);
-                          setIsSearchSuggestionsOpen(value.length >= 2);
+                        onChange={(e) => {
+                          setSearchInput(e.target.value);
                         }}
                         className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                        onFocus={() => {
+                          if (searchInput.length > 0) setShowInstantSuggestions(true);
+                        }}
+                        onBlur={() => {
+                          // Delay hiding to allow click
+                          setTimeout(() => setShowInstantSuggestions(false), 150);
+                        }}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
                             performSearch();
-                            setIsSearchSuggestionsOpen(false);
+                            setShowInstantSuggestions(false);
                           }
                         }}
                       />
@@ -1336,53 +1360,31 @@ function AdminProductsContent({
                         </PopoverContent>
                       </Popover>
                     </div>
-
-                    {/* Search suggestions */}
-                    {isSearchSuggestionsOpen &&
-                      searchSuggestions.length > 0 && (
-                        <div className="border-t">
-                          <CommandList>
-                            <CommandGroup heading="Suggestions">
-                              {searchSuggestions.map((suggestion) => (
-                                <CommandItem
-                                  key={suggestion}
-                                  value={suggestion}
-                                  onSelect={(value) => {
-                                    setSearchInput(value);
-                                    setIsSearchSuggestionsOpen(false);
-                                    performSearch();
-                                  }}
-                                  className="cursor-pointer"
-                                >
-                                  {suggestion}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                            {searchHistory.length > 0 && (
-                              <CommandGroup heading="Recent Searches">
-                                {searchHistory
-                                  .slice(0, 3)
-                                  .map((historyItem) => (
-                                    <CommandItem
-                                      key={`history-${historyItem}`}
-                                      value={historyItem}
-                                      onSelect={(value) => {
-                                        setSearchInput(value);
-                                        setIsSearchSuggestionsOpen(false);
-                                        performSearch();
-                                      }}
-                                      className="cursor-pointer"
-                                    >
-                                      <Clock className="mr-2 h-4 w-4" />
-                                      {historyItem}
-                                    </CommandItem>
-                                  ))}
-                              </CommandGroup>
-                            )}
-                          </CommandList>
-                        </div>
-                      )}
-                  </Command>
+                    {/* Instant search suggestions dropdown */}
+                    {showInstantSuggestions && (
+                      <div className="absolute left-0 right-0 z-20 bg-white border border-t-0 rounded-b-lg shadow-lg max-h-60 overflow-y-auto">
+                        {instantSuggestions.length > 0 ? (
+                          instantSuggestions.map((suggestion) => (
+                            <div
+                              key={suggestion}
+                              className="px-4 py-2 cursor-pointer hover:bg-gray-100 text-sm"
+                              onMouseDown={() => {
+                                setSearchInput(suggestion);
+                                setShowInstantSuggestions(false);
+                                performSearch();
+                              }}
+                            >
+                              {suggestion}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-4 py-2 text-muted-foreground text-sm select-none">
+                            Your product is not listed here.
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Search button */}
