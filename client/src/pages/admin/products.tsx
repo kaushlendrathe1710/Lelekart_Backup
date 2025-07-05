@@ -355,6 +355,7 @@ function AdminProductsContent({
     name: string;
     categoryId: number;
     slug?: string;
+    parentId?: number;
   };
 
   // Log product data for debugging
@@ -806,8 +807,7 @@ function AdminProductsContent({
             (product.category &&
               product.category.toLowerCase().includes(searchLower)) ||
             (product.sku && product.sku.toLowerCase().includes(searchLower)) ||
-            (product.seller_username &&
-              product.seller_username.toLowerCase().includes(searchLower));
+            (product.sellerId && `Seller #${product.sellerId}`.toLowerCase().includes(searchLower));
         } else if (searchField === "name") {
           matchesSearch = product.name.toLowerCase().includes(searchLower);
         } else if (searchField === "description") {
@@ -823,8 +823,7 @@ function AdminProductsContent({
             product.sku && product.sku.toLowerCase().includes(searchLower);
         } else if (searchField === "seller") {
           matchesSearch =
-            product.seller_username &&
-            product.seller_username.toLowerCase().includes(searchLower);
+            product.sellerId && `Seller #${product.sellerId}`.toLowerCase().includes(searchLower);
         }
       }
 
@@ -838,9 +837,9 @@ function AdminProductsContent({
         approvalFilter === null
           ? true
           : approvalFilter === "approved"
-            ? product.approved
+            ? Boolean(product.approved)
             : approvalFilter === "rejected"
-              ? product.rejected
+              ? Boolean(product.rejected)
               : !product.approved && !product.rejected; // pending products (not approved and not rejected)
 
       // Price range filter
@@ -853,8 +852,8 @@ function AdminProductsContent({
       const matchesStock = !stockFilter
         ? true
         : stockFilter === "inStock"
-          ? product.stockQuantity && product.stockQuantity > 0
-          : product.stockQuantity === 0 || !product.stockQuantity;
+          ? Boolean(product.stock && product.stock > 0)
+          : Boolean(product.stock === 0 || !product.stock);
 
       return (
         matchesSearch &&
@@ -1776,10 +1775,7 @@ function AdminProductsContent({
                   <TableRow>
                     <TableHead className="w-[50px]">
                       <Checkbox
-                        checked={
-                          selectedProducts.length === products.length &&
-                          products.length > 0
-                        }
+                        checked={Boolean(selectedProducts.length === products.length && products.length > 0)}
                         onCheckedChange={toggleSelectAll}
                         aria-label="Select all products"
                       />
@@ -1799,7 +1795,7 @@ function AdminProductsContent({
                     <TableRow key={product.id}>
                       <TableCell>
                         <Checkbox
-                          checked={selectedProducts.includes(product.id)}
+                          checked={Boolean(selectedProducts.includes(product.id))}
                           onCheckedChange={() =>
                             toggleProductSelection(product.id)
                           }
@@ -2244,55 +2240,21 @@ function AdminProductsContent({
                           >
                             {(() => {
                               // Find the matching subcategory from productSubcategories
-                              // Make sure we're using correct number comparison
-                              const subcategoryMatch =
-                                productSubcategories?.find(
-                                  (s: Subcategory) =>
-                                    Number(s.id) ===
-                                    Number(product.subcategoryId)
+                              const subcategory = productSubcategories?.find(
+                                (s: Subcategory) => Number(s.id) === Number(product.subcategoryId)
+                              );
+                              if (!subcategory) return "-";
+                              // If this subcategory has a parent, find the parent name
+                              if (subcategory.parentId) {
+                                const parent = productSubcategories?.find(
+                                  (s: Subcategory) => Number(s.id) === Number(subcategory.parentId)
                                 );
-
-                              // Additional debug logging
-                              if (product.id === 4470) {
-                                console.log(
-                                  "Subcategory display - product subcategoryId:",
-                                  product.subcategoryId
-                                );
-                                console.log(
-                                  "All subcategories available:",
-                                  productSubcategories?.map(
-                                    (s: Subcategory) => ({
-                                      id: s.id,
-                                      name: s.name,
-                                      categoryId: s.categoryId,
-                                    })
-                                  )
-                                );
+                                if (parent) {
+                                  return `${parent.name} (${subcategory.name})`;
+                                }
                               }
-
-                              // For debugging purposes - helps trace subcategory issues
-                              if (product.id === 4470) {
-                                console.log(
-                                  `Product ${product.id} subcategoryId:`,
-                                  product.subcategoryId,
-                                  typeof product.subcategoryId
-                                );
-                                console.log(
-                                  `Found subcategory for product ${product.id}:`,
-                                  subcategoryMatch
-                                );
-                                console.log(
-                                  `Total subcategories:`,
-                                  productSubcategories?.length
-                                );
-                              }
-
-                              // Display subcategory name if found
-                              return subcategoryMatch
-                                ? subcategoryMatch.name
-                                : product.subcategoryId
-                                  ? `ID: ${product.subcategoryId}`
-                                  : "-";
+                              // Otherwise, just show the subcategory name
+                              return subcategory.name;
                             })()}
                           </div>
                         )}
@@ -2326,11 +2288,9 @@ function AdminProductsContent({
                           <span
                             dangerouslySetInnerHTML={{
                               __html: (
-                                product.seller_name ||
-                                product.seller_username ||
-                                (product.sellerId
+                                product.sellerId
                                   ? `Seller #${product.sellerId}`
-                                  : "Unknown Seller")
+                                  : "Unknown Seller"
                               ).replace(
                                 new RegExp(
                                   `(${search.replace(
@@ -2344,11 +2304,9 @@ function AdminProductsContent({
                             }}
                           />
                         ) : (
-                          product.seller_name ||
-                          product.seller_username ||
-                          (product.sellerId
+                          product.sellerId
                             ? `Seller #${product.sellerId}`
-                            : "Unknown Seller")
+                            : "Unknown Seller"
                         )}
                       </TableCell>
                       <TableCell>
@@ -2527,11 +2485,9 @@ function AdminProductsContent({
               <DialogTitle>{viewProduct.name}</DialogTitle>
               <DialogDescription>
                 Product ID: {viewProduct.id} | Added by{" "}
-                {viewProduct.seller_name ||
-                  viewProduct.seller_username ||
-                  (viewProduct.sellerId
-                    ? `Seller #${viewProduct.sellerId}`
-                    : "Unknown Seller")}
+                {viewProduct.sellerId
+                  ? `Seller #${viewProduct.sellerId}`
+                  : "Unknown Seller"}
               </DialogDescription>
             </DialogHeader>
 
@@ -2591,13 +2547,6 @@ function AdminProductsContent({
                   <div>
                     <h3 className="text-sm font-medium text-gray-500">Stock</h3>
                     <p>{viewProduct.stock} units</p>
-                  </div>
-                )}
-
-                {viewProduct.brand && (
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Brand</h3>
-                    <p>{viewProduct.brand}</p>
                   </div>
                 )}
 
@@ -2865,11 +2814,9 @@ function AdminProductsContent({
                 <div className="mt-4 p-2 bg-muted rounded-md">
                   <p className="text-sm font-medium">Current Seller</p>
                   <p className="text-sm">
-                    {assignSellerProduct.seller_name ||
-                      assignSellerProduct.seller_username ||
-                      (assignSellerProduct.sellerId
-                        ? `Seller #${assignSellerProduct.sellerId}`
-                        : "Unknown Seller")}
+                    {assignSellerProduct.sellerId
+                      ? `Seller #${assignSellerProduct.sellerId}`
+                      : "Unknown Seller"}
                   </p>
                 </div>
               )}

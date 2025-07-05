@@ -117,6 +117,11 @@ const productSchema = z
       .max(100, "GST rate cannot exceed 100%")
       .optional()
       .nullable(),
+    deliveryCharges: z.coerce
+      .number()
+      .min(0, "Delivery charges cannot be negative")
+      .optional()
+      .nullable(),
     warranty: z.coerce
       .number()
       .min(0, "Warranty period cannot be negative")
@@ -265,6 +270,7 @@ export default function AddProductForm({
           mrp: initialValues.mrp,
           purchasePrice: initialValues.purchasePrice,
           gstRate: initialValues.gstRate,
+          deliveryCharges: initialValues.deliveryCharges,
           warranty: initialValues.warranty,
           returnPolicy: initialValues.returnPolicy || "7",
           customReturnPolicy: initialValues.customReturnPolicy,
@@ -289,6 +295,7 @@ export default function AddProductForm({
           mrp: undefined,
           purchasePrice: undefined,
           gstRate: undefined,
+          deliveryCharges: undefined,
           warranty: undefined,
           returnPolicy: "7", // Default to 7 days
           customReturnPolicy: undefined,
@@ -986,6 +993,9 @@ export default function AddProductForm({
         gstRate: formValues.gstRate
           ? Number(formValues.gstRate)
           : formValues.gstRate,
+        deliveryCharges: formValues.deliveryCharges
+          ? Number(formValues.deliveryCharges)
+          : formValues.deliveryCharges,
         warranty: formValues.warranty ? Number(formValues.warranty) : null,
         weight: formValues.weight ? Number(formValues.weight) : null,
         length: formValues.length ? Number(formValues.length) : null,
@@ -1059,6 +1069,9 @@ export default function AddProductForm({
         gstRate: formValues.gstRate
           ? Number(formValues.gstRate)
           : formValues.gstRate,
+        deliveryCharges: formValues.deliveryCharges
+          ? Number(formValues.deliveryCharges)
+          : formValues.deliveryCharges,
       };
 
       console.log("Processed draft values:", processedFormValues);
@@ -1108,6 +1121,11 @@ export default function AddProductForm({
   const [colors, setColors] = useState<string[]>([]);
   const [sizes, setSizes] = useState<string[]>([]);
   const [inputValue, setInputValue] = useState("");
+
+  // Helper to always provide a string value for Select
+  function safeString(val: any): string {
+    return typeof val === "string" ? val : val == null ? "" : String(val);
+  }
 
   // Handle pressing Enter in tag input
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -1397,7 +1415,7 @@ export default function AddProductForm({
                         <Input
                           placeholder="Brand name (optional)"
                           {...field}
-                          value={field.value || ""}
+                          value={safeString(field.value)}
                         />
                       </FormControl>
                       <FormMessage />
@@ -1405,6 +1423,7 @@ export default function AddProductForm({
                   )}
                 />
 
+                {/* Category, Subcategory, Subcategory Level 2 (always show all three, prefilled, with fallback) */}
                 <FormField
                   control={form.control}
                   name="category"
@@ -1413,18 +1432,27 @@ export default function AddProductForm({
                       <FormLabel>Category *</FormLabel>
                       <FormControl>
                         <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            form.setValue("subcategory", "");
+                            form.setValue("subcategoryId", null);
+                            form.setValue("subcategory2", "");
+                          }}
+                          value={safeString(field.value)}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select a category" />
                           </SelectTrigger>
                           <SelectContent>
-                            {categories.map((category) => (
-                              <SelectItem key={category} value={category}>
-                                {category}
-                              </SelectItem>
-                            ))}
+                            {safeCategoriesData.length > 0 ? (
+                              safeCategoriesData.map((category: any) => (
+                                <SelectItem key={category.id} value={category.name}>
+                                  {category.name}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <SelectItem value="none" disabled>No matching entry</SelectItem>
+                            )}
                           </SelectContent>
                         </Select>
                       </FormControl>
@@ -1433,65 +1461,107 @@ export default function AddProductForm({
                   )}
                 />
 
-                {/* Subcategory Selector */}
                 <FormField
                   control={form.control}
                   name="subcategory"
                   render={({ field }) => {
-                    // Get currently selected category
                     const selectedCategory = form.watch("category");
-
-                    // Find the category object to get its ID
-                    const categoryObject = safeCategoriesData.find(
-                      (c: any) => c.name === selectedCategory
-                    );
-
-                    // Filter subcategories by the selected category
-                    const filteredSubcategories = safeSubcategoriesData.filter((sc: any) => {
-                      return categoryObject && sc.categoryId === categoryObject.id;
-                    });
-
+                    const categoryObject = safeCategoriesData.find((c: any) => c.name === selectedCategory);
+                    const filteredSubcategories = safeSubcategoriesData.filter((sc: any) => categoryObject && sc.categoryId === categoryObject.id && !sc.parentId);
                     return (
                       <FormItem>
                         <FormLabel>Subcategory</FormLabel>
                         <FormControl>
                           <Select
                             onValueChange={(value) => {
-                              if (value === '_none') {
-                                field.onChange('');
-                                form.setValue('subcategoryId', null);
+                              field.onChange(value);
+                              form.setValue("subcategory2", "");
+                              // Find the subcategory in the data to get its ID
+                              const subcategory = safeSubcategoriesData.find((sc: any) => sc.name === value && sc.categoryId === categoryObject?.id && !sc.parentId);
+                              if (subcategory) {
+                                form.setValue("subcategoryId", subcategory.id);
                               } else {
-                                field.onChange(value);
-                                // Find the subcategory in the data to get its ID
-                                const subcategory = safeSubcategoriesData.find(
-                                  (sc: any) => sc.name === value
-                                );
-                                if (subcategory) {
-                                  form.setValue('subcategoryId', subcategory.id);
-                                }
+                                form.setValue("subcategoryId", null);
                               }
                             }}
-                            value={field.value ? field.value : '_none'}
+                            value={safeString(field.value)}
+                            disabled={!selectedCategory}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="Select a subcategory (optional)" />
+                              <SelectValue placeholder="Select a subcategory" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="_none">None</SelectItem>
-                              {filteredSubcategories.map((subcategory: any) => (
-                                <SelectItem
-                                  key={subcategory.id}
-                                  value={subcategory.name}
-                                >
-                                  {subcategory.name}
-                                </SelectItem>
-                              ))}
+                              {selectedCategory ? (
+                                filteredSubcategories.length > 0 ? (
+                                  filteredSubcategories.map((subcategory: any) => (
+                                    <SelectItem key={subcategory.id} value={subcategory.name}>
+                                      {subcategory.name}
+                                    </SelectItem>
+                                  ))
+                                ) : (
+                                  <SelectItem value="none" disabled>No matching entry</SelectItem>
+                                )
+                              ) : (
+                                <SelectItem value="none" disabled>Select category first</SelectItem>
+                              )}
                             </SelectContent>
                           </Select>
                         </FormControl>
-                        <FormDescription>
-                          Select a subcategory if applicable
-                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="subcategory2"
+                  render={({ field }) => {
+                    const selectedCategory = form.watch("category");
+                    const selectedSubcategory = form.watch("subcategory");
+                    const categoryObject = safeCategoriesData.find((c: any) => c.name === selectedCategory);
+                    const parentSubcategory = safeSubcategoriesData.find((sc: any) => sc.name === selectedSubcategory && sc.categoryId === categoryObject?.id && !sc.parentId);
+                    const filteredSubcategory2 = safeSubcategoriesData.filter((sc: any) => parentSubcategory && sc.parentId === parentSubcategory.id);
+                    return (
+                      <FormItem>
+                        <FormLabel>Subcategory Level 2</FormLabel>
+                        <FormControl>
+                          <Select
+                            onValueChange={(value) => {
+                              field.onChange(value);
+                              // Find the subcategory2 in the data to get its ID
+                              const subcategory2 = safeSubcategoriesData.find((sc: any) => sc.name === value && sc.parentId === parentSubcategory?.id);
+                              if (subcategory2) {
+                                form.setValue("subcategoryId", subcategory2.id);
+                              } else if (parentSubcategory) {
+                                form.setValue("subcategoryId", parentSubcategory.id);
+                              } else {
+                                form.setValue("subcategoryId", null);
+                              }
+                            }}
+                            value={safeString(field.value)}
+                            disabled={!selectedSubcategory}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a subcategory level 2" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {selectedSubcategory ? (
+                                filteredSubcategory2.length > 0 ? (
+                                  filteredSubcategory2.map((subcategory2: any) => (
+                                    <SelectItem key={subcategory2.id} value={subcategory2.name}>
+                                      {subcategory2.name}
+                                    </SelectItem>
+                                  ))
+                                ) : (
+                                  <SelectItem value="none" disabled>No matching entry</SelectItem>
+                                )
+                              ) : (
+                                <SelectItem value="none" disabled>Select subcategory first</SelectItem>
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     );
@@ -1621,7 +1691,7 @@ export default function AddProductForm({
                             step="0.01"
                             placeholder="0.00"
                             {...field}
-                            value={field.value || ""}
+                            value={safeString(field.value)}
                           />
                         </FormControl>
                         <FormDescription>Maximum retail price</FormDescription>
@@ -1645,7 +1715,7 @@ export default function AddProductForm({
                             step="0.01"
                             placeholder="0.00"
                             {...field}
-                            value={field.value || ""}
+                            value={safeString(field.value)}
                           />
                         </FormControl>
                         <FormDescription>Your cost price</FormDescription>
@@ -1668,7 +1738,7 @@ export default function AddProductForm({
                             step="0.01"
                             placeholder="Use category default"
                             {...field}
-                            value={field.value || ""}
+                            value={safeString(field.value)}
                           />
                         </FormControl>
                         <FormDescription>
@@ -1711,9 +1781,33 @@ export default function AddProductForm({
                           <Input
                             placeholder="Stock Keeping Unit"
                             {...field}
-                            value={field.value || ""}
+                            value={safeString(field.value)}
                           />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="deliveryCharges"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Delivery Charges (₹)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="0.00"
+                            {...field}
+                            value={safeString(field.value)}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Enter delivery charges for this product (if any)
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -1733,7 +1827,7 @@ export default function AddProductForm({
                           step="1"
                           placeholder="0"
                           {...field}
-                          value={field.value || ""}
+                          value={safeString(field.value)}
                         />
                       </FormControl>
                       <FormMessage />
@@ -1749,7 +1843,7 @@ export default function AddProductForm({
                       <FormLabel>Return Policy</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        defaultValue={safeString(field.value)}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -1782,7 +1876,7 @@ export default function AddProductForm({
                             step="1"
                             placeholder="Enter number of days"
                             {...field}
-                            value={field.value || ""}
+                            value={safeString(field.value)}
                           />
                         </FormControl>
                         <FormDescription>
@@ -1820,7 +1914,7 @@ export default function AddProductForm({
                           step="0.001"
                           placeholder="0.00"
                           {...field}
-                          value={field.value || ""}
+                          value={safeString(field.value)}
                         />
                       </FormControl>
                       <FormMessage />
@@ -1842,7 +1936,7 @@ export default function AddProductForm({
                             step="0.01"
                             placeholder="0.00"
                             {...field}
-                            value={field.value || ""}
+                            value={safeString(field.value)}
                           />
                         </FormControl>
                         <FormMessage />
@@ -1863,7 +1957,7 @@ export default function AddProductForm({
                             step="0.01"
                             placeholder="0.00"
                             {...field}
-                            value={field.value || ""}
+                            value={safeString(field.value)}
                           />
                         </FormControl>
                         <FormMessage />
@@ -1884,7 +1978,7 @@ export default function AddProductForm({
                             step="0.01"
                             placeholder="0.00"
                             {...field}
-                            value={field.value || ""}
+                            value={safeString(field.value)}
                           />
                         </FormControl>
                         <FormMessage />
