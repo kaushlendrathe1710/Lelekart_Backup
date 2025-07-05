@@ -334,14 +334,14 @@ export default function OrdersPage() {
                     <p className="font-semibold text-xl">
                       ₹{order.total.toFixed(2)}
                     </p>
-                    {/* Show wallet discount if used */}
-                    {order.walletDiscount && order.walletDiscount > 0 && (
+                    {/* Show wallet discount if used and > 0 */}
+                    {order.walletDiscount && order.walletDiscount > 0 ? (
                       <p className="text-green-600 text-sm">Redeemed Coins Used: -₹{order.walletDiscount.toFixed(2)}</p>
-                    )}
-                    {/* Show reward discount if used */}
-                    {order.rewardDiscount && order.rewardDiscount > 0 && (
+                    ) : null}
+                    {/* Show reward discount if used and > 0 */}
+                    {order.rewardDiscount && order.rewardDiscount > 0 ? (
                       <p className="text-blue-600 text-sm">Reward Points Used: -₹{order.rewardDiscount.toFixed(2)}</p>
-                    )}
+                    ) : null}
                     
                     <div className="flex space-x-2 mt-2 md:mt-auto">
                       {/* Only show cancel button for pending/processing orders */}
