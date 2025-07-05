@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { storage } from '../storage';
 import { z } from 'zod';
 import { giftCards } from '@shared/schema';
-import { spendRedeemedCoinsAtCheckout } from './wallet-handlers';
+import { spendRedeemedCoinsAtCheckout, redeemCoinsFromWallet } from './wallet-handlers';
 
 // Zod schemas for request validation
 const walletSettingsSchema = z.object({
@@ -195,7 +195,7 @@ export async function redeemCoins(req: Request, res: Response) {
     }
     
     // Process the redemption
-    const result = await storage.redeemCoinsFromWallet(
+    const result = await redeemCoinsFromWallet(
       req.user.id,
       amount, 
       referenceType || 'REDEMPTION', 
@@ -364,12 +364,12 @@ export async function getActiveWalletVoucher(req: Request, res: Response) {
   try {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const userId = req.user.id;
-    const voucher = await req.storage.db.select().from(giftCards)
-      .where({ issuedTo: userId, isActive: true })
-      .orderBy('createdAt', 'desc')
-      .limit(1);
-    if (voucher && voucher.length > 0) {
-      return res.json(voucher[0]);
+    const vouchers = await storage.getUserGiftCards(userId);
+    const activeVoucher = vouchers
+      .filter((v) => v.isActive)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+    if (activeVoucher) {
+      return res.json(activeVoucher);
     } else {
       return res.status(404).json({ error: 'No active wallet voucher found' });
     }

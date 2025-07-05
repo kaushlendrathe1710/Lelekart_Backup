@@ -45,6 +45,9 @@ const redeemFormSchema = z.object({
 
 type RedeemFormValues = z.infer<typeof redeemFormSchema>;
 
+// Type for redeemCoins return value
+type RedeemCoinsResult = { voucherCode?: string; discountAmount?: number } | void;
+
 export default function WalletPage() {
   const { 
     wallet, 
@@ -70,14 +73,14 @@ export default function WalletPage() {
   // Handle form submission
   async function onSubmit(data: RedeemFormValues) {
     try {
-      const result = await redeemCoins(data.amount, {
+      const result = (await redeemCoins(data.amount, {
         referenceType: 'MANUAL',
         description: data.description || 'Manual redemption',
         orderValue: data.orderValue,
         category: data.category
-      });
+      })) as RedeemCoinsResult;
       // If backend returns voucher info, show it
-      if (result && result.voucherCode && result.discountAmount) {
+      if (result && typeof result === 'object' && result.voucherCode && result.discountAmount) {
         setVoucherInfo({ code: result.voucherCode, value: result.discountAmount });
       }
       form.reset({ amount: 100 });
@@ -138,7 +141,7 @@ export default function WalletPage() {
   // Calculate conversion to INR if settings available
   const calculateInrValue = (coins: number) => {
     if (!settings || !settings.conversionRate) return 0;
-    return (coins / settings.conversionRate).toFixed(2);
+    return (coins / (settings.conversionRate || 1)).toFixed(2);
   };
 
   // Get current month's transactions
@@ -175,7 +178,7 @@ export default function WalletPage() {
   }
 
   // If wallet system is disabled
-  if (settings && !settings.isActive) {
+  if (settings && typeof settings.isActive === 'boolean' && !settings.isActive) {
     return (
       <DashboardLayout>
         <div className="space-y-6">
@@ -196,6 +199,28 @@ export default function WalletPage() {
     <DashboardLayout>
       <div className="space-y-6">
         <h1 className="text-3xl font-bold tracking-tight">My Wallet</h1>
+
+        {/* Wallet Points and Redeem Coins Display */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Card className="flex-1 bg-white border border-gray-200">
+            <CardHeader>
+              <CardTitle>Wallet Points</CardTitle>
+              <CardDescription>Your current wallet points balance</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-primary">{wallet?.balance ?? 0}</div>
+            </CardContent>
+          </Card>
+          <Card className="flex-1 bg-white border border-gray-200">
+            <CardHeader>
+              <CardTitle>Redeem Coins</CardTitle>
+              <CardDescription>Total coins you have redeemed</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-green-600">{wallet?.redeemedBalance ?? 0}</div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Show voucher info if available */}
         {voucherInfo && (
@@ -326,7 +351,7 @@ export default function WalletPage() {
                           <TableCell>{settings.maxUsagePercentage}% of order value</TableCell>
                         </TableRow>
                       )}
-                      {settings && typeof settings.minCartValue === 'number' && (settings?.minCartValue ?? 0) > 0 && (
+                      {settings && typeof settings.minCartValue !== 'undefined' && ((settings.minCartValue ?? 0) > 0) && (
                         <TableRow>
                           <TableCell>Minimum Order Value</TableCell>
                           <TableCell>{settings?.minCartValue ?? 0}</TableCell>
@@ -440,7 +465,7 @@ export default function WalletPage() {
                       )}
                     />
                     
-                    {settings?.minCartValue > 0 && (
+                    {settings && typeof settings.minCartValue !== 'undefined' && ((settings.minCartValue ?? 0) > 0) && (
                       <FormField
                         control={form.control}
                         name="orderValue"
@@ -548,7 +573,7 @@ export default function WalletPage() {
                     </p>
                   )}
                   
-                  {typeof settings?.minCartValue === 'number' && (settings?.minCartValue ?? 0) > 0 && (
+                  {settings && typeof settings.minCartValue !== 'undefined' && ((settings.minCartValue ?? 0) > 0) && (
                     <p>
                       <span className="font-medium">Minimum order:</span> Wallet rupees can only be used on orders worth ₹{settings?.minCartValue ?? 0} or more.
                     </p>
