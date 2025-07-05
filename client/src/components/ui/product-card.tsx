@@ -12,7 +12,7 @@ import { WishlistButton } from "./wishlist-button";
 import { ProductImage } from "./product-image";
 
 // Define an extended Product interface to include image_url and GST details
-interface ExtendedProduct extends Product {
+interface ExtendedProduct extends Omit<Product, 'imageUrl'> {
   image?: string;
   image_url?: string;
   imageUrl?: string | null;
@@ -66,7 +66,7 @@ export const ProductCard = memo(function ProductCard({
     e.stopPropagation();
     try {
       if (cartContext) {
-        cartContext.addToCart(product);
+        cartContext.addToCart(product as Product);
       }
       // Show toast is handled in context
     } catch (error) {
@@ -81,17 +81,17 @@ export const ProductCard = memo(function ProductCard({
   // Determine if this should be a priority image (featured products or first few products)
   const shouldPrioritize = priority || featured;
 
-  // Calculate discount percentage if applicable
-  const hasDiscount = product.mrp && product.mrp > product.price;
-  const discountPercent = hasDiscount
+  // Calculate discount percentage only for featured deals with real discounts
+  const hasDiscount = featured && product.mrp && product.mrp > product.price;
+  const discountPercent = hasDiscount && product.mrp
     ? Math.round(((product.mrp - product.price) / product.mrp) * 100)
     : 0;
 
   // Use the same dimensions and styling for all product cards regardless of featured status
   return (
     <div className="relative">
-      {/* Discount badge */}
-      {hasDiscount && (
+      {/* Discount badge - ONLY show for featured deals */}
+      {hasDiscount && discountPercent > 0 && (
         <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded z-10 shadow">
           {discountPercent}% OFF
         </div>
@@ -147,7 +147,8 @@ export const ProductCard = memo(function ProductCard({
                 {product.gstDetails
                   ? formatPrice(product.gstDetails.priceWithGst)
                   : formatPrice(product.price)}
-                {hasDiscount && (
+                {/* Show MRP strikethrough only for featured deals with real discounts */}
+                {hasDiscount && product.mrp && (
                   <span className="text-gray-400 text-xs line-through ml-2">
                     {formatPrice(product.mrp)}
                   </span>
