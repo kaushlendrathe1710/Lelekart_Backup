@@ -291,13 +291,13 @@ export async function redeemCoinsFromWallet(
         description,
       });
       
-      // Move coins from balance to redeemedBalance
+      // Move coins from balance to redeemedBalance and update lifetimeRedeemed
       const [updatedWallet] = await trx
         .update(wallets)
         .set({
           balance: wallet.balance - amount,
-          redeemedBalance: wallet.redeemedBalance + amount,
-          lifetimeRedeemed: wallet.lifetimeRedeemed + amount,
+          redeemedBalance: (wallet.redeemedBalance || 0) + amount,
+          lifetimeRedeemed: (wallet.lifetimeRedeemed || 0) + amount,
           updatedAt: new Date(),
         })
         .where(eq(wallets.id, wallet.id))
