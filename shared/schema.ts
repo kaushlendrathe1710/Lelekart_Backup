@@ -456,21 +456,24 @@ export const insertCategorySchema = createInsertSchema(categories).pick({
   gstRate: true,
 });
 
-// Subcategories table
-export const subcategories = pgTable("subcategories", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  slug: text("slug").notNull(), // New: URL-friendly identifier
-  image: text("image"),
-  description: text("description"),
-  categoryId: integer("category_id")
-    .notNull()
-    .references(() => categories.id, { onDelete: "cascade" }),
-  displayOrder: integer("display_order").notNull().default(0),
-  active: boolean("active").notNull().default(true),
-  featured: boolean("featured").notNull().default(false), // New: Featured flag for promotional subcategories
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+// Subcategories table (function expression to allow self-reference)
+export const subcategories = pgTable("subcategories", (table) => {
+  return {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(), // New: URL-friendly identifier
+    image: text("image"),
+    description: text("description"),
+    categoryId: integer("category_id")
+      .notNull()
+      .references(() => categories.id, { onDelete: "cascade" }),
+    parentId: integer("parent_id").references(() => (table as any).id, { onDelete: "cascade" }),
+    displayOrder: integer("display_order").notNull().default(0),
+    active: boolean("active").notNull().default(true),
+    featured: boolean("featured").notNull().default(false), // New: Featured flag for promotional subcategories
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  };
 });
 
 // Define category to subcategory relationship
@@ -496,6 +499,7 @@ export const insertSubcategorySchema = createInsertSchema(subcategories).pick({
   image: true,
   description: true,
   categoryId: true,
+  parentId: true,
   displayOrder: true,
   active: true,
   featured: true,

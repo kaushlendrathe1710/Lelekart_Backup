@@ -70,10 +70,11 @@ const categorySchema = z.object({
   featured: z.boolean().default(false),
 });
 
-// Schema for subcategory form
+// Schema for subcategory form (with parentId for nesting)
 const subcategorySchema = z.object({
   name: z.string().min(1, { message: 'Subcategory name is required' }),
   categoryId: z.number(),
+  parentId: z.number().nullable().optional(),
   slug: z.string().optional(),
   description: z.string().optional(),
   displayOrder: z.number().default(0),
@@ -95,6 +96,7 @@ type Subcategory = {
   name: string;
   slug: string;
   categoryId: number;
+  parentId?: number | null;
   description?: string;
   displayOrder: number;
   active: boolean;
@@ -156,6 +158,7 @@ export default function CategoryManagement() {
     defaultValues: {
       name: '',
       categoryId: 0,
+      parentId: null,
       slug: '',
       description: '',
       displayOrder: 0,
@@ -199,6 +202,7 @@ export default function CategoryManagement() {
       subcategoryForm.reset({
         name: editingSubcategory.name,
         categoryId: editingSubcategory.categoryId,
+        parentId: editingSubcategory.parentId ?? null,
         slug: editingSubcategory.slug,
         description: editingSubcategory.description || '',
         displayOrder: editingSubcategory.displayOrder,
@@ -376,10 +380,36 @@ export default function CategoryManagement() {
     }
   };
 
-  // Get subcategories for a specific category
+  // Helper to get subcategories for a category
   const getSubcategoriesForCategory = (categoryId: number) => {
-    if (!allSubcategories) return [];
-    return allSubcategories.filter(subcategory => subcategory.categoryId === categoryId);
+    return allSubcategories?.filter((s) => s.categoryId === categoryId && !s.parentId) || [];
+  };
+
+  // Helper to get child subcategories for a given subcategory
+  const getChildSubcategories = (parentId: number) => {
+    return allSubcategories?.filter((s) => s.parentId === parentId) || [];
+  };
+
+  // Recursive render for nested subcategories
+  const renderSubcategories = (categoryId: number, parentId: number | null = null, level: number = 0) => {
+    const subcategories = parentId === null
+      ? getSubcategoriesForCategory(categoryId)
+      : getChildSubcategories(parentId);
+    if (!subcategories.length) return null;
+    return (
+      <ul className={`ml-${level * 4}`}>
+        {subcategories.map((sub) => (
+          <li key={sub.id} className="mb-2">
+            <div className="flex items-center gap-2">
+              <span>{sub.name}</span>
+              <Button size="xs" variant="ghost" onClick={() => setEditingSubcategory(sub)}><Edit className="h-4 w-4" /></Button>
+              <Button size="xs" variant="ghost" onClick={() => handleDeleteSubcategory(sub)}><Trash className="h-4 w-4" /></Button>
+            </div>
+            {renderSubcategories(categoryId, sub.id, level + 1)}
+          </li>
+        ))}
+      </ul>
+    );
   };
 
   // Loading state
@@ -506,73 +536,7 @@ export default function CategoryManagement() {
                             Subcategories ({getSubcategoriesForCategory(category.id).length})
                           </AccordionTrigger>
                           <AccordionContent>
-                            {getSubcategoriesForCategory(category.id).length > 0 ? (
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Order</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {getSubcategoriesForCategory(category.id)
-                                    .sort((a, b) => a.displayOrder - b.displayOrder)
-                                    .map((subcategory) => (
-                                    <TableRow key={subcategory.id} className={subcategory.active ? '' : 'opacity-60'}>
-                                      <TableCell className="font-medium">
-                                        <div className="flex items-center space-x-2">
-                                          <span>{subcategory.name}</span>
-                                          {subcategory.featured && (
-                                            <span className="px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800 rounded-full">
-                                              Featured
-                                            </span>
-                                          )}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground mt-1">
-                                          {subcategory.slug}
-                                        </div>
-                                      </TableCell>
-                                      <TableCell>
-                                        {subcategory.active ? (
-                                          <span className="flex items-center text-green-600">
-                                            <Check className="mr-1 h-4 w-4" /> Active
-                                          </span>
-                                        ) : (
-                                          <span className="flex items-center text-gray-500">
-                                            <X className="mr-1 h-4 w-4" /> Inactive
-                                          </span>
-                                        )}
-                                      </TableCell>
-                                      <TableCell>{subcategory.displayOrder}</TableCell>
-                                      <TableCell className="text-right">
-                                        <div className="flex justify-end space-x-2">
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => setEditingSubcategory(subcategory)}
-                                          >
-                                            <Edit className="h-4 w-4" />
-                                          </Button>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleDeleteSubcategory(subcategory)}
-                                          >
-                                            <Trash className="h-4 w-4" />
-                                          </Button>
-                                        </div>
-                                      </TableCell>
-                                    </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
-                            ) : (
-                              <div className="text-center py-4 text-muted-foreground">
-                                No subcategories found for this category
-                              </div>
-                            )}
+                            {renderSubcategories(category.id)}
                             <div className="mt-4">
                               <Button 
                                 size="sm" 
@@ -802,7 +766,7 @@ export default function CategoryManagement() {
 
       {/* Add/Edit Subcategory Dialog */}
       <Dialog open={isAddSubcategoryOpen} onOpenChange={setIsAddSubcategoryOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="max-w-lg w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingSubcategory ? 'Edit Subcategory' : 'Add New Subcategory'}</DialogTitle>
             <DialogDescription>
@@ -909,7 +873,6 @@ export default function CategoryManagement() {
                 )}
               />
 
-              <div className="flex space-x-8">
                 <FormField
                   control={subcategoryForm.control}
                   name="active"
@@ -941,7 +904,32 @@ export default function CategoryManagement() {
                     </FormItem>
                   )}
                 />
-              </div>
+
+              <FormField
+                control={subcategoryForm.control}
+                name="parentId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Parent Subcategory (optional)</FormLabel>
+                    <FormControl>
+                      <select
+                        id="parent-subcategory-select"
+                        aria-label="Parent Subcategory"
+                        title="Parent Subcategory"
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        value={field.value}
+                        onChange={(e) => field.onChange(e.target.value === "" ? null : parseInt(e.target.value))}
+                      >
+                        <option value="">None (Top-level)</option>
+                        {allSubcategories?.filter(s => s.categoryId === subcategoryForm.getValues('categoryId') && s.id !== subcategoryForm.getValues('id')).map(s => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <DialogFooter>
                 <Button

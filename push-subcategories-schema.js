@@ -3,6 +3,8 @@
  */
 import pkg from 'pg';
 const { Pool } = pkg;
+import dotenv from 'dotenv';
+dotenv.config();
 
 // Database connection
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -17,6 +19,7 @@ async function addSubcategoriesSchema() {
         image TEXT,
         description TEXT,
         category_id INTEGER NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+        parent_id INTEGER REFERENCES subcategories(id) ON DELETE CASCADE,
         display_order INTEGER NOT NULL DEFAULT 0,
         active BOOLEAN NOT NULL DEFAULT TRUE,
         created_at TIMESTAMP NOT NULL DEFAULT NOW(),
