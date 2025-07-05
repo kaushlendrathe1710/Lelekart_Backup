@@ -145,8 +145,7 @@ const productSchema = z.object({
     .optional(),
   sku: z.string().optional(), // Made SKU optional
   category: z.string().min(1, "Please select a category"),
-  subcategory1: z.string().optional(),
-  subcategory2: z.string().optional(),
+  subcategoryId: z.number().nullable().optional(),
   brand: z.string().optional().nullable(),
   stock: z.coerce
     .number()
@@ -227,8 +226,7 @@ export default function AddProductPage() {
   const queryClient = useQueryClient();
 
   // Add these state declarations after other useState declarations at the top of the component
-  const [subcategory1Options, setSubcategory1Options] = useState<string[]>([]);
-  const [subcategory2Options, setSubcategory2Options] = useState<string[]>([]);
+  const [subcategoryId, setSubcategoryId] = useState<number | null>(null);
 
   // Add this helper function after the state declarations
   const getSubcategoriesForCategory = (category: string) => {
@@ -491,8 +489,7 @@ export default function AddProductPage() {
       gstRate: "",
       sku: "", // Initialize as empty string
       category: "",
-      subcategory1: "",
-      subcategory2: "",
+      subcategoryId: null,
       brand: "",
       color: "",
       size: "",
@@ -506,13 +503,14 @@ export default function AddProductPage() {
   });
 
   // Watch important fields to calculate completion and for GST calculation
-  const [watchedName, watchedCategory, watchedPrice, watchedDescription, watchedStock, watchedGstRate] = form.watch([
+  const [watchedName, watchedCategory, watchedPrice, watchedDescription, watchedStock, watchedGstRate, watchedSubcategoryId] = form.watch([
     "name",
     "category",
     "price",
     "description",
     "stock",
     "gstRate",
+    "subcategoryId",
   ]);
 
   // Get the currently selected category's GST rate
@@ -1313,8 +1311,7 @@ export default function AddProductPage() {
           : undefined,
         gstRate: data.gstRate || getSelectedCategoryGstRate().toString() || "0",
         category: data.category,
-        subcategory1: data.subcategory1 || null,
-        subcategory2: data.subcategory2 || null,
+        subcategoryId: data.subcategoryId || null,
         brand: data.brand,
         color: data.color,
         size: data.size,
@@ -1392,8 +1389,7 @@ export default function AddProductPage() {
           getSelectedCategoryGstRate().toString() ||
           "0",
         category: formData.category,
-        subcategory1: formData.subcategory1 || null,
-        subcategory2: formData.subcategory2 || null,
+        subcategoryId: formData.subcategoryId || null,
         brand: formData.brand,
         color: formData.color,
         size: formData.size,
@@ -1565,6 +1561,32 @@ export default function AddProductPage() {
     }
   };
 
+  // For dynamic nested subcategory selection
+  const [subcategoryPath, setSubcategoryPath] = useState<number[]>([]); // Array of selected subcategory IDs (for each level)
+
+  // Helper: get top-level subcategories for a category
+  const getTopLevelSubcategories = (categoryId: number) => {
+    return subcategories.filter((s: any) => s.categoryId === categoryId && !s.parentId);
+  };
+  // Helper: get children for a subcategory
+  const getChildSubcategories = (parentId: number) => {
+    return subcategories.filter((s: any) => s.parentId === parentId);
+  };
+  // Helper: get categoryId from selected category name
+  const getCategoryIdByName = (name: string) => {
+    const cat = categories.find((c: any) => c.name === name);
+    return cat ? cat.id : null;
+  };
+
+  // When category changes, reset subcategory path
+  useEffect(() => {
+    setSubcategoryPath([]);
+    form.setValue("subcategoryId", null);
+  }, [form.getValues("category")]);
+
+  // Helper: get subcategory by ID
+  const getSubcategoryById = (id: number) => subcategories.find((s: any) => s.id === id);
+
   return (
     <SellerDashboardLayout>
       <div className="p-6">
@@ -1683,13 +1705,11 @@ export default function AddProductPage() {
                           <Select
                             onValueChange={(value) => {
                               field.onChange(value);
-                              // Clear subcategory1 and subcategory2 when category changes
-                              form.setValue("subcategory1", "");
-                              form.setValue("subcategory2", "");
-                              // Update subcategory1 options based on selected category
-                              const newSubcategory1Options = getSubcategoriesForCategory(value);
-                              setSubcategory1Options(newSubcategory1Options);
-                              setSubcategory2Options([]); // Clear subcategory2 options
+                              // Clear subcategoryId when category changes
+                              form.setValue("subcategoryId", null);
+                              // Update subcategoryId options based on selected category
+                              const newSubcategoryId = getCategoryIdByName(value);
+                              setSubcategoryId(newSubcategoryId);
                             }}
                             defaultValue={field.value}
                           >
@@ -1712,74 +1732,95 @@ export default function AddProductPage() {
                     />
                   </div>
 
-                  {/* New Subcategory1 and Subcategory2 fields */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="subcategory1"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Subcategory 1</FormLabel>
-                          <Select
-                            onValueChange={(value) => {
-                              field.onChange(value);
-                              // When subcategory1 changes, update subcategory2 options and reset subcategory2
-                              const newSubcategory2Options = getSubcategory2ForSubcategory1(form.getValues("category"), value);
-                              setSubcategory2Options(newSubcategory2Options);
-                              form.setValue("subcategory2", "");
-                            }}
-                            value={field.value || ""}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a subcategory" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {subcategory1Options.map((subcategory) => (
-                                <SelectItem key={subcategory} value={subcategory}>
-                                  {subcategory}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormDescription>
-                            Select a subcategory based on the main category
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="subcategory2"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Subcategory 2</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            value={field.value || ""}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a subcategory" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {subcategory2Options.map((subcategory) => (
-                                <SelectItem key={subcategory} value={subcategory}>
-                                  {subcategory}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormDescription>
-                            Select a more specific subcategory
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  {/* Dynamic Nested Subcategory Selector - Always show two boxes */}
+                  <div className="flex flex-col gap-4">
+                    {form.getValues("category") && (() => {
+                      const categoryId = getCategoryIdByName(form.getValues("category"));
+                      if (!categoryId) return null;
+                      // Level 0: Top-level subcategories
+                      const selectedSubcat0 = subcategoryPath[0] || null;
+                      const subcat0Options = getTopLevelSubcategories(categoryId);
+                      // Level 1: Children of selected subcategory
+                      const selectedSubcat1 = subcategoryPath[1] || null;
+                      const subcat1Options = selectedSubcat0 ? getChildSubcategories(selectedSubcat0) : [];
+
+                      return (
+                        <>
+                          {/* Subcategory (Level 1) */}
+                          <div className="w-full md:w-1/2">
+                            <label className="block text-sm font-medium mb-1">Subcategory</label>
+                            <Select
+                              value={selectedSubcat0 ? String(selectedSubcat0) : ""}
+                              onValueChange={(val) => {
+                                const id = val ? parseInt(val) : null;
+                                const newPath = id ? [id] : [];
+                                setSubcategoryPath(newPath);
+                                form.setValue("subcategoryId", id);
+                              }}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select a subcategory" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {subcat0Options.length > 0 ? (
+                                  subcat0Options.map((s: any) => (
+                                    <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                                  ))
+                                ) : (
+                                  <SelectItem value="none" disabled>No subcategories available</SelectItem>
+                                )}
+                              </SelectContent>
+                            </Select>
+                            {subcat0Options.length === 0 && (
+                              <div className="text-xs text-muted-foreground select-none">No subcategories mapped to this category.</div>
+                            )}
+                          </div>
+
+                          {/* Subcategory Level 2 */}
+                          <div className="w-full md:w-1/2">
+                            <label className="block text-sm font-medium mb-1">Subcategory Level 2</label>
+                            <Select
+                              value={selectedSubcat1 ? String(selectedSubcat1) : ""}
+                              onValueChange={(val) => {
+                                const id = val ? parseInt(val) : null;
+                                const newPath = subcategoryPath.slice(0, 1);
+                                if (id) newPath.push(id);
+                                setSubcategoryPath(newPath);
+                                form.setValue("subcategoryId", id || (selectedSubcat0 || null));
+                              }}
+                              disabled={!selectedSubcat0 || subcat1Options.length === 0}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder={selectedSubcat0 ? (subcat1Options.length > 0 ? "Select a subcategory" : "No subcategories available") : "Select previous subcategory first"} />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {selectedSubcat0 ? (
+                                  subcat1Options.length > 0 ? (
+                                    subcat1Options.map((s: any) => (
+                                      <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                                    ))
+                                  ) : (
+                                    <SelectItem value="none" disabled>No subcategories available</SelectItem>
+                                  )
+                                ) : (
+                                  <SelectItem value="none" disabled>Select previous subcategory first</SelectItem>
+                                )}
+                              </SelectContent>
+                            </Select>
+                            {!selectedSubcat0 && (
+                              <div className="text-xs text-muted-foreground mt-1">Select a subcategory above first.</div>
+                            )}
+                            {selectedSubcat0 && subcat1Options.length === 0 && (
+                              <div className="text-xs text-muted-foreground mt-1">No subcategories mapped to this subcategory.</div>
+                            )}
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

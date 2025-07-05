@@ -158,8 +158,7 @@ const productSchema = z
       .optional(),
     sku: z.string().min(2, "SKU is required"),
     category: z.string().min(1, "Please select a category"),
-    subcategory1: z.string().optional(),
-    subcategory2: z.string().optional(),
+    subcategoryId: z.number().nullable().optional(),
     brand: z.string().min(2, "Brand name is required"),
     // The stock field validation will be skipped when variants are present
     stock: z
@@ -373,9 +372,8 @@ export default function EditProductPage() {
   // Add state for image URL input (inside EditProductPage)
   const [imageUrlInput, setImageUrlInput] = useState("");
   const [addUrlError, setAddUrlError] = useState("");
-  // Add state for subcategory1Options and subcategory2Options
-  const [subcategory1Options, setSubcategory1Options] = useState<string[]>([]);
-  const [subcategory2Options, setSubcategory2Options] = useState<string[]>([]);
+  // For dynamic nested subcategory selection
+  const [subcategoryPath, setSubcategoryPath] = useState<number[]>([]); // Array of selected subcategory IDs (for each level)
 
   // Check both route patterns and use the first match
   const params = editParams || draftEditParams;
@@ -512,8 +510,7 @@ export default function EditProductPage() {
       gstRate: "",
       sku: "",
       category: "",
-      subcategory1: "",
-      subcategory2: "",
+      subcategoryId: null,
       brand: "",
       color: "",
       size: "",
@@ -815,6 +812,7 @@ export default function EditProductPage() {
 
       // GST rate is now formatted correctly and subcategory data is ready for form initialization
 
+      // Prefill category and subcategoryId for dynamic dropdowns
       form.reset({
         name: product.name || "",
         description: product.description || "",
@@ -822,12 +820,10 @@ export default function EditProductPage() {
         price: product.price?.toString() || "",
         mrp: product.mrp?.toString() || (product.price * 1.2)?.toString() || "",
         purchasePrice: product.purchasePrice?.toString() || "",
-        // Use the properly formatted GST rate
         gstRate: gstRateValue,
         sku: product.sku || product.id?.toString() || "",
         category: product.category || "",
-        subcategory1: product.subcategory1 || "",
-        subcategory2: product.subcategory2 || "",
+        subcategoryId: product.subcategoryId ? Number(product.subcategoryId) : null,
         brand: product.brand || "Brand",
         color: product.color || "",
         size: product.size || "",
@@ -838,7 +834,6 @@ export default function EditProductPage() {
         length: product.length?.toString() || "",
         warranty: product.warranty?.toString() || "",
         hsn: product.hsn || "",
-        // Ensure tax dropdown is also set correctly from the GST rate
         tax:
           product.gstRate !== undefined && product.gstRate !== null
             ? product.gstRate.toString()
@@ -852,6 +847,19 @@ export default function EditProductPage() {
           : "",
         deliveryCharges: product.deliveryCharges !== undefined && product.deliveryCharges !== null ? product.deliveryCharges.toString() : "0",
       });
+      // Prefill subcategoryPath for dropdowns
+      if (product.subcategoryId && subcategories.length > 0) {
+        // Build the path from subcategoryId up to root
+        let path: number[] = [];
+        let current = subcategories.find((s: any) => s.id === product.subcategoryId);
+        while (current) {
+          path.unshift(current.id);
+          current = current.parentId ? subcategories.find((s: any) => s.id === current.parentId) : null;
+        }
+        setSubcategoryPath(path);
+      } else {
+        setSubcategoryPath([]);
+      }
 
       // Make sure GST rate and tax fields are in sync
       setTimeout(() => {
@@ -871,13 +879,8 @@ export default function EditProductPage() {
           form.setValue("customReturnPolicy", product.returnPolicy.toString());
         }
       }, 100);
-
-      // Set subcategory1 options based on product.category
-      setSubcategory1Options(getSubcategoriesForCategory(product.category || ""));
-      // Set subcategory2 options based on product.category and product.subcategory1
-      setSubcategory2Options(getSubcategory2ForSubcategory1(product.category || "", product.subcategory1 || ""));
     }
-  }, [product, form]);
+  }, [product, form, subcategories]);
 
   // Image upload handler
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2568,13 +2571,10 @@ export default function EditProductPage() {
                                 <Select
                                   onValueChange={(value) => {
                                     field.onChange(value);
-                                    // Clear subcategory1 and subcategory2 when category changes
-                                    form.setValue("subcategory1", "");
-                                    form.setValue("subcategory2", "");
-                                    setSubcategory1Options(getSubcategoriesForCategory(value));
-                                    setSubcategory2Options([]);
+                                    setSubcategoryPath([]);
+                                    form.setValue("subcategoryId", null);
                                   }}
-                                  defaultValue={field.value}
+                                  value={field.value || ""}
                                 >
                                   <FormControl>
                                     <SelectTrigger>
@@ -2583,10 +2583,7 @@ export default function EditProductPage() {
                                   </FormControl>
                                   <SelectContent>
                                     {categories?.map((category: any) => (
-                                      <SelectItem
-                                        key={category.id}
-                                        value={category.name}
-                                      >
+                                      <SelectItem key={category.id} value={category.name}>
                                         {category.name}
                                       </SelectItem>
                                     ))}
@@ -2600,72 +2597,77 @@ export default function EditProductPage() {
                             )}
                           />
                         </div>
-                        {/* New Subcategory1 and Subcategory2 fields */}
+                        {/* Dynamic Nested Subcategory Selector - Always show two boxes */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <FormField
-                            control={form.control}
-                            name="subcategory1"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Subcategory 1</FormLabel>
-                                <Select
-                                  onValueChange={(value) => {
-                                    field.onChange(value);
-                                    setSubcategory2Options(getSubcategory2ForSubcategory1(form.getValues("category"), value));
-                                    form.setValue("subcategory2", "");
-                                  }}
-                                  value={field.value || ""}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select a subcategory" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {subcategory1Options.map((subcategory) => (
-                                      <SelectItem key={subcategory} value={subcategory}>
-                                        {subcategory}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormDescription>
-                                  Select a subcategory based on the main category
-                                </FormDescription>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="subcategory2"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Subcategory 2</FormLabel>
-                                <Select
-                                  onValueChange={field.onChange}
-                                  value={field.value || ""}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select a subcategory" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {subcategory2Options.map((subcategory) => (
-                                      <SelectItem key={subcategory} value={subcategory}>
-                                        {subcategory}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormDescription>
-                                  Select a more specific subcategory
-                                </FormDescription>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                          {/* Subcategory (Level 1) */}
+                          <FormItem>
+                            <FormLabel>Subcategory</FormLabel>
+                            <Select
+                              value={subcategoryPath[0] ? String(subcategoryPath[0]) : ""}
+                              onValueChange={(val) => {
+                                const id = val ? parseInt(val) : null;
+                                const newPath = id ? [id] : [];
+                                setSubcategoryPath(newPath);
+                                form.setValue("subcategoryId", id);
+                              }}
+                              disabled={!form.getValues("category")}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select a subcategory" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {(() => {
+                                  const categoryId = categories.find((c: any) => c.name === form.getValues("category"))?.id;
+                                  const subcat0Options = subcategories.filter((s: any) => s.categoryId === categoryId && !s.parentId);
+                                  if (subcat0Options.length > 0) {
+                                    return subcat0Options.map((s: any) => (
+                                      <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                                    ));
+                                  } else {
+                                    return <SelectItem value="none" disabled>No subcategories available</SelectItem>;
+                                  }
+                                })()}
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                          {/* Subcategory Level 2 */}
+                          <FormItem>
+                            <FormLabel>Subcategory Level 2</FormLabel>
+                            <Select
+                              value={subcategoryPath[1] ? String(subcategoryPath[1]) : ""}
+                              onValueChange={(val) => {
+                                const id = val ? parseInt(val) : null;
+                                const newPath = subcategoryPath.slice(0, 1);
+                                if (id) newPath.push(id);
+                                setSubcategoryPath(newPath);
+                                form.setValue("subcategoryId", id || (subcategoryPath[0] || null));
+                              }}
+                              disabled={!subcategoryPath[0]}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder={subcategoryPath[0] ? "Select a subcategory" : "Select previous subcategory first"} />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {(() => {
+                                  if (!subcategoryPath[0]) {
+                                    return <SelectItem value="none" disabled>Select previous subcategory first</SelectItem>;
+                                  }
+                                  const subcat1Options = subcategories.filter((s: any) => s.parentId === subcategoryPath[0]);
+                                  if (subcat1Options.length > 0) {
+                                    return subcat1Options.map((s: any) => (
+                                      <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                                    ));
+                                  } else {
+                                    return <SelectItem value="none" disabled>No subcategories available</SelectItem>;
+                                  }
+                                })()}
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
