@@ -367,119 +367,23 @@ export default function AddProductForm({
   const completionStatus = getCompletionStatus();
 
   // Handle file upload for product images
-  const handleAddImage = useCallback(
-    (fileOrUrl: File | string) => {
-      if (uploadedImages.length >= 8) {
-        toast({
-          title: "Maximum images reached",
-          description: "You can upload a maximum of 8 images per product",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (typeof fileOrUrl === "string") {
-        // Validate URL before adding
-        try {
-          // Check if it's a valid URL
-          const url = new URL(fileOrUrl);
-
-          // Check if URL uses http or https protocol
-          if (!url.protocol.startsWith("http")) {
-            toast({
-              title: "Invalid URL",
-              description: "URL must start with http:// or https://",
-              variant: "destructive",
-            });
-            return;
-          }
-
-          // Check if URL has an image extension
-          const validExtensions = [
-            ".jpg",
-            ".jpeg",
-            ".png",
-            ".gif",
-            ".webp",
-            ".svg",
-          ];
-          const hasValidExtension = validExtensions.some((ext) =>
-            url.pathname.toLowerCase().endsWith(ext)
-          );
-
-          // If URL doesn't have a valid extension, we'll check if it responds with an image
-          if (!hasValidExtension) {
-            // We'll still add it but show a warning
-            toast({
-              title: "URL added",
-              description:
-                "The URL doesn't end with a common image extension. Please verify the image appears correctly.",
-              variant: "default",
-            });
-          } else {
-            toast({
-              title: "Image URL added",
-              description: "Image URL has been added successfully.",
-              variant: "default",
-            });
-          }
-
-          // Add URL to uploaded images
-          setUploadedImages((prevImages) => [...prevImages, fileOrUrl]);
-        } catch (error) {
-          // URL is invalid
-          toast({
-            title: "Invalid URL",
-            description: "Please enter a valid image URL.",
-            variant: "destructive",
-          });
-        }
-        return;
-      }
-
-      try {
-        // Apply additional precautions for Firefox
-        const isFirefoxBrowser = isFirefox();
-
-        if (isFirefoxBrowser) {
-          console.log(
-            "Detected Firefox browser, using safe FileReader implementation for main image"
-          );
-        }
-
-        // Create a preview URL for the file - Firefox safe implementation
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          if (event.target && event.target.result) {
-            // Use functional state update to prevent race conditions
-            setUploadedImages((prevImages) => [
-              ...prevImages,
-              event.target.result as string,
-            ]);
-          }
-        };
-        reader.onerror = () => {
-          console.error("FileReader error occurred");
-          toast({
-            title: "Error processing image",
-            description:
-              "There was a problem processing your image. Please try another file.",
-            variant: "destructive",
-          });
-        };
-        reader.readAsDataURL(fileOrUrl);
-      } catch (error) {
-        console.error("Error handling file upload:", error);
-        toast({
-          title: "Error processing image",
-          description:
-            "There was a problem processing your image. Please try another file.",
-          variant: "destructive",
-        });
-      }
-    },
-    [uploadedImages, toast]
-  );
+  const handleAddImage = (urlOrUrls: string | string[]) => {
+    if (Array.isArray(urlOrUrls)) {
+      // Multiple images
+      const newImages = [...uploadedImages, ...urlOrUrls].slice(0, 8);
+      setUploadedImages(newImages);
+      return;
+    }
+    if (uploadedImages.length >= 8) {
+      toast({
+        title: "Maximum images reached",
+        description: "You can upload a maximum of 8 images per product",
+        variant: "destructive",
+      });
+      return;
+    }
+    setUploadedImages((prevImages) => [...prevImages, urlOrUrls]);
+  };
 
   // Remove image at a given index
   const handleRemoveImage = (index: number) => {
@@ -758,7 +662,13 @@ export default function AddProductForm({
   };
 
   // Handle adding images to a variant
-  const handleAddVariantImage = (fileOrUrl: File | string) => {
+  const handleAddVariantImage = (urlOrUrls: string | string[]) => {
+    if (Array.isArray(urlOrUrls)) {
+      // Multiple images
+      const newImages = [...variantImages, ...urlOrUrls].slice(0, 4);
+      setVariantImages(newImages);
+      return;
+    }
     if (variantImages.length >= 4) {
       toast({
         title: "Maximum variant images reached",
@@ -767,87 +677,7 @@ export default function AddProductForm({
       });
       return;
     }
-
-    if (typeof fileOrUrl === "string") {
-      // Validate URL before adding
-      try {
-        // Check if it's a valid URL
-        const url = new URL(fileOrUrl);
-
-        // Check if URL uses http or https protocol
-        if (!url.protocol.startsWith("http")) {
-          toast({
-            title: "Invalid URL",
-            description: "URL must start with http:// or https://",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        // Check if URL has an image extension
-        const validExtensions = [
-          ".jpg",
-          ".jpeg",
-          ".png",
-          ".gif",
-          ".webp",
-          ".svg",
-        ];
-        const hasValidExtension = validExtensions.some((ext) =>
-          url.pathname.toLowerCase().endsWith(ext)
-        );
-
-        // If URL doesn't have a valid extension, we'll check if it responds with an image
-        if (!hasValidExtension) {
-          // We'll still add it but show a warning
-          toast({
-            title: "URL added",
-            description:
-              "The URL doesn't end with a common image extension. Please verify the image appears correctly.",
-            variant: "default",
-          });
-        } else {
-          toast({
-            title: "Variant image URL added",
-            description: "Image URL has been added successfully.",
-            variant: "default",
-          });
-        }
-
-        // Add URL to variant images
-        setVariantImages((prevImages) => [...prevImages, fileOrUrl]);
-      } catch (error) {
-        // URL is invalid
-        toast({
-          title: "Invalid URL",
-          description: "Please enter a valid image URL.",
-          variant: "destructive",
-        });
-      }
-      return;
-    }
-
-    try {
-      // Create a preview URL for the file
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target && event.target.result) {
-          // Use functional state update to prevent race conditions
-          setVariantImages((prevImages) => [
-            ...prevImages,
-            event.target.result as string,
-          ]);
-        }
-      };
-      reader.readAsDataURL(fileOrUrl);
-    } catch (error) {
-      console.error("Error handling variant image upload:", error);
-      toast({
-        title: "Error processing variant image",
-        description: "There was a problem processing your image",
-        variant: "destructive",
-      });
-    }
+    setVariantImages((prevImages) => [...prevImages, urlOrUrls]);
   };
 
   // Remove a variant image at a given index
@@ -1012,6 +842,16 @@ export default function AddProductForm({
         subcategoryId: processedFormValues.subcategoryId,
       });
 
+      // Require subcategoryId for submission
+      if (!processedFormValues.subcategoryId) {
+        toast({
+          title: "Subcategory Required",
+          description: "Please select a subcategory before submitting.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Combine form data with images
       const productData = {
         ...processedFormValues,
@@ -1023,10 +863,10 @@ export default function AddProductForm({
       // Submit the product via mutation - either create or update
       if (initialValues?.id) {
         // Update existing product
-        await updateProductMutation.mutateAsync({ productData });
+        await updateProductMutation.mutateAsync(productData);
       } else {
         // Create new product
-        await createProductMutation.mutateAsync(productData);
+        await createProductMutation.mutateAsync({ productData, variants: [...variants, ...draftVariants] });
       }
 
       // Show success message
@@ -1467,21 +1307,36 @@ export default function AddProductForm({
                   render={({ field }) => {
                     const selectedCategory = form.watch("category");
                     const categoryObject = safeCategoriesData.find((c: any) => c.name === selectedCategory);
+                    // Level 1 subcategories
                     const filteredSubcategories = safeSubcategoriesData.filter((sc: any) => categoryObject && sc.categoryId === categoryObject.id && !sc.parentId);
+                    // Find the selected subcategory object (level 1)
+                    const selectedSubcategory = safeSubcategoriesData.find((sc: any) => sc.name === form.watch("subcategory") && sc.categoryId === categoryObject?.id && !sc.parentId);
+                    // Level 2 subcategories for the selected subcategory
+                    const filteredSubcategory2 = safeSubcategoriesData.filter((sc: any) => selectedSubcategory && sc.parentId === selectedSubcategory.id);
+                    // If a level 1 subcategory is selected and it has children, show level 2 options
+                    const showLevel2 = selectedSubcategory && filteredSubcategory2.length > 0;
                     return (
                       <FormItem>
                         <FormLabel>Subcategory</FormLabel>
                         <FormControl>
                           <Select
                             onValueChange={(value) => {
-                              field.onChange(value);
-                              form.setValue("subcategory2", "");
-                              // Find the subcategory in the data to get its ID
-                              const subcategory = safeSubcategoriesData.find((sc: any) => sc.name === value && sc.categoryId === categoryObject?.id && !sc.parentId);
-                              if (subcategory) {
-                                form.setValue("subcategoryId", subcategory.id);
+                              // Check if value is a level 2 subcategory
+                              const subcat2 = safeSubcategoriesData.find((sc: any) => sc.name === value && sc.parentId === selectedSubcategory?.id);
+                              if (subcat2) {
+                                field.onChange(subcat2.name);
+                                form.setValue("subcategoryId", subcat2.id);
                               } else {
-                                form.setValue("subcategoryId", null);
+                                // Check if value is a level 1 subcategory
+                                const subcat1 = safeSubcategoriesData.find((sc: any) => sc.name === value && sc.categoryId === categoryObject?.id && !sc.parentId);
+                                field.onChange(subcat1?.name || "");
+                                // If this subcategory has children, wait for user to pick level 2
+                                const hasChildren = safeSubcategoriesData.some((sc: any) => sc.parentId === subcat1?.id);
+                                if (hasChildren) {
+                                  form.setValue("subcategoryId", null);
+                                } else {
+                                  form.setValue("subcategoryId", subcat1?.id || null);
+                                }
                               }
                             }}
                             value={safeString(field.value)}
@@ -1493,11 +1348,31 @@ export default function AddProductForm({
                             <SelectContent>
                               {selectedCategory ? (
                                 filteredSubcategories.length > 0 ? (
-                                  filteredSubcategories.map((subcategory: any) => (
-                                    <SelectItem key={subcategory.id} value={subcategory.name}>
-                                      {subcategory.name}
-                                    </SelectItem>
-                                  ))
+                                  filteredSubcategories.map((subcategory: any) => {
+                                    // Check if this subcategory has children (level 2)
+                                    const hasChildren = safeSubcategoriesData.some((sc: any) => sc.parentId === subcategory.id);
+                                    if (hasChildren) {
+                                      // Render as optgroup-like: show level 2 subcategories as indented options
+                                      return [
+                                        <SelectItem key={subcategory.id} value={subcategory.name} disabled>
+                                          {subcategory.name}
+                                        </SelectItem>,
+                                        ...safeSubcategoriesData
+                                          .filter((sc: any) => sc.parentId === subcategory.id)
+                                          .map((sub2: any) => (
+                                            <SelectItem key={sub2.id} value={sub2.name}>
+                                              &nbsp;&nbsp;{sub2.name}
+                                            </SelectItem>
+                                          )),
+                                      ];
+                                    } else {
+                                      return (
+                                        <SelectItem key={subcategory.id} value={subcategory.name}>
+                                          {subcategory.name}
+                                        </SelectItem>
+                                      );
+                                    }
+                                  })
                                 ) : (
                                   <SelectItem value="none" disabled>No matching entry</SelectItem>
                                 )
@@ -1515,57 +1390,20 @@ export default function AddProductForm({
 
                 <FormField
                   control={form.control}
-                  name="subcategory2"
-                  render={({ field }) => {
-                    const selectedCategory = form.watch("category");
-                    const selectedSubcategory = form.watch("subcategory");
-                    const categoryObject = safeCategoriesData.find((c: any) => c.name === selectedCategory);
-                    const parentSubcategory = safeSubcategoriesData.find((sc: any) => sc.name === selectedSubcategory && sc.categoryId === categoryObject?.id && !sc.parentId);
-                    const filteredSubcategory2 = safeSubcategoriesData.filter((sc: any) => parentSubcategory && sc.parentId === parentSubcategory.id);
-                    return (
-                      <FormItem>
-                        <FormLabel>Subcategory Level 2</FormLabel>
-                        <FormControl>
-                          <Select
-                            onValueChange={(value) => {
-                              field.onChange(value);
-                              // Find the subcategory2 in the data to get its ID
-                              const subcategory2 = safeSubcategoriesData.find((sc: any) => sc.name === value && sc.parentId === parentSubcategory?.id);
-                              if (subcategory2) {
-                                form.setValue("subcategoryId", subcategory2.id);
-                              } else if (parentSubcategory) {
-                                form.setValue("subcategoryId", parentSubcategory.id);
-                              } else {
-                                form.setValue("subcategoryId", null);
-                              }
-                            }}
-                            value={safeString(field.value)}
-                            disabled={!selectedSubcategory}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a subcategory level 2" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {selectedSubcategory ? (
-                                filteredSubcategory2.length > 0 ? (
-                                  filteredSubcategory2.map((subcategory2: any) => (
-                                    <SelectItem key={subcategory2.id} value={subcategory2.name}>
-                                      {subcategory2.name}
-                                    </SelectItem>
-                                  ))
-                                ) : (
-                                  <SelectItem value="none" disabled>No matching entry</SelectItem>
-                                )
-                              ) : (
-                                <SelectItem value="none" disabled>Select subcategory first</SelectItem>
-                              )}
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    );
-                  }}
+                  name="sku"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>SKU</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Stock Keeping Unit"
+                          {...field}
+                          value={safeString(field.value)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
 
                 {/* GST information card */}
@@ -1764,24 +1602,6 @@ export default function AddProductForm({
                             step="1"
                             placeholder="0"
                             {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="sku"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>SKU</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Stock Keeping Unit"
-                            {...field}
-                            value={safeString(field.value)}
                           />
                         </FormControl>
                         <FormMessage />
@@ -2252,19 +2072,10 @@ export default function AddProductForm({
                                 </TableCell>
                                 <TableCell>
                                   <FileUpload
-                                    onFileSelect={handleAddVariantImage}
-                                    maxFiles={4}
+                                    onChange={handleAddVariantImage}
                                     accept="image/*"
                                     multiple={true}
-                                    buttonLabel={
-                                      <div className="flex items-center">
-                                        <ImagePlus className="h-3 w-3 mr-1" />
-                                        <span className="text-xs">Add</span>
-                                      </div>
-                                    }
                                     className="h-8"
-                                    buttonVariant="outline"
-                                    buttonSize="sm"
                                   />
                                   {variantImages.length > 0 && (
                                     <div className="flex items-center gap-1 mt-1">
@@ -2354,7 +2165,7 @@ export default function AddProductForm({
                       <FormLabel>Product Description *</FormLabel>
                       <FormControl>
                         <RichTextEditor
-                          content={field.value}
+                          value={field.value}
                           onChange={field.onChange}
                           placeholder="Describe your product (at least 20 characters)"
                         />
@@ -2403,8 +2214,7 @@ export default function AddProductForm({
               </CardHeader>
               <CardContent className="space-y-4">
                 <FileUpload
-                  onFileSelect={handleAddImage}
-                  maxFiles={8}
+                  onChange={handleAddImage}
                   accept="image/*"
                   multiple={true}
                 />
