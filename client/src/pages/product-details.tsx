@@ -1403,17 +1403,17 @@ export default function ProductDetailsPage() {
   const getPriceDetails = (product?: Product) => {
     if (!product) return { price: 0, discount: 0, original: 0 };
 
-    // If we have a selected variant, use its price
+    // If we have a selected variant, use its price and MRP directly
     if (selectedVariant) {
-      const variantPrice = selectedVariant.price || 0;
-      const variantOriginal =
-        selectedVariant.mrp || Math.round(variantPrice * 1.25);
-      const variantDiscount = variantOriginal - variantPrice;
-
+      const variantPrice = selectedVariant.price ?? 0;
+      // Use the variant's MRP if present, otherwise fallback to product.mrp
+      const variantMrp = selectedVariant.mrp ?? product.mrp ?? 0;
+      const variantDiscount = variantMrp - variantPrice;
+      console.log('DEBUG VARIANT PRICE BLOCK', { selectedVariant, variantPrice, variantMrp });
       return {
         price: variantPrice,
         discount: variantDiscount,
-        original: variantOriginal,
+        original: variantMrp,
         hasGst: product.gstDetails ? true : false,
         gstRate: product.gstDetails?.gstRate,
         basePrice: product.gstDetails?.basePrice,
@@ -1425,17 +1425,15 @@ export default function ProductDetailsPage() {
     }
 
     // Check if product has GST details
-    if (product.gstDetails) {
-      const productPrice =
-        product.gstDetails.priceWithGst || product.price || 0;
-      // Calculate original price based on 20% off
-      const productOriginal = Math.round(productPrice * 1.25);
-      const productDiscount = productOriginal - productPrice;
-
+    if (product && product.gstDetails) {
+      const productPrice = product.gstDetails.priceWithGst || product.price || 0;
+      // Use product.mrp if available, otherwise fallback to calculated
+      const productMrp = product.mrp ?? Math.round(productPrice * 1.25);
+      const productDiscount = productMrp - productPrice;
       return {
         price: productPrice,
         discount: productDiscount,
-        original: productOriginal,
+        original: productMrp,
         hasGst: true,
         gstRate: product.gstDetails.gstRate,
         basePrice: product.gstDetails.basePrice,
@@ -1444,11 +1442,9 @@ export default function ProductDetailsPage() {
     } else {
       // Fallback to regular price calculation
       const price = product.price || 0;
-      // Calculate original price based on 20% off
-      const original = Math.round(price * 1.25);
-      const discount = original - price;
-
-      return { price, discount, original, hasGst: false };
+      const mrp = product.mrp ?? Math.round(price * 1.25);
+      const discount = mrp - price;
+      return { price, discount, original: mrp, hasGst: false };
     }
   };
 
@@ -1600,7 +1596,7 @@ export default function ProductDetailsPage() {
                 </div>
 
                 {/* Pricing */}
-                {console.log('DEBUG PRICE BLOCK', {price, discount, original, hasGst, gstRate, basePrice, gstAmount, safeBasePrice, safeGstAmount})}
+                {console.log('DEBUG PRICE BLOCK', {price, discount, original, hasGst, gstRate, basePrice, gstAmount, safeBasePrice, safeGstAmount, selectedVariant})}
                 <div className="flex flex-col mt-1">
                   <div className="flex items-baseline">
                     {typeof price === 'number' && price > 0 && (
@@ -1608,20 +1604,18 @@ export default function ProductDetailsPage() {
                         {formatPrice(price)}
                       </span>
                     )}
-                    {((product?.mrp && product?.mrp > 0) || (original && original > 0)) && (
+                    {((selectedVariant?.mrp && selectedVariant.mrp > 0) || (product?.mrp && product?.mrp > 0) || (original && original > 0)) && (
                       <span className="text-sm text-gray-500 line-through ml-2">
                         ₹
-                        {product?.mrp?.toLocaleString("en-IN") ||
-                          original.toLocaleString("en-IN")}
+                        {((selectedVariant?.mrp ?? (product?.mrp ?? original)) as number)?.toLocaleString("en-IN")}
                       </span>
                     )}
-                    {((product?.mrp && product?.mrp > 0) || (original && original > 0)) && price > 0 && (
+                    {((selectedVariant?.mrp && selectedVariant.mrp > 0) || (product?.mrp && product?.mrp > 0) || (original && original > 0)) && price > 0 && (
                       <span className="text-sm text-green-600 ml-2">
-                        {Math.round(
-                          (((product?.mrp || original) - price) /
-                            (product?.mrp || original)) *
-                          100
-                        )}
+                        {(() => {
+                          const mrp = selectedVariant?.mrp ?? (product?.mrp ?? original);
+                          return mrp && mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
+                        })()}
                         % off
                       </span>
                     )}
