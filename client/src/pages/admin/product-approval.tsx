@@ -426,8 +426,8 @@ function ProductApprovalContent() {
   ];
 
   // Product counts for stats
-  const totalPendingProducts = pendingProducts?.length || 0;
-  const totalProducts = products?.length || 0;
+  const totalPendingProducts = pagination?.total || 0;
+  const totalProducts = pagination?.total || 0;
   const approvedProducts = products?.filter((p) => p.approved).length || 0;
   const rejectedProducts = products?.filter((p) => p.rejected).length || 0;
 
