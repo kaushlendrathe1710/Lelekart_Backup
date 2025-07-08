@@ -1,7 +1,7 @@
 import { useEffect, useState, useContext, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
-import { Product, User } from "@shared/schema";
+import { Product, User, ProductVariant } from "@shared/schema";
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -13,6 +13,9 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { ProductImageGallery } from "@/components/ui/product-image-gallery";
 import { RichTextContent } from "@/components/ui/rich-text-content";
+import { VariantSelector } from "@/components/product/variant-selector";
+
+type ProductWithVariants = Product & { variants?: ProductVariant[] };
 
 export default function ProductPage() {
   // Keep a stable reference to the component
@@ -58,6 +61,8 @@ export default function ProductPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
+
   // Clean up effect
   useEffect(() => {
     return () => {
@@ -76,7 +81,7 @@ export default function ProductPage() {
   });
 
   // Fetch product details with stable identity
-  const { data: product, isLoading: isProductLoading } = useQuery<Product>({
+  const { data: product, isLoading: isProductLoading } = useQuery<ProductWithVariants | undefined>({
     queryKey: ["/api/products", productId],
     queryFn: async () => {
       console.log("Fetching product data for ID:", productId);
@@ -322,6 +327,16 @@ export default function ProductPage() {
     }
   };
 
+  // Helper to get the correct price/MRP
+  const getDisplayPrice = () => {
+    return selectedVariant ? selectedVariant.price : product?.price;
+  };
+  const getDisplayMrp = () => {
+    if (selectedVariant) return selectedVariant.mrp;
+    if (product?.mrp) return product.mrp;
+    return product?.price ? Math.round(product.price * 1.2) : undefined;
+  };
+
   return (
     <>
       <div className="container mx-auto px-4 py-6">
@@ -359,7 +374,7 @@ export default function ProductPage() {
               {/* Product Details */}
               <div>
                 <h1 className="text-2xl font-semibold text-gray-800">
-                  {product.name}
+                  {product?.name ?? ""}
                 </h1>
                 <div className="flex items-center mt-2">
                   <div className="flex items-center bg-green-600 text-white px-2 py-0.5 rounded text-sm">
@@ -371,20 +386,36 @@ export default function ProductPage() {
                   </span>
                 </div>
 
+                {/* Variant Selector */}
+                {product?.variants && Array.isArray(product.variants) && product.variants.length > 0 && (
+                  <div className="my-4">
+                    <VariantSelector
+                      variants={product.variants}
+                      onVariantChange={setSelectedVariant}
+                    />
+                  </div>
+                )}
+
                 <div className="mt-4">
                   <span className="text-3xl font-semibold text-gray-900">
-                    {formatPrice(product.price)}
+                    {getDisplayPrice() ? `₹${getDisplayPrice()}` : "-"}
                   </span>
-                  <span className="text-sm text-gray-500 line-through ml-2">
-                    ₹{(product.price * 1.2).toLocaleString("en-IN")}
-                  </span>
-                  <span className="text-sm text-green-600 ml-2">20% off</span>
+                  {getDisplayMrp() && (
+                    <span className="text-sm text-gray-500 line-through ml-2">
+                      ₹{getDisplayMrp()}
+                    </span>
+                  )}
+                  {getDisplayMrp() && getDisplayPrice() && getDisplayMrp() > getDisplayPrice() && (
+                    <span className="text-sm text-green-600 ml-2">
+                      {`-${Math.round(((getDisplayMrp() - getDisplayPrice()) / getDisplayMrp()) * 100)}% off`}
+                    </span>
+                  )}
                 </div>
 
                 <div className="mt-6">
                   <h3 className="font-medium text-gray-900">Description:</h3>
                   <RichTextContent
-                    content={product.description}
+                    content={product?.description ?? ""}
                     className="mt-1 text-gray-600"
                   />
                 </div>
@@ -393,7 +424,7 @@ export default function ProductPage() {
                   <h3 className="font-medium text-gray-900">
                     Available Stock:
                   </h3>
-                  <p className="mt-1 text-gray-600">{product.stock} units</p>
+                  <p className="mt-1 text-gray-600">{product?.stock ?? 0} units</p>
                 </div>
 
                 <Separator className="my-6" />
@@ -418,9 +449,9 @@ export default function ProductPage() {
                       size="icon"
                       className="h-8 w-8 rounded-r"
                       onClick={() =>
-                        setQuantity(Math.min(product.stock, quantity + 1))
+                        setQuantity(Math.min(product?.stock ?? 1, quantity + 1))
                       }
-                      disabled={quantity >= product.stock}
+                      disabled={quantity >= (product?.stock ?? 1)}
                     >
                       <Plus className="h-3 w-3" />
                     </Button>
@@ -430,14 +461,14 @@ export default function ProductPage() {
                 <div className="mt-6 flex flex-col sm:flex-row gap-4">
                   <Button
                     className="bg-orange-500 hover:bg-orange-600 text-white px-8"
-                    onClick={handleAddToCart}
+                    onClick={() => { if (product) handleAddToCart(); }}
                   >
                     <ShoppingCart className="h-4 w-4 mr-2" />
                     ADD TO CART
                   </Button>
                   <Button
                     className="bg-primary hover:bg-primary/90 text-white px-8"
-                    onClick={handleBuyNow}
+                    onClick={() => { if (product) handleBuyNow(); }}
                   >
                     <Zap className="h-4 w-4 mr-2" />
                     BUY NOW
