@@ -40,6 +40,7 @@ interface Order {
   paymentMethod: string;
   walletDiscount?: number;
   rewardDiscount?: number;
+  discount?: number;
 }
 
 // Helper to format dates with time
@@ -335,9 +336,12 @@ export default function OrdersPage() {
                       ₹{order.total.toFixed(2)}
                     </p>
                     {/* Show wallet discount if used and > 0 */}
-                    {order.walletDiscount && order.walletDiscount > 0 ? (
-                      <p className="text-green-600 text-sm">Redeemed Coins Used: -₹{order.walletDiscount.toFixed(2)}</p>
-                    ) : null}
+                    {(order.walletDiscount ?? 0) > 0 && (
+                      <p className="text-green-600 text-sm">Wallet Points Used: -₹{order.walletDiscount?.toFixed(2)}</p>
+                    )}
+                    {(order.discount ?? 0) > 0 && (
+                      <p className="text-green-600 text-sm">Redeemed Coins Used: -₹{order.discount?.toFixed(2)}</p>
+                    )}
                     {/* Show reward discount if used and > 0 */}
                     {order.rewardDiscount && order.rewardDiscount > 0 ? (
                       <p className="text-blue-600 text-sm">Reward Points Used: -₹{order.rewardDiscount.toFixed(2)}</p>
