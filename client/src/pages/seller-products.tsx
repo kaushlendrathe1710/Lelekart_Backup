@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, AlertTriangle, Edit } from "lucide-react";
 import { Link } from "wouter";
 import { SellerDashboardLayout } from "@/components/layout/seller-dashboard-layout";
+import { LayoutGrid, List, Table, AppWindow, Grid, Rows, Columns, Square, SquareStack, AlignJustify } from "lucide-react";
 
 interface Product {
   id: number;
@@ -50,6 +51,25 @@ export default function SellerProductsPage() {
   const [category, setCategory] = useState("all");
   const [subcategory, setSubcategory] = useState("all");
   const [stockFilter, setStockFilter] = useState("all");
+
+  // View mode state
+  const VIEW_MODES = [
+    { key: "xlarge", label: "Extra Large Icons", icon: SquareStack },
+    { key: "large", label: "Large Icons", icon: Square },
+    { key: "medium", label: "Medium", icon: Grid },
+    { key: "small", label: "Small", icon: Columns },
+    { key: "tiles", label: "Tiles", icon: LayoutGrid },
+    { key: "list", label: "List", icon: List },
+    { key: "details", label: "Details", icon: Table },
+    { key: "continue", label: "Continue", icon: AppWindow },
+    { key: "all", label: "All", icon: Rows },
+  ];
+  const [viewMode, setViewMode] = useState(() => {
+    return localStorage.getItem("sellerProductsViewMode") || "medium";
+  });
+  useEffect(() => {
+    localStorage.setItem("sellerProductsViewMode", viewMode);
+  }, [viewMode]);
 
   if (!user) {
     return <div className="flex justify-center items-center h-60"><Loader2 className="w-10 h-10 animate-spin text-primary" /></div>;
@@ -132,6 +152,26 @@ export default function SellerProductsPage() {
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">My Products</h1>
           </div>
+          {/* VIEW MODE SWITCHER */}
+          <div className="flex flex-wrap gap-2 mb-4 items-center">
+            <span className="text-sm font-medium mr-2">View:</span>
+            {VIEW_MODES.map((mode) => {
+              const Icon = mode.icon;
+              return (
+                <Button
+                  key={mode.key}
+                  variant={viewMode === mode.key ? "default" : "outline"}
+                  size="icon"
+                  className={viewMode === mode.key ? "bg-primary text-white" : ""}
+                  title={mode.label}
+                  onClick={() => setViewMode(mode.key)}
+                >
+                  <Icon className="h-5 w-5" />
+                </Button>
+              );
+            })}
+            <span className="ml-4 text-xs text-muted-foreground">({VIEW_MODES.find(m => m.key === viewMode)?.label})</span>
+          </div>
           <div className="flex gap-4 mb-6">
             <input
               className="border px-3 py-2 rounded w-full"
@@ -194,39 +234,188 @@ export default function SellerProductsPage() {
             </Card>
           ) : productsData && productsData.products && productsData.products.length > 0 ? (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {productsData.products.map((product: Product, colIndex: number) => (
-                  <div key={product.id} className="flex flex-col h-full">
-                    <div className="flex-1">
-                      <ProductCard
-                        product={{
-                          ...product,
-                          imageUrl: getProductImageUrl(product),
-                        } as any}
-                        priority={colIndex === 0}
-                      />
+              {(() => {
+                const products = productsData.products;
+                // Extra Large Icons
+                if (viewMode === "xlarge") {
+                  return (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                      {products.map((product: Product) => (
+                        <div key={product.id} className="p-2">
+                          <img src={getProductImageUrl(product)} alt={product.name} className="w-full h-48 object-cover rounded-lg border mb-2" />
+                          <div className="mt-2 text-center font-bold text-lg">{product.name}</div>
+                        </div>
+                      ))}
                     </div>
-                    <div className="flex flex-col items-center mt-2">
-                      {product.approved ? (
-                        <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200 mb-1">
-                          <CheckCircle2 className="h-3 w-3 mr-1" />
-                          Active
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-amber-100 text-amber-800 hover:bg-amber-200 mb-1">
-                          <AlertTriangle className="h-3 w-3 mr-1" />
-                          Pending
-                        </Badge>
-                      )}
-                      <Link href={`/seller/products/edit/${product.id}`}>
-                        <Button variant="ghost" size="sm" className="flex items-center gap-1 text-xs h-7 px-2 mt-1">
-                          <Edit className="h-4 w-4 mr-1" /> Edit
-                        </Button>
-                      </Link>
+                  );
+                }
+                // Large Icons
+                if (viewMode === "large") {
+                  return (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+                      {products.map((product: Product) => (
+                        <div key={product.id} className="p-2">
+                          <img src={getProductImageUrl(product)} alt={product.name} className="w-full h-40 object-cover rounded-md border mb-1" />
+                          <div className="mt-1 text-center font-semibold">{product.name}</div>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                ))}
-              </div>
+                  );
+                }
+                // Medium
+                if (viewMode === "medium") {
+                  return (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                      {products.map((product: Product, colIndex: number) => (
+                        <div key={product.id} className="flex flex-col h-full">
+                          <div className="flex-1">
+                            <ProductCard
+                              product={{
+                                ...product,
+                                imageUrl: getProductImageUrl(product),
+                              } as any}
+                              priority={colIndex === 0}
+                            />
+                          </div>
+                          <div className="flex flex-col items-center mt-2">
+                            {product.approved ? (
+                              <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200 mb-1">
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                Active
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="bg-amber-100 text-amber-800 hover:bg-amber-200 mb-1">
+                                <AlertTriangle className="h-3 w-3 mr-1" />
+                                Pending
+                              </Badge>
+                            )}
+                            <Link href={`/seller/products/edit/${product.id}`}>
+                              <Button variant="ghost" size="sm" className="flex items-center gap-1 text-xs h-7 px-2 mt-1">
+                                <Edit className="h-4 w-4 mr-1" /> Edit
+                              </Button>
+                            </Link>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
+                // Small
+                if (viewMode === "small") {
+                  return (
+                    <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                      {products.map((product: Product) => (
+                        <div key={product.id} className="p-1">
+                          <img src={getProductImageUrl(product)} alt={product.name} className="w-full h-20 object-cover rounded border" />
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
+                // Tiles
+                if (viewMode === "tiles") {
+                  return (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {products.map((product: Product) => (
+                        <div key={product.id} className="p-2">
+                          <img src={getProductImageUrl(product)} alt={product.name} className="w-full h-32 object-cover rounded border mb-1" />
+                          <div className="mt-1 text-center font-medium">{product.name}</div>
+                          <div className="text-xs text-center text-muted-foreground">{product.category}</div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
+                // List
+                if (viewMode === "list") {
+                  return (
+                    <div className="divide-y border rounded-md">
+                      {products.map((product: Product) => (
+                        <div key={product.id} className="flex items-center gap-4 p-3 hover:bg-muted/30">
+                          <img src={getProductImageUrl(product)} alt={product.name} className="w-16 h-16 object-cover rounded border" />
+                          <div className="flex-1">
+                            <div className="font-medium">{product.name}</div>
+                            <div className="text-xs text-muted-foreground">SKU: {product.sku}</div>
+                          </div>
+                          <div className="text-right font-bold">₹{product.price.toLocaleString()}</div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
+                // Details
+                if (viewMode === "details") {
+                  return (
+                    <div className="divide-y border rounded-md">
+                      {products.map((product: Product) => (
+                        <div key={product.id} className="flex flex-col md:flex-row gap-2 p-3 hover:bg-muted/30">
+                          <div className="flex items-center gap-3">
+                            <img src={getProductImageUrl(product)} alt={product.name} className="w-16 h-16 object-cover rounded border" />
+                            <div>
+                              <div className="font-medium">{product.name}</div>
+                              <div className="text-xs text-muted-foreground">SKU: {product.sku}</div>
+                              <div className="text-xs text-muted-foreground">Category: {product.category}</div>
+                              <div className="text-xs text-muted-foreground">Subcategory: {product.subcategory}</div>
+                            </div>
+                          </div>
+                          <div className="flex-1 flex flex-col md:flex-row md:items-center md:justify-between mt-2 md:mt-0">
+                            <div className="text-right font-bold">₹{product.price.toLocaleString()}</div>
+                            <div className="text-xs text-muted-foreground">Stock: {product.stock}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
+                // Continue (show as a simple grid, can be customized)
+                if (viewMode === "continue") {
+                  return (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {products.map((product: Product) => (
+                        <div key={product.id} className="p-2">
+                          <img src={getProductImageUrl(product)} alt={product.name} className="w-full h-32 object-cover rounded border mb-1" />
+                          <div className="mt-1 text-center">{product.name}</div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
+                // All (show all info in a table)
+                if (viewMode === "all") {
+                  return (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full border text-sm">
+                        <thead className="bg-muted">
+                          <tr>
+                            <th className="border px-2 py-1">Image</th>
+                            <th className="border px-2 py-1">Name</th>
+                            <th className="border px-2 py-1">SKU</th>
+                            <th className="border px-2 py-1">Price</th>
+                            <th className="border px-2 py-1">Stock</th>
+                            <th className="border px-2 py-1">Category</th>
+                            <th className="border px-2 py-1">Subcategory</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {products.map((product: Product) => (
+                            <tr key={product.id}>
+                              <td className="border px-2 py-1"><img src={getProductImageUrl(product)} alt={product.name} className="w-12 h-12 object-cover rounded border" /></td>
+                              <td className="border px-2 py-1">{product.name}</td>
+                              <td className="border px-2 py-1">{product.sku}</td>
+                              <td className="border px-2 py-1">₹{product.price.toLocaleString()}</td>
+                              <td className="border px-2 py-1">{product.stock}</td>
+                              <td className="border px-2 py-1">{product.category}</td>
+                              <td className="border px-2 py-1">{product.subcategory}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                }
+                // Default fallback
+                return null;
+              })()}
               <div className="mt-8 flex justify-end">
                 <Pagination 
                   currentPage={currentPage}
