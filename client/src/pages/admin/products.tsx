@@ -221,23 +221,17 @@ function AdminProductsContent({
       limit: number;
     };
   }>({
-    queryKey: ["/api/products", { page: currentPage, limit: itemsPerPage }],
+    queryKey: ["/api/products", { page: currentPage, limit: itemsPerPage, approvalFilter, categoryFilter, search }],
     queryFn: async ({ queryKey }) => {
-      const [_, params] = queryKey as [string, { page: number; limit: number }];
-      const res = await apiRequest(
-        "GET",
-        `/api/products?page=${params.page}&limit=${params.limit}${
-          categoryFilter ? `&category=${categoryFilter}` : ""
-        }${
-          approvalFilter === "approved"
-            ? "&approved=true"
-            : approvalFilter === "rejected"
-              ? "&rejected=true"
-              : approvalFilter === "pending"
-                ? "&pending=true"
-                : ""
-        }${search ? `&search=${encodeURIComponent(search)}` : ""}`
-      );
+      const [_, params] = queryKey as [string, { page: number; limit: number; approvalFilter: string | null; categoryFilter: string | null; search: string }];
+      let url = `/api/products?page=${params.page}&limit=${params.limit}`;
+      if (params.categoryFilter) url += `&category=${params.categoryFilter}`;
+      if (params.search) url += `&search=${encodeURIComponent(params.search)}`;
+      if (params.approvalFilter === "approved") url += `&approved=true`;
+      else if (params.approvalFilter === "rejected") url += `&approved=false&rejected=true`;
+      else if (params.approvalFilter === "pending") url += `&approved=false&rejected=false`;
+      // All: do not send any status param
+      const res = await apiRequest("GET", url);
       return res.json();
     },
   });
@@ -794,36 +788,27 @@ function AdminProductsContent({
   const filteredProducts = products
     ?.filter((product) => {
       // Advanced text search by field
-      let matchesSearch = !search ? true : false;
+      let matchesSearch: boolean = true;
 
       if (search) {
         const searchLower = search.toLowerCase();
-
         if (searchField === "all") {
           matchesSearch =
             product.name.toLowerCase().includes(searchLower) ||
-            (product.description &&
-              product.description.toLowerCase().includes(searchLower)) ||
-            (product.category &&
-              product.category.toLowerCase().includes(searchLower)) ||
-            (product.sku && product.sku.toLowerCase().includes(searchLower)) ||
-            (product.sellerId && `Seller #${product.sellerId}`.toLowerCase().includes(searchLower));
+            (!!product.description && product.description.toLowerCase().includes(searchLower)) ||
+            (!!product.category && product.category.toLowerCase().includes(searchLower)) ||
+            (!!product.sku && product.sku.toLowerCase().includes(searchLower)) ||
+            (!!product.sellerId && `Seller #${product.sellerId}`.toLowerCase().includes(searchLower));
         } else if (searchField === "name") {
           matchesSearch = product.name.toLowerCase().includes(searchLower);
         } else if (searchField === "description") {
-          matchesSearch =
-            product.description &&
-            product.description.toLowerCase().includes(searchLower);
+          matchesSearch = !!product.description && product.description.toLowerCase().includes(searchLower);
         } else if (searchField === "category") {
-          matchesSearch =
-            product.category &&
-            product.category.toLowerCase().includes(searchLower);
+          matchesSearch = !!product.category && product.category.toLowerCase().includes(searchLower);
         } else if (searchField === "sku") {
-          matchesSearch =
-            product.sku && product.sku.toLowerCase().includes(searchLower);
+          matchesSearch = !!product.sku && product.sku.toLowerCase().includes(searchLower);
         } else if (searchField === "seller") {
-          matchesSearch =
-            product.sellerId && `Seller #${product.sellerId}`.toLowerCase().includes(searchLower);
+          matchesSearch = !!product.sellerId && `Seller #${product.sellerId}`.toLowerCase().includes(searchLower);
         }
       }
 
@@ -832,33 +817,24 @@ function AdminProductsContent({
         ? true
         : product.category === categoryFilter;
 
-      // Approval filter
-      const matchesApproval =
-        approvalFilter === null
-          ? true
-          : approvalFilter === "approved"
-            ? Boolean(product.approved)
-            : approvalFilter === "rejected"
-              ? Boolean(product.rejected)
-              : !product.approved && !product.rejected; // pending products (not approved and not rejected)
-
       // Price range filter
       const [minPrice, maxPrice] = priceRangeFilter;
+      const price = typeof product.price === 'number' ? product.price : Number(product.price) || 0;
       const matchesPrice =
-        (!minPrice || (product.price && product.price >= minPrice)) &&
-        (!maxPrice || (product.price && product.price <= maxPrice));
+        (!minPrice || price >= minPrice) &&
+        (!maxPrice || price <= maxPrice);
 
       // Stock filter
+      const stock = typeof product.stock === 'number' ? product.stock : Number(product.stock) || 0;
       const matchesStock = !stockFilter
         ? true
         : stockFilter === "inStock"
-          ? Boolean(product.stock && product.stock > 0)
-          : Boolean(product.stock === 0 || !product.stock);
+          ? stock > 0
+          : stock === 0;
 
       return (
         matchesSearch &&
         matchesCategory &&
-        matchesApproval &&
         matchesPrice &&
         matchesStock
       );
@@ -941,7 +917,7 @@ function AdminProductsContent({
   const handleItemsPerPageChange = (value: string) => {
     const newLimit = parseInt(value);
     setItemsPerPage(newLimit);
-    setCurrentPage(1); // Reset to first page when changing limit
+    setCurrentPage(1); // Reset to first page when changing page size
   };
 
   // Loading states
@@ -1086,7 +1062,7 @@ function AdminProductsContent({
                       <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-48">
+                  <DropdownMenuContent className="w-48 max-w-xs max-h-60 overflow-auto">
                     <DropdownMenuLabel>Search in field</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuRadioGroup
@@ -1611,8 +1587,8 @@ function AdminProductsContent({
                       size="sm"
                       onClick={() => setApprovalFilter("pending")}
                       className="justify-start"
-                    >
-                      <Clock className="mr-2 h-4 w-4" /> Pending
+                    >Rejected
+                      <Clock className="mr-2 h-4 w-4" /> 
                     </Button>
                     <Button
                       variant={
@@ -1622,7 +1598,7 @@ function AdminProductsContent({
                       onClick={() => setApprovalFilter("rejected")}
                       className="justify-start"
                     >
-                      <X className="mr-2 h-4 w-4" /> Rejected
+                      <X className="mr-2 h-4 w-4" /> Pending
                     </Button>
                   </div>
                 </div>
