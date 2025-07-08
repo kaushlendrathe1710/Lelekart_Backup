@@ -7524,7 +7524,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
 
             // Process warranty and return policy
-            const warranty = row["warranty_"] || null;
+            // Parse warranty: allow '1 Year', '2 Years', '12', etc.
+            let warrantyRaw = row["warranty_"] || null;
+            let warranty = null;
+            if (warrantyRaw) {
+              const str = String(warrantyRaw).toLowerCase().trim();
+              let num = null;
+              if (str.includes("year")) {
+                const match = str.match(/(\d+(?:\.\d+)?)/);
+                if (match) num = Math.round(parseFloat(match[1]) * 12);
+              } else if (str.includes("month")) {
+                const match = str.match(/(\d+(?:\.\d+)?)/);
+                if (match) num = Math.round(parseFloat(match[1]));
+              } else if (/^\d+(?:\.\d+)?$/.test(str)) {
+                num = Math.round(parseFloat(str));
+              }
+              warranty = num !== null && !isNaN(num) ? num : null;
+            }
             const returnPolicy = row["returnPolicy"] || null;
             const productType = row["productType"] || null;
 
