@@ -1103,6 +1103,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }),
           };
 
+          // Calculate delivery charges (sum of all item delivery charges)
+          const deliveryCharges = orderItems.reduce((sum: number, item: any) => sum + ((item.product?.deliveryCharges || 0) * item.quantity), 0);
+          // Get wallet, reward, and redeem discounts from order
+          const walletDiscount = Number(order.walletDiscount) || 0;
+          const rewardDiscount = Number(order.rewardDiscount) || 0;
+          const redeemDiscount = Number(order.redeemDiscount) || 0;
+          // Calculate correct total
+          const total = subtotal + deliveryCharges - walletDiscount - rewardDiscount - redeemDiscount;
+          // Add these to invoiceData
+          invoiceData.deliveryCharges = deliveryCharges;
+          invoiceData.walletDiscount = walletDiscount;
+          invoiceData.rewardDiscount = rewardDiscount;
+          invoiceData.redeemDiscount = redeemDiscount;
+          invoiceData.subtotal = subtotal;
+          invoiceData.total = total < 0 ? 0 : total;
+
           // Generate QR code with invoice details
           const qrData = `https://lelekart.in/orders/${orderId}`;
 
@@ -2708,25 +2724,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If approved query parameter is provided, use it;
       // Otherwise, for buyers only show approved products
       let approved: boolean | undefined;
+      let rejected: boolean | undefined;
 
       // Use isDraft instead of hideDrafts
       let isDraft = req.query.isDraft === "true" || userRole === "buyer";
 
-      // Use rejected instead of hideRejected
-      let rejected =
-        req.query.rejected === "true" ||
-        userRole === "buyer" ||
-        req.query.isDraft === "true";
-
+      // Parse approved and rejected params
       if (req.query.approved !== undefined) {
         approved = req.query.approved === "true";
-      } else if (userRole === "admin" || userRole === "seller") {
-        // For admin/seller, we don't want to filter by approval status
-        // so we set approved to undefined
-        approved = undefined;
-      } else {
-        // Regular buyers should only see approved products
-        approved = true;
+      }
+      if (req.query.rejected !== undefined) {
+        rejected = req.query.rejected === "true";
+      }
+      // If neither is set, use old logic for buyers
+      if (approved === undefined && rejected === undefined) {
+        if (userRole === "admin" || userRole === "seller") {
+          approved = undefined;
+          rejected = undefined;
+        } else {
+          approved = true;
+        }
       }
 
       // Pagination parameters
@@ -2902,7 +2919,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         search,
         isDraft, // Pass isDraft parameter
         subcategory, // Pass subcategory parameter
-        rejected // Pass rejected parameter
+        rejected // Pass rejected parameter (now can be true/false/undefined)
       );
       console.log(
         `Found ${products?.length || 0} products (page ${page}/${totalPages})`
@@ -5802,6 +5819,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
             `Error sending order confirmation emails: ${emailError}`
           );
         });
+        // Send wallet/redeem notification emails if used
+        const buyer = await storage.getUser(order.userId);
+        const buyerEmail = buyer?.email;
+        if (buyerEmail) {
+          if (typeof order.walletDiscount === 'number' && order.walletDiscount > 0) {
+            emailService.sendWalletUsedEmail(order, buyerEmail).catch((err) => {
+              console.error("Error sending wallet used email:", err);
+            });
+          }
+          if (typeof order.redeemDiscount === 'number' && order.redeemDiscount > 0) {
+            emailService.sendRedeemUsedEmail(order, buyerEmail).catch((err) => {
+              console.error("Error sending redeem used email:", err);
+            });
+          }
+        }
       } catch (emailError) {
         console.error(
           `Error initiating order confirmation emails: ${emailError}`
@@ -12310,6 +12342,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
       });
 
+      // Register 'gt' helper for greater-than comparisons
+      handlebars.registerHelper('gt', function(a, b) {
+        return a > b;
+      });
+
       // Invoice template with fixed header alignment
       const invoiceTemplate = `<!DOCTYPE html>
 <html>
@@ -12699,6 +12736,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           <th>Discount</th>
           <th>Taxable Value</th>
           <th>Taxes</th>
+          <th>Delivery Charges</th>
           <th>Total</th>
         </tr>
       </thead>
@@ -12712,7 +12750,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           <td>{{formatMoney (multiply (subtract this.product.mrp this.price) this.quantity)}}</td>
           <td>{{calculateTaxableValue this.price this.quantity this.product.gstRate}}</td>
           <td class="taxes-cell">{{{calculateTaxes this.price this.quantity this.product.gstRate ../order.shippingDetails.state ../seller.pickupAddress.state}}}</td>
-          <td>{{formatMoney (multiply this.price this.quantity)}}</td>
+          <td>{{#if this.product.deliveryCharges}}{{#if (gt this.product.deliveryCharges 0)}}₹{{multiply this.product.deliveryCharges this.quantity}}{{else}}Free{{/if}}{{else}}Free{{/if}}</td>
+          <td>{{formatMoney (add (multiply this.price this.quantity) (multiply this.product.deliveryCharges this.quantity))}}</td>
         </tr>
         {{/each}}
       </tbody>
@@ -12720,7 +12759,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     <div class="amount-in-words">
       <span class="bold">Amount in words:</span>
-      <span style="font-style: italic; margin-left: 5px;">{{amountInWords (calculateTotal order.items)}} Only</span>
+      <span style="font-style: italic; margin-left: 5px;">{{amountInWords total}} Only</span>
     </div>
     
     <div class="signature-section">
@@ -12770,7 +12809,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 </html>`;
 
       handlebars.registerHelper("calculateTotal", function (items) {
-        return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        return items.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0);
       });
 
       // Additional helpers for math operations
@@ -12801,6 +12840,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       );
+
+      // Register 'gt' helper for greater-than comparisons
+      handlebars.registerHelper('gt', function(a, b) {
+        return a > b;
+      });
 
       const template = handlebars.compile(invoiceTemplate);
       return template(data);

@@ -2806,9 +2806,13 @@ export class DatabaseStorage implements IStorage {
         query += ` AND (p.is_draft = false OR p.is_draft IS NULL)`;
       }
 
-      // Add rejected filter - hide rejected products
-      if (hideRejected) {
-        query += ` AND p.rejected = false`;
+      // Add rejected filter
+      if (hideRejected !== undefined) {
+        if (hideRejected === true) {
+          query += ` AND p.rejected = false`;
+        } else if (hideRejected === false) {
+          query += ` AND p.rejected = true`;
+        }
       }
 
       // Add subcategory filter

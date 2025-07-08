@@ -72,6 +72,8 @@ export const EMAIL_TEMPLATES = {
   ADMIN_NOTIFICATION: "admin-notification",
   SUPPORT_TICKET: "support-ticket",
   CAREER_APPLICATION: "career-application",
+  WALLET_USED: "wallet-used",
+  REDEEM_USED: "redeem-used",
 };
 
 interface EmailOptions {
@@ -144,7 +146,28 @@ export async function sendOrderConfirmationEmail(
   email: string
 ): Promise<boolean> {
   try {
-    // No invoice PDF generation or attachment
+    // Calculate subtotal and delivery charges if not present
+    let subtotal = order.subtotal;
+    let deliveryCharges = order.deliveryCharges;
+    if (typeof subtotal !== 'number' || typeof deliveryCharges !== 'number') {
+      // Calculate from items if missing
+      subtotal = Array.isArray(order.items)
+        ? order.items.reduce((sum: any, item: any) => sum + (item.price * item.quantity), 0)
+        : 0;
+      deliveryCharges = Array.isArray(order.items)
+        ? order.items.reduce((sum: any, item: any) => sum + ((item.product?.deliveryCharges ?? 0) * item.quantity), 0)
+        : 0;
+    }
+    // Attach to order object for template
+    order.subtotal = subtotal;
+    order.deliveryCharges = deliveryCharges;
+    // Calculate total for email (must match order creation logic)
+    const walletDiscount = Number(order.walletDiscount) || 0;
+    const rewardDiscount = Number(order.rewardDiscount) || 0;
+    const redeemDiscount = Number(order.redeemDiscount) || 0;
+    order.total = subtotal + deliveryCharges - walletDiscount - rewardDiscount - redeemDiscount;
+    if (order.total < 0) order.total = 0;
+
     let emailOptions = {
       to: email,
       subject: `Order Confirmation: #${order.id}`,
@@ -642,19 +665,46 @@ export async function sendOrderPlacedEmails(orderId: number): Promise<boolean> {
     const buyer = await storage.getUser(order.userId);
     if (!buyer || !buyer.email) {
       console.error(`[EMAIL DEBUG] Cannot send buyer order confirmation email: Buyer for order #${orderId} not found or has no email. User object:`, buyer);
+      // Fallback: Optionally notify admin or log for manual follow-up
+      try {
+        const adminEmailsSetting = await storage.getSystemSetting("adminNotificationEmails");
+        const adminEmails = adminEmailsSetting?.value ? JSON.parse(adminEmailsSetting.value) : [];
+        if (adminEmails.length > 0) {
+          for (const adminEmail of adminEmails) {
+            await sendEmail({
+              to: adminEmail,
+              subject: `Order #${orderId} placed but buyer email missing`,
+              template: EMAIL_TEMPLATES.ADMIN_NOTIFICATION,
+              data: {
+                order: completeOrder,
+                buyerInfo: buyer || { id: order.userId, name: "Unknown", email: "Missing" },
+                note: "Buyer email missing, could not send confirmation to buyer.",
+                date: new Date().toLocaleDateString(),
+                orderLink: `${process.env.SITE_URL}/admin/orders/${orderId}`,
+              },
+            });
+          }
+        }
+      } catch (fallbackError) {
+        console.error(`[EMAIL DEBUG] Fallback admin notification failed:`, fallbackError);
+      }
       return false;
     } else {
       console.log(`[EMAIL DEBUG] Sending order confirmation email to buyer: ${buyer.email} for order #${orderId}`);
       // Send detailed email to buyer
-      await sendOrderConfirmationEmail(
-        {
-          ...completeOrder,
-          buyerName: buyer.name || buyer.username,
-          shippingDetails,
-        },
-        buyer.email
-      );
-      console.log(`[EMAIL DEBUG] Order confirmation email sent to buyer: ${buyer.email}`);
+      try {
+        await sendOrderConfirmationEmail(
+          {
+            ...completeOrder,
+            buyerName: buyer.name || buyer.username,
+            shippingDetails,
+          },
+          buyer.email
+        );
+        console.log(`[EMAIL DEBUG] Order confirmation email sent to buyer: ${buyer.email}`);
+      } catch (buyerEmailError) {
+        console.error(`[EMAIL DEBUG] Failed to send order confirmation email to buyer: ${buyer.email}`, buyerEmailError);
+      }
     }
 
     // Send notification to admin(s) if configured
@@ -784,6 +834,14 @@ function getDefaultTemplate(templateType: string): string {
                 <td style="padding: 10px; text-align: right; border-bottom: 1px solid #e5e5e5;">₹{{multiply this.quantity this.price}}</td>
               </tr>
               {{/each}}
+              <tr>
+                <td colspan="3" style="padding: 10px; text-align: right; font-weight: bold;">Subtotal (Products):</td>
+                <td style="padding: 10px; text-align: right; font-weight: bold;">₹{{order.subtotal}}</td>
+              </tr>
+              <tr>
+                <td colspan="3" style="padding: 10px; text-align: right; font-weight: bold;">Delivery Charges:</td>
+                <td style="padding: 10px; text-align: right; font-weight: bold;">₹{{order.deliveryCharges}}</td>
+              </tr>
               {{#if order.walletDiscount}}
               <tr>
                 <td colspan="3" style="padding: 10px; text-align: right; font-weight: bold; color: #388e3c;">Wallet Discount ({{order.walletCoinsUsed}} wallet rupees):</td>
@@ -1402,6 +1460,25 @@ function getDefaultTemplate(templateType: string): string {
         </div>
       `;
 
+    case EMAIL_TEMPLATES.WALLET_USED:
+      return `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e5e5; border-radius: 5px;">
+          <h2 style="color: #333;">Wallet Used for Order</h2>
+          <p style="font-size: 16px; color: #666;">You used <b>₹{{order.walletDiscount}}</b> from your wallet for order <b>#{{order.id}}</b>.</p>
+          <p style="font-size: 14px; color: #666;">Order link: <a href="{{orderLink}}">View Order</a></p>
+          <p style="font-size: 12px; color: #999;">Date: {{date}}</p>
+        </div>
+      `;
+    case EMAIL_TEMPLATES.REDEEM_USED:
+      return `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e5e5; border-radius: 5px;">
+          <h2 style="color: #333;">Redeem Coins Used for Order</h2>
+          <p style="font-size: 16px; color: #666;">You used <b>₹{{order.redeemDiscount}}</b> ({{order.redeemCoinsUsed}} coins) for order <b>#{{order.id}}</b>.</p>
+          <p style="font-size: 14px; color: #666;">Order link: <a href="{{orderLink}}">View Order</a></p>
+          <p style="font-size: 12px; color: #999;">Date: {{date}}</p>
+        </div>
+      `;
+
     default:
       // Default empty template
       return `
@@ -1410,5 +1487,51 @@ function getDefaultTemplate(templateType: string): string {
           <p>This is a notification from LeleKart.</p>
         </div>
       `;
+  }
+}
+
+/**
+ * Send a wallet used notification email
+ */
+export async function sendWalletUsedEmail(order: any, email: string): Promise<boolean> {
+  try {
+    if (!order.walletDiscount || order.walletDiscount <= 0) return false;
+    const emailOptions = {
+      to: email,
+      subject: `Wallet Used: ₹${order.walletDiscount} for Order #${order.id}`,
+      template: EMAIL_TEMPLATES.WALLET_USED,
+      data: {
+        order,
+        date: new Date().toLocaleDateString(),
+        orderLink: `${process.env.SITE_URL}/orders/${order.id}`,
+      },
+    };
+    return await sendEmail(emailOptions);
+  } catch (error) {
+    console.error("Error sending wallet used email:", error);
+    return false;
+  }
+}
+
+/**
+ * Send a redeem used notification email
+ */
+export async function sendRedeemUsedEmail(order: any, email: string): Promise<boolean> {
+  try {
+    if (!order.redeemDiscount || order.redeemDiscount <= 0) return false;
+    const emailOptions = {
+      to: email,
+      subject: `Redeem Coins Used: ₹${order.redeemDiscount} for Order #${order.id}`,
+      template: EMAIL_TEMPLATES.REDEEM_USED,
+      data: {
+        order,
+        date: new Date().toLocaleDateString(),
+        orderLink: `${process.env.SITE_URL}/orders/${order.id}`,
+      },
+    };
+    return await sendEmail(emailOptions);
+  } catch (error) {
+    console.error("Error sending redeem used email:", error);
+    return false;
   }
 }
