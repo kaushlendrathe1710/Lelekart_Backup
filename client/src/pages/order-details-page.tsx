@@ -55,6 +55,7 @@ interface Product {
   size?: string;
   stock?: number;
   gstDetails?: GstDetails;
+  deliveryCharges?: number;
 }
 
 interface OrderItem {
@@ -560,42 +561,53 @@ export default function OrderDetailsPage() {
                 )}
               </p>
               <div className="mt-3">
-                <div className="flex justify-between">
-                  <span>Subtotal:</span>
-                  <span>
-                    ₹
-                    {(order.total - (order.shippingCharges || 0) + (order.discount || 0) + (order.walletDiscount || 0)).toFixed(2)}
-                  </span>
-                </div>
-                {order.discount && order.discount > 0 && (
-                  <div className="flex justify-between text-green-600">
-                    <span>Discount:</span>
-                    <span>-₹{order.discount.toFixed(2)}</span>
-                  </div>
-                )}
-                {/* Show wallet discount if used and > 0 */}
-                {order.walletDiscount && order.walletDiscount > 0 ? (
-                  <div className="flex justify-between text-green-600">
-                    <span>Redeemed Coins Used:</span>
-                    <span>-₹{order.walletDiscount.toFixed(2)}</span>
-                  </div>
-                ) : null}
-                {/* Show reward discount if used and > 0 */}
-                {order.rewardDiscount && order.rewardDiscount > 0 ? (
-                  <span className="text-blue-600 text-sm">Reward Points Used: -₹{order.rewardDiscount.toFixed(2)}</span>
-                ) : null}
-                {/*
-                  IMPORTANT: The wallet discount is subtracted from the total only once below.
-                  Do NOT subtract walletDiscount again elsewhere in the summary or total.
-                */}
-                <div className="flex justify-between">
-                  <span>Shipping:</span>
-                  <span>₹{(order.shippingCharges || 0).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between font-bold mt-2 pt-2 border-t border-gray-200">
-                  <span>Total:</span>
-                  <span>₹{order.total.toFixed(2)}</span>
-                </div>
+                {/* Calculate delivery charges from items */}
+                {/** Delivery charges for all items (sum of item.product.deliveryCharges * item.quantity) */}
+                {/** Calculate once for use below */}
+                {(() => {
+                  const deliveryCharges = items.reduce((sum, item) => sum + ((item.product?.deliveryCharges ?? 0) * item.quantity), 0);
+                  return (
+                    <>
+                      {/* Subtotal (Products) */}
+                      <div className="flex justify-between">
+                        <span>Subtotal (Products):</span>
+                        <span>
+                          ₹{(items.reduce((sum, item) => sum + item.price * item.quantity, 0)).toFixed(2)}
+                        </span>
+                      </div>
+                      {/* Delivery Charges */}
+                      <div className="flex justify-between">
+                        <span>Delivery Charges:</span>
+                        <span>₹{deliveryCharges.toFixed(2)}</span>
+                      </div>
+                      {(order.walletDiscount ?? 0) > 0 && (
+                        <div className="flex justify-between text-green-600">
+                          <span>Wallet Points Used:</span>
+                          <span>-₹{order.walletDiscount?.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {(order.discount ?? 0) > 0 && (
+                        <div className="flex justify-between text-green-600">
+                          <span>Redeemed Coins Used:</span>
+                          <span>-₹{order.discount?.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {/* Total (after all discounts) */}
+                      <div className="flex justify-between font-bold mt-2 pt-2 border-t border-gray-200">
+                        <span>Total:</span>
+                        <span>
+                          ₹{(
+                            items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+                            + deliveryCharges
+                            - (order.walletDiscount || 0)
+                            - (order.rewardDiscount || 0)
+                            - (order.discount || 0)
+                          ).toFixed(2)}
+                        </span>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </Card>
@@ -648,38 +660,27 @@ export default function OrderDetailsPage() {
                     <img
                       src={getProductImageUrl(item.product)}
                       alt={item.product.name}
-                      className="absolute inset-0 w-full h-full object-cover rounded"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src =
-                          "https://placehold.co/100x100?text=No+Image";
-                      }}
+                      className="h-full w-full object-cover"
                     />
                   </div>
-                  <div className="flex-grow">
-                    <h3 className="font-medium">{item.product.name}</h3>
-                    {item.product.seller && (
-                      <p className="text-sm text-gray-500">
-                        Sold by: {item.product.seller.name}
-                      </p>
-                    )}
-                    {item.variant && (
-                      <p className="text-sm text-gray-500">
-                        Variant: {item.variant}
-                      </p>
-                    )}
-                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
-                      <p className="text-sm">
-                        <span className="font-medium">Unit Price:</span> ₹
-                        {item.price.toFixed(2)}
-                      </p>
-                      <p className="text-sm">
-                        <span className="font-medium">Quantity:</span>{" "}
-                        {item.quantity}
-                      </p>
-                      <p className="text-sm">
-                        <span className="font-medium">Total:</span> ₹
-                        {(item.price * item.quantity).toFixed(2)}
-                      </p>
+                  <div className="flex-1 flex flex-col gap-1">
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <span className="font-medium text-lg">
+                        {item.product.name}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        SKU: {item.product?.sku ?? '-'}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-4 text-sm mt-1">
+                      <span>Qty: {item.quantity}</span>
+                      <span>Price: ₹{item.price.toFixed(2)}</span>
+                      <span>
+                        Delivery Charges: {item.product?.deliveryCharges && item.product.deliveryCharges > 0 ? `₹${item.product.deliveryCharges.toFixed(2)}` : 'Free'}
+                      </span>
+                      <span>
+                        Subtotal: ₹{(item.price * item.quantity + ((item.product?.deliveryCharges || 0) * item.quantity)).toFixed(2)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -782,6 +783,9 @@ export default function OrderDetailsPage() {
                       Unit Price
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Delivery Charges
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Total
                     </th>
                   </tr>
@@ -817,6 +821,11 @@ export default function OrderDetailsPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           ₹{item.price.toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {item.product.deliveryCharges && item.product.deliveryCharges > 0
+                            ? `₹${(item.product.deliveryCharges * item.quantity).toFixed(2)}`
+                            : "-"}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           ₹{(item.price * item.quantity).toFixed(2)}
@@ -883,19 +892,35 @@ export default function OrderDetailsPage() {
                             ₹{(order.shippingCharges || 0).toFixed(2)}
                           </td>
                         </tr>
-                        {order.discount && order.discount > 0 && (
+                        {(order.walletDiscount ?? 0) > 0 && (
                           <tr>
                             <td
                               colSpan={4}
                               className="px-6 py-3 text-right text-sm font-medium text-green-600"
                             >
-                              Discount:
+                              Wallet Points Used:
                             </td>
                             <td
                               colSpan={2}
                               className="px-6 py-3 text-left text-sm text-green-600"
                             >
-                              -₹{order.discount.toFixed(2)}
+                              -₹{order.walletDiscount?.toFixed(2)}
+                            </td>
+                          </tr>
+                        )}
+                        {(order.discount ?? 0) > 0 && (
+                          <tr>
+                            <td
+                              colSpan={4}
+                              className="px-6 py-3 text-right text-sm font-medium text-green-600"
+                            >
+                              Redeemed Coins Used:
+                            </td>
+                            <td
+                              colSpan={2}
+                              className="px-6 py-3 text-left text-sm text-green-600"
+                            >
+                              -₹{order.discount?.toFixed(2)}
                             </td>
                           </tr>
                         )}
