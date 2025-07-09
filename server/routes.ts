@@ -1104,13 +1104,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
 
           // Calculate delivery charges (sum of all item delivery charges)
-          const deliveryCharges = orderItems.reduce((sum: number, item: any) => sum + ((item.product?.deliveryCharges || 0) * item.quantity), 0);
+          const deliveryCharges = orderItems.reduce(
+            (sum: number, item: any) =>
+              sum + (item.product?.deliveryCharges || 0) * item.quantity,
+            0
+          );
           // Get wallet, reward, and redeem discounts from order
           const walletDiscount = Number(order.walletDiscount) || 0;
           const rewardDiscount = Number(order.rewardDiscount) || 0;
           const redeemDiscount = Number(order.redeemDiscount) || 0;
           // Calculate correct total
-          const total = subtotal + deliveryCharges - walletDiscount - rewardDiscount - redeemDiscount;
+          const total =
+            subtotal +
+            deliveryCharges -
+            walletDiscount -
+            rewardDiscount -
+            redeemDiscount;
           // Add these to invoiceData
           invoiceData.deliveryCharges = deliveryCharges;
           invoiceData.walletDiscount = walletDiscount;
@@ -2773,7 +2782,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Interleaved logic for homepage
-      if (interleaved && req.query.homepage === "true" && !category && !search && !sellerId && !subcategory) {
+      if (
+        interleaved &&
+        req.query.homepage === "true" &&
+        !category &&
+        !search &&
+        !sellerId &&
+        !subcategory
+      ) {
         // Define the categories in the desired order (should match frontend)
         const allCategories = [
           "Electronics",
@@ -2786,26 +2802,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "Grocery",
         ];
         // How many products per category to fetch (overfetch to fill rows)
-        const limit = req.query.limit ? parseInt(req.query.limit as string) : 36;
+        const limit = req.query.limit
+          ? parseInt(req.query.limit as string)
+          : 36;
         const page = req.query.page ? parseInt(req.query.page as string) : 1;
-        const perCategory = Math.ceil((limit * page) / allCategories.length) + 4; // overfetch for gaps
+        const perCategory =
+          Math.ceil((limit * page) / allCategories.length) + 4; // overfetch for gaps
         // Fetch products for each category
         const categoryProductsArr = await Promise.all(
-          allCategories.map(cat => storage.getProductsPaginated(
-            cat,
-            undefined,
-            true, // approved only
-            0,
-            perCategory,
-            undefined,
-            true, // hideDrafts
-            undefined,
-            true // hideRejected
-          ))
+          allCategories.map((cat) =>
+            storage.getProductsPaginated(
+              cat,
+              undefined,
+              true, // approved only
+              0,
+              perCategory,
+              undefined,
+              true, // hideDrafts
+              undefined,
+              true // hideRejected
+            )
+          )
         );
         // Interleave products
         let interleavedProducts = [];
-        let maxLen = Math.max(...categoryProductsArr.map(arr => arr.length));
+        let maxLen = Math.max(...categoryProductsArr.map((arr) => arr.length));
         for (let i = 0; i < maxLen; i++) {
           for (let arr of categoryProductsArr) {
             if (arr[i]) interleavedProducts.push(arr[i]);
@@ -2813,7 +2834,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         // Remove duplicates by product id
         const seen = new Set();
-        interleavedProducts = interleavedProducts.filter(p => {
+        interleavedProducts = interleavedProducts.filter((p) => {
           if (seen.has(p.id)) return false;
           seen.add(p.id);
           return true;
@@ -2836,10 +2857,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (!product.imageUrl) {
               product.imageUrl = "/images/placeholder.svg";
             }
-            const gstRate = categoryGstMap.get(product.category.toLowerCase()) || 0;
+            const gstRate =
+              categoryGstMap.get(product.category.toLowerCase()) || 0;
             const priceWithGst = product.price;
             const basePrice =
-              gstRate > 0 ? (priceWithGst * 100) / (100 + gstRate) : priceWithGst;
+              gstRate > 0
+                ? (priceWithGst * 100) / (100 + gstRate)
+                : priceWithGst;
             const gstAmount = priceWithGst - basePrice;
             const productWithGst = {
               ...product,
@@ -3906,6 +3930,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const { productData, variants, deletedVariantIds } = req.body;
 
+        // Log subcategory1 and subcategory2 for debugging
+        console.log(`DEBUG: Product ${id} subcategory1 in request:`, productData?.subcategory1, `(type: ${typeof productData?.subcategory1})`);
+        console.log(`DEBUG: Product ${id} subcategory2 in request:`, productData?.subcategory2, `(type: ${typeof productData?.subcategory2})`);
+
         // Process productData for update to ensure proper handling of gstRate and new fields
         let processedProductData = { ...productData };
 
@@ -4005,6 +4033,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else {
           // Handle undefined by setting to null
           processedProductData.subcategoryId = null;
+        }
+
+        // Handle subcategory1 and subcategory2 fields
+        if (processedProductData.subcategory1 !== undefined) {
+          console.log(`DEBUG: Product ${id} processed subcategory1:`, processedProductData.subcategory1, `(type: ${typeof processedProductData.subcategory1})`);
+          processedProductData.subcategory1 = processedProductData.subcategory1 || null;
+        }
+        if (processedProductData.subcategory2 !== undefined) {
+          console.log(`DEBUG: Product ${id} processed subcategory2:`, processedProductData.subcategory2, `(type: ${typeof processedProductData.subcategory2})`);
+          processedProductData.subcategory2 = processedProductData.subcategory2 || null;
         }
 
         console.log(
@@ -5283,20 +5321,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Award first purchase wallet coins if eligible
       try {
-        const rewardResult = await storage.processFirstPurchaseReward(req.user.id, order.id);
+        const rewardResult = await storage.processFirstPurchaseReward(
+          req.user.id,
+          order.id
+        );
         if (rewardResult) {
-          console.log(`Awarded first purchase wallet coins to user ${req.user.id} for order #${order.id}`);
+          console.log(
+            `Awarded first purchase wallet coins to user ${req.user.id} for order #${order.id}`
+          );
         } else {
-          console.log(`No first purchase reward given (already awarded or not eligible) for user ${req.user.id} and order #${order.id}`);
+          console.log(
+            `No first purchase reward given (already awarded or not eligible) for user ${req.user.id} and order #${order.id}`
+          );
         }
       } catch (rewardError) {
-        console.error(`Error awarding first purchase wallet coins for user ${req.user.id} and order #${order.id}:`, rewardError);
+        console.error(
+          `Error awarding first purchase wallet coins for user ${req.user.id} and order #${order.id}:`,
+          rewardError
+        );
       }
 
       // Always process order for admin/seller notifications (single or multi-seller)
       try {
         await multiSellerOrderHandler.processMultiSellerOrder(order.id);
-        console.log("Order processing for notifications completed successfully");
+        console.log(
+          "Order processing for notifications completed successfully"
+        );
       } catch (multiSellerError) {
         console.error(
           "Error processing order for notifications:",
@@ -5580,15 +5630,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const redeemedBalanceNum = Number(wallet.redeemedBalance) || 0;
             const redeemCoinsUsedNum = Number(redeemCoinsUsed) || 0;
             if (redeemedBalanceNum < redeemCoinsUsedNum) {
-              return res.status(400).json({ error: "Insufficient redeemed coins" });
+              return res
+                .status(400)
+                .json({ error: "Insufficient redeemed coins" });
             }
             if (redeemCoinsUsedNum > orderTotal) {
-              return res.status(400).json({ error: "Cannot use more redeemed coins than order total" });
+              return res.status(400).json({
+                error: "Cannot use more redeemed coins than order total",
+              });
             }
             // Deduct redeemed coins after order creation (see below)
           } catch (redeemError) {
             console.error("Error validating redeemed coins:", redeemError);
-            return res.status(400).json({ error: "Error validating redeemed coins" });
+            return res
+              .status(400)
+              .json({ error: "Error validating redeemed coins" });
           }
         }
       }
@@ -5633,9 +5689,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               console.error(
                 `Cannot use more wallet coins than order total: ${walletCoinsUsedNum} > ${orderTotal}`
               );
-              return res
-                .status(400)
-                .json({ error: "Cannot use more wallet coins than order total" });
+              return res.status(400).json({
+                error: "Cannot use more wallet coins than order total",
+              });
             }
 
             // Deduct coins from wallet and record transaction
@@ -5663,7 +5719,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const subtotalNum = Number(subtotal) || 0;
       const totalDeliveryChargesNum = Number(totalDeliveryCharges) || 0;
       // When calculating total:
-      const total = subtotalNum + totalDeliveryChargesNum - walletDiscount - rewardDiscount - redeemDiscount;
+      const total =
+        subtotalNum +
+        totalDeliveryChargesNum -
+        walletDiscount -
+        rewardDiscount -
+        redeemDiscount;
       console.log(
         `Final order total: ₹${total} (subtotal: ₹${subtotalNum} + delivery: ₹${totalDeliveryChargesNum} - wallet: ₹${walletDiscount} - reward: ₹${rewardDiscount} - redeem: ₹${redeemDiscount})`
       );
@@ -5731,14 +5792,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Award first purchase wallet coins if eligible
       try {
-        const rewardResult = await storage.processFirstPurchaseReward(req.user.id, order.id);
+        const rewardResult = await storage.processFirstPurchaseReward(
+          req.user.id,
+          order.id
+        );
         if (rewardResult) {
-          console.log(`Awarded first purchase wallet coins to user ${req.user.id} for order #${order.id}`);
+          console.log(
+            `Awarded first purchase wallet coins to user ${req.user.id} for order #${order.id}`
+          );
         } else {
-          console.log(`No first purchase reward given (already awarded or not eligible) for user ${req.user.id} and order #${order.id}`);
+          console.log(
+            `No first purchase reward given (already awarded or not eligible) for user ${req.user.id} and order #${order.id}`
+          );
         }
       } catch (rewardError) {
-        console.error(`Error awarding first purchase wallet coins for user ${req.user.id} and order #${order.id}:`, rewardError);
+        console.error(
+          `Error awarding first purchase wallet coins for user ${req.user.id} and order #${order.id}:`,
+          rewardError
+        );
       }
 
       // Create seller-specific sub-orders
@@ -5823,12 +5894,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const buyer = await storage.getUser(order.userId);
         const buyerEmail = buyer?.email;
         if (buyerEmail) {
-          if (typeof order.walletDiscount === 'number' && order.walletDiscount > 0) {
+          if (
+            typeof order.walletDiscount === "number" &&
+            order.walletDiscount > 0
+          ) {
             emailService.sendWalletUsedEmail(order, buyerEmail).catch((err) => {
               console.error("Error sending wallet used email:", err);
             });
           }
-          if (typeof order.redeemDiscount === 'number' && order.redeemDiscount > 0) {
+          if (
+            typeof order.redeemDiscount === "number" &&
+            order.redeemDiscount > 0
+          ) {
             emailService.sendRedeemUsedEmail(order, buyerEmail).catch((err) => {
               console.error("Error sending redeem used email:", err);
             });
@@ -5844,7 +5921,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Process order for notifications (single or multi-seller)
       try {
         await multiSellerOrderHandler.processMultiSellerOrder(order.id);
-        console.log("Order processing for notifications completed successfully");
+        console.log(
+          "Order processing for notifications completed successfully"
+        );
       } catch (multiSellerError) {
         console.error(
           "Error processing order for notifications:",
@@ -5856,7 +5935,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // After order creation, deduct redeemed coins if used
       if (redeemCoinsUsed > 0) {
         try {
-          await storage.spendRedeemedCoinsAtCheckout(req.user.id, redeemCoinsUsed, order.id, `Used for order at checkout`);
+          await storage.spendRedeemedCoinsAtCheckout(
+            req.user.id,
+            redeemCoinsUsed,
+            order.id,
+            `Used for order at checkout`
+          );
         } catch (err) {
           console.error("Error spending redeemed coins at checkout:", err);
         }
@@ -8499,7 +8583,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Deterministically select a deal based on the current day (rotates daily)
       // Use UTC date to avoid timezone issues
       const now = new Date();
-      const dayOfYear = Math.floor((Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - Date.UTC(now.getUTCFullYear(), 0, 0)) / 86400000);
+      const dayOfYear = Math.floor(
+        (Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) -
+          Date.UTC(now.getUTCFullYear(), 0, 0)) /
+          86400000
+      );
       const dealIndex = dayOfYear % dealProducts.length;
       const dealProduct = dealProducts[dealIndex];
 
@@ -8545,7 +8633,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Calculate time remaining until next UTC midnight
       const nowUTC = new Date();
-      const nextMidnightUTC = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate() + 1, 0, 0, 0));
+      const nextMidnightUTC = new Date(
+        Date.UTC(
+          nowUTC.getUTCFullYear(),
+          nowUTC.getUTCMonth(),
+          nowUTC.getUTCDate() + 1,
+          0,
+          0,
+          0
+        )
+      );
       const diffMs = nextMidnightUTC.getTime() - nowUTC.getTime();
       const totalSeconds = Math.floor(diffMs / 1000);
       const hours = Math.floor(totalSeconds / 3600);
@@ -11940,7 +12037,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Media upload request received");
       console.log("Request headers:", req.headers);
       console.log("Request body keys:", Object.keys(req.body));
-      console.log("Request files:", req.files ? `Found ${Array.isArray(req.files) ? req.files.length : "unknown"} files` : "No files found");
+      console.log(
+        "Request files:",
+        req.files
+          ? `Found ${Array.isArray(req.files) ? req.files.length : "unknown"} files`
+          : "No files found"
+      );
 
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: "Authentication required" });
@@ -12004,7 +12106,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             fileError
           );
           // Return the S3 or storage error to the frontend for debugging
-          return res.status(500).json({ error: `Failed to upload file: ${file.originalname}. ${fileError instanceof Error ? fileError.message : fileError}` });
+          return res.status(500).json({
+            error: `Failed to upload file: ${file.originalname}. ${fileError instanceof Error ? fileError.message : fileError}`,
+          });
         }
       }
 
@@ -12026,7 +12130,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error uploading media items:", error);
       // Return the real error message for debugging
-      res.status(500).json({ error: error instanceof Error ? error.message : "Failed to upload media items" });
+      res.status(500).json({
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to upload media items",
+      });
     }
   });
 
@@ -12364,7 +12473,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Register 'gt' helper for greater-than comparisons
-      handlebars.registerHelper('gt', function(a, b) {
+      handlebars.registerHelper("gt", function (a, b) {
         return a > b;
       });
 
@@ -12830,7 +12939,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 </html>`;
 
       handlebars.registerHelper("calculateTotal", function (items) {
-        return items.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0);
+        return items.reduce(
+          (sum: number, item: any) => sum + item.price * item.quantity,
+          0
+        );
       });
 
       // Additional helpers for math operations
@@ -12863,7 +12975,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       // Register 'gt' helper for greater-than comparisons
-      handlebars.registerHelper('gt', function(a, b) {
+      handlebars.registerHelper("gt", function (a, b) {
         return a > b;
       });
 
