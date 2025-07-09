@@ -288,6 +288,14 @@ export default function SellerSupportPage() {
   }, [ticketMessages, showTicketDialog]);
 
   const [showVideoDialog, setShowVideoDialog] = useState(false);
+  const [showForumDialog, setShowForumDialog] = useState(false);
+  const [forumMessage, setForumMessage] = useState("");
+  const [forumPosts, setForumPosts] = useState([
+    { name: "Amit", text: "How do I get my first product approved?" },
+    { name: "Priya", text: "Any tips for faster shipping?" },
+    { name: "Ravi", text: "How do I join Lelekart promotions?" },
+    { name: "Support", text: "Welcome to the Seller Community! Post your questions and help each other grow." },
+  ]);
 
   return (
     <SellerDashboardLayout>
@@ -512,7 +520,7 @@ export default function SellerSupportPage() {
                       <p className="text-sm text-muted-foreground mt-1">
                         Join discussions with other sellers and share your experiences and tips.
                       </p>
-                      <Button variant="outline" className="mt-3 w-full">Visit Forums</Button>
+                      <Button variant="outline" className="mt-3 w-full" onClick={() => setShowForumDialog(true)}>Visit Forums</Button>
                     </div>
                     <div className="border rounded-lg p-4">
                       <h3 className="font-medium">Seller Webinars</h3>
@@ -789,6 +797,51 @@ export default function SellerSupportPage() {
               ></iframe>
             </div>
             <div className="text-sm text-muted-foreground">More videos coming soon! If you have questions, contact <a href="mailto:seller-support@lelekart.com" className="text-blue-600 underline">seller-support@lelekart.com</a>.</div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Seller Forums Dialog - Basic Embedded Forum UI */}
+      <Dialog open={showForumDialog} onOpenChange={setShowForumDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Seller Community Forum</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-gray-50 border rounded p-4 mb-2">
+              <h3 className="font-semibold mb-2">Post a Message</h3>
+              <textarea
+                className="w-full border rounded p-2 mb-2"
+                rows={2}
+                placeholder="Share your question, tip, or experience..."
+                value={forumMessage}
+                onChange={e => setForumMessage(e.target.value)}
+              />
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  if (forumMessage.trim()) {
+                    setForumPosts([{ name: "You", text: forumMessage.trim() }, ...forumPosts]);
+                    setForumMessage("");
+                  }
+                }}
+                disabled={!forumMessage.trim()}
+              >
+                Post
+              </Button>
+            </div>
+            <div className="bg-white border rounded p-4">
+              <h3 className="font-semibold mb-2">Recent Posts</h3>
+              <ul className="space-y-2 text-sm">
+                {forumPosts.map((post, idx) => (
+                  <li key={idx} className={idx < forumPosts.length - 1 ? "border-b pb-2" : ""}>
+                    <span className="font-medium">{post.name}:</span> {post.text}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="text-xs text-muted-foreground">This is a demo forum. For urgent help, contact <a href="mailto:seller-support@lelekart.com" className="text-blue-600 underline">seller-support@lelekart.com</a>.</div>
           </div>
         </DialogContent>
       </Dialog>
