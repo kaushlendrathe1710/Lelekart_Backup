@@ -873,6 +873,7 @@ export interface IStorage {
     messageData: InsertSupportMessage
   ): Promise<SupportMessage>;
   getSupportMessagesByTicket(ticketId: number): Promise<SupportMessage[]>;
+  deleteSupportTicket(id: number): Promise<void>;
 
   // Wallet Methods
   getWalletSettings(): Promise<SelectWalletSettings | null>;
@@ -6817,6 +6818,23 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getAllSupportTickets(): Promise<any[]> {
+    try {
+      return await db
+        .select({
+          ...supportTickets,
+          userName: users.name,
+          userEmail: users.email,
+        })
+        .from(supportTickets)
+        .leftJoin(users, eq(supportTickets.userId, users.id))
+        .orderBy(desc(supportTickets.createdAt));
+    } catch (error) {
+      console.error('Error getting all support tickets:', error);
+      return [];
+    }
+  }
+
   // Wishlist Operations
   async getWishlistItems(
     userId: number
@@ -8611,6 +8629,13 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async deleteSupportTicket(id: number): Promise<void> {
+    // Delete all messages for this ticket first
+    await db.delete(supportMessages).where(eq(supportMessages.ticketId, id));
+    // Then delete the ticket itself
+    await db.delete(supportTickets).where(eq(supportTickets.id, id));
+  }
+
   // ========== Rewards Methods ==========
   async getUserRewards(userId: number): Promise<SelectReward | undefined> {
     try {
@@ -9778,122 +9803,6 @@ export class DatabaseStorage implements IStorage {
       return result[0];
     } catch (error) {
       console.error("Error creating return reason:", error);
-      throw error;
-    }
-  }
-
-  async updateReturnReason(
-    id: number,
-    data: Partial<ReturnReason>
-  ): Promise<ReturnReason> {
-    try {
-      const result = await db
-        .update(returnReasons)
-        .set(data)
-        .where(eq(returnReasons.id, id))
-        .returning();
-
-      return result[0];
-    } catch (error) {
-      console.error("Error updating return reason:", error);
-      throw error;
-    }
-  }
-
-  async getReturnPolicyByCriteria(
-    sellerId?: number | null,
-    categoryId?: number | null
-  ): Promise<ReturnPolicy | undefined> {
-    try {
-      // Looking for platform default policy
-      if (sellerId === null && categoryId === null) {
-        const defaultPolicy = await db
-          .select()
-          .from(returnPolicies)
-          .where(
-            and(
-              isNull(returnPolicies.sellerId),
-              isNull(returnPolicies.categoryId)
-            )
-          );
-        return defaultPolicy.length > 0 ? defaultPolicy[0] : undefined;
-      }
-
-      // Looking for seller-category specific policy
-      if (sellerId !== undefined && categoryId !== undefined) {
-        const sellerCategoryPolicy = await db
-          .select()
-          .from(returnPolicies)
-          .where(
-            and(
-              eq(returnPolicies.sellerId, sellerId),
-              eq(returnPolicies.categoryId, categoryId)
-            )
-          );
-
-        if (sellerCategoryPolicy.length > 0) {
-          return sellerCategoryPolicy[0];
-        }
-      }
-
-      // Looking for seller-wide policy
-      if (sellerId !== undefined) {
-        const sellerPolicy = await db
-          .select()
-          .from(returnPolicies)
-          .where(
-            and(
-              eq(returnPolicies.sellerId, sellerId),
-              isNull(returnPolicies.categoryId)
-            )
-          );
-
-        if (sellerPolicy.length > 0) {
-          return sellerPolicy[0];
-        }
-      }
-
-      // If nothing found and not looking for default, try the default policy
-      if (sellerId !== null || categoryId !== null) {
-        return this.getReturnPolicyByCriteria(null, null);
-      }
-
-      return undefined;
-    } catch (error) {
-      console.error("Error getting return policy by criteria:", error);
-      throw error;
-    }
-  }
-
-  async getReturnPoliciesBySellerId(sellerId: number): Promise<ReturnPolicy[]> {
-    try {
-      return await db
-        .select()
-        .from(returnPolicies)
-        .where(eq(returnPolicies.sellerId, sellerId));
-    } catch (error) {
-      console.error("Error getting return policies by seller ID:", error);
-      throw error;
-    }
-  }
-
-  async createReturnPolicy(data: InsertReturnPolicy): Promise<ReturnPolicy> {
-    try {
-      // Convert any JSONable fields from string to object
-      let processedData = { ...data };
-      if (typeof processedData.conditionalRules === "string") {
-        processedData.conditionalRules = JSON.parse(
-          processedData.conditionalRules
-        );
-      }
-
-      const result = await db
-        .insert(returnPolicies)
-        .values(processedData)
-        .returning();
-      return result[0];
-    } catch (error) {
-      console.error("Error creating return policy:", error);
       throw error;
     }
   }

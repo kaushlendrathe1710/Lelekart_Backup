@@ -147,6 +147,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       icon: <ShoppingBag className="h-5 w-5" />,
     },
     {
+      title: "Support Tickets",
+      href: "/admin/tickets",
+      icon: <FileEdit className="h-5 w-5" />,
+    },
+    {
       title: "Return Management",
       href: "/admin/returns",
       icon: <RefreshCcw className="h-5 w-5" />,

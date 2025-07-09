@@ -10879,6 +10879,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await supportHandlers.updateSupportTicketHandler(req, res);
   });
 
+  app.delete("/api/support/tickets/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    await supportHandlers.deleteSupportTicketHandler(req, res);
+  });
+
   app.get("/api/support/tickets/:id/messages", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
