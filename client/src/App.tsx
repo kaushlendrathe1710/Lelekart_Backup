@@ -80,6 +80,7 @@ import GSTManagementPage from "./pages/admin/gst-management";
 import MediaLibraryPage from "./pages/admin/media-library";
 import AdminBackupsPage from "./pages/admin/backups";
 import AdminNotificationsPage from './pages/admin/notifications';
+import TicketManagementPage from "./pages/admin/ticket-management";
 // Import shared components
 import { SuspenseWrapper } from "./components/shared/suspense-wrapper";
 import PressReleaseDetail from "./pages/static/press-release";
@@ -983,6 +984,16 @@ function App() {
                             path="/admin/notifications"
                             role="admin"
                             component={AdminNotificationsPage}
+                          />
+                        )}
+                      </Route>
+
+                      <Route path="/admin/tickets">
+                        {() => (
+                          <ProtectedRoute
+                            path="/admin/tickets"
+                            role="admin"
+                            component={TicketManagementPage}
                           />
                         )}
                       </Route>

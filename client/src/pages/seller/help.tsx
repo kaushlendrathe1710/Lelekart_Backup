@@ -43,6 +43,7 @@ import {
   Send,
   ThumbsUp,
   Video,
+  Trash2,
 } from "lucide-react";
 
 // Helper for ticket status badge
@@ -174,6 +175,36 @@ export default function SellerSupportPage() {
         title: "Failed to Send Message",
         description: "There was an error sending your message. Please try again.",
         variant: "destructive",
+      });
+    },
+  });
+
+  // Add mutation for deleting a ticket
+  const deleteTicketMutation = useMutation({
+    mutationFn: async (ticketId: number) => {
+      const res = await fetch(`/api/support/tickets/${ticketId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        throw new Error('Failed to delete ticket');
+      }
+    },
+    onSuccess: (_, ticketId) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/support/tickets'] });
+      if (selectedTicket?.id === ticketId) {
+        setShowTicketDialog(false);
+        setSelectedTicket(null);
+      }
+      toast({
+        title: 'Ticket Deleted',
+        description: 'The support ticket has been deleted successfully.',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Failed to Delete Ticket',
+        description: 'There was an error deleting the ticket. Please try again.',
+        variant: 'destructive',
       });
     },
   });
@@ -329,6 +360,9 @@ export default function SellerSupportPage() {
                           <Badge variant={ticket.priority === 'high' ? 'destructive' : ticket.priority === 'medium' ? 'default' : 'outline'}>
                             {ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1)} Priority
                           </Badge>
+                          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); deleteTicketMutation.mutate(ticket.id); }}>
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
                           <Button variant="ghost" size="icon">
                             <ArrowRight className="h-4 w-4" />
                           </Button>
