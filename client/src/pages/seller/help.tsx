@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { SellerDashboardLayout } from "@/components/layout/seller-dashboard-layout";
@@ -279,6 +279,13 @@ export default function SellerSupportPage() {
     }
   ];
 
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [ticketMessages, showTicketDialog]);
+
   return (
     <SellerDashboardLayout>
       <div className="container py-6">
@@ -478,7 +485,13 @@ export default function SellerSupportPage() {
                     <div>
                       <h3 className="font-medium">Live Chat</h3>
                       <p className="text-sm text-muted-foreground mt-1">Chat with our support team in real-time</p>
-                      <Button variant="link" className="px-0 h-auto mt-1">Start Chat</Button>
+                      <Button
+                        variant="default"
+                        className="px-4 py-2 mt-1 font-semibold rounded shadow bg-blue-600 text-white hover:bg-blue-700 transition"
+                        onClick={() => setShowNewTicketDialog(true)}
+                      >
+                        <MessageCircle className="inline-block mr-2" /> Start Chat with Support
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -582,7 +595,7 @@ export default function SellerSupportPage() {
             <div className="md:w-2/3 space-y-4">
               <div>
                 <h3 className="text-sm font-medium mb-3">Conversation</h3>
-                <div className="border rounded-lg overflow-y-auto max-h-[300px] p-4 space-y-4">
+                <div className="border rounded-lg overflow-y-auto max-h-[300px] p-4 space-y-4 flex flex-col-reverse" style={{scrollBehavior: 'smooth'}} ref={chatContainerRef}>
                   {isMessagesLoading ? (
                     <div className="flex justify-center py-4">
                       <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -590,8 +603,8 @@ export default function SellerSupportPage() {
                   ) : ticketMessages.length === 0 ? (
                     <p className="text-center text-muted-foreground py-4">No messages yet</p>
                   ) : (
-                    ticketMessages.map((message: any, index: number) => (
-                      <div key={index} className={`flex gap-3 ${message.isFromSeller ? 'justify-end' : ''}`}>
+                    ticketMessages.slice().reverse().map((message: any, index: number) => (
+                      <div key={index} className={`flex gap-3 ${message.isFromSeller ? 'justify-end' : 'justify-start'}`}>
                         {!message.isFromSeller && (
                           <Avatar>
                             <AvatarFallback>
@@ -599,25 +612,14 @@ export default function SellerSupportPage() {
                             </AvatarFallback>
                           </Avatar>
                         )}
-                        <div className={`max-w-[80%] ${message.isFromSeller ? 'bg-primary/10 text-primary-foreground' : 'bg-muted'} p-3 rounded-lg`}>
+                        <div className={`max-w-[70%] ${message.isFromSeller ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-900'} p-3 rounded-2xl shadow-sm`}>
                           <div className="flex justify-between items-center mb-1">
-                            <span className="font-medium">
+                            <span className="font-medium text-sm">
                               {message.isFromSeller ? 'You' : (message.senderName || 'Support Agent')}
                             </span>
-                            <HoverCard>
-                              <HoverCardTrigger>
-                                <span className="text-xs text-muted-foreground">
-                                  {format(new Date(message.createdAt), 'h:mm a')}
-                                </span>
-                              </HoverCardTrigger>
-                              <HoverCardContent side="top" className="w-auto p-2">
-                                <span className="text-xs">
-                                  {formatDate(message.createdAt)}
-                                </span>
-                              </HoverCardContent>
-                            </HoverCard>
+                            <span className="text-xs text-muted-foreground ml-2">{formatDate(message.createdAt)}</span>
                           </div>
-                          <p className="text-sm whitespace-pre-wrap">{message.message}</p>
+                          <div className="whitespace-pre-line text-sm">{message.message}</div>
                         </div>
                         {message.isFromSeller && (
                           <Avatar>
@@ -630,42 +632,22 @@ export default function SellerSupportPage() {
                 </div>
               </div>
               
-              <div className="space-y-2">
-                <Textarea 
-                  placeholder="Type your message here..." 
-                  rows={3}
+              <div className="flex items-center gap-2 mt-4 sticky bottom-0 bg-white p-2 border-t">
+                <Textarea
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  disabled={selectedTicket?.status === 'closed' || selectedTicket?.status === 'resolved'}
+                  onChange={e => setNewMessage(e.target.value)}
+                  placeholder="Type your message..."
+                  className="flex-1 resize-none rounded-lg border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  rows={1}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
                 />
-                <div className="flex justify-between">
-                  <p className="text-xs text-muted-foreground">
-                    {selectedTicket?.status === 'closed' || selectedTicket?.status === 'resolved' 
-                      ? 'This ticket is closed and cannot be replied to.' 
-                      : 'Press Enter to send, Shift+Enter for new line'}
-                  </p>
-                  <Button 
-                    onClick={handleSendMessage} 
-                    disabled={
-                      addMessageMutation.isPending || 
-                      !newMessage.trim() || 
-                      selectedTicket?.status === 'closed' || 
-                      selectedTicket?.status === 'resolved'
-                    }
-                  >
-                    {addMessageMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="mr-2 h-4 w-4" />
-                        Send
-                      </>
-                    )}
-                  </Button>
-                </div>
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={!newMessage.trim() || addMessageMutation.isPending}
+                  className="bg-blue-600 text-white hover:bg-blue-700 transition rounded-lg px-4 py-2"
+                >
+                  <Send className="h-4 w-4 mr-1" /> Send
+                </Button>
               </div>
             </div>
           </div>
