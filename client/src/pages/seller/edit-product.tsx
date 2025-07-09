@@ -159,6 +159,8 @@ const productSchema = z
     sku: z.string().min(2, "SKU is required"),
     category: z.string().min(1, "Please select a category"),
     subcategoryId: z.number().nullable().optional(),
+    subcategory1: z.string().optional(),
+    subcategory2: z.string().optional(),
     brand: z.string().min(2, "Brand name is required"),
     // The stock field validation will be skipped when variants are present
     stock: z
@@ -224,9 +226,12 @@ const productSchema = z
     customReturnPolicy: z.string().optional(),
     deliveryCharges: z
       .string()
-      .refine((val) => !val || (!isNaN(parseFloat(val)) && parseFloat(val) >= 0), {
-        message: "Delivery charges must be a non-negative number",
-      })
+      .refine(
+        (val) => !val || (!isNaN(parseFloat(val)) && parseFloat(val) >= 0),
+        {
+          message: "Delivery charges must be a non-negative number",
+        }
+      )
       .optional(),
   })
   .refine(
@@ -296,47 +301,6 @@ const processImageUrl = async (imageUrl: string): Promise<string> => {
     console.error("Error processing image URL:", error);
     throw error;
   }
-};
-
-// Add these helper functions at the top (copy from add-product.tsx)
-const getSubcategoriesForCategory = (category: string) => {
-  const subcategoryMap: Record<string, string[]> = {
-    "Fashion": ["Kurta", "Pants", "Shirts", "T-Shirts", "Dresses", "Sarees", "Ethnic Wear", "Western Wear", "Kids Wear", "Accessories"],
-    "Electronics": ["Smartphones", "Laptops", "Tablets", "Accessories", "Audio Devices", "Gaming", "Cameras", "Smart Home", "Computer Parts", "Storage"],
-    "Home & Kitchen": ["Cookware", "Storage", "Cleaning", "Furniture", "Decor", "Kitchen Appliances", "Dining", "Bedding", "Bath", "Garden"],
-    "Beauty": ["Skincare", "Haircare", "Makeup", "Fragrances", "Personal Care", "Bath & Body", "Tools & Accessories", "Men's Grooming", "Natural & Organic", "Gift Sets"],
-    "Toys & Games": ["Educational Toys", "Board Games", "Outdoor Toys", "Action Figures", "Dolls", "Building Toys", "Arts & Crafts", "Remote Control", "Puzzles", "Baby Toys"],
-    "Books": ["Fiction", "Non-Fiction", "Academic", "Children's Books", "Comics", "Self-Help", "Business", "Technology", "Literature", "Biography"],
-    "Sports": ["Cricket", "Football", "Yoga", "Fitness Equipment", "Outdoor Sports", "Indoor Sports", "Swimming", "Cycling", "Running", "Team Sports"],
-    "Automotive": ["Car Accessories", "Bike Accessories", "Tools", "Car Care", "Bike Care", "Safety", "Electronics", "Spare Parts", "Riding Gear", "Maintenance"],
-    "Home": ["Furniture", "Decor", "Lighting", "Storage", "Cleaning", "Bedding", "Bath", "Kitchenware", "Garden", "Safety"],
-    "Appliances": ["Kitchen Appliances", "Home Appliances", "Personal Care Appliances", "Large Appliances", "Small Appliances", "Heating & Cooling", "Laundry Appliances", "Water Purifiers", "Vacuum Cleaners", "Accessories"],
-    "Mobiles": ["Smartphones", "Feature Phones", "Mobile Accessories", "Tablets", "Wearables", "Power Banks", "Cases & Covers", "Screen Protectors", "Chargers", "Memory Cards"],
-    "Toys": ["Action Figures", "Educational Toys", "Board Games", "Dolls", "Remote Control", "Building Blocks", "Puzzles", "Outdoor Toys", "Baby Toys", "Arts & Crafts"],
-    "Grocery": ["Fruits & Vegetables", "Dairy & Bakery", "Staples", "Snacks & Beverages", "Personal Care", "Household Supplies", "Packaged Food", "Beverages", "Baby Care", "Pet Supplies"],
-    "Industrial": ["Lab Supplies", "Industrial Tools", "Safety Equipment", "Electrical", "Plumbing", "Adhesives", "Paints & Coatings", "Fasteners", "Pumps", "Automation"],
-    "Scientific": ["Lab Instruments", "Testing Equipment", "Microscopes", "Glassware", "Chemicals", "Balances", "Centrifuges", "Spectroscopy", "Consumables", "Safety Equipment"]
-  };
-  return subcategoryMap[category] || [];
-};
-const getSubcategory2ForSubcategory1 = (category: string, subcategory1: string) => {
-  // Full mapping from add-product.tsx
-  const subcategory2Map: Record<string, Record<string, string[]>> = {
-    "Fashion": {
-      "Kurta": ["Silk", "Cotton", "Linen", "Polyester", "Rayon", "Embroidered", "Printed", "Plain", "Designer", "Traditional"],
-      "Pants": ["Jeans", "Formal", "Casual", "Cargo", "Track Pants", "Chinos", "Leggings", "Palazzos", "Shorts", "Trousers"],
-      "Shirts": ["Formal", "Casual", "Party Wear", "Office Wear", "Printed", "Plain", "Checks", "Stripes", "Denim", "Linen"],
-      "T-Shirts": ["Round Neck", "V-Neck", "Polo", "Full Sleeve", "Half Sleeve", "Graphic", "Plain", "Sports", "Oversized", "Crop"],
-      "Dresses": ["Maxi", "Mini", "Midi", "Party Wear", "Casual", "A-Line", "Bodycon", "Wrap", "Shift", "Sundress"],
-      "Sarees": ["Silk", "Cotton", "Georgette", "Chiffon", "Banarasi", "Printed", "Embroidered", "Designer", "Traditional", "Party Wear"],
-      "Ethnic Wear": ["Kurta Sets", "Lehenga", "Salwar Suits", "Gowns", "Sherwani", "Indo-Western", "Dhoti Sets", "Blouses", "Dupattas", "Ethnic Jackets"],
-      "Western Wear": ["Tops", "Jumpsuits", "Skirts", "Blazers", "Jackets", "Sweaters", "Coats", "Hoodies", "Sweatshirts", "Cardigans"],
-      "Kids Wear": ["Boys Casual", "Girls Casual", "Party Wear", "School Uniform", "Ethnic Wear", "Winter Wear", "Night Wear", "Infant Wear", "Sports Wear", "Accessories"],
-      "Accessories": ["Belts", "Wallets", "Scarves", "Ties", "Socks", "Caps", "Hats", "Gloves", "Stoles", "Hair Accessories"]
-    },
-    // ... (copy all other categories and subcategories from add-product.tsx) ...
-  };
-  return subcategory2Map[category]?.[subcategory1] || [];
 };
 
 export default function EditProductPage() {
@@ -511,6 +475,8 @@ export default function EditProductPage() {
       sku: "",
       category: "",
       subcategoryId: null,
+      subcategory1: "",
+      subcategory2: "",
       brand: "",
       color: "",
       size: "",
@@ -823,7 +789,11 @@ export default function EditProductPage() {
         gstRate: gstRateValue,
         sku: product.sku || product.id?.toString() || "",
         category: product.category || "",
-        subcategoryId: product.subcategoryId ? Number(product.subcategoryId) : null,
+        subcategoryId: product.subcategoryId
+          ? Number(product.subcategoryId)
+          : null,
+        subcategory1: product.subcategory1 || "",
+        subcategory2: product.subcategory2 || "",
         brand: product.brand || "Brand",
         color: product.color || "",
         size: product.size || "",
@@ -845,16 +815,42 @@ export default function EditProductPage() {
         customReturnPolicy: !isStandardReturnPolicy(product.returnPolicy)
           ? product.returnPolicy?.toString()
           : "",
-        deliveryCharges: product.deliveryCharges !== undefined && product.deliveryCharges !== null ? product.deliveryCharges.toString() : "0",
+        deliveryCharges:
+          product.deliveryCharges !== undefined &&
+          product.deliveryCharges !== null
+            ? product.deliveryCharges.toString()
+            : "0",
       });
       // Prefill subcategoryPath for dropdowns
       if (product.subcategoryId && subcategories.length > 0) {
         // Build the path from subcategoryId up to root
         let path: number[] = [];
-        let current = subcategories.find((s: any) => s.id === product.subcategoryId);
+        let current = subcategories.find(
+          (s: any) => s.id === product.subcategoryId
+        );
         while (current) {
           path.unshift(current.id);
-          current = current.parentId ? subcategories.find((s: any) => s.id === current.parentId) : null;
+          current = current.parentId
+            ? subcategories.find((s: any) => s.id === current.parentId)
+            : null;
+        }
+        setSubcategoryPath(path);
+      } else if (subcategories.length > 0 && (product.subcategory1 || product.subcategory2)) {
+        // Try to build path from subcategory1/subcategory2 names if subcategoryId is missing
+        let path: number[] = [];
+        // Find subcategory1 by name
+        const subcat1 = product.subcategory1
+          ? subcategories.find((s: any) => s.name === product.subcategory1)
+          : null;
+        if (subcat1) {
+          path.push(subcat1.id);
+          // Find subcategory2 by name and parentId
+          const subcat2 = product.subcategory2
+            ? subcategories.find((s: any) => s.name === product.subcategory2 && s.parentId === subcat1.id)
+            : null;
+          if (subcat2) {
+            path.push(subcat2.id);
+          }
         }
         setSubcategoryPath(path);
       } else {
@@ -1405,6 +1401,21 @@ export default function EditProductPage() {
   // Update product mutation
   const updateMutation = useMutation({
     mutationFn: async (data: ProductFormValues) => {
+      // Log subcategory fields for debugging
+      console.log(
+        "[updateMutation] subcategory1:",
+        data.subcategory1,
+        "(type:",
+        typeof data.subcategory1,
+        ")"
+      );
+      console.log(
+        "[updateMutation] subcategory2:",
+        data.subcategory2,
+        "(type:",
+        typeof data.subcategory2,
+        ")"
+      );
       // Save any pending variants to the server first
       if (draftVariants.length > 0) {
         try {
@@ -1509,7 +1520,9 @@ export default function EditProductPage() {
           ? data.returnPolicy
           : data.customReturnPolicy,
         variants: [...variants, ...draftVariants],
-        deliveryCharges: data.deliveryCharges ? parseFloat(data.deliveryCharges) : 0,
+        deliveryCharges: data.deliveryCharges
+          ? parseFloat(data.deliveryCharges)
+          : 0,
       };
       console.log("productData", productData.width);
       console.log("Full product data:", JSON.stringify(productData, null, 2));
@@ -1844,6 +1857,21 @@ export default function EditProductPage() {
   });
 
   const onSubmit = (data: ProductFormValues) => {
+    // Log subcategory fields for debugging
+    console.log(
+      "[onSubmit] subcategory1:",
+      data.subcategory1,
+      "(type:",
+      typeof data.subcategory1,
+      ")"
+    );
+    console.log(
+      "[onSubmit] subcategory2:",
+      data.subcategory2,
+      "(type:",
+      typeof data.subcategory2,
+      ")"
+    );
     if (uploadedImages.length === 0) {
       toast({
         title: "Images required",
@@ -2583,7 +2611,10 @@ export default function EditProductPage() {
                                   </FormControl>
                                   <SelectContent>
                                     {categories?.map((category: any) => (
-                                      <SelectItem key={category.id} value={category.name}>
+                                      <SelectItem
+                                        key={category.id}
+                                        value={category.name}
+                                      >
                                         {category.name}
                                       </SelectItem>
                                     ))}
@@ -2603,12 +2634,24 @@ export default function EditProductPage() {
                           <FormItem>
                             <FormLabel>Subcategory</FormLabel>
                             <Select
-                              value={subcategoryPath[0] ? String(subcategoryPath[0]) : ""}
+                              value={
+                                subcategoryPath[0]
+                                  ? String(subcategoryPath[0])
+                                  : ""
+                              }
                               onValueChange={(val) => {
                                 const id = val ? parseInt(val) : null;
                                 const newPath = id ? [id] : [];
                                 setSubcategoryPath(newPath);
                                 form.setValue("subcategoryId", id);
+                                // Set subcategory1 name
+                                const subcat = subcategories.find(
+                                  (s: any) => s.id === id
+                                );
+                                form.setValue(
+                                  "subcategory1",
+                                  subcat ? subcat.name : ""
+                                );
                               }}
                               disabled={!form.getValues("category")}
                             >
@@ -2619,14 +2662,29 @@ export default function EditProductPage() {
                               </FormControl>
                               <SelectContent>
                                 {(() => {
-                                  const categoryId = categories.find((c: any) => c.name === form.getValues("category"))?.id;
-                                  const subcat0Options = subcategories.filter((s: any) => s.categoryId === categoryId && !s.parentId);
+                                  // Find the selected category's ID
+                                  const categoryId = categories.find(
+                                    (c: any) => c.name === form.getValues("category")
+                                  )?.id;
+                                  // Show all subcategories with parentId == null and matching categoryId
+                                  const subcat0Options = subcategories.filter(
+                                    (s: any) => s.categoryId === categoryId && !s.parentId
+                                  );
                                   if (subcat0Options.length > 0) {
                                     return subcat0Options.map((s: any) => (
-                                      <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                                      <SelectItem
+                                        key={s.id}
+                                        value={String(s.id)}
+                                      >
+                                        {s.name}
+                                      </SelectItem>
                                     ));
                                   } else {
-                                    return <SelectItem value="none" disabled>No subcategories available</SelectItem>;
+                                    return (
+                                      <SelectItem value="none" disabled>
+                                        No subcategories available
+                                      </SelectItem>
+                                    );
                                   }
                                 })()}
                               </SelectContent>
@@ -2636,33 +2694,70 @@ export default function EditProductPage() {
                           <FormItem>
                             <FormLabel>Subcategory Level 2</FormLabel>
                             <Select
-                              value={subcategoryPath[1] ? String(subcategoryPath[1]) : ""}
+                              value={
+                                subcategoryPath[1]
+                                  ? String(subcategoryPath[1])
+                                  : ""
+                              }
                               onValueChange={(val) => {
                                 const id = val ? parseInt(val) : null;
                                 const newPath = subcategoryPath.slice(0, 1);
                                 if (id) newPath.push(id);
                                 setSubcategoryPath(newPath);
-                                form.setValue("subcategoryId", id || (subcategoryPath[0] || null));
+                                form.setValue(
+                                  "subcategoryId",
+                                  id || subcategoryPath[0] || null
+                                );
+                                // Set subcategory2 name
+                                const subcat = subcategories.find(
+                                  (s: any) => s.id === id
+                                );
+                                form.setValue(
+                                  "subcategory2",
+                                  subcat ? subcat.name : ""
+                                );
                               }}
                               disabled={!subcategoryPath[0]}
                             >
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue placeholder={subcategoryPath[0] ? "Select a subcategory" : "Select previous subcategory first"} />
+                                  <SelectValue
+                                    placeholder={
+                                      subcategoryPath[0]
+                                        ? "Select a subcategory"
+                                        : "Select previous subcategory first"
+                                    }
+                                  />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
                                 {(() => {
                                   if (!subcategoryPath[0]) {
-                                    return <SelectItem value="none" disabled>Select previous subcategory first</SelectItem>;
+                                    return (
+                                      <SelectItem value="none" disabled>
+                                        Select previous subcategory first
+                                      </SelectItem>
+                                    );
                                   }
-                                  const subcat1Options = subcategories.filter((s: any) => s.parentId === subcategoryPath[0]);
+                                  // Show all subcategories with parentId == subcategoryPath[0]
+                                  const subcat1Options = subcategories.filter(
+                                    (s: any) => s.parentId === subcategoryPath[0]
+                                  );
                                   if (subcat1Options.length > 0) {
                                     return subcat1Options.map((s: any) => (
-                                      <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                                      <SelectItem
+                                        key={s.id}
+                                        value={String(s.id)}
+                                      >
+                                        {s.name}
+                                      </SelectItem>
                                     ));
                                   } else {
-                                    return <SelectItem value="none" disabled>No subcategories available</SelectItem>;
+                                    return (
+                                      <SelectItem value="none" disabled>
+                                        No subcategories available
+                                      </SelectItem>
+                                    );
                                   }
                                 })()}
                               </SelectContent>
@@ -3309,7 +3404,8 @@ export default function EditProductPage() {
                                 />
                               </FormControl>
                               <FormDescription>
-                                Enter delivery charges for this product. Leave 0 for Free delivery.
+                                Enter delivery charges for this product. Leave 0
+                                for Free delivery.
                               </FormDescription>
                               <FormMessage />
                             </FormItem>
@@ -4801,6 +4897,9 @@ export default function EditProductPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Debug Section: Show subcategory values for troubleshooting */}
+   
     </SellerDashboardLayout>
   );
 }

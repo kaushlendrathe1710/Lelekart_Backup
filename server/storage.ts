@@ -200,9 +200,17 @@ async function getDealOfTheDayProductId(db: any) {
   const categories = ["Electronics", "Mobiles", "Fashion"];
   let dealProducts = [];
   for (const cat of categories) {
-    const foundProducts = await db.select().from(products).where(
-      and(eq(products.category, cat), eq(products.approved, true), eq(products.isDraft, false), eq(products.deleted, false))
-    );
+    const foundProducts = await db
+      .select()
+      .from(products)
+      .where(
+        and(
+          eq(products.category, cat),
+          eq(products.approved, true),
+          eq(products.isDraft, false),
+          eq(products.deleted, false)
+        )
+      );
     if (foundProducts.length > 0) {
       dealProducts = foundProducts;
       break;
@@ -210,7 +218,11 @@ async function getDealOfTheDayProductId(db: any) {
   }
   if (dealProducts.length === 0) return null;
   const now = new Date();
-  const dayOfYear = Math.floor((Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - Date.UTC(now.getUTCFullYear(), 0, 0)) / 86400000);
+  const dayOfYear = Math.floor(
+    (Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) -
+      Date.UTC(now.getUTCFullYear(), 0, 0)) /
+      86400000
+  );
   const dealProduct = dealProducts[dayOfYear % dealProducts.length];
   return dealProduct.id;
 }
@@ -542,7 +554,9 @@ export interface IStorage {
   getOrders(userId?: number, sellerId?: number): Promise<Order[]>;
   getOrder(id: number): Promise<Order | undefined>;
   getLatestOrder(): Promise<Order | undefined>;
-  createOrder(order: InsertOrder): Promise<Order & { appliedVoucherCode?: string; voucherDiscount?: number }>;
+  createOrder(
+    order: InsertOrder
+  ): Promise<Order & { appliedVoucherCode?: string; voucherDiscount?: number }>;
   getOrderItems(orderId: number): Promise<(OrderItem & { product: Product })[]>;
   createOrderItem(orderItem: InsertOrderItem): Promise<OrderItem>;
   updateOrderItem(id: number, data: Partial<OrderItem>): Promise<OrderItem>;
@@ -2975,6 +2989,8 @@ export class DatabaseStorage implements IStorage {
             category: products.category,
             categoryId: products.categoryId,
             subcategoryId: products.subcategoryId,
+            subcategory1: products.subcategory1, // <-- Added
+            subcategory2: products.subcategory2, // <-- Added
             color: products.color,
             size: products.size,
             imageUrl: products.imageUrl,
@@ -3043,6 +3059,10 @@ export class DatabaseStorage implements IStorage {
       // Return product with GST details, seller information, and subcategory name
       return {
         ...product,
+        subcategoryId:
+          product.subcategoryId !== null && product.subcategoryId !== undefined
+            ? Number(product.subcategoryId)
+            : null, // Ensure number or null
         categoryGstRate: result[0].categoryGstRate,
         sellerName: result[0].sellerName,
         sellerUsername: result[0].sellerUsername,
@@ -3074,6 +3094,8 @@ export class DatabaseStorage implements IStorage {
               category: products.category,
               categoryId: products.categoryId,
               subcategoryId: products.subcategoryId,
+              subcategory1: products.subcategory1, // <-- Added
+              subcategory2: products.subcategory2, // <-- Added
               color: products.color,
               size: products.size,
               imageUrl: products.imageUrl,
@@ -3110,6 +3132,7 @@ export class DatabaseStorage implements IStorage {
 
         return {
           ...result[0].product,
+          subcategoryId: result[0].product.subcategoryId !== null && result[0].product.subcategoryId !== undefined ? Number(result[0].product.subcategoryId) : null, // Ensure number or null
           sellerName: result[0].sellerName,
           sellerUsername: result[0].sellerUsername,
         };
@@ -3133,6 +3156,8 @@ export class DatabaseStorage implements IStorage {
             category: products.category,
             categoryId: products.categoryId,
             subcategoryId: products.subcategoryId,
+            subcategory1: products.subcategory1, // <-- Added
+            subcategory2: products.subcategory2, // <-- Added
             color: products.color,
             size: products.size,
             imageUrl: products.imageUrl,
@@ -3275,6 +3300,7 @@ export class DatabaseStorage implements IStorage {
     id: number,
     productData: Partial<Product>
   ): Promise<Product> {
+    console.log("[updateProduct] id:", id, "productData:", productData);
     const [updatedProduct] = await db
       .update(products)
       .set(productData)
@@ -4104,13 +4130,15 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getCartItems(userId: number): Promise<{
-    id: number;
-    quantity: number;
-    product: Product & { isDealOfTheDay?: boolean };
-    userId: number;
-    variant?: ProductVariant;
-  }[]> {
+  async getCartItems(userId: number): Promise<
+    {
+      id: number;
+      quantity: number;
+      product: Product & { isDealOfTheDay?: boolean };
+      userId: number;
+      variant?: ProductVariant;
+    }[]
+  > {
     try {
       console.log(`Getting cart items for user ID: ${userId}`);
 
@@ -4169,7 +4197,9 @@ export class DatabaseStorage implements IStorage {
           // Apply deal of the day discount if applicable
           if (dealProductId && mappedItem.product.id === dealProductId) {
             mappedItem.product.isDealOfTheDay = true;
-            mappedItem.product.price = parseFloat((mappedItem.product.price * 0.85).toFixed(2));
+            mappedItem.product.price = parseFloat(
+              (mappedItem.product.price * 0.85).toFixed(2)
+            );
           }
 
           return mappedItem;
@@ -4546,7 +4576,11 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async createOrder(insertOrder: InsertOrder): Promise<Order & { appliedVoucherCode?: string; voucherDiscount?: number }> {
+  async createOrder(
+    insertOrder: InsertOrder
+  ): Promise<
+    Order & { appliedVoucherCode?: string; voucherDiscount?: number }
+  > {
     // Handle shippingDetails - convert to string if provided as an object
     const orderToInsert = {
       ...insertOrder,
@@ -4572,9 +4606,12 @@ export class DatabaseStorage implements IStorage {
     // Exclude any Shiprocket fields (shipping_status, etc) that might not exist yet
     // Calculate the final total after all discounts (wallet, redeem, reward, etc)
     let finalTotal = orderToInsert.total ?? 0;
-    if (orderToInsert.walletDiscount) finalTotal -= orderToInsert.walletDiscount;
-    if (orderToInsert.redeemDiscount) finalTotal -= orderToInsert.redeemDiscount;
-    if (orderToInsert.rewardDiscount) finalTotal -= orderToInsert.rewardDiscount;
+    if (orderToInsert.walletDiscount)
+      finalTotal -= orderToInsert.walletDiscount;
+    if (orderToInsert.redeemDiscount)
+      finalTotal -= orderToInsert.redeemDiscount;
+    if (orderToInsert.rewardDiscount)
+      finalTotal -= orderToInsert.rewardDiscount;
     // Prevent negative totals
     if (finalTotal < 0) finalTotal = 0;
 
@@ -4617,7 +4654,12 @@ export class DatabaseStorage implements IStorage {
 
     // Debug log to verify the final data being sent to the database
     console.log("Final order data for database insertion:", orderData);
-    console.log("[DEBUG] rewardDiscount to save:", orderData[0].rewardDiscount, "rewardPointsUsed to save:", orderData[0].rewardPointsUsed);
+    console.log(
+      "[DEBUG] rewardDiscount to save:",
+      orderData[0].rewardDiscount,
+      "rewardPointsUsed to save:",
+      orderData[0].rewardPointsUsed
+    );
     try {
       // Log the SQL that would be executed
       const query = db.insert(orders).values(orderData);
@@ -4628,7 +4670,12 @@ export class DatabaseStorage implements IStorage {
       const [order] = await query.returning();
 
       console.log("Order created successfully:", order);
-      console.log("[DEBUG] rewardDiscount in saved order:", order.rewardDiscount, "rewardPointsUsed in saved order:", order.rewardPointsUsed);
+      console.log(
+        "[DEBUG] rewardDiscount in saved order:",
+        order.rewardDiscount,
+        "rewardPointsUsed in saved order:",
+        order.rewardPointsUsed
+      );
 
       // Parse shippingDetails from string to object if it exists
       if (order.shippingDetails && typeof order.shippingDetails === "string") {
@@ -4640,8 +4687,16 @@ export class DatabaseStorage implements IStorage {
       }
 
       // Check for active wallet voucher for this user
-      const userVouchers = await db.select().from(giftCards)
-        .where(and(eq(giftCards.issuedTo, order.userId), eq(giftCards.isActive, true), eq(giftCards.currentBalance, order.total)));
+      const userVouchers = await db
+        .select()
+        .from(giftCards)
+        .where(
+          and(
+            eq(giftCards.issuedTo, order.userId),
+            eq(giftCards.isActive, true),
+            eq(giftCards.currentBalance, order.total)
+          )
+        );
       let appliedVoucherCode = undefined;
       let voucherDiscount = 0;
       if (userVouchers.length > 0) {
@@ -4651,7 +4706,8 @@ export class DatabaseStorage implements IStorage {
         // Apply discount to order total
         order.total = Math.max(0, order.total - voucher.currentBalance);
         // Mark voucher as used
-        await db.update(giftCards)
+        await db
+          .update(giftCards)
           .set({ isActive: false, currentBalance: 0, lastUsed: new Date() })
           .where(eq(giftCards.id, voucher.id));
         // Record voucher usage transaction
@@ -4660,9 +4716,9 @@ export class DatabaseStorage implements IStorage {
           userId: order.userId,
           orderId: null, // can be set to order id after order is created
           amount: -voucher.currentBalance,
-          type: 'redemption',
+          type: "redemption",
           transactionDate: new Date(),
-          note: 'Auto-applied wallet voucher at checkout',
+          note: "Auto-applied wallet voucher at checkout",
         });
       }
 
@@ -5065,7 +5121,9 @@ export class DatabaseStorage implements IStorage {
     // Check if the status transition is allowed
     const allowedNextStatuses = allowedTransitions[currentOrder.status] || [];
     if (currentOrder.status === status) {
-      console.log(`Order ${id} is already in status '${status}', skipping update.`);
+      console.log(
+        `Order ${id} is already in status '${status}', skipping update.`
+      );
       return currentOrder;
     }
     if (!allowedNextStatuses.includes(status)) {
@@ -9244,7 +9302,9 @@ export class DatabaseStorage implements IStorage {
     orderId: number
   ): Promise<SelectWallet | null> {
     try {
-      console.log(`[WALLET] processFirstPurchaseReward called for user ${userId}, order ${orderId}`);
+      console.log(
+        `[WALLET] processFirstPurchaseReward called for user ${userId}, order ${orderId}`
+      );
       // Check if this is the user's first purchase
       const wallet = await this.getUserWallet(userId);
       if (!wallet) {
@@ -9264,21 +9324,27 @@ export class DatabaseStorage implements IStorage {
 
       // If user already has a first purchase reward, don't give another
       if (transactions.length > 0) {
-        console.log(`[WALLET] User ${userId} already received first purchase reward, skipping.`);
+        console.log(
+          `[WALLET] User ${userId} already received first purchase reward, skipping.`
+        );
         return null;
       }
 
       // Get wallet settings
       const settings = await this.getWalletSettings();
       if (!settings || !settings.isEnabled) {
-        console.log(`[WALLET] Wallet settings not found or not enabled for user ${userId}`);
+        console.log(
+          `[WALLET] Wallet settings not found or not enabled for user ${userId}`
+        );
         return null;
       }
 
       // Add first purchase reward
       const coinsToAdd = settings.firstPurchaseCoins;
       const description = "First purchase reward";
-      console.log(`[WALLET] Awarding ${coinsToAdd} coins to user ${userId} for first purchase (order ${orderId})`);
+      console.log(
+        `[WALLET] Awarding ${coinsToAdd} coins to user ${userId} for first purchase (order ${orderId})`
+      );
 
       const updatedWallet = await this.addCoinsToWallet(
         userId,
@@ -9287,7 +9353,9 @@ export class DatabaseStorage implements IStorage {
         orderId,
         description
       );
-      console.log(`[WALLET] Coins added. New balance for user ${userId}: ${updatedWallet.balance}`);
+      console.log(
+        `[WALLET] Coins added. New balance for user ${userId}: ${updatedWallet.balance}`
+      );
       return updatedWallet;
     } catch (error) {
       console.error(
@@ -9638,10 +9706,15 @@ export class DatabaseStorage implements IStorage {
         .offset(offset);
 
       // Attach orderNumber to each return request (always fetch)
-      await Promise.all(requests.map(async (req) => {
-        const order = await this.getOrder(req.orderId);
-        req.orderNumber = order && order.orderNumber ? order.orderNumber : String(req.orderId);
-      }));
+      await Promise.all(
+        requests.map(async (req) => {
+          const order = await this.getOrder(req.orderId);
+          req.orderNumber =
+            order && order.orderNumber
+              ? order.orderNumber
+              : String(req.orderId);
+        })
+      );
 
       return requests;
     } catch (error) {
@@ -9778,122 +9851,6 @@ export class DatabaseStorage implements IStorage {
       return result[0];
     } catch (error) {
       console.error("Error creating return reason:", error);
-      throw error;
-    }
-  }
-
-  async updateReturnReason(
-    id: number,
-    data: Partial<ReturnReason>
-  ): Promise<ReturnReason> {
-    try {
-      const result = await db
-        .update(returnReasons)
-        .set(data)
-        .where(eq(returnReasons.id, id))
-        .returning();
-
-      return result[0];
-    } catch (error) {
-      console.error("Error updating return reason:", error);
-      throw error;
-    }
-  }
-
-  async getReturnPolicyByCriteria(
-    sellerId?: number | null,
-    categoryId?: number | null
-  ): Promise<ReturnPolicy | undefined> {
-    try {
-      // Looking for platform default policy
-      if (sellerId === null && categoryId === null) {
-        const defaultPolicy = await db
-          .select()
-          .from(returnPolicies)
-          .where(
-            and(
-              isNull(returnPolicies.sellerId),
-              isNull(returnPolicies.categoryId)
-            )
-          );
-        return defaultPolicy.length > 0 ? defaultPolicy[0] : undefined;
-      }
-
-      // Looking for seller-category specific policy
-      if (sellerId !== undefined && categoryId !== undefined) {
-        const sellerCategoryPolicy = await db
-          .select()
-          .from(returnPolicies)
-          .where(
-            and(
-              eq(returnPolicies.sellerId, sellerId),
-              eq(returnPolicies.categoryId, categoryId)
-            )
-          );
-
-        if (sellerCategoryPolicy.length > 0) {
-          return sellerCategoryPolicy[0];
-        }
-      }
-
-      // Looking for seller-wide policy
-      if (sellerId !== undefined) {
-        const sellerPolicy = await db
-          .select()
-          .from(returnPolicies)
-          .where(
-            and(
-              eq(returnPolicies.sellerId, sellerId),
-              isNull(returnPolicies.categoryId)
-            )
-          );
-
-        if (sellerPolicy.length > 0) {
-          return sellerPolicy[0];
-        }
-      }
-
-      // If nothing found and not looking for default, try the default policy
-      if (sellerId !== null || categoryId !== null) {
-        return this.getReturnPolicyByCriteria(null, null);
-      }
-
-      return undefined;
-    } catch (error) {
-      console.error("Error getting return policy by criteria:", error);
-      throw error;
-    }
-  }
-
-  async getReturnPoliciesBySellerId(sellerId: number): Promise<ReturnPolicy[]> {
-    try {
-      return await db
-        .select()
-        .from(returnPolicies)
-        .where(eq(returnPolicies.sellerId, sellerId));
-    } catch (error) {
-      console.error("Error getting return policies by seller ID:", error);
-      throw error;
-    }
-  }
-
-  async createReturnPolicy(data: InsertReturnPolicy): Promise<ReturnPolicy> {
-    try {
-      // Convert any JSONable fields from string to object
-      let processedData = { ...data };
-      if (typeof processedData.conditionalRules === "string") {
-        processedData.conditionalRules = JSON.parse(
-          processedData.conditionalRules
-        );
-      }
-
-      const result = await db
-        .insert(returnPolicies)
-        .values(processedData)
-        .returning();
-      return result[0];
-    } catch (error) {
-      console.error("Error creating return policy:", error);
       throw error;
     }
   }
@@ -10459,10 +10416,15 @@ export class DatabaseStorage implements IStorage {
         .offset(offset);
 
       // Attach orderNumber to each return request
-      await Promise.all(requests.map(async (req) => {
-        const order = await this.getOrder(req.orderId);
-        req.orderNumber = order && order.orderNumber ? order.orderNumber : String(req.orderId);
-      }));
+      await Promise.all(
+        requests.map(async (req) => {
+          const order = await this.getOrder(req.orderId);
+          req.orderNumber =
+            order && order.orderNumber
+              ? order.orderNumber
+              : String(req.orderId);
+        })
+      );
 
       return requests;
     } catch (error) {
@@ -11064,10 +11026,10 @@ export class DatabaseStorage implements IStorage {
       const ordersMarked = await db
         .select()
         .from(orders)
-        .where(eq(orders.status, 'marked_for_return'));
+        .where(eq(orders.status, "marked_for_return"));
       return ordersMarked;
     } catch (error) {
-      console.error('Error fetching orders marked for return:', error);
+      console.error("Error fetching orders marked for return:", error);
       return [];
     }
   }
@@ -11080,8 +11042,9 @@ export class DatabaseStorage implements IStorage {
   ): Promise<SelectWallet> {
     try {
       const wallet = await this.getUserWallet(userId);
-      if (!wallet) throw new Error('Wallet not found');
-      if (amount > wallet.redeemedBalance) throw new Error('Not enough redeemed coins');
+      if (!wallet) throw new Error("Wallet not found");
+      if (amount > wallet.redeemedBalance)
+        throw new Error("Not enough redeemed coins");
       // Deduct from redeemedBalance
       const [updatedWallet] = await db
         .update(wallets)
@@ -11095,13 +11058,14 @@ export class DatabaseStorage implements IStorage {
       await db.insert(walletTransactions).values({
         walletId: wallet.id,
         amount: -amount,
-        transactionType: 'REDEEMED_SPENT',
-        referenceType: 'ORDER',
+        transactionType: "REDEEMED_SPENT",
+        referenceType: "ORDER",
         referenceId: orderId,
-        description: description || 'Spent redeemed coins at checkout',
+        description: description || "Spent redeemed coins at checkout",
       });
       // Update the order's walletDiscount and walletCoinsUsed fields
-      await db.update(orders)
+      await db
+        .update(orders)
         .set({
           walletDiscount: amount,
           walletCoinsUsed: amount,
