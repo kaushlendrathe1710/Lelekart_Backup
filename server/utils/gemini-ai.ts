@@ -1,16 +1,20 @@
 import { GoogleGenerativeAI, GenerativeModel } from "@google/generative-ai";
 
 // Initialize the Gemini API if key is available
-const genAI = process.env.GEMINI_API_KEY ? 
-  new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : 
-  null;
+const genAI = process.env.GEMINI_API_KEY
+  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+  : null;
 
 if (!genAI) {
-  console.warn("Warning: GEMINI_API_KEY environment variable is missing. AI features will be disabled.");
+  console.warn(
+    "Warning: GEMINI_API_KEY environment variable is missing. AI features will be disabled."
+  );
 }
 
 // Use the most advanced model - Gemini 1.5 Pro only if API is available
-const model = genAI ? genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" }) : null;
+const model = genAI
+  ? genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
+  : null;
 
 /**
  * General purpose chat function for the AI assistant
@@ -20,34 +24,46 @@ export async function getChatResponse(
   systemPrompt: string
 ): Promise<string> {
   if (!model) {
-    throw new Error("Gemini API is not configured. Please add GEMINI_API_KEY to your secrets.");
+    throw new Error(
+      "Gemini API is not configured. Please add GEMINI_API_KEY to your secrets."
+    );
   }
   // Convert messages format for Gemini
-  const geminiMessages = messages.map(msg => ({
-    role: msg.role === 'user' ? 'user' : 'model',
-    parts: [{ text: msg.content }]
+  const geminiMessages = messages.map((msg) => ({
+    role: msg.role === "user" ? "user" : "model",
+    parts: [
+      typeof msg.content === "string"
+        ? { text: msg.content }
+        : { text: String(msg.content) },
+    ],
   }));
 
   // Add system prompt as first message from model
   geminiMessages.unshift({
-    role: 'model',
-    parts: [{ text: systemPrompt }]
+    role: "model",
+    parts: [
+      typeof systemPrompt === "string"
+        ? { text: systemPrompt }
+        : { text: String(systemPrompt) },
+    ],
   });
 
   try {
+    if (!model) throw new Error("Gemini model is not initialized");
     const result = await model.generateContent({
       contents: geminiMessages,
       generationConfig: {
         maxOutputTokens: 1000,
         temperature: 0.7,
-      }
+      },
     });
-    
     const response = result.response;
     return response.text();
   } catch (error) {
     console.error("Error in chat response:", error);
-    throw new Error(`Failed to generate chat response: ${error.message}`);
+    throw new Error(
+      `Failed to generate chat response: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 }
 
@@ -121,21 +137,24 @@ export async function getPersonalizedRecommendations(
   `;
 
   try {
+    if (!model) throw new Error("Gemini model is not initialized");
     const result = await model.generateContent(prompt);
     const response = result.response;
     const text = response.text();
-    
+
     // Extract JSON array from the response
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
       return jsonMatch[0];
     }
-    
+
     // If no JSON array was found, return the whole text
     return text;
   } catch (error) {
     console.error("Error generating personalized recommendations:", error);
-    throw new Error(`Failed to generate recommendations: ${error.message}`);
+    throw new Error(
+      `Failed to generate recommendations: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 }
 
@@ -168,21 +187,24 @@ export async function getComplementaryProducts(
   `;
 
   try {
+    if (!model) throw new Error("Gemini model is not initialized");
     const result = await model.generateContent(prompt);
     const response = result.response;
     const text = response.text();
-    
+
     // Extract JSON array from the response
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
       return jsonMatch[0];
     }
-    
+
     // If no JSON array was found, return the whole text
     return text;
   } catch (error) {
     console.error("Error generating complementary products:", error);
-    throw new Error(`Failed to generate complementary products: ${error.message}`);
+    throw new Error(
+      `Failed to generate complementary products: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 }
 
@@ -256,21 +278,24 @@ export async function getSizeRecommendation(
   `;
 
   try {
+    if (!model) throw new Error("Gemini model is not initialized");
     const result = await model.generateContent(prompt);
     const response = result.response;
     const text = response.text();
-    
+
     // Extract JSON object from the response
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       return jsonMatch[0];
     }
-    
+
     // If no JSON object was found, return the whole text
     return text;
   } catch (error) {
     console.error("Error generating size recommendation:", error);
-    throw new Error(`Failed to generate size recommendation: ${error.message}`);
+    throw new Error(
+      `Failed to generate size recommendation: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 }
 
@@ -306,20 +331,23 @@ export async function answerProductQuestion(
   `;
 
   try {
+    if (!model) throw new Error("Gemini model is not initialized");
     const result = await model.generateContent(prompt);
     const response = result.response;
     const text = response.text();
-    
+
     // Extract JSON object from the response
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       return jsonMatch[0];
     }
-    
+
     // If no JSON object was found, return the whole text
     return text;
   } catch (error) {
     console.error("Error answering product question:", error);
-    throw new Error(`Failed to answer product question: ${error.message}`);
+    throw new Error(
+      `Failed to answer product question: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 }

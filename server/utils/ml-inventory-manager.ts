@@ -1,30 +1,34 @@
 import { db } from "../db";
 import { storage } from "../storage";
 import { getChatResponse } from "./gemini-ai";
-import { 
-  products, 
-  salesHistory, 
-  demandForecasts, 
-  priceOptimizations, 
+import {
+  products,
+  salesHistory,
+  demandForecasts,
+  priceOptimizations,
   inventoryOptimizations,
-  aiGeneratedContent
+  aiGeneratedContent,
 } from "@shared/schema";
 import { eq, and, gte, lte, desc } from "drizzle-orm";
 
 // ML-powered demand forecasting
 export async function generateDemandForecast(
-  productId: number, 
-  sellerId: number, 
+  productId: number,
+  sellerId: number,
   period: string = "monthly"
 ): Promise<any> {
   try {
     // 1. Collect historical sales data
-    const salesData = await db.select().from(salesHistory).where(
-      and(
-        eq(salesHistory.productId, productId),
-        eq(salesHistory.sellerId, sellerId)
+    const salesData = await db
+      .select()
+      .from(salesHistory)
+      .where(
+        and(
+          eq(salesHistory.productId, productId),
+          eq(salesHistory.sellerId, sellerId)
+        )
       )
-    ).orderBy(desc(salesHistory.date));
+      .orderBy(desc(salesHistory.date));
 
     // Get product details
     const product = await storage.getProduct(productId);
@@ -69,15 +73,15 @@ export async function generateDemandForecast(
           seasonality: "unknown",
           trends: "unknown",
           events: [],
-          competition: "unknown"
-        }
+          competition: "unknown",
+        },
       };
     }
 
     // Use Gemini API to generate the forecast
     const forecastResponse = await getChatResponse(prompt);
     let forecast;
-    
+
     try {
       forecast = JSON.parse(forecastResponse);
     } catch (error) {
@@ -87,19 +91,25 @@ export async function generateDemandForecast(
 
     // 3. Store the forecast in the database
     const forecastDate = new Date();
-    forecastDate.setDate(forecastDate.getDate() + (period === "daily" ? 1 : period === "weekly" ? 7 : 30));
+    forecastDate.setDate(
+      forecastDate.getDate() +
+        (period === "daily" ? 1 : period === "weekly" ? 7 : 30)
+    );
 
-    const [newForecast] = await db.insert(demandForecasts).values({
-      productId,
-      sellerId,
-      forecastDate,
-      predictedDemand: forecast.predictedDemand,
-      confidenceScore: forecast.confidenceScore,
-      forecastPeriod: period,
-      factorsConsidered: forecast.factorsConsidered,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }).returning();
+    const [newForecast] = await db
+      .insert(demandForecasts)
+      .values({
+        productId,
+        sellerId,
+        forecastDate,
+        predictedDemand: forecast.predictedDemand,
+        confidenceScore: forecast.confidenceScore,
+        forecastPeriod: period,
+        factorsConsidered: forecast.factorsConsidered,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
 
     return newForecast;
   } catch (error) {
@@ -110,7 +120,7 @@ export async function generateDemandForecast(
 
 // ML-powered price optimization
 export async function generatePriceOptimization(
-  productId: number, 
+  productId: number,
   sellerId: number
 ): Promise<any> {
   try {
@@ -120,12 +130,16 @@ export async function generatePriceOptimization(
       throw new Error("Product not found");
     }
 
-    const salesData = await db.select().from(salesHistory).where(
-      and(
-        eq(salesHistory.productId, productId),
-        eq(salesHistory.sellerId, sellerId)
+    const salesData = await db
+      .select()
+      .from(salesHistory)
+      .where(
+        and(
+          eq(salesHistory.productId, productId),
+          eq(salesHistory.sellerId, sellerId)
+        )
       )
-    ).orderBy(desc(salesHistory.date));
+      .orderBy(desc(salesHistory.date));
 
     // 2. Use Gemini AI to generate optimal pricing
     const prompt = `
@@ -160,30 +174,43 @@ export async function generatePriceOptimization(
     `;
 
     // Use Gemini API to generate the price optimization
-    const optimizationResponse = await getChatResponse(prompt);
+    const optimizationResponse = await getChatResponse([
+      { role: "user", content: prompt },
+    ]);
     let optimization;
-    
+
     try {
-      optimization = JSON.parse(optimizationResponse);
+      // Remove markdown code block markers if present
+      let cleanResponse = optimizationResponse.trim();
+      if (cleanResponse.startsWith("```")) {
+        cleanResponse = cleanResponse
+          .replace(/^```[a-zA-Z]*\n?/, "")
+          .replace(/```$/, "")
+          .trim();
+      }
+      optimization = JSON.parse(cleanResponse);
     } catch (error) {
       console.error("Failed to parse AI price optimization response:", error);
       throw new Error("Invalid price optimization format returned by AI");
     }
 
     // 3. Store the optimization in the database
-    const [newOptimization] = await db.insert(priceOptimizations).values({
-      productId,
-      sellerId,
-      currentPrice: optimization.currentPrice,
-      suggestedPrice: optimization.suggestedPrice,
-      projectedRevenue: optimization.projectedRevenue,
-      projectedSales: optimization.projectedSales,
-      confidenceScore: optimization.confidenceScore,
-      reasoningFactors: optimization.reasoningFactors,
-      status: "pending",
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }).returning();
+    const [newOptimization] = await db
+      .insert(priceOptimizations)
+      .values({
+        productId,
+        sellerId,
+        currentPrice: optimization.currentPrice,
+        suggestedPrice: optimization.suggestedPrice,
+        projectedRevenue: optimization.projectedRevenue,
+        projectedSales: optimization.projectedSales,
+        confidenceScore: optimization.confidenceScore,
+        reasoningFactors: optimization.reasoningFactors,
+        status: "pending",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
 
     return newOptimization;
   } catch (error) {
@@ -194,7 +221,7 @@ export async function generatePriceOptimization(
 
 // ML-powered inventory optimization
 export async function generateInventoryOptimization(
-  productId: number, 
+  productId: number,
   sellerId: number
 ): Promise<any> {
   try {
@@ -208,37 +235,46 @@ export async function generateInventoryOptimization(
     const currentStock = product.stock || 0;
 
     // Get recent sales data
-    const salesData = await db.select().from(salesHistory).where(
-      and(
-        eq(salesHistory.productId, productId),
-        eq(salesHistory.sellerId, sellerId)
+    const salesData = await db
+      .select()
+      .from(salesHistory)
+      .where(
+        and(
+          eq(salesHistory.productId, productId),
+          eq(salesHistory.sellerId, sellerId)
+        )
       )
-    ).orderBy(desc(salesHistory.date));
+      .orderBy(desc(salesHistory.date));
 
     // Get latest demand forecast
-    const [latestForecast] = await db.select().from(demandForecasts).where(
-      and(
-        eq(demandForecasts.productId, productId),
-        eq(demandForecasts.sellerId, sellerId)
+    const [latestForecast] = await db
+      .select()
+      .from(demandForecasts)
+      .where(
+        and(
+          eq(demandForecasts.productId, productId),
+          eq(demandForecasts.sellerId, sellerId)
+        )
       )
-    ).orderBy(desc(demandForecasts.createdAt)).limit(1);
+      .orderBy(desc(demandForecasts.createdAt))
+      .limit(1);
 
     // 2. Use Gemini AI to generate inventory optimization
     const prompt = `
-    You are an AI-powered inventory optimization system for e-commerce. 
+    You are an AI-powered inventory optimization system for e-commerce.
     Analyze the following data and suggest optimal inventory levels for the product "${product.name}" (ID: ${productId}).
-    
+
     Product Details:
     ${JSON.stringify(product, null, 2)}
-    
+
     Current Stock Level: ${currentStock}
-    
+
     Historical Sales Data:
     ${JSON.stringify(salesData, null, 2)}
-    
+
     Latest Demand Forecast:
     ${JSON.stringify(latestForecast || "No forecast available", null, 2)}
-    
+
     Return the inventory optimization recommendation as a JSON object with the following structure:
     {
       "recommendedStock": number, // Recommended inventory level
@@ -247,39 +283,61 @@ export async function generateInventoryOptimization(
       "safetyStock": number, // Buffer stock to prevent stockouts
       "leadTime": number, // Estimated lead time for restocking in days
       "reason": string, // Brief explanation for the recommendation
-      "priorityLevel": string // "low", "medium", "high", or "critical"
+      "priorityLevel": string, // "low", "medium", "high", or "critical"
+      "restockingAdvice": string, // Specific advice for restocking this product
+      "seasonalConsiderations": string, // Any seasonal factors to consider
+      "leadTimeRecommendations": string // Recommendations related to lead time and supply chain
     }
-    
+
     Important: Only return the JSON object, no additional text.
     `;
 
     // Use Gemini API to generate the inventory optimization
-    const optimizationResponse = await getChatResponse(prompt);
+    const optimizationResponse = await getChatResponse([
+      { role: "user", content: prompt },
+    ]);
     let optimization;
-    
+
     try {
-      optimization = JSON.parse(optimizationResponse);
+      // Remove markdown code block markers if present
+      let cleanResponse = optimizationResponse.trim();
+      if (cleanResponse.startsWith("```")) {
+        cleanResponse = cleanResponse
+          .replace(/^```[a-zA-Z]*\n?/, "")
+          .replace(/```$/, "")
+          .trim();
+      }
+      optimization = JSON.parse(cleanResponse);
     } catch (error) {
-      console.error("Failed to parse AI inventory optimization response:", error);
+      console.error(
+        "Failed to parse AI inventory optimization response:",
+        error
+      );
       throw new Error("Invalid inventory optimization format returned by AI");
     }
 
     // 3. Store the optimization in the database
-    const [newOptimization] = await db.insert(inventoryOptimizations).values({
-      productId,
-      sellerId,
-      currentStock: currentStock,
-      recommendedStock: optimization.recommendedStock,
-      reorderPoint: optimization.reorderPoint,
-      maxStock: optimization.maxStock,
-      safetyStock: optimization.safetyStock,
-      leadTime: optimization.leadTime,
-      reason: optimization.reason,
-      priorityLevel: optimization.priorityLevel,
-      status: "pending",
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }).returning();
+    const [newOptimization] = await db
+      .insert(inventoryOptimizations)
+      .values({
+        productId,
+        sellerId,
+        currentStock: currentStock,
+        recommendedStock: optimization.recommendedStock,
+        reorderPoint: optimization.reorderPoint,
+        maxStock: optimization.maxStock,
+        safetyStock: optimization.safetyStock,
+        leadTime: optimization.leadTime,
+        reason: optimization.reason,
+        priorityLevel: optimization.priorityLevel,
+        restockingAdvice: optimization.restockingAdvice || "",
+        seasonalConsiderations: optimization.seasonalConsiderations || "",
+        leadTimeRecommendations: optimization.leadTimeRecommendations || "",
+        status: "pending",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
 
     return newOptimization;
   } catch (error) {
@@ -325,7 +383,7 @@ export async function generateProductContent(
         Return only the generated description, no additional text.
         `;
         break;
-      
+
       case "features":
         prompt = `
         You are an AI-powered product features writer for an e-commerce platform.
@@ -342,7 +400,7 @@ export async function generateProductContent(
         Important: Only return the JSON array, no additional text.
         `;
         break;
-      
+
       case "specifications":
         prompt = `
         You are an AI-powered product specifications writer for an e-commerce platform.
@@ -359,15 +417,17 @@ export async function generateProductContent(
         Important: Only return the JSON object, no additional text.
         `;
         break;
-      
+
       default:
         throw new Error(`Unsupported content type: ${contentType}`);
     }
 
     // 3. Use Gemini API to generate the content
-    const contentResponse = await getChatResponse(prompt);
+    const contentResponse = await getChatResponse([
+      { role: "user", content: prompt },
+    ]);
     let generatedContent = contentResponse;
-    
+
     // Parse JSON responses if needed
     if (contentType === "features" || contentType === "specifications") {
       try {
@@ -379,17 +439,20 @@ export async function generateProductContent(
     }
 
     // 4. Store the generated content in the database
-    const [newContent] = await db.insert(aiGeneratedContent).values({
-      productId,
-      sellerId,
-      contentType,
-      originalData: originalData || "",
-      generatedContent,
-      promptUsed: prompt,
-      status: "pending",
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }).returning();
+    const [newContent] = await db
+      .insert(aiGeneratedContent)
+      .values({
+        productId,
+        sellerId,
+        contentType,
+        originalData: originalData || "",
+        generatedContent,
+        promptUsed: prompt,
+        status: "pending",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
 
     return newContent;
   } catch (error) {
@@ -411,23 +474,26 @@ export async function recordSalesData(
 ): Promise<any> {
   try {
     const today = new Date();
-    
+
     // Calculate profit margin
     const profitMargin = ((revenue - costPrice) / revenue) * 100;
-    
-    const [newSalesRecord] = await db.insert(salesHistory).values({
-      productId,
-      sellerId,
-      date: today,
-      quantity,
-      revenue,
-      costPrice,
-      profitMargin,
-      channel,
-      promotionApplied,
-      seasonality,
-      createdAt: today
-    }).returning();
+
+    const [newSalesRecord] = await db
+      .insert(salesHistory)
+      .values({
+        productId,
+        sellerId,
+        date: today,
+        quantity,
+        revenue,
+        costPrice,
+        profitMargin,
+        channel,
+        promotionApplied,
+        seasonality,
+        createdAt: today,
+      })
+      .returning();
 
     return newSalesRecord;
   } catch (error) {
@@ -444,30 +510,35 @@ export async function updatePriceOptimizationStatus(
 ): Promise<any> {
   try {
     // First, verify seller owns this optimization
-    const [existingOptimization] = await db.select().from(priceOptimizations).where(
-      and(
-        eq(priceOptimizations.id, id),
-        eq(priceOptimizations.sellerId, sellerId)
-      )
-    );
+    const [existingOptimization] = await db
+      .select()
+      .from(priceOptimizations)
+      .where(
+        and(
+          eq(priceOptimizations.id, id),
+          eq(priceOptimizations.sellerId, sellerId)
+        )
+      );
 
     if (!existingOptimization) {
       throw new Error("Price optimization not found or not authorized");
     }
 
     // Update the status
-    const [updatedOptimization] = await db.update(priceOptimizations)
+    const [updatedOptimization] = await db
+      .update(priceOptimizations)
       .set({
         status,
         appliedAt: status === "applied" ? new Date() : null,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(priceOptimizations.id, id))
       .returning();
 
     // If status is "applied", update the product price
     if (status === "applied") {
-      await db.update(products)
+      await db
+        .update(products)
         .set({ price: existingOptimization.suggestedPrice })
         .where(eq(products.id, existingOptimization.productId));
     }
@@ -487,30 +558,35 @@ export async function updateInventoryOptimizationStatus(
 ): Promise<any> {
   try {
     // First, verify seller owns this optimization
-    const [existingOptimization] = await db.select().from(inventoryOptimizations).where(
-      and(
-        eq(inventoryOptimizations.id, id),
-        eq(inventoryOptimizations.sellerId, sellerId)
-      )
-    );
+    const [existingOptimization] = await db
+      .select()
+      .from(inventoryOptimizations)
+      .where(
+        and(
+          eq(inventoryOptimizations.id, id),
+          eq(inventoryOptimizations.sellerId, sellerId)
+        )
+      );
 
     if (!existingOptimization) {
       throw new Error("Inventory optimization not found or not authorized");
     }
 
     // Update the status
-    const [updatedOptimization] = await db.update(inventoryOptimizations)
+    const [updatedOptimization] = await db
+      .update(inventoryOptimizations)
       .set({
         status,
         appliedAt: status === "applied" ? new Date() : null,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(inventoryOptimizations.id, id))
       .returning();
 
     // If status is "applied", update the product stock level
     if (status === "applied") {
-      await db.update(products)
+      await db
+        .update(products)
         .set({ stock: existingOptimization.recommendedStock })
         .where(eq(products.id, existingOptimization.productId));
     }
@@ -530,23 +606,27 @@ export async function updateAIContentStatus(
 ): Promise<any> {
   try {
     // First, verify seller owns this content
-    const [existingContent] = await db.select().from(aiGeneratedContent).where(
-      and(
-        eq(aiGeneratedContent.id, id),
-        eq(aiGeneratedContent.sellerId, sellerId)
-      )
-    );
+    const [existingContent] = await db
+      .select()
+      .from(aiGeneratedContent)
+      .where(
+        and(
+          eq(aiGeneratedContent.id, id),
+          eq(aiGeneratedContent.sellerId, sellerId)
+        )
+      );
 
     if (!existingContent) {
       throw new Error("AI generated content not found or not authorized");
     }
 
     // Update the status
-    const [updatedContent] = await db.update(aiGeneratedContent)
+    const [updatedContent] = await db
+      .update(aiGeneratedContent)
       .set({
         status,
         appliedAt: status === "applied" ? new Date() : null,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(aiGeneratedContent.id, id))
       .returning();
@@ -554,7 +634,7 @@ export async function updateAIContentStatus(
     // If status is "applied", update the product with the generated content
     if (status === "applied") {
       const updateData: any = {};
-      
+
       switch (existingContent.contentType) {
         case "description":
           updateData.description = existingContent.generatedContent;
@@ -564,9 +644,10 @@ export async function updateAIContentStatus(
           break;
         // For other content types, handling would be added in the product entity
       }
-      
+
       if (Object.keys(updateData).length > 0) {
-        await db.update(products)
+        await db
+          .update(products)
           .set(updateData)
           .where(eq(products.id, existingContent.productId));
       }

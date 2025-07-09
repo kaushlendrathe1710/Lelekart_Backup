@@ -3,40 +3,47 @@ import { SellerDashboardLayout } from "@/components/layout/seller-dashboard-layo
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/use-auth";
 import { formatPrice } from "@/lib/utils";
-import { 
-  Loader2, 
-  TrendingUp, 
-  LineChart, 
-  ShoppingBag, 
-  DollarSign, 
-  ClipboardCheck, 
-  Check, 
-  X, 
-  PencilRuler, 
+import {
+  Loader2,
+  TrendingUp,
+  LineChart,
+  ShoppingBag,
+  DollarSign,
+  ClipboardCheck,
+  Check,
+  X,
+  PencilRuler,
   BarChart2,
   Layers,
-  Package 
+  Package,
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/queryClient";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
-import { 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   BarChart,
   Bar,
-  Legend
+  Legend,
 } from "recharts";
 
 export default function SmartInventory() {
@@ -51,28 +58,36 @@ export default function SmartInventory() {
     queryFn: async () => {
       try {
         console.log(`Fetching products for seller ID: ${user?.id}`);
-        const res = await apiRequest("GET", `/api/products?sellerId=${user?.id}`);
+        const res = await apiRequest(
+          "GET",
+          `/api/products?sellerId=${user?.id}`
+        );
         const data = await res.json();
         console.log("Fetched products:", JSON.stringify(data, null, 2));
-        
+
         if (!data.products || !Array.isArray(data.products)) {
           console.error("Invalid products data structure:", data);
           throw new Error("Invalid products data received");
         }
-        
+
         // Log each product to see their structure and image URLs
         data.products.forEach((product: any, index: number) => {
-          console.log(`Product ${index + 1} (${product.name}) image data:`, 
-            JSON.stringify({
-              id: product.id,
-              name: product.name,
-              imageUrl: product.imageUrl,
-              image_url: product.image_url,
-              images: product.images,
-            }, null, 2)
+          console.log(
+            `Product ${index + 1} (${product.name}) image data:`,
+            JSON.stringify(
+              {
+                id: product.id,
+                name: product.name,
+                imageUrl: product.imageUrl,
+                image_url: product.image_url,
+                images: product.images,
+              },
+              null,
+              2
+            )
           );
         });
-        
+
         return data.products;
       } catch (error) {
         console.error("Error fetching products:", error);
@@ -109,7 +124,8 @@ export default function SmartInventory() {
             </h1>
           </div>
           <p className="text-muted-foreground text-lg">
-            Leverage AI-powered insights to optimize your inventory, pricing, and product content
+            Leverage AI-powered insights to optimize your inventory, pricing,
+            and product content
           </p>
         </div>
 
@@ -124,7 +140,7 @@ export default function SmartInventory() {
                 </CardTitle>
                 <CardDescription>Select a product to analyze</CardDescription>
               </CardHeader>
-              <CardContent className="max-h-[600px] overflow-y-auto pt-4">
+              <CardContent className="pt-4">
                 {isLoadingProducts ? (
                   <div className="flex justify-center items-center h-32">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -144,60 +160,85 @@ export default function SmartInventory() {
                         >
                           <div className="flex items-center gap-3">
                             <div className="h-16 w-16 rounded-md overflow-hidden border">
-                              <img 
+                              <img
                                 src={(() => {
                                   // Try to get imageUrl first (camelCase)
                                   if (product.imageUrl) {
                                     return product.imageUrl;
                                   }
-                                  
+
                                   // Try image_url (snake_case) next
                                   if (product.image_url) {
                                     return product.image_url;
                                   }
-                                  
+
                                   // Try to parse images if it's a string
                                   if (product.images) {
-                                    if (typeof product.images === 'string') {
+                                    if (typeof product.images === "string") {
                                       try {
-                                        const parsedImages = JSON.parse(product.images);
-                                        if (Array.isArray(parsedImages) && parsedImages.length > 0) {
+                                        const parsedImages = JSON.parse(
+                                          product.images
+                                        );
+                                        if (
+                                          Array.isArray(parsedImages) &&
+                                          parsedImages.length > 0
+                                        ) {
                                           return parsedImages[0];
                                         }
                                       } catch (e) {
-                                        console.log("Error parsing images JSON:", e);
+                                        console.log(
+                                          "Error parsing images JSON:",
+                                          e
+                                        );
                                         // If it's a single image URL string, return it directly
-                                        if (typeof product.images === 'string' && 
-                                            (product.images.startsWith('http') || product.images.startsWith('/'))) {
+                                        if (
+                                          typeof product.images === "string" &&
+                                          (product.images.startsWith("http") ||
+                                            product.images.startsWith("/"))
+                                        ) {
                                           return product.images;
                                         }
                                       }
-                                    } else if (Array.isArray(product.images) && product.images.length > 0) {
+                                    } else if (
+                                      Array.isArray(product.images) &&
+                                      product.images.length > 0
+                                    ) {
                                       // If it's already an array, use first item
                                       return product.images[0];
                                     }
                                   }
-                                  
+
                                   // Default placeholder
-                                  return '/images/placeholder.svg';
-                                })()} 
-                                alt={product.name} 
+                                  return "/images/placeholder.svg";
+                                })()}
+                                alt={product.name}
                                 className="h-full w-full object-cover"
                                 onError={(e) => {
                                   const target = e.target as HTMLImageElement;
                                   target.onerror = null;
-                                  target.src = '/images/placeholder.svg';
-                                  console.log(`Image load error for product: ${product.name}`);
+                                  target.src = "/images/placeholder.svg";
+                                  console.log(
+                                    `Image load error for product: ${product.name}`
+                                  );
                                 }}
                               />
                             </div>
                             <div>
-                              <h3 className="font-medium text-gray-800">{product.name}</h3>
+                              <h3 className="font-medium text-gray-800">
+                                {product.name}
+                              </h3>
                               <div className="flex items-center mt-1">
-                                <Badge variant={product.stock > 10 ? "success" : "warning"} className="mr-2">
+                                <Badge
+                                  variant={
+                                    product.stock > 10 ? "default" : "outline"
+                                  }
+                                  className="mr-2"
+                                >
                                   Stock: {product.stock}
                                 </Badge>
-                                <p className="text-sm font-bold text-blue-700">{formatPrice(product.price)}</p>
+                                <p className="text-sm font-bold text-blue-700">
+                                  {formatPrice(product.price)}
+                                </p>
                               </div>
                             </div>
                           </div>
@@ -206,8 +247,15 @@ export default function SmartInventory() {
                     ) : (
                       <div className="text-center p-6 bg-gray-50 rounded-lg border border-dashed border-gray-300">
                         <Package className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                        <p className="text-muted-foreground">No products found</p>
-                        <Button variant="outline" size="sm" className="mt-3" asChild>
+                        <p className="text-muted-foreground">
+                          No products found
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-3"
+                          asChild
+                        >
                           <Link href="/seller/products/add">Add Product</Link>
                         </Button>
                       </div>
@@ -221,21 +269,37 @@ export default function SmartInventory() {
           {/* Main content area */}
           <div className="col-span-12 md:col-span-9">
             {selectedProduct ? (
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="bg-white rounded-lg shadow-md border p-1">
+              <Tabs
+                value={activeTab}
+                onValueChange={setActiveTab}
+                className="bg-white rounded-lg shadow-md border p-1"
+              >
                 <TabsList className="grid grid-cols-4 p-1 mb-6 bg-gray-50">
-                  <TabsTrigger value="demand-forecasting" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">
+                  <TabsTrigger
+                    value="demand-forecasting"
+                    className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
+                  >
                     <TrendingUp className="h-4 w-4 mr-2" />
                     Demand Forecasting
                   </TabsTrigger>
-                  <TabsTrigger value="price-optimization" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">
+                  <TabsTrigger
+                    value="price-optimization"
+                    className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
+                  >
                     <DollarSign className="h-4 w-4 mr-2" />
                     Price Optimization
                   </TabsTrigger>
-                  <TabsTrigger value="inventory-optimization" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">
+                  <TabsTrigger
+                    value="inventory-optimization"
+                    className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
+                  >
                     <ShoppingBag className="h-4 w-4 mr-2" />
                     Inventory Optimization
                   </TabsTrigger>
-                  <TabsTrigger value="ai-content" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">
+                  <TabsTrigger
+                    value="ai-content"
+                    className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
+                  >
                     <PencilRuler className="h-4 w-4 mr-2" />
                     AI Content Generator
                   </TabsTrigger>
@@ -265,38 +329,53 @@ export default function SmartInventory() {
                   <div className="rounded-full p-6 bg-blue-50 mb-6">
                     <LineChart className="h-10 w-10 text-blue-600" />
                   </div>
-                  <h3 className="text-2xl font-semibold mb-4 text-center">Select a Product</h3>
+                  <h3 className="text-2xl font-semibold mb-4 text-center">
+                    Select a Product
+                  </h3>
                   <p className="text-muted-foreground text-center max-w-lg mb-6">
-                    Choose a product from the sidebar to view AI-powered inventory insights, 
-                    pricing recommendations, and generate optimized product content.
+                    Choose a product from the sidebar to view AI-powered
+                    inventory insights, pricing recommendations, and generate
+                    optimized product content.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-lg">
                     <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-none">
                       <CardContent className="flex flex-col items-center text-center p-6">
                         <TrendingUp className="h-8 w-8 text-blue-600 mb-2" />
                         <h4 className="font-medium mb-1">Demand Forecasting</h4>
-                        <p className="text-xs text-muted-foreground">Predict future sales with ML models</p>
+                        <p className="text-xs text-muted-foreground">
+                          Predict future sales with ML models
+                        </p>
                       </CardContent>
                     </Card>
                     <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-none">
                       <CardContent className="flex flex-col items-center text-center p-6">
                         <DollarSign className="h-8 w-8 text-amber-600 mb-2" />
                         <h4 className="font-medium mb-1">Price Optimization</h4>
-                        <p className="text-xs text-muted-foreground">Find the perfect price point</p>
+                        <p className="text-xs text-muted-foreground">
+                          Find the perfect price point
+                        </p>
                       </CardContent>
                     </Card>
                     <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-none">
                       <CardContent className="flex flex-col items-center text-center p-6">
                         <ShoppingBag className="h-8 w-8 text-green-600 mb-2" />
-                        <h4 className="font-medium mb-1">Inventory Optimization</h4>
-                        <p className="text-xs text-muted-foreground">Reduce stockouts and overstocks</p>
+                        <h4 className="font-medium mb-1">
+                          Inventory Optimization
+                        </h4>
+                        <p className="text-xs text-muted-foreground">
+                          Reduce stockouts and overstocks
+                        </p>
                       </CardContent>
                     </Card>
                     <Card className="bg-gradient-to-br from-purple-50 to-fuchsia-50 border-none">
                       <CardContent className="flex flex-col items-center text-center p-6">
                         <PencilRuler className="h-8 w-8 text-purple-600 mb-2" />
-                        <h4 className="font-medium mb-1">AI Content Generator</h4>
-                        <p className="text-xs text-muted-foreground">Create compelling product descriptions</p>
+                        <h4 className="font-medium mb-1">
+                          AI Content Generator
+                        </h4>
+                        <p className="text-xs text-muted-foreground">
+                          Create compelling product descriptions
+                        </p>
                       </CardContent>
                     </Card>
                   </div>
@@ -318,7 +397,10 @@ function DemandForecastingTab({ productId }: { productId: number }) {
   const { data: forecasts, isLoading } = useQuery({
     queryKey: ["/api/seller/demand-forecasts", productId],
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/seller/demand-forecasts/${productId}`);
+      const res = await apiRequest(
+        "GET",
+        `/api/seller/demand-forecasts/${productId}`
+      );
       const data = await res.json();
       return data;
     },
@@ -328,9 +410,13 @@ function DemandForecastingTab({ productId }: { productId: number }) {
   // Generate new forecast
   const forecastMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/seller/demand-forecasts/${productId}`, {
-        period,
-      });
+      const res = await apiRequest(
+        "POST",
+        `/api/seller/demand-forecasts/${productId}`,
+        {
+          period,
+        }
+      );
       return await res.json();
     },
     onSuccess: () => {
@@ -338,12 +424,15 @@ function DemandForecastingTab({ productId }: { productId: number }) {
         title: "Forecast generated",
         description: "Your demand forecast has been successfully generated",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/seller/demand-forecasts", productId] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/seller/demand-forecasts", productId],
+      });
     },
     onError: (error) => {
       toast({
         title: "Failed to generate forecast",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
     },
@@ -353,7 +442,10 @@ function DemandForecastingTab({ productId }: { productId: number }) {
   const { data: salesHistory, isLoading: isLoadingSales } = useQuery({
     queryKey: ["/api/seller/sales-history", productId],
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/seller/sales-history/${productId}`);
+      const res = await apiRequest(
+        "GET",
+        `/api/seller/sales-history/${productId}`
+      );
       const data = await res.json();
       return data;
     },
@@ -363,21 +455,21 @@ function DemandForecastingTab({ productId }: { productId: number }) {
   // Prepare chart data from latest forecast
   const chartData = React.useMemo(() => {
     if (!forecasts || forecasts.length === 0) return [];
-    
+
     // Get the most recent forecast
     const latestForecast = forecasts[0];
-    
+
     try {
       // Convert forecast data to chart format
       const forecastData = JSON.parse(latestForecast.forecastData);
-      
+
       if (Array.isArray(forecastData)) {
         return forecastData.map((item: any) => ({
           name: item.period,
           forecast: item.value,
         }));
       }
-      
+
       return [];
     } catch (e) {
       console.error("Error parsing forecast data:", e);
@@ -388,20 +480,20 @@ function DemandForecastingTab({ productId }: { productId: number }) {
   // Prepare historical sales data for chart
   const salesData = React.useMemo(() => {
     if (!salesHistory || salesHistory.length === 0) return [];
-    
+
     // Group by date (month) and sum quantities
     const salesByMonth = salesHistory.reduce((acc: any, sale: any) => {
       const date = new Date(sale.date);
       const month = `${date.getFullYear()}-${date.getMonth() + 1}`;
-      
+
       if (!acc[month]) {
         acc[month] = 0;
       }
-      
+
       acc[month] += sale.quantity;
       return acc;
     }, {});
-    
+
     // Convert to chart data format
     return Object.entries(salesByMonth).map(([month, quantity]) => ({
       name: month,
@@ -412,25 +504,26 @@ function DemandForecastingTab({ productId }: { productId: number }) {
   // Combined chart data (if we have both forecasts and sales history)
   const combinedData = React.useMemo(() => {
     if (chartData.length === 0 && salesData.length === 0) return [];
-    
+
     // Create a map of all periods
     const allPeriods = new Map();
-    
+
     // Add sales data periods
     salesData.forEach((item: any) => {
       allPeriods.set(item.name, { name: item.name, sales: item.sales });
     });
-    
+
     // Add forecast data periods
     chartData.forEach((item: any) => {
       const existing = allPeriods.get(item.name) || { name: item.name };
       existing.forecast = item.forecast;
       allPeriods.set(item.name, existing);
     });
-    
+
     // Convert map to array and sort by period
-    return Array.from(allPeriods.values())
-      .sort((a: any, b: any) => a.name.localeCompare(b.name));
+    return Array.from(allPeriods.values()).sort((a: any, b: any) =>
+      a.name.localeCompare(b.name)
+    );
   }, [chartData, salesData]);
 
   return (
@@ -439,8 +532,8 @@ function DemandForecastingTab({ productId }: { productId: number }) {
         <CardHeader>
           <CardTitle className="flex justify-between items-center">
             <div>Demand Forecast</div>
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               onClick={() => forecastMutation.mutate()}
               disabled={forecastMutation.isPending}
             >
@@ -463,57 +556,67 @@ function DemandForecastingTab({ productId }: { productId: number }) {
             <div className="space-y-6">
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={combinedData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <AreaChart
+                    data={combinedData}
+                    margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
                     <Tooltip />
                     <Legend />
                     {salesData.length > 0 && (
-                      <Area 
-                        type="monotone" 
-                        dataKey="sales" 
-                        stroke="#8884d8" 
-                        fill="#8884d8" 
+                      <Area
+                        type="monotone"
+                        dataKey="sales"
+                        stroke="#8884d8"
+                        fill="#8884d8"
                         name="Historical Sales"
                       />
                     )}
-                    <Area 
-                      type="monotone" 
-                      dataKey="forecast" 
-                      stroke="#82ca9d" 
-                      fill="#82ca9d" 
+                    <Area
+                      type="monotone"
+                      dataKey="forecast"
+                      stroke="#82ca9d"
+                      fill="#82ca9d"
                       name="Forecast"
                     />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
-              
+
               <div className="grid grid-cols-3 gap-4">
                 <div className="bg-primary/5 rounded-md p-4">
-                  <div className="text-sm text-muted-foreground mb-1">Total Forecast</div>
+                  <div className="text-sm text-muted-foreground mb-1">
+                    Total Forecast
+                  </div>
                   <div className="text-2xl font-bold">
                     {forecasts[0].totalForecastedDemand} units
                   </div>
                 </div>
                 <div className="bg-primary/5 rounded-md p-4">
-                  <div className="text-sm text-muted-foreground mb-1">Confidence Level</div>
+                  <div className="text-sm text-muted-foreground mb-1">
+                    Confidence Level
+                  </div>
                   <div className="text-2xl font-bold">
                     {forecasts[0].confidenceLevel}%
                   </div>
                 </div>
                 <div className="bg-primary/5 rounded-md p-4">
-                  <div className="text-sm text-muted-foreground mb-1">Period</div>
+                  <div className="text-sm text-muted-foreground mb-1">
+                    Period
+                  </div>
                   <div className="text-2xl font-bold capitalize">
                     {forecasts[0].forecastPeriod}
                   </div>
                 </div>
               </div>
-              
+
               <div>
                 <h3 className="font-medium mb-2">Forecast Insights</h3>
                 <p className="text-muted-foreground whitespace-pre-line">
-                  {forecasts[0].insights || "No insights available for this forecast."}
+                  {forecasts[0].insights ||
+                    "No insights available for this forecast."}
                 </p>
               </div>
             </div>
@@ -522,11 +625,14 @@ function DemandForecastingTab({ productId }: { productId: number }) {
               <div className="inline-flex rounded-full p-3 bg-primary/10 mb-4">
                 <TrendingUp className="h-6 w-6 text-primary" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">No Forecasts Available</h3>
+              <h3 className="text-xl font-semibold mb-2">
+                No Forecasts Available
+              </h3>
               <p className="text-muted-foreground max-w-md mx-auto mb-6">
-                Generate your first demand forecast to get insights on future customer demand.
+                Generate your first demand forecast to get insights on future
+                customer demand.
               </p>
-              <Button 
+              <Button
                 onClick={() => forecastMutation.mutate()}
                 disabled={forecastMutation.isPending}
               >
@@ -556,7 +662,10 @@ function DemandForecastingTab({ productId }: { productId: number }) {
             <div className="space-y-6">
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={salesData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <BarChart
+                    data={salesData}
+                    margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
@@ -566,16 +675,26 @@ function DemandForecastingTab({ productId }: { productId: number }) {
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-              
+
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse">
                   <thead>
                     <tr className="border-b border-border">
-                      <th className="py-2 px-3 text-left text-sm font-medium text-muted-foreground">Date</th>
-                      <th className="py-2 px-3 text-left text-sm font-medium text-muted-foreground">Quantity</th>
-                      <th className="py-2 px-3 text-left text-sm font-medium text-muted-foreground">Revenue</th>
-                      <th className="py-2 px-3 text-left text-sm font-medium text-muted-foreground">Profit Margin</th>
-                      <th className="py-2 px-3 text-left text-sm font-medium text-muted-foreground">Channel</th>
+                      <th className="py-2 px-3 text-left text-sm font-medium text-muted-foreground">
+                        Date
+                      </th>
+                      <th className="py-2 px-3 text-left text-sm font-medium text-muted-foreground">
+                        Quantity
+                      </th>
+                      <th className="py-2 px-3 text-left text-sm font-medium text-muted-foreground">
+                        Revenue
+                      </th>
+                      <th className="py-2 px-3 text-left text-sm font-medium text-muted-foreground">
+                        Profit Margin
+                      </th>
+                      <th className="py-2 px-3 text-left text-sm font-medium text-muted-foreground">
+                        Channel
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -584,10 +703,18 @@ function DemandForecastingTab({ productId }: { productId: number }) {
                         <td className="py-2 px-3 text-sm">
                           {new Date(sale.date).toLocaleDateString()}
                         </td>
-                        <td className="py-2 px-3 text-sm">{sale.quantity} units</td>
-                        <td className="py-2 px-3 text-sm">{formatPrice(sale.revenue)}</td>
-                        <td className="py-2 px-3 text-sm">{sale.profitMargin.toFixed(2)}%</td>
-                        <td className="py-2 px-3 text-sm capitalize">{sale.channel}</td>
+                        <td className="py-2 px-3 text-sm">
+                          {sale.quantity} units
+                        </td>
+                        <td className="py-2 px-3 text-sm">
+                          {formatPrice(sale.revenue)}
+                        </td>
+                        <td className="py-2 px-3 text-sm">
+                          {sale.profitMargin.toFixed(2)}%
+                        </td>
+                        <td className="py-2 px-3 text-sm capitalize">
+                          {sale.channel}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -614,12 +741,15 @@ function DemandForecastingTab({ productId }: { productId: number }) {
 
 function PriceOptimizationTab({ productId }: { productId: number }) {
   const { toast } = useToast();
-  
+
   // Get price optimizations
   const { data: optimizations, isLoading } = useQuery({
     queryKey: ["/api/seller/price-optimizations", productId],
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/seller/price-optimizations/${productId}`);
+      const res = await apiRequest(
+        "GET",
+        `/api/seller/price-optimizations/${productId}`
+      );
       const data = await res.json();
       return data;
     },
@@ -640,7 +770,10 @@ function PriceOptimizationTab({ productId }: { productId: number }) {
   // Generate new price optimization
   const optimizationMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/seller/price-optimizations/${productId}`);
+      const res = await apiRequest(
+        "POST",
+        `/api/seller/price-optimizations/${productId}`
+      );
       return await res.json();
     },
     onSuccess: () => {
@@ -648,12 +781,15 @@ function PriceOptimizationTab({ productId }: { productId: number }) {
         title: "Price optimization generated",
         description: "Your price optimization has been successfully generated",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/seller/price-optimizations", productId] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/seller/price-optimizations", productId],
+      });
     },
     onError: (error) => {
       toast({
         title: "Failed to generate price optimization",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
     },
@@ -662,7 +798,10 @@ function PriceOptimizationTab({ productId }: { productId: number }) {
   // Apply price optimization
   const applyMutation = useMutation({
     mutationFn: async (optimizationId: number) => {
-      const res = await apiRequest("POST", `/api/seller/price-optimizations/${optimizationId}/apply`);
+      const res = await apiRequest(
+        "POST",
+        `/api/seller/price-optimizations/${optimizationId}/apply`
+      );
       return await res.json();
     },
     onSuccess: () => {
@@ -670,13 +809,16 @@ function PriceOptimizationTab({ productId }: { productId: number }) {
         title: "Price applied",
         description: "The optimized price has been applied to your product",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/seller/price-optimizations", productId] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/seller/price-optimizations", productId],
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/products", productId] });
     },
     onError: (error) => {
       toast({
         title: "Failed to apply price",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
     },
@@ -685,9 +827,13 @@ function PriceOptimizationTab({ productId }: { productId: number }) {
   // Reject price optimization
   const rejectMutation = useMutation({
     mutationFn: async (optimizationId: number) => {
-      const res = await apiRequest("PUT", `/api/seller/price-optimizations/${optimizationId}/status`, {
-        status: "rejected"
-      });
+      const res = await apiRequest(
+        "PUT",
+        `/api/seller/price-optimizations/${optimizationId}/status`,
+        {
+          status: "rejected",
+        }
+      );
       return await res.json();
     },
     onSuccess: () => {
@@ -695,12 +841,15 @@ function PriceOptimizationTab({ productId }: { productId: number }) {
         title: "Price optimization rejected",
         description: "The price optimization has been rejected",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/seller/price-optimizations", productId] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/seller/price-optimizations", productId],
+      });
     },
     onError: (error) => {
       toast({
         title: "Failed to reject price optimization",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
     },
@@ -712,8 +861,8 @@ function PriceOptimizationTab({ productId }: { productId: number }) {
         <CardHeader>
           <CardTitle className="flex justify-between items-center">
             <div>Price Optimization</div>
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               onClick={() => optimizationMutation.mutate()}
               disabled={optimizationMutation.isPending}
             >
@@ -724,7 +873,8 @@ function PriceOptimizationTab({ productId }: { productId: number }) {
             </Button>
           </CardTitle>
           <CardDescription>
-            AI-powered pricing recommendations to maximize your revenue and profits
+            AI-powered pricing recommendations to maximize your revenue and
+            profits
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -739,36 +889,45 @@ function PriceOptimizationTab({ productId }: { productId: number }) {
                   <CardHeader className="bg-muted/30 pb-3">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg">
-                        Price Optimization {new Date(optimization.createdAt).toLocaleDateString()}
+                        Price Optimization{" "}
+                        {new Date(optimization.createdAt).toLocaleDateString()}
                       </CardTitle>
                       <Badge
                         className={
                           optimization.status === "applied"
                             ? "bg-green-100 text-green-800 hover:bg-green-100"
                             : optimization.status === "rejected"
-                            ? "bg-red-100 text-red-800 hover:bg-red-100"
-                            : "bg-blue-100 text-blue-800 hover:bg-blue-100"
+                              ? "bg-red-100 text-red-800 hover:bg-red-100"
+                              : "bg-blue-100 text-blue-800 hover:bg-blue-100"
                         }
                       >
-                        {optimization.status.charAt(0).toUpperCase() + optimization.status.slice(1)}
+                        {optimization.status.charAt(0).toUpperCase() +
+                          optimization.status.slice(1)}
                       </Badge>
                     </div>
                     {optimization.appliedAt && (
                       <CardDescription>
-                        Applied on {new Date(optimization.appliedAt).toLocaleDateString()}
+                        Applied on{" "}
+                        {new Date(optimization.appliedAt).toLocaleDateString()}
                       </CardDescription>
                     )}
                   </CardHeader>
                   <CardContent className="pt-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                       <div className="bg-primary/5 rounded-md p-4">
-                        <div className="text-sm text-muted-foreground mb-1">Current Price</div>
+                        <div className="text-sm text-muted-foreground mb-1">
+                          Current Price
+                        </div>
                         <div className="text-2xl font-bold">
-                          {formatPrice(product?.price || optimization.currentPrice)}
+                          {formatPrice(
+                            product?.price || optimization.currentPrice
+                          )}
                         </div>
                       </div>
                       <div className="bg-primary/5 rounded-md p-4">
-                        <div className="text-sm text-muted-foreground mb-1">Suggested Price</div>
+                        <div className="text-sm text-muted-foreground mb-1">
+                          Suggested Price
+                        </div>
                         <div className="text-2xl font-bold">
                           {formatPrice(optimization.suggestedPrice)}
                         </div>
@@ -777,8 +936,10 @@ function PriceOptimizationTab({ productId }: { productId: number }) {
                         <div className="text-sm text-muted-foreground mb-1">
                           Expected Revenue Change
                         </div>
-                        <div className={`text-2xl font-bold ${optimization.expectedRevenueIncrease > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {optimization.expectedRevenueIncrease > 0 ? '+' : ''}
+                        <div
+                          className={`text-2xl font-bold ${optimization.expectedRevenueIncrease > 0 ? "text-green-600" : "text-red-600"}`}
+                        >
+                          {optimization.expectedRevenueIncrease > 0 ? "+" : ""}
                           {optimization.expectedRevenueIncrease}%
                         </div>
                       </div>
@@ -802,15 +963,15 @@ function PriceOptimizationTab({ productId }: { productId: number }) {
                   </CardContent>
                   {optimization.status === "pending" && (
                     <CardFooter className="bg-muted/30 border-t border-border flex justify-end gap-3 pt-3">
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         onClick={() => rejectMutation.mutate(optimization.id)}
                         disabled={rejectMutation.isPending}
                       >
                         <X className="mr-2 h-4 w-4" />
                         Reject
                       </Button>
-                      <Button 
+                      <Button
                         onClick={() => applyMutation.mutate(optimization.id)}
                         disabled={applyMutation.isPending}
                       >
@@ -830,11 +991,14 @@ function PriceOptimizationTab({ productId }: { productId: number }) {
               <div className="inline-flex rounded-full p-3 bg-primary/10 mb-4">
                 <DollarSign className="h-6 w-6 text-primary" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">No Price Optimizations</h3>
+              <h3 className="text-xl font-semibold mb-2">
+                No Price Optimizations
+              </h3>
               <p className="text-muted-foreground max-w-md mx-auto mb-6">
-                Generate your first price optimization to get AI-powered pricing recommendations.
+                Generate your first price optimization to get AI-powered pricing
+                recommendations.
               </p>
-              <Button 
+              <Button
                 onClick={() => optimizationMutation.mutate()}
                 disabled={optimizationMutation.isPending}
               >
@@ -853,12 +1017,15 @@ function PriceOptimizationTab({ productId }: { productId: number }) {
 
 function InventoryOptimizationTab({ productId }: { productId: number }) {
   const { toast } = useToast();
-  
+
   // Get inventory optimizations
   const { data: optimizations, isLoading } = useQuery({
     queryKey: ["/api/seller/inventory-optimizations", productId],
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/seller/inventory-optimizations/${productId}`);
+      const res = await apiRequest(
+        "GET",
+        `/api/seller/inventory-optimizations/${productId}`
+      );
       const data = await res.json();
       return data;
     },
@@ -879,20 +1046,27 @@ function InventoryOptimizationTab({ productId }: { productId: number }) {
   // Generate new inventory optimization
   const optimizationMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/seller/inventory-optimizations/${productId}`);
+      const res = await apiRequest(
+        "POST",
+        `/api/seller/inventory-optimizations/${productId}`
+      );
       return await res.json();
     },
     onSuccess: () => {
       toast({
         title: "Inventory optimization generated",
-        description: "Your inventory optimization has been successfully generated",
+        description:
+          "Your inventory optimization has been successfully generated",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/seller/inventory-optimizations", productId] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/seller/inventory-optimizations", productId],
+      });
     },
     onError: (error) => {
       toast({
         title: "Failed to generate inventory optimization",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
     },
@@ -901,21 +1075,28 @@ function InventoryOptimizationTab({ productId }: { productId: number }) {
   // Apply inventory optimization
   const applyMutation = useMutation({
     mutationFn: async (optimizationId: number) => {
-      const res = await apiRequest("POST", `/api/seller/inventory-optimizations/${optimizationId}/apply`);
+      const res = await apiRequest(
+        "POST",
+        `/api/seller/inventory-optimizations/${optimizationId}/apply`
+      );
       return await res.json();
     },
     onSuccess: () => {
       toast({
         title: "Inventory updated",
-        description: "The recommended stock level has been applied to your product",
+        description:
+          "The recommended stock level has been applied to your product",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/seller/inventory-optimizations", productId] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/seller/inventory-optimizations", productId],
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/products", productId] });
     },
     onError: (error) => {
       toast({
         title: "Failed to update inventory",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
     },
@@ -924,9 +1105,13 @@ function InventoryOptimizationTab({ productId }: { productId: number }) {
   // Reject inventory optimization
   const rejectMutation = useMutation({
     mutationFn: async (optimizationId: number) => {
-      const res = await apiRequest("PUT", `/api/seller/inventory-optimizations/${optimizationId}/status`, {
-        status: "rejected"
-      });
+      const res = await apiRequest(
+        "PUT",
+        `/api/seller/inventory-optimizations/${optimizationId}/status`,
+        {
+          status: "rejected",
+        }
+      );
       return await res.json();
     },
     onSuccess: () => {
@@ -934,12 +1119,15 @@ function InventoryOptimizationTab({ productId }: { productId: number }) {
         title: "Inventory optimization rejected",
         description: "The inventory optimization has been rejected",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/seller/inventory-optimizations", productId] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/seller/inventory-optimizations", productId],
+      });
     },
     onError: (error) => {
       toast({
         title: "Failed to reject inventory optimization",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
     },
@@ -951,8 +1139,8 @@ function InventoryOptimizationTab({ productId }: { productId: number }) {
         <CardHeader>
           <CardTitle className="flex justify-between items-center">
             <div>Inventory Optimization</div>
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               onClick={() => optimizationMutation.mutate()}
               disabled={optimizationMutation.isPending}
             >
@@ -963,7 +1151,8 @@ function InventoryOptimizationTab({ productId }: { productId: number }) {
             </Button>
           </CardTitle>
           <CardDescription>
-            ML-powered inventory recommendations to prevent stockouts and reduce excess inventory
+            ML-powered inventory recommendations to prevent stockouts and reduce
+            excess inventory
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -978,36 +1167,43 @@ function InventoryOptimizationTab({ productId }: { productId: number }) {
                   <CardHeader className="bg-muted/30 pb-3">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg">
-                        Inventory Optimization {new Date(optimization.createdAt).toLocaleDateString()}
+                        Inventory Optimization{" "}
+                        {new Date(optimization.createdAt).toLocaleDateString()}
                       </CardTitle>
                       <Badge
                         className={
                           optimization.status === "applied"
                             ? "bg-green-100 text-green-800 hover:bg-green-100"
                             : optimization.status === "rejected"
-                            ? "bg-red-100 text-red-800 hover:bg-red-100"
-                            : "bg-blue-100 text-blue-800 hover:bg-blue-100"
+                              ? "bg-red-100 text-red-800 hover:bg-red-100"
+                              : "bg-blue-100 text-blue-800 hover:bg-blue-100"
                         }
                       >
-                        {optimization.status.charAt(0).toUpperCase() + optimization.status.slice(1)}
+                        {optimization.status.charAt(0).toUpperCase() +
+                          optimization.status.slice(1)}
                       </Badge>
                     </div>
                     {optimization.appliedAt && (
                       <CardDescription>
-                        Applied on {new Date(optimization.appliedAt).toLocaleDateString()}
+                        Applied on{" "}
+                        {new Date(optimization.appliedAt).toLocaleDateString()}
                       </CardDescription>
                     )}
                   </CardHeader>
                   <CardContent className="pt-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                       <div className="bg-primary/5 rounded-md p-4">
-                        <div className="text-sm text-muted-foreground mb-1">Current Stock</div>
+                        <div className="text-sm text-muted-foreground mb-1">
+                          Current Stock
+                        </div>
                         <div className="text-2xl font-bold">
                           {product?.stock || optimization.currentStock} units
                         </div>
                       </div>
                       <div className="bg-primary/5 rounded-md p-4">
-                        <div className="text-sm text-muted-foreground mb-1">Recommended Stock</div>
+                        <div className="text-sm text-muted-foreground mb-1">
+                          Recommended Stock
+                        </div>
                         <div className="text-2xl font-bold">
                           {optimization.recommendedStock} units
                         </div>
@@ -1017,8 +1213,13 @@ function InventoryOptimizationTab({ productId }: { productId: number }) {
                           Stock Change
                         </div>
                         <div className={`text-2xl font-bold`}>
-                          {optimization.recommendedStock > (product?.stock || optimization.currentStock) ? '+' : ''}
-                          {optimization.recommendedStock - (product?.stock || optimization.currentStock)} units
+                          {optimization.recommendedStock >
+                          (product?.stock || optimization.currentStock)
+                            ? "+"
+                            : ""}
+                          {optimization.recommendedStock -
+                            (product?.stock || optimization.currentStock)}{" "}
+                          units
                         </div>
                       </div>
                     </div>
@@ -1032,14 +1233,18 @@ function InventoryOptimizationTab({ productId }: { productId: number }) {
                       </div>
 
                       <div>
-                        <h3 className="font-medium mb-2">Seasonal Considerations</h3>
+                        <h3 className="font-medium mb-2">
+                          Seasonal Considerations
+                        </h3>
                         <p className="text-muted-foreground">
                           {optimization.seasonalConsiderations}
                         </p>
                       </div>
-                      
+
                       <div>
-                        <h3 className="font-medium mb-2">Lead Time Recommendations</h3>
+                        <h3 className="font-medium mb-2">
+                          Lead Time Recommendations
+                        </h3>
                         <p className="text-muted-foreground">
                           {optimization.leadTimeRecommendations}
                         </p>
@@ -1048,15 +1253,15 @@ function InventoryOptimizationTab({ productId }: { productId: number }) {
                   </CardContent>
                   {optimization.status === "pending" && (
                     <CardFooter className="bg-muted/30 border-t border-border flex justify-end gap-3 pt-3">
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         onClick={() => rejectMutation.mutate(optimization.id)}
                         disabled={rejectMutation.isPending}
                       >
                         <X className="mr-2 h-4 w-4" />
                         Reject
                       </Button>
-                      <Button 
+                      <Button
                         onClick={() => applyMutation.mutate(optimization.id)}
                         disabled={applyMutation.isPending}
                       >
@@ -1076,11 +1281,14 @@ function InventoryOptimizationTab({ productId }: { productId: number }) {
               <div className="inline-flex rounded-full p-3 bg-primary/10 mb-4">
                 <ShoppingBag className="h-6 w-6 text-primary" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">No Inventory Optimizations</h3>
+              <h3 className="text-xl font-semibold mb-2">
+                No Inventory Optimizations
+              </h3>
               <p className="text-muted-foreground max-w-md mx-auto mb-6">
-                Generate your first inventory optimization to get AI-powered stock level recommendations.
+                Generate your first inventory optimization to get AI-powered
+                stock level recommendations.
               </p>
-              <Button 
+              <Button
                 onClick={() => optimizationMutation.mutate()}
                 disabled={optimizationMutation.isPending}
               >
@@ -1100,12 +1308,15 @@ function InventoryOptimizationTab({ productId }: { productId: number }) {
 function AIContentTab({ productId }: { productId: number }) {
   const { toast } = useToast();
   const [contentType, setContentType] = useState<string>("description");
-  
+
   // Get AI generated content
   const { data: contents, isLoading } = useQuery({
     queryKey: ["/api/seller/ai-generated-content", productId, contentType],
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/seller/ai-generated-content/${productId}?contentType=${contentType}`);
+      const res = await apiRequest(
+        "GET",
+        `/api/seller/ai-generated-content/${productId}?contentType=${contentType}`
+      );
       const data = await res.json();
       return data;
     },
@@ -1127,7 +1338,7 @@ function AIContentTab({ productId }: { productId: number }) {
   const contentMutation = useMutation({
     mutationFn: async () => {
       let originalData = "";
-      
+
       if (product) {
         if (contentType === "description") {
           originalData = product.description || "";
@@ -1137,11 +1348,15 @@ function AIContentTab({ productId }: { productId: number }) {
           originalData = product.features || "";
         }
       }
-      
-      const res = await apiRequest("POST", `/api/seller/ai-generated-content/${productId}`, {
-        contentType,
-        originalData
-      });
+
+      const res = await apiRequest(
+        "POST",
+        `/api/seller/ai-generated-content/${productId}`,
+        {
+          contentType,
+          originalData,
+        }
+      );
       return await res.json();
     },
     onSuccess: () => {
@@ -1149,12 +1364,15 @@ function AIContentTab({ productId }: { productId: number }) {
         title: "Content generated",
         description: `AI-generated ${contentType} has been created successfully`,
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/seller/ai-generated-content", productId, contentType] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/seller/ai-generated-content", productId, contentType],
+      });
     },
     onError: (error) => {
       toast({
         title: "Failed to generate content",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
     },
@@ -1163,7 +1381,10 @@ function AIContentTab({ productId }: { productId: number }) {
   // Apply AI content
   const applyMutation = useMutation({
     mutationFn: async (contentId: number) => {
-      const res = await apiRequest("POST", `/api/seller/ai-generated-content/${contentId}/apply`);
+      const res = await apiRequest(
+        "POST",
+        `/api/seller/ai-generated-content/${contentId}/apply`
+      );
       return await res.json();
     },
     onSuccess: () => {
@@ -1171,13 +1392,16 @@ function AIContentTab({ productId }: { productId: number }) {
         title: "Content applied",
         description: `The AI-generated ${contentType} has been applied to your product`,
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/seller/ai-generated-content", productId, contentType] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/seller/ai-generated-content", productId, contentType],
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/products", productId] });
     },
     onError: (error) => {
       toast({
         title: "Failed to apply content",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
     },
@@ -1186,9 +1410,13 @@ function AIContentTab({ productId }: { productId: number }) {
   // Reject AI content
   const rejectMutation = useMutation({
     mutationFn: async (contentId: number) => {
-      const res = await apiRequest("PUT", `/api/seller/ai-generated-content/${contentId}/status`, {
-        status: "rejected"
-      });
+      const res = await apiRequest(
+        "PUT",
+        `/api/seller/ai-generated-content/${contentId}/status`,
+        {
+          status: "rejected",
+        }
+      );
       return await res.json();
     },
     onSuccess: () => {
@@ -1196,12 +1424,15 @@ function AIContentTab({ productId }: { productId: number }) {
         title: "Content rejected",
         description: `The AI-generated ${contentType} has been rejected`,
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/seller/ai-generated-content", productId, contentType] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/seller/ai-generated-content", productId, contentType],
+      });
     },
     onError: (error) => {
       toast({
         title: "Failed to reject content",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
     },
@@ -1218,13 +1449,14 @@ function AIContentTab({ productId }: { productId: number }) {
                 className="border border-input rounded-md px-3 py-1 text-sm"
                 value={contentType}
                 onChange={(e) => setContentType(e.target.value)}
+                title="Content type"
               >
                 <option value="description">Description</option>
                 <option value="specifications">Specifications</option>
                 <option value="features">Features</option>
               </select>
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 onClick={() => contentMutation.mutate()}
                 disabled={contentMutation.isPending}
               >
@@ -1236,7 +1468,8 @@ function AIContentTab({ productId }: { productId: number }) {
             </div>
           </CardTitle>
           <CardDescription>
-            Generate high-quality product content with AI to improve your product listings
+            Generate high-quality product content with AI to improve your
+            product listings
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -1247,14 +1480,19 @@ function AIContentTab({ productId }: { productId: number }) {
           ) : contents && contents.length > 0 ? (
             <div className="space-y-6">
               <div className="p-4 bg-primary/5 rounded-md mb-4">
-                <h3 className="font-medium mb-2 capitalize">Current {contentType}</h3>
+                <h3 className="font-medium mb-2 capitalize">
+                  Current {contentType}
+                </h3>
                 <p className="text-muted-foreground">
-                  {contentType === "description" && (product?.description || "No description available")}
-                  {contentType === "specifications" && (product?.specifications || "No specifications available")}
-                  {contentType === "features" && (product?.features || "No features available")}
+                  {contentType === "description" &&
+                    (product?.description || "No description available")}
+                  {contentType === "specifications" &&
+                    (product?.specifications || "No specifications available")}
+                  {contentType === "features" &&
+                    (product?.features || "No features available")}
                 </p>
               </div>
-              
+
               {contents.map((content: any) => (
                 <Card key={content.id} className="border border-border">
                   <CardHeader className="bg-muted/30 pb-3">
@@ -1267,34 +1505,39 @@ function AIContentTab({ productId }: { productId: number }) {
                           content.status === "applied"
                             ? "bg-green-100 text-green-800 hover:bg-green-100"
                             : content.status === "rejected"
-                            ? "bg-red-100 text-red-800 hover:bg-red-100"
-                            : "bg-blue-100 text-blue-800 hover:bg-blue-100"
+                              ? "bg-red-100 text-red-800 hover:bg-red-100"
+                              : "bg-blue-100 text-blue-800 hover:bg-blue-100"
                         }
                       >
-                        {content.status.charAt(0).toUpperCase() + content.status.slice(1)}
+                        {content.status.charAt(0).toUpperCase() +
+                          content.status.slice(1)}
                       </Badge>
                     </div>
                     <CardDescription>
-                      Generated on {new Date(content.createdAt).toLocaleDateString()}
-                      {content.appliedAt && ` • Applied on ${new Date(content.appliedAt).toLocaleDateString()}`}
+                      Generated on{" "}
+                      {new Date(content.createdAt).toLocaleDateString()}
+                      {content.appliedAt &&
+                        ` • Applied on ${new Date(content.appliedAt).toLocaleDateString()}`}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6">
                     <div className="p-4 border border-border rounded-md bg-muted/20">
-                      <p className="whitespace-pre-line">{content.generatedContent}</p>
+                      <p className="whitespace-pre-line">
+                        {content.generatedContent}
+                      </p>
                     </div>
                   </CardContent>
                   {content.status === "pending" && (
                     <CardFooter className="bg-muted/30 border-t border-border flex justify-end gap-3 pt-3">
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         onClick={() => rejectMutation.mutate(content.id)}
                         disabled={rejectMutation.isPending}
                       >
                         <X className="mr-2 h-4 w-4" />
                         Reject
                       </Button>
-                      <Button 
+                      <Button
                         onClick={() => applyMutation.mutate(content.id)}
                         disabled={applyMutation.isPending}
                       >
@@ -1314,18 +1557,22 @@ function AIContentTab({ productId }: { productId: number }) {
               <div className="inline-flex rounded-full p-3 bg-primary/10 mb-4">
                 <PencilRuler className="h-6 w-6 text-primary" />
               </div>
-              <h3 className="text-xl font-semibold mb-2 capitalize">No {contentType} Generated</h3>
+              <h3 className="text-xl font-semibold mb-2 capitalize">
+                No {contentType} Generated
+              </h3>
               <p className="text-muted-foreground max-w-md mx-auto mb-6">
-                Generate AI-powered product {contentType} to enhance your product listing and increase conversions.
+                Generate AI-powered product {contentType} to enhance your
+                product listing and increase conversions.
               </p>
-              <Button 
+              <Button
                 onClick={() => contentMutation.mutate()}
                 disabled={contentMutation.isPending}
               >
                 {contentMutation.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                Generate {contentType.charAt(0).toUpperCase() + contentType.slice(1)}
+                Generate{" "}
+                {contentType.charAt(0).toUpperCase() + contentType.slice(1)}
               </Button>
             </div>
           )}
