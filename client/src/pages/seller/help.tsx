@@ -45,6 +45,7 @@ import {
   Video,
   Trash2,
 } from "lucide-react";
+import { Link } from "wouter";
 
 // Helper for ticket status badge
 const getStatusBadge = (status: string) => {
@@ -426,7 +427,7 @@ export default function SellerSupportPage() {
                     <div>
                       <h3 className="font-medium">Getting Started Guide</h3>
                       <p className="text-sm text-muted-foreground mt-1">Everything you need to know as a new seller</p>
-                      <Button variant="link" className="px-0 h-auto mt-1">View Guide</Button>
+                      <Link href="/seller/getting-started"><Button variant="link" className="px-0 h-auto mt-1">View Guide</Button></Link>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
@@ -436,7 +437,7 @@ export default function SellerSupportPage() {
                     <div>
                       <h3 className="font-medium">Best Practices</h3>
                       <p className="text-sm text-muted-foreground mt-1">Tips to optimize your listings and boost sales</p>
-                      <Button variant="link" className="px-0 h-auto mt-1">View Guide</Button>
+                      <Link href="/seller/best-practices"><Button variant="link" className="px-0 h-auto mt-1">View Guide</Button></Link>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
