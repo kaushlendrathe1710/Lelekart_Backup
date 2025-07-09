@@ -1213,30 +1213,7 @@ function InventoryOptimizationTab({ productId }: { productId: number }) {
                     </div>
 
                     <div className="space-y-4">
-                      <div>
-                        <h3 className="font-medium mb-2">Restocking Advice</h3>
-                        <p className="text-muted-foreground">
-                          {optimization.restockingAdvice}
-                        </p>
-                      </div>
-
-                      <div>
-                        <h3 className="font-medium mb-2">
-                          Seasonal Considerations
-                        </h3>
-                        <p className="text-muted-foreground">
-                          {optimization.seasonalConsiderations}
-                        </p>
-                      </div>
-
-                      <div>
-                        <h3 className="font-medium mb-2">
-                          Lead Time Recommendations
-                        </h3>
-                        <p className="text-muted-foreground">
-                          {optimization.leadTimeRecommendations}
-                        </p>
-                      </div>
+                      {/* Removed Restocking Advice, Seasonal Considerations, and Lead Time Recommendations */}
                     </div>
                   </CardContent>
                   {optimization.status === "pending" && (
