@@ -74,7 +74,7 @@ export async function generateDemandForecast(
     // If there's no historical data yet, provide a simpler forecast
     if (salesData.length === 0) {
       // Create a default forecast based on general product category trends
-      return {
+      const forecast = {
         predictedDemand: 10, // Default conservative estimate
         confidenceScore: 0.3, // Low confidence due to lack of historical data
         factorsConsidered: {
@@ -84,6 +84,26 @@ export async function generateDemandForecast(
           competition: "unknown",
         },
       };
+      const forecastDate = new Date();
+      forecastDate.setDate(
+        forecastDate.getDate() +
+          (period === "daily" ? 1 : period === "weekly" ? 7 : 30)
+      );
+      const [newForecast] = await db
+        .insert(demandForecasts)
+        .values({
+          productId,
+          sellerId,
+          forecastDate,
+          predictedDemand: forecast.predictedDemand,
+          confidenceScore: forecast.confidenceScore,
+          forecastPeriod: period,
+          factorsConsidered: forecast.factorsConsidered,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      return newForecast;
     }
 
     // Use Gemini API to generate the forecast
