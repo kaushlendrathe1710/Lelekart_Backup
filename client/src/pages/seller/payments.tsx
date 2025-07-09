@@ -64,6 +64,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useNavigate } from "react-router-dom";
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -82,6 +83,7 @@ const getStatusBadge = (status: string) => {
 
 export default function SellerPaymentsPage() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [currentTab, setCurrentTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [dateRange, setDateRange] = useState("last30");
@@ -491,7 +493,7 @@ export default function SellerPaymentsPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={() => navigate('/seller/settings?tab=billing')}>
                 Update Details
               </Button>
             </CardFooter>
@@ -511,7 +513,7 @@ export default function SellerPaymentsPage() {
                   <HelpCircle className="mr-2 h-4 w-4" />
                   Payment FAQs
                 </Button>
-                <Button size="sm" onClick={() => setShowSupportDialog(true)}>
+                <Button size="sm" onClick={() => navigate("/seller/help")}>
                   Contact Support
                 </Button>
               </div>
