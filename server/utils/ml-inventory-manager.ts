@@ -151,33 +151,41 @@ export async function generatePriceOptimization(
 
     // 2. Use Gemini AI to generate optimal pricing
     const prompt = `
-    You are an AI-powered price optimization system for e-commerce. 
-    Analyze the following data and suggest an optimal price for the product "${product.name}" (ID: ${productId}).
-    
-    Product Details:
-    ${JSON.stringify(product, null, 2)}
-    
+    You are an AI price optimization assistant.
+
+    IMPORTANT: You MUST include the following fields in your JSON response, and they must be non-empty strings:
+    - pricingRationale: Concise explanation of why this price is recommended.
+    - marketAnalysis: Brief summary of the current market conditions and competition.
+
+    If you do not include these fields, your response will be rejected.
+
+    Example response:
+    {
+      "currentPrice": 1000,
+      "suggestedPrice": 1100,
+      "projectedRevenue": 50000,
+      "projectedSales": 45,
+      "confidenceScore": 0.9,
+      "reasoningFactors": {
+        "demandElasticity": "medium",
+        "competitivePricing": "at market",
+        "margin": "high",
+        "reasoning": "Raising the price slightly will increase margin without significantly reducing sales."
+      },
+      "pricingRationale": "The suggested price is based on recent sales trends and competitor pricing, aiming to maximize profit while maintaining sales volume.",
+      "marketAnalysis": "The current market is stable with moderate competition. Most competitors are priced between 1050 and 1150."
+    }
+
+    ---
+    Product and sales data:
+    Product Name: ${product.name}
     Current Price: ${product.price}
     Cost Price: ${product.purchasePrice || "Unknown"}
     
     Historical Sales Data:
     ${JSON.stringify(salesData, null, 2)}
     
-    Return the price optimization recommendation as a JSON object with the following structure:
-    {
-      "currentPrice": ${product.price},
-      "suggestedPrice": number, // Recommended price in same currency unit as current price
-      "projectedRevenue": number, // Projected revenue at suggested price
-      "projectedSales": number, // Projected unit sales at suggested price
-      "confidenceScore": number, // Between 0.1 and 1.0
-      "reasoningFactors": {
-        "demandElasticity": string, // e.g., "high", "medium", "low"
-        "competitivePricing": string, // e.g., "above market", "at market", "below market"
-        "margin": string, // e.g., "high", "medium", "low"
-        "reasoning": string // Brief explanation for the recommendation
-      }
-    }
-    
+    Return the price optimization recommendation as a JSON object with the structure above.
     Important: Only return the JSON object, no additional text.
     `;
 
@@ -197,6 +205,12 @@ export async function generatePriceOptimization(
           .trim();
       }
       optimization = JSON.parse(cleanResponse);
+      // Backend validation for required fields
+      if (!optimization.pricingRationale || !optimization.marketAnalysis) {
+        throw new Error(
+          "AI response missing required fields: pricingRationale or marketAnalysis"
+        );
+      }
     } catch (error) {
       console.error("Failed to parse AI price optimization response:", error);
       throw new Error("Invalid price optimization format returned by AI");
@@ -214,6 +228,8 @@ export async function generatePriceOptimization(
         projectedSales: optimization.projectedSales,
         confidenceScore: optimization.confidenceScore,
         reasoningFactors: optimization.reasoningFactors,
+        pricingRationale: optimization.pricingRationale || "",
+        marketAnalysis: optimization.marketAnalysis || "",
         status: "pending",
         createdAt: new Date(),
         updatedAt: new Date(),

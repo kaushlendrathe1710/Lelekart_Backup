@@ -946,19 +946,7 @@ function PriceOptimizationTab({ productId }: { productId: number }) {
                     </div>
 
                     <div className="space-y-4">
-                      <div>
-                        <h3 className="font-medium mb-2">Pricing Rationale</h3>
-                        <p className="text-muted-foreground">
-                          {optimization.pricingRationale}
-                        </p>
-                      </div>
-
-                      <div>
-                        <h3 className="font-medium mb-2">Market Analysis</h3>
-                        <p className="text-muted-foreground">
-                          {optimization.marketAnalysis}
-                        </p>
-                      </div>
+                      {/* Removed Pricing Rationale and Market Analysis */}
                     </div>
                   </CardContent>
                   {optimization.status === "pending" && (
@@ -1453,7 +1441,6 @@ function AIContentTab({ productId }: { productId: number }) {
               >
                 <option value="description">Description</option>
                 <option value="specifications">Specifications</option>
-                
               </select>
               <Button
                 size="sm"
