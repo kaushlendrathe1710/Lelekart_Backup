@@ -99,6 +99,9 @@ export default function SellerPaymentsPage() {
     dateStart: "",
     dateEnd: ""
   });
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const [payoutSchedule, setPayoutSchedule] = useState<{cycle: string; day: string}>({ cycle: "Weekly", day: "Monday" });
+  const [tempSchedule, setTempSchedule] = useState<{cycle: string; day: string}>(payoutSchedule);
 
   // Fetch payments summary
   const { data: summaryData, isLoading: isSummaryLoading } = useQuery({
@@ -456,14 +459,14 @@ export default function SellerPaymentsPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-2">
-                Your current payout cycle is set to <span className="font-semibold">Weekly</span> on <span className="font-semibold">Monday</span>.
+                Your current payout cycle is set to <span className="font-semibold">{payoutSchedule.cycle}</span>{payoutSchedule.cycle === "Weekly" ? <> on <span className="font-semibold">{payoutSchedule.day}</span></> : null}.
               </p>
               <p className="text-sm text-muted-foreground">
                 Funds are typically processed within 1-2 business days after the payout is initiated.
               </p>
             </CardContent>
             <CardFooter>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={() => { setTempSchedule(payoutSchedule); setShowScheduleDialog(true); }}>
                 Change Schedule
               </Button>
             </CardFooter>
@@ -980,6 +983,56 @@ export default function SellerPaymentsPage() {
             }}>
               Submit Request
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dummy Change Payout Schedule Dialog */}
+      <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Change Payout Schedule</DialogTitle>
+            <DialogDescription>Select your preferred payout cycle. This is a demo and will not save to backend.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-sm font-medium">Payout Cycle</label>
+              <Select value={tempSchedule.cycle} onValueChange={v => setTempSchedule(s => ({ ...s, cycle: v }))}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Weekly">Weekly</SelectItem>
+                  <SelectItem value="Bi-Weekly">Bi-Weekly</SelectItem>
+                  <SelectItem value="Monthly">Monthly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {tempSchedule.cycle === "Weekly" && (
+              <div>
+                <label className="text-sm font-medium">Payout Day</label>
+                <Select value={tempSchedule.day} onValueChange={v => setTempSchedule(s => ({ ...s, day: v }))}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Monday">Monday</SelectItem>
+                    <SelectItem value="Tuesday">Tuesday</SelectItem>
+                    <SelectItem value="Wednesday">Wednesday</SelectItem>
+                    <SelectItem value="Thursday">Thursday</SelectItem>
+                    <SelectItem value="Friday">Friday</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setShowScheduleDialog(false)}>Cancel</Button>
+            <Button onClick={() => {
+              setPayoutSchedule(tempSchedule);
+              setShowScheduleDialog(false);
+              toast({ title: "Payout schedule updated (demo)", description: `Now set to ${tempSchedule.cycle}${tempSchedule.cycle === "Weekly" ? ` on ${tempSchedule.day}` : ''}.`, duration: 2500 });
+            }}>Save</Button>
           </div>
         </DialogContent>
       </Dialog>
