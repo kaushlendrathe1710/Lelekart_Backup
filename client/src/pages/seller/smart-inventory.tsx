@@ -1453,7 +1453,7 @@ function AIContentTab({ productId }: { productId: number }) {
               >
                 <option value="description">Description</option>
                 <option value="specifications">Specifications</option>
-                <option value="features">Features</option>
+                
               </select>
               <Button
                 size="sm"

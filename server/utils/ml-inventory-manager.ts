@@ -11,6 +11,14 @@ import {
 } from "@shared/schema";
 import { eq, and, gte, lte, desc } from "drizzle-orm";
 
+// Add this utility at the top-level (outside any function)
+function truncateWords(str: string, maxWords = 20): string {
+  if (typeof str !== "string") return str;
+  const words = str.split(/\s+/);
+  if (words.length <= maxWords) return str;
+  return words.slice(0, maxWords).join(" ") + "...";
+}
+
 // ML-powered demand forecasting
 export async function generateDemandForecast(
   productId: number,
@@ -431,11 +439,51 @@ export async function generateProductContent(
     // Parse JSON responses if needed
     if (contentType === "features" || contentType === "specifications") {
       try {
-        generatedContent = JSON.stringify(JSON.parse(contentResponse));
+        // Remove markdown code block markers if present
+        let cleanResponse = contentResponse.trim();
+        if (cleanResponse.startsWith("```")) {
+          cleanResponse = cleanResponse
+            .replace(/^```[a-zA-Z]*\n?/, "")
+            .replace(/```$/, "")
+            .trim();
+        }
+        const parsed = JSON.parse(cleanResponse);
+        // Format as a readable paragraph
+        if (parsed && typeof parsed === "object") {
+          // Filter out irrelevant values
+          const filtered = Object.entries(parsed).filter(
+            ([, value]) =>
+              value &&
+              typeof value === "string" &&
+              !/^(unspecified|n\/a|not available|unknown)$/i.test(value.trim())
+          );
+          if (filtered.length === 0) {
+            generatedContent = "No relevant specifications available.";
+          } else {
+            generatedContent =
+              filtered
+                .map(
+                  ([key, value]) =>
+                    `${key}: ${truncateWords(value as string, 20)}`
+                )
+                .join(". ") + ".";
+          }
+        } else {
+          generatedContent = cleanResponse;
+        }
       } catch (error) {
         console.error(`Failed to parse AI ${contentType} response:`, error);
         throw new Error(`Invalid ${contentType} format returned by AI`);
       }
+    } else if (contentType === "description") {
+      // For description, strip markdown and HTML to plain text
+      let plain = contentResponse
+        .replace(/[#*_`>\-\[\]()!]/g, "") // Remove markdown symbols
+        .replace(/<[^>]+>/g, "") // Remove HTML tags
+        .replace(/\n+/g, " ") // Replace newlines with space
+        .replace(/\s+/g, " ") // Collapse whitespace
+        .trim();
+      generatedContent = plain;
     }
 
     // 4. Store the generated content in the database
