@@ -12,7 +12,7 @@ import { WishlistButton } from "./wishlist-button";
 import { ProductImage } from "./product-image";
 
 // Define an extended Product interface to include image_url and GST details
-interface ExtendedProduct extends Omit<Product, 'imageUrl'> {
+interface ExtendedProduct extends Omit<Product, "imageUrl"> {
   image?: string;
   image_url?: string;
   imageUrl?: string | null;
@@ -30,12 +30,14 @@ interface ProductCardProps {
   product: ExtendedProduct;
   featured?: boolean;
   priority?: boolean; // For above-the-fold images
+  showAddToCart?: boolean; // New prop to control Add to Cart button
 }
 
 export const ProductCard = memo(function ProductCard({
   product,
   featured = false,
   priority = false,
+  showAddToCart = true, // Default to true
 }: ProductCardProps) {
   const cartContext = useContext(CartContext); // Use context directly with optional chaining
   const queryClient = useQueryClient();
@@ -83,9 +85,10 @@ export const ProductCard = memo(function ProductCard({
 
   // Calculate discount percentage only for featured deals with real discounts
   const hasDiscount = featured && product.mrp && product.mrp > product.price;
-  const discountPercent = hasDiscount && product.mrp
-    ? Math.round(((product.mrp - product.price) / product.mrp) * 100)
-    : 0;
+  const discountPercent =
+    hasDiscount && product.mrp
+      ? Math.round(((product.mrp - product.price) / product.mrp) * 100)
+      : 0;
 
   // Use the same dimensions and styling for all product cards regardless of featured status
   return (
@@ -101,7 +104,7 @@ export const ProductCard = memo(function ProductCard({
 
       {/* Use normalized path that starts with a slash to prevent double slashes */}
       <Link href={`/product/${product.id}`} className="block">
-        <Card 
+        <Card
           className="product-card h-full flex flex-col items-center p-3 transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1"
           onClick={() => {
             // Manually add to recently viewed products as backup
@@ -123,9 +126,16 @@ export const ProductCard = memo(function ProductCard({
               // Keep only latest 20
               if (ids.length > 20) ids = ids.slice(0, 20);
               localStorage.setItem(key, JSON.stringify(ids));
-              console.log("[ProductCard] Added product to recently viewed:", product.id, ids);
+              console.log(
+                "[ProductCard] Added product to recently viewed:",
+                product.id,
+                ids
+              );
             } catch (e) {
-              console.error("[ProductCard] Error adding to recently viewed:", e);
+              console.error(
+                "[ProductCard] Error adding to recently viewed:",
+                e
+              );
             }
           }}
         >
@@ -158,20 +168,21 @@ export const ProductCard = memo(function ProductCard({
                 {stripHtmlTags(product.description).slice(0, 30)}...
               </div>
             </div>
-
-            <Button
-              variant={featured ? "outline" : "ghost"}
-              size="sm"
-              className={`mt-2 w-full ${
-                featured
-                  ? "border-primary text-primary hover:bg-primary hover:text-white"
-                  : "text-primary hover:bg-primary/10"
-              }`}
-              onClick={handleAddToCart}
-            >
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              Add to Cart
-            </Button>
+            {showAddToCart && (
+              <Button
+                variant={featured ? "outline" : "ghost"}
+                size="sm"
+                className={`mt-2 w-full ${
+                  featured
+                    ? "border-primary text-primary hover:bg-primary hover:text-white"
+                    : "text-primary hover:bg-primary/10"
+                }`}
+                onClick={handleAddToCart}
+              >
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                Add to Cart
+              </Button>
+            )}
           </CardContent>
         </Card>
       </Link>
