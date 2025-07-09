@@ -287,6 +287,8 @@ export default function SellerSupportPage() {
     }
   }, [ticketMessages, showTicketDialog]);
 
+  const [showVideoDialog, setShowVideoDialog] = useState(false);
+
   return (
     <SellerDashboardLayout>
       <div className="container py-6">
@@ -447,7 +449,7 @@ export default function SellerSupportPage() {
                     <div>
                       <h3 className="font-medium">Video Tutorials</h3>
                       <p className="text-sm text-muted-foreground mt-1">Step-by-step video guides for sellers</p>
-                      <Button variant="link" className="px-0 h-auto mt-1">Watch Videos</Button>
+                      <Button variant="link" className="px-0 h-auto mt-1" onClick={() => setShowVideoDialog(true)}>Watch Videos</Button>
                     </div>
                   </div>
                 </CardContent>
@@ -764,6 +766,30 @@ export default function SellerSupportPage() {
               )}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Seller Tutorial Videos Dialog */}
+      <Dialog open={showVideoDialog} onOpenChange={setShowVideoDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Seller Tutorial Videos</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Example video embed, replace src with real video URLs when available */}
+            <div className="aspect-w-16 aspect-h-9 w-full bg-gray-100 rounded overflow-hidden flex items-center justify-center">
+              <iframe
+                width="100%"
+                height="315"
+                src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+                title="Seller Onboarding Tutorial"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
+            </div>
+            <div className="text-sm text-muted-foreground">More videos coming soon! If you have questions, contact <a href="mailto:seller-support@lelekart.com" className="text-blue-600 underline">seller-support@lelekart.com</a>.</div>
+          </div>
         </DialogContent>
       </Dialog>
     </SellerDashboardLayout>
