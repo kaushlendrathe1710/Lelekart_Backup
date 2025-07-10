@@ -527,14 +527,14 @@ export default function SellerSupportPage() {
                       <p className="text-sm text-muted-foreground mt-1">
                         Attend live webinars hosted by our team to learn new strategies and features.
                       </p>
-                      <Button variant="outline" className="mt-3 w-full">View Schedule</Button>
+                      <Link href="/seller/webinars"><Button variant="outline" className="mt-3 w-full">View Schedule</Button></Link>
                     </div>
                     <div className="border rounded-lg p-4">
                       <h3 className="font-medium">Success Stories</h3>
                       <p className="text-sm text-muted-foreground mt-1">
                         Read about successful sellers and how they grew their business on Lelekart.
                       </p>
-                      <Button variant="outline" className="mt-3 w-full">Read Stories</Button>
+                      <Link href="/seller/success-stories"><Button variant="outline" className="mt-3 w-full">Read Stories</Button></Link>
                     </div>
                   </div>
                 </CardContent>

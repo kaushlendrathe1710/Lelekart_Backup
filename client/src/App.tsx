@@ -127,6 +127,8 @@ import PublicSellerProfileWrapper from "./pages/seller/public-profile-wrapper";
 import SellerNotificationsPage from "./pages/seller/notifications";
 import SellerGettingStartedGuide from "./pages/seller/getting-started";
 import SellerBestPracticesGuide from "./pages/seller/best-practices";
+import SellerSuccessStories from "./pages/seller/success-stories";
+import SellerWebinarsPage from "./pages/seller/webinars";
 
 // Buyer pages
 import BuyerDashboardPage from "./pages/buyer/dashboard";
@@ -1348,6 +1350,28 @@ function App() {
                             path="/seller/best-practices"
                             role="seller"
                             component={SellerBestPracticesGuide}
+                          />
+                        )}
+                      </Route>
+
+                      {/* Seller Success Stories */}
+                      <Route path="/seller/success-stories">
+                        {() => (
+                          <ProtectedRoute
+                            path="/seller/success-stories"
+                            role="seller"
+                            component={SellerSuccessStories}
+                          />
+                        )}
+                      </Route>
+
+                      {/* Seller Webinars */}
+                      <Route path="/seller/webinars">
+                        {() => (
+                          <ProtectedRoute
+                            path="/seller/webinars"
+                            role="seller"
+                            component={SellerWebinarsPage}
                           />
                         )}
                       </Route>
