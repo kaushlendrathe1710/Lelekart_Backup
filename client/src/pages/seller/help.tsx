@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { SellerDashboardLayout } from "@/components/layout/seller-dashboard-layout";
@@ -43,7 +43,9 @@ import {
   Send,
   ThumbsUp,
   Video,
+  Trash2,
 } from "lucide-react";
+import { Link } from "wouter";
 
 // Helper for ticket status badge
 const getStatusBadge = (status: string) => {
@@ -178,6 +180,36 @@ export default function SellerSupportPage() {
     },
   });
 
+  // Add mutation for deleting a ticket
+  const deleteTicketMutation = useMutation({
+    mutationFn: async (ticketId: number) => {
+      const res = await fetch(`/api/support/tickets/${ticketId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        throw new Error('Failed to delete ticket');
+      }
+    },
+    onSuccess: (_, ticketId) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/support/tickets'] });
+      if (selectedTicket?.id === ticketId) {
+        setShowTicketDialog(false);
+        setSelectedTicket(null);
+      }
+      toast({
+        title: 'Ticket Deleted',
+        description: 'The support ticket has been deleted successfully.',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Failed to Delete Ticket',
+        description: 'There was an error deleting the ticket. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+
   const handleViewTicket = (ticket: any) => {
     setSelectedTicket(ticket);
     setShowTicketDialog(true);
@@ -247,6 +279,23 @@ export default function SellerSupportPage() {
       answer: "You can mark products as out of stock in the Inventory section. You can also enable backorders or set up notifications to alert you when inventory is low so you can restock in time."
     }
   ];
+
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [ticketMessages, showTicketDialog]);
+
+  const [showVideoDialog, setShowVideoDialog] = useState(false);
+  const [showForumDialog, setShowForumDialog] = useState(false);
+  const [forumMessage, setForumMessage] = useState("");
+  const [forumPosts, setForumPosts] = useState([
+    { name: "Amit", text: "How do I get my first product approved?" },
+    { name: "Priya", text: "Any tips for faster shipping?" },
+    { name: "Ravi", text: "How do I join Lelekart promotions?" },
+    { name: "Support", text: "Welcome to the Seller Community! Post your questions and help each other grow." },
+  ]);
 
   return (
     <SellerDashboardLayout>
@@ -329,6 +378,9 @@ export default function SellerSupportPage() {
                           <Badge variant={ticket.priority === 'high' ? 'destructive' : ticket.priority === 'medium' ? 'default' : 'outline'}>
                             {ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1)} Priority
                           </Badge>
+                          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); deleteTicketMutation.mutate(ticket.id); }}>
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
                           <Button variant="ghost" size="icon">
                             <ArrowRight className="h-4 w-4" />
                           </Button>
@@ -385,7 +437,7 @@ export default function SellerSupportPage() {
                     <div>
                       <h3 className="font-medium">Getting Started Guide</h3>
                       <p className="text-sm text-muted-foreground mt-1">Everything you need to know as a new seller</p>
-                      <Button variant="link" className="px-0 h-auto mt-1">View Guide</Button>
+                      <Link href="/seller/getting-started"><Button variant="link" className="px-0 h-auto mt-1">View Guide</Button></Link>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
@@ -395,7 +447,7 @@ export default function SellerSupportPage() {
                     <div>
                       <h3 className="font-medium">Best Practices</h3>
                       <p className="text-sm text-muted-foreground mt-1">Tips to optimize your listings and boost sales</p>
-                      <Button variant="link" className="px-0 h-auto mt-1">View Guide</Button>
+                      <Link href="/seller/best-practices"><Button variant="link" className="px-0 h-auto mt-1">View Guide</Button></Link>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
@@ -405,7 +457,7 @@ export default function SellerSupportPage() {
                     <div>
                       <h3 className="font-medium">Video Tutorials</h3>
                       <p className="text-sm text-muted-foreground mt-1">Step-by-step video guides for sellers</p>
-                      <Button variant="link" className="px-0 h-auto mt-1">Watch Videos</Button>
+                      <Button variant="link" className="px-0 h-auto mt-1" onClick={() => setShowVideoDialog(true)}>Watch Videos</Button>
                     </div>
                   </div>
                 </CardContent>
@@ -444,7 +496,13 @@ export default function SellerSupportPage() {
                     <div>
                       <h3 className="font-medium">Live Chat</h3>
                       <p className="text-sm text-muted-foreground mt-1">Chat with our support team in real-time</p>
-                      <Button variant="link" className="px-0 h-auto mt-1">Start Chat</Button>
+                      <Button
+                        variant="default"
+                        className="px-4 py-2 mt-1 font-semibold rounded shadow bg-blue-600 text-white hover:bg-blue-700 transition"
+                        onClick={() => setShowNewTicketDialog(true)}
+                      >
+                        <MessageCircle className="inline-block mr-2" /> Start Chat with Support
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -462,21 +520,21 @@ export default function SellerSupportPage() {
                       <p className="text-sm text-muted-foreground mt-1">
                         Join discussions with other sellers and share your experiences and tips.
                       </p>
-                      <Button variant="outline" className="mt-3 w-full">Visit Forums</Button>
+                      <Button variant="outline" className="mt-3 w-full" onClick={() => setShowForumDialog(true)}>Visit Forums</Button>
                     </div>
                     <div className="border rounded-lg p-4">
                       <h3 className="font-medium">Seller Webinars</h3>
                       <p className="text-sm text-muted-foreground mt-1">
                         Attend live webinars hosted by our team to learn new strategies and features.
                       </p>
-                      <Button variant="outline" className="mt-3 w-full">View Schedule</Button>
+                      <Link href="/seller/webinars"><Button variant="outline" className="mt-3 w-full">View Schedule</Button></Link>
                     </div>
                     <div className="border rounded-lg p-4">
                       <h3 className="font-medium">Success Stories</h3>
                       <p className="text-sm text-muted-foreground mt-1">
                         Read about successful sellers and how they grew their business on Lelekart.
                       </p>
-                      <Button variant="outline" className="mt-3 w-full">Read Stories</Button>
+                      <Link href="/seller/success-stories"><Button variant="outline" className="mt-3 w-full">Read Stories</Button></Link>
                     </div>
                   </div>
                 </CardContent>
@@ -548,7 +606,7 @@ export default function SellerSupportPage() {
             <div className="md:w-2/3 space-y-4">
               <div>
                 <h3 className="text-sm font-medium mb-3">Conversation</h3>
-                <div className="border rounded-lg overflow-y-auto max-h-[300px] p-4 space-y-4">
+                <div className="border rounded-lg overflow-y-auto max-h-[300px] p-4 space-y-4 flex flex-col-reverse" style={{scrollBehavior: 'smooth'}} ref={chatContainerRef}>
                   {isMessagesLoading ? (
                     <div className="flex justify-center py-4">
                       <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -556,8 +614,8 @@ export default function SellerSupportPage() {
                   ) : ticketMessages.length === 0 ? (
                     <p className="text-center text-muted-foreground py-4">No messages yet</p>
                   ) : (
-                    ticketMessages.map((message: any, index: number) => (
-                      <div key={index} className={`flex gap-3 ${message.isFromSeller ? 'justify-end' : ''}`}>
+                    ticketMessages.slice().reverse().map((message: any, index: number) => (
+                      <div key={index} className={`flex gap-3 ${message.isFromSeller ? 'justify-end' : 'justify-start'}`}>
                         {!message.isFromSeller && (
                           <Avatar>
                             <AvatarFallback>
@@ -565,25 +623,14 @@ export default function SellerSupportPage() {
                             </AvatarFallback>
                           </Avatar>
                         )}
-                        <div className={`max-w-[80%] ${message.isFromSeller ? 'bg-primary/10 text-primary-foreground' : 'bg-muted'} p-3 rounded-lg`}>
+                        <div className={`max-w-[70%] ${message.isFromSeller ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-900'} p-3 rounded-2xl shadow-sm`}>
                           <div className="flex justify-between items-center mb-1">
-                            <span className="font-medium">
+                            <span className="font-medium text-sm">
                               {message.isFromSeller ? 'You' : (message.senderName || 'Support Agent')}
                             </span>
-                            <HoverCard>
-                              <HoverCardTrigger>
-                                <span className="text-xs text-muted-foreground">
-                                  {format(new Date(message.createdAt), 'h:mm a')}
-                                </span>
-                              </HoverCardTrigger>
-                              <HoverCardContent side="top" className="w-auto p-2">
-                                <span className="text-xs">
-                                  {formatDate(message.createdAt)}
-                                </span>
-                              </HoverCardContent>
-                            </HoverCard>
+                            <span className="text-xs text-muted-foreground ml-2">{formatDate(message.createdAt)}</span>
                           </div>
-                          <p className="text-sm whitespace-pre-wrap">{message.message}</p>
+                          <div className="whitespace-pre-line text-sm">{message.message}</div>
                         </div>
                         {message.isFromSeller && (
                           <Avatar>
@@ -596,42 +643,22 @@ export default function SellerSupportPage() {
                 </div>
               </div>
               
-              <div className="space-y-2">
-                <Textarea 
-                  placeholder="Type your message here..." 
-                  rows={3}
+              <div className="flex items-center gap-2 mt-4 sticky bottom-0 bg-white p-2 border-t">
+                <Textarea
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  disabled={selectedTicket?.status === 'closed' || selectedTicket?.status === 'resolved'}
+                  onChange={e => setNewMessage(e.target.value)}
+                  placeholder="Type your message..."
+                  className="flex-1 resize-none rounded-lg border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  rows={1}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
                 />
-                <div className="flex justify-between">
-                  <p className="text-xs text-muted-foreground">
-                    {selectedTicket?.status === 'closed' || selectedTicket?.status === 'resolved' 
-                      ? 'This ticket is closed and cannot be replied to.' 
-                      : 'Press Enter to send, Shift+Enter for new line'}
-                  </p>
-                  <Button 
-                    onClick={handleSendMessage} 
-                    disabled={
-                      addMessageMutation.isPending || 
-                      !newMessage.trim() || 
-                      selectedTicket?.status === 'closed' || 
-                      selectedTicket?.status === 'resolved'
-                    }
-                  >
-                    {addMessageMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="mr-2 h-4 w-4" />
-                        Send
-                      </>
-                    )}
-                  </Button>
-                </div>
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={!newMessage.trim() || addMessageMutation.isPending}
+                  className="bg-blue-600 text-white hover:bg-blue-700 transition rounded-lg px-4 py-2"
+                >
+                  <Send className="h-4 w-4 mr-1" /> Send
+                </Button>
               </div>
             </div>
           </div>
@@ -747,6 +774,75 @@ export default function SellerSupportPage() {
               )}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Seller Tutorial Videos Dialog */}
+      <Dialog open={showVideoDialog} onOpenChange={setShowVideoDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Seller Tutorial Videos</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Example video embed, replace src with real video URLs when available */}
+            <div className="aspect-w-16 aspect-h-9 w-full bg-gray-100 rounded overflow-hidden flex items-center justify-center">
+              <iframe
+                width="100%"
+                height="315"
+                src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+                title="Seller Onboarding Tutorial"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
+            </div>
+            <div className="text-sm text-muted-foreground">More videos coming soon! If you have questions, contact <a href="mailto:seller-support@lelekart.com" className="text-blue-600 underline">seller-support@lelekart.com</a>.</div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Seller Forums Dialog - Basic Embedded Forum UI */}
+      <Dialog open={showForumDialog} onOpenChange={setShowForumDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Seller Community Forum</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-gray-50 border rounded p-4 mb-2">
+              <h3 className="font-semibold mb-2">Post a Message</h3>
+              <textarea
+                className="w-full border rounded p-2 mb-2"
+                rows={2}
+                placeholder="Share your question, tip, or experience..."
+                value={forumMessage}
+                onChange={e => setForumMessage(e.target.value)}
+              />
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  if (forumMessage.trim()) {
+                    setForumPosts([{ name: "You", text: forumMessage.trim() }, ...forumPosts]);
+                    setForumMessage("");
+                  }
+                }}
+                disabled={!forumMessage.trim()}
+              >
+                Post
+              </Button>
+            </div>
+            <div className="bg-white border rounded p-4">
+              <h3 className="font-semibold mb-2">Recent Posts</h3>
+              <ul className="space-y-2 text-sm">
+                {forumPosts.map((post, idx) => (
+                  <li key={idx} className={idx < forumPosts.length - 1 ? "border-b pb-2" : ""}>
+                    <span className="font-medium">{post.name}:</span> {post.text}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="text-xs text-muted-foreground">This is a demo forum. For urgent help, contact <a href="mailto:seller-support@lelekart.com" className="text-blue-600 underline">seller-support@lelekart.com</a>.</div>
+          </div>
         </DialogContent>
       </Dialog>
     </SellerDashboardLayout>

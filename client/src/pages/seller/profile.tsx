@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { User as UserType } from "@shared/schema";
 import { useLocation } from "wouter";
+import PublicSellerProfilePage from "./public-profile";
 
 const SellerProfilePage = () => {
   // Auth-related setup
@@ -458,6 +459,8 @@ const SellerProfilePage = () => {
     }
   };
   
+  const [showPublicProfile, setShowPublicProfile] = useState(false);
+  
   // Show loading state while fetching user data
   if (isLoadingUser) {
     return (
@@ -541,14 +544,18 @@ const SellerProfilePage = () => {
                 <Button 
                   variant="outline" 
                   className="gap-1"
-                  asChild
+                  onClick={() => setShowPublicProfile(v => !v)}
                 >
-                  <a href={`/seller/public-profile/${user?.id}`} target="_blank" rel="noopener noreferrer">
-                    <User className="h-4 w-4" /> View Public Profile
-                  </a>
+                  <User className="h-4 w-4" /> {showPublicProfile ? "Hide Public Profile" : "View Public Profile"}
                 </Button>
               </div>
             </div>
+            
+            {showPublicProfile && (
+              <div className="my-8">
+                <PublicSellerProfilePage embedded sellerId={user?.id?.toString()} />
+              </div>
+            )}
             
             {/* Navigation tabs */}
             <div className="mt-6 flex space-x-1 overflow-x-auto pb-1">
