@@ -289,7 +289,12 @@ export default function TrackOrderPage() {
                         : "bg-gray-100 text-gray-400"
                     }`}
                   >
-                    {item.icon}
+                    {item.completed ? (
+                      // Show green checkmark for completed steps
+                      <svg className="h-5 w-5 text-green-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    ) : (
+                      item.icon
+                    )}
                   </div>
                   <div>
                     <h3 className="font-medium">{item.title}</h3>

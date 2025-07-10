@@ -262,7 +262,7 @@ export default function BulkImportPage() {
 
   return (
     <SellerDashboardLayout>
-      <div className="space-y-6">
+      <div className="max-w-4xl mx-auto">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
             Bulk Product Import
@@ -305,6 +305,7 @@ export default function BulkImportPage() {
                     onChange={handleFileChange}
                     ref={fileInputRef}
                     className="hidden"
+                    placeholder="Select a CSV or Excel file"
                   />
 
                   <Button
@@ -738,7 +739,7 @@ export default function BulkImportPage() {
                             <li>
                               <span className="font-medium">Category</span>:
                               must match one of:{" "}
-                              {categories?.map((c) => c.name).join(", ")}
+                              {Array.isArray(categories) ? categories.map((c: any) => c.name).join(", ") : ""}
                             </li>
                           </ul>
                         </div>
@@ -877,7 +878,7 @@ export default function BulkImportPage() {
                             <p className="text-gray-600 text-sm">
                               Ensure your category exactly matches one of our
                               categories:{" "}
-                              {categories?.map((c) => c.name).join(", ")}
+                              {Array.isArray(categories) ? categories.map((c: any) => c.name).join(", ") : ""}
                             </p>
                           </div>
                         </div>
