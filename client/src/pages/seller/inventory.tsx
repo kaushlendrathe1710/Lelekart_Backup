@@ -4,35 +4,48 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { formatPrice } from "@/lib/utils";
-import { 
-  Search, 
-  Filter, 
-  Package, 
-  Box, 
-  AlertTriangle, 
+import {
+  Search,
+  Filter,
+  Package,
+  Box,
+  AlertTriangle,
   Check,
-  CheckCircle2, 
-  ShoppingCart, 
-  Plus, 
-  Tag, 
+  CheckCircle2,
+  ShoppingCart,
+  Plus,
+  Tag,
   Layers,
   Loader2,
   Download,
   Upload,
   RefreshCw,
   Settings,
-  X
+  X,
 } from "lucide-react";
 
 export default function InventoryPage() {
@@ -51,42 +64,53 @@ export default function InventoryPage() {
 
   // Fetch product categories to use in filters
   const { data: categories } = useQuery({
-    queryKey: ['/api/categories'],
+    queryKey: ["/api/categories"],
     queryFn: async () => {
-      const res = await fetch('/api/categories');
+      const res = await fetch("/api/categories");
       if (!res.ok) {
-        throw new Error('Failed to fetch categories');
+        throw new Error("Failed to fetch categories");
       }
       return res.json();
     },
   });
-  
+
   // Fetch subcategories based on selected category
   const { data: subcategories } = useQuery({
-    queryKey: ['/api/subcategories', categoryFilter],
+    queryKey: ["/api/subcategories", categoryFilter],
     queryFn: async () => {
       // If "all" is selected, don't filter by category
-      const categoryParam = categoryFilter !== 'all' 
-        ? `?categoryId=${categories?.find((c: { id: number, name: string }) => c.name === categoryFilter)?.id}` 
-        : '';
-        
+      const categoryParam =
+        categoryFilter !== "all"
+          ? `?categoryId=${categories?.find((c: { id: number; name: string }) => c.name === categoryFilter)?.id}`
+          : "";
+
       const res = await fetch(`/api/subcategories${categoryParam}`);
       if (!res.ok) {
-        throw new Error('Failed to fetch subcategories');
+        throw new Error("Failed to fetch subcategories");
       }
       const data = await res.json();
-      console.log(`Fetched ${data.subcategories?.length || 0} subcategories for category filter "${categoryFilter}"`);
+      console.log(
+        `Fetched ${data.subcategories?.length || 0} subcategories for category filter "${categoryFilter}"`
+      );
       return data.subcategories || [];
     },
-    enabled: !!categories && categoryFilter !== 'all',
+    enabled: !!categories && categoryFilter !== "all",
   });
 
   // Fetch seller products with filters
   // Mutation to update product category and subcategory
   const updateProductMutation = useMutation({
-    mutationFn: async ({ productId, category, subcategory }: { productId: number, category: string, subcategory: string }) => {
+    mutationFn: async ({
+      productId,
+      category,
+      subcategory,
+    }: {
+      productId: number;
+      category: string;
+      subcategory: string;
+    }) => {
       const response = await apiRequest(
-        'PATCH',
+        "PATCH",
         `/api/seller/products/${productId}`,
         { category, subcategory }
       );
@@ -95,14 +119,15 @@ export default function InventoryPage() {
     onSuccess: () => {
       toast({
         title: "Product updated",
-        description: "Product category and subcategory have been updated successfully",
+        description:
+          "Product category and subcategory have been updated successfully",
         variant: "default",
       });
       setEditingProduct(null);
       // Invalidate seller-specific queries to ensure proper cache isolation
-      queryClient.invalidateQueries({ 
-        queryKey: ['/api/seller/products', user?.id],
-        exact: false 
+      queryClient.invalidateQueries({
+        queryKey: ["/api/seller/products", user?.id],
+        exact: false,
       });
     },
     onError: (error: any) => {
@@ -111,56 +136,68 @@ export default function InventoryPage() {
         description: error.message || "Failed to update product category",
         variant: "destructive",
       });
-    }
+    },
   });
 
   // Function to save category changes
   const saveProductCategoryChanges = () => {
     if (!editingProduct) return;
-    
+
     updateProductMutation.mutate({
       productId: editingProduct,
       category: editingCategory,
-      subcategory: editingSubcategory
+      subcategory: editingSubcategory,
     });
   };
 
-  const { data: productsData, isLoading: productsLoading, refetch } = useQuery({
-    queryKey: ['/api/seller/products', page, limit, searchQuery, categoryFilter, stockFilter, subcategoryFilter],
+  const {
+    data: productsData,
+    isLoading: productsLoading,
+    refetch,
+  } = useQuery({
+    queryKey: [
+      "/api/seller/products",
+      page,
+      limit,
+      searchQuery,
+      categoryFilter,
+      stockFilter,
+      subcategoryFilter,
+    ],
     queryFn: async () => {
       const queryParams = new URLSearchParams({
         page: page.toString(),
         limit: limit.toString(),
       });
-      
+
       if (searchQuery) {
-        queryParams.append('search', searchQuery);
+        queryParams.append("search", searchQuery);
       }
-      
-      if (categoryFilter && categoryFilter !== 'all') {
-        queryParams.append('category', categoryFilter);
+
+      if (categoryFilter && categoryFilter !== "all") {
+        queryParams.append("category", categoryFilter);
       }
-      
-      if (subcategoryFilter && subcategoryFilter !== 'all') {
-        queryParams.append('subcategory', subcategoryFilter);
+
+      if (subcategoryFilter && subcategoryFilter !== "all") {
+        queryParams.append("subcategory", subcategoryFilter);
       }
-      
-      if (stockFilter && stockFilter !== 'all') {
-        queryParams.append('stock', stockFilter);
+
+      if (stockFilter && stockFilter !== "all") {
+        queryParams.append("stock", stockFilter);
       }
-      
+
       const response = await apiRequest(
-        'GET', 
+        "GET",
         `/api/seller/products?${queryParams.toString()}`
       );
-      
+
       return response.json();
     },
   });
 
   const products = productsData?.products || [];
   const totalPages = productsData?.totalPages || 1;
-  
+
   // Debug: Log product data to understand structure
   console.log("All Products Data:", products);
   if (products.length > 0) {
@@ -168,7 +205,7 @@ export default function InventoryPage() {
     console.log("Image Data:", {
       imageUrl: products[0].imageUrl,
       images: products[0].images,
-      mainImage: products[0].mainImage
+      mainImage: products[0].mainImage,
     });
   }
 
@@ -178,22 +215,17 @@ export default function InventoryPage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-2xl font-bold">Inventory Management</h1>
-            <p className="text-muted-foreground">Manage your product inventory and stock levels</p>
+            <p className="text-muted-foreground">
+              Manage your product inventory and stock levels
+            </p>
           </div>
           <div className="flex gap-3">
             {/* Bulk upload functionality removed */}
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => refetch()}
-            >
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
             </Button>
-            <Button 
-              size="sm"
-              asChild
-            >
+            <Button size="sm" asChild>
               <Link href="/seller/products/add">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Product
@@ -212,7 +244,9 @@ export default function InventoryPage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div>
-                <Label htmlFor="search" className="mb-2 block">Search</Label>
+                <Label htmlFor="search" className="mb-2 block">
+                  Search
+                </Label>
                 <div className="relative">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -225,9 +259,11 @@ export default function InventoryPage() {
                 </div>
               </div>
               <div>
-                <Label htmlFor="category" className="mb-2 block">Category</Label>
-                <Select 
-                  value={categoryFilter} 
+                <Label htmlFor="category" className="mb-2 block">
+                  Category
+                </Label>
+                <Select
+                  value={categoryFilter}
                   onValueChange={(value) => {
                     setCategoryFilter(value);
                     // Reset subcategory filter when category changes
@@ -239,36 +275,53 @@ export default function InventoryPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
-                    {categories?.map((category: { id: number, name: string }) => (
-                      <SelectItem key={category.id} value={category.name}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
+                    {categories?.map(
+                      (category: { id: number; name: string }) => (
+                        <SelectItem key={category.id} value={category.name}>
+                          {category.name}
+                        </SelectItem>
+                      )
+                    )}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label htmlFor="subcategory" className="mb-2 block">Subcategory</Label>
-                <Select 
-                  value={subcategoryFilter} 
+                <Label htmlFor="subcategory" className="mb-2 block">
+                  Subcategory
+                </Label>
+                <Select
+                  value={subcategoryFilter}
                   onValueChange={setSubcategoryFilter}
-                  disabled={categoryFilter === 'all'}
+                  disabled={categoryFilter === "all"}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={categoryFilter === 'all' ? "Select a category first" : "All Subcategories"} />
+                    <SelectValue
+                      placeholder={
+                        categoryFilter === "all"
+                          ? "Select a category first"
+                          : "All Subcategories"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Subcategories</SelectItem>
-                    {subcategories?.map((subcategory: { id: number, name: string }) => (
-                      <SelectItem key={subcategory.id} value={subcategory.name}>
-                        {subcategory.name}
-                      </SelectItem>
-                    ))}
+                    {subcategories?.map(
+                      (subcategory: { id: number; name: string }) => (
+                        <SelectItem
+                          key={subcategory.id}
+                          value={subcategory.name}
+                        >
+                          {subcategory.name}
+                        </SelectItem>
+                      )
+                    )}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label htmlFor="stock" className="mb-2 block">Stock Status</Label>
+                <Label htmlFor="stock" className="mb-2 block">
+                  Stock Status
+                </Label>
                 <Select value={stockFilter} onValueChange={setStockFilter}>
                   <SelectTrigger>
                     <SelectValue placeholder="All" />
@@ -282,8 +335,8 @@ export default function InventoryPage() {
                 </Select>
               </div>
               <div className="flex items-end">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full"
                   onClick={() => {
                     setSearchQuery("");
@@ -305,26 +358,48 @@ export default function InventoryPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-muted/50">
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Product</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">SKU</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Category</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Subcategory</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Price</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Stock</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Product
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    SKU
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Category
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Subcategory
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Price
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Stock
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {productsLoading ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                    <td
+                      colSpan={8}
+                      className="px-4 py-10 text-center text-sm text-muted-foreground"
+                    >
                       Loading products...
                     </td>
                   </tr>
                 ) : products.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                    <td
+                      colSpan={8}
+                      className="px-4 py-10 text-center text-sm text-muted-foreground"
+                    >
                       No products found matching your filters
                     </td>
                   </tr>
@@ -337,40 +412,45 @@ export default function InventoryPage() {
                             {(() => {
                               // Parse images if it's a JSON string
                               let imagesList: string[] = [];
-                              
+
                               if (product.images) {
                                 try {
-                                  if (typeof product.images === 'string') {
+                                  if (typeof product.images === "string") {
                                     // Try to parse the JSON string
                                     imagesList = JSON.parse(product.images);
                                   } else if (Array.isArray(product.images)) {
                                     imagesList = product.images;
                                   }
                                 } catch (error) {
-                                  console.error("Error parsing product images:", error);
+                                  console.error(
+                                    "Error parsing product images:",
+                                    error
+                                  );
                                 }
                               }
-                              
+
                               // Use the first image from the parsed list, fallback to imageUrl, or show no image message
                               if (imagesList && imagesList.length > 0) {
                                 return (
-                                  <img 
-                                    src={imagesList[0]} 
+                                  <img
+                                    src={imagesList[0]}
                                     alt={product.name}
                                     className="h-10 w-10 object-cover rounded"
                                     onError={(e) => {
-                                      (e.target as HTMLImageElement).src = 'https://placehold.co/100x100?text=No+Image';
+                                      (e.target as HTMLImageElement).src =
+                                        "https://placehold.co/100x100?text=No+Image";
                                     }}
                                   />
                                 );
                               } else if (product.imageUrl) {
                                 return (
-                                  <img 
-                                    src={product.imageUrl} 
+                                  <img
+                                    src={product.imageUrl}
                                     alt={product.name}
                                     className="h-10 w-10 object-cover rounded"
                                     onError={(e) => {
-                                      (e.target as HTMLImageElement).src = 'https://placehold.co/100x100?text=No+Image';
+                                      (e.target as HTMLImageElement).src =
+                                        "https://placehold.co/100x100?text=No+Image";
                                     }}
                                   />
                                 );
@@ -384,18 +464,20 @@ export default function InventoryPage() {
                             })()}
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {product.name}
+                            </div>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-4 text-sm text-gray-500">
-                        {product.sku || '-'}
+                        {product.sku || "-"}
                       </td>
                       <td className="px-4 py-4 text-sm text-gray-500">
                         {editingProduct === product.id ? (
                           <div className="space-y-2">
-                            <Select 
-                              value={editingCategory || product.category} 
+                            <Select
+                              value={editingCategory || product.category}
                               onValueChange={(value) => {
                                 setEditingCategory(value);
                                 setEditingSubcategory(""); // Reset subcategory when category changes
@@ -405,17 +487,22 @@ export default function InventoryPage() {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                {categories?.map((category: { id: number, name: string }) => (
-                                  <SelectItem key={category.id} value={category.name}>
-                                    {category.name}
-                                  </SelectItem>
-                                ))}
+                                {categories?.map(
+                                  (category: { id: number; name: string }) => (
+                                    <SelectItem
+                                      key={category.id}
+                                      value={category.name}
+                                    >
+                                      {category.name}
+                                    </SelectItem>
+                                  )
+                                )}
                               </SelectContent>
                             </Select>
                             {editingProduct === product.id && (
                               <div className="flex justify-between space-x-1 mt-1">
-                                <Button 
-                                  variant="ghost" 
+                                <Button
+                                  variant="ghost"
                                   size="sm"
                                   className="text-xs h-6 px-2"
                                   onClick={() => {
@@ -427,8 +514,8 @@ export default function InventoryPage() {
                                   <X className="h-3 w-3 mr-1" />
                                   Cancel
                                 </Button>
-                                <Button 
-                                  variant="ghost" 
+                                <Button
+                                  variant="ghost"
                                   size="sm"
                                   className="text-xs h-6 px-2 text-primary"
                                   onClick={saveProductCategoryChanges}
@@ -445,7 +532,7 @@ export default function InventoryPage() {
                             )}
                           </div>
                         ) : (
-                          <div 
+                          <div
                             className="cursor-pointer hover:text-primary"
                             onClick={() => {
                               setEditingProduct(product.id);
@@ -459,8 +546,8 @@ export default function InventoryPage() {
                       </td>
                       <td className="px-4 py-4 text-sm text-gray-500">
                         {editingProduct === product.id ? (
-                          <Select 
-                            value={editingSubcategory} 
+                          <Select
+                            value={editingSubcategory}
                             onValueChange={setEditingSubcategory}
                             disabled={!editingCategory}
                           >
@@ -469,19 +556,38 @@ export default function InventoryPage() {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="">None</SelectItem>
-                              {subcategories?.filter((sub: { id: number, name: string, categoryId: number }) => {
-                                // Find the category ID that matches the current editing category
-                                const categoryId = categories?.find((c: { id: number, name: string }) => c.name === editingCategory)?.id;
-                                return sub.categoryId === categoryId;
-                              }).map((subcategory: { id: number, name: string }) => (
-                                <SelectItem key={subcategory.id} value={subcategory.name}>
-                                  {subcategory.name}
-                                </SelectItem>
-                              ))}
+                              {subcategories
+                                ?.filter(
+                                  (sub: {
+                                    id: number;
+                                    name: string;
+                                    categoryId: number;
+                                  }) => {
+                                    // Find the category ID that matches the current editing category
+                                    const categoryId = categories?.find(
+                                      (c: { id: number; name: string }) =>
+                                        c.name === editingCategory
+                                    )?.id;
+                                    return sub.categoryId === categoryId;
+                                  }
+                                )
+                                .map(
+                                  (subcategory: {
+                                    id: number;
+                                    name: string;
+                                  }) => (
+                                    <SelectItem
+                                      key={subcategory.id}
+                                      value={subcategory.name}
+                                    >
+                                      {subcategory.name}
+                                    </SelectItem>
+                                  )
+                                )}
                             </SelectContent>
                           </Select>
                         ) : (
-                          <div 
+                          <div
                             className="cursor-pointer hover:text-primary"
                             onClick={() => {
                               setEditingProduct(product.id);
@@ -489,7 +595,8 @@ export default function InventoryPage() {
                               setEditingSubcategory(product.subcategory || "");
                             }}
                           >
-                            {product.subcategory || "-"}
+                            {/* Show subcategory1 if present, else fallback to subcategory, else '-' */}
+                            {product.subcategory1 || product.subcategory || "-"}
                           </div>
                         )}
                       </td>
@@ -497,45 +604,48 @@ export default function InventoryPage() {
                         {formatPrice(product.price)}
                       </td>
                       <td className="px-4 py-4 text-sm">
-                        {((product.stockQuantity ?? product.stock) <= 0) ? (
-                          <span className="text-red-600 font-medium">Out of stock</span>
-                        ) : ((product.stockQuantity ?? product.stock) <= 10) ? (
-                          <span className="text-amber-600 font-medium">Low stock ({product.stockQuantity ?? product.stock} left)</span>
+                        {(product.stockQuantity ?? product.stock) <= 0 ? (
+                          <span className="text-red-600 font-medium">
+                            Out of stock
+                          </span>
+                        ) : (product.stockQuantity ?? product.stock) <= 10 ? (
+                          <span className="text-amber-600 font-medium">
+                            Low stock ({product.stockQuantity ?? product.stock}{" "}
+                            left)
+                          </span>
                         ) : (
-                          <span className="text-green-600 font-medium">In stock ({product.stockQuantity ?? product.stock})</span>
+                          <span className="text-green-600 font-medium">
+                            In stock ({product.stockQuantity ?? product.stock})
+                          </span>
                         )}
                       </td>
                       <td className="px-4 py-4 text-sm">
                         {product.approved ? (
-                          <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200">
+                          <Badge
+                            variant="outline"
+                            className="bg-green-100 text-green-800 hover:bg-green-200"
+                          >
                             <CheckCircle2 className="h-3 w-3 mr-1" />
                             Active
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="bg-amber-100 text-amber-800 hover:bg-amber-200">
+                          <Badge
+                            variant="outline"
+                            className="bg-amber-100 text-amber-800 hover:bg-amber-200"
+                          >
                             <AlertTriangle className="h-3 w-3 mr-1" />
                             Pending
                           </Badge>
                         )}
                       </td>
                       <td className="px-4 py-4 text-sm text-right space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          asChild
-                        >
+                        <Button variant="ghost" size="sm" asChild>
                           <Link href={`/seller/products/edit/${product.id}`}>
                             Edit
                           </Link>
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          asChild
-                        >
-                          <Link href={`/product/${product.id}`}>
-                            View
-                          </Link>
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link href={`/product/${product.id}`}>View</Link>
                         </Button>
                       </td>
                     </tr>
@@ -544,7 +654,7 @@ export default function InventoryPage() {
               </tbody>
             </table>
           </div>
-          
+
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-4 py-3 bg-white border-t">
               <div className="flex items-center">
@@ -565,7 +675,9 @@ export default function InventoryPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                  onClick={() =>
+                    setPage((prev) => Math.min(totalPages, prev + 1))
+                  }
                   disabled={page >= totalPages}
                 >
                   Next
@@ -574,7 +686,7 @@ export default function InventoryPage() {
             </div>
           )}
         </div>
-        
+
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="pb-2">
@@ -587,19 +699,29 @@ export default function InventoryPage() {
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">
-                {products.filter((p: any) => (p.stockQuantity ?? p.stock) > 0 && (p.stockQuantity ?? p.stock) <= 10).length}
+                {
+                  products.filter(
+                    (p: any) =>
+                      (p.stockQuantity ?? p.stock) > 0 &&
+                      (p.stockQuantity ?? p.stock) <= 10
+                  ).length
+                }
               </p>
               <p className="text-sm text-muted-foreground">
                 Products with 10 or fewer items in stock
               </p>
             </CardContent>
             <CardFooter>
-              <Button variant="link" className="px-0" onClick={() => setStockFilter("low-stock")}>
+              <Button
+                variant="link"
+                className="px-0"
+                onClick={() => setStockFilter("low-stock")}
+              >
                 View low stock items
               </Button>
             </CardFooter>
           </Card>
-          
+
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center">
@@ -611,19 +733,26 @@ export default function InventoryPage() {
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">
-                {products.filter((p: any) => (p.stockQuantity ?? p.stock) <= 0).length}
+                {
+                  products.filter((p: any) => (p.stockQuantity ?? p.stock) <= 0)
+                    .length
+                }
               </p>
               <p className="text-sm text-muted-foreground">
                 Products that are currently unavailable
               </p>
             </CardContent>
             <CardFooter>
-              <Button variant="link" className="px-0" onClick={() => setStockFilter("out-of-stock")}>
+              <Button
+                variant="link"
+                className="px-0"
+                onClick={() => setStockFilter("out-of-stock")}
+              >
                 Manage out of stock items
               </Button>
             </CardFooter>
           </Card>
-          
+
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center">
@@ -634,9 +763,7 @@ export default function InventoryPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">
-                {productsData?.total || 0}
-              </p>
+              <p className="text-3xl font-bold">{productsData?.total || 0}</p>
               <p className="text-sm text-muted-foreground">
                 Total products in your inventory
               </p>
