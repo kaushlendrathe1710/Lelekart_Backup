@@ -11102,6 +11102,19 @@ export class DatabaseStorage implements IStorage {
       throw error;
     }
   }
-}
 
+  async getReturnRequestsForOrderItem(orderItemId: number): Promise<ReturnRequest[]> {
+    try {
+      const requests = await db
+        .select()
+        .from(returnRequests)
+        .where(eq(returnRequests.orderItemId, orderItemId))
+        .orderBy(desc(returnRequests.createdAt));
+      return requests;
+    } catch (error) {
+      console.error(`Error getting return requests for order item ${orderItemId}:`, error);
+      return [];
+    }
+}
+}
 export const storage = new DatabaseStorage();
