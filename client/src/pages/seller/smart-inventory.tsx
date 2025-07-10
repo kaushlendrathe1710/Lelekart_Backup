@@ -54,13 +54,14 @@ export default function SmartInventory() {
 
   // Get all seller products
   const { data: products, isLoading: isLoadingProducts } = useQuery({
-    queryKey: ["/api/products", { sellerId: user?.id }],
+    queryKey: ["/api/seller/products", { sellerId: user?.id }],
     queryFn: async () => {
       try {
         console.log(`Fetching products for seller ID: ${user?.id}`);
+        // Use the seller-specific endpoint with a high limit to get all products
         const res = await apiRequest(
           "GET",
-          `/api/products?sellerId=${user?.id}`
+          `/api/seller/products?limit=1000&includeDrafts=true`
         );
         const data = await res.json();
         console.log("Fetched products:", JSON.stringify(data, null, 2));
