@@ -124,35 +124,16 @@ export default function BuyerDashboardPage() {
           return;
         }
         
-        // Fetch each product individually to ensure all are fetched
-        let allProducts: any[] = [];
-        
-        for (const id of ids) {
-          try {
-            console.log(`[BuyerDashboard] Fetching individual product ${id}`);
-            const res = await fetch(`/api/products/${id}`);
-            if (res.ok) {
-              const product = await res.json();
-              allProducts.push(product);
-              console.log(`[BuyerDashboard] Successfully fetched product ${id}:`, product.name);
-            } else {
-              console.warn(`[BuyerDashboard] Failed to fetch product ${id}:`, res.status);
-            }
-          } catch (error) {
-            console.error(`[BuyerDashboard] Error fetching product ${id}:`, error);
-          }
-        }
-        
-        console.log('[BuyerDashboard] All fetched products:', allProducts);
-        console.log('[BuyerDashboard] Total products fetched:', allProducts.length);
+        // Fetch all products in parallel for speed
+        const productPromises = ids.map(id => 
+          fetch(`/api/products/${id}`).then(res => res.ok ? res.json() : null)
+        );
+        const allProducts = (await Promise.all(productPromises)).filter(Boolean);
         
         // Keep the order as in localStorage
         const ordered = ids
-          .map((id: number) => allProducts.find(p => p.id === id))
+          .map((id) => allProducts.find(p => p.id === id))
           .filter((p) => p !== undefined && p !== null);
-        
-        console.log('[BuyerDashboard] Final ordered products:', ordered);
-        console.log('[BuyerDashboard] Final product count:', ordered.length);
         
         setRecentlyViewed(ordered);
       } catch (e) {
