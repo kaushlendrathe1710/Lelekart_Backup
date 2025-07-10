@@ -69,8 +69,10 @@ import {
   Wallet,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "react-router-dom";
 
 export default function SellerSettingsPage() {
+  const location = useLocation();
   const [currentTab, setCurrentTab] = useState("account");
   const [holidayMode, setHolidayMode] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
@@ -350,6 +352,14 @@ export default function SellerSettingsPage() {
       }
     }
   }, [settings]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get("tab");
+    if (tab === "bank") {
+      setCurrentTab("bank");
+    }
+  }, [location.search]);
 
   const toggleHolidayMode = async () => {
     setIsLoading(true);

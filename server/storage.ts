@@ -887,6 +887,7 @@ export interface IStorage {
     messageData: InsertSupportMessage
   ): Promise<SupportMessage>;
   getSupportMessagesByTicket(ticketId: number): Promise<SupportMessage[]>;
+  deleteSupportTicket(id: number): Promise<void>;
 
   // Wallet Methods
   getWalletSettings(): Promise<SelectWalletSettings | null>;
@@ -6875,6 +6876,23 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getAllSupportTickets(): Promise<any[]> {
+    try {
+      return await db
+        .select({
+          ...supportTickets,
+          userName: users.name,
+          userEmail: users.email,
+        })
+        .from(supportTickets)
+        .leftJoin(users, eq(supportTickets.userId, users.id))
+        .orderBy(desc(supportTickets.createdAt));
+    } catch (error) {
+      console.error('Error getting all support tickets:', error);
+      return [];
+    }
+  }
+
   // Wishlist Operations
   async getWishlistItems(
     userId: number
@@ -8667,6 +8685,13 @@ export class DatabaseStorage implements IStorage {
       console.error("Error creating support message:", error);
       throw new Error("Failed to create support message");
     }
+  }
+
+  async deleteSupportTicket(id: number): Promise<void> {
+    // Delete all messages for this ticket first
+    await db.delete(supportMessages).where(eq(supportMessages.ticketId, id));
+    // Then delete the ticket itself
+    await db.delete(supportTickets).where(eq(supportTickets.id, id));
   }
 
   // ========== Rewards Methods ==========

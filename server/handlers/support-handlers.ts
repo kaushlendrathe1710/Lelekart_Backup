@@ -6,19 +6,18 @@ import { z } from "zod";
 // Get all support tickets for a user
 export async function getSupportTicketsHandler(req: Request, res: Response) {
   try {
+    // If admin or co-admin, return all tickets with user info
+    if (req.user?.role === 'admin' || req.user?.role === 'co-admin') {
+      const tickets = await storage.getAllSupportTickets();
+      // Already includes userName and userEmail from the join
+      return res.status(200).json(tickets);
+    }
+    // Otherwise, return only tickets for the current user
     const userId = parseInt(req.params.userId || req.user?.id?.toString() || "0");
-    
     if (!userId) {
       return res.status(400).json({ error: 'User ID is required' });
     }
-    
-    // If this is not an admin or the user themselves, deny access
-    if (req.user?.role !== 'admin' && req.user?.role !== 'co-admin' && req.user?.id !== userId) {
-      return res.status(403).json({ error: 'You do not have permission to view these support tickets' });
-    }
-    
     const tickets = await storage.getSellerSupportTickets(userId);
-    
     return res.status(200).json(tickets);
   } catch (error) {
     console.error("Error fetching support tickets:", error);
@@ -247,5 +246,32 @@ export async function getSupportMessagesHandler(req: Request, res: Response) {
   } catch (error) {
     console.error("Error fetching support messages:", error);
     return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+// Delete a support ticket by ID
+export async function deleteSupportTicketHandler(req: Request, res: Response) {
+  try {
+    const ticketId = parseInt(req.params.id);
+    if (isNaN(ticketId)) {
+      return res.status(400).json({ error: 'Invalid ticket ID' });
+    }
+    const ticket = await storage.getSupportTicketById(ticketId);
+    if (!ticket) {
+      return res.status(404).json({ error: 'Support ticket not found' });
+    }
+    // Only allow owner or admin/co-admin to delete
+    if (
+      req.user?.role !== 'admin' &&
+      req.user?.role !== 'co-admin' &&
+      req.user?.id !== ticket.userId
+    ) {
+      return res.status(403).json({ error: 'You do not have permission to delete this support ticket' });
+    }
+    await storage.deleteSupportTicket(ticketId);
+    return res.status(204).send();
+  } catch (error) {
+    console.error('Error deleting support ticket:', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }

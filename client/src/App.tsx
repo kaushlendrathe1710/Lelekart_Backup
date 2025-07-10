@@ -80,6 +80,7 @@ import GSTManagementPage from "./pages/admin/gst-management";
 import MediaLibraryPage from "./pages/admin/media-library";
 import AdminBackupsPage from "./pages/admin/backups";
 import AdminNotificationsPage from './pages/admin/notifications';
+import TicketManagementPage from "./pages/admin/ticket-management";
 // Import shared components
 import { SuspenseWrapper } from "./components/shared/suspense-wrapper";
 import PressReleaseDetail from "./pages/static/press-release";
@@ -124,6 +125,10 @@ import SellerSettingsPage from "./pages/seller/settings";
 import SellerHelpPage from "./pages/seller/help";
 import PublicSellerProfileWrapper from "./pages/seller/public-profile-wrapper";
 import SellerNotificationsPage from "./pages/seller/notifications";
+import SellerGettingStartedGuide from "./pages/seller/getting-started";
+import SellerBestPracticesGuide from "./pages/seller/best-practices";
+import SellerSuccessStories from "./pages/seller/success-stories";
+import SellerWebinarsPage from "./pages/seller/webinars";
 
 // Buyer pages
 import BuyerDashboardPage from "./pages/buyer/dashboard";
@@ -987,6 +992,16 @@ function App() {
                         )}
                       </Route>
 
+                      <Route path="/admin/tickets">
+                        {() => (
+                          <ProtectedRoute
+                            path="/admin/tickets"
+                            role="admin"
+                            component={TicketManagementPage}
+                          />
+                        )}
+                      </Route>
+
                       {/* Seller Routes */}
                       <Route path="/seller/dashboard">
                         {() => (
@@ -1314,6 +1329,50 @@ function App() {
                           <Layout>
                             <SellerProductsPage />
                           </Layout>
+                        )}
+                      </Route>
+
+                      {/* Seller Getting Started Guide */}
+                      <Route path="/seller/getting-started">
+                        {() => (
+                          <ProtectedRoute
+                            path="/seller/getting-started"
+                            role="seller"
+                            component={SellerGettingStartedGuide}
+                          />
+                        )}
+                      </Route>
+
+                      {/* Seller Best Practices Guide */}
+                      <Route path="/seller/best-practices">
+                        {() => (
+                          <ProtectedRoute
+                            path="/seller/best-practices"
+                            role="seller"
+                            component={SellerBestPracticesGuide}
+                          />
+                        )}
+                      </Route>
+
+                      {/* Seller Success Stories */}
+                      <Route path="/seller/success-stories">
+                        {() => (
+                          <ProtectedRoute
+                            path="/seller/success-stories"
+                            role="seller"
+                            component={SellerSuccessStories}
+                          />
+                        )}
+                      </Route>
+
+                      {/* Seller Webinars */}
+                      <Route path="/seller/webinars">
+                        {() => (
+                          <ProtectedRoute
+                            path="/seller/webinars"
+                            role="seller"
+                            component={SellerWebinarsPage}
+                          />
                         )}
                       </Route>
 
