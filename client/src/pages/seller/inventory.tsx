@@ -532,16 +532,7 @@ export default function InventoryPage() {
                             )}
                           </div>
                         ) : (
-                          <div
-                            className="cursor-pointer hover:text-primary"
-                            onClick={() => {
-                              setEditingProduct(product.id);
-                              setEditingCategory(product.category);
-                              setEditingSubcategory(product.subcategory || "");
-                            }}
-                          >
-                            {product.category}
-                          </div>
+                          <div>{product.category}</div>
                         )}
                       </td>
                       <td className="px-4 py-4 text-sm text-gray-500">
@@ -587,14 +578,7 @@ export default function InventoryPage() {
                             </SelectContent>
                           </Select>
                         ) : (
-                          <div
-                            className="cursor-pointer hover:text-primary"
-                            onClick={() => {
-                              setEditingProduct(product.id);
-                              setEditingCategory(product.category);
-                              setEditingSubcategory(product.subcategory || "");
-                            }}
-                          >
+                          <div>
                             {/* Show subcategory1 if present, else fallback to subcategory, else '-' */}
                             {product.subcategory1 || product.subcategory || "-"}
                           </div>
