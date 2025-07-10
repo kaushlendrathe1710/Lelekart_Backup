@@ -26,10 +26,13 @@ import {
   Home
 } from "lucide-react";
 
-export default function PublicSellerProfilePage() {
-  // Extract seller ID from URL
-  const [, params] = useRoute<{ id: string }>("/seller/public-profile/:id");
-  const sellerId = params?.id;
+export default function PublicSellerProfilePage({ embedded = false, sellerId: propSellerId }: { embedded?: boolean, sellerId?: string } = {}) {
+  // Extract seller ID from URL or prop
+  let sellerId = propSellerId;
+  if (!embedded) {
+    const [, params] = useRoute<{ id: string }>("/seller/public-profile/:id");
+    sellerId = params?.id;
+  }
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("about");
 
@@ -182,11 +185,13 @@ export default function PublicSellerProfilePage() {
 
         {/* Tabs for different sections */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-          <TabsList className="grid w-full md:w-auto grid-cols-3 md:flex">
-            <TabsTrigger value="about">About</TabsTrigger>
-            <TabsTrigger value="products">Products</TabsTrigger>
-            <TabsTrigger value="reviews">Reviews</TabsTrigger>
-          </TabsList>
+          {!embedded && (
+            <TabsList className="grid w-full md:w-auto grid-cols-3 md:flex">
+              <TabsTrigger value="about">About</TabsTrigger>
+              <TabsTrigger value="products">Products</TabsTrigger>
+              <TabsTrigger value="reviews">Reviews</TabsTrigger>
+            </TabsList>
+          )}
           
           {/* About Tab */}
           <TabsContent value="about" className="space-y-8">
@@ -273,123 +278,127 @@ export default function PublicSellerProfilePage() {
           </TabsContent>
           
           {/* Products Tab */}
-          <TabsContent value="products" className="space-y-6">
-            <h2 className="text-xl font-semibold">Products by {sellerProfile.businessName}</h2>
-            
-            {isLoadingProducts ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[1, 2, 3, 4].map((i) => (
-                  <Skeleton key={i} className="aspect-square rounded-lg" />
-                ))}
-              </div>
-            ) : sellerProducts?.products?.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {sellerProducts.products.map((product) => (
-                  <Card key={product.id} className="overflow-hidden">
-                    <div className="aspect-square relative overflow-hidden">
-                      <img
-                        src={product.image_url || (product.images ? JSON.parse(product.images)[0] : '/images/placeholder.svg')}
-                        alt={product.name}
-                        className="object-cover w-full h-full"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = '/images/placeholder.svg';
-                        }}
-                      />
-                    </div>
-                    <CardContent className="p-4">
-                      <div className="mb-1 text-sm text-muted-foreground">{product.category}</div>
-                      <h3 className="font-semibold text-base line-clamp-2 min-h-[40px]">{product.name}</h3>
-                      <div className="mt-2 flex justify-between items-center">
-                        <div className="flex flex-col">
-                          {product.salePrice && product.salePrice < product.price ? (
-                            <>
-                              <span className="font-semibold">₹{product.salePrice}</span>
-                              <span className="text-sm line-through text-muted-foreground">₹{product.price}</span>
-                            </>
-                          ) : (
-                            <span className="font-semibold">₹{product.price}</span>
-                          )}
-                        </div>
-                        <Button size="sm" variant="outline" asChild>
-                          <RouterLink href={`/product/${product.id}`}>View</RouterLink>
-                        </Button>
+          {!embedded && (
+            <TabsContent value="products" className="space-y-6">
+              <h2 className="text-xl font-semibold">Products by {sellerProfile.businessName}</h2>
+              
+              {isLoadingProducts ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {[1, 2, 3, 4].map((i) => (
+                    <Skeleton key={i} className="aspect-square rounded-lg" />
+                  ))}
+                </div>
+              ) : sellerProducts?.products?.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {sellerProducts.products.map((product) => (
+                    <Card key={product.id} className="overflow-hidden">
+                      <div className="aspect-square relative overflow-hidden">
+                        <img
+                          src={product.image_url || (product.images ? JSON.parse(product.images)[0] : '/images/placeholder.svg')}
+                          alt={product.name}
+                          className="object-cover w-full h-full"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = '/images/placeholder.svg';
+                          }}
+                        />
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Card>
-                <CardContent className="p-6 text-center">
-                  <p className="text-muted-foreground">No products available from this seller.</p>
-                </CardContent>
-              </Card>
-            )}
-            
-            {sellerProducts?.products?.length > 0 && (
-              <div className="text-center mt-6">
-                <Button asChild>
-                  <RouterLink href={`/products?sellerId=${sellerId}&sellerName=${encodeURIComponent(sellerProfile.businessName)}`}>
-                    View All Products
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </RouterLink>
-                </Button>
-              </div>
-            )}
-          </TabsContent>
+                      <CardContent className="p-4">
+                        <div className="mb-1 text-sm text-muted-foreground">{product.category}</div>
+                        <h3 className="font-semibold text-base line-clamp-2 min-h-[40px]">{product.name}</h3>
+                        <div className="mt-2 flex justify-between items-center">
+                          <div className="flex flex-col">
+                            {product.salePrice && product.salePrice < product.price ? (
+                              <>
+                                <span className="font-semibold">₹{product.salePrice}</span>
+                                <span className="text-sm line-through text-muted-foreground">₹{product.price}</span>
+                              </>
+                            ) : (
+                              <span className="font-semibold">₹{product.price}</span>
+                            )}
+                          </div>
+                          <Button size="sm" variant="outline" asChild>
+                            <RouterLink href={`/product/${product.id}`}>View</RouterLink>
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="p-6 text-center">
+                    <p className="text-muted-foreground">No products available from this seller.</p>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {sellerProducts?.products?.length > 0 && (
+                <div className="text-center mt-6">
+                  <Button asChild>
+                    <RouterLink href={`/products?sellerId=${sellerId}&sellerName=${encodeURIComponent(sellerProfile.businessName)}`}>
+                      View All Products
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </RouterLink>
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
+          )}
           
           {/* Reviews Tab */}
-          <TabsContent value="reviews" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold">Customer Reviews</h2>
-              <div className="flex items-center gap-2">
-                <Star className="h-5 w-5 text-amber-500" />
-                <span className="font-semibold text-lg">{sellerProfile.rating || "4.8"}</span>
-                <span className="text-muted-foreground">({sellerProfile.reviewCount || "120"} reviews)</span>
+          {!embedded && (
+            <TabsContent value="reviews" className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold">Customer Reviews</h2>
+                <div className="flex items-center gap-2">
+                  <Star className="h-5 w-5 text-amber-500" />
+                  <span className="font-semibold text-lg">{sellerProfile.rating || "4.8"}</span>
+                  <span className="text-muted-foreground">({sellerProfile.reviewCount || "120"} reviews)</span>
+                </div>
               </div>
-            </div>
-            
-            <Card>
-              <CardContent className="p-6">
-                {sellerProfile.reviews && sellerProfile.reviews.length > 0 ? (
-                  <div className="space-y-6">
-                    {sellerProfile.reviews.map((review, index) => (
-                      <div key={index} className="border-b pb-4 last:border-0 last:pb-0">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex items-center gap-2">
-                            <Avatar className="h-8 w-8">
-                              <AvatarFallback>{review.username.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="font-medium">{review.username}</div>
-                              <div className="text-sm text-muted-foreground">{review.date}</div>
+              
+              <Card>
+                <CardContent className="p-6">
+                  {sellerProfile.reviews && sellerProfile.reviews.length > 0 ? (
+                    <div className="space-y-6">
+                      {sellerProfile.reviews.map((review, index) => (
+                        <div key={index} className="border-b pb-4 last:border-0 last:pb-0">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-8 w-8">
+                                <AvatarFallback>{review.username.charAt(0)}</AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="font-medium">{review.username}</div>
+                                <div className="text-sm text-muted-foreground">{review.date}</div>
+                              </div>
+                            </div>
+                            <div className="flex">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`h-4 w-4 ${
+                                    i < review.rating ? "text-amber-500" : "text-gray-200"
+                                  }`}
+                                  fill={i < review.rating ? "currentColor" : "none"}
+                                />
+                              ))}
                             </div>
                           </div>
-                          <div className="flex">
-                            {Array.from({ length: 5 }).map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`h-4 w-4 ${
-                                  i < review.rating ? "text-amber-500" : "text-gray-200"
-                                }`}
-                                fill={i < review.rating ? "currentColor" : "none"}
-                              />
-                            ))}
-                          </div>
+                          <p className="text-gray-700">{review.comment}</p>
                         </div>
-                        <p className="text-gray-700">{review.comment}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-6">
-                    <p className="text-muted-foreground">No reviews available for this seller yet.</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6">
+                      <p className="text-muted-foreground">No reviews available for this seller yet.</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </Layout>
