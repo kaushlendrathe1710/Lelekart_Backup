@@ -102,7 +102,7 @@ export default function SellerAnalyticsPage() {
 
   return (
     <SellerDashboardLayout>
-      <div className="container py-6">
+      <div className="container py-2">
         <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Seller Analytics</h1>
