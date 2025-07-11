@@ -66,6 +66,24 @@ export const ProductCard = memo(function ProductCard({
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!user) {
+      toast({
+        title: "Please log in",
+        description: "You need to be logged in to add items to cart",
+        variant: "default",
+      });
+      setLocation("/auth");
+      return;
+    }
+    if (user.role === "admin" || user.role === "seller") {
+      toast({
+        title: "Action Not Allowed",
+        description:
+          "Only buyers can add items to cart. Please switch to a buyer account.",
+        variant: "destructive",
+      });
+      return;
+    }
     try {
       if (cartContext) {
         cartContext.addToCart(product as Product);
