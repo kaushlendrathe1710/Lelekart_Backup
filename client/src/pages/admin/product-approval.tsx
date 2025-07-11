@@ -445,7 +445,7 @@ function ProductApprovalContent() {
   const totalPendingProducts = productStats?.pending || 0;
   const totalProducts = productStats?.total || 0;
   const approvedProducts = productStats?.approved || 0;
-  const rejectedProducts =  0;
+  const rejectedProducts =  productStats?.rejected || 0;
 
   // Loading states
   const ProductStatsLoading = () => (
