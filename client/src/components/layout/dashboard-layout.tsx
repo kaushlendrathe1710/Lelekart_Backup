@@ -125,7 +125,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-500">Please log in to access the dashboard.</div>
+        <div className="text-gray-500">
+          Please log in to access the dashboard.
+        </div>
       </div>
     );
   }
@@ -234,7 +236,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                         {user.email}
                       </p>
                       <p className="text-xs font-semibold text-orange-500">
-                        {user.role === 'admin' ? 'Admin Account' : user.role === 'seller' ? 'Seller Account' : 'Buyer Account'}
+                        {user.role === "admin"
+                          ? "Admin Account"
+                          : user.role === "seller"
+                            ? "Seller Account"
+                            : "Buyer Account"}
                       </p>
                     </div>
                   </div>
@@ -257,7 +263,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="h-14"></div>
 
         <div className="flex flex-1">
-          <Sidebar>
+          <Sidebar className="bg-orange-400 text-white">
             <SidebarHeader>
               <div className="flex items-center gap-2 px-1">
                 <Avatar className="h-9 w-9">
