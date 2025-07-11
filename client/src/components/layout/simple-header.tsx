@@ -32,7 +32,7 @@ export function SimpleHeader() {
   const queryClient = useQueryClient();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
 
   // Use cart context for both guest and logged-in users
   const { cartItems } = useCart();
