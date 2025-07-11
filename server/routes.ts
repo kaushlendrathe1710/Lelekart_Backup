@@ -2806,8 +2806,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ? parseInt(req.query.limit as string)
           : 36;
         const page = req.query.page ? parseInt(req.query.page as string) : 1;
-        const perCategory =
-          Math.ceil((limit * page) / allCategories.length) + 4; // overfetch for gaps
+          const perCategory =
+            Math.ceil((limit * page * 10) / allCategories.length) + 100;
         // Fetch products for each category
         const categoryProductsArr = await Promise.all(
           allCategories.map((cat) =>
