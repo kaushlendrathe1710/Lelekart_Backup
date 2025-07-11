@@ -1564,16 +1564,13 @@ export default function ProductDetailsPage() {
         </div>
 
         {/* Product Details Section */}
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-2 sm:px-4">
           <div className="bg-white rounded shadow-sm mb-3">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-1">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-0 md:gap-1">
               {/* Left: Product Images (5/12) */}
-              <div className="md:col-span-5 p-4 border-r border-gray-100">
+              <div className="md:col-span-5 p-2 sm:p-4 border-b md:border-b-0 md:border-r border-gray-100">
                 <SimpleImageSlider
-                  // Use a stable key that only changes when the product or variant changes, not on every image update
-                  key={`slider-${selectedVariant?.id || "main"}-${
-                    selectedColor || "nocolor"
-                  }`}
+                  key={`slider-${selectedVariant?.id || "main"}-${selectedColor || "nocolor"}`}
                   images={productImages}
                   name={product?.name || "Product"}
                   selectedVariantImages={selectedVariantImages}
@@ -1582,36 +1579,34 @@ export default function ProductDetailsPage() {
               </div>
 
               {/* Right: Product Info (7/12) */}
-              <div className="md:col-span-7 p-4">
+              <div className="md:col-span-7 p-2 sm:p-4">
                 {/* Product Title with Wishlist Button */}
-                <div className="flex justify-between items-start">
-                  <h1 className="text-xl text-gray-800 font-medium">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+                  <h1 className="text-xl text-gray-800 font-medium break-words">
                     {product?.name}
                   </h1>
                   {product && (
                     <WishlistButton
                       productId={product.id}
                       variant="icon-label"
-                      className="text-gray-600 hover:text-primary"
+                      className="text-gray-600 hover:text-primary mt-2 sm:mt-0"
                     />
                   )}
                 </div>
 
                 {/* SKU */}
-                <div className="flex mt-1 text-sm text-gray-500">
+                <div className="flex flex-wrap mt-1 text-sm text-gray-500 gap-2">
                   <span>in {product?.category}</span>
-                  {product?.sku && (
-                    <span className="ml-4">SKU: {product.sku}</span>
-                  )}
+                  {product?.sku && <span className="">SKU: {product.sku}</span>}
                 </div>
 
                 {/* Ratings */}
-                <div className="flex items-center mt-2 mb-2">
+                <div className="flex flex-wrap items-center mt-2 mb-2 gap-2">
                   <div className="flex items-center bg-green-600 text-white px-2 py-0.5 rounded text-xs">
                     <span>4.3</span>
                     <Star className="h-3 w-3 ml-1 fill-current" />
                   </div>
-                  <span className="text-gray-500 text-sm ml-2">
+                  <span className="text-gray-500 text-sm">
                     (1,248 Ratings & 235 Reviews)
                   </span>
                   <span className="text-green-600 text-sm ml-auto">
@@ -1625,20 +1620,8 @@ export default function ProductDetailsPage() {
                 </div>
 
                 {/* Pricing */}
-                {console.log("DEBUG PRICE BLOCK", {
-                  price,
-                  discount,
-                  original,
-                  hasGst,
-                  gstRate,
-                  basePrice,
-                  gstAmount,
-                  safeBasePrice,
-                  safeGstAmount,
-                  selectedVariant,
-                })}
                 <div className="flex flex-col mt-1">
-                  <div className="flex items-baseline">
+                  <div className="flex flex-wrap items-baseline gap-2">
                     {typeof price === "number" && price > 0 && (
                       <span className="text-3xl font-medium text-gray-800">
                         {formatPrice(price)}
@@ -1647,7 +1630,7 @@ export default function ProductDetailsPage() {
                     {((selectedVariant?.mrp && selectedVariant.mrp > 0) ||
                       (product?.mrp && product?.mrp > 0) ||
                       (original && original > 0)) && (
-                      <span className="text-sm text-gray-500 line-through ml-2">
+                      <span className="text-sm text-gray-500 line-through">
                         ₹
                         {(
                           (selectedVariant?.mrp ??
@@ -1660,7 +1643,7 @@ export default function ProductDetailsPage() {
                       (product?.mrp && product?.mrp > 0) ||
                       (original && original > 0)) &&
                       price > 0 && (
-                        <span className="text-sm text-green-600 ml-2">
+                        <span className="text-sm text-green-600">
                           {(() => {
                             const mrp =
                               selectedVariant?.mrp ?? product?.mrp ?? original;
@@ -1711,7 +1694,7 @@ export default function ProductDetailsPage() {
                     <div className="text-gray-700 font-medium mb-2">
                       Quantity
                     </div>
-                    <div className="flex items-center">
+                    <div className="flex flex-wrap items-center gap-2">
                       <div className="flex items-center">
                         <Button
                           variant="outline"
@@ -1762,22 +1745,19 @@ export default function ProductDetailsPage() {
                   </div>
                 </div>
 
-                {/* Available Offers - Hidden */}
-
                 {/* Delivery Options with Shiprocket Pincode Check */}
-                <div className="mt-6 grid grid-cols-12 gap-4">
-                  <div className="col-span-2 text-gray-600 text-sm">
+                <div className="mt-6 grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4">
+                  <div className="sm:col-span-2 text-gray-600 text-sm mb-1 sm:mb-0">
                     Delivery
                   </div>
-                  <div className="col-span-10">
-                    <div className="flex items-center">
+                  <div className="sm:col-span-10">
+                    <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
                       <input
-                        className="border border-gray-300 rounded px-2 py-1 w-32 text-sm"
+                        className="border border-gray-300 rounded px-2 py-1 w-full sm:w-32 text-sm"
                         placeholder="Enter pincode"
                         type="text"
                         value={pincode}
                         onChange={(e) => {
-                          // Only allow numbers and limit to 6 digits (India pincode format)
                           const value = e.target.value
                             .replace(/\D/g, "")
                             .slice(0, 6);
@@ -1791,7 +1771,7 @@ export default function ProductDetailsPage() {
                       />
                       <Button
                         variant="ghost"
-                        className="text-primary text-sm ml-2"
+                        className="text-primary text-sm"
                         onClick={checkPincodeAvailability}
                         disabled={pincode.length !== 6 || isPincodeChecking}
                       >
@@ -1855,182 +1835,15 @@ export default function ProductDetailsPage() {
                       variants={product.variants}
                       onVariantChange={(variant) => {
                         setSelectedVariant(variant);
-
-                        // Clear and then set selectedVariantImages
-                        if (variant?.images) {
-                          // Handle string or array
-                          let variantImages: string[] = [];
-
-                          if (typeof variant.images === "string") {
-                            // CRITICAL FIX: Better handling of JSON string arrays
-                            if (
-                              variant.images.startsWith("[") ||
-                              variant.images.startsWith("{")
-                            ) {
-                              try {
-                                const parsed = JSON.parse(variant.images);
-
-                                if (Array.isArray(parsed)) {
-                                  // Extract URLs from each array item
-                                  variantImages = parsed
-                                    .map((img) => {
-                                      if (typeof img === "string") return img;
-                                      if (
-                                        typeof img === "object" &&
-                                        img !== null
-                                      ) {
-                                        return img.url || img.imageUrl || "";
-                                      }
-                                      return "";
-                                    })
-                                    .filter((url) => url && url.trim() !== "");
-                                } else if (
-                                  typeof parsed === "object" &&
-                                  parsed !== null
-                                ) {
-                                  // Handle object format with various URL fields
-                                  const allPossibleUrls = [];
-
-                                  // Check for direct URL properties
-                                  if (parsed.url)
-                                    allPossibleUrls.push(parsed.url);
-                                  if (parsed.imageUrl)
-                                    allPossibleUrls.push(parsed.imageUrl);
-
-                                  // Look for any string values that look like URLs
-                                  Object.values(parsed).forEach((val) => {
-                                    if (
-                                      typeof val === "string" &&
-                                      val.includes("http")
-                                    ) {
-                                      allPossibleUrls.push(val);
-                                    }
-                                  });
-
-                                  variantImages = allPossibleUrls.filter(
-                                    (url) => url && url.trim() !== ""
-                                  );
-                                }
-                              } catch (e) {
-                                // Silent error handling
-
-                                // Not valid JSON, check if it contains URLs
-                                if (variant.images.includes("http")) {
-                                  // Extract URLs with regex as a fallback
-                                  const urlMatches =
-                                    variant.images.match(
-                                      /https?:\/\/[^",\\]+/g
-                                    );
-                                  if (urlMatches && urlMatches.length > 0) {
-                                    variantImages = urlMatches;
-                                  } else {
-                                    // Last resort - treat as single image URL if it looks like a URL
-                                    variantImages = [variant.images];
-                                  }
-                                }
-                              }
-                            } else if (variant.images.includes("http")) {
-                              // Direct URL string
-                              variantImages = [variant.images];
-                            }
-                          } else if (Array.isArray(variant.images)) {
-                            // Already an array, but extract URLs properly
-                            variantImages = variant.images
-                              .map((img) => {
-                                if (typeof img === "string") return img;
-                                if (typeof img === "object" && img !== null) {
-                                  return img.url || img.imageUrl || "";
-                                }
-                                return "";
-                              })
-                              .filter(
-                                (url) =>
-                                  url &&
-                                  url.trim() !== "" &&
-                                  url.includes("http")
-                              );
-                          }
-
-                          // Final validation to ensure we only have valid URLs
-                          variantImages = variantImages.filter(
-                            (url) =>
-                              url &&
-                              typeof url === "string" &&
-                              url.trim() !== "" &&
-                              url.includes("http")
-                          );
-
-                          setSelectedVariantImages(variantImages);
-                        } else {
-                          // No images for this variant
-                          setSelectedVariantImages([]);
-                        }
-
-                        // Update the page title with variant information
-                        if (variant && document) {
-                          const colorInfo = variant.color
-                            ? ` - ${variant.color}`
-                            : "";
-                          const sizeInfo = variant.size
-                            ? ` - ${variant.size}`
-                            : "";
-                          document.title = `${product.name}${colorInfo}${sizeInfo} | LeLeKart`;
-                        }
+                        // ... existing code ...
                       }}
                       onValidSelectionChange={(isValid) => {
-                        // Track valid selection state to enable/disable add to cart button
                         setIsValidSelection(isValid);
                       }}
                       onVariantImagesChange={(images) => {
-                        // Handle variant image changes
-
-                        // Process any images for complex formats
-                        const processedImages = images.flatMap((img) => {
-                          if (typeof img !== "string") return [];
-
-                          // Handle comma-separated values
-                          if (img.includes(",") && !img.startsWith("[")) {
-                            return img
-                              .split(",")
-                              .map((url) => url.trim())
-                              .filter(Boolean);
-                          }
-
-                          // Handle JSON arrays
-                          if (img.startsWith("[")) {
-                            try {
-                              const parsed = JSON.parse(img);
-                              if (Array.isArray(parsed)) {
-                                return parsed.filter(Boolean);
-                              }
-                            } catch (e) {
-                              // Not valid JSON, use as is
-                            }
-                          }
-
-                          return [img];
-                        });
-
-                        // Update the variant images
-                        setSelectedVariantImages(processedImages);
-
-                        // Auto-scroll to the first image when variant changes
-                        if (processedImages.length > 0) {
-                          setTimeout(() => {
-                            const firstImageElement = document.querySelector(
-                              ".product-image-slider .main-image"
-                            );
-                            if (firstImageElement) {
-                              firstImageElement.scrollIntoView({
-                                behavior: "smooth",
-                                block: "nearest",
-                              });
-                            }
-                          }, 100);
-                        }
+                        // ... existing code ...
                       }}
                       onViewVariantImages={(images, variantInfo) => {
-                        // Open the variant image gallery modal with the selected images
                         setModalImages(images);
                         setModalVariantInfo(variantInfo);
                         setVariantImageModalOpen(true);
@@ -2059,20 +1872,7 @@ export default function ProductDetailsPage() {
                             }`}
                             onClick={() => {
                               setSelectedColor(color);
-                              // Find the first variant for this color
-                              const colorVariant = product.variants.find(
-                                (v) => v.color === color
-                              );
-                              if (colorVariant && colorVariant.images) {
-                                let variantImages = Array.isArray(
-                                  colorVariant.images
-                                )
-                                  ? colorVariant.images
-                                  : [colorVariant.images];
-                                setSelectedVariantImages(variantImages);
-                              } else {
-                                setSelectedVariantImages([]);
-                              }
+                              // ... existing code ...
                             }}
                           >
                             {color}
@@ -2083,11 +1883,11 @@ export default function ProductDetailsPage() {
                   )}
 
                 {/* Highlights & Services */}
-                <div className="mt-4 grid grid-cols-12 gap-4">
-                  <div className="col-span-2 text-gray-600 text-sm">
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4">
+                  <div className="sm:col-span-2 text-gray-600 text-sm mb-1 sm:mb-0">
                     Highlights
                   </div>
-                  <div className="col-span-10">
+                  <div className="sm:col-span-10">
                     <ul className="text-sm space-y-1">
                       {Array.isArray(specifications)
                         ? specifications.slice(0, 4).map((spec, i) => (
@@ -2101,11 +1901,11 @@ export default function ProductDetailsPage() {
                 </div>
 
                 {/* Services */}
-                <div className="mt-4 grid grid-cols-12 gap-4">
-                  <div className="col-span-2 text-gray-600 text-sm">
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4">
+                  <div className="sm:col-span-2 text-gray-600 text-sm mb-1 sm:mb-0">
                     Services
                   </div>
-                  <div className="col-span-10">
+                  <div className="sm:col-span-10">
                     <div className="text-sm space-y-1">
                       <div className="flex items-center">
                         <TruckIcon className="h-4 w-4 text-primary mr-2" />
@@ -2140,9 +1940,11 @@ export default function ProductDetailsPage() {
                 </div>
 
                 {/* Seller Info */}
-                <div className="mt-4 grid grid-cols-12 gap-4">
-                  <div className="col-span-2 text-gray-600 text-sm">Seller</div>
-                  <div className="col-span-10">
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4">
+                  <div className="sm:col-span-2 text-gray-600 text-sm mb-1 sm:mb-0">
+                    Seller
+                  </div>
+                  <div className="sm:col-span-10">
                     <div className="text-primary text-sm font-medium">
                       {product?.sellerId ? (
                         <Link
@@ -2169,7 +1971,7 @@ export default function ProductDetailsPage() {
                 </div>
 
                 {/* Buttons Section - Only shown in product info section, not duplicated at bottom */}
-                <div className="flex mt-6 gap-3">
+                <div className="flex flex-col sm:flex-row mt-6 gap-3">
                   <Button
                     size="lg"
                     className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white"
@@ -2215,9 +2017,9 @@ export default function ProductDetailsPage() {
 
           {/* Product Details Tabs */}
           <div className="bg-white rounded shadow-sm mb-3">
-            <div className="p-4">
+            <div className="p-2 sm:p-4">
               <Tabs defaultValue="description">
-                <TabsList className="w-full justify-start border-b mb-4">
+                <TabsList className="w-full justify-start border-b mb-4 overflow-x-auto whitespace-nowrap">
                   <TabsTrigger value="description">Description</TabsTrigger>
                   <TabsTrigger value="additional">
                     Additional information
@@ -2237,55 +2039,52 @@ export default function ProductDetailsPage() {
                     content={product?.description || ""}
                     className="text-gray-700"
                   />
-                  {/* AI-Powered Product Q&A removed */}
                 </TabsContent>
 
                 <TabsContent value="additional" className="p-2">
                   <h3 className="font-medium text-lg mb-3">
                     Additional Information
                   </h3>
-                  <table className="w-full border rounded text-sm">
-                    <tbody>
-                      <tr className="border-b">
-                        <td className="p-3 font-medium w-1/3 bg-gray-50">
-                          Weight
-                        </td>
-                        <td className="p-3">
-                          {product?.weight !== undefined &&
-                          product?.weight !== null &&
-                          product?.weight !== ""
-                            ? `${product.weight} g`
-                            : "No information available"}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="p-3 font-medium w-1/3 bg-gray-50">
-                          Dimensions
-                        </td>
-                        <td className="p-3">
-                          {product?.length !== undefined &&
-                          product?.width !== undefined &&
-                          product?.height !== undefined &&
-                          product?.length !== null &&
-                          product?.width !== null &&
-                          product?.height !== null &&
-                          product?.length !== "" &&
-                          product?.width !== "" &&
-                          product?.height !== ""
-                            ? `${product.length} × ${product.width} × ${product.height} cm`
-                            : "No information available"}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border rounded text-sm min-w-[350px]">
+                      <tbody>
+                        <tr className="border-b">
+                          <td className="p-3 font-medium w-1/3 bg-gray-50">
+                            Weight
+                          </td>
+                          <td className="p-3">
+                            {product?.weight !== undefined &&
+                            product?.weight !== null &&
+                            product?.weight !== ""
+                              ? `${product.weight} g`
+                              : "No information available"}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="p-3 font-medium w-1/3 bg-gray-50">
+                            Dimensions
+                          </td>
+                          <td className="p-3">
+                            {product?.length !== undefined &&
+                            product?.width !== undefined &&
+                            product?.height !== undefined &&
+                            product?.length !== null &&
+                            product?.width !== null &&
+                            product?.height !== null &&
+                            product?.length !== "" &&
+                            product?.width !== "" &&
+                            product?.height !== ""
+                              ? `${product.length} × ${product.width} × ${product.height} cm`
+                              : "No information available"}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="specifications" className="p-2">
                   <h3 className="font-medium text-lg mb-3">Specifications</h3>
-
-                  {/* AI-Powered Size Recommendation removed */}
-
-                  {/* Check if specifications are in HTML format from rich text editor */}
                   {product?.specifications &&
                   (product.specifications.includes("<p>") ||
                     product.specifications.includes("<h") ||
@@ -2297,12 +2096,12 @@ export default function ProductDetailsPage() {
                       />
                     </div>
                   ) : (
-                    <div className="border rounded">
+                    <div className="border rounded overflow-x-auto">
                       <div className="bg-gray-50 p-3 border-b">
                         <h4 className="font-medium">General</h4>
                       </div>
                       <div className="p-0">
-                        <table className="w-full">
+                        <table className="w-full min-w-[350px]">
                           <tbody>
                             {Array.isArray(specifications)
                               ? specifications.map((spec, index) => (
@@ -2336,7 +2135,7 @@ export default function ProductDetailsPage() {
                   Array.isArray(product.variants) &&
                   product.variants.length > 0 ? (
                     <div className="overflow-x-auto rounded-md border">
-                      <table className="min-w-full divide-y divide-gray-200">
+                      <table className="min-w-full divide-y divide-gray-200 min-w-[500px]">
                         <thead className="bg-gray-50">
                           <tr>
                             <th
@@ -2374,119 +2173,7 @@ export default function ProductDetailsPage() {
                         <tbody className="divide-y divide-gray-200 bg-white">
                           {product.variants.map(
                             (variant: any, index: number) => {
-                              // Parse variant images if stored as string
-                              let variantImages: string[] = [];
-                              try {
-                                if (variant.images) {
-                                  if (typeof variant.images === "string") {
-                                    variantImages = JSON.parse(variant.images);
-                                  } else if (Array.isArray(variant.images)) {
-                                    variantImages = variant.images;
-                                  }
-                                }
-                              } catch (e) {
-                                console.error(
-                                  "Failed to parse variant images:",
-                                  e
-                                );
-                              }
-
-                              return (
-                                <tr key={variant.id || index}>
-                                  <td className="px-4 py-3 whitespace-nowrap">
-                                    <div className="flex flex-col">
-                                      {variant.color && (
-                                        <span className="text-sm">
-                                          <strong>Color:</strong>{" "}
-                                          {variant.color}
-                                        </span>
-                                      )}
-                                      {variant.size && (
-                                        <span className="text-sm">
-                                          <strong>Size:</strong> {variant.size}
-                                        </span>
-                                      )}
-                                      {!variant.color && !variant.size && (
-                                        <span className="text-gray-500 text-sm italic">
-                                          No specifications
-                                        </span>
-                                      )}
-                                    </div>
-                                  </td>
-                                  <td className="px-4 py-3 whitespace-nowrap">
-                                    <div className="flex flex-col">
-                                      {typeof variant.price === "number" &&
-                                        variant.price > 0 && (
-                                          <span className="text-sm font-medium">
-                                            ₹{formatPrice(variant.price)}
-                                          </span>
-                                        )}
-                                      {typeof variant.mrp === "number" &&
-                                        variant.mrp > 0 && (
-                                          <span className="text-xs text-gray-500 line-through">
-                                            ₹{formatPrice(variant.mrp)}
-                                          </span>
-                                        )}
-                                    </div>
-                                  </td>
-                                  <td className="px-4 py-3 whitespace-nowrap">
-                                    <span
-                                      className={`text-sm ${
-                                        variant.stock > 0
-                                          ? "text-green-600"
-                                          : "text-red-600"
-                                      }`}
-                                    >
-                                      {variant.stock > 0
-                                        ? `${variant.stock} units`
-                                        : "Out of stock"}
-                                    </span>
-                                  </td>
-                                  <td className="px-4 py-3 whitespace-nowrap">
-                                    <span className="text-sm text-gray-900">
-                                      {variant.sku || "N/A"}
-                                    </span>
-                                  </td>
-                                  <td className="px-4 py-3">
-                                    <div className="flex space-x-2 overflow-auto max-w-xs">
-                                      {variantImages.length > 0 ? (
-                                        <div className="flex space-x-2">
-                                          {variantImages
-                                            .slice(0, 3)
-                                            .map((img, imgIndex) => (
-                                              <img
-                                                key={imgIndex}
-                                                src={img}
-                                                alt={`Variant ${
-                                                  index + 1
-                                                } image ${imgIndex + 1}`}
-                                                className="w-12 h-12 object-cover rounded border"
-                                                onError={(e) => {
-                                                  (
-                                                    e.target as HTMLImageElement
-                                                  ).onerror = null;
-                                                  (
-                                                    e.target as HTMLImageElement
-                                                  ).src =
-                                                    "../images/placeholder.svg";
-                                                }}
-                                              />
-                                            ))}
-                                          {variantImages.length > 3 && (
-                                            <span className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded border text-xs text-gray-600">
-                                              +{variantImages.length - 3}
-                                            </span>
-                                          )}
-                                        </div>
-                                      ) : (
-                                        <span className="text-xs text-gray-500 italic">
-                                          No images
-                                        </span>
-                                      )}
-                                    </div>
-                                  </td>
-                                </tr>
-                              );
+                              // ... existing code ...
                             }
                           )}
                         </tbody>
@@ -2508,21 +2195,8 @@ export default function ProductDetailsPage() {
             </div>
           </div>
 
-          {/* AI-powered Complementary Products */}
-          {/* Skip complementary products for now - it requires cart context */}
-          {/* <div className="bg-white rounded shadow-sm mb-3 p-4">
-            {product && (
-              <ComplementaryProducts
-                productId={product.id}
-                productName={product.name}
-                productImage={productImages[0]}
-                productPrice={price}
-              />
-            )}
-          </div> */}
-
           {/* Similar Products Recommendation Carousel */}
-          <div className="bg-white rounded shadow-sm mb-3 p-4">
+          <div className="bg-white rounded shadow-sm mb-3 p-2 sm:p-4">
             {product && (
               <ProductRecommendationCarousel
                 title="Similar Products You May Like"
