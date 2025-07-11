@@ -79,7 +79,7 @@ import AgreementManagementPage from "./pages/admin/agreements-page";
 import GSTManagementPage from "./pages/admin/gst-management";
 import MediaLibraryPage from "./pages/admin/media-library";
 import AdminBackupsPage from "./pages/admin/backups";
-import AdminNotificationsPage from './pages/admin/notifications';
+import AdminNotificationsPage from "./pages/admin/notifications";
 import TicketManagementPage from "./pages/admin/ticket-management";
 // Import shared components
 import { SuspenseWrapper } from "./components/shared/suspense-wrapper";
@@ -129,6 +129,7 @@ import SellerGettingStartedGuide from "./pages/seller/getting-started";
 import SellerBestPracticesGuide from "./pages/seller/best-practices";
 import SellerSuccessStories from "./pages/seller/success-stories";
 import SellerWebinarsPage from "./pages/seller/webinars";
+import SellerProductsListingPage from "./pages/seller-products-listing";
 
 // Buyer pages
 import BuyerDashboardPage from "./pages/buyer/dashboard";
@@ -1373,6 +1374,15 @@ function App() {
                             role="seller"
                             component={SellerWebinarsPage}
                           />
+                        )}
+                      </Route>
+
+                      {/* Seller Products Listing Page */}
+                      <Route path="/seller-products-listing/:sellerId">
+                        {(params) => (
+                          <Layout>
+                            <SellerProductsListingPage />
+                          </Layout>
                         )}
                       </Route>
 
