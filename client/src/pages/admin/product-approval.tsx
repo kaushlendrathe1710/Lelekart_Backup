@@ -136,6 +136,18 @@ function ProductApprovalContent() {
     },
   });
 
+  // Fetch product statistics for the stats cards
+  const {
+    data: productStats,
+    isLoading: statsLoading,
+  } = useQuery({
+    queryKey: ["/api/admin/product-stats"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/admin/product-stats");
+      return res.json();
+    },
+  });
+
   // Extract products array and pagination info from response
   const products = pendingProductsData?.products || [];
   const pagination = pendingProductsData?.pagination;
@@ -149,6 +161,7 @@ function ProductApprovalContent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products/pending"] });
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/product-stats"] });
       toast({
         title: "Product approved",
         description: "The product is now visible to buyers.",
@@ -172,6 +185,7 @@ function ProductApprovalContent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products/pending"] });
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/product-stats"] });
       toast({
         title: "Product rejected",
         description: "The product will not be visible to buyers.",
@@ -208,6 +222,7 @@ function ProductApprovalContent() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/products/pending"] });
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/product-stats"] });
 
       // Reset selection after successful operation
       setSelectedProducts([]);
@@ -254,6 +269,7 @@ function ProductApprovalContent() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/products/pending"] });
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/product-stats"] });
 
       // Reset selection after successful operation
       setSelectedProducts([]);
@@ -421,15 +437,15 @@ function ProductApprovalContent() {
   // Note: Sorting is handled by the backend with ORDER BY
 
   // Extract unique categories for filtering
-  const categories = [
-    ...new Set(pendingProducts?.map((product) => product.category) || []),
-  ];
+  const categories = Array.from(
+    new Set(pendingProducts?.map((product) => product.category) || [])
+  );
 
-  // Product counts for stats
-  const totalPendingProducts = pagination?.total || 0;
-  const totalProducts = pagination?.total || 0;
-  const approvedProducts = products?.filter((p) => p.approved).length || 0;
-  const rejectedProducts = products?.filter((p) => p.rejected).length || 0;
+  // Product counts for stats - use the dedicated stats endpoint
+  const totalPendingProducts = productStats?.pending || 0;
+  const totalProducts = productStats?.total || 0;
+  const approvedProducts =  0;
+  const rejectedProducts =  0;
 
   // Loading states
   const ProductStatsLoading = () => (
@@ -464,7 +480,7 @@ function ProductApprovalContent() {
         </div>
 
         {/* Products Stats */}
-        {isLoading ? (
+        {isLoading || statsLoading ? (
           <ProductStatsLoading />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
