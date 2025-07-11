@@ -1312,6 +1312,23 @@ export default function AddProductPage() {
         gstRate: data.gstRate || getSelectedCategoryGstRate().toString() || "0",
         category: data.category,
         subcategoryId: data.subcategoryId || null,
+        // Add subcategory1 and subcategory2 names for backend
+        subcategory1: (() => {
+          // Get subcategory1 name from subcategoryPath[0]
+          if (subcategoryPath[0]) {
+            const subcat = getSubcategoryById(subcategoryPath[0]);
+            return subcat ? subcat.name : null;
+          }
+          return null;
+        })(),
+        subcategory2: (() => {
+          // Get subcategory2 name from subcategoryPath[1]
+          if (subcategoryPath[1]) {
+            const subcat = getSubcategoryById(subcategoryPath[1]);
+            return subcat ? subcat.name : null;
+          }
+          return null;
+        })(),
         brand: data.brand,
         color: data.color,
         size: data.size,
@@ -1844,6 +1861,7 @@ export default function AddProductPage() {
                                 placeholder="e.g. 1299"
                                 className="pl-7"
                                 {...field}
+                                value={field.value ?? ""}
                               />
                             </div>
                           </FormControl>
@@ -1876,6 +1894,7 @@ export default function AddProductPage() {
                                 placeholder="e.g. 1499"
                                 className="pl-7"
                                 {...field}
+                                value={field.value ?? ""}
                               />
                             </div>
                           </FormControl>
@@ -1904,6 +1923,7 @@ export default function AddProductPage() {
                                 placeholder="e.g. 999"
                                 className="pl-7"
                                 {...field}
+                                value={field.value ?? ""}
                               />
                             </div>
                           </FormControl>
@@ -1936,6 +1956,7 @@ export default function AddProductPage() {
                               placeholder={`Use category default (${getSelectedCategoryGstRate()}%)`}
                               className="pr-7"
                               {...field}
+                              value={field.value ?? ""}
                             />
                           </div>
                         </FormControl>
@@ -1962,6 +1983,7 @@ export default function AddProductPage() {
                             min="0"
                             placeholder="e.g. 100 (leave 0 for Free)"
                             {...field}
+                            value={field.value ?? ""}
                           />
                         </FormControl>
                         <FormDescription>
@@ -2246,6 +2268,7 @@ export default function AddProductPage() {
                                 type="number"
                                 className="pr-16"
                                 {...field}
+                                value={field.value ?? ""}
                               />
                               <div className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground pointer-events-none bg-muted border-l rounded-r-md">
                                 months
@@ -2599,6 +2622,7 @@ export default function AddProductPage() {
                               min="0"
                               placeholder="e.g. 50"
                               {...field}
+                              value={field.value ?? ""}
                             />
                           </FormControl>
                           <FormDescription>
@@ -2657,7 +2681,7 @@ export default function AddProductPage() {
                                   placeholder="e.g. 0.5"
                                   className="pr-12"
                                   {...field}
-                                  value={field.value || ""}
+                                  value={field.value ?? ""}
                                 />
                                 <div className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground pointer-events-none bg-muted border-l rounded-r-md">
                                   kg
@@ -2684,7 +2708,7 @@ export default function AddProductPage() {
                                   placeholder="e.g. 15"
                                   className="pr-12"
                                   {...field}
-                                  value={field.value || ""}
+                                  value={field.value ?? ""}
                                 />
                                 <div className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground pointer-events-none bg-muted border-l rounded-r-md">
                                   cm
@@ -2711,7 +2735,7 @@ export default function AddProductPage() {
                                   placeholder="e.g. 8"
                                   className="pr-12"
                                   {...field}
-                                  value={field.value || ""}
+                                  value={field.value ?? ""}
                                 />
                                 <div className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground pointer-events-none bg-muted border-l rounded-r-md">
                                   cm
@@ -2738,7 +2762,7 @@ export default function AddProductPage() {
                                   placeholder="e.g. 2"
                                   className="pr-12"
                                   {...field}
-                                  value={field.value || ""}
+                                  value={field.value ?? ""}
                                 />
                                 <div className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground pointer-events-none bg-muted border-l rounded-r-md">
                                   cm

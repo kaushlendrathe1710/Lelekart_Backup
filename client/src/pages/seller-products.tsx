@@ -16,7 +16,7 @@ import { CartProvider } from "@/context/cart-context";
 import { Pagination } from "@/components/ui/pagination";
 import { useAuth } from "@/hooks/use-auth";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, AlertTriangle, Edit } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Edit, Trash2 } from "lucide-react";
 import { Link } from "wouter";
 import { SellerDashboardLayout } from "@/components/layout/seller-dashboard-layout";
 import {
@@ -31,6 +31,7 @@ import {
   SquareStack,
   AlignJustify,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface Product {
   id: number;
@@ -85,6 +86,9 @@ export default function SellerProductsPage() {
   useEffect(() => {
     localStorage.setItem("sellerProductsViewMode", viewMode);
   }, [viewMode]);
+
+  const { toast } = useToast();
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   if (!user) {
     return (
@@ -191,6 +195,23 @@ export default function SellerProductsPage() {
       setTotalPages(productsData.totalPages);
     }
   }, [productsData]);
+
+  // Delete product handler
+  const handleDeleteProduct = async (id: number) => {
+    if (!window.confirm("Are you sure you want to delete this product? This action cannot be undone.")) return;
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete product");
+      toast({ title: "Product deleted", description: "The product was deleted successfully." });
+      // Refetch products (react-query will do this automatically if you use invalidateQueries, but here just reload)
+      window.location.reload();
+    } catch (error: any) {
+      toast({ title: "Delete failed", description: error.message || "Could not delete product.", variant: "destructive" });
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   return (
     <SellerDashboardLayout>
@@ -313,6 +334,16 @@ export default function SellerProductsPage() {
                           <div className="mt-2 text-center font-bold text-lg">
                             {product.name}
                           </div>
+                          <div className="flex justify-center mt-1">
+                            <Link href={`/seller/products/edit/${product.id}`}>
+                              <Button variant="ghost" size="sm" className="flex items-center gap-1 text-xs h-7 px-2">
+                                <Edit className="h-4 w-4 mr-1" /> Edit
+                              </Button>
+                            </Link>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 ml-1" onClick={() => handleDeleteProduct(product.id)} disabled={deletingId === product.id} title="Delete">
+                              <Trash2 className="h-4 w-4 text-red-600" />
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -331,6 +362,16 @@ export default function SellerProductsPage() {
                           />
                           <div className="mt-1 text-center font-semibold">
                             {product.name}
+                          </div>
+                          <div className="flex justify-center mt-1">
+                            <Link href={`/seller/products/edit/${product.id}`}>
+                              <Button variant="ghost" size="sm" className="flex items-center gap-1 text-xs h-7 px-2">
+                                <Edit className="h-4 w-4 mr-1" /> Edit
+                              </Button>
+                            </Link>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 ml-1" onClick={() => handleDeleteProduct(product.id)} disabled={deletingId === product.id} title="Delete">
+                              <Trash2 className="h-4 w-4 text-red-600" />
+                            </Button>
                           </div>
                         </div>
                       ))}
@@ -382,6 +423,9 @@ export default function SellerProductsPage() {
                                 <Edit className="h-4 w-4 mr-1" /> Edit
                               </Button>
                             </Link>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 ml-1" onClick={() => handleDeleteProduct(product.id)} disabled={deletingId === product.id} title="Delete">
+                              <Trash2 className="h-4 w-4 text-red-600" />
+                            </Button>
                           </div>
                         </div>
                       ))}
@@ -399,6 +443,16 @@ export default function SellerProductsPage() {
                             alt={product.name}
                             className="w-full h-20 object-cover rounded border"
                           />
+                          <div className="flex flex-col items-center mt-1">
+                            <Link href={`/seller/products/edit/${product.id}`}>
+                              <Button variant="ghost" size="icon" className="h-7 w-7">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </Link>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 ml-1" onClick={() => handleDeleteProduct(product.id)} disabled={deletingId === product.id} title="Delete">
+                              <Trash2 className="h-4 w-4 text-red-600" />
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -420,6 +474,16 @@ export default function SellerProductsPage() {
                           </div>
                           <div className="text-xs text-center text-muted-foreground">
                             {product.category}
+                          </div>
+                          <div className="flex justify-center mt-1">
+                            <Link href={`/seller/products/edit/${product.id}`}>
+                              <Button variant="ghost" size="sm" className="flex items-center gap-1 text-xs h-7 px-2">
+                                <Edit className="h-4 w-4 mr-1" /> Edit
+                              </Button>
+                            </Link>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 ml-1" onClick={() => handleDeleteProduct(product.id)} disabled={deletingId === product.id} title="Delete">
+                              <Trash2 className="h-4 w-4 text-red-600" />
+                            </Button>
                           </div>
                         </div>
                       ))}
@@ -448,6 +512,16 @@ export default function SellerProductsPage() {
                           </div>
                           <div className="text-right font-bold">
                             ₹{product.price.toLocaleString()}
+                          </div>
+                          <div className="ml-4">
+                            <Link href={`/seller/products/edit/${product.id}`}>
+                              <Button variant="ghost" size="icon" className="h-7 w-7">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </Link>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 ml-1" onClick={() => handleDeleteProduct(product.id)} disabled={deletingId === product.id} title="Delete">
+                              <Trash2 className="h-4 w-4 text-red-600" />
+                            </Button>
                           </div>
                         </div>
                       ))}
@@ -490,6 +564,16 @@ export default function SellerProductsPage() {
                               Stock: {product.stock}
                             </div>
                           </div>
+                          <div className="ml-4 mt-2 md:mt-0 flex md:block">
+                            <Link href={`/seller/products/edit/${product.id}`}>
+                              <Button variant="ghost" size="sm" className="flex items-center gap-1 text-xs h-7 px-2">
+                                <Edit className="h-4 w-4 mr-1" /> Edit
+                              </Button>
+                            </Link>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 ml-1" onClick={() => handleDeleteProduct(product.id)} disabled={deletingId === product.id} title="Delete">
+                              <Trash2 className="h-4 w-4 text-red-600" />
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -507,6 +591,16 @@ export default function SellerProductsPage() {
                             className="w-full h-32 object-cover rounded border mb-1"
                           />
                           <div className="mt-1 text-center">{product.name}</div>
+                          <div className="flex justify-center mt-1">
+                            <Link href={`/seller/products/edit/${product.id}`}>
+                              <Button variant="ghost" size="icon" className="h-7 w-7">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </Link>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 ml-1" onClick={() => handleDeleteProduct(product.id)} disabled={deletingId === product.id} title="Delete">
+                              <Trash2 className="h-4 w-4 text-red-600" />
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -555,6 +649,16 @@ export default function SellerProductsPage() {
                               </td>
                               <td className="border px-2 py-1">
                                 {getSubcategoryDisplay(product)}
+                              </td>
+                              <td className="border px-2 py-1">
+                                <Link href={`/seller/products/edit/${product.id}`}>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                </Link>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 ml-1" onClick={() => handleDeleteProduct(product.id)} disabled={deletingId === product.id} title="Delete">
+                                  <Trash2 className="h-4 w-4 text-red-600" />
+                                </Button>
                               </td>
                             </tr>
                           ))}
