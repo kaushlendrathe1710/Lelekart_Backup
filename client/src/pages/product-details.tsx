@@ -698,43 +698,67 @@ export default function ProductDetailsPage() {
   useEffect(() => {
     // Ensure productId is a valid number
     if (typeof productId !== "number" || isNaN(productId) || productId <= 0) {
-      console.log("[ProductDetails] Invalid productId for recently viewed tracking:", productId);
+      console.log(
+        "[ProductDetails] Invalid productId for recently viewed tracking:",
+        productId
+      );
       return;
     }
-    
+
     try {
       const key = "recently_viewed_products";
       const existing = localStorage.getItem(key);
       let ids: number[] = [];
-      
+
       if (existing) {
         try {
           ids = JSON.parse(existing);
-          console.log("[ProductDetails] Existing recently viewed products:", ids);
+          console.log(
+            "[ProductDetails] Existing recently viewed products:",
+            ids
+          );
         } catch (parseError) {
-          console.error("[ProductDetails] Error parsing existing recently viewed products:", parseError);
+          console.error(
+            "[ProductDetails] Error parsing existing recently viewed products:",
+            parseError
+          );
           ids = [];
         }
       } else {
-        console.log("[ProductDetails] No existing recently viewed products found");
+        console.log(
+          "[ProductDetails] No existing recently viewed products found"
+        );
       }
-      
+
       // Remove if already present
       const filteredIds = ids.filter((id) => id !== productId);
-      console.log("[ProductDetails] IDs after removing current product:", filteredIds);
-      
+      console.log(
+        "[ProductDetails] IDs after removing current product:",
+        filteredIds
+      );
+
       // Add to start
       filteredIds.unshift(productId);
-      console.log("[ProductDetails] IDs after adding current product to start:", filteredIds);
-      
+      console.log(
+        "[ProductDetails] IDs after adding current product to start:",
+        filteredIds
+      );
+
       // Keep only latest 20
-      const finalIds = filteredIds.length > 20 ? filteredIds.slice(0, 20) : filteredIds;
+      const finalIds =
+        filteredIds.length > 20 ? filteredIds.slice(0, 20) : filteredIds;
       console.log("[ProductDetails] Final IDs (max 20):", finalIds);
-      
+
       localStorage.setItem(key, JSON.stringify(finalIds));
-      console.log("[ProductDetails] Successfully updated localStorage with recently viewed products:", finalIds);
+      console.log(
+        "[ProductDetails] Successfully updated localStorage with recently viewed products:",
+        finalIds
+      );
     } catch (e) {
-      console.error("[ProductDetails] Error updating recently viewed products:", e);
+      console.error(
+        "[ProductDetails] Error updating recently viewed products:",
+        e
+      );
       // Ignore localStorage errors
     }
   }, [productId]);
@@ -1409,7 +1433,11 @@ export default function ProductDetailsPage() {
       // Use the variant's MRP if present, otherwise fallback to product.mrp
       const variantMrp = selectedVariant.mrp ?? product.mrp ?? 0;
       const variantDiscount = variantMrp - variantPrice;
-      console.log('DEBUG VARIANT PRICE BLOCK', { selectedVariant, variantPrice, variantMrp });
+      console.log("DEBUG VARIANT PRICE BLOCK", {
+        selectedVariant,
+        variantPrice,
+        variantMrp,
+      });
       return {
         price: variantPrice,
         discount: variantDiscount,
@@ -1426,7 +1454,8 @@ export default function ProductDetailsPage() {
 
     // Check if product has GST details
     if (product && product.gstDetails) {
-      const productPrice = product.gstDetails.priceWithGst || product.price || 0;
+      const productPrice =
+        product.gstDetails.priceWithGst || product.price || 0;
       // Use product.mrp if available, otherwise fallback to calculated
       const productMrp = product.mrp ?? Math.round(productPrice * 1.25);
       const productDiscount = productMrp - productPrice;
@@ -1511,16 +1540,16 @@ export default function ProductDetailsPage() {
     priceDetails;
 
   // Parse color and size options
-  const colorOptions = product && product.color
-    ? product.color.split(/,\s*/).filter(Boolean)
-    : [];
-  const sizeOptions = product && product.size
-    ? product.size.split(/,\s*/).filter(Boolean)
-    : [];
+  const colorOptions =
+    product && product.color ? product.color.split(/,\s*/).filter(Boolean) : [];
+  const sizeOptions =
+    product && product.size ? product.size.split(/,\s*/).filter(Boolean) : [];
 
   // --- HARD FILTER: Prevent accidental 0 rendering in GST breakdown ---
-  let safeBasePrice = typeof basePrice === "number" && basePrice > 0 ? basePrice : undefined;
-  let safeGstAmount = typeof gstAmount === "number" && gstAmount > 0 ? gstAmount : undefined;
+  let safeBasePrice =
+    typeof basePrice === "number" && basePrice > 0 ? basePrice : undefined;
+  let safeGstAmount =
+    typeof gstAmount === "number" && gstAmount > 0 ? gstAmount : undefined;
 
   return (
     <CartProvider>
@@ -1596,39 +1625,67 @@ export default function ProductDetailsPage() {
                 </div>
 
                 {/* Pricing */}
-                {console.log('DEBUG PRICE BLOCK', {price, discount, original, hasGst, gstRate, basePrice, gstAmount, safeBasePrice, safeGstAmount, selectedVariant})}
+                {console.log("DEBUG PRICE BLOCK", {
+                  price,
+                  discount,
+                  original,
+                  hasGst,
+                  gstRate,
+                  basePrice,
+                  gstAmount,
+                  safeBasePrice,
+                  safeGstAmount,
+                  selectedVariant,
+                })}
                 <div className="flex flex-col mt-1">
                   <div className="flex items-baseline">
-                    {typeof price === 'number' && price > 0 && (
+                    {typeof price === "number" && price > 0 && (
                       <span className="text-3xl font-medium text-gray-800">
                         {formatPrice(price)}
                       </span>
                     )}
-                    {((selectedVariant?.mrp && selectedVariant.mrp > 0) || (product?.mrp && product?.mrp > 0) || (original && original > 0)) && (
+                    {((selectedVariant?.mrp && selectedVariant.mrp > 0) ||
+                      (product?.mrp && product?.mrp > 0) ||
+                      (original && original > 0)) && (
                       <span className="text-sm text-gray-500 line-through ml-2">
                         ₹
-                        {((selectedVariant?.mrp ?? (product?.mrp ?? original)) as number)?.toLocaleString("en-IN")}
+                        {(
+                          (selectedVariant?.mrp ??
+                            product?.mrp ??
+                            original) as number
+                        )?.toLocaleString("en-IN")}
                       </span>
                     )}
-                    {((selectedVariant?.mrp && selectedVariant.mrp > 0) || (product?.mrp && product?.mrp > 0) || (original && original > 0)) && price > 0 && (
-                      <span className="text-sm text-green-600 ml-2">
-                        {(() => {
-                          const mrp = selectedVariant?.mrp ?? (product?.mrp ?? original);
-                          return mrp && mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
-                        })()}
-                        % off
-                      </span>
-                    )}
+                    {((selectedVariant?.mrp && selectedVariant.mrp > 0) ||
+                      (product?.mrp && product?.mrp > 0) ||
+                      (original && original > 0)) &&
+                      price > 0 && (
+                        <span className="text-sm text-green-600 ml-2">
+                          {(() => {
+                            const mrp =
+                              selectedVariant?.mrp ?? product?.mrp ?? original;
+                            return mrp && mrp > 0
+                              ? Math.round(((mrp - price) / mrp) * 100)
+                              : 0;
+                          })()}
+                          % off
+                        </span>
+                      )}
                   </div>
                   {/* GST Breakdown */}
                   {hasGst &&
-                    ((typeof gstRate === "string" && parseFloat(gstRate) > 0) || (typeof gstRate === "number" && gstRate > 0)) &&
-                    typeof basePrice === "number" && basePrice > 0 &&
-                    typeof gstAmount === "number" && gstAmount > 0 && (
+                    ((typeof gstRate === "string" && parseFloat(gstRate) > 0) ||
+                      (typeof gstRate === "number" && gstRate > 0)) &&
+                    typeof basePrice === "number" &&
+                    basePrice > 0 &&
+                    typeof gstAmount === "number" &&
+                    gstAmount > 0 && (
                       <div className="text-sm text-gray-600 mt-1 font-medium">
-                        Price includes GST ({gstRate}%): {formatPrice(basePrice + gstAmount)}
+                        Price includes GST ({gstRate}%):{" "}
+                        {formatPrice(basePrice + gstAmount)}
                         <span className="text-xs text-gray-500 ml-2">
-                          (Base: {formatPrice(basePrice)} + GST: {formatPrice(gstAmount)})
+                          (Base: {formatPrice(basePrice)} + GST:{" "}
+                          {formatPrice(gstAmount)})
                         </span>
                       </div>
                     )}
@@ -1675,10 +1732,17 @@ export default function ProductDetailsPage() {
                           className="h-8 w-8 rounded-r"
                           title="Increase quantity"
                           onClick={() => {
-                            const availableStock = selectedVariant?.stock || product?.stock || 999;
+                            const availableStock =
+                              selectedVariant?.stock || product?.stock || 999;
                             setQuantity(Math.min(availableStock, quantity + 1));
                           }}
-                          disabled={selectedVariant?.stock ? quantity >= selectedVariant.stock : product?.stock ? quantity >= product.stock : false}
+                          disabled={
+                            selectedVariant?.stock
+                              ? quantity >= selectedVariant.stock
+                              : product?.stock
+                                ? quantity >= product.stock
+                                : false
+                          }
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
@@ -2025,11 +2089,13 @@ export default function ProductDetailsPage() {
                   </div>
                   <div className="col-span-10">
                     <ul className="text-sm space-y-1">
-                      {Array.isArray(specifications) ? specifications.slice(0, 4).map((spec, i) => (
-                        <li key={i}>
-                          • {spec.key}: {spec.value}
-                        </li>
-                      )) : null}
+                      {Array.isArray(specifications)
+                        ? specifications.slice(0, 4).map((spec, i) => (
+                            <li key={i}>
+                              • {spec.key}: {spec.value}
+                            </li>
+                          ))
+                        : null}
                     </ul>
                   </div>
                 </div>
@@ -2080,13 +2146,17 @@ export default function ProductDetailsPage() {
                     <div className="text-primary text-sm font-medium">
                       {product?.sellerId ? (
                         <Link
-                          href={`/seller-products/${product.sellerId}?sellerName=${encodeURIComponent(product.sellerName || product.sellerUsername || "Seller")}`}
+                          href={`/seller-products-listing/${product.sellerId}${product.sellerName ? `?sellerName=${encodeURIComponent(product.sellerName)}` : ""}`}
                           className="hover:underline cursor-pointer text-blue-600"
                         >
-                          {product?.sellerName || product?.sellerUsername || "Seller not found"}
+                          {product?.sellerName ||
+                            product?.sellerUsername ||
+                            "Seller not found"}
                         </Link>
                       ) : (
-                        product?.sellerName || product?.sellerUsername || "Seller not found"
+                        product?.sellerName ||
+                        product?.sellerUsername ||
+                        "Seller not found"
                       )}
                     </div>
                     <div className="flex items-center">
@@ -2234,21 +2304,25 @@ export default function ProductDetailsPage() {
                       <div className="p-0">
                         <table className="w-full">
                           <tbody>
-                            {Array.isArray(specifications) ? specifications.map((spec, index) => (
-                              <tr
-                                key={index}
-                                className={
-                                  index % 2 === 0 ? "bg-white" : "bg-gray-50"
-                                }
-                              >
-                                <td className="p-3 border-b border-gray-200 w-1/3 text-gray-600">
-                                  {spec.key}
-                                </td>
-                                <td className="p-3 border-b border-gray-200">
-                                  {spec.value}
-                                </td>
-                              </tr>
-                            )) : null}
+                            {Array.isArray(specifications)
+                              ? specifications.map((spec, index) => (
+                                  <tr
+                                    key={index}
+                                    className={
+                                      index % 2 === 0
+                                        ? "bg-white"
+                                        : "bg-gray-50"
+                                    }
+                                  >
+                                    <td className="p-3 border-b border-gray-200 w-1/3 text-gray-600">
+                                      {spec.key}
+                                    </td>
+                                    <td className="p-3 border-b border-gray-200">
+                                      {spec.value}
+                                    </td>
+                                  </tr>
+                                ))
+                              : null}
                           </tbody>
                         </table>
                       </div>
@@ -2341,16 +2415,18 @@ export default function ProductDetailsPage() {
                                   </td>
                                   <td className="px-4 py-3 whitespace-nowrap">
                                     <div className="flex flex-col">
-                                      {typeof variant.price === 'number' && variant.price > 0 && (
-                                        <span className="text-sm font-medium">
-                                          ₹{formatPrice(variant.price)}
-                                        </span>
-                                      )}
-                                      {typeof variant.mrp === 'number' && variant.mrp > 0 && (
-                                        <span className="text-xs text-gray-500 line-through">
-                                          ₹{formatPrice(variant.mrp)}
-                                        </span>
-                                      )}
+                                      {typeof variant.price === "number" &&
+                                        variant.price > 0 && (
+                                          <span className="text-sm font-medium">
+                                            ₹{formatPrice(variant.price)}
+                                          </span>
+                                        )}
+                                      {typeof variant.mrp === "number" &&
+                                        variant.mrp > 0 && (
+                                          <span className="text-xs text-gray-500 line-through">
+                                            ₹{formatPrice(variant.mrp)}
+                                          </span>
+                                        )}
                                     </div>
                                   </td>
                                   <td className="px-4 py-3 whitespace-nowrap">
