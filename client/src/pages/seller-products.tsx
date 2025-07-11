@@ -36,12 +36,16 @@ interface Product {
   id: number;
   name: string;
   price: number;
+  sku?: string;
   imageUrl?: string;
   image_url?: string;
   image?: string;
   images?: string;
   description: string;
   category: string;
+  subcategory?: string;
+  subcategory1?: string;
+  subcategory2?: string;
   sellerId: number;
   approved: boolean;
   createdAt: string;
@@ -115,6 +119,16 @@ export default function SellerProductsPage() {
       }
     }
     return "https://via.placeholder.com/300x300?text=Product";
+  };
+
+  // Helper to get subcategory display value
+  const getSubcategoryDisplay = (product: Product): string => {
+    return (
+      product.subcategory1 ||
+      product.subcategory2 ||
+      product.subcategory ||
+      "-"
+    );
   };
 
   // Fetch categories
@@ -464,7 +478,7 @@ export default function SellerProductsPage() {
                                 Category: {product.category}
                               </div>
                               <div className="text-xs text-muted-foreground">
-                                Subcategory: {product.subcategory}
+                                Subcategory: {getSubcategoryDisplay(product)}
                               </div>
                             </div>
                           </div>
@@ -540,7 +554,7 @@ export default function SellerProductsPage() {
                                 {product.category}
                               </td>
                               <td className="border px-2 py-1">
-                                {product.subcategory}
+                                {getSubcategoryDisplay(product)}
                               </td>
                             </tr>
                           ))}
