@@ -215,16 +215,18 @@ export function SimpleHeader() {
                 />
               </div>
             </Link>
-            <Link href="/">
-              <Button
-                variant="ghost"
-                className="flex items-center py-1 px-2 text-white font-medium rounded-sm hover:bg-primary-foreground/10"
-                style={{ boxShadow: "none", background: "transparent" }}
-              >
-                <HomeIcon className="mr-2 h-4 w-4" />
-                <span>Home</span>
-              </Button>
-            </Link>
+            {location !== "/" && (
+              <Link href="/">
+                <Button
+                  variant="ghost"
+                  className="flex items-center py-1 px-2 text-white font-medium rounded-sm hover:bg-primary-foreground/10"
+                  style={{ boxShadow: "none", background: "transparent" }}
+                >
+                  <HomeIcon className="mr-2 h-4 w-4" />
+                  <span>Home</span>
+                </Button>
+              </Link>
+            )}
           </div>
 
           {(!user || user.role === "buyer") && (
@@ -265,12 +267,14 @@ export function SimpleHeader() {
             </div>
 
             <nav className="space-y-4">
-              <button
-                onClick={() => navigateTo("/")}
-                className="block w-full text-left py-3 border-b border-primary-foreground/20"
-              >
-                Home
-              </button>
+              {location !== "/" && (
+                <button
+                  onClick={() => navigateTo("/")}
+                  className="block w-full text-left py-3 border-b border-primary-foreground/20"
+                >
+                  Home
+                </button>
+              )}
 
               {!user ? (
                 <button
@@ -304,13 +308,15 @@ export function SimpleHeader() {
                 </>
               )}
 
-              <button
-                onClick={handleCartClick}
-                className="block w-full text-left py-3 border-b border-primary-foreground/20"
-                title="Shopping Cart"
-              >
-                Cart {cartItemCount > 0 && `(${cartItemCount})`}
-              </button>
+              {(!user || user.role === "buyer") && (
+                <button
+                  onClick={handleCartClick}
+                  className="block w-full text-left py-3 border-b border-primary-foreground/20"
+                  title="Shopping Cart"
+                >
+                  Cart {cartItemCount > 0 && `(${cartItemCount})`}
+                </button>
+              )}
             </nav>
           </div>
         </div>
