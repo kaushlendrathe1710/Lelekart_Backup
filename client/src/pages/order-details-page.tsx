@@ -56,6 +56,7 @@ interface Product {
   stock?: number;
   gstDetails?: GstDetails;
   deliveryCharges?: number;
+  sku?: string;
 }
 
 interface OrderItem {
@@ -368,22 +369,22 @@ export default function OrderDetailsPage() {
     setReturning(true);
     try {
       const response = await fetch(`/api/orders/${orderId}/mark-for-return`, {
-        method: 'POST',
-        credentials: 'include',
+        method: "POST",
+        credentials: "include",
       });
       if (!response.ok) {
-        throw new Error('Failed to mark order for return');
+        throw new Error("Failed to mark order for return");
       }
       toast({
-        title: 'Return Initiated',
-        description: 'Order marked for return. You can track it in My Returns.',
+        title: "Return Initiated",
+        description: "Order marked for return. You can track it in My Returns.",
       });
       fetchOrderDetails();
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to mark order for return. Please try again.',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to mark order for return. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setReturning(false);
@@ -434,18 +435,18 @@ export default function OrderDetailsPage() {
       shippingDetails = order.shippingDetails;
     }
 
-    // Use a single div to wrap all components to avoid adjacent JSX elements
     return (
-      <div className="order-details-container">
-        <div className="flex flex-col md:flex-row justify-between items-start mb-6">
+      <div className="order-details-container px-2 sm:px-0">
+        {/* Header and Actions */}
+        <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-6">
           <div>
             <h1 className="text-2xl font-bold">Order Details</h1>
             <p className="text-muted-foreground">Order #{order.id}</p>
           </div>
-          <div className="mt-4 md:mt-0 flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 mt-4 md:mt-0 w-full sm:w-auto">
             <Button
               variant="outline"
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 w-full sm:w-auto"
               onClick={() => navigate(`/track-order/${orderId}`)}
             >
               <Truck className="h-4 w-4" />
@@ -453,7 +454,7 @@ export default function OrderDetailsPage() {
             </Button>
             <Button
               variant="outline"
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 w-full sm:w-auto"
               onClick={handleViewInvoice}
               disabled={viewInvoiceLoading}
             >
@@ -466,7 +467,7 @@ export default function OrderDetailsPage() {
             </Button>
             <Button
               variant="outline"
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 w-full sm:w-auto"
               onClick={handleDownloadInvoice}
               disabled={invoiceLoading}
             >
@@ -477,13 +478,10 @@ export default function OrderDetailsPage() {
               )}
               Download Invoice
             </Button>
-
-            {user?.role === "seller" ||
-            user?.role === "admin" ||
-            user?.role === "co-admin" ? (
+            {user?.role === "admin" || user?.role === "co-admin" ? (
               <Button
                 variant="outline"
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 w-full sm:w-auto"
                 onClick={handleDownloadShippingLabel}
                 disabled={shippingLabelLoading}
               >
@@ -495,11 +493,10 @@ export default function OrderDetailsPage() {
                 Shipping Label
               </Button>
             ) : null}
-
-            {order.status === 'delivered' && user?.role === 'buyer' && (
+            {order.status === "delivered" && user?.role === "buyer" && (
               <Button
                 variant="outline"
-                className="flex items-center gap-1 text-blue-500 border-blue-200 hover:bg-blue-50"
+                className="flex items-center gap-1 text-blue-500 border-blue-200 hover:bg-blue-50 w-full sm:w-auto"
                 disabled={returning}
                 onClick={handleReturnOrder}
               >
@@ -512,17 +509,17 @@ export default function OrderDetailsPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <Card className="p-6">
+        {/* All details as vertical cards on mobile */}
+        <div className="flex flex-col gap-4 mb-6">
+          {/* Order Status */}
+          <Card className="p-4 sm:p-6 w-full">
             <h2 className="text-lg font-semibold mb-4 flex items-center">
               <ShoppingBag className="h-5 w-5 mr-2 text-muted-foreground" />
               Order Status
             </h2>
             <div>
               <div
-                className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(
-                  order.status
-                )}`}
+                className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(order.status)}`}
               >
                 <StatusIcon status={order.status} />
                 {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
@@ -538,7 +535,8 @@ export default function OrderDetailsPage() {
             </div>
           </Card>
 
-          <Card className="p-6">
+          {/* Payment Info */}
+          <Card className="p-4 sm:p-6 w-full">
             <h2 className="text-lg font-semibold mb-4 flex items-center">
               <CreditCard className="h-5 w-5 mr-2 text-muted-foreground" />
               Payment Information
@@ -550,70 +548,80 @@ export default function OrderDetailsPage() {
               </p>
               <p className="mt-1">
                 <span className="font-medium">Status: </span>
-                {order.paymentMethod === 'cod' ? (
-                  order.status === 'delivered' ? (
+                {order.paymentMethod === "cod" ? (
+                  order.status === "delivered" ? (
                     <span className="text-green-600 font-medium">Paid</span>
                   ) : (
-                    <span className="text-yellow-600 font-medium">To be paid on delivery</span>
+                    <span className="text-yellow-600 font-medium">
+                      To be paid on delivery
+                    </span>
                   )
                 ) : (
                   <span className="text-green-600 font-medium">Paid</span>
                 )}
               </p>
-              <div className="mt-3">
-                {/* Calculate delivery charges from items */}
-                {/** Delivery charges for all items (sum of item.product.deliveryCharges * item.quantity) */}
-                {/** Calculate once for use below */}
-                {(() => {
-                  const deliveryCharges = items.reduce((sum, item) => sum + ((item.product?.deliveryCharges ?? 0) * item.quantity), 0);
-                  return (
-                    <>
-                      {/* Subtotal (Products) */}
-                      <div className="flex justify-between">
-                        <span>Subtotal (Products):</span>
-                        <span>
-                          ₹{(items.reduce((sum, item) => sum + item.price * item.quantity, 0)).toFixed(2)}
-                        </span>
+              {/* Delivery charges and discounts */}
+              {(() => {
+                const deliveryCharges = items.reduce(
+                  (sum, item) =>
+                    sum + (item.product?.deliveryCharges ?? 0) * item.quantity,
+                  0
+                );
+                return (
+                  <>
+                    <div className="flex justify-between text-sm mt-2">
+                      <span>Subtotal (Products):</span>
+                      <span>
+                        ₹
+                        {items
+                          .reduce(
+                            (sum, item) => sum + item.price * item.quantity,
+                            0
+                          )
+                          .toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Delivery Charges:</span>
+                      <span>₹{deliveryCharges.toFixed(2)}</span>
+                    </div>
+                    {(order.walletDiscount ?? 0) > 0 && (
+                      <div className="flex justify-between text-green-600 text-sm">
+                        <span>Wallet Points Used:</span>
+                        <span>-₹{order.walletDiscount?.toFixed(2)}</span>
                       </div>
-                      {/* Delivery Charges */}
-                      <div className="flex justify-between">
-                        <span>Delivery Charges:</span>
-                        <span>₹{deliveryCharges.toFixed(2)}</span>
+                    )}
+                    {(order.discount ?? 0) > 0 && (
+                      <div className="flex justify-between text-green-600 text-sm">
+                        <span>Redeemed Coins Used:</span>
+                        <span>-₹{order.discount?.toFixed(2)}</span>
                       </div>
-                      {(order.walletDiscount ?? 0) > 0 && (
-                        <div className="flex justify-between text-green-600">
-                          <span>Wallet Points Used:</span>
-                          <span>-₹{order.walletDiscount?.toFixed(2)}</span>
-                        </div>
-                      )}
-                      {(order.discount ?? 0) > 0 && (
-                        <div className="flex justify-between text-green-600">
-                          <span>Redeemed Coins Used:</span>
-                          <span>-₹{order.discount?.toFixed(2)}</span>
-                        </div>
-                      )}
-                      {/* Total (after all discounts) */}
-                      <div className="flex justify-between font-bold mt-2 pt-2 border-t border-gray-200">
-                        <span>Total:</span>
-                        <span>
-                          ₹{(
-                            items.reduce((sum, item) => sum + item.price * item.quantity, 0)
-                            + deliveryCharges
-                            - (order.walletDiscount || 0)
-                            - (order.rewardDiscount || 0)
-                            - (order.discount || 0)
-                          ).toFixed(2)}
-                        </span>
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
+                    )}
+                    <div className="flex justify-between font-semibold text-base mt-2">
+                      <span>Total:</span>
+                      <span>
+                        ₹
+                        {(
+                          items.reduce(
+                            (sum, item) => sum + item.price * item.quantity,
+                            0
+                          ) +
+                          deliveryCharges -
+                          (order.walletDiscount || 0) -
+                          (order.rewardDiscount || 0) -
+                          (order.discount || 0)
+                        ).toFixed(2)}
+                      </span>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </Card>
 
+          {/* Tracking Info */}
           {order.trackingId && (
-            <Card className="p-6">
+            <Card className="p-4 sm:p-6 w-full">
               <h2 className="text-lg font-semibold mb-4 flex items-center">
                 <Truck className="h-5 w-5 mr-2 text-muted-foreground" />
                 Tracking Information
@@ -645,54 +653,9 @@ export default function OrderDetailsPage() {
               </div>
             </Card>
           )}
-        </div>
 
-        <Card className="p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">Order Items</h2>
-          <div className="space-y-4">
-            {items.map((item) => (
-              <div
-                key={item.id}
-                className="border border-gray-200 rounded-lg p-4"
-              >
-                <div className="flex flex-col md:flex-row gap-4">
-                  <div className="relative w-20 h-20 rounded bg-gray-100 flex-shrink-0">
-                    <img
-                      src={getProductImageUrl(item.product)}
-                      alt={item.product.name}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-1 flex flex-col gap-1">
-                    <div className="flex flex-wrap gap-2 items-center">
-                      <span className="font-medium text-lg">
-                        {item.product.name}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        SKU: {item.product?.sku ?? '-'}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-4 text-sm mt-1">
-                      <span>Qty: {item.quantity}</span>
-                      <span>Price: ₹{item.price.toFixed(2)}</span>
-                      <span>
-                        Delivery Charges: {item.product?.deliveryCharges && item.product.deliveryCharges > 0 ? `₹${item.product.deliveryCharges.toFixed(2)}` : 'Free'}
-                      </span>
-                      <span>
-                        Subtotal: ₹{(item.price * item.quantity + ((item.product?.deliveryCharges || 0) * item.quantity)).toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        {/* Shiprocket integration is currently disabled */}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <Card className="p-6">
+          {/* Shipping Info */}
+          <Card className="p-4 sm:p-6 w-full">
             <h2 className="text-lg font-semibold mb-4 flex items-center">
               <MapPin className="h-5 w-5 mr-2 text-muted-foreground" />
               Shipping Information
@@ -727,7 +690,8 @@ export default function OrderDetailsPage() {
             </div>
           </Card>
 
-          <Card className="p-6">
+          {/* Billing Info */}
+          <Card className="p-4 sm:p-6 w-full">
             <h2 className="text-lg font-semibold mb-4 flex items-center">
               <FileText className="h-5 w-5 mr-2 text-muted-foreground" />
               Billing Information
@@ -753,54 +717,188 @@ export default function OrderDetailsPage() {
               </p>
             </div>
           </Card>
-        </div>
 
-        {/* Tax Invoice */}
-        <div className="mt-6">
-          <Card className="p-6">
+          {/* Order Items */}
+          <Card className="p-4 sm:p-6 w-full">
+            <h2 className="text-lg font-semibold mb-4">Order Items</h2>
+            <div className="space-y-4">
+              {items.map((item) => (
+                <div
+                  key={item.id}
+                  className="border border-gray-200 rounded-lg p-4 flex flex-col gap-2"
+                >
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="relative w-20 h-20 rounded bg-gray-100 flex-shrink-0 mx-auto sm:mx-0">
+                      <img
+                        src={getProductImageUrl(item.product)}
+                        alt={item.product.name}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 flex flex-col gap-1">
+                      <span className="font-medium text-lg">
+                        {item.product.name}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        SKU: {item.product?.sku ?? "-"}
+                      </span>
+                      <div className="flex flex-col gap-1 text-sm mt-1">
+                        <span>Qty: {item.quantity}</span>
+                        <span>Price: ₹{item.price.toFixed(2)}</span>
+                        <span>
+                          Delivery Charges:{" "}
+                          {item.product?.deliveryCharges &&
+                          item.product.deliveryCharges > 0
+                            ? `₹${item.product.deliveryCharges.toFixed(2)}`
+                            : "Free"}
+                        </span>
+                        <span>
+                          Subtotal: ₹
+                          {(
+                            item.price * item.quantity +
+                            (item.product?.deliveryCharges || 0) * item.quantity
+                          ).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Tax Invoice - summary list on mobile, table on desktop */}
+          <Card className="p-4 sm:p-6 w-full">
             <h2 className="text-lg font-semibold mb-4 flex items-center">
               <FileText className="h-5 w-5 mr-2 text-muted-foreground" />
               Tax Invoice Information
             </h2>
-
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+            <div className="block sm:hidden">
+              {/* Mobile: summary list for each item */}
+              {items.map((item) => {
+                const gstDetails = item.product.gstDetails || {
+                  gstRate: 18,
+                  basePrice: item.price / 1.18,
+                  gstAmount: item.price - item.price / 1.18,
+                };
+                return (
+                  <div key={item.id} className="border-b py-2">
+                    <div className="font-medium">
+                      {item.product.name}
+                      {item.variant && (
+                        <span className="text-gray-500"> ({item.variant})</span>
+                      )}
+                    </div>
+                    <div className="text-xs">Qty: {item.quantity}</div>
+                    <div className="text-xs">
+                      Base Price: ₹{gstDetails.basePrice.toFixed(2)}
+                    </div>
+                    <div className="text-xs">
+                      GST: {gstDetails.gstRate}% (₹
+                      {gstDetails.gstAmount.toFixed(2)})
+                    </div>
+                    <div className="text-xs">
+                      Unit Price: ₹{item.price.toFixed(2)}
+                    </div>
+                    <div className="text-xs">
+                      Delivery Charges:{" "}
+                      {item.product.deliveryCharges &&
+                      item.product.deliveryCharges > 0
+                        ? `₹${(item.product.deliveryCharges * item.quantity).toFixed(2)}`
+                        : "-"}
+                    </div>
+                    <div className="text-xs">
+                      Total: ₹{(item.price * item.quantity).toFixed(2)}
+                    </div>
+                  </div>
+                );
+              })}
+              {/* Totals */}
+              <div className="mt-4 text-xs">
+                {(() => {
+                  const subtotal = items.reduce(
+                    (total, item) => total + item.price * item.quantity,
+                    0
+                  );
+                  const gstTotal = items.reduce((total, item) => {
+                    const gstDetails = item.product.gstDetails || {
+                      gstAmount: item.price - item.price / 1.18,
+                    };
+                    return total + gstDetails.gstAmount * item.quantity;
+                  }, 0);
+                  return (
+                    <>
+                      <div className="flex justify-between">
+                        <span>Subtotal:</span>
+                        <span>₹{subtotal.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>GST Total:</span>
+                        <span>₹{gstTotal.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Shipping:</span>
+                        <span>₹{(order.shippingCharges || 0).toFixed(2)}</span>
+                      </div>
+                      {(order.walletDiscount ?? 0) > 0 && (
+                        <div className="flex justify-between text-green-600">
+                          <span>Wallet Points Used:</span>
+                          <span>-₹{order.walletDiscount?.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {(order.discount ?? 0) > 0 && (
+                        <div className="flex justify-between text-green-600">
+                          <span>Redeemed Coins Used:</span>
+                          <span>-₹{order.discount?.toFixed(2)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between font-bold">
+                        <span>Grand Total:</span>
+                        <span>₹{order.total.toFixed(2)}</span>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+            <div className="hidden sm:block overflow-x-auto">
+              {/* Desktop: table */}
+              <table className="min-w-full divide-y divide-gray-200 text-xs sm:text-sm">
                 <thead className="bg-gray-100">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Item
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Quantity
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Base Price
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       GST
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Unit Price
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Delivery Charges
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Total
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody>
                   {items.map((item) => {
                     const gstDetails = item.product.gstDetails || {
-                      gstRate: 18, // Default GST rate
-                      basePrice: item.price / 1.18, // Approximate base price
-                      gstAmount: item.price - item.price / 1.18, // Approximate GST amount
+                      gstRate: 18,
+                      basePrice: item.price / 1.18,
+                      gstAmount: item.price - item.price / 1.18,
                     };
-
                     return (
                       <tr key={item.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-2 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {item.product.name}
                           {item.variant && (
                             <span className="text-gray-500">
@@ -809,25 +907,26 @@ export default function OrderDetailsPage() {
                             </span>
                           )}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-2 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {item.quantity}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-2 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           ₹{gstDetails.basePrice.toFixed(2)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-2 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {gstDetails.gstRate}% (₹
                           {gstDetails.gstAmount.toFixed(2)})
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-2 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           ₹{item.price.toFixed(2)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {item.product.deliveryCharges && item.product.deliveryCharges > 0
+                        <td className="px-2 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {item.product.deliveryCharges &&
+                          item.product.deliveryCharges > 0
                             ? `₹${(item.product.deliveryCharges * item.quantity).toFixed(2)}`
                             : "-"}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-2 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           ₹{(item.price * item.quantity).toFixed(2)}
                         </td>
                       </tr>
@@ -836,7 +935,6 @@ export default function OrderDetailsPage() {
                 </tbody>
                 <tfoot className="bg-gray-50">
                   {(() => {
-                    // Calculate totals
                     const subtotal = items.reduce(
                       (total, item) => total + item.price * item.quantity,
                       0
@@ -847,19 +945,18 @@ export default function OrderDetailsPage() {
                       };
                       return total + gstDetails.gstAmount * item.quantity;
                     }, 0);
-
                     return (
                       <>
                         <tr>
                           <td
                             colSpan={4}
-                            className="px-6 py-3 text-right text-sm font-medium"
+                            className="px-2 sm:px-6 py-3 text-right text-sm font-medium"
                           >
                             Subtotal:
                           </td>
                           <td
                             colSpan={2}
-                            className="px-6 py-3 text-left text-sm"
+                            className="px-2 sm:px-6 py-3 text-left text-sm"
                           >
                             ₹{subtotal.toFixed(2)}
                           </td>
@@ -867,13 +964,13 @@ export default function OrderDetailsPage() {
                         <tr>
                           <td
                             colSpan={4}
-                            className="px-6 py-3 text-right text-sm font-medium"
+                            className="px-2 sm:px-6 py-3 text-right text-sm font-medium"
                           >
                             GST Total:
                           </td>
                           <td
                             colSpan={2}
-                            className="px-6 py-3 text-left text-sm"
+                            className="px-2 sm:px-6 py-3 text-left text-sm"
                           >
                             ₹{gstTotal.toFixed(2)}
                           </td>
@@ -881,13 +978,13 @@ export default function OrderDetailsPage() {
                         <tr>
                           <td
                             colSpan={4}
-                            className="px-6 py-3 text-right text-sm font-medium"
+                            className="px-2 sm:px-6 py-3 text-right text-sm font-medium"
                           >
                             Shipping:
                           </td>
                           <td
                             colSpan={2}
-                            className="px-6 py-3 text-left text-sm"
+                            className="px-2 sm:px-6 py-3 text-left text-sm"
                           >
                             ₹{(order.shippingCharges || 0).toFixed(2)}
                           </td>
@@ -896,13 +993,13 @@ export default function OrderDetailsPage() {
                           <tr>
                             <td
                               colSpan={4}
-                              className="px-6 py-3 text-right text-sm font-medium text-green-600"
+                              className="px-2 sm:px-6 py-3 text-right text-sm font-medium text-green-600"
                             >
                               Wallet Points Used:
                             </td>
                             <td
                               colSpan={2}
-                              className="px-6 py-3 text-left text-sm text-green-600"
+                              className="px-2 sm:px-6 py-3 text-left text-sm text-green-600"
                             >
                               -₹{order.walletDiscount?.toFixed(2)}
                             </td>
@@ -912,28 +1009,28 @@ export default function OrderDetailsPage() {
                           <tr>
                             <td
                               colSpan={4}
-                              className="px-6 py-3 text-right text-sm font-medium text-green-600"
+                              className="px-2 sm:px-6 py-3 text-right text-sm font-medium text-green-600"
                             >
                               Redeemed Coins Used:
                             </td>
                             <td
                               colSpan={2}
-                              className="px-6 py-3 text-left text-sm text-green-600"
+                              className="px-2 sm:px-6 py-3 text-left text-sm text-green-600"
                             >
                               -₹{order.discount?.toFixed(2)}
                             </td>
                           </tr>
                         )}
-                        <tr className="bg-gray-100">
+                        <tr>
                           <td
                             colSpan={4}
-                            className="px-6 py-3 text-right text-sm font-bold"
+                            className="px-2 sm:px-6 py-3 text-right text-sm font-bold"
                           >
                             Grand Total:
                           </td>
                           <td
                             colSpan={2}
-                            className="px-6 py-3 text-left text-sm font-bold"
+                            className="px-2 sm:px-6 py-3 text-left text-sm font-bold"
                           >
                             ₹{order.total.toFixed(2)}
                           </td>
@@ -944,7 +1041,6 @@ export default function OrderDetailsPage() {
                 </tfoot>
               </table>
             </div>
-
             <div className="border-t mt-8 pt-6 text-sm text-gray-600">
               <h3 className="font-semibold mb-2">Terms & Conditions</h3>
               <ul className="list-disc ml-5 space-y-1">
@@ -957,7 +1053,6 @@ export default function OrderDetailsPage() {
                   hours of receipt.
                 </li>
               </ul>
-
               <div className="mt-6">
                 <p>Thank you for shopping with Lelekart!</p>
                 <p>
