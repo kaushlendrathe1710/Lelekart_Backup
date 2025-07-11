@@ -32,7 +32,7 @@ export function SimpleHeader() {
   const queryClient = useQueryClient();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [, setLocation] = useLocation();
+  const [location] = useLocation();
 
   // Use cart context for both guest and logged-in users
   const { cartItems } = useCart();
@@ -57,7 +57,10 @@ export function SimpleHeader() {
   });
 
   // Get cart item count for notification badge (from context)
-  const cartItemCount = cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
+  const cartItemCount = cartItems.reduce(
+    (sum, item) => sum + (item.quantity || 0),
+    0
+  );
 
   // Handle logout
   const handleLogout = async () => {
@@ -86,7 +89,7 @@ export function SimpleHeader() {
   };
 
   const handleCartClick = () => {
-    setLocation('/cart');
+    setLocation("/cart");
   };
 
   return (
@@ -109,16 +112,19 @@ export function SimpleHeader() {
             </div>
           </div>
           <div className="flex items-center space-x-5">
-            <Link href="/">
-              <Button
-                variant="ghost"
-                className="flex items-center py-1 px-2 text-white font-medium rounded-sm hover:bg-primary-foreground/10"
-                style={{ boxShadow: 'none', background: 'transparent' }}
-              >
-                <HomeIcon className="mr-2 h-4 w-4" />
-                <span>Home</span>
-              </Button>
-            </Link>
+            {/* Hide Home button on home page */}
+            {location !== "/" && (
+              <Link href="/">
+                <Button
+                  variant="ghost"
+                  className="flex items-center py-1 px-2 text-white font-medium rounded-sm hover:bg-primary-foreground/10"
+                  style={{ boxShadow: "none", background: "transparent" }}
+                >
+                  <HomeIcon className="mr-2 h-4 w-4" />
+                  <span>Home</span>
+                </Button>
+              </Link>
+            )}
             {!user ? (
               // Show login button for non-authenticated users
               <Button
@@ -213,7 +219,7 @@ export function SimpleHeader() {
               <Button
                 variant="ghost"
                 className="flex items-center py-1 px-2 text-white font-medium rounded-sm hover:bg-primary-foreground/10"
-                style={{ boxShadow: 'none', background: 'transparent' }}
+                style={{ boxShadow: "none", background: "transparent" }}
               >
                 <HomeIcon className="mr-2 h-4 w-4" />
                 <span>Home</span>
