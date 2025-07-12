@@ -70,6 +70,8 @@ import {
   FileDown,
   Search,
   AlertCircle,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -145,6 +147,7 @@ export default function SellerPaymentsPage() {
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
   const [payoutSchedule, setPayoutSchedule] = useState<{cycle: string; day: string}>({ cycle: "Weekly", day: "Monday" });
   const [tempSchedule, setTempSchedule] = useState<{cycle: string; day: string}>(payoutSchedule);
+  const [showFilters, setShowFilters] = useState(false);
 
   // Fetch payments summary
   const { data: summaryData, isLoading: isSummaryLoading } = useQuery({
@@ -202,26 +205,26 @@ export default function SellerPaymentsPage() {
 
   return (
     <SellerDashboardLayout>
-      <div className="container">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold tracking-tight">Payments</h1>
-          <p className="text-muted-foreground">
+      <div className="container mx-auto py-4 md:py-6 px-4 md:px-0">
+        <div className="mb-4 md:mb-6">
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Payments</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
             View and manage your payment transactions
           </p>
         </div>
 
         {/* Purchase Price Information */}
-        <Card className="mb-6 border-primary/20 bg-primary/5">
-          <CardContent className="pt-6 pb-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-full bg-primary/10">
-                <CreditCard className="h-5 w-5 text-primary" />
+        <Card className="mb-4 md:mb-6 border-primary/20 bg-primary/5">
+          <CardContent className="pt-4 md:pt-6 pb-4 md:pb-6">
+            <div className="flex items-start gap-3 md:gap-4">
+              <div className="p-2 md:p-3 rounded-full bg-primary/10">
+                <CreditCard className="h-4 w-4 md:h-5 md:w-5 text-primary" />
               </div>
               <div>
-                <h3 className="text-base font-medium mb-1">
+                <h3 className="text-sm md:text-base font-medium mb-1">
                   Vendor Payment Information
                 </h3>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs md:text-sm text-muted-foreground">
                   You receive payments based on the{" "}
                   <strong>Purchase Price</strong> of your products. For each
                   product sold, you will be paid exactly the amount specified in
@@ -234,18 +237,18 @@ export default function SellerPaymentsPage() {
         </Card>
 
         {/* Payment Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
           {/* Available Balance */}
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">
+            <CardHeader className="pb-2 md:pb-3">
+              <CardTitle className="text-xs md:text-sm font-medium">
                 Available Balance
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-lg md:text-2xl font-bold">
                 {isSummaryLoading ? (
-                  <div className="h-7 w-24 bg-gray-200 animate-pulse rounded"></div>
+                  <div className="h-6 md:h-7 w-20 md:w-24 bg-gray-200 animate-pulse rounded"></div>
                 ) : (
                   formatCurrency(summaryData?.availableBalance || 0)
                 )}
@@ -255,7 +258,7 @@ export default function SellerPaymentsPage() {
               </p>
             </CardContent>
             <CardFooter className="pt-0">
-              <Button variant="outline" size="sm" className="w-full">
+              <Button variant="outline" size="sm" className="w-full text-xs md:text-sm">
                 Withdraw Funds
               </Button>
             </CardFooter>
@@ -263,15 +266,15 @@ export default function SellerPaymentsPage() {
 
           {/* Pending Balance */}
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">
+            <CardHeader className="pb-2 md:pb-3">
+              <CardTitle className="text-xs md:text-sm font-medium">
                 Pending Balance
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-lg md:text-2xl font-bold">
                 {isSummaryLoading ? (
-                  <div className="h-7 w-24 bg-gray-200 animate-pulse rounded"></div>
+                  <div className="h-6 md:h-7 w-20 md:w-24 bg-gray-200 animate-pulse rounded"></div>
                 ) : (
                   formatCurrency(summaryData?.pendingBalance || 0)
                 )}
@@ -293,15 +296,15 @@ export default function SellerPaymentsPage() {
 
           {/* Lifetime Earnings */}
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">
+            <CardHeader className="pb-2 md:pb-3">
+              <CardTitle className="text-xs md:text-sm font-medium">
                 Lifetime Earnings
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-lg md:text-2xl font-bold">
                 {isSummaryLoading ? (
-                  <div className="h-7 w-24 bg-gray-200 animate-pulse rounded"></div>
+                  <div className="h-6 md:h-7 w-20 md:w-24 bg-gray-200 animate-pulse rounded"></div>
                 ) : (
                   formatCurrency(summaryData?.lifetimeEarnings || 0)
                 )}
@@ -311,8 +314,8 @@ export default function SellerPaymentsPage() {
               </p>
             </CardContent>
             <CardFooter className="pt-0">
-              <div className="flex items-center text-sm text-green-600">
-                <ArrowUp className="h-4 w-4 mr-1" />
+              <div className="flex items-center text-xs md:text-sm text-green-600">
+                <ArrowUp className="h-3 w-3 md:h-4 md:w-4 mr-1" />
                 <span>{summaryData?.growthRate || 0}% from last month</span>
               </div>
             </CardFooter>
@@ -320,13 +323,13 @@ export default function SellerPaymentsPage() {
 
           {/* Next Payout */}
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Next Payout</CardTitle>
+            <CardHeader className="pb-2 md:pb-3">
+              <CardTitle className="text-xs md:text-sm font-medium">Next Payout</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-lg md:text-2xl font-bold">
                 {isSummaryLoading ? (
-                  <div className="h-7 w-24 bg-gray-200 animate-pulse rounded"></div>
+                  <div className="h-6 md:h-7 w-20 md:w-24 bg-gray-200 animate-pulse rounded"></div>
                 ) : (
                   formatCurrency(summaryData?.nextPayoutAmount || 0)
                 )}
@@ -342,9 +345,9 @@ export default function SellerPaymentsPage() {
               <Button
                 variant="link"
                 size="sm"
-                className="px-0 h-auto text-primary"
+                className="px-0 h-auto text-primary text-xs md:text-sm"
               >
-                <Calendar className="h-4 w-4 mr-1" />
+                <Calendar className="h-3 w-3 md:h-4 md:w-4 mr-1" />
                 View payout schedule
               </Button>
             </CardFooter>
@@ -352,86 +355,108 @@ export default function SellerPaymentsPage() {
         </div>
 
         {/* Payment Transactions */}
-        <div className="mb-6">
-          <div className="mb-4 flex flex-col sm:flex-row justify-between gap-4">
-            <div className="flex gap-2">
-              <div className="relative w-64">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search payments..."
-                  className="pl-8"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              <Select value={dateRange} onValueChange={setDateRange}>
-                <SelectTrigger className="w-[150px]">
-                  <Calendar className="mr-2 h-4 w-4" />
-                  <SelectValue placeholder="Date range" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="last7">Last 7 days</SelectItem>
-                  <SelectItem value="last30">Last 30 days</SelectItem>
-                  <SelectItem value="last90">Last 90 days</SelectItem>
-                  <SelectItem value="year">This year</SelectItem>
-                </SelectContent>
-              </Select>
+        <div className="mb-4 md:mb-6">
+          <div className="mb-4 flex flex-col gap-3 md:gap-4">
+            {/* Mobile Filter Toggle */}
+            <div className="md:hidden">
+              <Button
+                variant="outline"
+                className="w-full justify-between"
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                <span className="flex items-center">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filters & Search
+                </span>
+                {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setShowFilterDialog(true)}
-              >
-                <Filter className="mr-2 h-4 w-4" />
-                Filter
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  // Create CSV content for export
-                  const csvHeader =
-                    [
-                      "Transaction ID",
-                      "Date",
-                      "Type",
-                      "Description",
-                      "Amount",
-                      "Status",
-                    ].join(",") + "\n";
-                  const csvRows = filteredPayments
-                    .map((payment: any) => {
-                      return [
-                        payment.transactionId,
-                        format(new Date(payment.date), "yyyy-MM-dd"),
-                        payment.type,
-                        `"${payment.description?.replace(/"/g, '""') || ""}"`,
-                        payment.amount,
-                        payment.status,
-                      ].join(",");
-                    })
-                    .join("\n");
 
-                  const csvContent = csvHeader + csvRows;
+            {/* Search and Filters */}
+            <div className={`${showFilters ? 'block' : 'hidden'} md:flex flex-col sm:flex-row justify-between gap-3 md:gap-4`}>
+              <div className="flex flex-col sm:flex-row gap-2 md:gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search payments..."
+                    className="pl-8"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                <Select value={dateRange} onValueChange={setDateRange}>
+                  <SelectTrigger className="w-full sm:w-[150px]">
+                    <Calendar className="mr-2 h-4 w-4" />
+                    <SelectValue placeholder="Date range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="last7">Last 7 days</SelectItem>
+                    <SelectItem value="last30">Last 30 days</SelectItem>
+                    <SelectItem value="last90">Last 90 days</SelectItem>
+                    <SelectItem value="year">This year</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowFilterDialog(true)}
+                  className="flex-1 md:flex-none"
+                >
+                  <Filter className="mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">Filter</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // Create CSV content for export
+                    const csvHeader =
+                      [
+                        "Transaction ID",
+                        "Date",
+                        "Type",
+                        "Description",
+                        "Amount",
+                        "Status",
+                      ].join(",") + "\n";
+                    const csvRows = filteredPayments
+                      .map((payment: any) => {
+                        return [
+                          payment.transactionId,
+                          format(new Date(payment.date), "yyyy-MM-dd"),
+                          payment.type,
+                          `"${payment.description?.replace(/"/g, '""') || ""}"`,
+                          payment.amount,
+                          payment.status,
+                        ].join(",");
+                      })
+                      .join("\n");
 
-                  // Create a blob and download link
-                  const blob = new Blob([csvContent], {
-                    type: "text/csv;charset=utf-8;",
-                  });
-                  const url = URL.createObjectURL(blob);
-                  const link = document.createElement("a");
-                  link.setAttribute("href", url);
-                  link.setAttribute(
-                    "download",
-                    `payment-transactions-${format(new Date(), "yyyy-MM-dd")}.csv`
-                  );
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                }}
-              >
-                <FileDown className="mr-2 h-4 w-4" />
-                Export
-              </Button>
+                    const csvContent = csvHeader + csvRows;
+
+                    // Create a blob and download link
+                    const blob = new Blob([csvContent], {
+                      type: "text/csv;charset=utf-8;",
+                    });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", url);
+                    link.setAttribute(
+                      "download",
+                      `payment-transactions-${format(new Date(), "yyyy-MM-dd")}.csv`
+                    );
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                  className="flex-1 md:flex-none"
+                >
+                  <FileDown className="mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">Export</span>
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -440,134 +465,254 @@ export default function SellerPaymentsPage() {
             value={currentTab}
             onValueChange={setCurrentTab}
           >
-            <TabsList className="mb-4">
-              <TabsTrigger value="all">All Transactions</TabsTrigger>
-              <TabsTrigger value="pending">Pending</TabsTrigger>
-              <TabsTrigger value="processing">Processing</TabsTrigger>
-              <TabsTrigger value="paid">Paid</TabsTrigger>
-              <TabsTrigger value="failed">Failed</TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto">
+              <TabsList className="mb-4 min-w-max">
+                <TabsTrigger value="all" className="text-xs md:text-sm">All Transactions</TabsTrigger>
+                <TabsTrigger value="pending" className="text-xs md:text-sm">Pending</TabsTrigger>
+                <TabsTrigger value="processing" className="text-xs md:text-sm">Processing</TabsTrigger>
+                <TabsTrigger value="paid" className="text-xs md:text-sm">Paid</TabsTrigger>
+                <TabsTrigger value="failed" className="text-xs md:text-sm">Failed</TabsTrigger>
+              </TabsList>
+            </div>
 
-            <Card>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Transaction ID</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {isPaymentsLoading ? (
-                      Array.from({ length: 5 }).map((_, idx) => (
-                        <TableRow key={idx}>
-                          <TableCell colSpan={7} className="py-3">
-                            <div className="h-10 bg-gray-100 animate-pulse rounded"></div>
+            {/* Desktop Table */}
+            <div className="hidden md:block">
+              <Card>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Transaction ID</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isPaymentsLoading ? (
+                        Array.from({ length: 5 }).map((_, idx) => (
+                          <TableRow key={idx}>
+                            <TableCell colSpan={7} className="py-3">
+                              <div className="h-10 bg-gray-100 animate-pulse rounded"></div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : filteredPayments.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-8">
+                            <div className="flex flex-col items-center justify-center text-muted-foreground">
+                              <CreditCard className="h-10 w-10 mb-2" />
+                              <p>No payment transactions found</p>
+                              <p className="text-sm">
+                                Try adjusting your filters or search term
+                              </p>
+                            </div>
                           </TableCell>
                         </TableRow>
-                      ))
-                    ) : filteredPayments.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8">
-                          <div className="flex flex-col items-center justify-center text-muted-foreground">
-                            <CreditCard className="h-10 w-10 mb-2" />
-                            <p>No payment transactions found</p>
-                            <p className="text-sm">
-                              Try adjusting your filters or search term
-                            </p>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredPayments.map((payment: any) => (
-                        <TableRow key={payment.id}>
-                          <TableCell className="font-medium">
+                      ) : (
+                        filteredPayments.map((payment: any) => (
+                          <TableRow key={payment.id}>
+                            <TableCell className="font-medium">
+                              {payment.transactionId}
+                            </TableCell>
+                            <TableCell>
+                              {format(new Date(payment.date), "dd MMM yyyy")}
+                            </TableCell>
+                            <TableCell>
+                              {payment.type === "payout" ? (
+                                <Badge
+                                  variant="outline"
+                                  className="bg-blue-50 text-blue-700 border-blue-300"
+                                >
+                                  Payout
+                                </Badge>
+                              ) : payment.type === "order" ? (
+                                <Badge
+                                  variant="outline"
+                                  className="bg-green-50 text-green-700 border-green-300"
+                                >
+                                  Order
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline">{payment.type}</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="max-w-[240px] truncate">
+                              {payment.description}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <span
+                                className={
+                                  payment.amount < 0
+                                    ? "text-red-600"
+                                    : "text-green-600"
+                                }
+                              >
+                                {payment.amount < 0 ? "-" : "+"}
+                                {formatCurrency(Math.abs(payment.amount))}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              {getStatusBadge(payment.status)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleViewPaymentDetails(payment)
+                                    }
+                                  >
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    View Details
+                                  </DropdownMenuItem>
+                                  {payment.type === "payout" &&
+                                    payment.status === "paid" && (
+                                      <DropdownMenuItem>
+                                        <FileText className="mr-2 h-4 w-4" />
+                                        Download Receipt
+                                      </DropdownMenuItem>
+                                    )}
+                                  {payment.status === "failed" && (
+                                    <DropdownMenuItem className="text-red-600">
+                                      <AlertCircle className="mr-2 h-4 w-4" />
+                                      View Issue
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Mobile Payment Cards */}
+            <div className="md:hidden space-y-3">
+              {isPaymentsLoading ? (
+                Array.from({ length: 3 }).map((_, idx) => (
+                  <Card key={idx} className="bg-white">
+                    <CardContent className="p-4">
+                      <div className="space-y-3">
+                        <div className="h-4 bg-gray-200 animate-pulse rounded w-3/4"></div>
+                        <div className="h-3 bg-gray-200 animate-pulse rounded w-1/2"></div>
+                        <div className="h-3 bg-gray-200 animate-pulse rounded w-2/3"></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : filteredPayments.length === 0 ? (
+                <Card className="bg-white">
+                  <CardContent className="p-8 text-center">
+                    <div className="flex flex-col items-center justify-center text-muted-foreground">
+                      <CreditCard className="h-12 w-12 mb-3" />
+                      <p className="text-sm">No payment transactions found</p>
+                      <p className="text-xs mt-1">
+                        Try adjusting your filters or search term
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                filteredPayments.map((payment: any) => (
+                  <Card key={payment.id} className="bg-white">
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <CardTitle className="text-sm font-medium">
                             {payment.transactionId}
-                          </TableCell>
-                          <TableCell>
+                          </CardTitle>
+                          <p className="text-xs text-muted-foreground mt-1">
                             {format(new Date(payment.date), "dd MMM yyyy")}
-                          </TableCell>
-                          <TableCell>
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <span
+                            className={`text-sm font-semibold ${
+                              payment.amount < 0 ? "text-red-600" : "text-green-600"
+                            }`}
+                          >
+                            {payment.amount < 0 ? "-" : "+"}
+                            {formatCurrency(Math.abs(payment.amount))}
+                          </span>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-muted-foreground">Type:</span>
+                          <div>
                             {payment.type === "payout" ? (
                               <Badge
                                 variant="outline"
-                                className="bg-blue-50 text-blue-700 border-blue-300"
+                                className="bg-blue-50 text-blue-700 border-blue-300 text-xs"
                               >
                                 Payout
                               </Badge>
                             ) : payment.type === "order" ? (
                               <Badge
                                 variant="outline"
-                                className="bg-green-50 text-green-700 border-green-300"
+                                className="bg-green-50 text-green-700 border-green-300 text-xs"
                               >
                                 Order
                               </Badge>
                             ) : (
-                              <Badge variant="outline">{payment.type}</Badge>
+                              <Badge variant="outline" className="text-xs">{payment.type}</Badge>
                             )}
-                          </TableCell>
-                          <TableCell className="max-w-[240px] truncate">
-                            {payment.description}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <span
-                              className={
-                                payment.amount < 0
-                                  ? "text-red-600"
-                                  : "text-green-600"
-                              }
-                            >
-                              {payment.amount < 0 ? "-" : "+"}
-                              {formatCurrency(Math.abs(payment.amount))}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            {getStatusBadge(payment.status)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    handleViewPaymentDetails(payment)
-                                  }
-                                >
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  View Details
-                                </DropdownMenuItem>
-                                {payment.type === "payout" &&
-                                  payment.status === "paid" && (
-                                    <DropdownMenuItem>
-                                      <FileText className="mr-2 h-4 w-4" />
-                                      Download Receipt
-                                    </DropdownMenuItem>
-                                  )}
-                                {payment.status === "failed" && (
-                                  <DropdownMenuItem className="text-red-600">
-                                    <AlertCircle className="mr-2 h-4 w-4" />
-                                    View Issue
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-muted-foreground">Status:</span>
+                          <div>{getStatusBadge(payment.status)}</div>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-xs text-muted-foreground mb-1">Description:</span>
+                          <p className="text-sm text-gray-900">{payment.description}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter className="pt-0">
+                      <div className="flex gap-2 w-full">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 text-xs"
+                          onClick={() => handleViewPaymentDetails(payment)}
+                        >
+                          <Eye className="h-3 w-3 mr-1" />
+                          View Details
+                        </Button>
+                        {payment.type === "payout" && payment.status === "paid" && (
+                          <Button variant="outline" size="sm" className="flex-1 text-xs">
+                            <FileText className="h-3 w-3 mr-1" />
+                            Receipt
+                          </Button>
+                        )}
+                        {payment.status === "failed" && (
+                          <Button variant="outline" size="sm" className="flex-1 text-xs text-red-600">
+                            <AlertCircle className="h-3 w-3 mr-1" />
+                            Issue
+                          </Button>
+                        )}
+                      </div>
+                    </CardFooter>
+                  </Card>
+                ))
+              )}
+            </div>
           </Tabs>
         </div>
 
@@ -575,22 +720,20 @@ export default function SellerPaymentsPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Payout Schedule</CardTitle>
-              <CardDescription>When you'll receive your funds</CardDescription>
+              <CardTitle className="text-sm md:text-base">Payout Schedule</CardTitle>
+              <CardDescription className="text-xs md:text-sm">When you'll receive your funds</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground mb-2">
-
+              <p className="text-xs md:text-sm text-muted-foreground mb-2">
                 Your current payout cycle is set to <span className="font-semibold">{payoutSchedule.cycle}</span>{payoutSchedule.cycle === "Weekly" ? <> on <span className="font-semibold">{payoutSchedule.day}</span></> : null}.
-
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs md:text-sm text-muted-foreground">
                 Funds are typically processed within 1-2 business days after the
                 payout is initiated.
               </p>
             </CardContent>
             <CardFooter>
-              <Button variant="outline" size="sm" onClick={() => { setTempSchedule(payoutSchedule); setShowScheduleDialog(true); }}>
+              <Button variant="outline" size="sm" onClick={() => { setTempSchedule(payoutSchedule); setShowScheduleDialog(true); }} className="text-xs md:text-sm">
                 Change Schedule
               </Button>
             </CardFooter>
@@ -598,70 +741,61 @@ export default function SellerPaymentsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Bank Account</CardTitle>
-              <CardDescription>Your payout destination</CardDescription>
+              <CardTitle className="text-sm md:text-base">Need Help?</CardTitle>
+              <CardDescription className="text-xs md:text-sm">Get support with payments</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-1.5">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    Bank Name:
-                  </span>
-                  <span className="text-sm">
-                    {summaryData?.bankDetails?.bankName || "HDFC Bank"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    Account Number:
-                  </span>
-                  <span className="text-sm">
-                    ****
-                    {summaryData?.bankDetails?.accountNumber?.slice(-4) ||
-                      "1234"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    IFSC Code:
-                  </span>
-                  <span className="text-sm">
-                    {summaryData?.bankDetails?.ifscCode || "HDFC0001234"}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button variant="outline" size="sm" onClick={() => navigate('/seller/settings?tab=billing')}>
-                Update Details
-              </Button>
-            </CardFooter>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Need Help?</CardTitle>
-              <CardDescription>Support for payment issues</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-3">
-                If you have any questions about your payments or are facing
-                issues with payouts, our support team is here to help.
+              <p className="text-xs md:text-sm text-muted-foreground mb-3">
+                Having issues with payments or need to understand the process better?
               </p>
-              <div className="flex gap-2">
+              <div className="space-y-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setShowFAQDialog(true)}
+                  className="w-full justify-start text-xs md:text-sm"
                 >
-                  <HelpCircle className="mr-2 h-4 w-4" />
-                  Payment FAQs
+                  <HelpCircle className="h-3 w-3 md:h-4 md:w-4 mr-2" />
+                  View FAQs
                 </Button>
-                <Button size="sm" onClick={() => navigate("/seller/help")}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowSupportDialog(true)}
+                  className="w-full justify-start text-xs md:text-sm"
+                >
+                  <ExternalLink className="h-3 w-3 md:h-4 md:w-4 mr-2" />
                   Contact Support
                 </Button>
               </div>
             </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm md:text-base">Payment Methods</CardTitle>
+              <CardDescription className="text-xs md:text-sm">How you receive payments</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs md:text-sm text-muted-foreground mb-3">
+                Currently supporting bank transfers and UPI payments for Indian sellers.
+              </p>
+              <div className="space-y-2">
+                <div className="flex items-center text-xs md:text-sm">
+                  <CreditCard className="h-3 w-3 md:h-4 md:w-4 mr-2 text-green-600" />
+                  Bank Transfer
+                </div>
+                <div className="flex items-center text-xs md:text-sm">
+                  <CreditCard className="h-3 w-3 md:h-4 md:w-4 mr-2 text-blue-600" />
+                  UPI Payments
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button variant="outline" size="sm" className="text-xs md:text-sm">
+                Update Payment Method
+              </Button>
+            </CardFooter>
           </Card>
         </div>
       </div>

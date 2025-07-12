@@ -28,6 +28,8 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { useContext, useState, useEffect } from "react";
 import { AuthContext } from "@/hooks/use-auth";
@@ -93,6 +95,7 @@ export default function SellerProductsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
+  const [showFilters, setShowFilters] = useState(false);
 
   // Get page from URL or localStorage
   const urlParams = new URLSearchParams(window.location.search);
@@ -205,432 +208,266 @@ export default function SellerProductsPage() {
       category: string;
       subcategory: string;
     }) => {
-      console.log(
-        "Updating product",
-        productId,
-        "with category:",
-        category,
-        "subcategory:",
-        subcategory
-      );
-
-      // Get the subcategory ID if a subcategory is selected
-      let subcategoryId = null;
-      if (subcategory && subcategory !== "_none") {
-        // Find matching subcategory to get its ID
-        const subcategoriesResponse = await fetch(
-          `/api/subcategories?category=${encodeURIComponent(category)}`
-        );
-        const subcategoriesData = await subcategoriesResponse.json();
-        const matchingSubcategory = subcategoriesData.subcategories.find(
-          (sub: any) => sub.name === subcategory
-        );
-        subcategoryId = matchingSubcategory?.id || null;
-      }
-
-      console.log("Resolved subcategoryId:", subcategoryId);
-
-      const response = await fetch(`/api/products/${productId}`, {
-        method: "PUT",
+      const response = await fetch(`/api/seller/products/${productId}`, {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          productData: {
-            category,
-            subcategoryId, // Send subcategoryId instead of subcategory string
-            __preserveVariants: true, // Add flag to preserve existing variants
-          },
-        }),
-        credentials: "include",
+        body: JSON.stringify({ category, subcategory }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update product");
+        throw new Error("Failed to update product category");
       }
 
-      // Get the updated product directly to confirm changes
-      const updatedProduct = await response.json();
-      console.log("Updated product response:", updatedProduct);
-
-      // Add subcategory name to the returned object for displaying in UI
-      return {
-        ...updatedProduct,
-        subcategory: subcategory === "_none" ? null : subcategory,
-      };
+      return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast({
         title: "Product updated",
-        description: "Category and subcategory have been updated successfully.",
+        description:
+          "Product category and subcategory have been updated successfully",
+        variant: "default",
       });
-
-      // Reset editing state
       setEditingProductId(null);
       setEditingCategory("");
       setEditingSubcategory("");
-
-      // Update product data in cache directly with seller ID in the query key
-      queryClient.setQueryData(
-        ["/api/seller/products", user?.id],
-        (oldData: any) => {
-          if (!oldData || !oldData.products) return oldData;
-
-          return {
-            ...oldData,
-            products: oldData.products.map((p: any) =>
-              p.id === data.id
-                ? {
-                    ...p,
-                    category: data.category,
-                    subcategory: data.subcategory,
-                  }
-                : p
-            ),
-          };
-        }
-      );
-
-      // Also invalidate the query to ensure we get fresh data on next load
-      // Use the sellerId in the queryKey to ensure proper cache invalidation for this seller only
+      // Invalidate the products query to refresh the data
       queryClient.invalidateQueries({
         queryKey: ["/api/seller/products", user?.id],
         exact: false,
       });
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
       toast({
-        title: "Failed to update product",
-        description: error.message || "Something went wrong. Please try again.",
+        title: "Update failed",
+        description: error.message || "Failed to update product category",
         variant: "destructive",
       });
     },
   });
-
-  // Fetch products for the logged-in seller with pagination
-  const { data, isLoading } = useQuery({
-    // Include sellerId directly in the queryKey to ensure proper cache isolation between sellers
-    queryKey: [
-      "/api/seller/products",
-      user?.id,
-      {
-        page: currentPage,
-        limit: itemsPerPage,
-        search: searchTerm,
-        includeDrafts: true,
-      },
-    ],
-    queryFn: async ({ queryKey }) => {
-      const [_, sellerId, params] = queryKey as [
-        string,
-        number,
-        {
-          page: number;
-          limit: number;
-          search: string;
-          includeDrafts: boolean;
-        },
-      ];
-
-      let url = `/api/seller/products?page=${params.page}&limit=${params.limit}&includeDrafts=true`;
-
-      // Add search parameter if it exists
-      if (params.search) {
-        url += `&search=${encodeURIComponent(params.search)}`;
-      }
-
-      console.log("Fetching products with URL:", url);
-      console.log("Query params:", params);
-
-      const res = await fetch(url);
-      if (!res.ok) {
-        throw new Error("Failed to fetch products");
-      }
-      const data = await res.json();
-      console.log("Products API response:", data);
-      return data;
-    },
-    enabled: !!user?.id,
-    staleTime: 0, // Always consider data stale to ensure fresh fetches
-    refetchOnMount: true, // Always refetch when the component mounts
-    refetchOnWindowFocus: true, // Refetch when window gets focus
-  });
-
-  // Log the API response structure to debug pagination
-  useEffect(() => {
-    if (data) {
-      console.log("API response structure:", data);
-    }
-  }, [data]);
-
-  // Extract products and pagination from response
-  const [enhancedProducts, setEnhancedProducts] = useState<any[]>([]);
-  const rawProducts = data?.products || [];
-  // For the seller products API, pagination data is at the top level, not in a pagination object
-  const pagination = {
-    currentPage: data?.currentPage || 1,
-    totalPages: data?.totalPages || 1,
-    total: data?.total || 0,
-  };
-
-  // Get subcategory names for products that have subcategoryId/subcategory_id
-  useEffect(() => {
-    // Skip if no products
-    if (!rawProducts.length) {
-      return;
-    }
-
-    console.log("Raw products received:", rawProducts);
-
-    // Function to get subcategory name by ID
-    const fetchSubcategoryName = async (subcategoryId: number) => {
-      try {
-        const response = await fetch(`/api/subcategories/${subcategoryId}`);
-        if (response.ok) {
-          const data = await response.json();
-          console.log(`Fetched subcategory ${subcategoryId}:`, data);
-          return data.name;
-        }
-      } catch (error) {
-        console.error("Error fetching subcategory:", error);
-      }
-      return null;
-    };
-
-    // Process all products at once with less nesting
-    const processProducts = async () => {
-      // Create mapping of subcategoryId to subcategory name
-      const subcategoryNames: Record<number, string> = {};
-
-      // Handle both potential property names (subcategoryId and subcategory_id)
-      const productsWithSubcategoryIds = rawProducts.filter((p) => {
-        // Access potential property formats
-        const id = p.subcategoryId || p.subcategory_id;
-        return id !== undefined && id !== null;
-      });
-
-      console.log("Products with subcategory IDs:", productsWithSubcategoryIds);
-
-      // Get all subcategory IDs we need to fetch, handle different property names
-      const neededSubcategoryIds = productsWithSubcategoryIds
-        .map((p) => {
-          return p.subcategoryId || p.subcategory_id;
-        })
-        .filter((id) => id !== undefined && id !== null);
-
-      console.log("Needed subcategory IDs:", neededSubcategoryIds);
-
-      // Fetch names for all needed subcategories
-      for (const id of neededSubcategoryIds) {
-        if (!subcategoryNames[id]) {
-          const name = await fetchSubcategoryName(id);
-          if (name) {
-            subcategoryNames[id] = name;
-            console.log(`Mapped subcategory ID ${id} to name "${name}"`);
-          }
-        }
-      }
-
-      // Apply subcategory names to products
-      const updatedProducts = rawProducts.map((product) => {
-        // Get the subcategory ID (handle both property naming conventions)
-        const subcategoryId = product.subcategoryId || product.subcategory_id;
-
-        if (subcategoryId && subcategoryNames[subcategoryId]) {
-          return {
-            ...product,
-            subcategory: subcategoryNames[subcategoryId],
-          };
-        }
-        return product;
-      });
-
-      console.log("Enhanced products with subcategory names:", updatedProducts);
-      setEnhancedProducts(updatedProducts);
-    };
-
-    processProducts();
-  }, [rawProducts]);
-
-  const fetchedProducts =
-    enhancedProducts.length > 0 ? enhancedProducts : rawProducts;
 
   // Delete product mutation
   const deleteMutation = useMutation({
     mutationFn: async (productId: number) => {
-      const response = await fetch(`/api/products/${productId}`, {
+      const response = await fetch(`/api/seller/products/${productId}`, {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to delete product");
+        throw new Error("Failed to delete product");
       }
 
-      return true;
+      return response.json();
     },
     onSuccess: () => {
       toast({
         title: "Product deleted",
-        description: "The product has been removed from your inventory.",
+        description: "Product has been deleted successfully",
+        variant: "default",
       });
-
-      // Invalidate products query to refresh the list with sellerId for proper cache targeting
+      setIsDeleteDialogOpen(false);
+      setSelectedProductId(null);
+      // Invalidate the products query to refresh the data
       queryClient.invalidateQueries({
         queryKey: ["/api/seller/products", user?.id],
         exact: false,
       });
-      setIsDeleteDialogOpen(false);
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
       toast({
-        title: "Failed to delete product",
-        description: error.message || "Something went wrong. Please try again.",
+        title: "Delete failed",
+        description: error.message || "Failed to delete product",
         variant: "destructive",
       });
     },
   });
 
-  // Bulk delete mutation
+  // Bulk delete products mutation
   const bulkDeleteMutation = useMutation({
     mutationFn: async (productIds: number[]) => {
-      const response = await fetch(`/api/products/bulk-delete`, {
-        method: "POST",
+      const response = await fetch("/api/seller/products/bulk-delete", {
+        method: "DELETE",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ ids: productIds }), // Changed from productIds to ids to match the API endpoint
-        credentials: "include",
+        body: JSON.stringify({ productIds }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to delete products");
+        throw new Error("Failed to delete products");
       }
 
-      return true;
+      return response.json();
     },
     onSuccess: () => {
       toast({
         title: "Products deleted",
-        description: `${selectedProducts.length} products have been removed from your inventory.`,
+        description: "Selected products have been deleted successfully",
+        variant: "default",
       });
-
-      // Invalidate products query to refresh the list with sellerId for proper cache targeting
+      setIsBulkDeleteDialogOpen(false);
+      setSelectedProducts([]);
+      // Invalidate the products query to refresh the data
       queryClient.invalidateQueries({
         queryKey: ["/api/seller/products", user?.id],
         exact: false,
       });
-      setIsBulkDeleteDialogOpen(false);
-      setSelectedProducts([]);
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
       toast({
-        title: "Failed to delete products",
-        description: error.message || "Something went wrong. Please try again.",
+        title: "Delete failed",
+        description: error.message || "Failed to delete products",
         variant: "destructive",
       });
     },
   });
 
-  // Handle delete confirmation
-  const handleDeleteProduct = () => {
-    if (selectedProductId) {
-      deleteMutation.mutate(selectedProductId);
-    }
-  };
-
-  // Handle bulk delete confirmation
-  const handleBulkDeleteProducts = () => {
-    if (selectedProducts.length > 0) {
-      bulkDeleteMutation.mutate(selectedProducts);
-    }
-  };
-
-  // Open delete confirmation dialog
-  const confirmDelete = (productId: number) => {
-    setSelectedProductId(productId);
-    setIsDeleteDialogOpen(true);
-  };
-
-  // Open bulk delete confirmation dialog
-  const confirmBulkDelete = () => {
-    if (selectedProducts.length > 0) {
-      setIsBulkDeleteDialogOpen(true);
-    } else {
-      toast({
-        title: "No products selected",
-        description: "Please select at least one product to delete.",
-        variant: "destructive",
+  // Fetch products with pagination and search
+  const { data, isLoading, error } = useQuery({
+    queryKey: [
+      "/api/seller/products",
+      user?.id,
+      currentPage,
+      itemsPerPage,
+      searchTerm,
+    ],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
       });
-    }
-  };
 
-  // Always use real fetched products
-  const products = fetchedProducts;
-
-  // Add state for seller approval status
-  const [isSellerApproved, setIsSellerApproved] = useState(false);
-
-  // Check seller approval status
-  useEffect(() => {
-    const checkSellerStatus = async () => {
-      try {
-        const response = await fetch("/api/seller/status");
-        if (response.ok) {
-          const data = await response.json();
-          console.log("Seller status response:", data); // Debug log
-          setIsSellerApproved(data.status === "approved");
-        }
-      } catch (error) {
-        console.error("Error checking seller status:", error);
+      if (searchTerm) {
+        params.append("search", searchTerm);
       }
-    };
 
-    if (user?.id) {
-      checkSellerStatus();
-    }
-  }, [user?.id]);
+      const response = await fetch(`/api/seller/products?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch products");
+      }
+
+      const data = await response.json();
+
+      // Process products to ensure proper data structure
+      const processProducts = async () => {
+        const processedProducts = await Promise.all(
+          data.products.map(async (product: any) => {
+            // Ensure product has all required fields
+            return {
+              ...product,
+              sku: product.sku || null,
+              category: product.category || null,
+              subcategory: product.subcategory || null,
+              stock: product.stock || 0,
+              price: product.price || 0,
+              approved: product.approved || false,
+              isDraft: product.isDraft || false,
+            };
+          })
+        );
+
+        return {
+          ...data,
+          products: processedProducts,
+        };
+      };
+
+      return processProducts();
+    },
+    enabled: !!user?.id,
+  });
+
+  const products = data?.products || [];
+  const pagination = data?.pagination || { total: 0, totalPages: 1 };
+
+  // Check if seller is approved
+  const isSellerApproved = user?.sellerApproved || false;
 
   // Debug log for seller approval status
   useEffect(() => {
     console.log("Current seller approval status:", isSellerApproved);
   }, [isSellerApproved]);
 
+  const handleDeleteProduct = () => {
+    if (selectedProductId) {
+      deleteMutation.mutate(selectedProductId);
+    }
+  };
+
+  const handleBulkDeleteProducts = () => {
+    if (selectedProducts.length > 0) {
+      bulkDeleteMutation.mutate(selectedProducts);
+    }
+  };
+
+  const confirmDelete = (productId: number) => {
+    setSelectedProductId(productId);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmBulkDelete = () => {
+    if (selectedProducts.length > 0) {
+      setIsBulkDeleteDialogOpen(true);
+    } else {
+      toast({
+        title: "No products selected",
+        description: "Please select at least one product to delete",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Check seller status on mount
+  useEffect(() => {
+    const checkSellerStatus = async () => {
+      if (!user?.id) return;
+
+      try {
+        const response = await fetch("/api/seller/status");
+        if (response.ok) {
+          const statusData = await response.json();
+          console.log("Seller status:", statusData);
+        }
+      } catch (error) {
+        console.error("Error checking seller status:", error);
+      }
+    };
+
+    checkSellerStatus();
+  }, [user?.id]);
+
   return (
     <SellerDashboardLayout>
       <ApprovalCheck>
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <h1 className="text-2xl font-bold">Product Management</h1>
-              <p className="text-muted-foreground">
+              <h1 className="text-xl md:text-2xl font-bold">
+                Product Management
+              </h1>
+              <p className="text-sm md:text-base text-muted-foreground">
                 Manage your product listings
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-2 md:gap-3">
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 text-xs md:text-sm"
                       onClick={() => setLocation("/seller/products/add")}
                     >
                       <Plus className="h-4 w-4" />
-                      Add Product
+                      <span className="hidden sm:inline">Add Product</span>
+                      <span className="sm:hidden">Add</span>
                     </Button>
                   </TooltipTrigger>
                 </Tooltip>
               </TooltipProvider>
-              {/* Bulk upload functionality removed */}
               <Button
                 variant="outline"
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 text-xs md:text-sm"
                 onClick={() => {
                   // Show toast notification
                   toast({
@@ -649,58 +486,93 @@ export default function SellerProductsPage() {
                 }}
               >
                 <Download className="h-4 w-4" />
-                Export
+                <span className="hidden sm:inline">Export</span>
               </Button>
             </div>
           </div>
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle>Product Inventory</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-base md:text-lg">
+                Product Inventory
+              </CardTitle>
+              <CardDescription className="text-sm">
                 You have {data?.total || 0} products in your inventory
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col md:flex-row gap-4 mb-6">
-                <div className="relative flex-1">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Search products..."
-                    className="pl-8"
-                    value={searchTerm}
-                    onChange={(e) => {
-                      setSearchTerm(e.target.value);
-                      // Reset to first page when searching
-                      setCurrentPage(1);
-                    }}
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="flex items-center gap-2 text-red-600 border-red-200 hover:bg-red-50"
-                    onClick={confirmBulkDelete}
-                    disabled={
-                      selectedProducts.length === 0 ||
-                      bulkDeleteMutation.isPending
-                    }
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    {bulkDeleteMutation.isPending
-                      ? "Deleting..."
-                      : "Delete Selected"}
-                    {selectedProducts.length > 0 &&
-                      ` (${selectedProducts.length})`}
-                  </Button>
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <Filter className="h-4 w-4" />
-                    Filters
-                  </Button>
+              {/* Mobile Filter Toggle */}
+              <div className="md:hidden mb-4">
+                <Button
+                  variant="outline"
+                  className="w-full justify-between"
+                  onClick={() => setShowFilters(!showFilters)}
+                >
+                  <span className="flex items-center">
+                    <Filter className="h-4 w-4 mr-2" />
+                    Search & Filters
+                  </span>
+                  {showFilters ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+
+              {/* Search and Filters */}
+              <div className={`${showFilters ? "block" : "hidden"} md:block`}>
+                <div className="flex flex-col md:flex-row gap-3 md:gap-4 mb-4 md:mb-6">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Search products..."
+                      className="pl-8"
+                      value={searchTerm}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        // Reset to first page when searching
+                        setCurrentPage(1);
+                      }}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex items-center gap-2 text-red-600 border-red-200 hover:bg-red-50 text-xs md:text-sm flex-1 md:flex-none"
+                      onClick={confirmBulkDelete}
+                      disabled={
+                        selectedProducts.length === 0 ||
+                        bulkDeleteMutation.isPending
+                      }
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span className="hidden sm:inline">
+                        {bulkDeleteMutation.isPending
+                          ? "Deleting..."
+                          : "Delete Selected"}
+                      </span>
+                      <span className="sm:hidden">
+                        {bulkDeleteMutation.isPending
+                          ? "Deleting..."
+                          : "Delete"}
+                      </span>
+                      {selectedProducts.length > 0 &&
+                        ` (${selectedProducts.length})`}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex items-center gap-2 text-xs md:text-sm flex-1 md:flex-none"
+                    >
+                      <Filter className="h-4 w-4" />
+                      <span className="hidden sm:inline">Filters</span>
+                    </Button>
+                  </div>
                 </div>
               </div>
 
-              <div className="rounded-md border">
+              {/* Desktop Table */}
+              <div className="hidden md:block rounded-md border">
                 {isLoading ? (
                   <div className="flex justify-center items-center h-60">
                     <Loader2 className="w-12 h-12 animate-spin text-primary" />
@@ -1048,14 +920,367 @@ export default function SellerProductsPage() {
                   </Table>
                 )}
               </div>
+
+              {/* Mobile Product Cards */}
+              <div className="md:hidden space-y-3">
+                {isLoading ? (
+                  Array.from({ length: 3 }).map((_, idx) => (
+                    <Card key={idx} className="bg-white">
+                      <CardContent className="p-4">
+                        <div className="space-y-3">
+                          <div className="h-4 bg-gray-200 animate-pulse rounded w-3/4"></div>
+                          <div className="h-3 bg-gray-200 animate-pulse rounded w-1/2"></div>
+                          <div className="h-3 bg-gray-200 animate-pulse rounded w-2/3"></div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : products.length === 0 ? (
+                  <Card className="bg-white">
+                    <CardContent className="p-8 text-center">
+                      <div className="flex flex-col items-center justify-center text-muted-foreground">
+                        <Layers className="h-12 w-12 mb-3" />
+                        <p className="text-sm">No products found</p>
+                        <p className="text-xs mt-1">
+                          Try adjusting your search term
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  products.map((product: Product) => (
+                    <Card key={product.id} className="bg-white">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0">
+                            <Checkbox
+                              checked={selectedProducts.includes(product.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedProducts([
+                                    ...selectedProducts,
+                                    product.id,
+                                  ]);
+                                } else {
+                                  setSelectedProducts(
+                                    selectedProducts.filter(
+                                      (id) => id !== product.id
+                                    )
+                                  );
+                                }
+                              }}
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start gap-3">
+                              <div className="flex-shrink-0">
+                                <ProductImage product={product} size="small" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <CardTitle className="text-sm font-medium text-gray-900 mb-1">
+                                  {product.name}
+                                </CardTitle>
+                                <div className="space-y-1 text-xs">
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">
+                                      SKU:
+                                    </span>
+                                    <span>{product.sku || "-"}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">
+                                      Price:
+                                    </span>
+                                    <span className="font-medium">
+                                      ₹{product.price.toLocaleString()}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">
+                                      Stock:
+                                    </span>
+                                    <span
+                                      className={
+                                        product.stock < 20
+                                          ? "text-red-500 font-medium"
+                                          : ""
+                                      }
+                                    >
+                                      {product.stock}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </CardHeader>
+
+                      <CardContent className="pt-0">
+                        <div className="space-y-3">
+                          {/* Category and Subcategory */}
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="flex flex-col">
+                              <span className="text-xs font-medium text-muted-foreground">
+                                Category:
+                              </span>
+                              <span className="text-xs mt-1">
+                                {editingProductId === product.id ? (
+                                  <Select
+                                    value={editingCategory || product.category}
+                                    onValueChange={(value) => {
+                                      setEditingCategory(value);
+                                      setEditingSubcategory("");
+                                    }}
+                                  >
+                                    <SelectTrigger className="h-6 text-xs">
+                                      <SelectValue placeholder="Select category" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {categoriesData?.map(
+                                        (category: {
+                                          id: number;
+                                          name: string;
+                                        }) => (
+                                          <SelectItem
+                                            key={category.id}
+                                            value={category.name}
+                                          >
+                                            {category.name}
+                                          </SelectItem>
+                                        )
+                                      )}
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
+                                  <span
+                                    className="cursor-pointer hover:text-primary"
+                                    onClick={() => {
+                                      setEditingProductId(product.id);
+                                      setEditingCategory(
+                                        product.category || ""
+                                      );
+                                      setEditingSubcategory(
+                                        product.subcategory || ""
+                                      );
+                                    }}
+                                  >
+                                    {product.category || "-"}
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-xs font-medium text-muted-foreground">
+                                Subcategory:
+                              </span>
+                              <span className="text-xs mt-1">
+                                {editingProductId === product.id ? (
+                                  <Select
+                                    value={editingSubcategory}
+                                    onValueChange={setEditingSubcategory}
+                                    disabled={!editingCategory}
+                                  >
+                                    <SelectTrigger className="h-6 text-xs">
+                                      <SelectValue placeholder="Select subcategory" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="_none">
+                                        None
+                                      </SelectItem>
+                                      {(() => {
+                                        const currentCategory =
+                                          editingCategory || "";
+                                        if (!currentCategory) return [];
+
+                                        const categoryObj =
+                                          categoriesData?.find(
+                                            (c: any) =>
+                                              c.name === currentCategory
+                                          );
+                                        if (!categoryObj) return [];
+
+                                        const allSubcategories =
+                                          subcategoriesData || [];
+                                        const filteredSubcategories =
+                                          allSubcategories.filter(
+                                            (subcategory: any) =>
+                                              subcategory.categoryId ===
+                                              categoryObj.id
+                                          );
+
+                                        return filteredSubcategories.map(
+                                          (subcategory: {
+                                            id: number;
+                                            name: string;
+                                          }) => (
+                                            <SelectItem
+                                              key={subcategory.id}
+                                              value={subcategory.name}
+                                            >
+                                              {subcategory.name}
+                                            </SelectItem>
+                                          )
+                                        );
+                                      })()}
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
+                                  <span
+                                    className="cursor-pointer hover:text-primary"
+                                    onClick={() => {
+                                      setEditingProductId(product.id);
+                                      setEditingCategory(
+                                        product.category || ""
+                                      );
+                                      setEditingSubcategory(
+                                        product.subcategory
+                                          ? product.subcategory
+                                          : "_none"
+                                      );
+                                    }}
+                                  >
+                                    {product.subcategory || "-"}
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Status */}
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs font-medium text-muted-foreground">
+                              Status:
+                            </span>
+                            <div>
+                              {product.isDraft ? (
+                                <Badge
+                                  variant="outline"
+                                  className="bg-blue-50 text-blue-700 border-blue-200 text-xs"
+                                >
+                                  <FileEdit className="h-3 w-3 mr-1" />
+                                  Draft
+                                </Badge>
+                              ) : product.approved ? (
+                                <Badge
+                                  variant="outline"
+                                  className="bg-green-50 text-green-700 border-green-200 text-xs"
+                                >
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  Approved
+                                </Badge>
+                              ) : (
+                                <Badge
+                                  variant="outline"
+                                  className="bg-amber-50 text-amber-700 border-amber-200 text-xs"
+                                >
+                                  <XCircle className="h-3 w-3 mr-1" />
+                                  Pending
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Edit Actions */}
+                          {editingProductId === product.id && (
+                            <div className="flex gap-2 pt-2 border-t">
+                              <Button
+                                size="sm"
+                                className="flex-1 text-xs h-7"
+                                onClick={() => {
+                                  updateCategoryMutation.mutate({
+                                    productId: product.id,
+                                    category: editingCategory,
+                                    subcategory:
+                                      editingSubcategory === "_none"
+                                        ? ""
+                                        : editingSubcategory,
+                                  });
+                                }}
+                                disabled={updateCategoryMutation.isPending}
+                              >
+                                {updateCategoryMutation.isPending ? (
+                                  <>
+                                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                    Saving...
+                                  </>
+                                ) : (
+                                  "Save"
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="flex-1 text-xs h-7"
+                                onClick={() => {
+                                  setEditingProductId(null);
+                                  setEditingCategory("");
+                                  setEditingSubcategory("");
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+
+                      <CardFooter className="pt-0">
+                        <div className="flex gap-2 w-full">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 text-xs"
+                            asChild
+                          >
+                            <Link
+                              href={`/seller/products/preview/${product.id}`}
+                            >
+                              <Eye className="h-3 w-3 mr-1" />
+                              Preview
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 text-xs"
+                            asChild
+                          >
+                            <Link
+                              href={
+                                product.isDraft
+                                  ? `/seller/drafts/edit/${product.id}`
+                                  : `/seller/products/edit/${product.id}`
+                              }
+                            >
+                              <Edit className="h-3 w-3 mr-1" />
+                              Edit
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 text-xs text-red-500 hover:text-red-600"
+                            onClick={() => confirmDelete(product.id)}
+                            disabled={deleteMutation.isPending}
+                          >
+                            <Trash className="h-3 w-3 mr-1" />
+                            Delete
+                          </Button>
+                        </div>
+                      </CardFooter>
+                    </Card>
+                  ))
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between py-4">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 py-4">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">
+            <span className="text-xs md:text-sm text-gray-500">
               Showing {products.length} of {pagination.total} products
             </span>
             <Select
@@ -1086,7 +1311,7 @@ export default function SellerProductsPage() {
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-xs md:text-sm text-muted-foreground">
                 Page {currentPage} of {pagination.totalPages}
               </span>
               <Button
