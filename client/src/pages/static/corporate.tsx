@@ -21,9 +21,9 @@ export default function CorporateInfoPage() {
   // Helper for PDF download
   function downloadPDF(filename: string) {
     const pdfContent = `%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R >>\nendobj\n4 0 obj\n<< /Length 60 >>\nstream\nBT /F1 18 Tf 100 700 Td (${filename}) Tj ET\nBT /F1 10 Tf 100 680 Td (Lelekart Internet Private Limited) Tj ET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f \n0000000010 00000 n \n0000000079 00000 n \n0000000178 00000 n \n0000000297 00000 n \ntrailer\n<< /Root 1 0 R /Size 5 >>\nstartxref\n406\n%%EOF`;
-    const blob = new Blob([pdfContent], { type: 'application/pdf' });
+    const blob = new Blob([pdfContent], { type: "application/pdf" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = filename;
     document.body.appendChild(a);
@@ -40,40 +40,30 @@ export default function CorporateInfoPage() {
         {/* Main Content Area */}
         <div className="bg-white shadow-sm rounded-md overflow-hidden mb-6">
           {/* Hero Banner */}
-          <div className="bg-[#2874f0] text-white p-8 md:p-16">
+          <div className="bg-[#2874f0] text-white p-6 md:p-8 lg:p-16">
             <div className="max-w-4xl mx-auto">
-              <h1 className="text-3xl md:text-4xl font-bold mb-4">
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4">
                 Corporate Information
               </h1>
-              <p className="text-lg md:text-xl mb-6">
-                About Lelekart Internet Private Limited
+              <p className="text-base md:text-lg lg:text-xl mb-4 md:mb-6">
+                Learn about our company, leadership, and investor relations
               </p>
             </div>
           </div>
 
           {/* Content Sections */}
-          <div className="p-6 md:p-8">
+          <div className="p-4 md:p-6 lg:p-8">
             <div className="max-w-4xl mx-auto">
               <StaticPageSection
                 section="corporate_page"
                 titleFilter="Corporate Intro"
                 defaultContent={
-                  <div className="mb-10 text-gray-700">
-                    <p className="text-lg mb-4">
-                      Lelekart Internet Private Limited is India's leading
-                      e-commerce marketplace, offering a diverse selection of
-                      products across categories from electronics to fashion,
-                      home goods to groceries. Founded in 2023, we've grown into
-                      one of India's largest online retailers, serving millions
-                      of customers nationwide.
-                    </p>
-                    <p className="text-lg">
-                      Our mission is to provide customers with the widest
-                      selection of products at competitive prices, delivered
-                      with exceptional service. For our sellers, we offer a
-                      powerful platform to reach customers across India,
-                      supported by sophisticated tools and logistics
-                      infrastructure to help their businesses grow.
+                  <div className="mb-8 md:mb-10 text-gray-700">
+                    <p className="text-sm md:text-base lg:text-lg">
+                      Welcome to Lelekart's corporate information section. Here
+                      you'll find details about our leadership, company values,
+                      and investor relations. For more information, contact our
+                      corporate team.
                     </p>
                   </div>
                 }
@@ -340,26 +330,33 @@ export default function CorporateInfoPage() {
 
               {/* Company Documents */}
               <div className="mb-10">
-                <h2 className="text-2xl font-bold mb-6 text-[#2874f0]">
+                <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-[#2874f0]">
                   Corporate Documents
                 </h2>
                 <StaticPageSection
                   section="corporate_page"
                   titleFilter="Documents"
                   defaultContent={
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
                       <Card className="border-[#efefef] hover:shadow-md transition-shadow">
-                        <CardContent className="p-6">
+                        <CardContent className="p-4 md:p-6">
                           <div className="flex items-center justify-between">
                             <div>
-                              <h3 className="font-semibold">
+                              <h3 className="font-semibold text-sm md:text-base">
                                 Annual Report 2023
                               </h3>
-                              <p className="text-sm text-gray-600 mt-1">
+                              <p className="text-xs md:text-sm text-gray-600 mt-1">
                                 PDF, 5.2 MB
                               </p>
                             </div>
-                            <Button size="sm" variant="outline" onClick={() => downloadPDF('Annual-Report-2023.pdf')}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                downloadPDF("Annual-Report-2023.pdf")
+                              }
+                              className="text-xs md:text-sm"
+                            >
                               Download
                             </Button>
                           </div>
@@ -376,7 +373,13 @@ export default function CorporateInfoPage() {
                                 PDF, 3.8 MB
                               </p>
                             </div>
-                            <Button size="sm" variant="outline" onClick={() => downloadPDF('Investor-Presentation.pdf')}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                downloadPDF("Investor-Presentation.pdf")
+                              }
+                            >
                               Download
                             </Button>
                           </div>
@@ -393,7 +396,13 @@ export default function CorporateInfoPage() {
                                 PDF, 1.5 MB
                               </p>
                             </div>
-                            <Button size="sm" variant="outline" onClick={() => downloadPDF('Corporate-Factsheet.pdf')}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                downloadPDF("Corporate-Factsheet.pdf")
+                              }
+                            >
                               Download
                             </Button>
                           </div>
@@ -408,18 +417,35 @@ export default function CorporateInfoPage() {
                 section="corporate_page"
                 titleFilter="Corporate Footer"
                 defaultContent={
-                  <div className="bg-gray-50 rounded-lg p-6 text-center">
-                    <h3 className="text-xl font-semibold mb-4">
+                  <div className="bg-gray-50 rounded-lg p-4 md:p-6 text-center mt-8 md:mt-10">
+                    <h3 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">
                       Investor Relations
                     </h3>
-                    <p className="text-gray-600 max-w-3xl mx-auto mb-6">
+                    <p className="text-sm md:text-base text-gray-600 max-w-3xl mx-auto mb-4 md:mb-6">
                       For investor relations inquiries, please contact our
                       Investor Relations team at investor.relations@lelekart.com
                     </p>
                     <div className="flex flex-col md:flex-row justify-center gap-4">
-                      <Button onClick={() => setShowInvestor(true)}>Investor Relations</Button>
-                      <Button variant="outline" onClick={() => navigate('/press')}>Press Room</Button>
-                      <Button variant="outline" onClick={() => navigate('/careers')}>Careers</Button>
+                      <Button
+                        onClick={() => setShowInvestor(true)}
+                        className="text-sm md:text-base"
+                      >
+                        Investor Relations
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => navigate("/press")}
+                        className="text-sm md:text-base"
+                      >
+                        Press Room
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => navigate("/careers")}
+                        className="text-sm md:text-base"
+                      >
+                        Careers
+                      </Button>
                     </div>
                   </div>
                 }
@@ -429,11 +455,26 @@ export default function CorporateInfoPage() {
         </div>
       </div>
       {showInvestor && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg shadow-lg p-8 max-w-sm w-full text-center">
-            <h2 className="text-xl font-bold mb-4">Investor Relations</h2>
-            <p className="mb-2">Email: <a href="mailto:investor.relations@lelekart.com" className="text-blue-700 underline">investor.relations@lelekart.com</a></p>
-            <Button onClick={() => setShowInvestor(false)} className="mt-2">Close</Button>
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40 p-4">
+          <div className="bg-white rounded-lg shadow-lg p-4 md:p-8 max-w-sm w-full text-center">
+            <h2 className="text-lg md:text-xl font-bold mb-3 md:mb-4">
+              Investor Relations
+            </h2>
+            <p className="mb-2 text-sm md:text-base">
+              Email:{" "}
+              <a
+                href="mailto:investor.relations@lelekart.com"
+                className="text-blue-700 underline"
+              >
+                investor.relations@lelekart.com
+              </a>
+            </p>
+            <Button
+              onClick={() => setShowInvestor(false)}
+              className="mt-2 text-sm md:text-base"
+            >
+              Close
+            </Button>
           </div>
         </div>
       )}
