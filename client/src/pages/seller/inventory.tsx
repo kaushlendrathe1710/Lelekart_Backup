@@ -46,6 +46,10 @@ import {
   RefreshCw,
   Settings,
   X,
+  Eye,
+  Edit,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 export default function InventoryPage() {
@@ -61,6 +65,7 @@ export default function InventoryPage() {
   const [editingProduct, setEditingProduct] = useState<null | number>(null);
   const [editingCategory, setEditingCategory] = useState<string>("");
   const [editingSubcategory, setEditingSubcategory] = useState<string>("");
+  const [showFilters, setShowFilters] = useState(false);
 
   // Fetch product categories to use in filters
   const { data: categories } = useQuery({
@@ -211,40 +216,66 @@ export default function InventoryPage() {
 
   return (
     <SellerDashboardLayout>
-      <div className="container mx-auto py-6">
-        <div className="flex justify-between items-center mb-6">
+      <div className="container mx-auto py-4 md:py-6 px-4 md:px-0">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 md:mb-6 gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Inventory Management</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-xl md:text-2xl font-bold">
+              Inventory Management
+            </h1>
+            <p className="text-sm md:text-base text-muted-foreground">
               Manage your product inventory and stock levels
             </p>
           </div>
-          <div className="flex gap-3">
-            {/* Bulk upload functionality removed */}
+          <div className="flex gap-2 md:gap-3">
             <Button variant="outline" size="sm" onClick={() => refetch()}>
               <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
+              <span className="hidden sm:inline">Refresh</span>
             </Button>
             <Button size="sm" asChild>
               <Link href="/seller/products/add">
                 <Plus className="h-4 w-4 mr-2" />
-                Add Product
+                <span className="hidden sm:inline">Add Product</span>
+                <span className="sm:hidden">Add</span>
               </Link>
             </Button>
           </div>
         </div>
 
-        <Card className="mb-6">
+        {/* Mobile Filter Toggle */}
+        <div className="md:hidden mb-4">
+          <Button
+            variant="outline"
+            className="w-full justify-between"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <span className="flex items-center">
+              <Filter className="h-4 w-4 mr-2" />
+              Filters
+            </span>
+            {showFilters ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+
+        {/* Filters */}
+        <Card className="mb-4 md:mb-6">
           <CardHeader className="pb-3">
-            <CardTitle>Filter Products</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-base md:text-lg">
+              Filter Products
+            </CardTitle>
+            <CardDescription className="text-sm">
               Use the filters below to find specific products in your inventory
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent
+            className={`${showFilters ? "block" : "hidden"} md:block`}
+          >
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div>
-                <Label htmlFor="search" className="mb-2 block">
+                <Label htmlFor="search" className="mb-2 block text-sm">
                   Search
                 </Label>
                 <div className="relative">
@@ -259,7 +290,7 @@ export default function InventoryPage() {
                 </div>
               </div>
               <div>
-                <Label htmlFor="category" className="mb-2 block">
+                <Label htmlFor="category" className="mb-2 block text-sm">
                   Category
                 </Label>
                 <Select
@@ -286,7 +317,7 @@ export default function InventoryPage() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="subcategory" className="mb-2 block">
+                <Label htmlFor="subcategory" className="mb-2 block text-sm">
                   Subcategory
                 </Label>
                 <Select
@@ -319,7 +350,7 @@ export default function InventoryPage() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="stock" className="mb-2 block">
+                <Label htmlFor="stock" className="mb-2 block text-sm">
                   Stock Status
                 </Label>
                 <Select value={stockFilter} onValueChange={setStockFilter}>
@@ -353,7 +384,8 @@ export default function InventoryPage() {
           </CardContent>
         </Card>
 
-        <div className="bg-white rounded-md shadow">
+        {/* Desktop Table */}
+        <div className="hidden md:block bg-white rounded-md shadow">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -671,18 +703,346 @@ export default function InventoryPage() {
           )}
         </div>
 
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Mobile Product Cards */}
+        <div className="md:hidden space-y-4">
+          {productsLoading ? (
+            <div className="text-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">
+                Loading products...
+              </p>
+            </div>
+          ) : products.length === 0 ? (
+            <div className="text-center py-8">
+              <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                No products found matching your filters
+              </p>
+            </div>
+          ) : (
+            products.map((product: any) => (
+              <Card key={product.id} className="bg-white">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start gap-3">
+                    <div className="h-16 w-16 flex-shrink-0 rounded bg-gray-100 border">
+                      {(() => {
+                        let imagesList: string[] = [];
+
+                        if (product.images) {
+                          try {
+                            if (typeof product.images === "string") {
+                              imagesList = JSON.parse(product.images);
+                            } else if (Array.isArray(product.images)) {
+                              imagesList = product.images;
+                            }
+                          } catch (error) {
+                            console.error(
+                              "Error parsing product images:",
+                              error
+                            );
+                          }
+                        }
+
+                        if (imagesList && imagesList.length > 0) {
+                          return (
+                            <img
+                              src={imagesList[0]}
+                              alt={product.name}
+                              className="h-16 w-16 object-cover rounded"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src =
+                                  "https://placehold.co/100x100?text=No+Image";
+                              }}
+                            />
+                          );
+                        } else if (product.imageUrl) {
+                          return (
+                            <img
+                              src={product.imageUrl}
+                              alt={product.name}
+                              className="h-16 w-16 object-cover rounded"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src =
+                                  "https://placehold.co/100x100?text=No+Image";
+                              }}
+                            />
+                          );
+                        } else {
+                          return (
+                            <div className="h-16 w-16 flex items-center justify-center text-muted-foreground text-xs">
+                              No Image
+                            </div>
+                          );
+                        }
+                      })()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-base font-medium text-gray-900 mb-1">
+                        {product.name}
+                      </CardTitle>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">SKU:</span>
+                          <span>{product.sku || "-"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Price:</span>
+                          <span className="font-medium">
+                            {formatPrice(product.price)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="pt-0">
+                  <div className="space-y-3">
+                    {/* Category and Subcategory */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-muted-foreground">
+                          Category:
+                        </span>
+                        <span className="text-sm mt-1">
+                          {editingProduct === product.id ? (
+                            <Select
+                              value={editingCategory || product.category}
+                              onValueChange={(value) => {
+                                setEditingCategory(value);
+                                setEditingSubcategory("");
+                              }}
+                            >
+                              <SelectTrigger className="h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {categories?.map(
+                                  (category: { id: number; name: string }) => (
+                                    <SelectItem
+                                      key={category.id}
+                                      value={category.name}
+                                    >
+                                      {category.name}
+                                    </SelectItem>
+                                  )
+                                )}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            product.category
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-muted-foreground">
+                          Subcategory:
+                        </span>
+                        <span className="text-sm mt-1">
+                          {editingProduct === product.id ? (
+                            <Select
+                              value={editingSubcategory}
+                              onValueChange={setEditingSubcategory}
+                              disabled={!editingCategory}
+                            >
+                              <SelectTrigger className="h-8">
+                                <SelectValue placeholder="Select subcategory" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="">None</SelectItem>
+                                {subcategories
+                                  ?.filter(
+                                    (sub: {
+                                      id: number;
+                                      name: string;
+                                      categoryId: number;
+                                    }) => {
+                                      const categoryId = categories?.find(
+                                        (c: { id: number; name: string }) =>
+                                          c.name === editingCategory
+                                      )?.id;
+                                      return sub.categoryId === categoryId;
+                                    }
+                                  )
+                                  .map(
+                                    (subcategory: {
+                                      id: number;
+                                      name: string;
+                                    }) => (
+                                      <SelectItem
+                                        key={subcategory.id}
+                                        value={subcategory.name}
+                                      >
+                                        {subcategory.name}
+                                      </SelectItem>
+                                    )
+                                  )}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            product.subcategory1 || product.subcategory || "-"
+                          )}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Stock Status */}
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-muted-foreground">
+                        Stock:
+                      </span>
+                      <span className="text-sm mt-1">
+                        {(product.stockQuantity ?? product.stock) <= 0 ? (
+                          <span className="text-red-600 font-medium">
+                            Out of stock
+                          </span>
+                        ) : (product.stockQuantity ?? product.stock) <= 10 ? (
+                          <span className="text-amber-600 font-medium">
+                            Low stock ({product.stockQuantity ?? product.stock}{" "}
+                            left)
+                          </span>
+                        ) : (
+                          <span className="text-green-600 font-medium">
+                            In stock ({product.stockQuantity ?? product.stock})
+                          </span>
+                        )}
+                      </span>
+                    </div>
+
+                    {/* Status Badge */}
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-muted-foreground">
+                        Status:
+                      </span>
+                      <div className="mt-1">
+                        {product.approved ? (
+                          <Badge
+                            variant="outline"
+                            className="bg-green-100 text-green-800"
+                          >
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            Active
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="bg-amber-100 text-amber-800"
+                          >
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            Pending
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Edit Actions */}
+                    {editingProduct === product.id && (
+                      <div className="flex gap-2 pt-2 border-t">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex-1 text-xs"
+                          onClick={() => {
+                            setEditingProduct(null);
+                            setEditingCategory("");
+                            setEditingSubcategory("");
+                          }}
+                        >
+                          <X className="h-3 w-3 mr-1" />
+                          Cancel
+                        </Button>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="flex-1 text-xs"
+                          onClick={saveProductCategoryChanges}
+                          disabled={updateProductMutation.isPending}
+                        >
+                          {updateProductMutation.isPending ? (
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          ) : (
+                            <Check className="h-3 w-3 mr-1" />
+                          )}
+                          Save
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+
+                <CardFooter className="pt-0">
+                  <div className="flex gap-2 w-full">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      asChild
+                    >
+                      <Link href={`/seller/products/edit/${product.id}`}>
+                        <Edit className="h-4 w-4 mr-1" />
+                        Edit
+                      </Link>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      asChild
+                    >
+                      <Link href={`/product/${product.id}`}>
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Link>
+                    </Button>
+                  </div>
+                </CardFooter>
+              </Card>
+            ))
+          )}
+
+          {/* Mobile Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between py-4">
+              <p className="text-sm text-gray-700">
+                Page {page} of {totalPages}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                  disabled={page <= 1}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setPage((prev) => Math.min(totalPages, prev + 1))
+                  }
+                  disabled={page >= totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Statistics Cards */}
+        <div className="mt-6 md:mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="flex items-center">
-                <div className="w-8 h-8 mr-2 flex items-center justify-center rounded-full bg-amber-100">
-                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <CardTitle className="flex items-center text-sm md:text-base">
+                <div className="w-6 h-6 md:w-8 md:h-8 mr-2 flex items-center justify-center rounded-full bg-amber-100">
+                  <AlertTriangle className="h-3 w-3 md:h-4 md:w-4 text-amber-600" />
                 </div>
                 Low Stock Items
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">
+              <p className="text-2xl md:text-3xl font-bold">
                 {
                   products.filter(
                     (p: any) =>
@@ -691,14 +1051,14 @@ export default function InventoryPage() {
                   ).length
                 }
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs md:text-sm text-muted-foreground">
                 Products with 10 or fewer items in stock
               </p>
             </CardContent>
             <CardFooter>
               <Button
                 variant="link"
-                className="px-0"
+                className="px-0 text-xs md:text-sm"
                 onClick={() => setStockFilter("low-stock")}
               >
                 View low stock items
@@ -708,28 +1068,28 @@ export default function InventoryPage() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="flex items-center">
-                <div className="w-8 h-8 mr-2 flex items-center justify-center rounded-full bg-red-100">
-                  <Package className="h-4 w-4 text-red-600" />
+              <CardTitle className="flex items-center text-sm md:text-base">
+                <div className="w-6 h-6 md:w-8 md:h-8 mr-2 flex items-center justify-center rounded-full bg-red-100">
+                  <Package className="h-3 w-3 md:h-4 md:w-4 text-red-600" />
                 </div>
                 Out of Stock
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">
+              <p className="text-2xl md:text-3xl font-bold">
                 {
                   products.filter((p: any) => (p.stockQuantity ?? p.stock) <= 0)
                     .length
                 }
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs md:text-sm text-muted-foreground">
                 Products that are currently unavailable
               </p>
             </CardContent>
             <CardFooter>
               <Button
                 variant="link"
-                className="px-0"
+                className="px-0 text-xs md:text-sm"
                 onClick={() => setStockFilter("out-of-stock")}
               >
                 Manage out of stock items
@@ -739,21 +1099,27 @@ export default function InventoryPage() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="flex items-center">
-                <div className="w-8 h-8 mr-2 flex items-center justify-center rounded-full bg-green-100">
-                  <Tag className="h-4 w-4 text-green-600" />
+              <CardTitle className="flex items-center text-sm md:text-base">
+                <div className="w-6 h-6 md:w-8 md:h-8 mr-2 flex items-center justify-center rounded-full bg-green-100">
+                  <Tag className="h-3 w-3 md:h-4 md:w-4 text-green-600" />
                 </div>
                 Total Products
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">{productsData?.total || 0}</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-2xl md:text-3xl font-bold">
+                {productsData?.total || 0}
+              </p>
+              <p className="text-xs md:text-sm text-muted-foreground">
                 Total products in your inventory
               </p>
             </CardContent>
             <CardFooter>
-              <Button variant="link" className="px-0" asChild>
+              <Button
+                variant="link"
+                className="px-0 text-xs md:text-sm"
+                asChild
+              >
                 <Link href="/seller/smart-inventory">
                   View inventory analytics
                 </Link>
