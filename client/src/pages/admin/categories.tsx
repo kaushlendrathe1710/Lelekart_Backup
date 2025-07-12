@@ -7,14 +7,14 @@ import { AdminLayout } from "@/components/layout/admin-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -26,44 +26,44 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { 
+import {
   Form,
   FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormMessage
+  FormMessage,
 } from "@/components/ui/form";
-import { 
-  Table, 
-  TableBody, 
-  TableCaption, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { 
-  Edit, 
-  Trash2, 
-  Plus, 
+import {
+  Edit,
+  Trash2,
+  Plus,
   Grid,
   MoveUp,
   MoveDown,
   Image as ImageIcon,
   UploadCloud,
   Loader2,
-  X
+  X,
 } from "lucide-react";
 import { Category, insertCategorySchema } from "@shared/schema";
 import { FileUpload } from "@/components/ui/file-upload";
@@ -81,7 +81,9 @@ type CategoryFormValues = z.infer<typeof categorySchema>;
 export default function AdminCategories() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(
+    null
+  );
   const { toast } = useToast();
 
   // Fetch categories
@@ -214,13 +216,17 @@ export default function AdminCategories() {
   // Display order handlers
   const handleMoveUp = (category: Category) => {
     // Find the category with the next lower display order
-    const sortedCategories = [...(categories || [])].sort((a, b) => a.displayOrder - b.displayOrder);
-    const currentIndex = sortedCategories.findIndex(c => c.id === category.id);
-    
+    const sortedCategories = [...(categories || [])].sort(
+      (a, b) => a.displayOrder - b.displayOrder
+    );
+    const currentIndex = sortedCategories.findIndex(
+      (c) => c.id === category.id
+    );
+
     if (currentIndex > 0) {
       const targetCategory = sortedCategories[currentIndex - 1];
       const newDisplayOrder = targetCategory.displayOrder;
-      
+
       updateMutation.mutate({
         id: category.id,
         data: {
@@ -228,7 +234,7 @@ export default function AdminCategories() {
           displayOrder: newDisplayOrder,
         },
       });
-      
+
       // Also update the other category's display order
       updateMutation.mutate({
         id: targetCategory.id,
@@ -242,13 +248,17 @@ export default function AdminCategories() {
 
   const handleMoveDown = (category: Category) => {
     // Find the category with the next higher display order
-    const sortedCategories = [...(categories || [])].sort((a, b) => a.displayOrder - b.displayOrder);
-    const currentIndex = sortedCategories.findIndex(c => c.id === category.id);
-    
+    const sortedCategories = [...(categories || [])].sort(
+      (a, b) => a.displayOrder - b.displayOrder
+    );
+    const currentIndex = sortedCategories.findIndex(
+      (c) => c.id === category.id
+    );
+
     if (currentIndex < sortedCategories.length - 1) {
       const targetCategory = sortedCategories[currentIndex + 1];
       const newDisplayOrder = targetCategory.displayOrder;
-      
+
       updateMutation.mutate({
         id: category.id,
         data: {
@@ -256,7 +266,7 @@ export default function AdminCategories() {
           displayOrder: newDisplayOrder,
         },
       });
-      
+
       // Also update the other category's display order
       updateMutation.mutate({
         id: targetCategory.id,
@@ -270,15 +280,17 @@ export default function AdminCategories() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6 p-4 md:p-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Categories</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight">
+            Categories
+          </h1>
+          <p className="text-sm md:text-base text-muted-foreground">
             Manage product categories that appear in the store
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Categories List */}
           <div className="lg:col-span-2">
             <Card>
@@ -302,81 +314,172 @@ export default function AdminCategories() {
                     ))}
                   </div>
                 ) : categories && categories.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Image</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Display Order</TableHead>
-                        <TableHead>GST Rate (%)</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                  <>
+                    {/* Desktop Table */}
+                    <div className="hidden md:block">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Image</TableHead>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Display Order</TableHead>
+                            <TableHead>GST Rate (%)</TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {categories
+                            .sort((a, b) => a.displayOrder - b.displayOrder)
+                            .map((category) => (
+                              <TableRow key={category.id}>
+                                <TableCell>
+                                  <div className="h-12 w-12 overflow-hidden rounded border border-gray-200">
+                                    <img
+                                      src={category.image}
+                                      alt={category.name}
+                                      className="h-full w-full object-contain"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src =
+                                          "https://placehold.co/48x48?text=No+Image";
+                                      }}
+                                    />
+                                  </div>
+                                </TableCell>
+                                <TableCell className="font-medium">
+                                  {category.name}
+                                </TableCell>
+                                <TableCell>{category.displayOrder}</TableCell>
+                                <TableCell>
+                                  {category.gstRate
+                                    ? `${Number(category.gstRate).toFixed(2)}%`
+                                    : "0.00%"}
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex space-x-2">
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      onClick={() => handleMoveUp(category)}
+                                    >
+                                      <MoveUp className="h-4 w-4" />
+                                      <span className="sr-only">Move up</span>
+                                    </Button>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      onClick={() => handleMoveDown(category)}
+                                    >
+                                      <MoveDown className="h-4 w-4" />
+                                      <span className="sr-only">Move down</span>
+                                    </Button>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      onClick={() => openEditDialog(category)}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                      <span className="sr-only">Edit</span>
+                                    </Button>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="text-red-500"
+                                      onClick={() => openDeleteDialog(category)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                      <span className="sr-only">Delete</span>
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    {/* Mobile Cards */}
+                    <div className="md:hidden space-y-4">
                       {categories
                         .sort((a, b) => a.displayOrder - b.displayOrder)
                         .map((category) => (
-                          <TableRow key={category.id}>
-                            <TableCell>
-                              <div className="h-12 w-12 overflow-hidden rounded border border-gray-200">
-                                <img 
-                                  src={category.image} 
-                                  alt={category.name} 
+                          <Card key={category.id} className="p-4">
+                            <div className="flex items-center space-x-4">
+                              <div className="h-16 w-16 overflow-hidden rounded border border-gray-200 flex-shrink-0">
+                                <img
+                                  src={category.image}
+                                  alt={category.name}
                                   className="h-full w-full object-contain"
                                   onError={(e) => {
-                                    (e.target as HTMLImageElement).src = "https://placehold.co/48x48?text=No+Image";
+                                    (e.target as HTMLImageElement).src =
+                                      "https://placehold.co/64x64?text=No+Image";
                                   }}
                                 />
                               </div>
-                            </TableCell>
-                            <TableCell className="font-medium">{category.name}</TableCell>
-                            <TableCell>{category.displayOrder}</TableCell>
-                            <TableCell>{category.gstRate ? `${Number(category.gstRate).toFixed(2)}%` : '0.00%'}</TableCell>
-                            <TableCell>
-                              <div className="flex space-x-2">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-medium text-sm md:text-base truncate">
+                                  {category.name}
+                                </h3>
+                                <div className="flex items-center space-x-4 mt-1 text-xs md:text-sm text-muted-foreground">
+                                  <span>Order: {category.displayOrder}</span>
+                                  <span>
+                                    GST:{" "}
+                                    {category.gstRate
+                                      ? `${Number(category.gstRate).toFixed(2)}%`
+                                      : "0.00%"}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex flex-col space-y-1">
                                 <Button
                                   size="icon"
                                   variant="ghost"
+                                  className="h-8 w-8"
                                   onClick={() => handleMoveUp(category)}
                                 >
-                                  <MoveUp className="h-4 w-4" />
+                                  <MoveUp className="h-3 w-3" />
                                   <span className="sr-only">Move up</span>
                                 </Button>
                                 <Button
                                   size="icon"
                                   variant="ghost"
+                                  className="h-8 w-8"
                                   onClick={() => handleMoveDown(category)}
                                 >
-                                  <MoveDown className="h-4 w-4" />
+                                  <MoveDown className="h-3 w-3" />
                                   <span className="sr-only">Move down</span>
                                 </Button>
+                              </div>
+                              <div className="flex flex-col space-y-1">
                                 <Button
                                   size="icon"
                                   variant="ghost"
+                                  className="h-8 w-8"
                                   onClick={() => openEditDialog(category)}
                                 >
-                                  <Edit className="h-4 w-4" />
+                                  <Edit className="h-3 w-3" />
                                   <span className="sr-only">Edit</span>
                                 </Button>
                                 <Button
                                   size="icon"
                                   variant="ghost"
-                                  className="text-red-500"
+                                  className="h-8 w-8 text-red-500"
                                   onClick={() => openDeleteDialog(category)}
                                 >
-                                  <Trash2 className="h-4 w-4" />
+                                  <Trash2 className="h-3 w-3" />
                                   <span className="sr-only">Delete</span>
                                 </Button>
                               </div>
-                            </TableCell>
-                          </TableRow>
+                            </div>
+                          </Card>
                         ))}
-                    </TableBody>
-                  </Table>
+                    </div>
+                  </>
                 ) : (
                   <div className="py-8 text-center">
                     <Grid className="mx-auto h-12 w-12 text-gray-300" />
-                    <h3 className="mt-2 text-lg font-medium">No Categories Found</h3>
+                    <h3 className="mt-2 text-lg font-medium">
+                      No Categories Found
+                    </h3>
                     <p className="mt-1 text-sm text-gray-500">
                       Create your first category to get started
                     </p>
@@ -397,7 +500,10 @@ export default function AdminCategories() {
               </CardHeader>
               <CardContent>
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <form
+                    onSubmit={form.handleSubmit(onSubmit)}
+                    className="space-y-4"
+                  >
                     <FormField
                       control={form.control}
                       name="name"
@@ -421,7 +527,9 @@ export default function AdminCategories() {
                           <div className="space-y-4">
                             {/* Image Upload */}
                             <div>
-                              <p className="text-sm mb-2 font-medium text-muted-foreground">Option 1: Upload Image</p>
+                              <p className="text-sm mb-2 font-medium text-muted-foreground">
+                                Option 1: Upload Image
+                              </p>
                               <FileUpload
                                 onChange={(url) => {
                                   console.log("Image uploaded:", url);
@@ -435,25 +543,29 @@ export default function AdminCategories() {
                                 multiple={false}
                               />
                             </div>
-                            
+
                             {/* URL Input */}
                             <div>
-                              <p className="text-sm mb-2 font-medium text-muted-foreground">Option 2: Enter Image URL</p>
+                              <p className="text-sm mb-2 font-medium text-muted-foreground">
+                                Option 2: Enter Image URL
+                              </p>
                               <FormControl>
-                                <div className="flex space-x-2">
-                                  <Input 
-                                    placeholder="https://example.com/image.png" 
-                                    value={field.value} 
+                                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                                  <Input
+                                    placeholder="https://example.com/image.png"
+                                    value={field.value}
                                     onChange={field.onChange}
+                                    className="flex-1"
                                   />
                                   {field.value && (
-                                    <div className="h-10 w-10 overflow-hidden rounded border border-gray-200 flex-shrink-0">
-                                      <img 
-                                        src={field.value} 
-                                        alt="Preview" 
+                                    <div className="h-10 w-10 overflow-hidden rounded border border-gray-200 flex-shrink-0 self-start">
+                                      <img
+                                        src={field.value}
+                                        alt="Preview"
                                         className="h-full w-full object-contain"
                                         onError={(e) => {
-                                          (e.target as HTMLImageElement).src = "https://placehold.co/48x48?text=No+Image";
+                                          (e.target as HTMLImageElement).src =
+                                            "https://placehold.co/48x48?text=No+Image";
                                         }}
                                       />
                                     </div>
@@ -474,11 +586,11 @@ export default function AdminCategories() {
                         <FormItem>
                           <FormLabel>Display Order</FormLabel>
                           <FormControl>
-                            <Input 
-                              type="number" 
+                            <Input
+                              type="number"
                               min="1"
-                              placeholder="1" 
-                              {...field} 
+                              placeholder="1"
+                              {...field}
                               onChange={(e) => {
                                 const value = parseInt(e.target.value);
                                 field.onChange(isNaN(value) ? 0 : value);
@@ -497,13 +609,13 @@ export default function AdminCategories() {
                         <FormItem>
                           <FormLabel>GST Rate (%)</FormLabel>
                           <FormControl>
-                            <Input 
-                              type="number" 
+                            <Input
+                              type="number"
                               min="0"
                               max="100"
                               step="0.01"
-                              placeholder="0.00" 
-                              {...field} 
+                              placeholder="0.00"
+                              {...field}
                               onChange={(e) => {
                                 const value = e.target.value;
                                 // Store as string but validate it's a valid number
@@ -522,12 +634,14 @@ export default function AdminCategories() {
                       )}
                     />
 
-                    <Button 
-                      type="submit" 
+                    <Button
+                      type="submit"
                       className="w-full"
                       disabled={createMutation.isPending}
                     >
-                      {createMutation.isPending ? "Creating..." : "Create Category"}
+                      {createMutation.isPending
+                        ? "Creating..."
+                        : "Create Category"}
                     </Button>
                   </form>
                 </Form>
@@ -539,17 +653,17 @@ export default function AdminCategories() {
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md md:max-w-lg">
           <DialogHeader>
             <DialogTitle>Edit Category</DialogTitle>
             <DialogDescription>
               Make changes to the category details below
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedCategory && (
             <Form {...form}>
-              <form 
+              <form
                 onSubmit={form.handleSubmit((data) => {
                   updateMutation.mutate({
                     id: selectedCategory.id,
@@ -581,7 +695,9 @@ export default function AdminCategories() {
                       <div className="space-y-4">
                         {/* Image Upload */}
                         <div>
-                          <p className="text-sm mb-2 font-medium text-muted-foreground">Option 1: Upload Image</p>
+                          <p className="text-sm mb-2 font-medium text-muted-foreground">
+                            Option 1: Upload Image
+                          </p>
                           <FileUpload
                             onChange={(url) => {
                               console.log("Image uploaded in edit mode:", url);
@@ -595,25 +711,29 @@ export default function AdminCategories() {
                             multiple={false}
                           />
                         </div>
-                        
+
                         {/* URL Input */}
                         <div>
-                          <p className="text-sm mb-2 font-medium text-muted-foreground">Option 2: Enter Image URL</p>
+                          <p className="text-sm mb-2 font-medium text-muted-foreground">
+                            Option 2: Enter Image URL
+                          </p>
                           <FormControl>
-                            <div className="flex space-x-2">
-                              <Input 
-                                placeholder="https://example.com/image.png" 
-                                value={field.value} 
+                            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                              <Input
+                                placeholder="https://example.com/image.png"
+                                value={field.value}
                                 onChange={field.onChange}
+                                className="flex-1"
                               />
                               {field.value && (
-                                <div className="h-10 w-10 overflow-hidden rounded border border-gray-200 flex-shrink-0">
-                                  <img 
-                                    src={field.value} 
-                                    alt="Preview" 
+                                <div className="h-10 w-10 overflow-hidden rounded border border-gray-200 flex-shrink-0 self-start">
+                                  <img
+                                    src={field.value}
+                                    alt="Preview"
                                     className="h-full w-full object-contain"
                                     onError={(e) => {
-                                      (e.target as HTMLImageElement).src = "https://placehold.co/48x48?text=No+Image";
+                                      (e.target as HTMLImageElement).src =
+                                        "https://placehold.co/48x48?text=No+Image";
                                     }}
                                   />
                                 </div>
@@ -634,10 +754,10 @@ export default function AdminCategories() {
                     <FormItem>
                       <FormLabel>Display Order</FormLabel>
                       <FormControl>
-                        <Input 
-                          type="number" 
+                        <Input
+                          type="number"
                           min="1"
-                          {...field} 
+                          {...field}
                           onChange={(e) => {
                             const value = parseInt(e.target.value);
                             field.onChange(isNaN(value) ? 0 : value);
@@ -656,13 +776,13 @@ export default function AdminCategories() {
                     <FormItem>
                       <FormLabel>GST Rate (%)</FormLabel>
                       <FormControl>
-                        <Input 
-                          type="number" 
+                        <Input
+                          type="number"
                           min="0"
                           max="100"
                           step="0.01"
-                          placeholder="0.00" 
-                          {...field} 
+                          placeholder="0.00"
+                          {...field}
                           onChange={(e) => {
                             const value = e.target.value;
                             // Store as string but validate it's a valid number
@@ -681,17 +801,19 @@ export default function AdminCategories() {
                   )}
                 />
 
-                <DialogFooter>
+                <DialogFooter className="flex flex-col sm:flex-row gap-2">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => setEditDialogOpen(false)}
+                    className="w-full sm:w-auto"
                   >
                     Cancel
                   </Button>
-                  <Button 
+                  <Button
                     type="submit"
                     disabled={updateMutation.isPending}
+                    className="w-full sm:w-auto"
                   >
                     {updateMutation.isPending ? "Saving..." : "Save Changes"}
                   </Button>
@@ -708,8 +830,8 @@ export default function AdminCategories() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the category "{selectedCategory?.name}".
-              This action cannot be undone.
+              This will permanently delete the category "
+              {selectedCategory?.name}". This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
