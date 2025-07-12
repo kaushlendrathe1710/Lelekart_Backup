@@ -24,7 +24,9 @@ export default function FaqPage() {
   const [searchQuery, setSearchQuery] = React.useState("");
 
   // Helper to filter accordion items by search
-  function filterAccordionItems(items: Array<{ question: string; answer: React.ReactNode }>) {
+  function filterAccordionItems(
+    items: Array<{ question: string; answer: React.ReactNode }>
+  ) {
     if (!searchQuery.trim()) return items;
     const q = searchQuery.trim().toLowerCase();
     return items.filter(
@@ -42,28 +44,28 @@ export default function FaqPage() {
         {/* Main Content Area */}
         <div className="bg-white shadow-sm rounded-md overflow-hidden mb-6">
           {/* Hero Banner */}
-          <div className="bg-[#2874f0] text-white p-8 md:p-16">
+          <div className="bg-[#2874f0] text-white p-6 md:p-8 lg:p-16">
             <div className="max-w-4xl mx-auto">
-              <h1 className="text-3xl md:text-4xl font-bold mb-4">
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4">
                 Frequently Asked Questions
               </h1>
-              <p className="text-lg md:text-xl mb-6">
+              <p className="text-base md:text-lg lg:text-xl mb-4 md:mb-6">
                 Find answers to common questions about shopping on Lelekart
               </p>
             </div>
           </div>
 
           {/* Content Sections */}
-          <div className="p-6 md:p-8">
+          <div className="p-4 md:p-6 lg:p-8">
             <div className="max-w-4xl mx-auto">
               {/* Search Bar */}
-              <div className="mb-8">
+              <div className="mb-6 md:mb-8">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 md:h-5 md:w-5" />
                   <Input
                     type="text"
                     placeholder="Search for questions..."
-                    className="pl-10"
+                    className="pl-10 text-sm md:text-base"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -71,91 +73,104 @@ export default function FaqPage() {
               </div>
 
               {/* FAQ Categories */}
-              <Tabs defaultValue="orders" className="w-full mb-10">
-                <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 mb-6">
-                  <TabsTrigger
-                    value="orders"
-                    className="flex items-center gap-1"
-                  >
-                    <Package size={16} />
-                    <span>Orders</span>
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="payments"
-                    className="flex items-center gap-1"
-                  >
-                    <CreditCard size={16} />
-                    <span>Payments</span>
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="returns"
-                    className="flex items-center gap-1"
-                  >
-                    <Package size={16} />
-                    <span>Returns</span>
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="account"
-                    className="flex items-center gap-1"
-                  >
-                    <User size={16} />
-                    <span>Account</span>
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="shopping"
-                    className="flex items-center gap-1"
-                  >
-                    <ShoppingBag size={16} />
-                    <span>Shopping</span>
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="security"
-                    className="flex items-center gap-1"
-                  >
-                    <Shield size={16} />
-                    <span>Security</span>
-                  </TabsTrigger>
-                </TabsList>
+              <Tabs defaultValue="orders" className="w-full mb-8 md:mb-10">
+                <div className="overflow-x-auto">
+                  <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 mb-4 md:mb-6 min-w-max">
+                    <TabsTrigger
+                      value="orders"
+                      className="flex items-center gap-1 text-xs md:text-sm"
+                    >
+                      <Package size={14} className="md:w-4 md:h-4" />
+                      <span>Orders</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="payments"
+                      className="flex items-center gap-1 text-xs md:text-sm"
+                    >
+                      <CreditCard size={14} className="md:w-4 md:h-4" />
+                      <span>Payments</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="returns"
+                      className="flex items-center gap-1 text-xs md:text-sm"
+                    >
+                      <Package size={14} className="md:w-4 md:h-4" />
+                      <span>Returns</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="account"
+                      className="flex items-center gap-1 text-xs md:text-sm"
+                    >
+                      <User size={14} className="md:w-4 md:h-4" />
+                      <span>Account</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="shopping"
+                      className="flex items-center gap-1 text-xs md:text-sm"
+                    >
+                      <ShoppingBag size={14} className="md:w-4 md:h-4" />
+                      <span>Shopping</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="security"
+                      className="flex items-center gap-1 text-xs md:text-sm"
+                    >
+                      <Shield size={14} className="md:w-4 md:h-4" />
+                      <span>Security</span>
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
 
                 {/* Orders Tab with search filter */}
                 <TabsContent value="orders">
-                  <h2 className="text-2xl font-bold mb-6 text-[#2874f0] flex items-center gap-2">
-                    <Package size={20} />
+                  <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-[#2874f0] flex items-center gap-2">
+                    <Package size={18} className="md:w-5 md:h-5" />
                     Orders & Shipping
                   </h2>
                   {(() => {
                     const items = [
                       {
                         question: "How do I track my order?",
-                        answer: `You can track your order by following these steps: Log in to your Lelekart account, Go to 'My Orders' section, Find the order you want to track, Click on 'Track' button. You'll be able to see real-time updates on your order status and expected delivery date.`
+                        answer: `You can track your order by following these steps: Log in to your Lelekart account, Go to 'My Orders' section, Find the order you want to track, Click on 'Track' button. You'll be able to see real-time updates on your order status and expected delivery date.`,
                       },
                       {
                         question: "When will I receive my order?",
-                        answer: `Delivery times vary depending on your location and the product. Metro cities: 1-3 business days, Tier 2 cities: 2-4 business days, Other areas: 4-7 business days. The estimated delivery date is shown at checkout and in your order confirmation.`
+                        answer: `Delivery times vary depending on your location and the product. Metro cities: 1-3 business days, Tier 2 cities: 2-4 business days, Other areas: 4-7 business days. The estimated delivery date is shown at checkout and in your order confirmation.`,
                       },
                       {
                         question: "Can I modify or cancel my order?",
-                        answer: `You can modify or cancel your order only if it hasn't been shipped yet. Go to 'My Orders' in your account, Select the order you wish to modify or cancel, Click 'Cancel' or 'Modify' button (if available). If the order has already been shipped, you won't be able to cancel it directly. In that case, you can refuse the delivery or request a return once you receive it.`
+                        answer: `You can modify or cancel your order only if it hasn't been shipped yet. Go to 'My Orders' in your account, Select the order you wish to modify or cancel, Click 'Cancel' or 'Modify' button (if available). If the order has already been shipped, you won't be able to cancel it directly. In that case, you can refuse the delivery or request a return once you receive it.`,
                       },
                       {
                         question: "How do I check my order history?",
-                        answer: `To view your order history: Log in to your Lelekart account, Go to 'My Orders' section, You'll see all your past and current orders, Click on any order to view its details. Your order history is available for all orders placed within the last 12 months.`
+                        answer: `To view your order history: Log in to your Lelekart account, Go to 'My Orders' section, You'll see all your past and current orders, Click on any order to view its details. Your order history is available for all orders placed within the last 12 months.`,
                       },
                       {
                         question: "What if I'm not available during delivery?",
-                        answer: `If you're not available during delivery: Our delivery partner will attempt delivery up to 3 times, You'll receive notifications before each delivery attempt, You can reschedule delivery through the tracking page, For some areas, you can choose safe drop-off options. If delivery cannot be completed after 3 attempts, the order will be returned to our warehouse and a refund will be processed.`
+                        answer: `If you're not available during delivery: Our delivery partner will attempt delivery up to 3 times, You'll receive notifications before each delivery attempt, You can reschedule delivery through the tracking page, For some areas, you can choose safe drop-off options. If delivery cannot be completed after 3 attempts, the order will be returned to our warehouse and a refund will be processed.`,
                       },
                     ];
                     const filtered = filterAccordionItems(items);
                     if (filtered.length === 0) {
-                      return <div className="text-center text-muted-foreground py-8">No matching questions found.</div>;
+                      return (
+                        <div className="text-center text-muted-foreground py-6 md:py-8 text-sm md:text-base">
+                          No matching questions found.
+                        </div>
+                      );
                     }
                     return (
                       <Accordion type="single" collapsible className="w-full">
                         {filtered.map((item, idx) => (
-                          <AccordionItem value={`item-${idx + 1}`} key={item.question}>
-                            <AccordionTrigger>{item.question}</AccordionTrigger>
-                            <AccordionContent>{item.answer}</AccordionContent>
+                          <AccordionItem
+                            value={`item-${idx + 1}`}
+                            key={item.question}
+                          >
+                            <AccordionTrigger className="text-sm md:text-base">
+                              {item.question}
+                            </AccordionTrigger>
+                            <AccordionContent className="text-sm md:text-base">
+                              {item.answer}
+                            </AccordionContent>
                           </AccordionItem>
                         ))}
                       </Accordion>
@@ -165,8 +180,8 @@ export default function FaqPage() {
 
                 {/* Payments Tab */}
                 <TabsContent value="payments">
-                  <h2 className="text-2xl font-bold mb-6 text-[#2874f0] flex items-center gap-2">
-                    <CreditCard size={20} />
+                  <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-[#2874f0] flex items-center gap-2">
+                    <CreditCard size={18} className="md:w-5 md:h-5" />
                     Payments & Pricing
                   </h2>
                   <StaticPageSection
@@ -175,12 +190,12 @@ export default function FaqPage() {
                     defaultContent={
                       <Accordion type="single" collapsible className="w-full">
                         <AccordionItem value="item-1">
-                          <AccordionTrigger>
+                          <AccordionTrigger className="text-sm md:text-base">
                             What payment methods are accepted?
                           </AccordionTrigger>
-                          <AccordionContent>
+                          <AccordionContent className="text-sm md:text-base">
                             <p>We accept multiple payment methods including:</p>
-                            <ul className="list-disc pl-5 space-y-1 mt-2">
+                            <ul className="list-disc pl-4 md:pl-5 space-y-1 mt-2 text-sm md:text-base">
                               <li>
                                 Credit cards (Visa, MasterCard, American
                                 Express)
@@ -196,10 +211,10 @@ export default function FaqPage() {
                           </AccordionContent>
                         </AccordionItem>
                         <AccordionItem value="item-2">
-                          <AccordionTrigger>
+                          <AccordionTrigger className="text-sm md:text-base">
                             When is my credit/debit card charged?
                           </AccordionTrigger>
-                          <AccordionContent>
+                          <AccordionContent className="text-sm md:text-base">
                             <p>
                               Your card is charged immediately when you place
                               the order. If for any reason your order is
@@ -209,10 +224,10 @@ export default function FaqPage() {
                           </AccordionContent>
                         </AccordionItem>
                         <AccordionItem value="item-3">
-                          <AccordionTrigger>
+                          <AccordionTrigger className="text-sm md:text-base">
                             Is it safe to save my card information?
                           </AccordionTrigger>
-                          <AccordionContent>
+                          <AccordionContent className="text-sm md:text-base">
                             <p>
                               Yes, it's safe to save your card information on
                               Lelekart. We use industry-standard encryption and
@@ -228,16 +243,16 @@ export default function FaqPage() {
                           </AccordionContent>
                         </AccordionItem>
                         <AccordionItem value="item-4">
-                          <AccordionTrigger>
+                          <AccordionTrigger className="text-sm md:text-base">
                             How do EMI payments work?
                           </AccordionTrigger>
-                          <AccordionContent>
+                          <AccordionContent className="text-sm md:text-base">
                             <p>
                               EMI (Equated Monthly Installment) allows you to
                               split your payment into equal monthly
                               installments:
                             </p>
-                            <ul className="list-disc pl-5 space-y-1 mt-2">
+                            <ul className="list-disc pl-4 md:pl-5 space-y-1 mt-2 text-sm md:text-base">
                               <li>Available for orders above ₹3,000</li>
                               <li>Supported by most major banks</li>
                               <li>
@@ -255,15 +270,15 @@ export default function FaqPage() {
                           </AccordionContent>
                         </AccordionItem>
                         <AccordionItem value="item-5">
-                          <AccordionTrigger>
+                          <AccordionTrigger className="text-sm md:text-base">
                             How do I get an invoice for my purchase?
                           </AccordionTrigger>
-                          <AccordionContent>
+                          <AccordionContent className="text-sm md:text-base">
                             <p>
                               Your invoice is automatically generated and
                               available in your account:
                             </p>
-                            <ol className="list-decimal pl-5 space-y-1 mt-2">
+                            <ol className="list-decimal pl-4 md:pl-5 space-y-1 mt-2 text-sm md:text-base">
                               <li>Log in to your Lelekart account</li>
                               <li>Go to "My Orders"</li>
                               <li>
@@ -284,8 +299,8 @@ export default function FaqPage() {
 
                 {/* Returns Tab */}
                 <TabsContent value="returns">
-                  <h2 className="text-2xl font-bold mb-6 text-[#2874f0] flex items-center gap-2">
-                    <Package size={20} />
+                  <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-[#2874f0] flex items-center gap-2">
+                    <Package size={18} className="md:w-5 md:h-5" />
                     Returns & Refunds
                   </h2>
                   <StaticPageSection
@@ -294,15 +309,15 @@ export default function FaqPage() {
                     defaultContent={
                       <Accordion type="single" collapsible className="w-full">
                         <AccordionItem value="item-1">
-                          <AccordionTrigger>
+                          <AccordionTrigger className="text-sm md:text-base">
                             What is the return policy?
                           </AccordionTrigger>
-                          <AccordionContent>
+                          <AccordionContent className="text-sm md:text-base">
                             <p>
                               Our return policy allows you to return most items
                               within 7-10 days of delivery (varies by category):
                             </p>
-                            <ul className="list-disc pl-5 space-y-1 mt-2">
+                            <ul className="list-disc pl-4 md:pl-5 space-y-1 mt-2 text-sm md:text-base">
                               <li>Electronics: 7 days</li>
                               <li>Clothing and accessories: 10 days</li>
                               <li>Home and kitchen: 7 days</li>
@@ -317,12 +332,12 @@ export default function FaqPage() {
                           </AccordionContent>
                         </AccordionItem>
                         <AccordionItem value="item-2">
-                          <AccordionTrigger>
+                          <AccordionTrigger className="text-sm md:text-base">
                             How do I return a product?
                           </AccordionTrigger>
-                          <AccordionContent>
+                          <AccordionContent className="text-sm md:text-base">
                             <p>To return a product:</p>
-                            <ol className="list-decimal pl-5 space-y-1 mt-2">
+                            <ol className="list-decimal pl-4 md:pl-5 space-y-1 mt-2 text-sm md:text-base">
                               <li>Log in to your Lelekart account</li>
                               <li>
                                 Go to "My Orders" and find the item you want to
@@ -342,14 +357,14 @@ export default function FaqPage() {
                           </AccordionContent>
                         </AccordionItem>
                         <AccordionItem value="item-3">
-                          <AccordionTrigger>
+                          <AccordionTrigger className="text-sm md:text-base">
                             When will I get my refund?
                           </AccordionTrigger>
-                          <AccordionContent>
+                          <AccordionContent className="text-sm md:text-base">
                             <p>
                               Refund timelines depend on your payment method:
                             </p>
-                            <ul className="list-disc pl-5 space-y-1 mt-2">
+                            <ul className="list-disc pl-4 md:pl-5 space-y-1 mt-2 text-sm md:text-base">
                               <li>
                                 Lelekart Wallet: 24 hours after return approval
                               </li>
@@ -369,12 +384,12 @@ export default function FaqPage() {
                           </AccordionContent>
                         </AccordionItem>
                         <AccordionItem value="item-4">
-                          <AccordionTrigger>
+                          <AccordionTrigger className="text-sm md:text-base">
                             What if I received a damaged or defective item?
                           </AccordionTrigger>
-                          <AccordionContent>
+                          <AccordionContent className="text-sm md:text-base">
                             <p>If you receive a damaged or defective item:</p>
-                            <ol className="list-decimal pl-5 space-y-1 mt-2">
+                            <ol className="list-decimal pl-4 md:pl-5 space-y-1 mt-2 text-sm md:text-base">
                               <li>
                                 Initiate a return request within 48 hours of
                                 delivery
@@ -394,26 +409,22 @@ export default function FaqPage() {
                           </AccordionContent>
                         </AccordionItem>
                         <AccordionItem value="item-5">
-                          <AccordionTrigger>
+                          <AccordionTrigger className="text-sm md:text-base">
                             Can I exchange an item instead of returning it?
                           </AccordionTrigger>
-                          <AccordionContent>
+                          <AccordionContent className="text-sm md:text-base">
                             <p>
-                              Yes, for eligible products like clothing and
-                              footwear, you can request an exchange for a
-                              different size or color:
+                              Currently, we don't offer direct exchanges. If you
+                              want a different size, color, or variant, you'll
+                              need to:
                             </p>
-                            <ol className="list-decimal pl-5 space-y-1 mt-2">
-                              <li>Go to "My Orders" and select the item</li>
-                              <li>Click "Exchange" instead of "Return"</li>
-                              <li>Select the reason for exchange</li>
-                              <li>Choose the new size or color you want</li>
-                              <li>Schedule a pickup for the original item</li>
+                            <ol className="list-decimal pl-4 md:pl-5 space-y-1 mt-2 text-sm md:text-base">
+                              <li>Return the current item</li>
+                              <li>Place a new order for the desired item</li>
                             </ol>
                             <p className="mt-2">
-                              The replacement item will be shipped once we
-                              receive the original item. If the replacement is
-                              not available, we'll process a refund.
+                              This ensures you get the exact product you want
+                              and maintains our quality control process.
                             </p>
                           </AccordionContent>
                         </AccordionItem>
@@ -424,8 +435,8 @@ export default function FaqPage() {
 
                 {/* Account Tab */}
                 <TabsContent value="account">
-                  <h2 className="text-2xl font-bold mb-6 text-[#2874f0] flex items-center gap-2">
-                    <User size={20} />
+                  <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-[#2874f0] flex items-center gap-2">
+                    <User size={18} className="md:w-5 md:h-5" />
                     Account & Profile
                   </h2>
                   <StaticPageSection
@@ -434,129 +445,80 @@ export default function FaqPage() {
                     defaultContent={
                       <Accordion type="single" collapsible className="w-full">
                         <AccordionItem value="item-1">
-                          <AccordionTrigger>
-                            How do I create an account?
+                          <AccordionTrigger className="text-sm md:text-base">
+                            How do I create a Lelekart account?
                           </AccordionTrigger>
-                          <AccordionContent>
-                            <p>Creating an account is easy:</p>
-                            <ol className="list-decimal pl-5 space-y-1 mt-2">
-                              <li>
-                                Click on "Login" at the top right of the
-                                homepage
-                              </li>
-                              <li>
-                                Choose "New to Lelekart? Create an account"
-                              </li>
+                          <AccordionContent className="text-sm md:text-base">
+                            <p>Creating a Lelekart account is easy:</p>
+                            <ol className="list-decimal pl-4 md:pl-5 space-y-1 mt-2 text-sm md:text-base">
+                              <li>Click on "Sign Up" at the top of the page</li>
                               <li>Enter your mobile number or email address</li>
-                              <li>Verify with OTP (One-Time Password)</li>
-                              <li>Fill in your details (name, email, etc.)</li>
+                              <li>Verify your contact information</li>
                               <li>Set a password</li>
+                              <li>Add your basic details (name, address)</li>
                             </ol>
                             <p className="mt-2">
-                              You can also sign up during checkout as a guest
-                              user.
+                              You can also sign up using your Google or Facebook
+                              account for faster registration.
                             </p>
                           </AccordionContent>
                         </AccordionItem>
                         <AccordionItem value="item-2">
-                          <AccordionTrigger>
+                          <AccordionTrigger className="text-sm md:text-base">
                             How do I reset my password?
                           </AccordionTrigger>
-                          <AccordionContent>
+                          <AccordionContent className="text-sm md:text-base">
                             <p>To reset your password:</p>
-                            <ol className="list-decimal pl-5 space-y-1 mt-2">
-                              <li>Click on "Login" at the top of the page</li>
-                              <li>Select "Forgot Password?"</li>
+                            <ol className="list-decimal pl-4 md:pl-5 space-y-1 mt-2 text-sm md:text-base">
+                              <li>
+                                Click on "Forgot Password" on the login page
+                              </li>
                               <li>
                                 Enter your registered email or mobile number
                               </li>
-                              <li>
-                                Follow the instructions sent to your
-                                email/mobile
-                              </li>
-                              <li>Create a new password</li>
+                              <li>Click "Send OTP"</li>
+                              <li>Enter the OTP received</li>
+                              <li>Set a new password</li>
                             </ol>
                             <p className="mt-2">
-                              Make sure to choose a strong password that you
-                              haven't used before. For security reasons, you'll
-                              be logged out of all devices after changing your
-                              password.
+                              Make sure to use a strong password with a mix of
+                              letters, numbers, and special characters.
                             </p>
                           </AccordionContent>
                         </AccordionItem>
                         <AccordionItem value="item-3">
-                          <AccordionTrigger>
-                            How do I update my address or personal information?
+                          <AccordionTrigger className="text-sm md:text-base">
+                            How do I update my profile information?
                           </AccordionTrigger>
-                          <AccordionContent>
-                            <p>To update your profile information:</p>
-                            <ol className="list-decimal pl-5 space-y-1 mt-2">
+                          <AccordionContent className="text-sm md:text-base">
+                            <p>To update your profile:</p>
+                            <ol className="list-decimal pl-4 md:pl-5 space-y-1 mt-2 text-sm md:text-base">
                               <li>Log in to your account</li>
-                              <li>Click on your name at the top right</li>
-                              <li>
-                                Select "My Profile" from the dropdown menu
-                              </li>
-                              <li>
-                                Click "Edit" next to the information you want to
-                                update
-                              </li>
-                              <li>Make your changes and click "Save"</li>
+                              <li>Go to "My Account" or "Profile"</li>
+                              <li>Click on "Edit Profile"</li>
+                              <li>Update the information you want to change</li>
+                              <li>Click "Save Changes"</li>
                             </ol>
                             <p className="mt-2">
-                              For addresses specifically, go to "Manage
-                              Addresses" section where you can add, edit, or
-                              delete addresses.
+                              You can update your name, email, mobile number,
+                              and address information from your profile page.
                             </p>
                           </AccordionContent>
                         </AccordionItem>
                         <AccordionItem value="item-4">
-                          <AccordionTrigger>
-                            How do I deactivate my account?
+                          <AccordionTrigger className="text-sm md:text-base">
+                            How do I delete my account?
                           </AccordionTrigger>
-                          <AccordionContent>
-                            <p>To deactivate your account:</p>
-                            <ol className="list-decimal pl-5 space-y-1 mt-2">
-                              <li>Log in to your account</li>
-                              <li>Go to "My Profile"</li>
-                              <li>
-                                Scroll to the bottom and click "Deactivate
-                                Account"
-                              </li>
-                              <li>Select the reason for deactivation</li>
-                              <li>Enter your password to confirm</li>
-                              <li>Click "Deactivate Account"</li>
-                            </ol>
-                            <p className="mt-2">
-                              Note: Deactivating your account will remove your
-                              personal information, but your order history will
-                              be retained as per regulatory requirements. If you
-                              have any pending orders, they will be processed
-                              normally.
-                            </p>
-                          </AccordionContent>
-                        </AccordionItem>
-                        <AccordionItem value="item-5">
-                          <AccordionTrigger>
-                            What is Lelekart Wallet and how does it work?
-                          </AccordionTrigger>
-                          <AccordionContent>
+                          <AccordionContent className="text-sm md:text-base">
                             <p>
-                              Lelekart Wallet is our digital payment system that
-                              allows you to:
+                              To delete your account, please contact our
+                              customer service team. They will guide you through
+                              the process and ensure all your data is properly
+                              removed.
                             </p>
-                            <ul className="list-disc pl-5 space-y-1 mt-2">
-                              <li>Store money securely for future purchases</li>
-                              <li>Receive refunds instantly</li>
-                              <li>Earn cashback and rewards</li>
-                              <li>Make faster payments during checkout</li>
-                            </ul>
                             <p className="mt-2">
-                              You can add money to your wallet using any payment
-                              method. Wallet balance doesn't expire and can be
-                              used for any purchase on Lelekart. For regulatory
-                              compliance, you'll need to complete a one-time KYC
-                              verification to use your wallet for purchases
-                              above ₹10,000.
+                              Note: You cannot delete your account if you have
+                              pending orders or active returns.
                             </p>
                           </AccordionContent>
                         </AccordionItem>
@@ -567,9 +529,9 @@ export default function FaqPage() {
 
                 {/* Shopping Tab */}
                 <TabsContent value="shopping">
-                  <h2 className="text-2xl font-bold mb-6 text-[#2874f0] flex items-center gap-2">
-                    <ShoppingBag size={20} />
-                    Shopping Experience
+                  <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-[#2874f0] flex items-center gap-2">
+                    <ShoppingBag size={18} className="md:w-5 md:h-5" />
+                    Shopping & Products
                   </h2>
                   <StaticPageSection
                     section="faq_page"
@@ -577,156 +539,75 @@ export default function FaqPage() {
                     defaultContent={
                       <Accordion type="single" collapsible className="w-full">
                         <AccordionItem value="item-1">
-                          <AccordionTrigger>
-                            How do I find specific products?
+                          <AccordionTrigger className="text-sm md:text-base">
+                            How do I find products on Lelekart?
                           </AccordionTrigger>
-                          <AccordionContent>
+                          <AccordionContent className="text-sm md:text-base">
                             <p>You can find products in several ways:</p>
-                            <ul className="list-disc pl-5 space-y-1 mt-2">
+                            <ul className="list-disc pl-4 md:pl-5 space-y-1 mt-2 text-sm md:text-base">
+                              <li>Use the search bar at the top of the page</li>
+                              <li>Browse categories from the main menu</li>
                               <li>
-                                <strong>Search bar:</strong> Type keywords or
-                                product names
+                                Check out deals and offers on the homepage
                               </li>
-                              <li>
-                                <strong>Categories:</strong> Browse through our
-                                organized categories
-                              </li>
-                              <li>
-                                <strong>Filters:</strong> Narrow down results by
-                                price, brand, ratings, etc.
-                              </li>
-                              <li>
-                                <strong>Collections:</strong> Explore curated
-                                collections on the homepage
-                              </li>
+                              <li>Use filters to narrow down your search</li>
+                              <li>Sort by price, rating, or popularity</li>
                             </ul>
                             <p className="mt-2">
-                              You can also use our voice search feature by
-                              clicking the microphone icon in the search bar.
+                              You can also save items to your wishlist for later
+                              purchase.
                             </p>
                           </AccordionContent>
                         </AccordionItem>
                         <AccordionItem value="item-2">
-                          <AccordionTrigger>
-                            What are the benefits of using the wishlist?
+                          <AccordionTrigger className="text-sm md:text-base">
+                            How do I know if a product is genuine?
                           </AccordionTrigger>
-                          <AccordionContent>
-                            <p>The wishlist feature offers several benefits:</p>
-                            <ul className="list-disc pl-5 space-y-1 mt-2">
-                              <li>
-                                Save products you're interested in for later
-                              </li>
-                              <li>
-                                Get notified when wishlist items go on sale
-                              </li>
-                              <li>
-                                Receive alerts when out-of-stock items become
-                                available
-                              </li>
-                              <li>
-                                Easily compare products before making a purchase
-                              </li>
-                              <li>
-                                Share your wishlist with friends and family
-                              </li>
-                            </ul>
+                          <AccordionContent className="text-sm md:text-base">
+                            <p>
+                              All products sold on Lelekart are genuine and
+                              sourced directly from authorized sellers and
+                              brands. We have strict quality control measures in
+                              place.
+                            </p>
                             <p className="mt-2">
-                              To add a product to your wishlist, simply click
-                              the heart icon on any product page or search
-                              result.
+                              Look for the "Genuine Product" badge on product
+                              pages, and check seller ratings and reviews for
+                              additional assurance.
                             </p>
                           </AccordionContent>
                         </AccordionItem>
                         <AccordionItem value="item-3">
-                          <AccordionTrigger>
-                            How can I check product availability in my area?
+                          <AccordionTrigger className="text-sm md:text-base">
+                            Can I compare products?
                           </AccordionTrigger>
-                          <AccordionContent>
-                            <p>To check product availability in your area:</p>
-                            <ol className="list-decimal pl-5 space-y-1 mt-2">
-                              <li>
-                                Enter your pincode in the "Delivery" or "Check"
-                                box on the product page
-                              </li>
-                              <li>Click "Check" or "Apply"</li>
-                              <li>
-                                The system will display estimated delivery time
-                                and availability
-                              </li>
-                            </ol>
+                          <AccordionContent className="text-sm md:text-base">
+                            <p>
+                              Yes, you can compare products by adding them to
+                              your wishlist and then viewing them side by side.
+                              You can compare up to 4 products at a time.
+                            </p>
                             <p className="mt-2">
-                              You can also save your default pincode in your
-                              profile settings to automatically check
-                              availability for all products.
+                              The comparison will show you key features,
+                              specifications, prices, and ratings to help you
+                              make an informed decision.
                             </p>
                           </AccordionContent>
                         </AccordionItem>
                         <AccordionItem value="item-4">
-                          <AccordionTrigger>
-                            How reliable are the product reviews?
+                          <AccordionTrigger className="text-sm md:text-base">
+                            How do I save money while shopping?
                           </AccordionTrigger>
-                          <AccordionContent>
-                            <p>
-                              Our product reviews are from verified customers
-                              who have purchased and used the products. We have
-                              several measures to ensure review authenticity:
-                            </p>
-                            <ul className="list-disc pl-5 space-y-1 mt-2">
-                              <li>
-                                Reviews can only be submitted by customers who
-                                have purchased the product
-                              </li>
-                              <li>
-                                "Verified Purchase" badge indicates confirmed
-                                buyers
-                              </li>
-                              <li>
-                                Reviews include the date of purchase and usage
-                                duration
-                              </li>
-                              <li>
-                                Photos and videos in reviews are from actual
-                                customers
-                              </li>
-                              <li>
-                                We use AI systems to detect and remove fake or
-                                biased reviews
-                              </li>
+                          <AccordionContent className="text-sm md:text-base">
+                            <p>Here are some ways to save money:</p>
+                            <ul className="list-disc pl-4 md:pl-5 space-y-1 mt-2 text-sm md:text-base">
+                              <li>Use Lelekart coupons and discount codes</li>
+                              <li>Shop during sales and festivals</li>
+                              <li>Use cashback offers and rewards</li>
+                              <li>Compare prices across sellers</li>
+                              <li>Use EMI options for expensive items</li>
+                              <li>Subscribe to price drop alerts</li>
                             </ul>
-                            <p className="mt-2">
-                              We don't edit or remove negative reviews as long
-                              as they comply with our community guidelines.
-                            </p>
-                          </AccordionContent>
-                        </AccordionItem>
-                        <AccordionItem value="item-5">
-                          <AccordionTrigger>
-                            What are Lelekart SuperCoins and how do I earn them?
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            <p>
-                              SuperCoins are Lelekart's rewards currency. You
-                              can earn SuperCoins by:
-                            </p>
-                            <ul className="list-disc pl-5 space-y-1 mt-2">
-                              <li>
-                                Shopping on Lelekart (1 SuperCoin for every ₹100
-                                spent)
-                              </li>
-                              <li>
-                                Writing product reviews (5-20 SuperCoins per
-                                review)
-                              </li>
-                              <li>Participating in games and activities</li>
-                              <li>Completing profile information</li>
-                              <li>Referring friends to Lelekart</li>
-                            </ul>
-                            <p className="mt-2">
-                              SuperCoins can be redeemed for vouchers, products,
-                              or exclusive offers in the SuperCoin Zone. They
-                              are valid for 12 months from the date they are
-                              earned.
-                            </p>
                           </AccordionContent>
                         </AccordionItem>
                       </Accordion>
@@ -736,8 +617,8 @@ export default function FaqPage() {
 
                 {/* Security Tab */}
                 <TabsContent value="security">
-                  <h2 className="text-2xl font-bold mb-6 text-[#2874f0] flex items-center gap-2">
-                    <Shield size={20} />
+                  <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-[#2874f0] flex items-center gap-2">
+                    <Shield size={18} className="md:w-5 md:h-5" />
                     Security & Privacy
                   </h2>
                   <StaticPageSection
@@ -746,187 +627,69 @@ export default function FaqPage() {
                     defaultContent={
                       <Accordion type="single" collapsible className="w-full">
                         <AccordionItem value="item-1">
-                          <AccordionTrigger>
-                            How does Lelekart protect my personal information?
+                          <AccordionTrigger className="text-sm md:text-base">
+                            Is it safe to shop on Lelekart?
                           </AccordionTrigger>
-                          <AccordionContent>
+                          <AccordionContent className="text-sm md:text-base">
                             <p>
-                              We implement multiple security measures to protect
-                              your personal information:
+                              Yes, Lelekart is completely safe to shop on. We
+                              use industry-standard security measures including:
                             </p>
-                            <ul className="list-disc pl-5 space-y-1 mt-2">
-                              <li>
-                                End-to-end encryption for all sensitive data
-                              </li>
-                              <li>
-                                PCI DSS compliance for all payment processing
-                              </li>
-                              <li>
-                                Multi-factor authentication for account access
-                              </li>
-                              <li>
-                                Regular security audits and penetration testing
-                              </li>
-                              <li>
-                                Secure data centers with physical and digital
-                                protection
-                              </li>
-                              <li>Limited employee access to personal data</li>
+                            <ul className="list-disc pl-4 md:pl-5 space-y-1 mt-2 text-sm md:text-base">
+                              <li>SSL encryption for all transactions</li>
+                              <li>PCI DSS compliance for payment security</li>
+                              <li>Secure payment gateways</li>
+                              <li>Two-factor authentication options</li>
+                              <li>Regular security audits</li>
                             </ul>
                             <p className="mt-2">
-                              We only collect information necessary for
-                              providing our services and never sell your
-                              personal data to third parties.
+                              Your personal and payment information is always
+                              protected.
                             </p>
                           </AccordionContent>
                         </AccordionItem>
                         <AccordionItem value="item-2">
-                          <AccordionTrigger>
-                            What should I do if I notice suspicious activity on
-                            my account?
+                          <AccordionTrigger className="text-sm md:text-base">
+                            How do you protect my personal information?
                           </AccordionTrigger>
-                          <AccordionContent>
-                            <p>If you notice suspicious activity:</p>
-                            <ol className="list-decimal pl-5 space-y-1 mt-2">
-                              <li>Change your password immediately</li>
-                              <li>
-                                Contact our customer service at
-                                security@lelekart.com
-                              </li>
-                              <li>
-                                Review recent orders and report any unauthorized
-                                transactions
-                              </li>
-                              <li>
-                                Check your saved addresses and payment methods
-                                for any changes
-                              </li>
-                              <li>
-                                Enable two-factor authentication if not already
-                                enabled
-                              </li>
-                            </ol>
+                          <AccordionContent className="text-sm md:text-base">
+                            <p>We protect your personal information through:</p>
+                            <ul className="list-disc pl-4 md:pl-5 space-y-1 mt-2 text-sm md:text-base">
+                              <li>Data encryption at rest and in transit</li>
+                              <li>Strict access controls</li>
+                              <li>Regular security updates</li>
+                              <li>Compliance with data protection laws</li>
+                              <li>Limited data sharing with third parties</li>
+                            </ul>
                             <p className="mt-2">
-                              Our security team will investigate and may
-                              temporarily freeze your account to prevent further
-                              unauthorized access. We may also help you report
-                              any fraudulent transactions to the appropriate
-                              authorities.
+                              We never sell your personal information to third
+                              parties for marketing purposes.
                             </p>
                           </AccordionContent>
                         </AccordionItem>
                         <AccordionItem value="item-3">
-                          <AccordionTrigger>
-                            How can I make my Lelekart account more secure?
+                          <AccordionTrigger className="text-sm md:text-base">
+                            What should I do if I notice suspicious activity?
                           </AccordionTrigger>
-                          <AccordionContent>
-                            <p>To enhance your account security:</p>
-                            <ul className="list-disc pl-5 space-y-1 mt-2">
+                          <AccordionContent className="text-sm md:text-base">
+                            <p>If you notice suspicious activity:</p>
+                            <ol className="list-decimal pl-4 md:pl-5 space-y-1 mt-2 text-sm md:text-base">
+                              <li>Change your password immediately</li>
+                              <li>Enable two-factor authentication</li>
                               <li>
-                                Use a strong, unique password (combine letters,
-                                numbers, and special characters)
+                                Check your order history for unauthorized
+                                purchases
                               </li>
+                              <li>Contact our customer service team</li>
                               <li>
-                                Enable two-factor authentication in account
-                                settings
+                                Report any unauthorized transactions to your
+                                bank
                               </li>
-                              <li>
-                                Don't share your account credentials with anyone
-                              </li>
-                              <li>
-                                Log out when using shared or public computers
-                              </li>
-                              <li>
-                                Update your contact information to receive
-                                security alerts
-                              </li>
-                              <li>
-                                Regularly review your order history and account
-                                activity
-                              </li>
-                              <li>Use verified and secure payment methods</li>
-                            </ul>
+                            </ol>
                             <p className="mt-2">
-                              We recommend changing your password periodically,
-                              especially if you've used the same password for a
-                              long time.
-                            </p>
-                          </AccordionContent>
-                        </AccordionItem>
-                        <AccordionItem value="item-4">
-                          <AccordionTrigger>
-                            Does Lelekart share my information with third
-                            parties?
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            <p>
-                              We only share your information in specific
-                              circumstances:
-                            </p>
-                            <ul className="list-disc pl-5 space-y-1 mt-2">
-                              <li>
-                                With delivery partners to fulfill your orders
-                              </li>
-                              <li>
-                                With payment processors to complete transactions
-                              </li>
-                              <li>
-                                With service providers who help us operate our
-                                platform
-                              </li>
-                              <li>
-                                When required by law or regulatory requirements
-                              </li>
-                              <li>
-                                To protect against fraud or illegal activity
-                              </li>
-                            </ul>
-                            <p className="mt-2">
-                              All third parties we work with are bound by strict
-                              confidentiality agreements and data protection
-                              standards. We never sell your personal information
-                              to advertisers or data brokers. You can review our
-                              complete Privacy Policy for more details.
-                            </p>
-                          </AccordionContent>
-                        </AccordionItem>
-                        <AccordionItem value="item-5">
-                          <AccordionTrigger>
-                            What is Lelekart's policy on cookies?
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            <p>
-                              We use cookies to enhance your shopping
-                              experience:
-                            </p>
-                            <ul className="list-disc pl-5 space-y-1 mt-2">
-                              <li>
-                                <strong>Essential cookies:</strong> Required for
-                                basic site functionality
-                              </li>
-                              <li>
-                                <strong>Functional cookies:</strong> Remember
-                                your preferences and settings
-                              </li>
-                              <li>
-                                <strong>Performance cookies:</strong> Help us
-                                improve site performance
-                              </li>
-                              <li>
-                                <strong>Analytics cookies:</strong> Provide
-                                insights on how visitors use our site
-                              </li>
-                              <li>
-                                <strong>Targeting cookies:</strong> Deliver more
-                                relevant advertisements
-                              </li>
-                            </ul>
-                            <p className="mt-2">
-                              You can manage your cookie preferences through the
-                              Cookie Settings option at the bottom of our
-                              website. You can choose to accept all cookies,
-                              only essential cookies, or customize your
-                              preferences.
+                              We have a dedicated team to handle security
+                              concerns and will investigate any suspicious
+                              activity.
                             </p>
                           </AccordionContent>
                         </AccordionItem>
@@ -935,6 +698,35 @@ export default function FaqPage() {
                   />
                 </TabsContent>
               </Tabs>
+
+              {/* Contact Support Section */}
+              <div className="mt-8 md:mt-10 bg-gray-50 p-6 md:p-8 rounded-lg">
+                <div className="text-center">
+                  <HelpCircle className="h-12 w-12 md:h-16 md:w-16 mx-auto text-[#2874f0] mb-4" />
+                  <h3 className="text-lg md:text-xl font-semibold mb-2">
+                    Still have questions?
+                  </h3>
+                  <p className="text-sm md:text-base text-gray-600 mb-4">
+                    Can't find the answer you're looking for? Our customer
+                    service team is here to help.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center">
+                    <Button
+                      variant="outline"
+                      className="text-sm md:text-base"
+                      onClick={() => (window.location.href = "/contact")}
+                    >
+                      Contact Support
+                    </Button>
+                    <Button
+                      className="text-sm md:text-base"
+                      onClick={() => (window.location.href = "/chat")}
+                    >
+                      Live Chat
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

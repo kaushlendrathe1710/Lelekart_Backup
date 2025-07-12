@@ -25,17 +25,19 @@ export default function PaymentsPage() {
         {/* Main Content Area */}
         <div className="bg-white shadow-sm rounded-md overflow-hidden mb-6">
           {/* Hero Banner */}
-          <div className="bg-[#2874f0] text-white p-8 md:p-16">
+          <div className="bg-[#2874f0] text-white p-6 md:p-8 lg:p-16">
             <div className="max-w-4xl mx-auto">
-              <h1 className="text-3xl md:text-4xl font-bold mb-4">Payments</h1>
-              <p className="text-lg md:text-xl mb-6">
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4">
+                Payments
+              </h1>
+              <p className="text-base md:text-lg lg:text-xl mb-4 md:mb-6">
                 Information about payment methods, options, and policies
               </p>
             </div>
           </div>
 
           {/* Content Sections */}
-          <div className="p-6 md:p-8">
+          <div className="p-4 md:p-6 lg:p-8">
             <div className="max-w-4xl mx-auto">
               <StaticPageSection
                 section="payments_page"
@@ -442,17 +444,17 @@ export default function PaymentsPage() {
                 />
               </div>
 
-              <div className="bg-gray-50 p-6 rounded-lg mt-8">
+              <div className="bg-gray-50 p-4 md:p-6 rounded-lg mt-8">
                 <StaticPageSection
                   section="payments_page"
                   titleFilter="Payments Footer"
                   defaultContent={
                     <div className="flex flex-col md:flex-row items-center gap-4">
                       <div className="md:w-3/4">
-                        <h3 className="text-xl font-semibold mb-2">
+                        <h3 className="text-lg md:text-xl font-semibold mb-2">
                           Need Help with Payments?
                         </h3>
-                        <p className="text-gray-600">
+                        <p className="text-sm md:text-base text-gray-600">
                           If you have any questions or issues with payments, our
                           customer service team is available 24/7 to assist you.
                         </p>
@@ -460,7 +462,7 @@ export default function PaymentsPage() {
                       <div className="md:w-1/4 flex flex-col sm:flex-row gap-3 md:justify-end">
                         <a
                           href="/contact"
-                          className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-[#2874f0] text-white hover:bg-blue-700 h-10 px-4 py-2"
+                          className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm md:text-base font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-[#2874f0] text-white hover:bg-blue-700 h-10 px-4 py-2"
                         >
                           <HelpCircle className="h-4 w-4 mr-2" />
                           Contact Support

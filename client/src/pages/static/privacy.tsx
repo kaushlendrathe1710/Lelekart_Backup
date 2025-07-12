@@ -20,26 +20,26 @@ export default function PrivacyPolicyPage() {
         {/* Main Content Area */}
         <div className="bg-white shadow-sm rounded-md overflow-hidden mb-6">
           {/* Hero Banner */}
-          <div className="bg-[#2874f0] text-white p-8 md:p-16">
+          <div className="bg-[#2874f0] text-white p-6 md:p-8 lg:p-16">
             <div className="max-w-4xl mx-auto">
-              <h1 className="text-3xl md:text-4xl font-bold mb-4">
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4">
                 Privacy Policy
               </h1>
-              <p className="text-lg md:text-xl mb-6">
+              <p className="text-base md:text-lg lg:text-xl mb-4 md:mb-6">
                 How we collect, use, and protect your personal information
               </p>
             </div>
           </div>
 
           {/* Content Sections */}
-          <div className="p-6 md:p-8">
+          <div className="p-4 md:p-6 lg:p-8">
             <div className="max-w-4xl mx-auto">
               <StaticPageSection
                 section="privacy_page"
                 titleFilter="Privacy Intro"
                 defaultContent={
-                  <div className="mb-8 text-gray-700">
-                    <p className="text-lg">
+                  <div className="mb-6 md:mb-8 text-gray-700">
+                    <p className="text-sm md:text-base lg:text-lg">
                       At Lelekart, we take your privacy seriously. This Privacy
                       Policy explains how we collect, use, disclose, and
                       safeguard your information when you visit our website or
@@ -49,16 +49,16 @@ export default function PrivacyPolicyPage() {
                 }
               />
 
-              <div className="space-y-8 mb-10">
+              <div className="space-y-6 md:space-y-8 mb-8 md:mb-10">
                 <div>
-                  <h2 className="text-2xl font-bold mb-4 text-[#2874f0]">
+                  <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-[#2874f0]">
                     OUR PRIVACY PILLARS
                   </h2>
                   <StaticPageSection
                     section="privacy_page"
                     titleFilter="Privacy Pillars"
                     defaultContent={
-                      <div className="prose prose-blue max-w-none">
+                      <div className="prose prose-blue max-w-none text-sm md:text-base">
                         <p>
                           <strong>Transparency:</strong> We want you to
                           understand what and how we collect information when
@@ -85,14 +85,14 @@ export default function PrivacyPolicyPage() {
                 <Separator />
 
                 <div>
-                  <h2 className="text-2xl font-bold mb-4 text-[#2874f0]">
+                  <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-[#2874f0]">
                     DEFINITIONS OF TERMS USED IN PRIVACY POLICY
                   </h2>
                   <StaticPageSection
                     section="privacy_page"
                     titleFilter="Privacy Definitions"
                     defaultContent={
-                      <div className="prose prose-blue max-w-none">
+                      <div className="prose prose-blue max-w-none text-sm md:text-base">
                         <p>
                           <strong>Browsing Information:</strong> We use cookies
                           and web beacons to track the products you viewed and
@@ -101,7 +101,7 @@ export default function PrivacyPolicyPage() {
                           browser and browsing behaviour.
                         </p>
 
-                        <h3 className="text-xl font-semibold mt-6 mb-3">
+                        <h3 className="text-lg md:text-xl font-semibold mt-4 md:mt-6 mb-2 md:mb-3">
                           Cookies
                         </h3>
                         <p>
@@ -138,7 +138,7 @@ export default function PrivacyPolicyPage() {
                           platform.
                         </p>
 
-                        <h3 className="text-xl font-semibold mt-6 mb-3">
+                        <h3 className="text-lg md:text-xl font-semibold mt-4 md:mt-6 mb-2 md:mb-3">
                           Interest-Based Advertising
                         </h3>
                         <p>
@@ -150,7 +150,7 @@ export default function PrivacyPolicyPage() {
                           Advertising Section" below.
                         </p>
 
-                        <h3 className="text-xl font-semibold mt-6 mb-3">
+                        <h3 className="text-lg md:text-xl font-semibold mt-4 md:mt-6 mb-2 md:mb-3">
                           Personally Identifiable Information ("PII")
                         </h3>
                         <p>
@@ -163,7 +163,7 @@ export default function PrivacyPolicyPage() {
                           collect.
                         </p>
 
-                        <h3 className="text-xl font-semibold mt-6 mb-3">
+                        <h3 className="text-lg md:text-xl font-semibold mt-4 md:mt-6 mb-2 md:mb-3">
                           Third-Party Advertising Companies
                         </h3>
                         <p>
@@ -180,7 +180,7 @@ export default function PrivacyPolicyPage() {
                           target the indicated preferences of that browser.
                         </p>
 
-                        <h3 className="text-xl font-semibold mt-6 mb-3">
+                        <h3 className="text-lg md:text-xl font-semibold mt-4 md:mt-6 mb-2 md:mb-3">
                           Web Beacons
                         </h3>
                         <p>
@@ -220,15 +220,15 @@ export default function PrivacyPolicyPage() {
                 <Separator />
 
                 <div>
-                  <h2 className="text-2xl font-bold mb-4 text-[#2874f0]">
+                  <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-[#2874f0]">
                     INFORMATION COLLECTED AND USED
                   </h2>
                   <StaticPageSection
                     section="privacy_page"
                     titleFilter="Information Collection"
                     defaultContent={
-                      <div className="prose prose-blue max-w-none">
-                        <h3 className="text-xl font-semibold mb-3">
+                      <div className="prose prose-blue max-w-none text-sm md:text-base">
+                        <h3 className="text-lg md:text-xl font-semibold mb-2 md:mb-3">
                           What Information Do We Collect?
                         </h3>
                         <p>
@@ -283,7 +283,7 @@ export default function PrivacyPolicyPage() {
                           public.
                         </p>
 
-                        <h3 className="text-xl font-semibold mt-6 mb-3">
+                        <h3 className="text-lg md:text-xl font-semibold mt-4 md:mt-6 mb-2 md:mb-3">
                           Who Collects Information?
                         </h3>
                         <p>
@@ -328,16 +328,16 @@ export default function PrivacyPolicyPage() {
                 </div>
               </div>
 
-              <div className="bg-blue-50 p-6 rounded-lg">
+              <div className="bg-blue-50 p-4 md:p-6 rounded-lg">
                 <StaticPageSection
                   section="privacy_page"
                   titleFilter="Privacy Footer"
                   defaultContent={
                     <div className="text-center">
-                      <h3 className="text-xl font-semibold mb-4">
+                      <h3 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">
                         Questions About Our Privacy Policy?
                       </h3>
-                      <p className="text-gray-700 max-w-3xl mx-auto">
+                      <p className="text-sm md:text-base text-gray-700 max-w-3xl mx-auto">
                         If you have any questions or concerns about our privacy
                         practices or would like to exercise your rights
                         regarding your personal information, please contact our
