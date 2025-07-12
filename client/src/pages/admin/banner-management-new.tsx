@@ -19,15 +19,30 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { 
-  Loader2, Plus, Trash2, ArrowUp, ArrowDown, EyeOff, Eye, 
-  Search, X, Edit, ArrowUpDown, SlidersHorizontal, LayoutGrid, List
+import {
+  Loader2,
+  Plus,
+  Trash2,
+  ArrowUp,
+  ArrowDown,
+  EyeOff,
+  Eye,
+  Search,
+  X,
+  Edit,
+  ArrowUpDown,
+  SlidersHorizontal,
+  LayoutGrid,
+  List,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { type ToastActionElement, type ToastProps } from "@/components/ui/toast";
+import {
+  type ToastActionElement,
+  type ToastProps,
+} from "@/components/ui/toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { 
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -75,10 +90,10 @@ const useCategories = () => {
     queryKey: ["/api/categories"],
     queryFn: async () => {
       const res = await apiRequest("GET", "/api/categories");
-      return await res.json() as Category[];
+      return (await res.json()) as Category[];
     },
   });
-  
+
   return { data: data || [] };
 };
 
@@ -86,7 +101,9 @@ export default function BannerManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isAddingBanner, setIsAddingBanner] = useState(false);
-  const [newBanner, setNewBanner] = useState<Omit<Banner, "id" | "createdAt" | "updatedAt">>({
+  const [newBanner, setNewBanner] = useState<
+    Omit<Banner, "id" | "createdAt" | "updatedAt">
+  >({
     title: "",
     subtitle: "",
     imageUrl: "",
@@ -98,8 +115,8 @@ export default function BannerManagement() {
     productId: null,
   });
   const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [searchQuery, setSearchQuery] = useState("");
   const [filterActive, setFilterActive] = useState<boolean | null>(null);
   const { data: categories = [] } = useCategories();
 
@@ -115,13 +132,17 @@ export default function BannerManagement() {
 
   // Create a new banner
   const createBannerMutation = useMutation({
-    mutationFn: async (banner: Omit<Banner, "id" | "createdAt" | "updatedAt">) => {
+    mutationFn: async (
+      banner: Omit<Banner, "id" | "createdAt" | "updatedAt">
+    ) => {
       const res = await apiRequest("POST", "/api/banners", banner);
       return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/banners"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/featured-hero-products"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/featured-hero-products"],
+      });
       setIsAddingBanner(false);
       setNewBanner({
         title: "",
@@ -157,7 +178,9 @@ export default function BannerManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/banners"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/featured-hero-products"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/featured-hero-products"],
+      });
       setEditingBanner(null);
       toast({
         title: "Banner updated",
@@ -180,7 +203,9 @@ export default function BannerManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/banners"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/featured-hero-products"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/featured-hero-products"],
+      });
       toast({
         title: "Banner deleted",
         description: "Your banner has been deleted successfully.",
@@ -203,7 +228,9 @@ export default function BannerManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/banners"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/featured-hero-products"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/featured-hero-products"],
+      });
       toast({
         title: "Banner status updated",
         description: "Your banner status has been updated successfully.",
@@ -221,12 +248,16 @@ export default function BannerManagement() {
   // Update banner position
   const updateBannerPositionMutation = useMutation({
     mutationFn: async ({ id, position }: { id: number; position: number }) => {
-      const res = await apiRequest("PATCH", `/api/banners/${id}/position`, { position });
+      const res = await apiRequest("PATCH", `/api/banners/${id}/position`, {
+        position,
+      });
       return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/banners"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/featured-hero-products"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/featured-hero-products"],
+      });
       toast({
         title: "Banner position updated",
         description: "Your banner position has been updated successfully.",
@@ -250,48 +281,51 @@ export default function BannerManagement() {
       updateBannerMutation.mutate(editingBanner);
     }
   };
-  
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) {
       return;
     }
-    
+
     const file = e.target.files[0];
     const formData = new FormData();
-    formData.append('bannerImage', file);
-    
+    formData.append("bannerImage", file);
+
     try {
       // Show loading toast
       toast({
         title: "Uploading image...",
         description: "Please wait while we upload your image.",
       });
-      
+
       const res = await fetch("/api/upload/banner", {
         method: "POST",
         body: formData,
       });
-      
+
       const data = await res.json();
-      
+
       if (data.success && data.imageUrl) {
         // Update the banner state with the new image URL
-        setNewBanner(prev => ({
+        setNewBanner((prev) => ({
           ...prev,
-          imageUrl: data.imageUrl
+          imageUrl: data.imageUrl,
         }));
-        
+
         // Show success message
         toast({
           title: "Banner image uploaded",
-          description: data.message || "Your banner image has been uploaded successfully.",
+          description:
+            data.message || "Your banner image has been uploaded successfully.",
           variant: "default",
         });
       } else {
         // Show error message
         toast({
           title: "Upload failed",
-          description: data.message || "There was an error uploading your image. Please try again.",
+          description:
+            data.message ||
+            "There was an error uploading your image. Please try again.",
           variant: "destructive",
         });
       }
@@ -299,56 +333,62 @@ export default function BannerManagement() {
       console.error("Error uploading image:", error);
       toast({
         title: "Upload failed",
-        description: "There was an error uploading your image. Please try again.",
+        description:
+          "There was an error uploading your image. Please try again.",
         variant: "destructive",
       });
     }
   };
-  
-  const handleEditImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+
+  const handleEditImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     if (!e.target.files || e.target.files.length === 0 || !editingBanner) {
       return;
     }
-    
+
     const file = e.target.files[0];
     const formData = new FormData();
-    formData.append('bannerImage', file);
-    
+    formData.append("bannerImage", file);
+
     try {
       // Show loading toast
       toast({
         title: "Uploading image...",
         description: "Please wait while we upload your image.",
       });
-      
+
       const res = await fetch("/api/upload/banner", {
         method: "POST",
         body: formData,
       });
-      
+
       const data = await res.json();
-      
+
       if (data.success && data.imageUrl) {
         // Update the banner state with the new image URL
-        setEditingBanner(prev => {
+        setEditingBanner((prev) => {
           if (!prev) return null;
           return {
             ...prev,
-            imageUrl: data.imageUrl
+            imageUrl: data.imageUrl,
           };
         });
-        
+
         // Show success message
         toast({
           title: "Banner image uploaded",
-          description: data.message || "Your banner image has been uploaded successfully.",
+          description:
+            data.message || "Your banner image has been uploaded successfully.",
           variant: "default",
         });
       } else {
         // Show error message
         toast({
           title: "Upload failed",
-          description: data.message || "There was an error uploading your image. Please try again.",
+          description:
+            data.message ||
+            "There was an error uploading your image. Please try again.",
           variant: "destructive",
         });
       }
@@ -356,7 +396,8 @@ export default function BannerManagement() {
       console.error("Error uploading image:", error);
       toast({
         title: "Upload failed",
-        description: "There was an error uploading your image. Please try again.",
+        description:
+          "There was an error uploading your image. Please try again.",
         variant: "destructive",
       });
     }
@@ -392,7 +433,7 @@ export default function BannerManagement() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     if (!editingBanner) return;
-    
+
     const { name, value } = e.target;
     setEditingBanner((prev) => {
       if (!prev) return null;
@@ -409,16 +450,16 @@ export default function BannerManagement() {
 
   // Filter and search banners
   const filteredBanners = [...banners]
-    .filter(banner => {
+    .filter((banner) => {
       // Filter by active status if selected
       if (filterActive !== null) {
         return banner.active === filterActive;
       }
       return true;
     })
-    .filter(banner => {
+    .filter((banner) => {
       // Search in title and subtitle
-      if (searchQuery.trim() === '') return true;
+      if (searchQuery.trim() === "") return true;
       const query = searchQuery.toLowerCase();
       return (
         banner.title.toLowerCase().includes(query) ||
@@ -430,26 +471,26 @@ export default function BannerManagement() {
 
   return (
     <AdminLayout>
-      <div className="container mx-auto py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Banner Management</h1>
+      <div className="container mx-auto py-4 md:py-8 px-4 md:px-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold">Banner Management</h1>
           {!isAddingBanner && (
-            <Button 
+            <Button
               onClick={() => setIsAddingBanner(true)}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 w-full sm:w-auto"
             >
               <Plus size={16} />
               Add New Banner
             </Button>
           )}
         </div>
-        
+
         {!isAddingBanner && !editingBanner && banners.length > 0 && (
-          <div className="flex flex-wrap gap-4 bg-muted/30 p-4 rounded-lg mb-6">
-            <div className="relative flex-grow max-w-md">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3 md:gap-4 bg-muted/30 p-3 md:p-4 rounded-lg mb-6">
+            <div className="relative flex-grow min-w-0">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search banners by title, subtitle or category..."
+                placeholder="Search banners..."
                 className="pl-9"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -459,98 +500,120 @@ export default function BannerManagement() {
                   variant="ghost"
                   size="icon"
                   className="absolute right-0 top-0 h-9 w-9"
-                  onClick={() => setSearchQuery('')}
+                  onClick={() => setSearchQuery("")}
                 >
                   <X className="h-4 w-4" />
                 </Button>
               )}
             </div>
-            
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setFilterActive(filterActive === true ? null : true)}
-                    className={filterActive === true ? "bg-primary text-primary-foreground" : ""}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Show active banners only</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setFilterActive(filterActive === false ? null : false)}
-                    className={filterActive === false ? "bg-primary text-primary-foreground" : ""}
-                  >
-                    <EyeOff className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Show inactive banners only</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
-            <div className="border-l mx-2 h-9"></div>
-            
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setViewMode('grid')}
-                    className={viewMode === 'grid' ? "bg-primary text-primary-foreground" : ""}
-                  >
-                    <LayoutGrid className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Grid view</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setViewMode('list')}
-                    className={viewMode === 'list' ? "bg-primary text-primary-foreground" : ""}
-                  >
-                    <List className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>List view</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+
+            <div className="flex items-center gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() =>
+                        setFilterActive(filterActive === true ? null : true)
+                      }
+                      className={
+                        filterActive === true
+                          ? "bg-primary text-primary-foreground"
+                          : ""
+                      }
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Show active banners only</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() =>
+                        setFilterActive(filterActive === false ? null : false)
+                      }
+                      className={
+                        filterActive === false
+                          ? "bg-primary text-primary-foreground"
+                          : ""
+                      }
+                    >
+                      <EyeOff className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Show inactive banners only</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <div className="border-l mx-2 h-9 hidden sm:block"></div>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setViewMode("grid")}
+                      className={
+                        viewMode === "grid"
+                          ? "bg-primary text-primary-foreground"
+                          : ""
+                      }
+                    >
+                      <LayoutGrid className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Grid view</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setViewMode("list")}
+                      className={
+                        viewMode === "list"
+                          ? "bg-primary text-primary-foreground"
+                          : ""
+                      }
+                    >
+                      <List className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>List view</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </div>
         )}
 
         {isAddingBanner && (
-          <Card className="mb-8">
+          <Card className="mb-6 md:mb-8">
             <CardHeader>
               <CardTitle>Add New Banner</CardTitle>
               <CardDescription>
                 Create a new banner for the hero section of your store.
               </CardDescription>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <CardContent className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
               <div className="flex flex-col gap-4">
                 <div>
                   <Label htmlFor="title">Title</Label>
@@ -598,7 +661,12 @@ export default function BannerManagement() {
                   <Label>Banner Image</Label>
                   <div className="grid grid-cols-1 gap-4">
                     <div>
-                      <Label htmlFor="imageUpload" className="text-sm text-muted-foreground">Upload Image</Label>
+                      <Label
+                        htmlFor="imageUpload"
+                        className="text-sm text-muted-foreground"
+                      >
+                        Upload Image
+                      </Label>
                       <Input
                         id="imageUpload"
                         type="file"
@@ -610,12 +678,19 @@ export default function BannerManagement() {
                     <div className="-- OR --">
                       <div className="relative flex items-center my-2">
                         <div className="flex-grow border-t border-gray-300"></div>
-                        <span className="flex-shrink mx-4 text-gray-400 text-sm">OR</span>
+                        <span className="flex-shrink mx-4 text-gray-400 text-sm">
+                          OR
+                        </span>
                         <div className="flex-grow border-t border-gray-300"></div>
                       </div>
                     </div>
                     <div>
-                      <Label htmlFor="imageUrl" className="text-sm text-muted-foreground">Image URL</Label>
+                      <Label
+                        htmlFor="imageUrl"
+                        className="text-sm text-muted-foreground"
+                      >
+                        Image URL
+                      </Label>
                       <Input
                         id="imageUrl"
                         name="imageUrl"
@@ -628,13 +703,18 @@ export default function BannerManagement() {
                   </div>
                   {newBanner.imageUrl && (
                     <div className="mt-2">
-                      <Label className="text-sm text-muted-foreground">Image Preview</Label>
+                      <Label className="text-sm text-muted-foreground">
+                        Image Preview
+                      </Label>
                       <div className="mt-1 border rounded-md overflow-hidden w-full h-32 relative">
-                        <img 
-                          src={newBanner.imageUrl} 
-                          alt="Banner preview" 
+                        <img
+                          src={newBanner.imageUrl}
+                          alt="Banner preview"
                           className="object-cover w-full h-full"
-                          onError={(e) => e.currentTarget.src = "https://via.placeholder.com/300x150?text=Invalid+Image+URL"}
+                          onError={(e) =>
+                            (e.currentTarget.src =
+                              "https://via.placeholder.com/300x150?text=Invalid+Image+URL")
+                          }
                         />
                       </div>
                     </div>
@@ -671,7 +751,9 @@ export default function BannerManagement() {
                     onChange={(e) =>
                       setNewBanner((prev) => ({
                         ...prev,
-                        productId: e.target.value ? parseInt(e.target.value) : null,
+                        productId: e.target.value
+                          ? parseInt(e.target.value)
+                          : null,
                       }))
                     }
                     placeholder="e.g. 123"
@@ -689,16 +771,22 @@ export default function BannerManagement() {
                 </div>
               </div>
             </CardContent>
-            <CardFooter className="flex justify-end gap-2">
+            <CardFooter className="flex flex-col sm:flex-row justify-end gap-2">
               <Button
                 variant="outline"
                 onClick={() => setIsAddingBanner(false)}
+                className="w-full sm:w-auto"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleCreateBanner}
-                disabled={createBannerMutation.isPending || !newBanner.title || !newBanner.imageUrl}
+                disabled={
+                  createBannerMutation.isPending ||
+                  !newBanner.title ||
+                  !newBanner.imageUrl
+                }
+                className="w-full sm:w-auto"
               >
                 {createBannerMutation.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -714,15 +802,18 @@ export default function BannerManagement() {
             <Loader2 className="h-8 w-8 animate-spin" />
           </div>
         ) : banners.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 bg-muted/30 rounded-lg">
+          <div className="flex flex-col items-center justify-center py-12 md:py-24 bg-muted/30 rounded-lg">
             <div className="bg-muted/50 rounded-full p-4 mb-4">
               <LayoutGrid className="h-8 w-8 text-muted-foreground" />
             </div>
-            <h3 className="text-xl font-semibold mb-1">No banners yet</h3>
-            <p className="text-muted-foreground max-w-md text-center mb-6">
-              Create your first banner to start showcasing products in the hero section of your store.
+            <h3 className="text-lg md:text-xl font-semibold mb-1 text-center">
+              No banners yet
+            </h3>
+            <p className="text-muted-foreground max-w-md text-center mb-6 px-4">
+              Create your first banner to start showcasing products in the hero
+              section of your store.
             </p>
-            <Button 
+            <Button
               onClick={() => setIsAddingBanner(true)}
               className="flex items-center gap-2"
             >
@@ -731,18 +822,21 @@ export default function BannerManagement() {
             </Button>
           </div>
         ) : filteredBanners.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 bg-muted/30 rounded-lg">
+          <div className="flex flex-col items-center justify-center py-12 md:py-16 bg-muted/30 rounded-lg">
             <div className="bg-muted/50 rounded-full p-4 mb-4">
               <Search className="h-6 w-6 text-muted-foreground" />
             </div>
-            <h3 className="text-xl font-semibold mb-1">No matching banners</h3>
-            <p className="text-muted-foreground max-w-md text-center mb-6">
-              No banners match your current search or filters. Try adjusting your search terms or clear filters.
+            <h3 className="text-lg md:text-xl font-semibold mb-1 text-center">
+              No matching banners
+            </h3>
+            <p className="text-muted-foreground max-w-md text-center mb-6 px-4">
+              No banners match your current search or filters. Try adjusting
+              your search terms or clear filters.
             </p>
-            <Button 
+            <Button
               variant="outline"
               onClick={() => {
-                setSearchQuery('');
+                setSearchQuery("");
                 setFilterActive(null);
               }}
               className="flex items-center gap-2"
@@ -752,32 +846,40 @@ export default function BannerManagement() {
             </Button>
           </div>
         ) : (
-          <div className="mb-8">
+          <div className="mb-6 md:mb-8">
             {!isAddingBanner && !editingBanner && (
               <div className="flex justify-between items-center mb-4">
-                <p className="text-muted-foreground">
-                  {filteredBanners.length} banner{filteredBanners.length !== 1 ? 's' : ''} found
+                <p className="text-sm md:text-base text-muted-foreground">
+                  {filteredBanners.length} banner
+                  {filteredBanners.length !== 1 ? "s" : ""} found
                   {filterActive !== null && (
-                    <span> • {filterActive ? 'Active only' : 'Inactive only'}</span>
+                    <span>
+                      {" "}
+                      • {filterActive ? "Active only" : "Inactive only"}
+                    </span>
                   )}
-                  {searchQuery && (
-                    <span> • Filtered by "{searchQuery}"</span>
-                  )}
+                  {searchQuery && <span> • Filtered by "{searchQuery}"</span>}
                 </p>
               </div>
             )}
-            
+
             {/* Grid View Mode */}
-            {viewMode === 'grid' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {viewMode === "grid" && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                 {filteredBanners.map((banner) => (
-                  <Card key={banner.id} className={`group overflow-hidden transition-all duration-300 hover:shadow-md ${banner.active ? "" : "opacity-80"}`}>
+                  <Card
+                    key={banner.id}
+                    className={`group overflow-hidden transition-all duration-300 hover:shadow-md ${banner.active ? "" : "opacity-80"}`}
+                  >
                     <div className="relative aspect-[16/9] overflow-hidden">
                       <img
                         src={banner.imageUrl}
                         alt={banner.title}
                         className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
-                        onError={(e) => e.currentTarget.src = "https://via.placeholder.com/300x150?text=Invalid+Image+URL"}
+                        onError={(e) =>
+                          (e.currentTarget.src =
+                            "https://via.placeholder.com/300x150?text=Invalid+Image+URL")
+                        }
                       />
                       {banner.badgeText && (
                         <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded">
@@ -789,8 +891,8 @@ export default function BannerManagement() {
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button 
-                                  size="icon" 
+                                <Button
+                                  size="icon"
                                   variant="secondary"
                                   onClick={() => setEditingBanner(banner)}
                                 >
@@ -802,12 +904,12 @@ export default function BannerManagement() {
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
-                          
+
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button 
-                                  size="icon" 
+                                <Button
+                                  size="icon"
                                   variant="secondary"
                                   onClick={() => handleToggleActive(banner.id)}
                                 >
@@ -819,32 +921,36 @@ export default function BannerManagement() {
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>{banner.active ? "Deactivate" : "Activate"} banner</p>
+                                <p>
+                                  {banner.active ? "Deactivate" : "Activate"}{" "}
+                                  banner
+                                </p>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
-                          
+
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button 
-                                size="icon" 
-                                variant="destructive"
-                              >
+                              <Button size="icon" variant="destructive">
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Delete banner</AlertDialogTitle>
+                                <AlertDialogTitle>
+                                  Delete banner
+                                </AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Are you sure you want to delete this banner? This action
-                                  cannot be undone.
+                                  Are you sure you want to delete this banner?
+                                  This action cannot be undone.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction 
-                                  onClick={() => deleteBannerMutation.mutate(banner.id)}
+                                <AlertDialogAction
+                                  onClick={() =>
+                                    deleteBannerMutation.mutate(banner.id)
+                                  }
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 >
                                   {deleteBannerMutation.isPending && (
@@ -860,30 +966,47 @@ export default function BannerManagement() {
                     </div>
                     <CardHeader className="pb-2">
                       <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle className="flex items-center">
-                            {banner.title}
+                        <div className="min-w-0 flex-1">
+                          <CardTitle className="flex items-center text-sm md:text-base">
+                            <span className="truncate">{banner.title}</span>
                             {!banner.active && (
-                              <Badge variant="outline" className="ml-2 text-xs">Inactive</Badge>
+                              <Badge
+                                variant="outline"
+                                className="ml-2 text-xs flex-shrink-0"
+                              >
+                                Inactive
+                              </Badge>
                             )}
                           </CardTitle>
-                          <CardDescription>{banner.subtitle}</CardDescription>
+                          <CardDescription className="text-xs md:text-sm truncate">
+                            {banner.subtitle}
+                          </CardDescription>
                         </div>
-                        <Badge variant="outline" title="Display order">#{banner.position}</Badge>
+                        <Badge
+                          variant="outline"
+                          title="Display order"
+                          className="text-xs flex-shrink-0"
+                        >
+                          #{banner.position}
+                        </Badge>
                       </div>
                     </CardHeader>
                     <CardContent className="pb-2">
-                      <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="grid grid-cols-1 gap-1 md:gap-2 text-xs md:text-sm">
                         <div>
-                          <span className="text-muted-foreground">Button:</span> {banner.buttonText}
+                          <span className="text-muted-foreground">Button:</span>{" "}
+                          {banner.buttonText}
                         </div>
                         <div>
-                          <span className="text-muted-foreground">Category:</span> {banner.category || "None"}
+                          <span className="text-muted-foreground">
+                            Category:
+                          </span>{" "}
+                          {banner.category || "None"}
                         </div>
                       </div>
                     </CardContent>
-                    <CardFooter className="flex justify-between pt-2">
-                      <div className="flex gap-1">
+                    <CardFooter className="flex flex-col sm:flex-row justify-between gap-2 pt-2">
+                      <div className="flex gap-1 w-full sm:w-auto justify-center sm:justify-start">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -903,11 +1026,11 @@ export default function BannerManagement() {
                           <ArrowDown className="h-4 w-4" />
                         </Button>
                       </div>
-                      <Button 
+                      <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setEditingBanner(banner)}
-                        className="h-8"
+                        className="h-8 w-full sm:w-auto"
                       >
                         <Edit className="h-3.5 w-3.5 mr-1" />
                         Edit
@@ -917,19 +1040,25 @@ export default function BannerManagement() {
                 ))}
               </div>
             )}
-            
+
             {/* List View Mode */}
-            {viewMode === 'list' && (
+            {viewMode === "list" && (
               <div className="space-y-4">
                 {filteredBanners.map((banner) => (
-                  <Card key={banner.id} className={`overflow-hidden hover:shadow-md transition-all duration-300 ${banner.active ? "" : "opacity-70"}`}>
+                  <Card
+                    key={banner.id}
+                    className={`overflow-hidden hover:shadow-md transition-all duration-300 ${banner.active ? "" : "opacity-70"}`}
+                  >
                     <div className="flex flex-col md:flex-row">
                       <div className="relative w-full md:w-48 h-40">
-                        <img 
-                          src={banner.imageUrl} 
-                          alt={banner.title} 
+                        <img
+                          src={banner.imageUrl}
+                          alt={banner.title}
                           className="w-full h-full object-cover"
-                          onError={(e) => e.currentTarget.src = "https://via.placeholder.com/300x150?text=Invalid+Image+URL"}
+                          onError={(e) =>
+                            (e.currentTarget.src =
+                              "https://via.placeholder.com/300x150?text=Invalid+Image+URL")
+                          }
                         />
                         {banner.badgeText && (
                           <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded">
@@ -940,32 +1069,51 @@ export default function BannerManagement() {
                       <div className="flex-1 flex flex-col">
                         <CardHeader className="pb-2">
                           <div className="flex justify-between items-start">
-                            <div>
-                              <CardTitle className="group flex items-center gap-2">
-                                {banner.title}
+                            <div className="min-w-0 flex-1">
+                              <CardTitle className="group flex items-center gap-2 text-sm md:text-base">
+                                <span className="truncate">{banner.title}</span>
                                 {!banner.active && (
-                                  <Badge variant="outline" className="text-xs">Inactive</Badge>
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs flex-shrink-0"
+                                  >
+                                    Inactive
+                                  </Badge>
                                 )}
                               </CardTitle>
-                              <CardDescription>{banner.subtitle}</CardDescription>
+                              <CardDescription className="text-xs md:text-sm truncate">
+                                {banner.subtitle}
+                              </CardDescription>
                             </div>
                             <div className="flex items-center gap-1">
-                              <Badge variant="outline" title="Display position">#{banner.position}</Badge>
+                              <Badge
+                                variant="outline"
+                                title="Display position"
+                                className="text-xs"
+                              >
+                                #{banner.position}
+                              </Badge>
                             </div>
                           </div>
                         </CardHeader>
                         <CardContent className="pb-2 flex-grow">
-                          <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-4 text-xs md:text-sm">
                             <div>
-                              <span className="text-muted-foreground">Button Text:</span> {banner.buttonText}
+                              <span className="text-muted-foreground">
+                                Button Text:
+                              </span>{" "}
+                              {banner.buttonText}
                             </div>
                             <div>
-                              <span className="text-muted-foreground">Category:</span> {banner.category || "None"}
+                              <span className="text-muted-foreground">
+                                Category:
+                              </span>{" "}
+                              {banner.category || "None"}
                             </div>
                           </div>
                         </CardContent>
-                        <CardFooter className="flex justify-between pt-2">
-                          <div className="flex gap-1">
+                        <CardFooter className="flex flex-col sm:flex-row justify-between gap-2 pt-2">
+                          <div className="flex gap-1 w-full sm:w-auto justify-center sm:justify-start">
                             <Button
                               variant="outline"
                               size="icon"
@@ -979,17 +1127,19 @@ export default function BannerManagement() {
                               variant="outline"
                               size="icon"
                               onClick={() => handleMoveDown(banner)}
-                              disabled={banner.position >= filteredBanners.length}
+                              disabled={
+                                banner.position >= filteredBanners.length
+                              }
                               className="h-8 w-8"
                             >
                               <ArrowDown className="h-4 w-4" />
                             </Button>
                           </div>
-                          <div className="flex gap-2">
+                          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                             <Button
                               variant="outline"
                               size="sm"
-                              className="h-8"
+                              className="h-8 w-full sm:w-auto"
                               onClick={() => handleToggleActive(banner.id)}
                             >
                               {banner.active ? (
@@ -1007,7 +1157,7 @@ export default function BannerManagement() {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="h-8"
+                              className="h-8 w-full sm:w-auto"
                               onClick={() => setEditingBanner(banner)}
                             >
                               <Edit className="h-3.5 w-3.5 mr-1" />
@@ -1018,7 +1168,7 @@ export default function BannerManagement() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="h-8 text-destructive border-destructive hover:bg-destructive/10"
+                                  className="h-8 w-full sm:w-auto text-destructive border-destructive hover:bg-destructive/10"
                                 >
                                   <Trash2 className="h-3.5 w-3.5 mr-1" />
                                   Delete
@@ -1026,16 +1176,20 @@ export default function BannerManagement() {
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete banner</AlertDialogTitle>
+                                  <AlertDialogTitle>
+                                    Delete banner
+                                  </AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Are you sure you want to delete this banner? This action
-                                    cannot be undone.
+                                    Are you sure you want to delete this banner?
+                                    This action cannot be undone.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction 
-                                    onClick={() => deleteBannerMutation.mutate(banner.id)}
+                                  <AlertDialogAction
+                                    onClick={() =>
+                                      deleteBannerMutation.mutate(banner.id)
+                                    }
                                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                   >
                                     {deleteBannerMutation.isPending && (
@@ -1060,7 +1214,7 @@ export default function BannerManagement() {
 
       {/* Edit Banner Modal */}
       {editingBanner && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <CardHeader>
               <CardTitle>Edit Banner</CardTitle>
@@ -1068,7 +1222,7 @@ export default function BannerManagement() {
                 Update the details of your banner.
               </CardDescription>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <CardContent className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
               <div className="flex flex-col gap-4">
                 <div>
                   <Label htmlFor="edit-title">Title</Label>
@@ -1112,7 +1266,12 @@ export default function BannerManagement() {
                   <Label>Banner Image</Label>
                   <div className="grid grid-cols-1 gap-4">
                     <div>
-                      <Label htmlFor="edit-imageUpload" className="text-sm text-muted-foreground">Upload Image</Label>
+                      <Label
+                        htmlFor="edit-imageUpload"
+                        className="text-sm text-muted-foreground"
+                      >
+                        Upload Image
+                      </Label>
                       <Input
                         id="edit-imageUpload"
                         type="file"
@@ -1124,12 +1283,19 @@ export default function BannerManagement() {
                     <div className="-- OR --">
                       <div className="relative flex items-center my-2">
                         <div className="flex-grow border-t border-gray-300"></div>
-                        <span className="flex-shrink mx-4 text-gray-400 text-sm">OR</span>
+                        <span className="flex-shrink mx-4 text-gray-400 text-sm">
+                          OR
+                        </span>
                         <div className="flex-grow border-t border-gray-300"></div>
                       </div>
                     </div>
                     <div>
-                      <Label htmlFor="edit-imageUrl" className="text-sm text-muted-foreground">Image URL</Label>
+                      <Label
+                        htmlFor="edit-imageUrl"
+                        className="text-sm text-muted-foreground"
+                      >
+                        Image URL
+                      </Label>
                       <Input
                         id="edit-imageUrl"
                         name="imageUrl"
@@ -1142,13 +1308,18 @@ export default function BannerManagement() {
                   </div>
                   {editingBanner.imageUrl && (
                     <div className="mt-2">
-                      <Label className="text-sm text-muted-foreground">Image Preview</Label>
+                      <Label className="text-sm text-muted-foreground">
+                        Image Preview
+                      </Label>
                       <div className="mt-1 border rounded-md overflow-hidden w-full h-32 relative">
-                        <img 
-                          src={editingBanner.imageUrl} 
-                          alt="Banner preview" 
+                        <img
+                          src={editingBanner.imageUrl}
+                          alt="Banner preview"
                           className="object-cover w-full h-full"
-                          onError={(e) => e.currentTarget.src = "https://via.placeholder.com/300x150?text=Invalid+Image+URL"}
+                          onError={(e) =>
+                            (e.currentTarget.src =
+                              "https://via.placeholder.com/300x150?text=Invalid+Image+URL")
+                          }
                         />
                       </div>
                     </div>
@@ -1190,7 +1361,9 @@ export default function BannerManagement() {
                         if (!prev) return null;
                         return {
                           ...prev,
-                          productId: e.target.value ? parseInt(e.target.value) : null,
+                          productId: e.target.value
+                            ? parseInt(e.target.value)
+                            : null,
                         };
                       })
                     }
@@ -1211,10 +1384,11 @@ export default function BannerManagement() {
                 </div>
               </div>
             </CardContent>
-            <CardFooter className="flex justify-end gap-2">
+            <CardFooter className="flex flex-col sm:flex-row justify-end gap-2">
               <Button
                 variant="outline"
                 onClick={() => setEditingBanner(null)}
+                className="w-full sm:w-auto"
               >
                 Cancel
               </Button>
@@ -1225,6 +1399,7 @@ export default function BannerManagement() {
                   !editingBanner.title ||
                   !editingBanner.imageUrl
                 }
+                className="w-full sm:w-auto"
               >
                 {updateBannerMutation.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
