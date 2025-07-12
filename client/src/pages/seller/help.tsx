@@ -5,11 +5,22 @@ import { SellerDashboardLayout } from "@/components/layout/seller-dashboard-layo
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 import { Separator } from "@/components/ui/separator";
 import {
   Select,
@@ -51,13 +62,41 @@ import { Link } from "wouter";
 const getStatusBadge = (status: string) => {
   switch (status) {
     case "open":
-      return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">Open</Badge>;
+      return (
+        <Badge
+          variant="outline"
+          className="bg-green-50 text-green-700 border-green-300"
+        >
+          Open
+        </Badge>
+      );
     case "inProgress":
-      return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">In Progress</Badge>;
+      return (
+        <Badge
+          variant="outline"
+          className="bg-blue-50 text-blue-700 border-blue-300"
+        >
+          In Progress
+        </Badge>
+      );
     case "resolved":
-      return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-300">Resolved</Badge>;
+      return (
+        <Badge
+          variant="outline"
+          className="bg-gray-50 text-gray-700 border-gray-300"
+        >
+          Resolved
+        </Badge>
+      );
     case "closed":
-      return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300">Closed</Badge>;
+      return (
+        <Badge
+          variant="outline"
+          className="bg-red-50 text-red-700 border-red-300"
+        >
+          Closed
+        </Badge>
+      );
     default:
       return <Badge variant="outline">{status}</Badge>;
   }
@@ -70,38 +109,40 @@ export default function SellerSupportPage() {
   const [showNewTicketDialog, setShowNewTicketDialog] = useState(false);
   const [newMessage, setNewMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   const [newTicketForm, setNewTicketForm] = useState({
     subject: "",
     category: "account",
     description: "",
-    priority: "medium"
+    priority: "medium",
   });
-  
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Fetch support tickets
   const { data: tickets = [], isLoading: isTicketsLoading } = useQuery({
-    queryKey: ['/api/support/tickets'],
+    queryKey: ["/api/support/tickets"],
     queryFn: async () => {
-      const res = await fetch('/api/support/tickets');
+      const res = await fetch("/api/support/tickets");
       if (!res.ok) {
-        throw new Error('Failed to fetch tickets');
+        throw new Error("Failed to fetch tickets");
       }
       return res.json();
-    }
+    },
   });
 
   // Fetch ticket messages when a ticket is selected
   const { data: ticketMessages = [], isLoading: isMessagesLoading } = useQuery({
-    queryKey: ['/api/support/tickets', selectedTicket?.id, 'messages'],
+    queryKey: ["/api/support/tickets", selectedTicket?.id, "messages"],
     queryFn: async () => {
       if (!selectedTicket) return [];
-      
-      const res = await fetch(`/api/support/tickets/${selectedTicket.id}/messages`);
+
+      const res = await fetch(
+        `/api/support/tickets/${selectedTicket.id}/messages`
+      );
       if (!res.ok) {
-        throw new Error('Failed to fetch ticket messages');
+        throw new Error("Failed to fetch ticket messages");
       }
       return res.json();
     },
@@ -111,18 +152,18 @@ export default function SellerSupportPage() {
   // Create new ticket mutation
   const createTicketMutation = useMutation({
     mutationFn: async (data: typeof newTicketForm) => {
-      const res = await fetch('/api/support/tickets', {
-        method: 'POST',
+      const res = await fetch("/api/support/tickets", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
       });
-      
+
       if (!res.ok) {
-        throw new Error('Failed to create ticket');
+        throw new Error("Failed to create ticket");
       }
-      
+
       return res.json();
     },
     onSuccess: () => {
@@ -131,11 +172,11 @@ export default function SellerSupportPage() {
         subject: "",
         category: "account",
         description: "",
-        priority: "medium"
+        priority: "medium",
       });
-      
-      queryClient.invalidateQueries({ queryKey: ['/api/support/tickets'] });
-      
+
+      queryClient.invalidateQueries({ queryKey: ["/api/support/tickets"] });
+
       toast({
         title: "Ticket Created",
         description: "Your support ticket has been submitted successfully.",
@@ -144,7 +185,8 @@ export default function SellerSupportPage() {
     onError: () => {
       toast({
         title: "Failed to Create Ticket",
-        description: "There was an error creating your support ticket. Please try again.",
+        description:
+          "There was an error creating your support ticket. Please try again.",
         variant: "destructive",
       });
     },
@@ -152,29 +194,38 @@ export default function SellerSupportPage() {
 
   // Add message mutation
   const addMessageMutation = useMutation({
-    mutationFn: async ({ ticketId, message }: { ticketId: number, message: string }) => {
+    mutationFn: async ({
+      ticketId,
+      message,
+    }: {
+      ticketId: number;
+      message: string;
+    }) => {
       const res = await fetch(`/api/support/tickets/${ticketId}/messages`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ message }),
       });
-      
+
       if (!res.ok) {
-        throw new Error('Failed to send message');
+        throw new Error("Failed to send message");
       }
-      
+
       return res.json();
     },
     onSuccess: () => {
       setNewMessage("");
-      queryClient.invalidateQueries({ queryKey: ['/api/support/tickets', selectedTicket?.id, 'messages'] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/support/tickets", selectedTicket?.id, "messages"],
+      });
     },
     onError: () => {
       toast({
         title: "Failed to Send Message",
-        description: "There was an error sending your message. Please try again.",
+        description:
+          "There was an error sending your message. Please try again.",
         variant: "destructive",
       });
     },
@@ -184,28 +235,29 @@ export default function SellerSupportPage() {
   const deleteTicketMutation = useMutation({
     mutationFn: async (ticketId: number) => {
       const res = await fetch(`/api/support/tickets/${ticketId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
       if (!res.ok) {
-        throw new Error('Failed to delete ticket');
+        throw new Error("Failed to delete ticket");
       }
     },
     onSuccess: (_, ticketId) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/support/tickets'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/support/tickets"] });
       if (selectedTicket?.id === ticketId) {
         setShowTicketDialog(false);
         setSelectedTicket(null);
       }
       toast({
-        title: 'Ticket Deleted',
-        description: 'The support ticket has been deleted successfully.',
+        title: "Ticket Deleted",
+        description: "The support ticket has been deleted successfully.",
       });
     },
     onError: () => {
       toast({
-        title: 'Failed to Delete Ticket',
-        description: 'There was an error deleting the ticket. Please try again.',
-        variant: 'destructive',
+        title: "Failed to Delete Ticket",
+        description:
+          "There was an error deleting the ticket. Please try again.",
+        variant: "destructive",
       });
     },
   });
@@ -217,10 +269,10 @@ export default function SellerSupportPage() {
 
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
-    
+
     addMessageMutation.mutate({
       ticketId: selectedTicket.id,
-      message: newMessage
+      message: newMessage,
     });
   };
 
@@ -230,7 +282,7 @@ export default function SellerSupportPage() {
 
   const filteredTickets = tickets.filter((ticket: any) => {
     if (!searchQuery) return true;
-    
+
     const query = searchQuery.toLowerCase();
     return (
       ticket.id?.toString().includes(query) ||
@@ -241,49 +293,58 @@ export default function SellerSupportPage() {
 
   // Format date for display
   const formatDate = (dateString: string) => {
-    return format(new Date(dateString), 'dd MMM yyyy, h:mm a');
+    return format(new Date(dateString), "dd MMM yyyy, h:mm a");
   };
 
   // Get FAQ questions & answers
   const faqs = [
     {
       question: "How do I process a return request?",
-      answer: "To process a return request, go to the Returns tab in your Seller Dashboard. You can view all return requests, check details, and approve or reject them. Once approved, follow the return process instructions."
+      answer:
+        "To process a return request, go to the Returns tab in your Seller Dashboard. You can view all return requests, check details, and approve or reject them. Once approved, follow the return process instructions.",
     },
     {
       question: "How do I upload my product catalog?",
-      answer: "You can upload your products individually by going to Products > Add New Product, where you can enter all product details including images, variants, and pricing."
+      answer:
+        "You can upload your products individually by going to Products > Add New Product, where you can enter all product details including images, variants, and pricing.",
     },
     {
       question: "When will I receive my payments?",
-      answer: "Payments are processed according to your settlement cycle, typically every 7 days. Funds are usually settled within 1-2 business days after the settlement date. You can check your next payment date in the Payments section."
+      answer:
+        "Payments are processed according to your settlement cycle, typically every 7 days. Funds are usually settled within 1-2 business days after the settlement date. You can check your next payment date in the Payments section.",
     },
     {
       question: "How do I update my bank account details?",
-      answer: "To update your bank account details, go to Settings > Billing > Bank Account Information. Fill in your new account details and click Save Changes. Your future payments will be processed to the new account."
+      answer:
+        "To update your bank account details, go to Settings > Billing > Bank Account Information. Fill in your new account details and click Save Changes. Your future payments will be processed to the new account.",
     },
     {
       question: "What fees does Lelekart charge?",
-      answer: "Lelekart charges a percentage commission on each sale, which varies by category. There might also be fixed fees for certain services. You can view your fee structure in the Payments > Commissions section."
+      answer:
+        "Lelekart charges a percentage commission on each sale, which varies by category. There might also be fixed fees for certain services. You can view your fee structure in the Payments > Commissions section.",
     },
     {
       question: "How can I offer discounts on my products?",
-      answer: "You can create promotions and offers through the Marketing section. You can set discounts by percentage or fixed amount, create buy-one-get-one offers, or participate in platform-wide sales events."
+      answer:
+        "You can create promotions and offers through the Marketing section. You can set discounts by percentage or fixed amount, create buy-one-get-one offers, or participate in platform-wide sales events.",
     },
     {
       question: "What happens if a customer cancels an order?",
-      answer: "If a customer cancels an order before shipping, the order status will be updated automatically and no action is required from you. If the product has already been shipped, you'll need to process a return once it's received back."
+      answer:
+        "If a customer cancels an order before shipping, the order status will be updated automatically and no action is required from you. If the product has already been shipped, you'll need to process a return once it's received back.",
     },
     {
       question: "How do I handle a product that's out of stock?",
-      answer: "You can mark products as out of stock in the Inventory section. You can also enable backorders or set up notifications to alert you when inventory is low so you can restock in time."
-    }
+      answer:
+        "You can mark products as out of stock in the Inventory section. You can also enable backorders or set up notifications to alert you when inventory is low so you can restock in time.",
+    },
   ];
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      chatContainerRef.current.scrollTop =
+        chatContainerRef.current.scrollHeight;
     }
   }, [ticketMessages, showTicketDialog]);
 
@@ -294,37 +355,53 @@ export default function SellerSupportPage() {
     { name: "Amit", text: "How do I get my first product approved?" },
     { name: "Priya", text: "Any tips for faster shipping?" },
     { name: "Ravi", text: "How do I join Lelekart promotions?" },
-    { name: "Support", text: "Welcome to the Seller Community! Post your questions and help each other grow." },
+    {
+      name: "Support",
+      text: "Welcome to the Seller Community! Post your questions and help each other grow.",
+    },
   ]);
 
   return (
     <SellerDashboardLayout>
-      <div className="container py-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold tracking-tight">Help & Support</h1>
-          <p className="text-muted-foreground">Get assistance and answers to your seller questions</p>
+      <div className="container py-4 sm:py-6 px-4 sm:px-6">
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+            Help & Support
+          </h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            Get assistance and answers to your seller questions
+          </p>
         </div>
 
         <Tabs value={currentTab} onValueChange={setCurrentTab}>
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-            <TabsList>
-              <TabsTrigger value="tickets">My Tickets</TabsTrigger>
-              <TabsTrigger value="faq">FAQs</TabsTrigger>
-              <TabsTrigger value="resources">Resources</TabsTrigger>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-4">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="tickets" className="text-xs sm:text-sm">
+                My Tickets
+              </TabsTrigger>
+              <TabsTrigger value="faq" className="text-xs sm:text-sm">
+                FAQs
+              </TabsTrigger>
+              <TabsTrigger value="resources" className="text-xs sm:text-sm">
+                Resources
+              </TabsTrigger>
             </TabsList>
-            
+
             {currentTab === "tickets" && (
-              <div className="flex gap-2 mt-4 sm:mt-0">
-                <div className="relative w-64">
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <div className="relative w-full sm:w-64">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    placeholder="Search tickets..." 
+                  <Input
+                    placeholder="Search tickets..."
                     className="pl-8"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
-                <Button onClick={() => setShowNewTicketDialog(true)}>
+                <Button
+                  onClick={() => setShowNewTicketDialog(true)}
+                  className="w-full sm:w-auto"
+                >
                   <Plus className="mr-2 h-4 w-4" />
                   New Ticket
                 </Button>
@@ -342,9 +419,13 @@ export default function SellerSupportPage() {
                 ) : filteredTickets.length === 0 ? (
                   <div className="text-center py-12">
                     <HelpCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium">No support tickets found</h3>
+                    <h3 className="text-lg font-medium">
+                      No support tickets found
+                    </h3>
                     <p className="text-muted-foreground mt-1 mb-6">
-                      {searchQuery ? "Try adjusting your search query" : "Create a new ticket to get help from our support team"}
+                      {searchQuery
+                        ? "Try adjusting your search query"
+                        : "Create a new ticket to get help from our support team"}
                     </p>
                     {!searchQuery && (
                       <Button onClick={() => setShowNewTicketDialog(true)}>
@@ -354,31 +435,53 @@ export default function SellerSupportPage() {
                     )}
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     {filteredTickets.map((ticket: any) => (
-                      <div 
+                      <div
                         key={ticket.id}
-                        className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 rounded-lg border hover:bg-gray-50 cursor-pointer"
+                        className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 rounded-lg border hover:bg-gray-50 cursor-pointer"
                         onClick={() => handleViewTicket(ticket)}
                       >
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-medium">{ticket.subject}</h3>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2 sm:mb-1">
+                            <h3 className="font-medium text-sm sm:text-base truncate">
+                              {ticket.subject}
+                            </h3>
                             {getStatusBadge(ticket.status)}
                           </div>
-                          <div className="text-sm text-muted-foreground mt-1">
+                          <div className="text-xs sm:text-sm text-muted-foreground space-y-1 sm:space-y-0 sm:space-x-2">
                             <span>Ticket #{ticket.id}</span>
-                            <span className="mx-2">•</span>
+                            <span className="hidden sm:inline">•</span>
                             <span>{ticket.category}</span>
-                            <span className="mx-2">•</span>
-                            <span>Created {formatDate(ticket.createdAt)}</span>
+                            <span className="hidden sm:inline">•</span>
+                            <span className="block sm:inline">
+                              Created {formatDate(ticket.createdAt)}
+                            </span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 mt-2 md:mt-0">
-                          <Badge variant={ticket.priority === 'high' ? 'destructive' : ticket.priority === 'medium' ? 'default' : 'outline'}>
-                            {ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1)} Priority
+                        <div className="flex items-center gap-2 mt-3 sm:mt-0 w-full sm:w-auto">
+                          <Badge
+                            variant={
+                              ticket.priority === "high"
+                                ? "destructive"
+                                : ticket.priority === "medium"
+                                  ? "default"
+                                  : "outline"
+                            }
+                            className="text-xs"
+                          >
+                            {ticket.priority.charAt(0).toUpperCase() +
+                              ticket.priority.slice(1)}{" "}
+                            Priority
                           </Badge>
-                          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); deleteTicketMutation.mutate(ticket.id); }}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteTicketMutation.mutate(ticket.id);
+                            }}
+                          >
                             <Trash2 className="h-4 w-4 text-red-500" />
                           </Button>
                           <Button variant="ghost" size="icon">
@@ -397,7 +500,9 @@ export default function SellerSupportPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Frequently Asked Questions</CardTitle>
-                <CardDescription>Get quick answers to common seller questions</CardDescription>
+                <CardDescription>
+                  Get quick answers to common seller questions
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 {faqs.map((faq, index) => (
@@ -406,14 +511,18 @@ export default function SellerSupportPage() {
                       <CircleHelp className="h-5 w-5 text-primary mt-0.5" />
                       <div>
                         <h3 className="font-medium">{faq.question}</h3>
-                        <p className="text-muted-foreground mt-2">{faq.answer}</p>
+                        <p className="text-muted-foreground mt-2">
+                          {faq.answer}
+                        </p>
                       </div>
                     </div>
                   </div>
                 ))}
               </CardContent>
               <CardFooter className="flex flex-col items-start">
-                <h3 className="font-medium mb-2">Didn't find what you were looking for?</h3>
+                <h3 className="font-medium mb-2">
+                  Didn't find what you were looking for?
+                </h3>
                 <Button onClick={() => setShowNewTicketDialog(true)}>
                   <MessageCircle className="mr-2 h-4 w-4" />
                   Contact Support
@@ -423,11 +532,13 @@ export default function SellerSupportPage() {
           </TabsContent>
 
           <TabsContent value="resources" className="m-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               <Card>
                 <CardHeader>
                   <CardTitle>Seller Guides</CardTitle>
-                  <CardDescription>Helpful resources to grow your business</CardDescription>
+                  <CardDescription>
+                    Helpful resources to grow your business
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-start gap-3">
@@ -436,8 +547,14 @@ export default function SellerSupportPage() {
                     </div>
                     <div>
                       <h3 className="font-medium">Getting Started Guide</h3>
-                      <p className="text-sm text-muted-foreground mt-1">Everything you need to know as a new seller</p>
-                      <Link href="/seller/getting-started"><Button variant="link" className="px-0 h-auto mt-1">View Guide</Button></Link>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Everything you need to know as a new seller
+                      </p>
+                      <Link href="/seller/getting-started">
+                        <Button variant="link" className="px-0 h-auto mt-1">
+                          View Guide
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
@@ -446,8 +563,14 @@ export default function SellerSupportPage() {
                     </div>
                     <div>
                       <h3 className="font-medium">Best Practices</h3>
-                      <p className="text-sm text-muted-foreground mt-1">Tips to optimize your listings and boost sales</p>
-                      <Link href="/seller/best-practices"><Button variant="link" className="px-0 h-auto mt-1">View Guide</Button></Link>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Tips to optimize your listings and boost sales
+                      </p>
+                      <Link href="/seller/best-practices">
+                        <Button variant="link" className="px-0 h-auto mt-1">
+                          View Guide
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
@@ -456,17 +579,27 @@ export default function SellerSupportPage() {
                     </div>
                     <div>
                       <h3 className="font-medium">Video Tutorials</h3>
-                      <p className="text-sm text-muted-foreground mt-1">Step-by-step video guides for sellers</p>
-                      <Button variant="link" className="px-0 h-auto mt-1" onClick={() => setShowVideoDialog(true)}>Watch Videos</Button>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Step-by-step video guides for sellers
+                      </p>
+                      <Button
+                        variant="link"
+                        className="px-0 h-auto mt-1"
+                        onClick={() => setShowVideoDialog(true)}
+                      >
+                        Watch Videos
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader>
                   <CardTitle>Contact Information</CardTitle>
-                  <CardDescription>Reach out to our seller support team</CardDescription>
+                  <CardDescription>
+                    Reach out to our seller support team
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-start gap-3">
@@ -475,8 +608,12 @@ export default function SellerSupportPage() {
                     </div>
                     <div>
                       <h3 className="font-medium">Phone Support</h3>
-                      <p className="text-sm text-muted-foreground mt-1">+91 1800-419-1234</p>
-                      <p className="text-xs text-muted-foreground">Available Monday-Saturday, 9 AM - 6 PM</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        +91 1800-419-1234
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Available Monday-Saturday, 9 AM - 6 PM
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
@@ -485,8 +622,12 @@ export default function SellerSupportPage() {
                     </div>
                     <div>
                       <h3 className="font-medium">Email Support</h3>
-                      <p className="text-sm text-muted-foreground mt-1">seller-support@lelekart.com</p>
-                      <p className="text-xs text-muted-foreground">We typically respond within 24 hours</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        seller-support@lelekart.com
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        We typically respond within 24 hours
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
@@ -495,46 +636,68 @@ export default function SellerSupportPage() {
                     </div>
                     <div>
                       <h3 className="font-medium">Live Chat</h3>
-                      <p className="text-sm text-muted-foreground mt-1">Chat with our support team in real-time</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Chat with our support team in real-time
+                      </p>
                       <Button
                         variant="default"
                         className="px-4 py-2 mt-1 font-semibold rounded shadow bg-blue-600 text-white hover:bg-blue-700 transition"
                         onClick={() => setShowNewTicketDialog(true)}
                       >
-                        <MessageCircle className="inline-block mr-2" /> Start Chat with Support
+                        <MessageCircle className="inline-block mr-2" /> Start
+                        Chat with Support
                       </Button>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card className="md:col-span-2">
                 <CardHeader>
                   <CardTitle>Seller Community</CardTitle>
-                  <CardDescription>Connect with other sellers and share experiences</CardDescription>
+                  <CardDescription>
+                    Connect with other sellers and share experiences
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div className="border rounded-lg p-4">
                       <h3 className="font-medium">Seller Forums</h3>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Join discussions with other sellers and share your experiences and tips.
+                        Join discussions with other sellers and share your
+                        experiences and tips.
                       </p>
-                      <Button variant="outline" className="mt-3 w-full" onClick={() => setShowForumDialog(true)}>Visit Forums</Button>
+                      <Button
+                        variant="outline"
+                        className="mt-3 w-full"
+                        onClick={() => setShowForumDialog(true)}
+                      >
+                        Visit Forums
+                      </Button>
                     </div>
                     <div className="border rounded-lg p-4">
                       <h3 className="font-medium">Seller Webinars</h3>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Attend live webinars hosted by our team to learn new strategies and features.
+                        Attend live webinars hosted by our team to learn new
+                        strategies and features.
                       </p>
-                      <Link href="/seller/webinars"><Button variant="outline" className="mt-3 w-full">View Schedule</Button></Link>
+                      <Link href="/seller/webinars">
+                        <Button variant="outline" className="mt-3 w-full">
+                          View Schedule
+                        </Button>
+                      </Link>
                     </div>
                     <div className="border rounded-lg p-4">
                       <h3 className="font-medium">Success Stories</h3>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Read about successful sellers and how they grew their business on Lelekart.
+                        Read about successful sellers and how they grew their
+                        business on Lelekart.
                       </p>
-                      <Link href="/seller/success-stories"><Button variant="outline" className="mt-3 w-full">Read Stories</Button></Link>
+                      <Link href="/seller/success-stories">
+                        <Button variant="outline" className="mt-3 w-full">
+                          Read Stories
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 </CardContent>
@@ -550,15 +713,20 @@ export default function SellerSupportPage() {
           <DialogHeader>
             <DialogTitle>
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-                <span>Ticket #{selectedTicket?.id} - {selectedTicket?.subject}</span>
+                <span>
+                  Ticket #{selectedTicket?.id} - {selectedTicket?.subject}
+                </span>
                 {selectedTicket && getStatusBadge(selectedTicket.status)}
               </div>
             </DialogTitle>
             <DialogDescription>
-              Created {selectedTicket?.createdAt ? formatDate(selectedTicket.createdAt) : ''}
+              Created{" "}
+              {selectedTicket?.createdAt
+                ? formatDate(selectedTicket.createdAt)
+                : ""}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="flex flex-col md:flex-row gap-6">
             <div className="md:w-1/3 space-y-4">
               <div className="bg-muted p-4 rounded-lg">
@@ -566,91 +734,130 @@ export default function SellerSupportPage() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Status:</span>
-                    <span className="font-medium">{selectedTicket?.status}</span>
+                    <span className="font-medium">
+                      {selectedTicket?.status}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Category:</span>
-                    <span className="font-medium">{selectedTicket?.category}</span>
+                    <span className="font-medium">
+                      {selectedTicket?.category}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Priority:</span>
-                    <span className="font-medium">{selectedTicket?.priority}</span>
+                    <span className="font-medium">
+                      {selectedTicket?.priority}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Last Updated:</span>
                     <span className="font-medium">
-                      {selectedTicket?.updatedAt ? formatDate(selectedTicket.updatedAt) : ''}
+                      {selectedTicket?.updatedAt
+                        ? formatDate(selectedTicket.updatedAt)
+                        : ""}
                     </span>
                   </div>
                 </div>
               </div>
-              
+
               <div className="bg-muted p-4 rounded-lg">
                 <h3 className="text-sm font-medium mb-2">Support Agent</h3>
                 {selectedTicket?.agent ? (
                   <div className="flex items-center gap-2">
                     <Avatar>
-                      <AvatarFallback>{selectedTicket.agent.name.charAt(0)}</AvatarFallback>
+                      <AvatarFallback>
+                        {selectedTicket.agent.name.charAt(0)}
+                      </AvatarFallback>
                     </Avatar>
                     <div>
                       <p className="font-medium">{selectedTicket.agent.name}</p>
-                      <p className="text-xs text-muted-foreground">{selectedTicket.agent.role}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {selectedTicket.agent.role}
+                      </p>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Not assigned yet</p>
+                  <p className="text-sm text-muted-foreground">
+                    Not assigned yet
+                  </p>
                 )}
               </div>
             </div>
-            
+
             <div className="md:w-2/3 space-y-4">
               <div>
                 <h3 className="text-sm font-medium mb-3">Conversation</h3>
-                <div className="border rounded-lg overflow-y-auto max-h-[300px] p-4 space-y-4 flex flex-col-reverse" style={{scrollBehavior: 'smooth'}} ref={chatContainerRef}>
+                <div
+                  className="border rounded-lg overflow-y-auto max-h-[300px] p-4 space-y-4 flex flex-col-reverse"
+                  style={{ scrollBehavior: "smooth" }}
+                  ref={chatContainerRef}
+                >
                   {isMessagesLoading ? (
                     <div className="flex justify-center py-4">
                       <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div>
                   ) : ticketMessages.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-4">No messages yet</p>
+                    <p className="text-center text-muted-foreground py-4">
+                      No messages yet
+                    </p>
                   ) : (
-                    ticketMessages.slice().reverse().map((message: any, index: number) => (
-                      <div key={index} className={`flex gap-3 ${message.isFromSeller ? 'justify-end' : 'justify-start'}`}>
-                        {!message.isFromSeller && (
-                          <Avatar>
-                            <AvatarFallback>
-                              {message.senderName?.charAt(0) || 'S'}
-                            </AvatarFallback>
-                          </Avatar>
-                        )}
-                        <div className={`max-w-[70%] ${message.isFromSeller ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-900'} p-3 rounded-2xl shadow-sm`}>
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="font-medium text-sm">
-                              {message.isFromSeller ? 'You' : (message.senderName || 'Support Agent')}
-                            </span>
-                            <span className="text-xs text-muted-foreground ml-2">{formatDate(message.createdAt)}</span>
+                    ticketMessages
+                      .slice()
+                      .reverse()
+                      .map((message: any, index: number) => (
+                        <div
+                          key={index}
+                          className={`flex gap-3 ${message.isFromSeller ? "justify-end" : "justify-start"}`}
+                        >
+                          {!message.isFromSeller && (
+                            <Avatar>
+                              <AvatarFallback>
+                                {message.senderName?.charAt(0) || "S"}
+                              </AvatarFallback>
+                            </Avatar>
+                          )}
+                          <div
+                            className={`max-w-[70%] ${message.isFromSeller ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-900"} p-3 rounded-2xl shadow-sm`}
+                          >
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="font-medium text-sm">
+                                {message.isFromSeller
+                                  ? "You"
+                                  : message.senderName || "Support Agent"}
+                              </span>
+                              <span className="text-xs text-muted-foreground ml-2">
+                                {formatDate(message.createdAt)}
+                              </span>
+                            </div>
+                            <div className="whitespace-pre-line text-sm">
+                              {message.message}
+                            </div>
                           </div>
-                          <div className="whitespace-pre-line text-sm">{message.message}</div>
+                          {message.isFromSeller && (
+                            <Avatar>
+                              <AvatarFallback>Y</AvatarFallback>
+                            </Avatar>
+                          )}
                         </div>
-                        {message.isFromSeller && (
-                          <Avatar>
-                            <AvatarFallback>Y</AvatarFallback>
-                          </Avatar>
-                        )}
-                      </div>
-                    ))
+                      ))
                   )}
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-2 mt-4 sticky bottom-0 bg-white p-2 border-t">
                 <Textarea
                   value={newMessage}
-                  onChange={e => setNewMessage(e.target.value)}
+                  onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Type your message..."
                   className="flex-1 resize-none rounded-lg border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                   rows={1}
-                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
                 />
                 <Button
                   onClick={handleSendMessage}
@@ -671,31 +878,39 @@ export default function SellerSupportPage() {
           <DialogHeader>
             <DialogTitle>Create New Support Ticket</DialogTitle>
             <DialogDescription>
-              Please provide details about your issue so we can assist you better.
+              Please provide details about your issue so we can assist you
+              better.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div className="space-y-2">
               <label htmlFor="subject" className="text-sm font-medium">
                 Subject
               </label>
-              <Input 
-                id="subject" 
+              <Input
+                id="subject"
                 value={newTicketForm.subject}
-                onChange={(e) => setNewTicketForm({...newTicketForm, subject: e.target.value})}
+                onChange={(e) =>
+                  setNewTicketForm({
+                    ...newTicketForm,
+                    subject: e.target.value,
+                  })
+                }
                 placeholder="Brief description of your issue"
               />
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label htmlFor="category" className="text-sm font-medium">
                   Category
                 </label>
-                <Select 
-                  value={newTicketForm.category} 
-                  onValueChange={(value) => setNewTicketForm({...newTicketForm, category: value})}
+                <Select
+                  value={newTicketForm.category}
+                  onValueChange={(value) =>
+                    setNewTicketForm({ ...newTicketForm, category: value })
+                  }
                 >
                   <SelectTrigger id="category">
                     <SelectValue placeholder="Select category" />
@@ -703,7 +918,9 @@ export default function SellerSupportPage() {
                   <SelectContent>
                     <SelectItem value="account">Account & Login</SelectItem>
                     <SelectItem value="orders">Orders & Shipping</SelectItem>
-                    <SelectItem value="payments">Payments & Settlements</SelectItem>
+                    <SelectItem value="payments">
+                      Payments & Settlements
+                    </SelectItem>
                     <SelectItem value="returns">Returns & Refunds</SelectItem>
                     <SelectItem value="products">Product Listing</SelectItem>
                     <SelectItem value="technical">Technical Issues</SelectItem>
@@ -711,14 +928,16 @@ export default function SellerSupportPage() {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-2">
                 <label htmlFor="priority" className="text-sm font-medium">
                   Priority
                 </label>
-                <Select 
-                  value={newTicketForm.priority} 
-                  onValueChange={(value) => setNewTicketForm({...newTicketForm, priority: value})}
+                <Select
+                  value={newTicketForm.priority}
+                  onValueChange={(value) =>
+                    setNewTicketForm({ ...newTicketForm, priority: value })
+                  }
                 >
                   <SelectTrigger id="priority">
                     <SelectValue placeholder="Select priority" />
@@ -731,34 +950,39 @@ export default function SellerSupportPage() {
                 </Select>
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <label htmlFor="description" className="text-sm font-medium">
                 Description
               </label>
-              <Textarea 
-                id="description" 
+              <Textarea
+                id="description"
                 rows={5}
                 value={newTicketForm.description}
-                onChange={(e) => setNewTicketForm({...newTicketForm, description: e.target.value})}
+                onChange={(e) =>
+                  setNewTicketForm({
+                    ...newTicketForm,
+                    description: e.target.value,
+                  })
+                }
                 placeholder="Please provide detailed information about your issue"
               />
             </div>
           </div>
-          
+
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setShowNewTicketDialog(false)}
               disabled={createTicketMutation.isPending}
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleCreateTicket}
               disabled={
-                createTicketMutation.isPending || 
-                !newTicketForm.subject.trim() || 
+                createTicketMutation.isPending ||
+                !newTicketForm.subject.trim() ||
                 !newTicketForm.description.trim()
               }
             >
@@ -768,9 +992,7 @@ export default function SellerSupportPage() {
                   Creating...
                 </>
               ) : (
-                <>
-                  Create Ticket
-                </>
+                <>Create Ticket</>
               )}
             </Button>
           </DialogFooter>
@@ -796,7 +1018,16 @@ export default function SellerSupportPage() {
                 allowFullScreen
               ></iframe>
             </div>
-            <div className="text-sm text-muted-foreground">More videos coming soon! If you have questions, contact <a href="mailto:seller-support@lelekart.com" className="text-blue-600 underline">seller-support@lelekart.com</a>.</div>
+            <div className="text-sm text-muted-foreground">
+              More videos coming soon! If you have questions, contact{" "}
+              <a
+                href="mailto:seller-support@lelekart.com"
+                className="text-blue-600 underline"
+              >
+                seller-support@lelekart.com
+              </a>
+              .
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -815,14 +1046,17 @@ export default function SellerSupportPage() {
                 rows={2}
                 placeholder="Share your question, tip, or experience..."
                 value={forumMessage}
-                onChange={e => setForumMessage(e.target.value)}
+                onChange={(e) => setForumMessage(e.target.value)}
               />
               <Button
                 variant="outline"
                 className="w-full"
                 onClick={() => {
                   if (forumMessage.trim()) {
-                    setForumPosts([{ name: "You", text: forumMessage.trim() }, ...forumPosts]);
+                    setForumPosts([
+                      { name: "You", text: forumMessage.trim() },
+                      ...forumPosts,
+                    ]);
                     setForumMessage("");
                   }
                 }}
@@ -835,13 +1069,28 @@ export default function SellerSupportPage() {
               <h3 className="font-semibold mb-2">Recent Posts</h3>
               <ul className="space-y-2 text-sm">
                 {forumPosts.map((post, idx) => (
-                  <li key={idx} className={idx < forumPosts.length - 1 ? "border-b pb-2" : ""}>
-                    <span className="font-medium">{post.name}:</span> {post.text}
+                  <li
+                    key={idx}
+                    className={
+                      idx < forumPosts.length - 1 ? "border-b pb-2" : ""
+                    }
+                  >
+                    <span className="font-medium">{post.name}:</span>{" "}
+                    {post.text}
                   </li>
                 ))}
               </ul>
             </div>
-            <div className="text-xs text-muted-foreground">This is a demo forum. For urgent help, contact <a href="mailto:seller-support@lelekart.com" className="text-blue-600 underline">seller-support@lelekart.com</a>.</div>
+            <div className="text-xs text-muted-foreground">
+              This is a demo forum. For urgent help, contact{" "}
+              <a
+                href="mailto:seller-support@lelekart.com"
+                className="text-blue-600 underline"
+              >
+                seller-support@lelekart.com
+              </a>
+              .
+            </div>
           </div>
         </DialogContent>
       </Dialog>

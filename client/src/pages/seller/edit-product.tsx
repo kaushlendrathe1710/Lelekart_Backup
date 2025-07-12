@@ -835,7 +835,10 @@ export default function EditProductPage() {
             : null;
         }
         setSubcategoryPath(path);
-      } else if (subcategories.length > 0 && (product.subcategory1 || product.subcategory2)) {
+      } else if (
+        subcategories.length > 0 &&
+        (product.subcategory1 || product.subcategory2)
+      ) {
         // Try to build path from subcategory1/subcategory2 names if subcategoryId is missing
         let path: number[] = [];
         // Find subcategory1 by name
@@ -846,7 +849,10 @@ export default function EditProductPage() {
           path.push(subcat1.id);
           // Find subcategory2 by name and parentId
           const subcat2 = product.subcategory2
-            ? subcategories.find((s: any) => s.name === product.subcategory2 && s.parentId === subcat1.id)
+            ? subcategories.find(
+                (s: any) =>
+                  s.name === product.subcategory2 && s.parentId === subcat1.id
+              )
             : null;
           if (subcat2) {
             path.push(subcat2.id);
@@ -1994,8 +2000,8 @@ export default function EditProductPage() {
 
   return (
     <SellerDashboardLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
@@ -2005,13 +2011,13 @@ export default function EditProductPage() {
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div>
-              <h1 className="text-2xl font-bold">Edit Product</h1>
-              <p className="text-muted-foreground">
+              <h1 className="text-xl sm:text-2xl font-bold">Edit Product</h1>
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Update your product details
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-stretch sm:items-center w-full sm:w-auto">
             <Button
               variant="default"
               onClick={() => {
@@ -2023,10 +2029,10 @@ export default function EditProductPage() {
                 onSubmit(values);
               }}
               disabled={updateMutation.isPending}
-              className="bg-blue-500 hover:bg-blue-600"
+              className="bg-blue-500 hover:bg-blue-600 w-full sm:w-auto flex items-center justify-center gap-2"
             >
               {updateMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : null}
               {updateMutation.isPending ? "Updating..." : "Update Product"}
             </Button>
@@ -2035,7 +2041,10 @@ export default function EditProductPage() {
               onOpenChange={setIsDeleteDialogOpen}
             >
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="gap-2">
+                <Button
+                  variant="destructive"
+                  className="gap-2 w-full sm:w-auto flex items-center justify-center"
+                >
                   <Trash2 className="h-4 w-4" />
                   Delete Product
                 </Button>
@@ -2073,7 +2082,7 @@ export default function EditProductPage() {
               onClick={() =>
                 setLocation(`/seller/products/preview/${productId}`)
               }
-              className="gap-2"
+              className="gap-2 w-full sm:w-auto flex items-center justify-center"
             >
               <Eye className="h-4 w-4" />
               Preview
@@ -2083,9 +2092,9 @@ export default function EditProductPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
           {/* Main Content - 2/3 Width */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="xl:col-span-2 space-y-4 sm:space-y-6">
             <Tabs
               defaultValue="basic"
               className="w-full"
@@ -2156,12 +2165,22 @@ export default function EditProductPage() {
                 }
               }}
             >
-              <TabsList className="grid w-full grid-cols-5">
-                <TabsTrigger value="basic">Basic Details</TabsTrigger>
-                <TabsTrigger value="description">Description</TabsTrigger>
-                <TabsTrigger value="images">Images</TabsTrigger>
-                <TabsTrigger value="inventory">Inventory</TabsTrigger>
-                <TabsTrigger value="variants">Variants</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1">
+                <TabsTrigger value="basic" className="text-xs sm:text-sm">
+                  Basic
+                </TabsTrigger>
+                <TabsTrigger value="description" className="text-xs sm:text-sm">
+                  Description
+                </TabsTrigger>
+                <TabsTrigger value="images" className="text-xs sm:text-sm">
+                  Images
+                </TabsTrigger>
+                <TabsTrigger value="inventory" className="text-xs sm:text-sm">
+                  Inventory
+                </TabsTrigger>
+                <TabsTrigger value="variants" className="text-xs sm:text-sm">
+                  Variants
+                </TabsTrigger>
               </TabsList>
 
               {/* Basic Details Tab */}
@@ -2664,11 +2683,13 @@ export default function EditProductPage() {
                                 {(() => {
                                   // Find the selected category's ID
                                   const categoryId = categories.find(
-                                    (c: any) => c.name === form.getValues("category")
+                                    (c: any) =>
+                                      c.name === form.getValues("category")
                                   )?.id;
                                   // Show all subcategories with parentId == null and matching categoryId
                                   const subcat0Options = subcategories.filter(
-                                    (s: any) => s.categoryId === categoryId && !s.parentId
+                                    (s: any) =>
+                                      s.categoryId === categoryId && !s.parentId
                                   );
                                   if (subcat0Options.length > 0) {
                                     return subcat0Options.map((s: any) => (
@@ -2741,7 +2762,8 @@ export default function EditProductPage() {
                                   }
                                   // Show all subcategories with parentId == subcategoryPath[0]
                                   const subcat1Options = subcategories.filter(
-                                    (s: any) => s.parentId === subcategoryPath[0]
+                                    (s: any) =>
+                                      s.parentId === subcategoryPath[0]
                                   );
                                   if (subcat1Options.length > 0) {
                                     return subcat1Options.map((s: any) => (
@@ -3977,7 +3999,7 @@ export default function EditProductPage() {
           </div>
 
           {/* Sidebar - 1/3 Width */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Product Status</CardTitle>
@@ -4899,7 +4921,6 @@ export default function EditProductPage() {
       </Dialog>
 
       {/* Debug Section: Show subcategory values for troubleshooting */}
-   
     </SellerDashboardLayout>
   );
 }

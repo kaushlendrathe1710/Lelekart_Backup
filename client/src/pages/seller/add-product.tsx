@@ -3627,90 +3627,90 @@ export default function AddProductPage() {
                         const categoryId = getCategoryIdByName(
                           form.getValues("category")
                         );
-                        if (!categoryId) return null;
-                        // Level 0: Top-level subcategories
-                        const selectedSubcat0 = subcategoryPath[0] || null;
+                      if (!categoryId) return null;
+                      // Level 0: Top-level subcategories
+                      const selectedSubcat0 = subcategoryPath[0] || null;
                         const subcat0Options =
                           getTopLevelSubcategories(categoryId);
-                        // Level 1: Children of selected subcategory
-                        const selectedSubcat1 = subcategoryPath[1] || null;
+                      // Level 1: Children of selected subcategory
+                      const selectedSubcat1 = subcategoryPath[1] || null;
                         const subcat1Options = selectedSubcat0
                           ? getChildSubcategories(selectedSubcat0)
                           : [];
 
-                        return (
-                          <>
-                            {/* Subcategory (Level 1) */}
+                      return (
+                        <>
+                          {/* Subcategory (Level 1) */}
                             <div className="w-full">
                               <label className="block text-sm font-medium mb-1">
                                 Subcategory
                               </label>
-                              <Select
+                            <Select
                                 value={
                                   selectedSubcat0 ? String(selectedSubcat0) : ""
                                 }
-                                onValueChange={(val) => {
-                                  const id = val ? parseInt(val) : null;
-                                  const newPath = id ? [id] : [];
-                                  setSubcategoryPath(newPath);
-                                  form.setValue("subcategoryId", id);
-                                }}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select a subcategory" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {subcat0Options.length > 0 ? (
-                                    subcat0Options.map((s: any) => (
+                              onValueChange={(val) => {
+                                const id = val ? parseInt(val) : null;
+                                const newPath = id ? [id] : [];
+                                setSubcategoryPath(newPath);
+                                form.setValue("subcategoryId", id);
+                              }}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select a subcategory" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {subcat0Options.length > 0 ? (
+                                  subcat0Options.map((s: any) => (
                                       <SelectItem
                                         key={s.id}
                                         value={String(s.id)}
                                       >
                                         {s.name}
                                       </SelectItem>
-                                    ))
-                                  ) : (
+                                  ))
+                                ) : (
                                     <SelectItem value="none" disabled>
                                       No subcategories available
                                     </SelectItem>
-                                  )}
-                                </SelectContent>
-                              </Select>
-                              {subcat0Options.length === 0 && (
+                                )}
+                              </SelectContent>
+                            </Select>
+                            {subcat0Options.length === 0 && (
                                 <div className="text-xs text-muted-foreground select-none">
                                   No subcategories mapped to this category.
                                 </div>
-                              )}
-                            </div>
+                            )}
+                          </div>
 
-                            {/* Subcategory Level 2 */}
+                          {/* Subcategory Level 2 */}
                             <div className="w-full">
                               <label className="block text-sm font-medium mb-1">
                                 Subcategory Level 2
                               </label>
-                              <Select
+                            <Select
                                 value={
                                   selectedSubcat1 ? String(selectedSubcat1) : ""
                                 }
-                                onValueChange={(val) => {
-                                  const id = val ? parseInt(val) : null;
-                                  const newPath = subcategoryPath.slice(0, 1);
-                                  if (id) newPath.push(id);
-                                  setSubcategoryPath(newPath);
+                              onValueChange={(val) => {
+                                const id = val ? parseInt(val) : null;
+                                const newPath = subcategoryPath.slice(0, 1);
+                                if (id) newPath.push(id);
+                                setSubcategoryPath(newPath);
                                   form.setValue(
                                     "subcategoryId",
                                     id || selectedSubcat0 || null
                                   );
-                                }}
+                              }}
                                 disabled={
                                   !selectedSubcat0 ||
                                   subcat1Options.length === 0
                                 }
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
+                            >
+                              <FormControl>
+                                <SelectTrigger>
                                     <SelectValue
                                       placeholder={
                                         selectedSubcat0
@@ -3720,32 +3720,32 @@ export default function AddProductPage() {
                                           : "Select previous subcategory first"
                                       }
                                     />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {selectedSubcat0 ? (
-                                    subcat1Options.length > 0 ? (
-                                      subcat1Options.map((s: any) => (
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {selectedSubcat0 ? (
+                                  subcat1Options.length > 0 ? (
+                                    subcat1Options.map((s: any) => (
                                         <SelectItem
                                           key={s.id}
                                           value={String(s.id)}
                                         >
                                           {s.name}
                                         </SelectItem>
-                                      ))
-                                    ) : (
+                                    ))
+                                  ) : (
                                       <SelectItem value="none" disabled>
                                         No subcategories available
                                       </SelectItem>
-                                    )
-                                  ) : (
+                                  )
+                                ) : (
                                     <SelectItem value="none" disabled>
                                       Select previous subcategory first
                                     </SelectItem>
-                                  )}
-                                </SelectContent>
-                              </Select>
-                              {!selectedSubcat0 && (
+                                )}
+                              </SelectContent>
+                            </Select>
+                            {!selectedSubcat0 && (
                                 <div className="text-xs text-muted-foreground mt-1">
                                   Select a subcategory above first.
                                 </div>
@@ -3755,11 +3755,11 @@ export default function AddProductPage() {
                                   <div className="text-xs text-muted-foreground mt-1">
                                     No subcategories mapped to this subcategory.
                                   </div>
-                                )}
-                            </div>
-                          </>
-                        );
-                      })()}
+                            )}
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">

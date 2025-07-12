@@ -176,10 +176,10 @@ export default function SellerDashboardPage() {
   return (
     <SellerDashboardLayout>
       <ApprovalCheck>
-        <div className="flex-1 space-y-4 p-8 pt-6">
-          <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold">Seller Dashboard</h1>
-            <div className="flex gap-3 items-center">
+        <div className="flex-1 space-y-4 p-4 sm:p-6 lg:p-8 pt-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <h1 className="text-xl sm:text-2xl font-bold">Seller Dashboard</h1>
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-stretch sm:items-center w-full sm:w-auto">
               <Button
                 variant="ghost"
                 className="relative p-2"
@@ -189,13 +189,13 @@ export default function SellerDashboardPage() {
                 <Bell className="w-6 h-6" />
                 {unreadCount > 0 && (
                   <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
-                    {unreadCount > 99 ? '99+' : unreadCount}
+                    {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 )}
               </Button>
               <Button
                 variant="outline"
-                className="flex items-center gap-2"
+                className="flex items-center justify-center gap-2 w-full sm:w-auto"
                 asChild
               >
                 <Link href="/seller/products/add">
@@ -203,7 +203,7 @@ export default function SellerDashboardPage() {
                   Add Product
                 </Link>
               </Button>
-              <Button className="flex items-center gap-2" asChild>
+              <Button className="flex items-center justify-center gap-2 w-full sm:w-auto" asChild>
                 <Link href="/seller/orders">
                   <PackageOpen className="h-4 w-4" />
                   View Orders
@@ -235,7 +235,7 @@ export default function SellerDashboardPage() {
             </Alert>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {/* Stats Cards */}
             <Card className="shadow-sm hover:shadow-md transition-shadow">
               <CardContent className="pt-6">
@@ -330,7 +330,7 @@ export default function SellerDashboardPage() {
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Seller Info Card */}
             <Card className="shadow-sm hover:shadow-md transition-shadow">
               <CardHeader className="pb-2">
@@ -460,7 +460,7 @@ export default function SellerDashboardPage() {
               {isSellerApproved &&
               dashboardSummary &&
               dashboardSummary.totalOrders > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between border-b pb-2">
                       <span className="text-sm text-muted-foreground">
