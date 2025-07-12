@@ -49,9 +49,21 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarFooter,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarInset,
+  SidebarSeparator,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import { SimpleSearch } from "@/components/ui/simple-search";
 import { useToast } from "@/hooks/use-toast";
-import { useNotifications } from '@/contexts/notification-context';
+import { useNotifications } from "@/contexts/notification-context";
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -266,298 +278,261 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     }
   };
 
+  // Function to check if a route is active
+  const isActive = (path: string) => {
+    return location.startsWith(path);
+  };
+
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
-      {/* Top Navigation - Header (Fixed) */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[#2874f0] text-white shadow-md h-16">
-        <div className="container mx-auto flex h-full items-center justify-between px-4">
-          <div className="flex items-center space-x-4">
-            {/* Logo - using Link instead of window.location for client-side routing to maintain session */}
-            <Link href="/">
-              <Button
-                variant="ghost"
-                className="p-0 hover:bg-transparent focus:bg-transparent"
-              >
-                <div className="flex items-center space-x-2 text-xl font-bold">
-                  <div className="text-xl font-bold text-white">Lelekart</div>
-                </div>
-              </Button>
-            </Link>
-
-            {/* AI-powered Search Box */}
-            <div className="relative hidden md:flex items-center ml-4 w-64">
-              <SimpleSearch className="w-full" variant="admin" />
-            </div>
-          </div>
-
-          {/* Right Side Elements */}
-          <div className="flex items-center space-x-3">
-            {/* Notifications */}
-            <div className="relative text-white">
-              <Button
-                variant="ghost"
-                className="relative p-2"
-                aria-label="Notifications"
-                onClick={() => setLocation('/admin/notifications')}
-              >
-                <Bell className="w-6 h-6" />
-                {unreadCount > 0 && (
-                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                  </span>
-                )}
-              </Button>
-            </div>
-
-            {/* User Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+    <SidebarProvider defaultOpen={true}>
+      <div className="flex min-h-screen flex-col bg-gray-50">
+        {/* Top Navigation - Header (Fixed) */}
+        <header className="fixed top-0 left-0 right-0 z-50 bg-[#2874f0] text-white shadow-md h-16">
+          <div className="container mx-auto flex h-full items-center justify-between px-4">
+            <div className="flex items-center space-x-4">
+              <SidebarTrigger className="text-white hover:bg-[#2874f0]/90" />
+              {/* Logo - using Link instead of window.location for client-side routing to maintain session */}
+              <Link href="/">
                 <Button
                   variant="ghost"
-                  className="text-white hover:bg-[#2874f0]/90"
+                  className="p-0 hover:bg-transparent focus:bg-transparent"
                 >
-                  <span className="font-medium mr-1">Kaushlendra Admin</span>
-                  <ChevronDown className="h-4 w-4" />
+                  <div className="flex items-center space-x-2 text-xl font-bold">
+                    <div className="text-xl font-bold text-white">Lelekart</div>
+                  </div>
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <div className="px-3 pb-2">
-                  <span className="text-xs font-semibold text-orange-500">
-                    Admin Account
+              </Link>
+
+              {/* AI-powered Search Box */}
+              <div className="relative hidden md:flex items-center ml-4 w-64">
+                <SimpleSearch className="w-full" variant="admin" />
+              </div>
+            </div>
+
+            {/* Right Side Elements */}
+            <div className="flex items-center space-x-3">
+              {/* Notifications */}
+              <div className="relative text-white">
+                <Button
+                  variant="ghost"
+                  className="relative p-2"
+                  aria-label="Notifications"
+                  onClick={() => setLocation("/admin/notifications")}
+                >
+                  <Bell className="w-6 h-6" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
+                </Button>
+              </div>
+
+              {/* User Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="text-white hover:bg-[#2874f0]/90"
+                  >
+                    <span className="font-medium mr-1">Kaushlendra Admin</span>
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <div className="px-3 pb-2">
+                    <span className="text-xs font-semibold text-orange-500">
+                      Admin Account
+                    </span>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <UserIcon className="mr-2 h-4 w-4" />
+                    <span>Profile</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="text-red-600"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </header>
+
+        {/* Add a spacer to push content below the fixed header */}
+        <div className="h-16"></div>
+
+        <div className="flex flex-1">
+          <Sidebar className="border-r shadow-sm bg-white">
+            <SidebarHeader className="border-b">
+              <div className="flex items-center gap-2 px-3 py-3">
+                <div className="flex flex-col">
+                  <span className="font-medium leading-none">Admin Panel</span>
+                  <span className="text-xs text-blue-600">Lelekart</span>
+                </div>
+              </div>
+            </SidebarHeader>
+            <SidebarContent>
+              {/* Hero Management Section */}
+              <SidebarSeparator />
+              <div className="px-3 py-2">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Hero Management
+                </h3>
+              </div>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <Button
+                    variant="ghost"
+                    asChild
+                    className={`w-full justify-start ${isActive("/admin/banner-management") ? "bg-primary/10 text-primary font-medium" : ""}`}
+                  >
+                    <Link href="/admin/banner-management">
+                      <Image className="mr-2 h-4 w-4" />
+                      <span>Banner Management</span>
+                    </Link>
+                  </Button>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <Button
+                    variant="ghost"
+                    asChild
+                    className={`w-full justify-start ${isActive("/admin/category-management") ? "bg-primary/10 text-primary font-medium" : ""}`}
+                  >
+                    <Link href="/admin/category-management">
+                      <Grid className="mr-2 h-4 w-4" />
+                      <span>Category Management</span>
+                    </Link>
+                  </Button>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <Button
+                    variant="ghost"
+                    asChild
+                    className={`w-full justify-start ${isActive("/admin/design-hero") ? "bg-primary/10 text-primary font-medium" : ""}`}
+                  >
+                    <Link href="/admin/design-hero">
+                      <LayoutDashboardIcon className="mr-2 h-4 w-4" />
+                      <span>Design Hero</span>
+                    </Link>
+                  </Button>
+                </SidebarMenuItem>
+              </SidebarMenu>
+
+              {/* Footer Management Section */}
+              <SidebarSeparator />
+              <div className="px-3 py-2">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Footer Management
+                </h3>
+              </div>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <Button
+                    variant="ghost"
+                    asChild
+                    className={`w-full justify-start ${isActive("/admin/footer-management") ? "bg-primary/10 text-primary font-medium" : ""}`}
+                  >
+                    <Link href="/admin/footer-management">
+                      <FileEdit className="mr-2 h-4 w-4" />
+                      <span>Edit Footer Content</span>
+                    </Link>
+                  </Button>
+                </SidebarMenuItem>
+              </SidebarMenu>
+
+              {/* Main Navigation Items */}
+              <SidebarSeparator />
+              <div className="px-3 py-2">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Main Navigation
+                </h3>
+              </div>
+              <SidebarMenu>
+                {navItems.map((item, index) => (
+                  <SidebarMenuItem key={index}>
+                    {item.collapsible ? (
+                      <Collapsible
+                        open={item.open}
+                        onOpenChange={item.onOpenChange}
+                        className="w-full"
+                      >
+                        <CollapsibleTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            className={`w-full justify-between ${isActive(`/admin/${item.title.toLowerCase().replace(/\s+/g, "-")}`) ? "bg-primary/10 text-primary font-medium" : ""}`}
+                          >
+                            <div className="flex items-center">
+                              {item.icon}
+                              <span className="ml-2">{item.title}</span>
+                            </div>
+                            {item.open ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="pl-6 pt-1">
+                          {item.items?.map((subItem, subIndex) => (
+                            <Button
+                              key={`${subItem.href}-${subIndex}`}
+                              variant="ghost"
+                              asChild
+                              className={`w-full justify-start mt-1 ${isActive(subItem.href || "") ? "bg-primary/10 text-primary font-medium" : ""}`}
+                            >
+                              <Link href={subItem.href || ""}>
+                                {subItem.icon}
+                                <span className="ml-2">{subItem.title}</span>
+                              </Link>
+                            </Button>
+                          ))}
+                        </CollapsibleContent>
+                      </Collapsible>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        asChild
+                        className={`w-full justify-start ${isActive(item.href || "") ? "bg-primary/10 text-primary font-medium" : ""}`}
+                      >
+                        <Link href={item.href || ""}>
+                          {item.icon}
+                          <span className="ml-2">{item.title}</span>
+                        </Link>
+                      </Button>
+                    )}
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarContent>
+            <SidebarFooter className="border-t">
+              <div className="p-3 flex flex-col">
+                <div className="flex items-center gap-2 mb-2">
+                  <LayoutDashboard className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-medium">
+                    Admin Status: <span className="text-green-600">Active</span>
                   </span>
                 </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <UserIcon className="mr-2 h-4 w-4" />
-                  <span>Profile</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={handleLogout}
-                  className="text-red-600"
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+                <div className="text-xs text-muted-foreground">
+                  © 2025 Lelekart Admin Panel
+                </div>
+              </div>
+            </SidebarFooter>
+          </Sidebar>
+          <SidebarInset className="w-full p-4 md:p-6">{children}</SidebarInset>
         </div>
-      </header>
-
-      {/* Main Content with Fixed Sidebar and Scrollable Content Area */}
-      <div className="flex w-full pt-16">
-        {/* Fixed Sidebar - Always Visible */}
-        <aside className="fixed left-0 top-16 bottom-0 bg-white w-64 border-r shadow-sm z-20">
-          <div className="p-4 h-full overflow-hidden">
-            <div className="font-medium text-lg mb-4">Admin Menu</div>
-            <nav className="space-y-1 overflow-y-auto h-[calc(100%-2rem)]">
-              {/* Hero Management Dropdown */}
-              <Collapsible
-                open={heroMenuOpen}
-                onOpenChange={setHeroMenuOpen}
-                className="w-full"
-              >
-                <CollapsibleTrigger asChild>
-                  <div
-                    className={cn(
-                      "flex items-center justify-between rounded-lg px-3 py-2 cursor-pointer transition-all hover:bg-gray-100",
-                      location.includes("/admin/banner-management") ||
-                        location.includes("/admin/category-management") ||
-                        location.includes("/admin/design-hero")
-                        ? "bg-primary/10 text-primary font-medium"
-                        : "text-gray-700"
-                    )}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <LayoutGrid className="h-5 w-5" />
-                      <span>Hero Management</span>
-                    </div>
-                    <div>
-                      {heroMenuOpen ? (
-                        <ChevronDown className="h-4 w-4" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4" />
-                      )}
-                    </div>
-                  </div>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="pl-6 pt-1">
-                  <Link href="/admin/banner-management">
-                    <div
-                      className={cn(
-                        "flex items-center space-x-3 rounded-lg px-3 py-2 transition-all hover:bg-gray-100",
-                        location === "/admin/banner-management"
-                          ? "bg-primary/10 text-primary font-medium"
-                          : "text-gray-700"
-                      )}
-                    >
-                      <Image className="h-5 w-5" />
-                      <span>Banner Management</span>
-                    </div>
-                  </Link>
-                  <Link href="/admin/category-management">
-                    <div
-                      className={cn(
-                        "flex items-center space-x-3 rounded-lg px-3 py-2 transition-all hover:bg-gray-100 mt-1",
-                        location === "/admin/category-management"
-                          ? "bg-primary/10 text-primary font-medium"
-                          : "text-gray-700"
-                      )}
-                    >
-                      <Grid className="h-5 w-5" />
-                      <span>Category Management</span>
-                    </div>
-                  </Link>
-
-                  <Link href="/admin/design-hero">
-                    <div
-                      className={cn(
-                        "flex items-center space-x-3 rounded-lg px-3 py-2 transition-all hover:bg-gray-100 mt-1",
-                        location === "/admin/design-hero"
-                          ? "bg-primary/10 text-primary font-medium"
-                          : "text-gray-700"
-                      )}
-                    >
-                      <LayoutDashboardIcon className="h-5 w-5" />
-                      <span>Design Hero</span>
-                    </div>
-                  </Link>
-                </CollapsibleContent>
-              </Collapsible>
-
-              {/* Footer Management Dropdown */}
-              <Collapsible
-                open={footerMenuOpen}
-                onOpenChange={setFooterMenuOpen}
-                className="w-full"
-              >
-                <CollapsibleTrigger asChild>
-                  <div
-                    className={cn(
-                      "flex items-center justify-between rounded-lg px-3 py-2 cursor-pointer transition-all hover:bg-gray-100",
-                      location.includes("/admin/footer-management")
-                        ? "bg-primary/10 text-primary font-medium"
-                        : "text-gray-700"
-                    )}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <FileText className="h-5 w-5" />
-                      <span>Footer Management</span>
-                    </div>
-                    <div>
-                      {footerMenuOpen ? (
-                        <ChevronDown className="h-4 w-4" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4" />
-                      )}
-                    </div>
-                  </div>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="pl-6 pt-1">
-                  <Link href="/admin/footer-management">
-                    <div
-                      className={cn(
-                        "flex items-center space-x-3 rounded-lg px-3 py-2 transition-all hover:bg-gray-100",
-                        location === "/admin/footer-management"
-                          ? "bg-primary/10 text-primary font-medium"
-                          : "text-gray-700"
-                      )}
-                    >
-                      <FileEdit className="h-5 w-5" />
-                      <span>Edit Footer Content</span>
-                    </div>
-                  </Link>
-                </CollapsibleContent>
-              </Collapsible>
-
-              {/* Regular Nav Items */}
-              {navItems.map((item, index) =>
-                item.collapsible ? (
-                  <Collapsible
-                    key={`collapsible-${index}`}
-                    open={item.open}
-                    onOpenChange={item.onOpenChange}
-                    className="w-full"
-                  >
-                    <CollapsibleTrigger asChild>
-                      <div
-                        className={cn(
-                          "flex items-center justify-between rounded-lg px-3 py-2 cursor-pointer transition-all hover:bg-gray-100",
-                          location.includes(
-                            `/admin/${item.title
-                              .toLowerCase()
-                              .replace(/\s+/g, "-")}`
-                          )
-                            ? "bg-primary/10 text-primary font-medium"
-                            : "text-gray-700"
-                        )}
-                      >
-                        <div className="flex items-center space-x-3">
-                          {item.icon}
-                          <span>{item.title}</span>
-                        </div>
-                        <div>
-                          {item.open ? (
-                            <ChevronDown className="h-4 w-4" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4" />
-                          )}
-                        </div>
-                      </div>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="pl-6 pt-1">
-                      {item.items?.map((subItem, subIndex) => (
-                        <Link
-                          key={`${subItem.href}-${subIndex}`}
-                          href={subItem.href || ""}
-                        >
-                          <div
-                            className={cn(
-                              "flex items-center space-x-3 rounded-lg px-3 py-2 transition-all hover:bg-gray-100",
-                              location === subItem.href
-                                ? "bg-primary/10 text-primary font-medium"
-                                : "text-gray-700"
-                            )}
-                          >
-                            {subItem.icon}
-                            <span>{subItem.title}</span>
-                          </div>
-                        </Link>
-                      ))}
-                    </CollapsibleContent>
-                  </Collapsible>
-                ) : (
-                  <Link key={`link-${index}`} href={item.href || ""}>
-                    <div
-                      className={cn(
-                        "flex items-center space-x-3 rounded-lg px-3 py-2 transition-all hover:bg-gray-100",
-                        location === item.href
-                          ? "bg-primary/10 text-primary font-medium"
-                          : "text-gray-700"
-                      )}
-                    >
-                      {item.icon}
-                      <span>{item.title}</span>
-                    </div>
-                  </Link>
-                )
-              )}
-            </nav>
-          </div>
-        </aside>
-
-        {/* Main Content Area - This is the only scrollable area */}
-        <main className="pl-64 flex-1 overflow-y-auto">
-          <div className="p-6">{children}</div>
-        </main>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }
 

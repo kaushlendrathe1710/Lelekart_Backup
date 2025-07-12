@@ -224,17 +224,17 @@ export default function AdminBackupsPage() {
 
   return (
     <AdminLayout>
-      <div className="container mx-auto py-6">
-        <h1 className="text-3xl font-bold mb-6">Database Backup Management</h1>
-        
+      <div className="container mx-auto py-4 md:py-6 px-2 md:px-0">
+        <h1 className="text-lg md:text-3xl font-bold mb-4 md:mb-6">Database Backup Management</h1>
         <Tabs defaultValue="manage">
-          <TabsList className="mb-4">
-            <TabsTrigger value="manage">Backup Files</TabsTrigger>
-            <TabsTrigger value="schedule">Schedule Settings</TabsTrigger>
-          </TabsList>
-          
+          <div className="overflow-x-auto">
+            <TabsList className="mb-3 md:mb-4 min-w-max">
+              <TabsTrigger value="manage" className="text-xs md:text-sm">Backup Files</TabsTrigger>
+              <TabsTrigger value="schedule" className="text-xs md:text-sm">Schedule Settings</TabsTrigger>
+            </TabsList>
+          </div>
           <TabsContent value="manage">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-6 mb-4 md:mb-6">
               <Card>
                 <CardHeader>
                   <CardTitle>User Data</CardTitle>
@@ -249,7 +249,7 @@ export default function AdminBackupsPage() {
                     <ul className="space-y-2">
                       {backups.users.slice(0, 5).map((file: string) => (
                         <li key={file} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
-                          <span className="text-sm truncate flex-1" title={file}>{file}</span>
+                          <span className="text-xs md:text-sm truncate flex-1" title={file}>{file}</span>
                           <div className="flex gap-2">
                             <Button
                               size="icon"
@@ -271,13 +271,13 @@ export default function AdminBackupsPage() {
                         </li>
                       ))}
                       {backups.users.length > 5 && (
-                        <li className="text-center text-sm text-muted-foreground">
+                        <li className="text-center text-xs md:text-sm text-muted-foreground">
                           +{backups.users.length - 5} more files
                         </li>
                       )}
                     </ul>
                   ) : (
-                    <p className="text-center text-muted-foreground">No user backup files found</p>
+                    <p className="text-center text-xs md:text-sm text-muted-foreground">No user backup files found</p>
                   )}
                 </CardContent>
               </Card>
@@ -296,7 +296,7 @@ export default function AdminBackupsPage() {
                     <ul className="space-y-2">
                       {backups.products.slice(0, 5).map((file: string) => (
                         <li key={file} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
-                          <span className="text-sm truncate flex-1" title={file}>{file}</span>
+                          <span className="text-xs md:text-sm truncate flex-1" title={file}>{file}</span>
                           <div className="flex gap-2">
                             <Button
                               size="icon"
@@ -318,13 +318,13 @@ export default function AdminBackupsPage() {
                         </li>
                       ))}
                       {backups.products.length > 5 && (
-                        <li className="text-center text-sm text-muted-foreground">
+                        <li className="text-center text-xs md:text-sm text-muted-foreground">
                           +{backups.products.length - 5} more files
                         </li>
                       )}
                     </ul>
                   ) : (
-                    <p className="text-center text-muted-foreground">No product backup files found</p>
+                    <p className="text-center text-xs md:text-sm text-muted-foreground">No product backup files found</p>
                   )}
                 </CardContent>
               </Card>
@@ -343,7 +343,7 @@ export default function AdminBackupsPage() {
                     <ul className="space-y-2">
                       {backups.orders.slice(0, 5).map((file: string) => (
                         <li key={file} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
-                          <span className="text-sm truncate flex-1" title={file}>{file}</span>
+                          <span className="text-xs md:text-sm truncate flex-1" title={file}>{file}</span>
                           <div className="flex gap-2">
                             <Button
                               size="icon"
@@ -365,13 +365,13 @@ export default function AdminBackupsPage() {
                         </li>
                       ))}
                       {backups.orders.length > 5 && (
-                        <li className="text-center text-sm text-muted-foreground">
+                        <li className="text-center text-xs md:text-sm text-muted-foreground">
                           +{backups.orders.length - 5} more files
                         </li>
                       )}
                     </ul>
                   ) : (
-                    <p className="text-center text-muted-foreground">No order backup files found</p>
+                    <p className="text-center text-xs md:text-sm text-muted-foreground">No order backup files found</p>
                   )}
                 </CardContent>
               </Card>
@@ -379,11 +379,11 @@ export default function AdminBackupsPage() {
             
             <Card>
               <CardHeader>
-                <CardTitle>Manual Backup</CardTitle>
-                <CardDescription>Create a backup of all data now</CardDescription>
+                <CardTitle className="text-base md:text-lg">Manual Backup</CardTitle>
+                <CardDescription className="text-xs md:text-base">Create a backup of all data now</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="mb-4">
+                <p className="mb-4 text-xs md:text-sm">
                   This will create a full backup of users, products, and orders data immediately.
                   The backup will be stored as CSV files that can be downloaded for safekeeping.
                 </p>
