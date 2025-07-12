@@ -159,9 +159,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <SidebarProvider defaultOpen={true}>
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-screen flex-col bg-gray-50">
         {/* Top Navigation Bar - fixed height of 56px (h-14) */}
-        <header className="fixed top-0 left-0 right-0 z-50 h-14 border-b bg-orange-400 px-4 shadow-sm">
+        <header className="fixed top-0 left-0 right-0 z-50 h-14 border-b bg-orange-400 px-4 shadow-md">
           <div className="flex h-full items-center justify-between">
             <div className="flex items-center gap-4">
               <SidebarTrigger className="text-white hover:bg-primary-foreground/10 hover:text-white" />
@@ -263,19 +263,27 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="h-14"></div>
 
         <div className="flex flex-1">
-          <Sidebar className="bg-orange-400 text-white">
-            <SidebarHeader>
-              <div className="flex items-center gap-2 px-1">
-                <Avatar className="h-9 w-9">
+          <Sidebar className="border-r shadow-sm bg-white">
+            <SidebarHeader className="border-b">
+              <div className="flex items-center gap-2 px-3 py-3">
+                <Avatar className="h-10 w-10 border border-gray-200">
                   {user.profileImage ? (
                     <AvatarImage src={user.profileImage} alt={user.username} />
                   ) : null}
-                  <AvatarFallback>{getInitials(user.username)}</AvatarFallback>
+                  <AvatarFallback className="bg-orange-100 text-orange-600">
+                    {getInitials(user.username)}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col">
-                  <span className="font-medium leading-none">Hello,</span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="font-medium leading-none">
                     {user.username}
+                  </span>
+                  <span className="text-xs text-orange-600">
+                    {user.role === "admin"
+                      ? "Admin Account"
+                      : user.role === "seller"
+                        ? "Seller Account"
+                        : "Buyer Account"}
                   </span>
                 </div>
               </div>
@@ -571,9 +579,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 </SidebarMenuItem>
               </SidebarMenu>
             </SidebarContent>
-            <SidebarFooter>
-              <div className="text-xs text-muted-foreground px-4 py-2">
-                © 2025 Lelekart
+            <SidebarFooter className="border-t">
+              <div className="p-3 flex flex-col">
+                <div className="flex items-center gap-2 mb-2">
+                  <User className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-medium">
+                    Account Status:{" "}
+                    <span className="text-green-600">Active</span>
+                  </span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  © 2025 Lelekart
+                </div>
               </div>
             </SidebarFooter>
           </Sidebar>
