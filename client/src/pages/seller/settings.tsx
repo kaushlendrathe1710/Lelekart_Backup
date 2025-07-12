@@ -731,89 +731,95 @@ export default function SellerSettingsPage() {
 
   return (
     <SellerDashboardLayout>
-      <div className="container py-6">
+      <div className="container mx-auto py-4 md:py-6 px-4 md:px-0">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold tracking-tight">
-            Account Settings
-          </h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-xl md:text-2xl font-bold">Settings</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
             Manage your account settings and preferences
           </p>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-6">
-          <div className="md:w-1/4">
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Sidebar Navigation */}
+          <div className="lg:w-1/4">
             <Tabs
-              orientation="vertical"
               value={currentTab}
               onValueChange={setCurrentTab}
               className="w-full"
             >
-              <TabsList className="flex flex-col h-auto w-full bg-transparent space-y-1 p-0">
-                <TabsTrigger
-                  value="account"
-                  className="justify-start px-3 py-2 h-9 data-[state=active]:bg-muted"
-                >
-                  <UserCog className="mr-2 h-4 w-4" />
-                  Account
-                </TabsTrigger>
-                <TabsTrigger
-                  value="notifications"
-                  className="justify-start px-3 py-2 h-9 data-[state=active]:bg-muted"
-                >
-                  <Bell className="mr-2 h-4 w-4" />
-                  Notifications
-                </TabsTrigger>
-                <TabsTrigger
-                  value="store"
-                  className="justify-start px-3 py-2 h-9 data-[state=active]:bg-muted"
-                >
-                  <Settings className="mr-2 h-4 w-4" />
-                  Store Settings
-                </TabsTrigger>
-                <TabsTrigger
-                  value="billing"
-                  className="justify-start px-3 py-2 h-9 data-[state=active]:bg-muted"
-                >
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  Billing
-                </TabsTrigger>
-                <TabsTrigger
-                  value="pickup_address"
-                  className="justify-start px-3 py-2 h-9 data-[state=active]:bg-muted"
-                >
-                  <Truck className="mr-2 h-4 w-4" />
-                  Pickup Address
-                </TabsTrigger>
-                <TabsTrigger
-                  value="security"
-                  className="justify-start px-3 py-2 h-9 data-[state=active]:bg-muted"
-                >
-                  <ShieldAlert className="mr-2 h-4 w-4" />
-                  Security
-                </TabsTrigger>
-              </TabsList>
+              <div className="overflow-x-auto">
+                <TabsList className="flex flex-row lg:flex-col h-auto w-full bg-transparent space-y-1 p-0 lg:space-y-1 lg:space-x-0 space-x-1">
+                  <TabsTrigger
+                    value="account"
+                    className="justify-start px-3 py-2 h-9 data-[state=active]:bg-muted text-xs md:text-sm whitespace-nowrap"
+                  >
+                    <UserCog className="mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">Account</span>
+                    <span className="sm:hidden">Account</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="notifications"
+                    className="justify-start px-3 py-2 h-9 data-[state=active]:bg-muted text-xs md:text-sm whitespace-nowrap"
+                  >
+                    <Bell className="mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">Notifications</span>
+                    <span className="sm:hidden">Notif</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="store"
+                    className="justify-start px-3 py-2 h-9 data-[state=active]:bg-muted text-xs md:text-sm whitespace-nowrap"
+                  >
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">Store Settings</span>
+                    <span className="sm:hidden">Store</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="billing"
+                    className="justify-start px-3 py-2 h-9 data-[state=active]:bg-muted text-xs md:text-sm whitespace-nowrap"
+                  >
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">Billing</span>
+                    <span className="sm:hidden">Billing</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="pickup_address"
+                    className="justify-start px-3 py-2 h-9 data-[state=active]:bg-muted text-xs md:text-sm whitespace-nowrap"
+                  >
+                    <Truck className="mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">Pickup Address</span>
+                    <span className="sm:hidden">Pickup</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="security"
+                    className="justify-start px-3 py-2 h-9 data-[state=active]:bg-muted text-xs md:text-sm whitespace-nowrap"
+                  >
+                    <ShieldAlert className="mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">Security</span>
+                    <span className="sm:hidden">Security</span>
+                  </TabsTrigger>
+                </TabsList>
+              </div>
             </Tabs>
           </div>
 
-          <div className="md:w-3/4">
+          <div className="lg:w-3/4">
             <Tabs
               value={currentTab}
               onValueChange={setCurrentTab}
               className="w-full"
             >
-              <TabsContent value="account" className="space-y-6 mt-0">
+              <TabsContent value="account" className="space-y-4 md:space-y-6 mt-0">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Personal Information</CardTitle>
-                    <CardDescription>
+                    <CardTitle className="text-base md:text-lg">Personal Information</CardTitle>
+                    <CardDescription className="text-sm">
                       Update your personal details
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="name">Full Name</Label>
+                        <Label htmlFor="name" className="text-sm">Full Name</Label>
                         <Input
                           id="name"
                           value={personalInfo.name}
@@ -823,10 +829,11 @@ export default function SellerSettingsPage() {
                               name: e.target.value,
                             })
                           }
+                          className="text-sm"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="email">Email Address</Label>
+                        <Label htmlFor="email" className="text-sm">Email Address</Label>
                         <Input
                           id="email"
                           type="email"
@@ -837,10 +844,11 @@ export default function SellerSettingsPage() {
                               email: e.target.value,
                             })
                           }
+                          className="text-sm"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="phone">Phone Number</Label>
+                        <Label htmlFor="phone" className="text-sm">Phone Number</Label>
                         <Input
                           id="phone"
                           value={personalInfo.phone}
@@ -857,6 +865,7 @@ export default function SellerSettingsPage() {
                             e.target.value = value;
                             setPersonalInfo({ ...personalInfo, phone: value });
                           }}
+                          className="text-sm"
                         />
                         <p className="text-xs text-muted-foreground">
                           Enter a 10-digit number without spaces or special
@@ -864,7 +873,7 @@ export default function SellerSettingsPage() {
                         </p>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="alternatePhone">
+                        <Label htmlFor="alternatePhone" className="text-sm">
                           Alternate Phone (Optional)
                         </Label>
                         <Input
@@ -886,6 +895,7 @@ export default function SellerSettingsPage() {
                               alternatePhone: value,
                             });
                           }}
+                          className="text-sm"
                         />
                         <p className="text-xs text-muted-foreground">
                           Enter a 10-digit number without spaces or special
@@ -898,6 +908,7 @@ export default function SellerSettingsPage() {
                     <Button
                       onClick={savePersonalInfo}
                       disabled={isSavingPersonalInfo}
+                      className="text-xs md:text-sm"
                     >
                       {isSavingPersonalInfo ? (
                         <>
@@ -916,24 +927,25 @@ export default function SellerSettingsPage() {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Address Information</CardTitle>
-                    <CardDescription>
+                    <CardTitle className="text-base md:text-lg">Address Information</CardTitle>
+                    <CardDescription className="text-sm">
                       Manage your address details
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="addressLine1">Address Line 1</Label>
+                      <Label htmlFor="addressLine1" className="text-sm">Address Line 1</Label>
                       <Input
                         id="addressLine1"
                         value={address.line1}
                         onChange={(e) =>
                           setAddress({ ...address, line1: e.target.value })
                         }
+                        className="text-sm"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="addressLine2">
+                      <Label htmlFor="addressLine2" className="text-sm">
                         Address Line 2 (Optional)
                       </Label>
                       <Input
@@ -942,11 +954,12 @@ export default function SellerSettingsPage() {
                         onChange={(e) =>
                           setAddress({ ...address, line2: e.target.value })
                         }
+                        className="text-sm"
                       />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="pincode">
+                        <Label htmlFor="pincode" className="text-sm">
                           Pincode <span className="text-red-500">*</span>
                         </Label>
                         <Input
@@ -1001,52 +1014,43 @@ export default function SellerSettingsPage() {
                                   }
                                 }
                               } catch (error) {
-                                console.error(
-                                  "Error fetching pincode data:",
-                                  error
-                                );
+                                console.error("Error fetching pincode data:", error);
                               }
                             }
                           }}
+                          className="text-sm"
                         />
-                        <p className="text-xs text-muted-foreground">
-                          Enter a 6-digit pincode
-                        </p>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="city">City/District</Label>
+                        <Label htmlFor="city" className="text-sm">City</Label>
                         <Input
                           id="city"
                           value={address.city}
-                          readOnly
-                          className="bg-gray-50 cursor-not-allowed"
                           onChange={(e) =>
                             setAddress({ ...address, city: e.target.value })
                           }
+                          className="text-sm"
                         />
-                        <p className="text-xs text-muted-foreground">
-                          Auto-populated from PIN code
-                        </p>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="state">State</Label>
+                        <Label htmlFor="state" className="text-sm">State</Label>
                         <Input
                           id="state"
                           value={address.state}
-                          readOnly
-                          className="bg-gray-50 cursor-not-allowed"
                           onChange={(e) =>
                             setAddress({ ...address, state: e.target.value })
                           }
+                          className="text-sm"
                         />
-                        <p className="text-xs text-muted-foreground">
-                          Auto-populated from PIN code
-                        </p>
                       </div>
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-end">
-                    <Button onClick={saveAddress} disabled={isSavingAddress}>
+                    <Button
+                      onClick={saveAddress}
+                      disabled={isSavingAddress}
+                      className="text-xs md:text-sm"
+                    >
                       {isSavingAddress ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />

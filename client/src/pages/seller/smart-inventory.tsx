@@ -114,37 +114,37 @@ export default function SmartInventory() {
 
   return (
     <SellerDashboardLayout>
-      <div className="container mx-auto py-6">
-        <div className="mb-8">
+      <div className="container mx-auto py-4 md:py-6 px-4 md:px-0">
+        <div className="mb-6 md:mb-8">
           <div className="flex items-center gap-3 mb-2">
             <div className="bg-blue-100 p-2 rounded-lg">
-              <BarChart2 className="h-6 w-6 text-blue-600" />
+              <BarChart2 className="h-5 w-5 md:h-6 md:w-6 text-blue-600" />
             </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            <h1 className="text-xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
               Smart Inventory & Price Management
             </h1>
           </div>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-sm md:text-lg text-muted-foreground">
             Leverage AI-powered insights to optimize your inventory, pricing,
             and product content
           </p>
         </div>
 
-        <div className="grid grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
           {/* Left sidebar for product selection */}
-          <div className="col-span-12 md:col-span-3">
+          <div className="lg:col-span-3 order-2 lg:order-1">
             <Card className="border-blue-100 shadow-md">
               <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
-                <CardTitle className="flex items-center gap-2 text-blue-700">
-                  <Layers className="h-5 w-5" />
+                <CardTitle className="flex items-center gap-2 text-blue-700 text-sm md:text-base">
+                  <Layers className="h-4 w-4 md:h-5 md:w-5" />
                   Your Products
                 </CardTitle>
-                <CardDescription>Select a product to analyze</CardDescription>
+                <CardDescription className="text-xs md:text-sm">Select a product to analyze</CardDescription>
               </CardHeader>
               <CardContent className="pt-4">
                 {isLoadingProducts ? (
                   <div className="flex justify-center items-center h-32">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <Loader2 className="h-6 w-6 md:h-8 md:w-8 animate-spin text-primary" />
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -152,7 +152,7 @@ export default function SmartInventory() {
                       products.map((product: any) => (
                         <div
                           key={product.id}
-                          className={`p-4 rounded-lg cursor-pointer border transition-all hover:shadow-md ${
+                          className={`p-3 md:p-4 rounded-lg cursor-pointer border transition-all hover:shadow-md ${
                             selectedProduct === product.id
                               ? "border-blue-400 bg-blue-50 shadow-sm"
                               : "border-gray-200 hover:border-blue-200"
@@ -160,7 +160,7 @@ export default function SmartInventory() {
                           onClick={() => handleProductSelect(product.id)}
                         >
                           <div className="flex items-center gap-3">
-                            <div className="h-16 w-16 rounded-md overflow-hidden border">
+                            <div className="h-12 w-12 md:h-16 md:w-16 rounded-md overflow-hidden border flex-shrink-0">
                               <img
                                 src={(() => {
                                   // Try to get imageUrl first (camelCase)
@@ -224,20 +224,20 @@ export default function SmartInventory() {
                                 }}
                               />
                             </div>
-                            <div>
-                              <h3 className="font-medium text-gray-800">
+                            <div className="min-w-0 flex-1">
+                              <h3 className="font-medium text-gray-800 text-sm md:text-base truncate">
                                 {product.name}
                               </h3>
-                              <div className="flex items-center mt-1">
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-1">
                                 <Badge
                                   variant={
                                     product.stock > 10 ? "default" : "outline"
                                   }
-                                  className="mr-2"
+                                  className="text-xs w-fit"
                                 >
                                   Stock: {product.stock}
                                 </Badge>
-                                <p className="text-sm font-bold text-blue-700">
+                                <p className="text-xs md:text-sm font-bold text-blue-700">
                                   {formatPrice(product.price)}
                                 </p>
                               </div>
@@ -246,15 +246,15 @@ export default function SmartInventory() {
                         </div>
                       ))
                     ) : (
-                      <div className="text-center p-6 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                        <Package className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                        <p className="text-muted-foreground">
+                      <div className="text-center p-4 md:p-6 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                        <Package className="h-6 w-6 md:h-8 md:w-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-muted-foreground text-sm">
                           No products found
                         </p>
                         <Button
                           variant="outline"
                           size="sm"
-                          className="mt-3"
+                          className="mt-3 text-xs"
                           asChild
                         >
                           <Link href="/seller/products/add">Add Product</Link>
@@ -268,45 +268,51 @@ export default function SmartInventory() {
           </div>
 
           {/* Main content area */}
-          <div className="col-span-12 md:col-span-9">
+          <div className="lg:col-span-9 order-1 lg:order-2">
             {selectedProduct ? (
               <Tabs
                 value={activeTab}
                 onValueChange={setActiveTab}
                 className="bg-white rounded-lg shadow-md border p-1"
               >
-                <TabsList className="grid grid-cols-4 p-1 mb-6 bg-gray-50">
-                  <TabsTrigger
-                    value="demand-forecasting"
-                    className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
-                  >
-                    <TrendingUp className="h-4 w-4 mr-2" />
-                    Demand Forecasting
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="price-optimization"
-                    className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
-                  >
-                    <DollarSign className="h-4 w-4 mr-2" />
-                    Price Optimization
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="inventory-optimization"
-                    className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
-                  >
-                    <ShoppingBag className="h-4 w-4 mr-2" />
-                    Inventory Optimization
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="ai-content"
-                    className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
-                  >
-                    <PencilRuler className="h-4 w-4 mr-2" />
-                    AI Content Generator
-                  </TabsTrigger>
-                </TabsList>
+                <div className="overflow-x-auto">
+                  <TabsList className="grid grid-cols-2 md:grid-cols-4 p-1 mb-4 md:mb-6 bg-gray-50 min-w-max">
+                    <TabsTrigger
+                      value="demand-forecasting"
+                      className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 text-xs md:text-sm"
+                    >
+                      <TrendingUp className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                      <span className="hidden sm:inline">Demand Forecasting</span>
+                      <span className="sm:hidden">Demand</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="price-optimization"
+                      className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 text-xs md:text-sm"
+                    >
+                      <DollarSign className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                      <span className="hidden sm:inline">Price Optimization</span>
+                      <span className="sm:hidden">Price</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="inventory-optimization"
+                      className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 text-xs md:text-sm"
+                    >
+                      <ShoppingBag className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                      <span className="hidden sm:inline">Inventory Optimization</span>
+                      <span className="sm:hidden">Inventory</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="ai-content"
+                      className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 text-xs md:text-sm"
+                    >
+                      <PencilRuler className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                      <span className="hidden sm:inline">AI Content Generator</span>
+                      <span className="sm:hidden">Content</span>
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
 
-                <div className="px-4 pb-4">
+                <div className="px-2 md:px-4 pb-4">
                   <TabsContent value="demand-forecasting">
                     <DemandForecastingTab productId={selectedProduct} />
                   </TabsContent>
@@ -326,41 +332,41 @@ export default function SmartInventory() {
               </Tabs>
             ) : (
               <Card className="border-blue-100 shadow-md">
-                <CardContent className="flex flex-col items-center justify-center py-16">
-                  <div className="rounded-full p-6 bg-blue-50 mb-6">
-                    <LineChart className="h-10 w-10 text-blue-600" />
+                <CardContent className="flex flex-col items-center justify-center py-8 md:py-16">
+                  <div className="rounded-full p-4 md:p-6 bg-blue-50 mb-4 md:mb-6">
+                    <LineChart className="h-8 w-8 md:h-10 md:w-10 text-blue-600" />
                   </div>
-                  <h3 className="text-2xl font-semibold mb-4 text-center">
+                  <h3 className="text-xl md:text-2xl font-semibold mb-3 md:mb-4 text-center">
                     Select a Product
                   </h3>
-                  <p className="text-muted-foreground text-center max-w-lg mb-6">
+                  <p className="text-sm md:text-base text-muted-foreground text-center max-w-lg mb-4 md:mb-6 px-4">
                     Choose a product from the sidebar to view AI-powered
                     inventory insights, pricing recommendations, and generate
                     optimized product content.
                   </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-lg">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 w-full max-w-lg px-4">
                     <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-none">
-                      <CardContent className="flex flex-col items-center text-center p-6">
-                        <TrendingUp className="h-8 w-8 text-blue-600 mb-2" />
-                        <h4 className="font-medium mb-1">Demand Forecasting</h4>
+                      <CardContent className="flex flex-col items-center text-center p-4 md:p-6">
+                        <TrendingUp className="h-6 w-6 md:h-8 md:w-8 text-blue-600 mb-2" />
+                        <h4 className="font-medium mb-1 text-sm md:text-base">Demand Forecasting</h4>
                         <p className="text-xs text-muted-foreground">
                           Predict future sales with ML models
                         </p>
                       </CardContent>
                     </Card>
                     <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-none">
-                      <CardContent className="flex flex-col items-center text-center p-6">
-                        <DollarSign className="h-8 w-8 text-amber-600 mb-2" />
-                        <h4 className="font-medium mb-1">Price Optimization</h4>
+                      <CardContent className="flex flex-col items-center text-center p-4 md:p-6">
+                        <DollarSign className="h-6 w-6 md:h-8 md:w-8 text-amber-600 mb-2" />
+                        <h4 className="font-medium mb-1 text-sm md:text-base">Price Optimization</h4>
                         <p className="text-xs text-muted-foreground">
                           Find the perfect price point
                         </p>
                       </CardContent>
                     </Card>
                     <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-none">
-                      <CardContent className="flex flex-col items-center text-center p-6">
-                        <ShoppingBag className="h-8 w-8 text-green-600 mb-2" />
-                        <h4 className="font-medium mb-1">
+                      <CardContent className="flex flex-col items-center text-center p-4 md:p-6">
+                        <ShoppingBag className="h-6 w-6 md:h-8 md:w-8 text-green-600 mb-2" />
+                        <h4 className="font-medium mb-1 text-sm md:text-base">
                           Inventory Optimization
                         </h4>
                         <p className="text-xs text-muted-foreground">
@@ -369,9 +375,9 @@ export default function SmartInventory() {
                       </CardContent>
                     </Card>
                     <Card className="bg-gradient-to-br from-purple-50 to-fuchsia-50 border-none">
-                      <CardContent className="flex flex-col items-center text-center p-6">
-                        <PencilRuler className="h-8 w-8 text-purple-600 mb-2" />
-                        <h4 className="font-medium mb-1">
+                      <CardContent className="flex flex-col items-center text-center p-4 md:p-6">
+                        <PencilRuler className="h-6 w-6 md:h-8 md:w-8 text-purple-600 mb-2" />
+                        <h4 className="font-medium mb-1 text-sm md:text-base">
                           AI Content Generator
                         </h4>
                         <p className="text-xs text-muted-foreground">
