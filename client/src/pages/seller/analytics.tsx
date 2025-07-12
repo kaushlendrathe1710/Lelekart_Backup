@@ -2,28 +2,52 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format, subDays } from "date-fns";
 import { SellerDashboardLayout } from "@/components/layout/seller-dashboard-layout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { BarChart, LineChart, PieChart, DonutChart } from "@/components/ui/charts";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  BarChart,
+  LineChart,
+  PieChart,
+  DonutChart,
+} from "@/components/ui/charts";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { 
-  ArrowDown, 
-  ArrowUp, 
-  ArrowUpRight, 
-  BarChart3, 
-  Download, 
-  FileDown, 
-  Filter, 
-  Image, 
-  Layers, 
-  Package, 
-  PieChart as PieChartIcon, 
-  RefreshCw, 
-  ShoppingBag, 
-  Users 
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpRight,
+  BarChart3,
+  Download,
+  FileDown,
+  Filter,
+  Image,
+  Layers,
+  Package,
+  PieChart as PieChartIcon,
+  RefreshCw,
+  ShoppingBag,
+  Users,
 } from "lucide-react";
 
 export default function SellerAnalyticsPage() {
@@ -32,12 +56,16 @@ export default function SellerAnalyticsPage() {
   const [chartType, setChartType] = useState("bar");
 
   // Fetch analytics data based on date range
-  const { data: analyticsData, isLoading, refetch } = useQuery({
-    queryKey: ['/api/seller/analytics', dateRange],
+  const {
+    data: analyticsData,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["/api/seller/analytics", dateRange],
     queryFn: async () => {
       const res = await fetch(`/api/seller/analytics?range=${dateRange}`);
       if (!res.ok) {
-        throw new Error('Failed to fetch analytics data');
+        throw new Error("Failed to fetch analytics data");
       }
       return res.json();
     },
@@ -45,9 +73,9 @@ export default function SellerAnalyticsPage() {
 
   // Format currency
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
       maximumFractionDigits: 0,
     }).format(value);
   };
@@ -105,12 +133,16 @@ export default function SellerAnalyticsPage() {
       <div className="container py-2">
         <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Seller Analytics</h1>
-            <p className="text-muted-foreground">Track your store's performance metrics and sales trends</p>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+              Seller Analytics
+            </h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
+              Track your store's performance metrics and sales trends
+            </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
             <Select value={dateRange} onValueChange={setDateRange}>
-              <SelectTrigger className="w-[160px]">
+              <SelectTrigger className="w-full sm:w-[160px]">
                 <SelectValue placeholder="Select time period" />
               </SelectTrigger>
               <SelectContent>
@@ -120,18 +152,22 @@ export default function SellerAnalyticsPage() {
                 <SelectItem value="year">This year</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" size="icon" onClick={() => refetch()}>
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-            <Button 
-              onClick={() => {
-                const endpoint = `/api/seller/analytics/export?range=${dateRange}`;
-                window.open(endpoint, '_blank');
-              }}
-            >
-              <FileDown className="mr-2 h-4 w-4" />
-              Export Report
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="icon" onClick={() => refetch()}>
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+              <Button
+                size="sm"
+                className="flex-1 sm:flex-none"
+                onClick={() => {
+                  const endpoint = `/api/seller/analytics/export?range=${dateRange}`;
+                  window.open(endpoint, "_blank");
+                }}
+              >
+                <FileDown className="mr-2 h-4 w-4" />
+                Export Report
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -142,11 +178,13 @@ export default function SellerAnalyticsPage() {
         ) : (
           <>
             {/* Key Metrics Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               {/* Total Revenue Card */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Total Revenue
+                  </CardTitle>
                   <ShoppingBag className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
@@ -168,7 +206,9 @@ export default function SellerAnalyticsPage() {
               {/* Total Orders Card */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Total Orders
+                  </CardTitle>
                   <Package className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
@@ -190,7 +230,9 @@ export default function SellerAnalyticsPage() {
               {/* Average Order Value Card */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Avg. Order Value</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Avg. Order Value
+                  </CardTitle>
                   <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
@@ -212,7 +254,9 @@ export default function SellerAnalyticsPage() {
               {/* Conversion Rate Card */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Conversion Rate
+                  </CardTitle>
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
@@ -234,14 +278,14 @@ export default function SellerAnalyticsPage() {
 
             {/* Charts Section */}
             <Tabs value={dataTab} onValueChange={setDataTab} className="mb-6">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
-                <TabsList>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+                <TabsList className="grid w-full grid-cols-4 sm:w-auto">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="orders">Orders</TabsTrigger>
                   <TabsTrigger value="revenue">Revenue</TabsTrigger>
                   <TabsTrigger value="products">Products</TabsTrigger>
                 </TabsList>
-                <div className="flex mt-4 sm:mt-0">
+                <div className="flex w-full sm:w-auto justify-center sm:justify-end">
                   <Button
                     variant={chartType === "bar" ? "default" : "outline"}
                     size="sm"
@@ -269,7 +313,7 @@ export default function SellerAnalyticsPage() {
                       Key sales performance indicators over time
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="h-[400px]">
+                  <CardContent className="h-[300px] sm:h-[400px]">
                     {chartType === "bar" ? (
                       <BarChart
                         data={revenueChartData}
@@ -301,7 +345,7 @@ export default function SellerAnalyticsPage() {
                       Number of orders placed during the selected period
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="h-[400px]">
+                  <CardContent className="h-[300px] sm:h-[400px]">
                     {chartType === "bar" ? (
                       <BarChart
                         data={orderChartData}
@@ -326,29 +370,41 @@ export default function SellerAnalyticsPage() {
               <TabsContent value="revenue">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Revenue Analysis - {getDateRangeText()}</CardTitle>
+                    <CardTitle>
+                      Revenue Analysis - {getDateRangeText()}
+                    </CardTitle>
                     <CardDescription>
                       Revenue breakdown by various dimensions
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 h-[400px]">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 h-auto lg:h-[400px]">
                       <div>
-                        <h3 className="text-sm font-medium mb-4">Revenue by Category</h3>
-                        <div className="h-[320px]">
+                        <h3 className="text-sm font-medium mb-4">
+                          Revenue by Category
+                        </h3>
+                        <div className="h-[250px] sm:h-[320px]">
                           <PieChart
                             data={categoryChartData}
                             index="category"
                             categories={["revenue"]}
-                            colors={["primary", "blue", "cyan", "indigo", "violet"]}
+                            colors={[
+                              "primary",
+                              "blue",
+                              "cyan",
+                              "indigo",
+                              "violet",
+                            ]}
                             valueFormatter={(value) => formatCurrency(value)}
                             className="h-full w-full"
                           />
                         </div>
                       </div>
                       <div>
-                        <h3 className="text-sm font-medium mb-4">Revenue by Payment Method</h3>
-                        <div className="h-[320px]">
+                        <h3 className="text-sm font-medium mb-4">
+                          Revenue by Payment Method
+                        </h3>
+                        <div className="h-[250px] sm:h-[320px]">
                           <DonutChart
                             data={analyticsData?.paymentMethodData || []}
                             index="method"
@@ -367,50 +423,125 @@ export default function SellerAnalyticsPage() {
               <TabsContent value="products">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Product Performance - {getDateRangeText()}</CardTitle>
+                    <CardTitle>
+                      Product Performance - {getDateRangeText()}
+                    </CardTitle>
                     <CardDescription>
                       Detailed metrics for your top performing products
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Product</TableHead>
-                          <TableHead className="text-right">Units Sold</TableHead>
-                          <TableHead className="text-right">Revenue</TableHead>
-                          <TableHead className="text-right">Conversion</TableHead>
-                          <TableHead>Trend</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {productPerformanceData.map((product, index) => (
-                          <TableRow key={index}>
-                            <TableCell>
-                              <div className="font-medium">{product.name}</div>
-                              <div className="text-sm text-muted-foreground">{product.sku}</div>
-                            </TableCell>
-                            <TableCell className="text-right">{product.unitsSold}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(product.revenue)}</TableCell>
-                            <TableCell className="text-right">{product.conversion}%</TableCell>
-                            <TableCell>
-                              {getTrendIndicator(product.trend)}
-                            </TableCell>
+                    {/* Desktop Table View */}
+                    <div className="hidden md:block">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Product</TableHead>
+                            <TableHead className="text-right">
+                              Units Sold
+                            </TableHead>
+                            <TableHead className="text-right">
+                              Revenue
+                            </TableHead>
+                            <TableHead className="text-right">
+                              Conversion
+                            </TableHead>
+                            <TableHead>Trend</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {productPerformanceData.map((product, index) => (
+                            <TableRow key={index}>
+                              <TableCell>
+                                <div className="font-medium">
+                                  {product.name}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  {product.sku}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {product.unitsSold}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {formatCurrency(product.revenue)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {product.conversion}%
+                              </TableCell>
+                              <TableCell>
+                                {getTrendIndicator(product.trend)}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    {/* Mobile Card View */}
+                    <div className="md:hidden space-y-4">
+                      {productPerformanceData.map((product, index) => (
+                        <Card key={index} className="p-4">
+                          <div className="space-y-3">
+                            <div>
+                              <div className="font-medium text-base">
+                                {product.name}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {product.sku}
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <div className="text-muted-foreground">
+                                  Units Sold
+                                </div>
+                                <div className="font-medium">
+                                  {product.unitsSold}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-muted-foreground">
+                                  Revenue
+                                </div>
+                                <div className="font-medium">
+                                  {formatCurrency(product.revenue)}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-muted-foreground">
+                                  Conversion
+                                </div>
+                                <div className="font-medium">
+                                  {product.conversion}%
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-muted-foreground">
+                                  Trend
+                                </div>
+                                <div className="font-medium">
+                                  {getTrendIndicator(product.trend)}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
             </Tabs>
 
             {/* Additional Analytics */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
                   <CardTitle>Traffic Sources</CardTitle>
-                  <CardDescription>Where your store visitors are coming from</CardDescription>
+                  <CardDescription>
+                    Where your store visitors are coming from
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -423,14 +554,22 @@ export default function SellerAnalyticsPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {(analyticsData?.trafficSources || []).map((source, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{source.name}</TableCell>
-                          <TableCell className="text-right">{source.visitors}</TableCell>
-                          <TableCell className="text-right">{source.conversion}%</TableCell>
-                          <TableCell className="text-right">{formatCurrency(source.revenue)}</TableCell>
-                        </TableRow>
-                      ))}
+                      {(analyticsData?.trafficSources || []).map(
+                        (source, index) => (
+                          <TableRow key={index}>
+                            <TableCell>{source.name}</TableCell>
+                            <TableCell className="text-right">
+                              {source.visitors}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {source.conversion}%
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {formatCurrency(source.revenue)}
+                            </TableCell>
+                          </TableRow>
+                        )
+                      )}
                     </TableBody>
                   </Table>
                 </CardContent>
@@ -439,23 +578,33 @@ export default function SellerAnalyticsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Customer Insights</CardTitle>
-                  <CardDescription>Understanding your customer base</CardDescription>
+                  <CardDescription>
+                    Understanding your customer base
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 gap-4 mb-6">
                     <Card>
                       <CardHeader className="py-3">
-                        <CardTitle className="text-sm">Repeat Purchase Rate</CardTitle>
+                        <CardTitle className="text-sm">
+                          Repeat Purchase Rate
+                        </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold">
-                          {(analyticsData?.customerInsights?.repeatPurchaseRate || 0).toFixed(1)}%
+                          {(
+                            analyticsData?.customerInsights
+                              ?.repeatPurchaseRate || 0
+                          ).toFixed(1)}
+                          %
                         </div>
                         <div className="text-xs text-muted-foreground">
                           {getTrendIndicator(
                             getPercentageChange(
-                              analyticsData?.customerInsights?.repeatPurchaseRate || 0,
-                              analyticsData?.customerInsights?.previousRepeatPurchaseRate || 0
+                              analyticsData?.customerInsights
+                                ?.repeatPurchaseRate || 0,
+                              analyticsData?.customerInsights
+                                ?.previousRepeatPurchaseRate || 0
                             )
                           )}
                         </div>
@@ -463,25 +612,34 @@ export default function SellerAnalyticsPage() {
                     </Card>
                     <Card>
                       <CardHeader className="py-3">
-                        <CardTitle className="text-sm">Avg. Customer Value</CardTitle>
+                        <CardTitle className="text-sm">
+                          Avg. Customer Value
+                        </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold">
-                          {formatCurrency(analyticsData?.customerInsights?.avgCustomerValue || 0)}
+                          {formatCurrency(
+                            analyticsData?.customerInsights?.avgCustomerValue ||
+                              0
+                          )}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           {getTrendIndicator(
                             getPercentageChange(
-                              analyticsData?.customerInsights?.avgCustomerValue || 0,
-                              analyticsData?.customerInsights?.previousAvgCustomerValue || 0
+                              analyticsData?.customerInsights
+                                ?.avgCustomerValue || 0,
+                              analyticsData?.customerInsights
+                                ?.previousAvgCustomerValue || 0
                             )
                           )}
                         </div>
                       </CardContent>
                     </Card>
                   </div>
-                  <h3 className="text-sm font-medium mb-3">Customer Demographics</h3>
-                  <div className="h-[200px]">
+                  <h3 className="text-sm font-medium mb-3">
+                    Customer Demographics
+                  </h3>
+                  <div className="h-[150px] sm:h-[200px]">
                     <PieChart
                       data={analyticsData?.customerInsights?.demographics || []}
                       index="group"
