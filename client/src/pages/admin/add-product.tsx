@@ -16,23 +16,22 @@ export default function AdminAddProductPage() {
   
   return (
     <AdminLayout>
-      <div className="p-6">
-        <div className="mb-6 flex flex-col gap-2">
-          <div className="flex items-center justify-between">
+      <div className="p-4 md:p-6">
+        <div className="mb-4 md:mb-6 flex flex-col gap-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <Button 
               variant="ghost" 
-              className="gap-1" 
+              className="gap-1 text-sm md:text-base px-2 md:px-3 py-1 md:py-2"
               onClick={() => navigate('/admin/products')}
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to Products
+              <span className="hidden xs:inline">Back to Products</span>
             </Button>
           </div>
-          
           <Card>
             <CardHeader>
-              <CardTitle>Add New Product</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-lg md:text-xl">Add New Product</CardTitle>
+              <CardDescription className="text-sm md:text-base">
                 Create a new product with detailed information
               </CardDescription>
             </CardHeader>
