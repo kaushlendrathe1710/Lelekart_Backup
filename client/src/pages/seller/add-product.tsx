@@ -157,7 +157,11 @@ const productSchema = z.object({
   height: z.coerce.number().optional().nullable(),
   color: z.string().optional().nullable(),
   size: z.string().optional().nullable(),
-  deliveryCharges: z.coerce.number().min(0, 'Delivery charges cannot be negative').default(0).optional(),
+  deliveryCharges: z.coerce
+    .number()
+    .min(0, "Delivery charges cannot be negative")
+    .default(0)
+    .optional(),
 });
 
 // Helper function to generate SKU
@@ -231,207 +235,2029 @@ export default function AddProductPage() {
   // Add this helper function after the state declarations
   const getSubcategoriesForCategory = (category: string) => {
     const subcategoryMap: Record<string, string[]> = {
-      "Fashion": ["Kurta", "Pants", "Shirts", "T-Shirts", "Dresses", "Sarees", "Ethnic Wear", "Western Wear", "Kids Wear", "Accessories"],
-      "Electronics": ["Smartphones", "Laptops", "Tablets", "Accessories", "Audio Devices", "Gaming", "Cameras", "Smart Home", "Computer Parts", "Storage"],
-      "Home & Kitchen": ["Cookware", "Storage", "Cleaning", "Furniture", "Decor", "Kitchen Appliances", "Dining", "Bedding", "Bath", "Garden"],
-      "Beauty": ["Skincare", "Haircare", "Makeup", "Fragrances", "Personal Care", "Bath & Body", "Tools & Accessories", "Men's Grooming", "Natural & Organic", "Gift Sets"],
-      "Toys & Games": ["Educational Toys", "Board Games", "Outdoor Toys", "Action Figures", "Dolls", "Building Toys", "Arts & Crafts", "Remote Control", "Puzzles", "Baby Toys"],
-      "Books": ["Fiction", "Non-Fiction", "Academic", "Children's Books", "Comics", "Self-Help", "Business", "Technology", "Literature", "Biography"],
-      "Sports": ["Cricket", "Football", "Yoga", "Fitness Equipment", "Outdoor Sports", "Indoor Sports", "Swimming", "Cycling", "Running", "Team Sports"],
-      "Automotive": ["Car Accessories", "Bike Accessories", "Tools", "Car Care", "Bike Care", "Safety", "Electronics", "Spare Parts", "Riding Gear", "Maintenance"],
-      "Home": ["Furniture", "Decor", "Lighting", "Storage", "Cleaning", "Bedding", "Bath", "Kitchenware", "Garden", "Safety"],
-      "Appliances": ["Kitchen Appliances", "Home Appliances", "Personal Care Appliances", "Large Appliances", "Small Appliances", "Heating & Cooling", "Laundry Appliances", "Water Purifiers", "Vacuum Cleaners", "Accessories"],
-      "Mobiles": ["Smartphones", "Feature Phones", "Mobile Accessories", "Tablets", "Wearables", "Power Banks", "Cases & Covers", "Screen Protectors", "Chargers", "Memory Cards"],
-      "Toys": ["Action Figures", "Educational Toys", "Board Games", "Dolls", "Remote Control", "Building Blocks", "Puzzles", "Outdoor Toys", "Baby Toys", "Arts & Crafts"],
-      "Grocery": ["Fruits & Vegetables", "Dairy & Bakery", "Staples", "Snacks & Beverages", "Personal Care", "Household Supplies", "Packaged Food", "Beverages", "Baby Care", "Pet Supplies"],
-      "Industrial": ["Lab Supplies", "Industrial Tools", "Safety Equipment", "Electrical", "Plumbing", "Adhesives", "Paints & Coatings", "Fasteners", "Pumps", "Automation"],
-      "Scientific": ["Lab Instruments", "Testing Equipment", "Microscopes", "Glassware", "Chemicals", "Balances", "Centrifuges", "Spectroscopy", "Consumables", "Safety Equipment"]
+      Fashion: [
+        "Kurta",
+        "Pants",
+        "Shirts",
+        "T-Shirts",
+        "Dresses",
+        "Sarees",
+        "Ethnic Wear",
+        "Western Wear",
+        "Kids Wear",
+        "Accessories",
+      ],
+      Electronics: [
+        "Smartphones",
+        "Laptops",
+        "Tablets",
+        "Accessories",
+        "Audio Devices",
+        "Gaming",
+        "Cameras",
+        "Smart Home",
+        "Computer Parts",
+        "Storage",
+      ],
+      "Home & Kitchen": [
+        "Cookware",
+        "Storage",
+        "Cleaning",
+        "Furniture",
+        "Decor",
+        "Kitchen Appliances",
+        "Dining",
+        "Bedding",
+        "Bath",
+        "Garden",
+      ],
+      Beauty: [
+        "Skincare",
+        "Haircare",
+        "Makeup",
+        "Fragrances",
+        "Personal Care",
+        "Bath & Body",
+        "Tools & Accessories",
+        "Men's Grooming",
+        "Natural & Organic",
+        "Gift Sets",
+      ],
+      "Toys & Games": [
+        "Educational Toys",
+        "Board Games",
+        "Outdoor Toys",
+        "Action Figures",
+        "Dolls",
+        "Building Toys",
+        "Arts & Crafts",
+        "Remote Control",
+        "Puzzles",
+        "Baby Toys",
+      ],
+      Books: [
+        "Fiction",
+        "Non-Fiction",
+        "Academic",
+        "Children's Books",
+        "Comics",
+        "Self-Help",
+        "Business",
+        "Technology",
+        "Literature",
+        "Biography",
+      ],
+      Sports: [
+        "Cricket",
+        "Football",
+        "Yoga",
+        "Fitness Equipment",
+        "Outdoor Sports",
+        "Indoor Sports",
+        "Swimming",
+        "Cycling",
+        "Running",
+        "Team Sports",
+      ],
+      Automotive: [
+        "Car Accessories",
+        "Bike Accessories",
+        "Tools",
+        "Car Care",
+        "Bike Care",
+        "Safety",
+        "Electronics",
+        "Spare Parts",
+        "Riding Gear",
+        "Maintenance",
+      ],
+      Home: [
+        "Furniture",
+        "Decor",
+        "Lighting",
+        "Storage",
+        "Cleaning",
+        "Bedding",
+        "Bath",
+        "Kitchenware",
+        "Garden",
+        "Safety",
+      ],
+      Appliances: [
+        "Kitchen Appliances",
+        "Home Appliances",
+        "Personal Care Appliances",
+        "Large Appliances",
+        "Small Appliances",
+        "Heating & Cooling",
+        "Laundry Appliances",
+        "Water Purifiers",
+        "Vacuum Cleaners",
+        "Accessories",
+      ],
+      Mobiles: [
+        "Smartphones",
+        "Feature Phones",
+        "Mobile Accessories",
+        "Tablets",
+        "Wearables",
+        "Power Banks",
+        "Cases & Covers",
+        "Screen Protectors",
+        "Chargers",
+        "Memory Cards",
+      ],
+      Toys: [
+        "Action Figures",
+        "Educational Toys",
+        "Board Games",
+        "Dolls",
+        "Remote Control",
+        "Building Blocks",
+        "Puzzles",
+        "Outdoor Toys",
+        "Baby Toys",
+        "Arts & Crafts",
+      ],
+      Grocery: [
+        "Fruits & Vegetables",
+        "Dairy & Bakery",
+        "Staples",
+        "Snacks & Beverages",
+        "Personal Care",
+        "Household Supplies",
+        "Packaged Food",
+        "Beverages",
+        "Baby Care",
+        "Pet Supplies",
+      ],
+      Industrial: [
+        "Lab Supplies",
+        "Industrial Tools",
+        "Safety Equipment",
+        "Electrical",
+        "Plumbing",
+        "Adhesives",
+        "Paints & Coatings",
+        "Fasteners",
+        "Pumps",
+        "Automation",
+      ],
+      Scientific: [
+        "Lab Instruments",
+        "Testing Equipment",
+        "Microscopes",
+        "Glassware",
+        "Chemicals",
+        "Balances",
+        "Centrifuges",
+        "Spectroscopy",
+        "Consumables",
+        "Safety Equipment",
+      ],
     };
     return subcategoryMap[category] || [];
   };
 
-  const getSubcategory2ForSubcategory1 = (category: string, subcategory1: string) => {
+  const getSubcategory2ForSubcategory1 = (
+    category: string,
+    subcategory1: string
+  ) => {
     const subcategory2Map: Record<string, Record<string, string[]>> = {
-      "Fashion": {
-        "Kurta": ["Silk", "Cotton", "Linen", "Polyester", "Rayon", "Embroidered", "Printed", "Plain", "Designer", "Traditional"],
-        "Pants": ["Jeans", "Formal", "Casual", "Cargo", "Track Pants", "Chinos", "Leggings", "Palazzos", "Shorts", "Trousers"],
-        "Shirts": ["Formal", "Casual", "Party Wear", "Office Wear", "Printed", "Plain", "Checks", "Stripes", "Denim", "Linen"],
-        "T-Shirts": ["Round Neck", "V-Neck", "Polo", "Full Sleeve", "Half Sleeve", "Graphic", "Plain", "Sports", "Oversized", "Crop"],
-        "Dresses": ["Maxi", "Mini", "Midi", "Party Wear", "Casual", "A-Line", "Bodycon", "Wrap", "Shift", "Sundress"],
-        "Sarees": ["Silk", "Cotton", "Georgette", "Chiffon", "Banarasi", "Printed", "Embroidered", "Designer", "Traditional", "Party Wear"],
-        "Ethnic Wear": ["Kurta Sets", "Lehenga", "Salwar Suits", "Gowns", "Sherwani", "Indo-Western", "Dhoti Sets", "Blouses", "Dupattas", "Ethnic Jackets"],
-        "Western Wear": ["Tops", "Jumpsuits", "Skirts", "Blazers", "Jackets", "Sweaters", "Coats", "Hoodies", "Sweatshirts", "Cardigans"],
-        "Kids Wear": ["Boys Casual", "Girls Casual", "Party Wear", "School Uniform", "Ethnic Wear", "Winter Wear", "Night Wear", "Infant Wear", "Sports Wear", "Accessories"],
-        "Accessories": ["Belts", "Wallets", "Scarves", "Ties", "Socks", "Caps", "Hats", "Gloves", "Stoles", "Hair Accessories"]
+      Fashion: {
+        Kurta: [
+          "Silk",
+          "Cotton",
+          "Linen",
+          "Polyester",
+          "Rayon",
+          "Embroidered",
+          "Printed",
+          "Plain",
+          "Designer",
+          "Traditional",
+        ],
+        Pants: [
+          "Jeans",
+          "Formal",
+          "Casual",
+          "Cargo",
+          "Track Pants",
+          "Chinos",
+          "Leggings",
+          "Palazzos",
+          "Shorts",
+          "Trousers",
+        ],
+        Shirts: [
+          "Formal",
+          "Casual",
+          "Party Wear",
+          "Office Wear",
+          "Printed",
+          "Plain",
+          "Checks",
+          "Stripes",
+          "Denim",
+          "Linen",
+        ],
+        "T-Shirts": [
+          "Round Neck",
+          "V-Neck",
+          "Polo",
+          "Full Sleeve",
+          "Half Sleeve",
+          "Graphic",
+          "Plain",
+          "Sports",
+          "Oversized",
+          "Crop",
+        ],
+        Dresses: [
+          "Maxi",
+          "Mini",
+          "Midi",
+          "Party Wear",
+          "Casual",
+          "A-Line",
+          "Bodycon",
+          "Wrap",
+          "Shift",
+          "Sundress",
+        ],
+        Sarees: [
+          "Silk",
+          "Cotton",
+          "Georgette",
+          "Chiffon",
+          "Banarasi",
+          "Printed",
+          "Embroidered",
+          "Designer",
+          "Traditional",
+          "Party Wear",
+        ],
+        "Ethnic Wear": [
+          "Kurta Sets",
+          "Lehenga",
+          "Salwar Suits",
+          "Gowns",
+          "Sherwani",
+          "Indo-Western",
+          "Dhoti Sets",
+          "Blouses",
+          "Dupattas",
+          "Ethnic Jackets",
+        ],
+        "Western Wear": [
+          "Tops",
+          "Jumpsuits",
+          "Skirts",
+          "Blazers",
+          "Jackets",
+          "Sweaters",
+          "Coats",
+          "Hoodies",
+          "Sweatshirts",
+          "Cardigans",
+        ],
+        "Kids Wear": [
+          "Boys Casual",
+          "Girls Casual",
+          "Party Wear",
+          "School Uniform",
+          "Ethnic Wear",
+          "Winter Wear",
+          "Night Wear",
+          "Infant Wear",
+          "Sports Wear",
+          "Accessories",
+        ],
+        Accessories: [
+          "Belts",
+          "Wallets",
+          "Scarves",
+          "Ties",
+          "Socks",
+          "Caps",
+          "Hats",
+          "Gloves",
+          "Stoles",
+          "Hair Accessories",
+        ],
       },
-      "Electronics": {
-        "Smartphones": ["Android", "iOS", "Feature Phones", "5G Phones", "Gaming Phones", "Dual SIM", "Business Phones", "Camera Phones", "Budget Phones", "Flagship Phones"],
-        "Laptops": ["Gaming", "Business", "Student", "2-in-1", "Ultrabook", "Workstation", "Chromebook", "Budget", "Premium", "Creator"],
-        "Tablets": ["Android", "iOS", "Windows", "Drawing Tablets", "Kids Tablets", "Educational", "Gaming", "Business", "Budget", "Premium"],
-        "Accessories": ["Chargers", "Cases", "Screen Guards", "Cables", "Power Banks", "Stands", "Keyboards", "Mouse", "Headphones", "Storage"],
-        "Audio Devices": ["Headphones", "Speakers", "Earbuds", "Microphones", "Sound Bars", "Home Theater", "Car Audio", "Professional Audio", "Gaming Audio", "DJ Equipment"],
-        "Gaming": ["Consoles", "Controllers", "Games", "Accessories", "VR", "Gaming Chairs", "Gaming Monitors", "Gaming Keyboards", "Gaming Mouse", "Gaming Headsets"],
-        "Cameras": ["DSLR", "Mirrorless", "Point & Shoot", "Action Cameras", "Security Cameras", "Drones", "Lenses", "Flashes", "Tripods", "Camera Bags"],
-        "Smart Home": ["Smart Speakers", "Security", "Lighting", "Thermostats", "Doorbells", "Cameras", "Plugs", "Sensors", "Hubs", "Displays"],
-        "Computer Parts": ["Processors", "Motherboards", "RAM", "Storage", "Graphics Cards", "Power Supply", "Cases", "Cooling", "Peripherals", "Networking"],
-        "Storage": ["SSD", "HDD", "USB Drives", "Memory Cards", "External Drives", "NAS", "Cloud Storage", "Portable SSD", "Backup Solutions", "Enterprise Storage"]
+      Electronics: {
+        Smartphones: [
+          "Android",
+          "iOS",
+          "Feature Phones",
+          "5G Phones",
+          "Gaming Phones",
+          "Dual SIM",
+          "Business Phones",
+          "Camera Phones",
+          "Budget Phones",
+          "Flagship Phones",
+        ],
+        Laptops: [
+          "Gaming",
+          "Business",
+          "Student",
+          "2-in-1",
+          "Ultrabook",
+          "Workstation",
+          "Chromebook",
+          "Budget",
+          "Premium",
+          "Creator",
+        ],
+        Tablets: [
+          "Android",
+          "iOS",
+          "Windows",
+          "Drawing Tablets",
+          "Kids Tablets",
+          "Educational",
+          "Gaming",
+          "Business",
+          "Budget",
+          "Premium",
+        ],
+        Accessories: [
+          "Chargers",
+          "Cases",
+          "Screen Guards",
+          "Cables",
+          "Power Banks",
+          "Stands",
+          "Keyboards",
+          "Mouse",
+          "Headphones",
+          "Storage",
+        ],
+        "Audio Devices": [
+          "Headphones",
+          "Speakers",
+          "Earbuds",
+          "Microphones",
+          "Sound Bars",
+          "Home Theater",
+          "Car Audio",
+          "Professional Audio",
+          "Gaming Audio",
+          "DJ Equipment",
+        ],
+        Gaming: [
+          "Consoles",
+          "Controllers",
+          "Games",
+          "Accessories",
+          "VR",
+          "Gaming Chairs",
+          "Gaming Monitors",
+          "Gaming Keyboards",
+          "Gaming Mouse",
+          "Gaming Headsets",
+        ],
+        Cameras: [
+          "DSLR",
+          "Mirrorless",
+          "Point & Shoot",
+          "Action Cameras",
+          "Security Cameras",
+          "Drones",
+          "Lenses",
+          "Flashes",
+          "Tripods",
+          "Camera Bags",
+        ],
+        "Smart Home": [
+          "Smart Speakers",
+          "Security",
+          "Lighting",
+          "Thermostats",
+          "Doorbells",
+          "Cameras",
+          "Plugs",
+          "Sensors",
+          "Hubs",
+          "Displays",
+        ],
+        "Computer Parts": [
+          "Processors",
+          "Motherboards",
+          "RAM",
+          "Storage",
+          "Graphics Cards",
+          "Power Supply",
+          "Cases",
+          "Cooling",
+          "Peripherals",
+          "Networking",
+        ],
+        Storage: [
+          "SSD",
+          "HDD",
+          "USB Drives",
+          "Memory Cards",
+          "External Drives",
+          "NAS",
+          "Cloud Storage",
+          "Portable SSD",
+          "Backup Solutions",
+          "Enterprise Storage",
+        ],
       },
       "Home & Kitchen": {
-        "Cookware": ["Pots & Pans", "Pressure Cookers", "Utensils", "Bakeware", "Kitchen Tools", "Serving Ware", "Storage Containers", "Lunch Boxes", "Cutlery", "Knife Sets"],
-        "Storage": ["Containers", "Baskets", "Boxes", "Organizers", "Racks", "Shelves", "Wardrobes", "Cabinets", "Drawers", "Hangers"],
-        "Cleaning": ["Mops", "Brooms", "Vacuum Cleaners", "Cleaning Supplies", "Dusters", "Brushes", "Detergents", "Disinfectants", "Gloves", "Trash Bins"],
-        "Furniture": ["Beds", "Sofas", "Tables", "Chairs", "Wardrobes", "Cabinets", "Storage Units", "TV Units", "Dining Sets", "Office Furniture"],
-        "Decor": ["Wall Art", "Clocks", "Mirrors", "Vases", "Candles", "Photo Frames", "Rugs", "Cushions", "Curtains", "Lighting"],
-        "Kitchen Appliances": ["Mixers", "Blenders", "Toasters", "Coffee Makers", "Microwaves", "Refrigerators", "Dishwashers", "Air Fryers", "Food Processors", "Induction Cooktops"],
-        "Dining": ["Dinnerware", "Glassware", "Serveware", "Table Linen", "Cutlery", "Bar Accessories", "Tea Sets", "Coffee Sets", "Dinner Sets", "Storage"],
-        "Bedding": ["Bed Sheets", "Pillows", "Blankets", "Comforters", "Duvets", "Mattress Protectors", "Bed Covers", "Cushions", "Throws", "Kids Bedding"],
-        "Bath": ["Towels", "Bath Mats", "Shower Curtains", "Bathroom Sets", "Storage", "Mirrors", "Hooks", "Soap Dispensers", "Bathroom Accessories", "Bath Robes"],
-        "Garden": ["Plants", "Pots", "Tools", "Seeds", "Fertilizers", "Garden Decor", "Outdoor Furniture", "Watering Equipment", "Plant Care", "Garden Storage"]
+        Cookware: [
+          "Pots & Pans",
+          "Pressure Cookers",
+          "Utensils",
+          "Bakeware",
+          "Kitchen Tools",
+          "Serving Ware",
+          "Storage Containers",
+          "Lunch Boxes",
+          "Cutlery",
+          "Knife Sets",
+        ],
+        Storage: [
+          "Containers",
+          "Baskets",
+          "Boxes",
+          "Organizers",
+          "Racks",
+          "Shelves",
+          "Wardrobes",
+          "Cabinets",
+          "Drawers",
+          "Hangers",
+        ],
+        Cleaning: [
+          "Mops",
+          "Brooms",
+          "Vacuum Cleaners",
+          "Cleaning Supplies",
+          "Dusters",
+          "Brushes",
+          "Detergents",
+          "Disinfectants",
+          "Gloves",
+          "Trash Bins",
+        ],
+        Furniture: [
+          "Beds",
+          "Sofas",
+          "Tables",
+          "Chairs",
+          "Wardrobes",
+          "Cabinets",
+          "Storage Units",
+          "TV Units",
+          "Dining Sets",
+          "Office Furniture",
+        ],
+        Decor: [
+          "Wall Art",
+          "Clocks",
+          "Mirrors",
+          "Vases",
+          "Candles",
+          "Photo Frames",
+          "Rugs",
+          "Cushions",
+          "Curtains",
+          "Lighting",
+        ],
+        "Kitchen Appliances": [
+          "Mixers",
+          "Blenders",
+          "Toasters",
+          "Coffee Makers",
+          "Microwaves",
+          "Refrigerators",
+          "Dishwashers",
+          "Air Fryers",
+          "Food Processors",
+          "Induction Cooktops",
+        ],
+        Dining: [
+          "Dinnerware",
+          "Glassware",
+          "Serveware",
+          "Table Linen",
+          "Cutlery",
+          "Bar Accessories",
+          "Tea Sets",
+          "Coffee Sets",
+          "Dinner Sets",
+          "Storage",
+        ],
+        Bedding: [
+          "Bed Sheets",
+          "Pillows",
+          "Blankets",
+          "Comforters",
+          "Duvets",
+          "Mattress Protectors",
+          "Bed Covers",
+          "Cushions",
+          "Throws",
+          "Kids Bedding",
+        ],
+        Bath: [
+          "Towels",
+          "Bath Mats",
+          "Shower Curtains",
+          "Bathroom Sets",
+          "Storage",
+          "Mirrors",
+          "Hooks",
+          "Soap Dispensers",
+          "Bathroom Accessories",
+          "Bath Robes",
+        ],
+        Garden: [
+          "Plants",
+          "Pots",
+          "Tools",
+          "Seeds",
+          "Fertilizers",
+          "Garden Decor",
+          "Outdoor Furniture",
+          "Watering Equipment",
+          "Plant Care",
+          "Garden Storage",
+        ],
       },
-      "Beauty": {
-        "Skincare": ["Cleansers", "Moisturizers", "Serums", "Masks", "Sunscreen", "Eye Care", "Face Oils", "Toners", "Treatments", "Sets"],
-        "Haircare": ["Shampoo", "Conditioner", "Hair Oil", "Treatments", "Styling", "Color", "Tools", "Extensions", "Accessories", "Sets"],
-        "Makeup": ["Face", "Eyes", "Lips", "Nails", "Brushes", "Palettes", "Sets", "Removers", "Primers", "Tools"],
-        "Fragrances": ["Perfumes", "Deodorants", "Body Sprays", "Gift Sets", "For Him", "For Her", "Unisex", "Natural", "Luxury", "Travel Size"],
-        "Personal Care": ["Oral Care", "Body Care", "Hand Care", "Foot Care", "Eye Care", "Feminine Care", "Men's Care", "Baby Care", "Senior Care", "Travel Kits"],
-        "Bath & Body": ["Soaps", "Body Wash", "Scrubs", "Lotions", "Oils", "Powders", "Deodorants", "Bath Salts", "Gift Sets", "Accessories"],
-        "Tools & Accessories": ["Brushes", "Combs", "Mirrors", "Bags", "Storage", "Applicators", "Electronic Tools", "Hair Tools", "Nail Tools", "Face Tools"],
-        "Men's Grooming": ["Shaving", "Beard Care", "Hair Care", "Skin Care", "Body Care", "Fragrances", "Tools", "Kits", "Gift Sets", "Travel Size"],
-        "Natural & Organic": ["Skincare", "Haircare", "Makeup", "Body Care", "Baby Care", "Essential Oils", "Herbs", "Supplements", "Gift Sets", "Tools"],
-        "Gift Sets": ["Skincare Sets", "Haircare Sets", "Makeup Sets", "Fragrance Sets", "Bath Sets", "Men's Sets", "Travel Sets", "Luxury Sets", "Natural Sets", "Value Sets"]
+      Beauty: {
+        Skincare: [
+          "Cleansers",
+          "Moisturizers",
+          "Serums",
+          "Masks",
+          "Sunscreen",
+          "Eye Care",
+          "Face Oils",
+          "Toners",
+          "Treatments",
+          "Sets",
+        ],
+        Haircare: [
+          "Shampoo",
+          "Conditioner",
+          "Hair Oil",
+          "Treatments",
+          "Styling",
+          "Color",
+          "Tools",
+          "Extensions",
+          "Accessories",
+          "Sets",
+        ],
+        Makeup: [
+          "Face",
+          "Eyes",
+          "Lips",
+          "Nails",
+          "Brushes",
+          "Palettes",
+          "Sets",
+          "Removers",
+          "Primers",
+          "Tools",
+        ],
+        Fragrances: [
+          "Perfumes",
+          "Deodorants",
+          "Body Sprays",
+          "Gift Sets",
+          "For Him",
+          "For Her",
+          "Unisex",
+          "Natural",
+          "Luxury",
+          "Travel Size",
+        ],
+        "Personal Care": [
+          "Oral Care",
+          "Body Care",
+          "Hand Care",
+          "Foot Care",
+          "Eye Care",
+          "Feminine Care",
+          "Men's Care",
+          "Baby Care",
+          "Senior Care",
+          "Travel Kits",
+        ],
+        "Bath & Body": [
+          "Soaps",
+          "Body Wash",
+          "Scrubs",
+          "Lotions",
+          "Oils",
+          "Powders",
+          "Deodorants",
+          "Bath Salts",
+          "Gift Sets",
+          "Accessories",
+        ],
+        "Tools & Accessories": [
+          "Brushes",
+          "Combs",
+          "Mirrors",
+          "Bags",
+          "Storage",
+          "Applicators",
+          "Electronic Tools",
+          "Hair Tools",
+          "Nail Tools",
+          "Face Tools",
+        ],
+        "Men's Grooming": [
+          "Shaving",
+          "Beard Care",
+          "Hair Care",
+          "Skin Care",
+          "Body Care",
+          "Fragrances",
+          "Tools",
+          "Kits",
+          "Gift Sets",
+          "Travel Size",
+        ],
+        "Natural & Organic": [
+          "Skincare",
+          "Haircare",
+          "Makeup",
+          "Body Care",
+          "Baby Care",
+          "Essential Oils",
+          "Herbs",
+          "Supplements",
+          "Gift Sets",
+          "Tools",
+        ],
+        "Gift Sets": [
+          "Skincare Sets",
+          "Haircare Sets",
+          "Makeup Sets",
+          "Fragrance Sets",
+          "Bath Sets",
+          "Men's Sets",
+          "Travel Sets",
+          "Luxury Sets",
+          "Natural Sets",
+          "Value Sets",
+        ],
       },
       "Toys & Games": {
-        "Educational Toys": ["Math", "Science", "Language", "Coding", "Engineering", "Art", "Music", "Geography", "History", "Logic"],
-        "Board Games": ["Strategy", "Family", "Party", "Card Games", "Classic", "Adventure", "Mystery", "Educational", "Cooperative", "Competitive"],
-        "Outdoor Toys": ["Sports", "Playground", "Water Toys", "Flying Toys", "Ride-ons", "Sand Toys", "Bubbles", "Games", "Activity Sets", "Play Tents"],
-        "Action Figures": ["Superheroes", "Movie Characters", "Anime", "Collectibles", "Military", "Fantasy", "Vehicles", "Playsets", "Accessories", "Limited Edition"],
-        "Dolls": ["Fashion Dolls", "Baby Dolls", "Collectible", "Interactive", "Playsets", "Accessories", "Dollhouses", "Miniatures", "Ethnic Dolls", "Character Dolls"],
-        "Building Toys": ["Blocks", "Construction", "Engineering", "Creative", "Educational", "Vehicle Sets", "City Sets", "Space Sets", "Fantasy Sets", "Architecture"],
-        "Arts & Crafts": ["Drawing", "Painting", "Crafting", "Jewelry Making", "Pottery", "Sewing", "Paper Crafts", "Wood Crafts", "Science Crafts", "Creative Sets"],
-        "Remote Control": ["Cars", "Planes", "Drones", "Boats", "Robots", "Animals", "Construction", "Military", "Racing", "Stunt"],
-        "Puzzles": ["Jigsaw", "3D", "Brain Teasers", "Educational", "Wooden", "Floor", "Foam", "Magnetic", "Electronic", "Advanced"],
-        "Baby Toys": ["Rattles", "Teethers", "Musical", "Soft Toys", "Bath Toys", "Activity Gyms", "Push & Pull", "Stacking", "Sorting", "Learning"]
+        "Educational Toys": [
+          "Math",
+          "Science",
+          "Language",
+          "Coding",
+          "Engineering",
+          "Art",
+          "Music",
+          "Geography",
+          "History",
+          "Logic",
+        ],
+        "Board Games": [
+          "Strategy",
+          "Family",
+          "Party",
+          "Card Games",
+          "Classic",
+          "Adventure",
+          "Mystery",
+          "Educational",
+          "Cooperative",
+          "Competitive",
+        ],
+        "Outdoor Toys": [
+          "Sports",
+          "Playground",
+          "Water Toys",
+          "Flying Toys",
+          "Ride-ons",
+          "Sand Toys",
+          "Bubbles",
+          "Games",
+          "Activity Sets",
+          "Play Tents",
+        ],
+        "Action Figures": [
+          "Superheroes",
+          "Movie Characters",
+          "Anime",
+          "Collectibles",
+          "Military",
+          "Fantasy",
+          "Vehicles",
+          "Playsets",
+          "Accessories",
+          "Limited Edition",
+        ],
+        Dolls: [
+          "Fashion Dolls",
+          "Baby Dolls",
+          "Collectible",
+          "Interactive",
+          "Playsets",
+          "Accessories",
+          "Dollhouses",
+          "Miniatures",
+          "Ethnic Dolls",
+          "Character Dolls",
+        ],
+        "Building Toys": [
+          "Blocks",
+          "Construction",
+          "Engineering",
+          "Creative",
+          "Educational",
+          "Vehicle Sets",
+          "City Sets",
+          "Space Sets",
+          "Fantasy Sets",
+          "Architecture",
+        ],
+        "Arts & Crafts": [
+          "Drawing",
+          "Painting",
+          "Crafting",
+          "Jewelry Making",
+          "Pottery",
+          "Sewing",
+          "Paper Crafts",
+          "Wood Crafts",
+          "Science Crafts",
+          "Creative Sets",
+        ],
+        "Remote Control": [
+          "Cars",
+          "Planes",
+          "Drones",
+          "Boats",
+          "Robots",
+          "Animals",
+          "Construction",
+          "Military",
+          "Racing",
+          "Stunt",
+        ],
+        Puzzles: [
+          "Jigsaw",
+          "3D",
+          "Brain Teasers",
+          "Educational",
+          "Wooden",
+          "Floor",
+          "Foam",
+          "Magnetic",
+          "Electronic",
+          "Advanced",
+        ],
+        "Baby Toys": [
+          "Rattles",
+          "Teethers",
+          "Musical",
+          "Soft Toys",
+          "Bath Toys",
+          "Activity Gyms",
+          "Push & Pull",
+          "Stacking",
+          "Sorting",
+          "Learning",
+        ],
       },
-      "Books": {
-        "Fiction": ["Contemporary", "Classic", "Mystery", "Romance", "Science Fiction", "Fantasy", "Horror", "Literary", "Historical", "Young Adult"],
-        "Non-Fiction": ["Biography", "History", "Science", "Self-Help", "Business", "Travel", "Cooking", "Art", "Religion", "Philosophy"],
-        "Academic": ["Engineering", "Medical", "Law", "Science", "Mathematics", "Social Sciences", "Languages", "Economics", "Computer Science", "Architecture"],
-        "Children's Books": ["Picture Books", "Early Readers", "Chapter Books", "Educational", "Activity Books", "Coloring Books", "Board Books", "Story Collections", "Reference", "Non-Fiction"],
-        "Comics": ["Superhero", "Manga", "Graphic Novels", "Comic Strips", "Humor", "Adventure", "Fantasy", "Science Fiction", "Horror", "Independent"],
-        "Self-Help": ["Personal Growth", "Motivation", "Mental Health", "Relationships", "Career", "Finance", "Spirituality", "Health", "Time Management", "Leadership"],
-        "Business": ["Management", "Marketing", "Finance", "Entrepreneurship", "Leadership", "Economics", "Strategy", "HR", "Sales", "Technology"],
-        "Technology": ["Programming", "Web Development", "AI & ML", "Cybersecurity", "Data Science", "Cloud Computing", "Mobile Development", "Hardware", "Software", "Digital Marketing"],
-        "Literature": ["Poetry", "Drama", "Essays", "Short Stories", "Literary Criticism", "World Literature", "Contemporary", "Classic", "Anthologies", "Literary Fiction"],
-        "Biography": ["Historical", "Political", "Entertainment", "Sports", "Business", "Science", "Art", "Literary", "Military", "Religious"]
+      Books: {
+        Fiction: [
+          "Contemporary",
+          "Classic",
+          "Mystery",
+          "Romance",
+          "Science Fiction",
+          "Fantasy",
+          "Horror",
+          "Literary",
+          "Historical",
+          "Young Adult",
+        ],
+        "Non-Fiction": [
+          "Biography",
+          "History",
+          "Science",
+          "Self-Help",
+          "Business",
+          "Travel",
+          "Cooking",
+          "Art",
+          "Religion",
+          "Philosophy",
+        ],
+        Academic: [
+          "Engineering",
+          "Medical",
+          "Law",
+          "Science",
+          "Mathematics",
+          "Social Sciences",
+          "Languages",
+          "Economics",
+          "Computer Science",
+          "Architecture",
+        ],
+        "Children's Books": [
+          "Picture Books",
+          "Early Readers",
+          "Chapter Books",
+          "Educational",
+          "Activity Books",
+          "Coloring Books",
+          "Board Books",
+          "Story Collections",
+          "Reference",
+          "Non-Fiction",
+        ],
+        Comics: [
+          "Superhero",
+          "Manga",
+          "Graphic Novels",
+          "Comic Strips",
+          "Humor",
+          "Adventure",
+          "Fantasy",
+          "Science Fiction",
+          "Horror",
+          "Independent",
+        ],
+        "Self-Help": [
+          "Personal Growth",
+          "Motivation",
+          "Mental Health",
+          "Relationships",
+          "Career",
+          "Finance",
+          "Spirituality",
+          "Health",
+          "Time Management",
+          "Leadership",
+        ],
+        Business: [
+          "Management",
+          "Marketing",
+          "Finance",
+          "Entrepreneurship",
+          "Leadership",
+          "Economics",
+          "Strategy",
+          "HR",
+          "Sales",
+          "Technology",
+        ],
+        Technology: [
+          "Programming",
+          "Web Development",
+          "AI & ML",
+          "Cybersecurity",
+          "Data Science",
+          "Cloud Computing",
+          "Mobile Development",
+          "Hardware",
+          "Software",
+          "Digital Marketing",
+        ],
+        Literature: [
+          "Poetry",
+          "Drama",
+          "Essays",
+          "Short Stories",
+          "Literary Criticism",
+          "World Literature",
+          "Contemporary",
+          "Classic",
+          "Anthologies",
+          "Literary Fiction",
+        ],
+        Biography: [
+          "Historical",
+          "Political",
+          "Entertainment",
+          "Sports",
+          "Business",
+          "Science",
+          "Art",
+          "Literary",
+          "Military",
+          "Religious",
+        ],
       },
-      "Sports": {
-        "Cricket": ["Bats", "Balls", "Protection Gear", "Clothing", "Shoes", "Training Equipment", "Accessories", "Team Wear", "Cricket Sets", "Bags"],
-        "Football": ["Balls", "Boots", "Clothing", "Protection", "Training", "Goals", "Accessories", "Team Wear", "Equipment", "Bags"],
-        "Yoga": ["Mats", "Blocks", "Straps", "Clothing", "Accessories", "Props", "Books", "DVDs", "Equipment Sets", "Bags"],
-        "Fitness Equipment": ["Weights", "Machines", "Cardio Equipment", "Resistance Bands", "Yoga", "Recovery", "Accessories", "Monitoring", "Storage", "Mats"],
-        "Outdoor Sports": ["Camping", "Hiking", "Cycling", "Fishing", "Climbing", "Water Sports", "Winter Sports", "Adventure", "Equipment", "Accessories"],
-        "Indoor Sports": ["Table Tennis", "Badminton", "Chess", "Carrom", "Darts", "Pool", "Boxing", "Gym Equipment", "Yoga", "Exercise"],
-        "Swimming": ["Swimwear", "Goggles", "Caps", "Training Aids", "Accessories", "Pool Equipment", "Safety Gear", "Kids Equipment", "Competition Gear", "Bags"],
-        "Cycling": ["Bikes", "Accessories", "Clothing", "Protection", "Maintenance", "Storage", "Training", "Electronics", "Lighting", "Bags"],
-        "Running": ["Shoes", "Clothing", "Accessories", "Electronics", "Hydration", "Recovery", "Training", "Safety Gear", "Bags", "Monitoring"],
-        "Team Sports": ["Basketball", "Volleyball", "Hockey", "Baseball", "Rugby", "Netball", "Equipment", "Clothing", "Accessories", "Training"]
+      Sports: {
+        Cricket: [
+          "Bats",
+          "Balls",
+          "Protection Gear",
+          "Clothing",
+          "Shoes",
+          "Training Equipment",
+          "Accessories",
+          "Team Wear",
+          "Cricket Sets",
+          "Bags",
+        ],
+        Football: [
+          "Balls",
+          "Boots",
+          "Clothing",
+          "Protection",
+          "Training",
+          "Goals",
+          "Accessories",
+          "Team Wear",
+          "Equipment",
+          "Bags",
+        ],
+        Yoga: [
+          "Mats",
+          "Blocks",
+          "Straps",
+          "Clothing",
+          "Accessories",
+          "Props",
+          "Books",
+          "DVDs",
+          "Equipment Sets",
+          "Bags",
+        ],
+        "Fitness Equipment": [
+          "Weights",
+          "Machines",
+          "Cardio Equipment",
+          "Resistance Bands",
+          "Yoga",
+          "Recovery",
+          "Accessories",
+          "Monitoring",
+          "Storage",
+          "Mats",
+        ],
+        "Outdoor Sports": [
+          "Camping",
+          "Hiking",
+          "Cycling",
+          "Fishing",
+          "Climbing",
+          "Water Sports",
+          "Winter Sports",
+          "Adventure",
+          "Equipment",
+          "Accessories",
+        ],
+        "Indoor Sports": [
+          "Table Tennis",
+          "Badminton",
+          "Chess",
+          "Carrom",
+          "Darts",
+          "Pool",
+          "Boxing",
+          "Gym Equipment",
+          "Yoga",
+          "Exercise",
+        ],
+        Swimming: [
+          "Swimwear",
+          "Goggles",
+          "Caps",
+          "Training Aids",
+          "Accessories",
+          "Pool Equipment",
+          "Safety Gear",
+          "Kids Equipment",
+          "Competition Gear",
+          "Bags",
+        ],
+        Cycling: [
+          "Bikes",
+          "Accessories",
+          "Clothing",
+          "Protection",
+          "Maintenance",
+          "Storage",
+          "Training",
+          "Electronics",
+          "Lighting",
+          "Bags",
+        ],
+        Running: [
+          "Shoes",
+          "Clothing",
+          "Accessories",
+          "Electronics",
+          "Hydration",
+          "Recovery",
+          "Training",
+          "Safety Gear",
+          "Bags",
+          "Monitoring",
+        ],
+        "Team Sports": [
+          "Basketball",
+          "Volleyball",
+          "Hockey",
+          "Baseball",
+          "Rugby",
+          "Netball",
+          "Equipment",
+          "Clothing",
+          "Accessories",
+          "Training",
+        ],
       },
-      "Automotive": {
-        "Car Accessories": ["Interior", "Exterior", "Electronics", "Safety", "Comfort", "Storage", "Cleaning", "Lighting", "Protection", "Decoration"],
-        "Bike Accessories": ["Riding Gear", "Protection", "Storage", "Electronics", "Lighting", "Security", "Maintenance", "Comfort", "Style", "Safety"],
-        "Tools": ["Hand Tools", "Power Tools", "Diagnostic", "Specialty Tools", "Maintenance", "Repair", "Storage", "Safety", "Cleaning", "Measuring"],
-        "Car Care": ["Cleaning", "Polishing", "Protection", "Interior Care", "Exterior Care", "Paint Care", "Glass Care", "Wheel Care", "Engine Care", "Accessories"],
-        "Bike Care": ["Cleaning", "Maintenance", "Protection", "Engine Care", "Chain Care", "Polish", "Lubricants", "Tools", "Storage", "Accessories"],
-        "Safety": ["Helmets", "Locks", "Alarms", "Cameras", "First Aid", "Emergency Kits", "Reflectors", "Lighting", "Child Safety", "Security Systems"],
-        "Electronics": ["Audio", "Navigation", "Security", "Lighting", "Charging", "Monitoring", "Entertainment", "Communication", "Performance", "Accessories"],
-        "Spare Parts": ["Engine", "Transmission", "Suspension", "Brakes", "Electrical", "Body Parts", "Interior", "Filters", "Lighting", "Wheels"],
-        "Riding Gear": ["Helmets", "Jackets", "Pants", "Gloves", "Boots", "Protection", "Rain Gear", "Summer Gear", "Winter Gear", "Accessories"],
-        "Maintenance": ["Oils", "Filters", "Fluids", "Tools", "Cleaning", "Storage", "Testing", "Repair", "Parts", "Accessories"]
+      Automotive: {
+        "Car Accessories": [
+          "Interior",
+          "Exterior",
+          "Electronics",
+          "Safety",
+          "Comfort",
+          "Storage",
+          "Cleaning",
+          "Lighting",
+          "Protection",
+          "Decoration",
+        ],
+        "Bike Accessories": [
+          "Riding Gear",
+          "Protection",
+          "Storage",
+          "Electronics",
+          "Lighting",
+          "Security",
+          "Maintenance",
+          "Comfort",
+          "Style",
+          "Safety",
+        ],
+        Tools: [
+          "Hand Tools",
+          "Power Tools",
+          "Diagnostic",
+          "Specialty Tools",
+          "Maintenance",
+          "Repair",
+          "Storage",
+          "Safety",
+          "Cleaning",
+          "Measuring",
+        ],
+        "Car Care": [
+          "Cleaning",
+          "Polishing",
+          "Protection",
+          "Interior Care",
+          "Exterior Care",
+          "Paint Care",
+          "Glass Care",
+          "Wheel Care",
+          "Engine Care",
+          "Accessories",
+        ],
+        "Bike Care": [
+          "Cleaning",
+          "Maintenance",
+          "Protection",
+          "Engine Care",
+          "Chain Care",
+          "Polish",
+          "Lubricants",
+          "Tools",
+          "Storage",
+          "Accessories",
+        ],
+        Safety: [
+          "Helmets",
+          "Locks",
+          "Alarms",
+          "Cameras",
+          "First Aid",
+          "Emergency Kits",
+          "Reflectors",
+          "Lighting",
+          "Child Safety",
+          "Security Systems",
+        ],
+        Electronics: [
+          "Audio",
+          "Navigation",
+          "Security",
+          "Lighting",
+          "Charging",
+          "Monitoring",
+          "Entertainment",
+          "Communication",
+          "Performance",
+          "Accessories",
+        ],
+        "Spare Parts": [
+          "Engine",
+          "Transmission",
+          "Suspension",
+          "Brakes",
+          "Electrical",
+          "Body Parts",
+          "Interior",
+          "Filters",
+          "Lighting",
+          "Wheels",
+        ],
+        "Riding Gear": [
+          "Helmets",
+          "Jackets",
+          "Pants",
+          "Gloves",
+          "Boots",
+          "Protection",
+          "Rain Gear",
+          "Summer Gear",
+          "Winter Gear",
+          "Accessories",
+        ],
+        Maintenance: [
+          "Oils",
+          "Filters",
+          "Fluids",
+          "Tools",
+          "Cleaning",
+          "Storage",
+          "Testing",
+          "Repair",
+          "Parts",
+          "Accessories",
+        ],
       },
-      "Home": {
-        "Furniture": ["Beds", "Sofas", "Tables", "Chairs", "Wardrobes", "Cabinets", "TV Units", "Dining Sets", "Office Furniture", "Outdoor Furniture"],
-        "Decor": ["Wall Art", "Clocks", "Mirrors", "Vases", "Candles", "Photo Frames", "Rugs", "Cushions", "Curtains", "Lighting"],
-        "Lighting": ["Ceiling Lights", "Table Lamps", "Wall Lights", "Floor Lamps", "Outdoor Lighting", "LED", "Chandeliers", "Smart Lighting", "Night Lamps", "Decorative"],
-        "Storage": ["Containers", "Baskets", "Boxes", "Organizers", "Racks", "Shelves", "Wardrobes", "Cabinets", "Drawers", "Hangers"],
-        "Cleaning": ["Mops", "Brooms", "Vacuum Cleaners", "Cleaning Supplies", "Dusters", "Brushes", "Detergents", "Disinfectants", "Gloves", "Trash Bins"],
-        "Bedding": ["Bed Sheets", "Pillows", "Blankets", "Comforters", "Duvets", "Mattress Protectors", "Bed Covers", "Cushions", "Throws", "Kids Bedding"],
-        "Bath": ["Towels", "Bath Mats", "Shower Curtains", "Bathroom Sets", "Storage", "Mirrors", "Hooks", "Soap Dispensers", "Bathroom Accessories", "Bath Robes"],
-        "Kitchenware": ["Cookware", "Utensils", "Bakeware", "Storage", "Cutlery", "Kitchen Tools", "Serving Ware", "Lunch Boxes", "Knife Sets", "Containers"],
-        "Garden": ["Plants", "Pots", "Tools", "Seeds", "Fertilizers", "Garden Decor", "Outdoor Furniture", "Watering Equipment", "Plant Care", "Garden Storage"],
-        "Safety": ["Locks", "Alarms", "Cameras", "Fire Extinguishers", "First Aid", "Sensors", "Child Safety", "Door Security", "Window Security", "Safes"]
+      Home: {
+        Furniture: [
+          "Beds",
+          "Sofas",
+          "Tables",
+          "Chairs",
+          "Wardrobes",
+          "Cabinets",
+          "TV Units",
+          "Dining Sets",
+          "Office Furniture",
+          "Outdoor Furniture",
+        ],
+        Decor: [
+          "Wall Art",
+          "Clocks",
+          "Mirrors",
+          "Vases",
+          "Candles",
+          "Photo Frames",
+          "Rugs",
+          "Cushions",
+          "Curtains",
+          "Lighting",
+        ],
+        Lighting: [
+          "Ceiling Lights",
+          "Table Lamps",
+          "Wall Lights",
+          "Floor Lamps",
+          "Outdoor Lighting",
+          "LED",
+          "Chandeliers",
+          "Smart Lighting",
+          "Night Lamps",
+          "Decorative",
+        ],
+        Storage: [
+          "Containers",
+          "Baskets",
+          "Boxes",
+          "Organizers",
+          "Racks",
+          "Shelves",
+          "Wardrobes",
+          "Cabinets",
+          "Drawers",
+          "Hangers",
+        ],
+        Cleaning: [
+          "Mops",
+          "Brooms",
+          "Vacuum Cleaners",
+          "Cleaning Supplies",
+          "Dusters",
+          "Brushes",
+          "Detergents",
+          "Disinfectants",
+          "Gloves",
+          "Trash Bins",
+        ],
+        Bedding: [
+          "Bed Sheets",
+          "Pillows",
+          "Blankets",
+          "Comforters",
+          "Duvets",
+          "Mattress Protectors",
+          "Bed Covers",
+          "Cushions",
+          "Throws",
+          "Kids Bedding",
+        ],
+        Bath: [
+          "Towels",
+          "Bath Mats",
+          "Shower Curtains",
+          "Bathroom Sets",
+          "Storage",
+          "Mirrors",
+          "Hooks",
+          "Soap Dispensers",
+          "Bathroom Accessories",
+          "Bath Robes",
+        ],
+        Kitchenware: [
+          "Cookware",
+          "Utensils",
+          "Bakeware",
+          "Storage",
+          "Cutlery",
+          "Kitchen Tools",
+          "Serving Ware",
+          "Lunch Boxes",
+          "Knife Sets",
+          "Containers",
+        ],
+        Garden: [
+          "Plants",
+          "Pots",
+          "Tools",
+          "Seeds",
+          "Fertilizers",
+          "Garden Decor",
+          "Outdoor Furniture",
+          "Watering Equipment",
+          "Plant Care",
+          "Garden Storage",
+        ],
+        Safety: [
+          "Locks",
+          "Alarms",
+          "Cameras",
+          "Fire Extinguishers",
+          "First Aid",
+          "Sensors",
+          "Child Safety",
+          "Door Security",
+          "Window Security",
+          "Safes",
+        ],
       },
-      "Appliances": {
-        "Kitchen Appliances": ["Mixers", "Blenders", "Toasters", "Coffee Makers", "Microwaves", "Refrigerators", "Dishwashers", "Air Fryers", "Food Processors", "Induction Cooktops"],
-        "Home Appliances": ["Washing Machines", "Refrigerators", "Air Conditioners", "Heaters", "Fans", "Water Purifiers", "Vacuum Cleaners", "Geysers", "Air Purifiers", "Sewing Machines"],
-        "Personal Care Appliances": ["Hair Dryers", "Trimmers", "Shavers", "Epilators", "Massagers", "Electric Toothbrushes", "Facial Steamers", "Hair Straighteners", "Curlers", "Grooming Kits"],
-        "Large Appliances": ["Refrigerators", "Washing Machines", "Air Conditioners", "Dishwashers", "Geysers", "Microwaves", "Ovens", "Freezers", "Water Heaters", "Chimneys"],
-        "Small Appliances": ["Irons", "Toasters", "Kettles", "Coffee Makers", "Juicers", "Mixers", "Blenders", "Sandwich Makers", "Rice Cookers", "Hand Blenders", "Choppers"],
-        "Heating & Cooling": ["Heaters", "Fans", "Air Conditioners", "Coolers", "Blowers", "Dehumidifiers", "Humidifiers", "Room Heaters", "Oil Heaters", "Table Fans", "Exhaust Fans"],
-        "Laundry Appliances": ["Washing Machines", "Dryers", "Irons", "Steamers", "Laundry Baskets", "Detergents", "Stain Removers", "Fabric Softeners", "Laundry Bags", "Clotheslines"],
-        "Water Purifiers": ["RO", "UV", "UF", "Gravity", "Water Filters", "Cartridges", "Accessories", "Alkaline", "Portable", "Storage Water Purifiers", "Inline Filters"],
-        "Vacuum Cleaners": ["Handheld", "Stick", "Robotic", "Wet & Dry", "Canister", "Upright", "Car Vacuum", "Steam Cleaners", "Accessories", "Filters", "Bags"],
-        "Accessories": ["Covers", "Stands", "Filters", "Hoses", "Cables", "Remote Controls", "Replacement Parts", "Cleaning Kits", "Mounts", "Adapters"]
+      Appliances: {
+        "Kitchen Appliances": [
+          "Mixers",
+          "Blenders",
+          "Toasters",
+          "Coffee Makers",
+          "Microwaves",
+          "Refrigerators",
+          "Dishwashers",
+          "Air Fryers",
+          "Food Processors",
+          "Induction Cooktops",
+        ],
+        "Home Appliances": [
+          "Washing Machines",
+          "Refrigerators",
+          "Air Conditioners",
+          "Heaters",
+          "Fans",
+          "Water Purifiers",
+          "Vacuum Cleaners",
+          "Geysers",
+          "Air Purifiers",
+          "Sewing Machines",
+        ],
+        "Personal Care Appliances": [
+          "Hair Dryers",
+          "Trimmers",
+          "Shavers",
+          "Epilators",
+          "Massagers",
+          "Electric Toothbrushes",
+          "Facial Steamers",
+          "Hair Straighteners",
+          "Curlers",
+          "Grooming Kits",
+        ],
+        "Large Appliances": [
+          "Refrigerators",
+          "Washing Machines",
+          "Air Conditioners",
+          "Dishwashers",
+          "Geysers",
+          "Microwaves",
+          "Ovens",
+          "Freezers",
+          "Water Heaters",
+          "Chimneys",
+        ],
+        "Small Appliances": [
+          "Irons",
+          "Toasters",
+          "Kettles",
+          "Coffee Makers",
+          "Juicers",
+          "Mixers",
+          "Blenders",
+          "Sandwich Makers",
+          "Rice Cookers",
+          "Hand Blenders",
+          "Choppers",
+        ],
+        "Heating & Cooling": [
+          "Heaters",
+          "Fans",
+          "Air Conditioners",
+          "Coolers",
+          "Blowers",
+          "Dehumidifiers",
+          "Humidifiers",
+          "Room Heaters",
+          "Oil Heaters",
+          "Table Fans",
+          "Exhaust Fans",
+        ],
+        "Laundry Appliances": [
+          "Washing Machines",
+          "Dryers",
+          "Irons",
+          "Steamers",
+          "Laundry Baskets",
+          "Detergents",
+          "Stain Removers",
+          "Fabric Softeners",
+          "Laundry Bags",
+          "Clotheslines",
+        ],
+        "Water Purifiers": [
+          "RO",
+          "UV",
+          "UF",
+          "Gravity",
+          "Water Filters",
+          "Cartridges",
+          "Accessories",
+          "Alkaline",
+          "Portable",
+          "Storage Water Purifiers",
+          "Inline Filters",
+        ],
+        "Vacuum Cleaners": [
+          "Handheld",
+          "Stick",
+          "Robotic",
+          "Wet & Dry",
+          "Canister",
+          "Upright",
+          "Car Vacuum",
+          "Steam Cleaners",
+          "Accessories",
+          "Filters",
+          "Bags",
+        ],
+        Accessories: [
+          "Covers",
+          "Stands",
+          "Filters",
+          "Hoses",
+          "Cables",
+          "Remote Controls",
+          "Replacement Parts",
+          "Cleaning Kits",
+          "Mounts",
+          "Adapters",
+        ],
       },
-      "Mobiles": {
-        "Smartphones": ["Android", "iOS", "5G Phones", "Gaming Phones", "Camera Phones", "Budget Phones", "Flagship Phones", "Business Phones", "Dual SIM", "Foldable Phones"],
-        "Feature Phones": ["Basic", "Multimedia", "Long Battery", "Dual SIM", "Senior Citizen", "Rugged", "Flip Phones", "Slider Phones", "Touch & Type", "Mini Phones"],
-        "Mobile Accessories": ["Cases & Covers", "Screen Protectors", "Chargers", "Cables", "Power Banks", "Headphones", "Bluetooth Devices", "Memory Cards", "Stands", "Car Accessories"],
-        "Tablets": ["Android", "iOS", "Windows", "Kids Tablets", "Drawing Tablets", "Business Tablets", "Budget Tablets", "Premium Tablets", "Convertible Tablets", "Educational Tablets"],
-        "Wearables": ["Smartwatches", "Fitness Bands", "VR Headsets", "Smart Glasses", "Smart Rings", "Kids Wearables", "Health Monitors", "GPS Trackers", "Accessories", "Replacement Bands"],
-        "Power Banks": ["10000mAh", "20000mAh", "Fast Charging", "Solar", "Wireless", "Mini", "High Capacity", "Slim", "Multi-Port", "With Cables"],
-        "Cases & Covers": ["Back Covers", "Flip Covers", "Wallet Cases", "Bumper Cases", "Designer Cases", "Transparent Cases", "Rugged Cases", "Silicone Cases", "Leather Cases", "Printed Cases"],
-        "Screen Protectors": ["Tempered Glass", "Matte", "Privacy", "Edge to Edge", "Anti-Glare", "Full Coverage", "Flexible", "Nano Liquid", "Camera Lens", "Film"],
-        "Chargers": ["Wall Chargers", "Car Chargers", "Wireless Chargers", "Fast Chargers", "Multi-Port Chargers", "Power Adapters", "Travel Chargers", "Docking Stations", "USB Chargers", "Type-C Chargers"],
-        "Memory Cards": ["MicroSD", "SD", "CF", "High Speed", "UHS-I", "UHS-II", "WiFi Enabled", "Adapter Included", "128GB+", "256GB+"]
+      Mobiles: {
+        Smartphones: [
+          "Android",
+          "iOS",
+          "5G Phones",
+          "Gaming Phones",
+          "Camera Phones",
+          "Budget Phones",
+          "Flagship Phones",
+          "Business Phones",
+          "Dual SIM",
+          "Foldable Phones",
+        ],
+        "Feature Phones": [
+          "Basic",
+          "Multimedia",
+          "Long Battery",
+          "Dual SIM",
+          "Senior Citizen",
+          "Rugged",
+          "Flip Phones",
+          "Slider Phones",
+          "Touch & Type",
+          "Mini Phones",
+        ],
+        "Mobile Accessories": [
+          "Cases & Covers",
+          "Screen Protectors",
+          "Chargers",
+          "Cables",
+          "Power Banks",
+          "Headphones",
+          "Bluetooth Devices",
+          "Memory Cards",
+          "Stands",
+          "Car Accessories",
+        ],
+        Tablets: [
+          "Android",
+          "iOS",
+          "Windows",
+          "Kids Tablets",
+          "Drawing Tablets",
+          "Business Tablets",
+          "Budget Tablets",
+          "Premium Tablets",
+          "Convertible Tablets",
+          "Educational Tablets",
+        ],
+        Wearables: [
+          "Smartwatches",
+          "Fitness Bands",
+          "VR Headsets",
+          "Smart Glasses",
+          "Smart Rings",
+          "Kids Wearables",
+          "Health Monitors",
+          "GPS Trackers",
+          "Accessories",
+          "Replacement Bands",
+        ],
+        "Power Banks": [
+          "10000mAh",
+          "20000mAh",
+          "Fast Charging",
+          "Solar",
+          "Wireless",
+          "Mini",
+          "High Capacity",
+          "Slim",
+          "Multi-Port",
+          "With Cables",
+        ],
+        "Cases & Covers": [
+          "Back Covers",
+          "Flip Covers",
+          "Wallet Cases",
+          "Bumper Cases",
+          "Designer Cases",
+          "Transparent Cases",
+          "Rugged Cases",
+          "Silicone Cases",
+          "Leather Cases",
+          "Printed Cases",
+        ],
+        "Screen Protectors": [
+          "Tempered Glass",
+          "Matte",
+          "Privacy",
+          "Edge to Edge",
+          "Anti-Glare",
+          "Full Coverage",
+          "Flexible",
+          "Nano Liquid",
+          "Camera Lens",
+          "Film",
+        ],
+        Chargers: [
+          "Wall Chargers",
+          "Car Chargers",
+          "Wireless Chargers",
+          "Fast Chargers",
+          "Multi-Port Chargers",
+          "Power Adapters",
+          "Travel Chargers",
+          "Docking Stations",
+          "USB Chargers",
+          "Type-C Chargers",
+        ],
+        "Memory Cards": [
+          "MicroSD",
+          "SD",
+          "CF",
+          "High Speed",
+          "UHS-I",
+          "UHS-II",
+          "WiFi Enabled",
+          "Adapter Included",
+          "128GB+",
+          "256GB+",
+        ],
       },
-      "Toys": {
-        "Action Figures": ["Superheroes", "Movie Characters", "Anime", "Collectibles", "Military", "Fantasy", "Vehicles", "Playsets", "Accessories", "Limited Edition"],
-        "Educational Toys": ["Math", "Science", "Language", "Coding", "Engineering", "Art", "Music", "Geography", "History", "Logic"],
-        "Board Games": ["Strategy", "Family", "Party", "Card Games", "Classic", "Adventure", "Mystery", "Educational", "Cooperative", "Competitive"],
-        "Dolls": ["Fashion Dolls", "Baby Dolls", "Collectible", "Interactive", "Playsets", "Accessories", "Dollhouses", "Miniatures", "Ethnic Dolls", "Character Dolls"],
-        "Remote Control": ["Cars", "Planes", "Drones", "Boats", "Robots", "Animals", "Construction", "Military", "Racing", "Stunt"],
-        "Building Blocks": ["Plastic", "Wooden", "Magnetic", "Foam", "Giant", "Mini", "Educational", "Creative", "Theme Sets", "Construction Sets"],
-        "Puzzles": ["Jigsaw", "3D", "Brain Teasers", "Educational", "Wooden", "Floor", "Foam", "Magnetic", "Electronic", "Advanced"],
-        "Outdoor Toys": ["Sports", "Playground", "Water Toys", "Flying Toys", "Ride-ons", "Sand Toys", "Bubbles", "Games", "Activity Sets", "Play Tents"],
-        "Baby Toys": ["Rattles", "Teethers", "Musical", "Soft Toys", "Bath Toys", "Activity Gyms", "Push & Pull", "Stacking", "Sorting", "Learning"],
-        "Arts & Crafts": ["Drawing", "Painting", "Crafting", "Jewelry Making", "Pottery", "Sewing", "Paper Crafts", "Wood Crafts", "Science Crafts", "Creative Sets"]
+      Toys: {
+        "Action Figures": [
+          "Superheroes",
+          "Movie Characters",
+          "Anime",
+          "Collectibles",
+          "Military",
+          "Fantasy",
+          "Vehicles",
+          "Playsets",
+          "Accessories",
+          "Limited Edition",
+        ],
+        "Educational Toys": [
+          "Math",
+          "Science",
+          "Language",
+          "Coding",
+          "Engineering",
+          "Art",
+          "Music",
+          "Geography",
+          "History",
+          "Logic",
+        ],
+        "Board Games": [
+          "Strategy",
+          "Family",
+          "Party",
+          "Card Games",
+          "Classic",
+          "Adventure",
+          "Mystery",
+          "Educational",
+          "Cooperative",
+          "Competitive",
+        ],
+        Dolls: [
+          "Fashion Dolls",
+          "Baby Dolls",
+          "Collectible",
+          "Interactive",
+          "Playsets",
+          "Accessories",
+          "Dollhouses",
+          "Miniatures",
+          "Ethnic Dolls",
+          "Character Dolls",
+        ],
+        "Remote Control": [
+          "Cars",
+          "Planes",
+          "Drones",
+          "Boats",
+          "Robots",
+          "Animals",
+          "Construction",
+          "Military",
+          "Racing",
+          "Stunt",
+        ],
+        "Building Blocks": [
+          "Plastic",
+          "Wooden",
+          "Magnetic",
+          "Foam",
+          "Giant",
+          "Mini",
+          "Educational",
+          "Creative",
+          "Theme Sets",
+          "Construction Sets",
+        ],
+        Puzzles: [
+          "Jigsaw",
+          "3D",
+          "Brain Teasers",
+          "Educational",
+          "Wooden",
+          "Floor",
+          "Foam",
+          "Magnetic",
+          "Electronic",
+          "Advanced",
+        ],
+        "Outdoor Toys": [
+          "Sports",
+          "Playground",
+          "Water Toys",
+          "Flying Toys",
+          "Ride-ons",
+          "Sand Toys",
+          "Bubbles",
+          "Games",
+          "Activity Sets",
+          "Play Tents",
+        ],
+        "Baby Toys": [
+          "Rattles",
+          "Teethers",
+          "Musical",
+          "Soft Toys",
+          "Bath Toys",
+          "Activity Gyms",
+          "Push & Pull",
+          "Stacking",
+          "Sorting",
+          "Learning",
+        ],
+        "Arts & Crafts": [
+          "Drawing",
+          "Painting",
+          "Crafting",
+          "Jewelry Making",
+          "Pottery",
+          "Sewing",
+          "Paper Crafts",
+          "Wood Crafts",
+          "Science Crafts",
+          "Creative Sets",
+        ],
       },
-      "Grocery": {
-        "Fruits & Vegetables": ["Fresh Fruits", "Fresh Vegetables", "Organic", "Exotic", "Cut & Peeled", "Herbs", "Salads", "Sprouts", "Seasonal", "Combo Packs"],
-        "Dairy & Bakery": ["Milk", "Curd", "Butter", "Cheese", "Paneer", "Bread", "Buns", "Cakes", "Pastries", "Cookies"],
-        "Staples": ["Rice", "Wheat", "Pulses", "Flours", "Oils", "Spices", "Sugar", "Salt", "Dry Fruits", "Grains"],
-        "Snacks & Beverages": ["Chips", "Namkeen", "Biscuits", "Juices", "Soft Drinks", "Energy Drinks", "Tea", "Coffee", "Chocolates", "Sweets"],
-        "Personal Care": ["Soap", "Shampoo", "Toothpaste", "Deodorant", "Sanitary", "Face Wash", "Hand Wash", "Hair Oil", "Body Lotion", "Shaving"],
-        "Household Supplies": ["Detergents", "Cleaners", "Disinfectants", "Tissues", "Mops", "Brooms", "Garbage Bags", "Air Fresheners", "Pest Control", "Utensil Cleaners"],
-        "Packaged Food": ["Ready to Eat", "Instant Food", "Noodles", "Snacks", "Canned Food", "Frozen Food", "Pickles", "Sauces", "Jams", "Breakfast"],
-        "Beverages": ["Juices", "Soft Drinks", "Energy Drinks", "Tea", "Coffee", "Health Drinks", "Milk Drinks", "Flavored Water", "Syrups", "Squash"],
-        "Baby Care": ["Diapers", "Wipes", "Baby Food", "Baby Lotion", "Baby Shampoo", "Baby Powder", "Baby Oil", "Baby Soap", "Feeding Bottles", "Pacifiers"],
-        "Pet Supplies": ["Dog Food", "Cat Food", "Bird Food", "Pet Accessories", "Pet Grooming", "Pet Toys", "Pet Health", "Pet Treats", "Pet Beds", "Pet Bowls"]
+      Grocery: {
+        "Fruits & Vegetables": [
+          "Fresh Fruits",
+          "Fresh Vegetables",
+          "Organic",
+          "Exotic",
+          "Cut & Peeled",
+          "Herbs",
+          "Salads",
+          "Sprouts",
+          "Seasonal",
+          "Combo Packs",
+        ],
+        "Dairy & Bakery": [
+          "Milk",
+          "Curd",
+          "Butter",
+          "Cheese",
+          "Paneer",
+          "Bread",
+          "Buns",
+          "Cakes",
+          "Pastries",
+          "Cookies",
+        ],
+        Staples: [
+          "Rice",
+          "Wheat",
+          "Pulses",
+          "Flours",
+          "Oils",
+          "Spices",
+          "Sugar",
+          "Salt",
+          "Dry Fruits",
+          "Grains",
+        ],
+        "Snacks & Beverages": [
+          "Chips",
+          "Namkeen",
+          "Biscuits",
+          "Juices",
+          "Soft Drinks",
+          "Energy Drinks",
+          "Tea",
+          "Coffee",
+          "Chocolates",
+          "Sweets",
+        ],
+        "Personal Care": [
+          "Soap",
+          "Shampoo",
+          "Toothpaste",
+          "Deodorant",
+          "Sanitary",
+          "Face Wash",
+          "Hand Wash",
+          "Hair Oil",
+          "Body Lotion",
+          "Shaving",
+        ],
+        "Household Supplies": [
+          "Detergents",
+          "Cleaners",
+          "Disinfectants",
+          "Tissues",
+          "Mops",
+          "Brooms",
+          "Garbage Bags",
+          "Air Fresheners",
+          "Pest Control",
+          "Utensil Cleaners",
+        ],
+        "Packaged Food": [
+          "Ready to Eat",
+          "Instant Food",
+          "Noodles",
+          "Snacks",
+          "Canned Food",
+          "Frozen Food",
+          "Pickles",
+          "Sauces",
+          "Jams",
+          "Breakfast",
+        ],
+        Beverages: [
+          "Juices",
+          "Soft Drinks",
+          "Energy Drinks",
+          "Tea",
+          "Coffee",
+          "Health Drinks",
+          "Milk Drinks",
+          "Flavored Water",
+          "Syrups",
+          "Squash",
+        ],
+        "Baby Care": [
+          "Diapers",
+          "Wipes",
+          "Baby Food",
+          "Baby Lotion",
+          "Baby Shampoo",
+          "Baby Powder",
+          "Baby Oil",
+          "Baby Soap",
+          "Feeding Bottles",
+          "Pacifiers",
+        ],
+        "Pet Supplies": [
+          "Dog Food",
+          "Cat Food",
+          "Bird Food",
+          "Pet Accessories",
+          "Pet Grooming",
+          "Pet Toys",
+          "Pet Health",
+          "Pet Treats",
+          "Pet Beds",
+          "Pet Bowls",
+        ],
       },
-      "Industrial": {
-        "Lab Supplies": ["Glassware", "Plasticware", "Consumables", "Filtration", "Pipettes", "Tubes", "Bottles", "Racks", "Brushes", "Accessories"],
-        "Industrial Tools": ["Hand Tools", "Power Tools", "Measuring Tools", "Cutting Tools", "Welding Tools", "Fasteners", "Tool Kits", "Storage", "Safety Tools", "Accessories"],
-        "Safety Equipment": ["Gloves", "Helmets", "Goggles", "Masks", "Ear Protection", "Safety Shoes", "Vests", "Harnesses", "Fire Safety", "First Aid"],
-        "Electrical": ["Wires", "Cables", "Switches", "Sockets", "Circuit Breakers", "Relays", "Connectors", "Panels", "Lighting", "Accessories"],
-        "Plumbing": ["Pipes", "Fittings", "Valves", "Taps", "Showers", "Hoses", "Clamps", "Seals", "Tools", "Accessories"],
-        "Adhesives": ["Glues", "Tapes", "Sealants", "Epoxy", "Resins", "Hot Melt", "Sprays", "Putty", "Cements", "Accessories"],
-        "Paints & Coatings": ["Wall Paints", "Spray Paints", "Primers", "Varnishes", "Enamels", "Thinners", "Brushes", "Rollers", "Accessories", "Protective Coatings"],
-        "Fasteners": ["Nuts", "Bolts", "Screws", "Washers", "Anchors", "Clips", "Pins", "Rivets", "Studs", "Accessories"],
-        "Pumps": ["Water Pumps", "Submersible Pumps", "Air Pumps", "Vacuum Pumps", "Chemical Pumps", "Accessories", "Motors", "Spare Parts", "Pressure Pumps", "Hand Pumps"],
-        "Automation": ["Sensors", "Controllers", "PLCs", "Relays", "Switches", "Drives", "Motors", "Cables", "Accessories", "Software"]
+      Industrial: {
+        "Lab Supplies": [
+          "Glassware",
+          "Plasticware",
+          "Consumables",
+          "Filtration",
+          "Pipettes",
+          "Tubes",
+          "Bottles",
+          "Racks",
+          "Brushes",
+          "Accessories",
+        ],
+        "Industrial Tools": [
+          "Hand Tools",
+          "Power Tools",
+          "Measuring Tools",
+          "Cutting Tools",
+          "Welding Tools",
+          "Fasteners",
+          "Tool Kits",
+          "Storage",
+          "Safety Tools",
+          "Accessories",
+        ],
+        "Safety Equipment": [
+          "Gloves",
+          "Helmets",
+          "Goggles",
+          "Masks",
+          "Ear Protection",
+          "Safety Shoes",
+          "Vests",
+          "Harnesses",
+          "Fire Safety",
+          "First Aid",
+        ],
+        Electrical: [
+          "Wires",
+          "Cables",
+          "Switches",
+          "Sockets",
+          "Circuit Breakers",
+          "Relays",
+          "Connectors",
+          "Panels",
+          "Lighting",
+          "Accessories",
+        ],
+        Plumbing: [
+          "Pipes",
+          "Fittings",
+          "Valves",
+          "Taps",
+          "Showers",
+          "Hoses",
+          "Clamps",
+          "Seals",
+          "Tools",
+          "Accessories",
+        ],
+        Adhesives: [
+          "Glues",
+          "Tapes",
+          "Sealants",
+          "Epoxy",
+          "Resins",
+          "Hot Melt",
+          "Sprays",
+          "Putty",
+          "Cements",
+          "Accessories",
+        ],
+        "Paints & Coatings": [
+          "Wall Paints",
+          "Spray Paints",
+          "Primers",
+          "Varnishes",
+          "Enamels",
+          "Thinners",
+          "Brushes",
+          "Rollers",
+          "Accessories",
+          "Protective Coatings",
+        ],
+        Fasteners: [
+          "Nuts",
+          "Bolts",
+          "Screws",
+          "Washers",
+          "Anchors",
+          "Clips",
+          "Pins",
+          "Rivets",
+          "Studs",
+          "Accessories",
+        ],
+        Pumps: [
+          "Water Pumps",
+          "Submersible Pumps",
+          "Air Pumps",
+          "Vacuum Pumps",
+          "Chemical Pumps",
+          "Accessories",
+          "Motors",
+          "Spare Parts",
+          "Pressure Pumps",
+          "Hand Pumps",
+        ],
+        Automation: [
+          "Sensors",
+          "Controllers",
+          "PLCs",
+          "Relays",
+          "Switches",
+          "Drives",
+          "Motors",
+          "Cables",
+          "Accessories",
+          "Software",
+        ],
       },
-      "Scientific": {
-        "Lab Instruments": ["Microscopes", "Spectrophotometers", "Centrifuges", "Balances", "pH Meters", "Incubators", "Ovens", "Shakers", "Water Baths", "Accessories"],
-        "Testing Equipment": ["Multimeters", "Oscilloscopes", "Analyzers", "Test Leads", "Probes", "Calibrators", "Test Kits", "Accessories", "Meters", "Sensors"],
-        "Microscopes": ["Compound", "Stereo", "Digital", "Fluorescence", "Inverted", "Polarizing", "Accessories", "Slides", "Coverslips", "Objectives"],
-        "Glassware": ["Beakers", "Flasks", "Pipettes", "Burettes", "Cylinders", "Bottles", "Tubes", "Funnels", "Accessories", "Brushes"],
-        "Chemicals": ["Acids", "Bases", "Salts", "Solvents", "Indicators", "Reagents", "Stains", "Buffers", "Standards", "Kits"],
-        "Balances": ["Analytical", "Precision", "Top Loading", "Moisture", "Micro", "Portable", "Accessories", "Weights", "Calibration Kits", "Anti-Vibration Tables"],
-        "Centrifuges": ["Mini", "Refrigerated", "High Speed", "Low Speed", "Accessories", "Rotors", "Tubes", "Adapters", "Buckets", "Seals"],
-        "Spectroscopy": ["UV-Vis", "IR", "NMR", "Mass", "Fluorescence", "Raman", "Accessories", "Cuvettes", "Lamps", "Software"],
-        "Consumables": ["Filters", "Pipette Tips", "Tubes", "Plates", "Dishes", "Slides", "Coverslips", "Vials", "Caps", "Seals"],
-        "Safety Equipment": ["Gloves", "Goggles", "Lab Coats", "Face Shields", "Masks", "Fire Extinguishers", "First Aid", "Spill Kits", "Safety Showers", "Eyewash Stations"]
-      }
+      Scientific: {
+        "Lab Instruments": [
+          "Microscopes",
+          "Spectrophotometers",
+          "Centrifuges",
+          "Balances",
+          "pH Meters",
+          "Incubators",
+          "Ovens",
+          "Shakers",
+          "Water Baths",
+          "Accessories",
+        ],
+        "Testing Equipment": [
+          "Multimeters",
+          "Oscilloscopes",
+          "Analyzers",
+          "Test Leads",
+          "Probes",
+          "Calibrators",
+          "Test Kits",
+          "Accessories",
+          "Meters",
+          "Sensors",
+        ],
+        Microscopes: [
+          "Compound",
+          "Stereo",
+          "Digital",
+          "Fluorescence",
+          "Inverted",
+          "Polarizing",
+          "Accessories",
+          "Slides",
+          "Coverslips",
+          "Objectives",
+        ],
+        Glassware: [
+          "Beakers",
+          "Flasks",
+          "Pipettes",
+          "Burettes",
+          "Cylinders",
+          "Bottles",
+          "Tubes",
+          "Funnels",
+          "Accessories",
+          "Brushes",
+        ],
+        Chemicals: [
+          "Acids",
+          "Bases",
+          "Salts",
+          "Solvents",
+          "Indicators",
+          "Reagents",
+          "Stains",
+          "Buffers",
+          "Standards",
+          "Kits",
+        ],
+        Balances: [
+          "Analytical",
+          "Precision",
+          "Top Loading",
+          "Moisture",
+          "Micro",
+          "Portable",
+          "Accessories",
+          "Weights",
+          "Calibration Kits",
+          "Anti-Vibration Tables",
+        ],
+        Centrifuges: [
+          "Mini",
+          "Refrigerated",
+          "High Speed",
+          "Low Speed",
+          "Accessories",
+          "Rotors",
+          "Tubes",
+          "Adapters",
+          "Buckets",
+          "Seals",
+        ],
+        Spectroscopy: [
+          "UV-Vis",
+          "IR",
+          "NMR",
+          "Mass",
+          "Fluorescence",
+          "Raman",
+          "Accessories",
+          "Cuvettes",
+          "Lamps",
+          "Software",
+        ],
+        Consumables: [
+          "Filters",
+          "Pipette Tips",
+          "Tubes",
+          "Plates",
+          "Dishes",
+          "Slides",
+          "Coverslips",
+          "Vials",
+          "Caps",
+          "Seals",
+        ],
+        "Safety Equipment": [
+          "Gloves",
+          "Goggles",
+          "Lab Coats",
+          "Face Shields",
+          "Masks",
+          "Fire Extinguishers",
+          "First Aid",
+          "Spill Kits",
+          "Safety Showers",
+          "Eyewash Stations",
+        ],
+      },
     };
     return subcategory2Map[category]?.[subcategory1] || [];
   };
@@ -503,7 +2329,15 @@ export default function AddProductPage() {
   });
 
   // Watch important fields to calculate completion and for GST calculation
-  const [watchedName, watchedCategory, watchedPrice, watchedDescription, watchedStock, watchedGstRate, watchedSubcategoryId] = form.watch([
+  const [
+    watchedName,
+    watchedCategory,
+    watchedPrice,
+    watchedDescription,
+    watchedStock,
+    watchedGstRate,
+    watchedSubcategoryId,
+  ] = form.watch([
     "name",
     "category",
     "price",
@@ -548,8 +2382,10 @@ export default function AddProductPage() {
     const descriptionComplete =
       watchedDescription && watchedDescription.length >= 20;
 
-    const basicComplete = Boolean(watchedName) && Boolean(watchedCategory) && Boolean(watchedPrice);
-    const inventoryComplete = typeof watchedStock === 'number' && watchedStock >= 0;
+    const basicComplete =
+      Boolean(watchedName) && Boolean(watchedCategory) && Boolean(watchedPrice);
+    const inventoryComplete =
+      typeof watchedStock === "number" && watchedStock >= 0;
     const imagesComplete = uploadedImages.length > 0;
 
     const total = [
@@ -1337,10 +3173,22 @@ export default function AddProductPage() {
           "https://placehold.co/600x400?text=Product+Image",
         images: JSON.stringify(uploadedImages),
         stock: data.stock ? String(data.stock) : "0",
-        weight: data.weight !== undefined && data.weight !== null ? String(data.weight) : undefined,
-        height: data.height !== undefined && data.height !== null ? String(data.height) : undefined,
-        width: data.width !== undefined && data.width !== null ? String(data.width) : undefined,
-        length: data.length !== undefined && data.length !== null ? String(data.length) : undefined,
+        weight:
+          data.weight !== undefined && data.weight !== null
+            ? String(data.weight)
+            : undefined,
+        height:
+          data.height !== undefined && data.height !== null
+            ? String(data.height)
+            : undefined,
+        width:
+          data.width !== undefined && data.width !== null
+            ? String(data.width)
+            : undefined,
+        length:
+          data.length !== undefined && data.length !== null
+            ? String(data.length)
+            : undefined,
         sku: sku,
         variants: processedVariants, // Use the processed variants with AWS images
         deliveryCharges: data.deliveryCharges ?? 0,
@@ -1402,9 +3250,7 @@ export default function AddProductPage() {
           ? parseFloat(formData.purchasePrice)
           : undefined,
         gstRate:
-          formData.gstRate ||
-          getSelectedCategoryGstRate().toString() ||
-          "0",
+          formData.gstRate || getSelectedCategoryGstRate().toString() || "0",
         category: formData.category,
         subcategoryId: formData.subcategoryId || null,
         brand: formData.brand,
@@ -1415,10 +3261,22 @@ export default function AddProductPage() {
           "https://placehold.co/600x400?text=Product+Image",
         images: JSON.stringify(uploadedImages),
         stock: formData.stock ? String(formData.stock) : "0",
-        weight: formData.weight !== undefined && formData.weight !== null ? String(formData.weight) : undefined,
-        height: formData.height !== undefined && formData.height !== null ? String(formData.height) : undefined,
-        width: formData.width !== undefined && formData.width !== null ? String(formData.width) : undefined,
-        length: formData.length !== undefined && formData.length !== null ? String(formData.length) : undefined,
+        weight:
+          formData.weight !== undefined && formData.weight !== null
+            ? String(formData.weight)
+            : undefined,
+        height:
+          formData.height !== undefined && formData.height !== null
+            ? String(formData.height)
+            : undefined,
+        width:
+          formData.width !== undefined && formData.width !== null
+            ? String(formData.width)
+            : undefined,
+        length:
+          formData.length !== undefined && formData.length !== null
+            ? String(formData.length)
+            : undefined,
         variants: [...variants, ...draftVariants],
         isDraft: true,
         deliveryCharges: formData.deliveryCharges ?? 0,
@@ -1583,7 +3441,9 @@ export default function AddProductPage() {
 
   // Helper: get top-level subcategories for a category
   const getTopLevelSubcategories = (categoryId: number) => {
-    return subcategories.filter((s: any) => s.categoryId === categoryId && !s.parentId);
+    return subcategories.filter(
+      (s: any) => s.categoryId === categoryId && !s.parentId
+    );
   };
   // Helper: get children for a subcategory
   const getChildSubcategories = (parentId: number) => {
@@ -1602,22 +3462,25 @@ export default function AddProductPage() {
   }, [form.getValues("category")]);
 
   // Helper: get subcategory by ID
-  const getSubcategoryById = (id: number) => subcategories.find((s: any) => s.id === id);
+  const getSubcategoryById = (id: number) =>
+    subcategories.find((s: any) => s.id === id);
 
   return (
     <SellerDashboardLayout>
       <div className="p-2">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold">Add New Product</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-xl sm:text-2xl font-bold">Add New Product</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">
               Create a new product listing for your store
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
             <Button
               type="button"
               variant="outline"
+              size="sm"
+              className="w-full sm:w-auto"
               onClick={() => setLocation("/seller/products")}
             >
               Cancel
@@ -1625,6 +3488,8 @@ export default function AddProductPage() {
             <Button
               type="button"
               variant="secondary"
+              size="sm"
+              className="w-full sm:w-auto"
               disabled={isSavingDraft}
               onClick={onSaveAsDraft}
             >
@@ -1632,6 +3497,8 @@ export default function AddProductPage() {
             </Button>
             <Button
               type="submit"
+              size="sm"
+              className="w-full sm:w-auto"
               disabled={isSubmitting}
               onClick={form.handleSubmit(onSubmit)}
             >
@@ -1725,7 +3592,8 @@ export default function AddProductPage() {
                               // Clear subcategoryId when category changes
                               form.setValue("subcategoryId", null);
                               // Update subcategoryId options based on selected category
-                              const newSubcategoryId = getCategoryIdByName(value);
+                              const newSubcategoryId =
+                                getCategoryIdByName(value);
                               setSubcategoryId(newSubcategoryId);
                             }}
                             defaultValue={field.value}
@@ -1737,7 +3605,10 @@ export default function AddProductPage() {
                             </FormControl>
                             <SelectContent>
                               {categories?.map((category: any) => (
-                                <SelectItem key={category.id} value={category.name}>
+                                <SelectItem
+                                  key={category.id}
+                                  value={category.name}
+                                >
                                   {category.name}
                                 </SelectItem>
                               ))}
@@ -1750,97 +3621,148 @@ export default function AddProductPage() {
                   </div>
 
                   {/* Dynamic Nested Subcategory Selector - Always show two boxes */}
-                  <div className="flex flex-col gap-4">
-                    {form.getValues("category") && (() => {
-                      const categoryId = getCategoryIdByName(form.getValues("category"));
-                      if (!categoryId) return null;
-                      // Level 0: Top-level subcategories
-                      const selectedSubcat0 = subcategoryPath[0] || null;
-                      const subcat0Options = getTopLevelSubcategories(categoryId);
-                      // Level 1: Children of selected subcategory
-                      const selectedSubcat1 = subcategoryPath[1] || null;
-                      const subcat1Options = selectedSubcat0 ? getChildSubcategories(selectedSubcat0) : [];
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {form.getValues("category") &&
+                      (() => {
+                        const categoryId = getCategoryIdByName(
+                          form.getValues("category")
+                        );
+                        if (!categoryId) return null;
+                        // Level 0: Top-level subcategories
+                        const selectedSubcat0 = subcategoryPath[0] || null;
+                        const subcat0Options =
+                          getTopLevelSubcategories(categoryId);
+                        // Level 1: Children of selected subcategory
+                        const selectedSubcat1 = subcategoryPath[1] || null;
+                        const subcat1Options = selectedSubcat0
+                          ? getChildSubcategories(selectedSubcat0)
+                          : [];
 
-                      return (
-                        <>
-                          {/* Subcategory (Level 1) */}
-                          <div className="w-full md:w-1/2">
-                            <label className="block text-sm font-medium mb-1">Subcategory</label>
-                            <Select
-                              value={selectedSubcat0 ? String(selectedSubcat0) : ""}
-                              onValueChange={(val) => {
-                                const id = val ? parseInt(val) : null;
-                                const newPath = id ? [id] : [];
-                                setSubcategoryPath(newPath);
-                                form.setValue("subcategoryId", id);
-                              }}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select a subcategory" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {subcat0Options.length > 0 ? (
-                                  subcat0Options.map((s: any) => (
-                                    <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
-                                  ))
-                                ) : (
-                                  <SelectItem value="none" disabled>No subcategories available</SelectItem>
-                                )}
-                              </SelectContent>
-                            </Select>
-                            {subcat0Options.length === 0 && (
-                              <div className="text-xs text-muted-foreground select-none">No subcategories mapped to this category.</div>
-                            )}
-                          </div>
-
-                          {/* Subcategory Level 2 */}
-                          <div className="w-full md:w-1/2">
-                            <label className="block text-sm font-medium mb-1">Subcategory Level 2</label>
-                            <Select
-                              value={selectedSubcat1 ? String(selectedSubcat1) : ""}
-                              onValueChange={(val) => {
-                                const id = val ? parseInt(val) : null;
-                                const newPath = subcategoryPath.slice(0, 1);
-                                if (id) newPath.push(id);
-                                setSubcategoryPath(newPath);
-                                form.setValue("subcategoryId", id || (selectedSubcat0 || null));
-                              }}
-                              disabled={!selectedSubcat0 || subcat1Options.length === 0}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder={selectedSubcat0 ? (subcat1Options.length > 0 ? "Select a subcategory" : "No subcategories available") : "Select previous subcategory first"} />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {selectedSubcat0 ? (
-                                  subcat1Options.length > 0 ? (
-                                    subcat1Options.map((s: any) => (
-                                      <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                        return (
+                          <>
+                            {/* Subcategory (Level 1) */}
+                            <div className="w-full">
+                              <label className="block text-sm font-medium mb-1">
+                                Subcategory
+                              </label>
+                              <Select
+                                value={
+                                  selectedSubcat0 ? String(selectedSubcat0) : ""
+                                }
+                                onValueChange={(val) => {
+                                  const id = val ? parseInt(val) : null;
+                                  const newPath = id ? [id] : [];
+                                  setSubcategoryPath(newPath);
+                                  form.setValue("subcategoryId", id);
+                                }}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select a subcategory" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {subcat0Options.length > 0 ? (
+                                    subcat0Options.map((s: any) => (
+                                      <SelectItem
+                                        key={s.id}
+                                        value={String(s.id)}
+                                      >
+                                        {s.name}
+                                      </SelectItem>
                                     ))
                                   ) : (
-                                    <SelectItem value="none" disabled>No subcategories available</SelectItem>
-                                  )
-                                ) : (
-                                  <SelectItem value="none" disabled>Select previous subcategory first</SelectItem>
+                                    <SelectItem value="none" disabled>
+                                      No subcategories available
+                                    </SelectItem>
+                                  )}
+                                </SelectContent>
+                              </Select>
+                              {subcat0Options.length === 0 && (
+                                <div className="text-xs text-muted-foreground select-none">
+                                  No subcategories mapped to this category.
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Subcategory Level 2 */}
+                            <div className="w-full">
+                              <label className="block text-sm font-medium mb-1">
+                                Subcategory Level 2
+                              </label>
+                              <Select
+                                value={
+                                  selectedSubcat1 ? String(selectedSubcat1) : ""
+                                }
+                                onValueChange={(val) => {
+                                  const id = val ? parseInt(val) : null;
+                                  const newPath = subcategoryPath.slice(0, 1);
+                                  if (id) newPath.push(id);
+                                  setSubcategoryPath(newPath);
+                                  form.setValue(
+                                    "subcategoryId",
+                                    id || selectedSubcat0 || null
+                                  );
+                                }}
+                                disabled={
+                                  !selectedSubcat0 ||
+                                  subcat1Options.length === 0
+                                }
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue
+                                      placeholder={
+                                        selectedSubcat0
+                                          ? subcat1Options.length > 0
+                                            ? "Select a subcategory"
+                                            : "No subcategories available"
+                                          : "Select previous subcategory first"
+                                      }
+                                    />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {selectedSubcat0 ? (
+                                    subcat1Options.length > 0 ? (
+                                      subcat1Options.map((s: any) => (
+                                        <SelectItem
+                                          key={s.id}
+                                          value={String(s.id)}
+                                        >
+                                          {s.name}
+                                        </SelectItem>
+                                      ))
+                                    ) : (
+                                      <SelectItem value="none" disabled>
+                                        No subcategories available
+                                      </SelectItem>
+                                    )
+                                  ) : (
+                                    <SelectItem value="none" disabled>
+                                      Select previous subcategory first
+                                    </SelectItem>
+                                  )}
+                                </SelectContent>
+                              </Select>
+                              {!selectedSubcat0 && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  Select a subcategory above first.
+                                </div>
+                              )}
+                              {selectedSubcat0 &&
+                                subcat1Options.length === 0 && (
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    No subcategories mapped to this subcategory.
+                                  </div>
                                 )}
-                              </SelectContent>
-                            </Select>
-                            {!selectedSubcat0 && (
-                              <div className="text-xs text-muted-foreground mt-1">Select a subcategory above first.</div>
-                            )}
-                            {selectedSubcat0 && subcat1Options.length === 0 && (
-                              <div className="text-xs text-muted-foreground mt-1">No subcategories mapped to this subcategory.</div>
-                            )}
-                          </div>
-                        </>
-                      );
-                    })()}
+                            </div>
+                          </>
+                        );
+                      })()}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     <FormField
                       control={form.control}
                       name="price"
@@ -1987,7 +3909,8 @@ export default function AddProductPage() {
                           />
                         </FormControl>
                         <FormDescription>
-                          Enter delivery charges for this product. Leave 0 for Free delivery.
+                          Enter delivery charges for this product. Leave 0 for
+                          Free delivery.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
