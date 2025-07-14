@@ -99,9 +99,11 @@ export default function TicketManagementPage() {
       setStatusError("");
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/support/tickets"] });
       refetchMessages();
+      // Update selectedTicket status instantly in the dialog
+      setSelectedTicket((prev: any) => prev ? { ...prev, status: data.status } : prev);
     },
   });
 
