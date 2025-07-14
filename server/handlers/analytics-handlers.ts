@@ -7,48 +7,54 @@ import { format, subDays, subMonths, startOfYear } from "date-fns";
 // Get analytics for a seller
 export async function getSellerAnalyticsHandler(req: Request, res: Response) {
   try {
-    const sellerId = parseInt(
-      req.params.sellerId || req.user?.id?.toString() || "0"
-    );
+    const sellerId = req.user?.id;
+    if (!sellerId) return res.status(401).json({ error: "Unauthorized" });
 
-    if (!sellerId) {
-      return res.status(400).json({ error: "Seller ID is required" });
-    }
+    // 1. Get all orders for this seller
+    const orders = await storage.getOrders(undefined, sellerId);
+    // 2. Get all products for this seller
+    const products = await storage.getProducts(undefined, sellerId);
+    // 3. Get all returns for this seller
+    const returns = await storage.getReturnsForSeller(sellerId);
 
-    let startDate: Date | undefined;
-    let endDate: Date | undefined;
+    // --- Calculate metrics ---
+    const totalOrders = orders.length;
+    const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const avgOrderValue = totalOrders ? totalRevenue / totalOrders : 0;
+    const totalProducts = products.length;
+    const totalReturns = returns.length;
+    const conversionRate = 0; // Placeholder
 
-    if (req.query.startDate && typeof req.query.startDate === "string") {
-      startDate = new Date(req.query.startDate);
-    }
-
-    if (req.query.endDate && typeof req.query.endDate === "string") {
-      endDate = new Date(req.query.endDate);
-    }
-
-    // Check if the user is impersonating
-    const isImpersonating = req.session && (req.session as any).originalUserId;
-
-    // If this is not an admin, not impersonating, and not the seller themselves, deny access
-    if (
-      req.user?.role !== "admin" &&
-      !isImpersonating &&
-      req.user?.id !== sellerId
-    ) {
-      return res
-        .status(403)
-        .json({ error: "You do not have permission to view these analytics" });
-    }
-
-    const analytics = await storage.getSellerAnalytics(
-      sellerId,
-      startDate,
-      endDate
-    );
+    // --- Build analytics object in the structure expected by the frontend ---
+    const analytics = {
+      totals: {
+        revenue: totalRevenue,
+        orders: totalOrders,
+        avgOrderValue,
+        conversionRate,
+        products: totalProducts,
+        returns: totalReturns,
+      },
+      previousTotals: {
+        revenue: 0,
+        orders: 0,
+        avgOrderValue: 0,
+        conversionRate: 0,
+        products: 0,
+        returns: 0,
+      },
+      revenueData: [], // Placeholder for chart data
+      orderData: [], // Placeholder for chart data
+      categoryData: [], // Placeholder for chart data
+      topProducts: [], // Placeholder for product performance
+      paymentMethodData: [], // Placeholder for payment method breakdown
+      trafficSources: [], // Placeholder for traffic source analytics
+      customerInsights: null, // Placeholder for customer insights
+    };
 
     return res.status(200).json(analytics);
   } catch (error) {
-    console.error("Error fetching seller analytics:", error);
+    console.error("Error aggregating live seller analytics:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 }
