@@ -453,9 +453,9 @@ export default function ManageAdminsPage() {
 
   return (
     <AdminLayout>
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Manage Co-Admins</h1>
+      <div className="container mx-auto px-2 sm:px-4 py-6 sm:py-8">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold">Manage Co-Admins</h1>
           <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
             <DialogTrigger asChild>
               <Button className="flex items-center gap-2">
@@ -463,7 +463,7 @@ export default function ManageAdminsPage() {
                 <span>Create Co-Admin</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-3xl">
+            <DialogContent className="max-w-full sm:max-w-3xl w-[95vw]">
               <DialogHeader>
                 <DialogTitle>Create New Co-Admin</DialogTitle>
                 <DialogDescription>
@@ -629,99 +629,101 @@ export default function ManageAdminsPage() {
                 </p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Username</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Permissions</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {coAdmins.map((coAdmin) => (
-                    <TableRow key={coAdmin.id}>
-                      <TableCell className="font-medium">
-                        {coAdmin.username}
-                      </TableCell>
-                      <TableCell>{coAdmin.email}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {coAdmin.permissions &&
-                            typeof coAdmin.permissions === "object" &&
-                            Object.entries(
-                              coAdmin.permissions as Record<string, boolean>
-                            )
-                              .filter(([_, value]) => Boolean(value))
-                              .map(([key, _]) => (
-                                <span
-                                  key={key}
-                                  className="text-xs bg-muted px-2 py-1 rounded-full"
-                                >
-                                  {permissionDisplayNames[key]}
-                                </span>
-                              ))}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditCoAdmin(coAdmin)}
-                            disabled={isUpdating}
-                          >
-                            <Edit size={16} className="mr-1" />
-                            Edit
-                          </Button>
-
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                disabled={isDeleting}
-                              >
-                                <Trash2 size={16} className="mr-1" />
-                                Delete
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Are you sure?
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This action cannot be undone. This will
-                                  permanently delete the co-admin account.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() =>
-                                    handleDeleteCoAdmin(coAdmin.id)
-                                  }
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table className="min-w-[600px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Username</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Permissions</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {coAdmins.map((coAdmin) => (
+                      <TableRow key={coAdmin.id}>
+                        <TableCell className="font-medium">
+                          {coAdmin.username}
+                        </TableCell>
+                        <TableCell>{coAdmin.email}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {coAdmin.permissions &&
+                              typeof coAdmin.permissions === "object" &&
+                              Object.entries(
+                                coAdmin.permissions as Record<string, boolean>
+                              )
+                                .filter(([_, value]) => Boolean(value))
+                                .map(([key, _]) => (
+                                  <span
+                                    key={key}
+                                    className="text-xs bg-muted px-2 py-1 rounded-full"
+                                  >
+                                    {permissionDisplayNames[key]}
+                                  </span>
+                                ))}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditCoAdmin(coAdmin)}
+                              disabled={isUpdating}
+                            >
+                              <Edit size={16} className="mr-1" />
+                              Edit
+                            </Button>
+
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  disabled={isDeleting}
+                                >
+                                  <Trash2 size={16} className="mr-1" />
+                                  Delete
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Are you sure?
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This action cannot be undone. This will
+                                    permanently delete the co-admin account.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() =>
+                                      handleDeleteCoAdmin(coAdmin.id)
+                                    }
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>
 
         {/* Edit Permissions Dialog */}
         <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-full sm:max-w-md w-[95vw]">
             <DialogHeader>
               <DialogTitle>Edit Co-Admin Permissions</DialogTitle>
               <DialogDescription>

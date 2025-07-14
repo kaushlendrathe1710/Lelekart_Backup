@@ -44,6 +44,7 @@ import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 export default function AdminUsers() {
   const { toast } = useToast();
@@ -395,7 +396,7 @@ export default function AdminUsers() {
 
   return (
     <AdminLayout>
-      <div className="space-y-4 sm:space-y-6 px-2 sm:px-4 lg:px-6">
+      <div className="px-2 sm:px-4 md:px-6 max-w-7xl mx-auto space-y-4 sm:space-y-6">
         <div>
           <h1 className="text-lg sm:text-xl lg:text-2xl font-bold tracking-tight">
             User Management
@@ -492,7 +493,7 @@ export default function AdminUsers() {
             </div>
 
             <div className="rounded-md border bg-white overflow-x-auto">
-              <Table>
+              <Table className="min-w-[800px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12 sm:w-16 lg:w-20 text-xs sm:text-sm">
@@ -641,7 +642,7 @@ export default function AdminUsers() {
           }
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-md w-full">
           <AlertDialogHeader>
             <AlertDialogTitle>Change User Role</AlertDialogTitle>
             <AlertDialogDescription>
@@ -678,7 +679,7 @@ export default function AdminUsers() {
           }
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-md w-full">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete User</AlertDialogTitle>
             <AlertDialogDescription>
@@ -718,7 +719,7 @@ export default function AdminUsers() {
           }
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-md w-full">
           <AlertDialogHeader>
             <AlertDialogTitle>Impersonate User</AlertDialogTitle>
             <AlertDialogDescription>

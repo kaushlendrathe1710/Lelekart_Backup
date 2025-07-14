@@ -214,7 +214,7 @@ const PendingShipmentsPage = () => {
     <AdminLayout>
       {/* Order Details Dialog */}
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-full sm:max-w-3xl w-[95vw]">
           <DialogHeader>
             <DialogTitle>Order Details</DialogTitle>
             <DialogDescription>
@@ -434,7 +434,7 @@ const PendingShipmentsPage = () => {
 
       {/* Ship Order Dialog */}
       <Dialog open={isShippingDialog} onOpenChange={setIsShippingDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-full sm:max-w-md w-[95vw]">
           <DialogHeader>
             <DialogTitle>Ship Order</DialogTitle>
             <DialogDescription>
@@ -496,18 +496,22 @@ const PendingShipmentsPage = () => {
 
         <Card>
           <CardHeader>
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
               <CardTitle>Orders Ready for Shipping</CardTitle>
-              <div className="flex space-x-2">
-                <div className="relative">
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <div className="relative w-full sm:w-64">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="search"
                     placeholder="Search orders..."
-                    className="pl-8 w-64"
+                    className="pl-8 w-full"
                   />
                 </div>
-                <Button variant="outline" size="icon">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="w-full sm:w-auto"
+                >
                   <Filter className="h-4 w-4" />
                 </Button>
               </div>
@@ -524,109 +528,111 @@ const PendingShipmentsPage = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Order ID</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Shipping Address</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
+            <div className="overflow-x-auto">
+              <Table className="min-w-[800px]">
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
-                      <div className="flex flex-col items-center justify-center space-y-3">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        <p className="text-muted-foreground">
-                          Loading orders...
-                        </p>
-                      </div>
-                    </TableCell>
+                    <TableHead>Order ID</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Shipping Address</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ) : pendingOrders.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
-                      <div className="flex flex-col items-center justify-center space-y-3">
-                        <Package className="h-12 w-12 text-muted-foreground" />
-                        <div className="space-y-1 text-center">
-                          <p className="font-medium">No pending shipments</p>
-                          <p className="text-sm text-muted-foreground">
-                            All orders have been shipped or there are no new
-                            orders.
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        <div className="flex flex-col items-center justify-center space-y-3">
+                          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                          <p className="text-muted-foreground">
+                            Loading orders...
                           </p>
                         </div>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  pendingOrders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-medium">
-                        {order.orderId || `ORD-${order.id}`}
-                      </TableCell>
-                      <TableCell>
-                        {order.user?.name || "Unknown Customer"}
-                      </TableCell>
-                      <TableCell>
-                        {new Date(order.date).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>{getStatusBadge(order.status)}</TableCell>
-                      <TableCell>₹{order.total.toLocaleString()}</TableCell>
-                      <TableCell className="max-w-[200px] truncate">
-                        {(() => {
-                          let shippingInfo = order.shippingDetails;
-
-                          // Parse the shipping details if it's a string
-                          if (typeof shippingInfo === "string") {
-                            try {
-                              shippingInfo = JSON.parse(shippingInfo);
-                              return `${shippingInfo.address}, ${shippingInfo.city}, ${shippingInfo.state}`;
-                            } catch (e) {
-                              return "Error parsing shipping details";
-                            }
-                          } else if (
-                            shippingInfo &&
-                            typeof shippingInfo === "object"
-                          ) {
-                            return `${shippingInfo.address}, ${shippingInfo.city}, ${shippingInfo.state}`;
-                          }
-
-                          return "No shipping details";
-                        })()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => handleViewDetails(order)}
-                            >
-                              <FileText className="h-4 w-4 mr-2" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleShipNow(order)}
-                            >
-                              <Truck className="h-4 w-4 mr-2" />
-                              Ship Now
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : pendingOrders.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        <div className="flex flex-col items-center justify-center space-y-3">
+                          <Package className="h-12 w-12 text-muted-foreground" />
+                          <div className="space-y-1 text-center">
+                            <p className="font-medium">No pending shipments</p>
+                            <p className="text-sm text-muted-foreground">
+                              All orders have been shipped or there are no new
+                              orders.
+                            </p>
+                          </div>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    pendingOrders.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-medium">
+                          {order.orderId || `ORD-${order.id}`}
+                        </TableCell>
+                        <TableCell>
+                          {order.user?.name || "Unknown Customer"}
+                        </TableCell>
+                        <TableCell>
+                          {new Date(order.date).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(order.status)}</TableCell>
+                        <TableCell>₹{order.total.toLocaleString()}</TableCell>
+                        <TableCell className="max-w-[200px] truncate">
+                          {(() => {
+                            let shippingInfo = order.shippingDetails;
+
+                            // Parse the shipping details if it's a string
+                            if (typeof shippingInfo === "string") {
+                              try {
+                                shippingInfo = JSON.parse(shippingInfo);
+                                return `${shippingInfo.address}, ${shippingInfo.city}, ${shippingInfo.state}`;
+                              } catch (e) {
+                                return "Error parsing shipping details";
+                              }
+                            } else if (
+                              shippingInfo &&
+                              typeof shippingInfo === "object"
+                            ) {
+                              return `${shippingInfo.address}, ${shippingInfo.city}, ${shippingInfo.state}`;
+                            }
+
+                            return "No shipping details";
+                          })()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => handleViewDetails(order)}
+                              >
+                                <FileText className="h-4 w-4 mr-2" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleShipNow(order)}
+                              >
+                                <Truck className="h-4 w-4 mr-2" />
+                                Ship Now
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
 
             {/* Pagination */}
             <div className="flex items-center justify-between mt-6">

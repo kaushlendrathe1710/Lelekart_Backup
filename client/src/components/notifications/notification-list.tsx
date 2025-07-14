@@ -313,7 +313,7 @@ function NotificationItem({
 
   return (
     <div
-      className={`flex items-start gap-3 p-4 sm:p-6 hover:bg-muted/50 transition-colors ${!notification.read ? "bg-blue-50" : ""}`}
+      className={`flex flex-col sm:flex-row items-start gap-3 p-4 sm:p-6 hover:bg-muted/50 transition-colors ${!notification.read ? "bg-blue-50" : ""}`}
     >
       {/* Notification icon based on type */}
       <div

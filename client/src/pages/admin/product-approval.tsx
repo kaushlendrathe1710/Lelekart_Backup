@@ -137,10 +137,7 @@ function ProductApprovalContent() {
   });
 
   // Fetch product statistics for the stats cards
-  const {
-    data: productStats,
-    isLoading: statsLoading,
-  } = useQuery({
+  const { data: productStats, isLoading: statsLoading } = useQuery({
     queryKey: ["/api/admin/product-stats"],
     queryFn: async () => {
       const res = await apiRequest("GET", "/api/admin/product-stats");
@@ -445,7 +442,7 @@ function ProductApprovalContent() {
   const totalPendingProducts = productStats?.pending || 0;
   const totalProducts = productStats?.total || 0;
   const approvedProducts = productStats?.approved || 0;
-  const rejectedProducts =  productStats?.rejected || 0;
+  const rejectedProducts = productStats?.rejected || 0;
 
   // Loading states
   const ProductStatsLoading = () => (
@@ -529,7 +526,7 @@ function ProductApprovalContent() {
 
         {/* Products Data Table */}
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-2 w-full">
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
               <Input
@@ -703,204 +700,211 @@ function ProductApprovalContent() {
             </div>
           ) : pendingProducts?.length ? (
             <div className="rounded-md border bg-white">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[50px]">
-                      <Checkbox
-                        checked={selectAll}
-                        onCheckedChange={(checked) =>
-                          handleSelectAll(checked === true)
-                        }
-                        aria-label="Select all products"
-                      />
-                    </TableHead>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Seller</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pendingProducts.map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell>
+              <div className="overflow-x-auto">
+                <Table className="min-w-[900px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[50px]">
                         <Checkbox
-                          checked={selectedProducts.includes(product.id)}
+                          checked={selectAll}
                           onCheckedChange={(checked) =>
-                            handleSelectProduct(product.id, checked === true)
+                            handleSelectAll(checked === true)
                           }
-                          aria-label={`Select product ${product.name}`}
+                          aria-label="Select all products"
                         />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="h-12 w-12 rounded bg-gray-100 relative overflow-hidden border">
-                            {(() => {
-                              // Determine which image source to use
-                              let imageSrc = "";
-
-                              try {
-                                // Check for image_url (snake_case) first - this is what's in our data
-                                if ((product as any).image_url) {
-                                  imageSrc = (product as any).image_url;
-                                }
-                                // Check for imageUrl (camelCase)
-                                else if (product.imageUrl) {
-                                  imageSrc = product.imageUrl;
-                                }
-                                // Check for images array or string
-                                else if (product.images) {
-                                  // Handle array of images
-                                  if (
-                                    Array.isArray(product.images) &&
-                                    product.images.length > 0
-                                  ) {
-                                    imageSrc = product.images[0];
-                                  }
-                                  // Handle string (single image URL)
-                                  else if (typeof product.images === "string") {
-                                    // Check if it's a JSON string
-                                    if (
-                                      product.images.startsWith("[") &&
-                                      product.images.includes("]")
-                                    ) {
-                                      try {
-                                        const parsedImages = JSON.parse(
-                                          product.images
-                                        );
-                                        if (
-                                          Array.isArray(parsedImages) &&
-                                          parsedImages.length > 0
-                                        ) {
-                                          imageSrc = parsedImages[0];
-                                        }
-                                      } catch (e) {
-                                        console.error(
-                                          "Failed to parse image JSON:",
-                                          e
-                                        );
-                                      }
-                                    } else {
-                                      // It's a single URL
-                                      imageSrc = product.images;
-                                    }
-                                  }
-                                }
-                              } catch (err) {
-                                console.error("Error processing image:", err);
-                              }
-
-                              // Always use category-specific fallback as default
-                              const categoryImage = `../images/${(product.category || "general").toLowerCase()}.svg`;
-                              const genericFallback =
-                                "https://placehold.co/100?text=No+Image";
-
-                              // If this is a Lelekart image, use our proxy
-                              const useProxy =
-                                imageSrc &&
-                                (imageSrc.includes("flixcart.com") ||
-                                  imageSrc.includes("lelekart.com"));
-                              const displaySrc = useProxy
-                                ? `/api/image-proxy?url=${encodeURIComponent(imageSrc)}&category=${encodeURIComponent(product.category || "general")}`
-                                : imageSrc || categoryImage;
-
-                              return (
-                                <img
-                                  key={`product-image-${product.id}`}
-                                  src={displaySrc}
-                                  alt={product.name}
-                                  className="object-contain h-full w-full"
-                                  loading="lazy"
-                                  onError={(e) => {
-                                    console.error(
-                                      "Failed to load image:",
-                                      displaySrc
-                                    );
-
-                                    // If using proxy failed, try direct URL
-                                    if (useProxy && imageSrc) {
-                                      console.log(
-                                        "Proxy failed, trying direct URL:",
-                                        imageSrc
-                                      );
-                                      (e.target as HTMLImageElement).src =
-                                        imageSrc;
-                                      return;
-                                    }
-
-                                    // Try category-specific fallback
-                                    (e.target as HTMLImageElement).src =
-                                      categoryImage;
-
-                                    // Add a second error handler for the category fallback
-                                    (e.target as HTMLImageElement).onerror =
-                                      () => {
-                                        (e.target as HTMLImageElement).src =
-                                          genericFallback;
-                                        (e.target as HTMLImageElement).onerror =
-                                          null; // Prevent infinite loop
-                                      };
-                                  }}
-                                  style={{
-                                    maxHeight: "48px",
-                                    background: "#f9f9f9",
-                                  }}
-                                />
-                              );
-                            })()}
-                          </div>
-                          <div
-                            className="font-medium hover:text-primary cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap max-w-xs"
-                            onClick={() => setViewProduct(product)}
-                          >
-                            {product.name}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{product.category}</TableCell>
-                      <TableCell>₹{Number(product.price).toFixed(2)}</TableCell>
-                      <TableCell>
-                        {/* Use seller name if available, or fallback to seller ID */}
-                        {(product as any).sellerName ||
-                          (product as any).seller_username ||
-                          `Seller ID: ${product.sellerId || "Unknown"}`}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => setViewProduct(product)}
-                            title="View product details"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="text-green-600 border-green-600 hover:bg-green-50"
-                            onClick={() => handleApproveProduct(product)}
-                            title="Approve product"
-                          >
-                            <Check className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="text-red-600 border-red-600 hover:bg-red-50"
-                            onClick={() => handleRejectProduct(product)}
-                            title="Reject product"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+                      </TableHead>
+                      <TableHead>Product</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Price</TableHead>
+                      <TableHead>Seller</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingProducts.map((product) => (
+                      <TableRow key={product.id}>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedProducts.includes(product.id)}
+                            onCheckedChange={(checked) =>
+                              handleSelectProduct(product.id, checked === true)
+                            }
+                            aria-label={`Select product ${product.name}`}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="h-12 w-12 rounded bg-gray-100 relative overflow-hidden border">
+                              {(() => {
+                                // Determine which image source to use
+                                let imageSrc = "";
+
+                                try {
+                                  // Check for image_url (snake_case) first - this is what's in our data
+                                  if ((product as any).image_url) {
+                                    imageSrc = (product as any).image_url;
+                                  }
+                                  // Check for imageUrl (camelCase)
+                                  else if (product.imageUrl) {
+                                    imageSrc = product.imageUrl;
+                                  }
+                                  // Check for images array or string
+                                  else if (product.images) {
+                                    // Handle array of images
+                                    if (
+                                      Array.isArray(product.images) &&
+                                      product.images.length > 0
+                                    ) {
+                                      imageSrc = product.images[0];
+                                    }
+                                    // Handle string (single image URL)
+                                    else if (
+                                      typeof product.images === "string"
+                                    ) {
+                                      // Check if it's a JSON string
+                                      if (
+                                        product.images.startsWith("[") &&
+                                        product.images.includes("]")
+                                      ) {
+                                        try {
+                                          const parsedImages = JSON.parse(
+                                            product.images
+                                          );
+                                          if (
+                                            Array.isArray(parsedImages) &&
+                                            parsedImages.length > 0
+                                          ) {
+                                            imageSrc = parsedImages[0];
+                                          }
+                                        } catch (e) {
+                                          console.error(
+                                            "Failed to parse image JSON:",
+                                            e
+                                          );
+                                        }
+                                      } else {
+                                        // It's a single URL
+                                        imageSrc = product.images;
+                                      }
+                                    }
+                                  }
+                                } catch (err) {
+                                  console.error("Error processing image:", err);
+                                }
+
+                                // Always use category-specific fallback as default
+                                const categoryImage = `../images/${(product.category || "general").toLowerCase()}.svg`;
+                                const genericFallback =
+                                  "https://placehold.co/100?text=No+Image";
+
+                                // If this is a Lelekart image, use our proxy
+                                const useProxy =
+                                  imageSrc &&
+                                  (imageSrc.includes("flixcart.com") ||
+                                    imageSrc.includes("lelekart.com"));
+                                const displaySrc = useProxy
+                                  ? `/api/image-proxy?url=${encodeURIComponent(imageSrc)}&category=${encodeURIComponent(product.category || "general")}`
+                                  : imageSrc || categoryImage;
+
+                                return (
+                                  <img
+                                    key={`product-image-${product.id}`}
+                                    src={displaySrc}
+                                    alt={product.name}
+                                    className="object-contain h-full w-full"
+                                    loading="lazy"
+                                    onError={(e) => {
+                                      console.error(
+                                        "Failed to load image:",
+                                        displaySrc
+                                      );
+
+                                      // If using proxy failed, try direct URL
+                                      if (useProxy && imageSrc) {
+                                        console.log(
+                                          "Proxy failed, trying direct URL:",
+                                          imageSrc
+                                        );
+                                        (e.target as HTMLImageElement).src =
+                                          imageSrc;
+                                        return;
+                                      }
+
+                                      // Try category-specific fallback
+                                      (e.target as HTMLImageElement).src =
+                                        categoryImage;
+
+                                      // Add a second error handler for the category fallback
+                                      (e.target as HTMLImageElement).onerror =
+                                        () => {
+                                          (e.target as HTMLImageElement).src =
+                                            genericFallback;
+                                          (
+                                            e.target as HTMLImageElement
+                                          ).onerror = null; // Prevent infinite loop
+                                        };
+                                    }}
+                                    style={{
+                                      maxHeight: "48px",
+                                      background: "#f9f9f9",
+                                    }}
+                                  />
+                                );
+                              })()}
+                            </div>
+                            <div
+                              className="font-medium hover:text-primary cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap max-w-xs"
+                              onClick={() => setViewProduct(product)}
+                            >
+                              {product.name}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>{product.category}</TableCell>
+                        <TableCell>
+                          ₹{Number(product.price).toFixed(2)}
+                        </TableCell>
+                        <TableCell>
+                          {/* Use seller name if available, or fallback to seller ID */}
+                          {(product as any).sellerName ||
+                            (product as any).seller_username ||
+                            `Seller ID: ${product.sellerId || "Unknown"}`}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => setViewProduct(product)}
+                              title="View product details"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="text-green-600 border-green-600 hover:bg-green-50"
+                              onClick={() => handleApproveProduct(product)}
+                              title="Approve product"
+                            >
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="text-red-600 border-red-600 hover:bg-red-50"
+                              onClick={() => handleRejectProduct(product)}
+                              title="Reject product"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
 
               {/* Pagination Controls */}
               {pagination && (
@@ -1003,7 +1007,7 @@ function ProductApprovalContent() {
         onOpenChange={(open) => !open && setViewProduct(null)}
       >
         {viewProduct && (
-          <DialogContent className="max-w-3xl">
+          <DialogContent className="max-w-full sm:max-w-3xl w-[95vw]">
             <DialogHeader>
               <DialogTitle className="text-xl">Product Details</DialogTitle>
               <DialogDescription className="text-sm text-gray-500">

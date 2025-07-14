@@ -1588,7 +1588,7 @@ function AdminProductsContent({
             </div>
 
             {/* Action Buttons Row */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+            <div className="flex flex-col sm:flex-row gap-2 w-full">
               {/* Filter Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -1762,7 +1762,7 @@ function AdminProductsContent({
 
           {isLoading ? (
             <div className="rounded-md border overflow-x-auto">
-              <Table>
+              <Table className="min-w-[900px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[50px]">
@@ -1825,7 +1825,7 @@ function AdminProductsContent({
             </div>
           ) : (
             <div className="rounded-md border overflow-x-auto">
-              <Table>
+              <Table className="min-w-[900px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[50px]">
@@ -2059,7 +2059,7 @@ function AdminProductsContent({
           onOpenChange={(open) => !open && setViewProduct(null)}
         >
           {viewProduct && (
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-full sm:max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{viewProduct.name}</DialogTitle>
                 <DialogDescription>

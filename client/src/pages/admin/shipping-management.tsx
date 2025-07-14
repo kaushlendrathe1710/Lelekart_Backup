@@ -73,7 +73,9 @@ import {
 const shippingMethodSchema = z.object({
   name: z.string().min(3, { message: "Name must be at least 3 characters" }),
   description: z.string().optional(),
-  price: z.coerce.number().min(0, { message: "Price must be a positive number" }),
+  price: z.coerce
+    .number()
+    .min(0, { message: "Price must be a positive number" }),
   estimatedDays: z.string().min(1, { message: "Estimated days is required" }),
   isActive: z.boolean().default(true),
   icon: z.string().optional(),
@@ -90,9 +92,13 @@ const shippingZoneSchema = z.object({
 
 // Define validation schema for shipping rule
 const shippingRuleSchema = z.object({
-  methodId: z.coerce.number().min(1, { message: "Shipping method is required" }),
+  methodId: z.coerce
+    .number()
+    .min(1, { message: "Shipping method is required" }),
   zoneId: z.coerce.number().min(1, { message: "Shipping zone is required" }),
-  price: z.coerce.number().min(0, { message: "Price must be a positive number" }),
+  price: z.coerce
+    .number()
+    .min(0, { message: "Price must be a positive number" }),
   minOrderValue: z.coerce.number().default(0),
   maxOrderValue: z.coerce.number().optional(),
   minWeight: z.coerce.number().default(0),
@@ -106,19 +112,20 @@ export default function AdminShippingManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("methods");
-  
+
   // Dialog states
   const [isMethodDialogOpen, setIsMethodDialogOpen] = useState(false);
   const [isZoneDialogOpen, setIsZoneDialogOpen] = useState(false);
   const [isRuleDialogOpen, setIsRuleDialogOpen] = useState(false);
-  
+
   // Selected item states for editing
   const [selectedMethod, setSelectedMethod] = useState<any>(null);
   const [selectedZone, setSelectedZone] = useState<any>(null);
   const [selectedRule, setSelectedRule] = useState<any>(null);
-  
+
   // Delete confirmation dialog states
-  const [isMethodDeleteDialogOpen, setIsMethodDeleteDialogOpen] = useState(false);
+  const [isMethodDeleteDialogOpen, setIsMethodDeleteDialogOpen] =
+    useState(false);
   const [isZoneDeleteDialogOpen, setIsZoneDeleteDialogOpen] = useState(false);
   const [isRuleDeleteDialogOpen, setIsRuleDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<number | null>(null);
@@ -129,11 +136,11 @@ export default function AdminShippingManagement() {
     isLoading: isLoadingMethods,
     isError: isErrorMethods,
   } = useQuery({
-    queryKey: ['/api/shipping/methods'],
+    queryKey: ["/api/shipping/methods"],
     queryFn: async () => {
-      const res = await fetch('/api/shipping/methods');
+      const res = await fetch("/api/shipping/methods");
       if (!res.ok) {
-        throw new Error('Failed to fetch shipping methods');
+        throw new Error("Failed to fetch shipping methods");
       }
       return res.json();
     },
@@ -145,11 +152,11 @@ export default function AdminShippingManagement() {
     isLoading: isLoadingZones,
     isError: isErrorZones,
   } = useQuery({
-    queryKey: ['/api/shipping/zones'],
+    queryKey: ["/api/shipping/zones"],
     queryFn: async () => {
-      const res = await fetch('/api/shipping/zones');
+      const res = await fetch("/api/shipping/zones");
       if (!res.ok) {
-        throw new Error('Failed to fetch shipping zones');
+        throw new Error("Failed to fetch shipping zones");
       }
       return res.json();
     },
@@ -161,11 +168,11 @@ export default function AdminShippingManagement() {
     isLoading: isLoadingRules,
     isError: isErrorRules,
   } = useQuery({
-    queryKey: ['/api/shipping/rules'],
+    queryKey: ["/api/shipping/rules"],
     queryFn: async () => {
-      const res = await fetch('/api/shipping/rules');
+      const res = await fetch("/api/shipping/rules");
       if (!res.ok) {
-        throw new Error('Failed to fetch shipping rules');
+        throw new Error("Failed to fetch shipping rules");
       }
       return res.json();
     },
@@ -293,37 +300,39 @@ export default function AdminShippingManagement() {
     mutationFn: async (data: z.infer<typeof shippingMethodSchema>) => {
       const url = selectedMethod
         ? `/api/shipping/methods/${selectedMethod.id}`
-        : '/api/shipping/methods';
-      const method = selectedMethod ? 'PUT' : 'POST';
+        : "/api/shipping/methods";
+      const method = selectedMethod ? "PUT" : "POST";
 
       const res = await fetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
       });
 
       if (!res.ok) {
-        throw new Error(`Failed to ${selectedMethod ? 'update' : 'create'} shipping method`);
+        throw new Error(
+          `Failed to ${selectedMethod ? "update" : "create"} shipping method`
+        );
       }
 
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/shipping/methods'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/shipping/methods"] });
       toast({
-        title: `Shipping method ${selectedMethod ? 'updated' : 'created'}`,
-        description: `Shipping method has been successfully ${selectedMethod ? 'updated' : 'created'}.`,
+        title: `Shipping method ${selectedMethod ? "updated" : "created"}`,
+        description: `Shipping method has been successfully ${selectedMethod ? "updated" : "created"}.`,
       });
       setIsMethodDialogOpen(false);
       setSelectedMethod(null);
     },
     onError: (error) => {
       toast({
-        title: 'Error',
+        title: "Error",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     },
   });
@@ -333,37 +342,39 @@ export default function AdminShippingManagement() {
     mutationFn: async (data: z.infer<typeof shippingZoneSchema>) => {
       const url = selectedZone
         ? `/api/shipping/zones/${selectedZone.id}`
-        : '/api/shipping/zones';
-      const method = selectedZone ? 'PUT' : 'POST';
+        : "/api/shipping/zones";
+      const method = selectedZone ? "PUT" : "POST";
 
       const res = await fetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
       });
 
       if (!res.ok) {
-        throw new Error(`Failed to ${selectedZone ? 'update' : 'create'} shipping zone`);
+        throw new Error(
+          `Failed to ${selectedZone ? "update" : "create"} shipping zone`
+        );
       }
 
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/shipping/zones'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/shipping/zones"] });
       toast({
-        title: `Shipping zone ${selectedZone ? 'updated' : 'created'}`,
-        description: `Shipping zone has been successfully ${selectedZone ? 'updated' : 'created'}.`,
+        title: `Shipping zone ${selectedZone ? "updated" : "created"}`,
+        description: `Shipping zone has been successfully ${selectedZone ? "updated" : "created"}.`,
       });
       setIsZoneDialogOpen(false);
       setSelectedZone(null);
     },
     onError: (error) => {
       toast({
-        title: 'Error',
+        title: "Error",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     },
   });
@@ -373,37 +384,39 @@ export default function AdminShippingManagement() {
     mutationFn: async (data: z.infer<typeof shippingRuleSchema>) => {
       const url = selectedRule
         ? `/api/shipping/rules/${selectedRule.id}`
-        : '/api/shipping/rules';
-      const method = selectedRule ? 'PUT' : 'POST';
+        : "/api/shipping/rules";
+      const method = selectedRule ? "PUT" : "POST";
 
       const res = await fetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
       });
 
       if (!res.ok) {
-        throw new Error(`Failed to ${selectedRule ? 'update' : 'create'} shipping rule`);
+        throw new Error(
+          `Failed to ${selectedRule ? "update" : "create"} shipping rule`
+        );
       }
 
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/shipping/rules'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/shipping/rules"] });
       toast({
-        title: `Shipping rule ${selectedRule ? 'updated' : 'created'}`,
-        description: `Shipping rule has been successfully ${selectedRule ? 'updated' : 'created'}.`,
+        title: `Shipping rule ${selectedRule ? "updated" : "created"}`,
+        description: `Shipping rule has been successfully ${selectedRule ? "updated" : "created"}.`,
       });
       setIsRuleDialogOpen(false);
       setSelectedRule(null);
     },
     onError: (error) => {
       toast({
-        title: 'Error',
+        title: "Error",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     },
   });
@@ -412,30 +425,30 @@ export default function AdminShippingManagement() {
   const deleteMethodMutation = useMutation({
     mutationFn: async (id: number) => {
       const res = await fetch(`/api/shipping/methods/${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to delete shipping method');
+        throw new Error(errorData.error || "Failed to delete shipping method");
       }
 
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/shipping/methods'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/shipping/methods"] });
       toast({
-        title: 'Shipping method deleted',
-        description: 'Shipping method has been successfully deleted.',
+        title: "Shipping method deleted",
+        description: "Shipping method has been successfully deleted.",
       });
       setIsMethodDeleteDialogOpen(false);
       setItemToDelete(null);
     },
     onError: (error) => {
       toast({
-        title: 'Error',
+        title: "Error",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
       setIsMethodDeleteDialogOpen(false);
     },
@@ -445,30 +458,30 @@ export default function AdminShippingManagement() {
   const deleteZoneMutation = useMutation({
     mutationFn: async (id: number) => {
       const res = await fetch(`/api/shipping/zones/${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to delete shipping zone');
+        throw new Error(errorData.error || "Failed to delete shipping zone");
       }
 
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/shipping/zones'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/shipping/zones"] });
       toast({
-        title: 'Shipping zone deleted',
-        description: 'Shipping zone has been successfully deleted.',
+        title: "Shipping zone deleted",
+        description: "Shipping zone has been successfully deleted.",
       });
       setIsZoneDeleteDialogOpen(false);
       setItemToDelete(null);
     },
     onError: (error) => {
       toast({
-        title: 'Error',
+        title: "Error",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
       setIsZoneDeleteDialogOpen(false);
     },
@@ -478,30 +491,30 @@ export default function AdminShippingManagement() {
   const deleteRuleMutation = useMutation({
     mutationFn: async (id: number) => {
       const res = await fetch(`/api/shipping/rules/${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to delete shipping rule');
+        throw new Error(errorData.error || "Failed to delete shipping rule");
       }
 
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/shipping/rules'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/shipping/rules"] });
       toast({
-        title: 'Shipping rule deleted',
-        description: 'Shipping rule has been successfully deleted.',
+        title: "Shipping rule deleted",
+        description: "Shipping rule has been successfully deleted.",
       });
       setIsRuleDeleteDialogOpen(false);
       setItemToDelete(null);
     },
     onError: (error) => {
       toast({
-        title: 'Error',
+        title: "Error",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
       setIsRuleDeleteDialogOpen(false);
     },
@@ -576,7 +589,7 @@ export default function AdminShippingManagement() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold">Shipping Management</h1>
@@ -586,7 +599,11 @@ export default function AdminShippingManagement() {
           </div>
         </div>
 
-        <Tabs defaultValue="methods" value={activeTab} onValueChange={setActiveTab}>
+        <Tabs
+          defaultValue="methods"
+          value={activeTab}
+          onValueChange={setActiveTab}
+        >
           <TabsList className="grid grid-cols-3 w-full max-w-md">
             <TabsTrigger value="methods">Methods</TabsTrigger>
             <TabsTrigger value="zones">Zones</TabsTrigger>
@@ -603,7 +620,7 @@ export default function AdminShippingManagement() {
                     Manage available shipping methods for the marketplace
                   </CardDescription>
                 </div>
-                <Button 
+                <Button
                   onClick={() => handleOpenMethodDialog()}
                   className="flex items-center gap-2"
                 >
@@ -620,9 +637,12 @@ export default function AdminShippingManagement() {
                   <div className="bg-red-50 border border-red-200 rounded-md p-4 flex items-start gap-3">
                     <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
                     <div>
-                      <h3 className="font-medium text-red-700">Error Loading Methods</h3>
+                      <h3 className="font-medium text-red-700">
+                        Error Loading Methods
+                      </h3>
                       <p className="text-sm text-red-600 mt-1">
-                        There was an error loading shipping methods. Please try refreshing the page.
+                        There was an error loading shipping methods. Please try
+                        refreshing the page.
                       </p>
                     </div>
                   </div>
@@ -641,7 +661,9 @@ export default function AdminShippingManagement() {
                       <TableBody>
                         {shippingMethods.map((method: any) => (
                           <TableRow key={method.id}>
-                            <TableCell className="font-medium">{method.name}</TableCell>
+                            <TableCell className="font-medium">
+                              {method.name}
+                            </TableCell>
                             <TableCell>{formatPrice(method.price)}</TableCell>
                             <TableCell>{method.estimatedDays}</TableCell>
                             <TableCell>
@@ -651,7 +673,9 @@ export default function AdminShippingManagement() {
                                   Active
                                 </span>
                               ) : (
-                                <span className="text-muted-foreground">Inactive</span>
+                                <span className="text-muted-foreground">
+                                  Inactive
+                                </span>
                               )}
                             </TableCell>
                             <TableCell>
@@ -667,7 +691,9 @@ export default function AdminShippingManagement() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => handleOpenDeleteMethodDialog(method.id)}
+                                  onClick={() =>
+                                    handleOpenDeleteMethodDialog(method.id)
+                                  }
                                   className="text-red-500 hover:text-red-700 hover:bg-red-50"
                                 >
                                   <Trash2 className="h-4 w-4" />
@@ -685,9 +711,10 @@ export default function AdminShippingManagement() {
                     <Truck className="h-8 w-8 mx-auto text-muted-foreground" />
                     <h3 className="mt-4 font-medium">No Shipping Methods</h3>
                     <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-                      You haven't created any shipping methods yet. Add a method to get started.
+                      You haven't created any shipping methods yet. Add a method
+                      to get started.
                     </p>
-                    <Button 
+                    <Button
                       onClick={() => handleOpenMethodDialog()}
                       className="mt-4 flex items-center gap-2"
                       variant="outline"
@@ -711,7 +738,7 @@ export default function AdminShippingManagement() {
                     Manage geographic shipping zones for different pricing
                   </CardDescription>
                 </div>
-                <Button 
+                <Button
                   onClick={() => handleOpenZoneDialog()}
                   className="flex items-center gap-2"
                 >
@@ -728,9 +755,12 @@ export default function AdminShippingManagement() {
                   <div className="bg-red-50 border border-red-200 rounded-md p-4 flex items-start gap-3">
                     <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
                     <div>
-                      <h3 className="font-medium text-red-700">Error Loading Zones</h3>
+                      <h3 className="font-medium text-red-700">
+                        Error Loading Zones
+                      </h3>
                       <p className="text-sm text-red-600 mt-1">
-                        There was an error loading shipping zones. Please try refreshing the page.
+                        There was an error loading shipping zones. Please try
+                        refreshing the page.
                       </p>
                     </div>
                   </div>
@@ -748,7 +778,9 @@ export default function AdminShippingManagement() {
                       <TableBody>
                         {shippingZones.map((zone: any) => (
                           <TableRow key={zone.id}>
-                            <TableCell className="font-medium">{zone.name}</TableCell>
+                            <TableCell className="font-medium">
+                              {zone.name}
+                            </TableCell>
                             <TableCell>
                               {zone.regions && zone.regions.length > 80
                                 ? `${zone.regions.substring(0, 80)}...`
@@ -761,7 +793,9 @@ export default function AdminShippingManagement() {
                                   Active
                                 </span>
                               ) : (
-                                <span className="text-muted-foreground">Inactive</span>
+                                <span className="text-muted-foreground">
+                                  Inactive
+                                </span>
                               )}
                             </TableCell>
                             <TableCell>
@@ -777,7 +811,9 @@ export default function AdminShippingManagement() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => handleOpenDeleteZoneDialog(zone.id)}
+                                  onClick={() =>
+                                    handleOpenDeleteZoneDialog(zone.id)
+                                  }
                                   className="text-red-500 hover:text-red-700 hover:bg-red-50"
                                 >
                                   <Trash2 className="h-4 w-4" />
@@ -795,9 +831,10 @@ export default function AdminShippingManagement() {
                     <MapPin className="h-8 w-8 mx-auto text-muted-foreground" />
                     <h3 className="mt-4 font-medium">No Shipping Zones</h3>
                     <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-                      You haven't created any shipping zones yet. Add a zone to get started.
+                      You haven't created any shipping zones yet. Add a zone to
+                      get started.
                     </p>
-                    <Button 
+                    <Button
                       onClick={() => handleOpenZoneDialog()}
                       className="mt-4 flex items-center gap-2"
                       variant="outline"
@@ -821,7 +858,7 @@ export default function AdminShippingManagement() {
                     Set pricing rules for method and zone combinations
                   </CardDescription>
                 </div>
-                <Button 
+                <Button
                   onClick={() => handleOpenRuleDialog()}
                   className="flex items-center gap-2"
                   disabled={!shippingMethods?.length || !shippingZones?.length}
@@ -839,9 +876,12 @@ export default function AdminShippingManagement() {
                   <div className="bg-red-50 border border-red-200 rounded-md p-4 flex items-start gap-3">
                     <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
                     <div>
-                      <h3 className="font-medium text-red-700">Error Loading Rules</h3>
+                      <h3 className="font-medium text-red-700">
+                        Error Loading Rules
+                      </h3>
                       <p className="text-sm text-red-600 mt-1">
-                        There was an error loading shipping rules. Please try refreshing the page.
+                        There was an error loading shipping rules. Please try
+                        refreshing the page.
                       </p>
                     </div>
                   </div>
@@ -849,9 +889,12 @@ export default function AdminShippingManagement() {
                   <div className="bg-amber-50 border border-amber-200 rounded-md p-4 flex items-start gap-3">
                     <Info className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
                     <div>
-                      <h3 className="font-medium text-amber-700">Cannot Create Rules Yet</h3>
+                      <h3 className="font-medium text-amber-700">
+                        Cannot Create Rules Yet
+                      </h3>
                       <p className="text-sm text-amber-600 mt-1">
-                        You need to create at least one shipping method and one shipping zone before you can create rules.
+                        You need to create at least one shipping method and one
+                        shipping zone before you can create rules.
                       </p>
                       <div className="mt-4 flex gap-2">
                         <Button
@@ -897,10 +940,10 @@ export default function AdminShippingManagement() {
                               {rule.minOrderValue > 0 && rule.maxOrderValue
                                 ? `${formatPrice(rule.minOrderValue)} - ${formatPrice(rule.maxOrderValue)}`
                                 : rule.minOrderValue > 0
-                                ? `Min: ${formatPrice(rule.minOrderValue)}`
-                                : rule.maxOrderValue
-                                ? `Max: ${formatPrice(rule.maxOrderValue)}`
-                                : "Any"}
+                                  ? `Min: ${formatPrice(rule.minOrderValue)}`
+                                  : rule.maxOrderValue
+                                    ? `Max: ${formatPrice(rule.maxOrderValue)}`
+                                    : "Any"}
                             </TableCell>
                             <TableCell>
                               <div className="flex space-x-2">
@@ -915,7 +958,9 @@ export default function AdminShippingManagement() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => handleOpenDeleteRuleDialog(rule.id)}
+                                  onClick={() =>
+                                    handleOpenDeleteRuleDialog(rule.id)
+                                  }
                                   className="text-red-500 hover:text-red-700 hover:bg-red-50"
                                 >
                                   <Trash2 className="h-4 w-4" />
@@ -933,9 +978,10 @@ export default function AdminShippingManagement() {
                     <Settings className="h-8 w-8 mx-auto text-muted-foreground" />
                     <h3 className="mt-4 font-medium">No Shipping Rules</h3>
                     <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-                      You haven't created any shipping rules yet. Rules connect methods to zones with specific pricing.
+                      You haven't created any shipping rules yet. Rules connect
+                      methods to zones with specific pricing.
                     </p>
-                    <Button 
+                    <Button
                       onClick={() => handleOpenRuleDialog()}
                       className="mt-4 flex items-center gap-2"
                       variant="outline"
@@ -955,7 +1001,9 @@ export default function AdminShippingManagement() {
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>
-                {selectedMethod ? "Edit Shipping Method" : "Add Shipping Method"}
+                {selectedMethod
+                  ? "Edit Shipping Method"
+                  : "Add Shipping Method"}
               </DialogTitle>
               <DialogDescription>
                 {selectedMethod
@@ -964,7 +1012,10 @@ export default function AdminShippingManagement() {
               </DialogDescription>
             </DialogHeader>
             <Form {...methodForm}>
-              <form onSubmit={methodForm.handleSubmit(onSubmitMethod)} className="space-y-4">
+              <form
+                onSubmit={methodForm.handleSubmit(onSubmitMethod)}
+                className="space-y-4"
+              >
                 <FormField
                   control={methodForm.control}
                   name="name"
@@ -972,7 +1023,10 @@ export default function AdminShippingManagement() {
                     <FormItem>
                       <FormLabel>Method Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., Standard Shipping" {...field} />
+                        <Input
+                          placeholder="e.g., Standard Shipping"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -985,7 +1039,10 @@ export default function AdminShippingManagement() {
                     <FormItem>
                       <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Input placeholder="Brief description of the shipping method" {...field} />
+                        <Input
+                          placeholder="Brief description of the shipping method"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1014,7 +1071,10 @@ export default function AdminShippingManagement() {
                     <FormItem>
                       <FormLabel>Estimated Delivery Time</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., 3-5 business days" {...field} />
+                        <Input
+                          placeholder="e.g., 3-5 business days"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1030,7 +1090,8 @@ export default function AdminShippingManagement() {
                         <Input type="number" min="0" step="1" {...field} />
                       </FormControl>
                       <FormDescription>
-                        Higher numbers will appear first in the list (0 = lowest priority)
+                        Higher numbers will appear first in the list (0 = lowest
+                        priority)
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -1064,7 +1125,10 @@ export default function AdminShippingManagement() {
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={shippingMethodMutation.isPending}>
+                  <Button
+                    type="submit"
+                    disabled={shippingMethodMutation.isPending}
+                  >
                     {shippingMethodMutation.isPending && (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     )}
@@ -1090,7 +1154,10 @@ export default function AdminShippingManagement() {
               </DialogDescription>
             </DialogHeader>
             <Form {...zoneForm}>
-              <form onSubmit={zoneForm.handleSubmit(onSubmitZone)} className="space-y-4">
+              <form
+                onSubmit={zoneForm.handleSubmit(onSubmitZone)}
+                className="space-y-4"
+              >
                 <FormField
                   control={zoneForm.control}
                   name="name"
@@ -1111,7 +1178,10 @@ export default function AdminShippingManagement() {
                     <FormItem>
                       <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Input placeholder="Brief description of the zone" {...field} />
+                        <Input
+                          placeholder="Brief description of the zone"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1131,7 +1201,8 @@ export default function AdminShippingManagement() {
                         />
                       </FormControl>
                       <FormDescription>
-                        Enter regions, states, or pincode ranges covered by this zone, separated by commas or line breaks
+                        Enter regions, states, or pincode ranges covered by this
+                        zone, separated by commas or line breaks
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -1145,7 +1216,8 @@ export default function AdminShippingManagement() {
                       <div className="space-y-0.5">
                         <FormLabel className="text-base">Active</FormLabel>
                         <FormDescription>
-                          Inactive zones will not be used for shipping calculations
+                          Inactive zones will not be used for shipping
+                          calculations
                         </FormDescription>
                       </div>
                       <FormControl>
@@ -1165,7 +1237,10 @@ export default function AdminShippingManagement() {
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={shippingZoneMutation.isPending}>
+                  <Button
+                    type="submit"
+                    disabled={shippingZoneMutation.isPending}
+                  >
                     {shippingZoneMutation.isPending && (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     )}
@@ -1191,7 +1266,10 @@ export default function AdminShippingManagement() {
               </DialogDescription>
             </DialogHeader>
             <Form {...ruleForm}>
-              <form onSubmit={ruleForm.handleSubmit(onSubmitRule)} className="space-y-4">
+              <form
+                onSubmit={ruleForm.handleSubmit(onSubmitRule)}
+                className="space-y-4"
+              >
                 <FormField
                   control={ruleForm.control}
                   name="methodId"
@@ -1199,8 +1277,12 @@ export default function AdminShippingManagement() {
                     <FormItem>
                       <FormLabel>Shipping Method</FormLabel>
                       <Select
-                        onValueChange={(value) => field.onChange(parseInt(value))}
-                        defaultValue={field.value > 0 ? field.value.toString() : undefined}
+                        onValueChange={(value) =>
+                          field.onChange(parseInt(value))
+                        }
+                        defaultValue={
+                          field.value > 0 ? field.value.toString() : undefined
+                        }
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -1209,7 +1291,10 @@ export default function AdminShippingManagement() {
                         </FormControl>
                         <SelectContent>
                           {shippingMethods?.map((method: any) => (
-                            <SelectItem key={method.id} value={method.id.toString()}>
+                            <SelectItem
+                              key={method.id}
+                              value={method.id.toString()}
+                            >
                               {method.name}
                             </SelectItem>
                           ))}
@@ -1226,8 +1311,12 @@ export default function AdminShippingManagement() {
                     <FormItem>
                       <FormLabel>Shipping Zone</FormLabel>
                       <Select
-                        onValueChange={(value) => field.onChange(parseInt(value))}
-                        defaultValue={field.value > 0 ? field.value.toString() : undefined}
+                        onValueChange={(value) =>
+                          field.onChange(parseInt(value))
+                        }
+                        defaultValue={
+                          field.value > 0 ? field.value.toString() : undefined
+                        }
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -1236,7 +1325,10 @@ export default function AdminShippingManagement() {
                         </FormControl>
                         <SelectContent>
                           {shippingZones?.map((zone: any) => (
-                            <SelectItem key={zone.id} value={zone.id.toString()}>
+                            <SelectItem
+                              key={zone.id}
+                              value={zone.id.toString()}
+                            >
                               {zone.name}
                             </SelectItem>
                           ))}
@@ -1256,7 +1348,8 @@ export default function AdminShippingManagement() {
                         <Input type="number" min="0" step="1" {...field} />
                       </FormControl>
                       <FormDescription>
-                        Override the base price of the shipping method for this zone
+                        Override the base price of the shipping method for this
+                        zone
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -1289,7 +1382,10 @@ export default function AdminShippingManagement() {
                             step="1"
                             value={field.value === undefined ? "" : field.value}
                             onChange={(e) => {
-                              const value = e.target.value === "" ? undefined : Number(e.target.value);
+                              const value =
+                                e.target.value === ""
+                                  ? undefined
+                                  : Number(e.target.value);
                               field.onChange(value);
                             }}
                           />
@@ -1309,7 +1405,8 @@ export default function AdminShippingManagement() {
                         <Input type="number" min="0" step="1" {...field} />
                       </FormControl>
                       <FormDescription>
-                        Extra days to add to the method's estimated delivery time for this zone
+                        Extra days to add to the method's estimated delivery
+                        time for this zone
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -1340,7 +1437,8 @@ export default function AdminShippingManagement() {
                       <div className="space-y-0.5">
                         <FormLabel className="text-base">Active</FormLabel>
                         <FormDescription>
-                          Inactive rules will not be used for shipping calculations
+                          Inactive rules will not be used for shipping
+                          calculations
                         </FormDescription>
                       </div>
                       <FormControl>
@@ -1360,7 +1458,10 @@ export default function AdminShippingManagement() {
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={shippingRuleMutation.isPending}>
+                  <Button
+                    type="submit"
+                    disabled={shippingRuleMutation.isPending}
+                  >
                     {shippingRuleMutation.isPending && (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     )}
@@ -1373,18 +1474,23 @@ export default function AdminShippingManagement() {
         </Dialog>
 
         {/* Confirmation Dialogs for Delete */}
-        <Dialog open={isMethodDeleteDialogOpen} onOpenChange={setIsMethodDeleteDialogOpen}>
+        <Dialog
+          open={isMethodDeleteDialogOpen}
+          onOpenChange={setIsMethodDeleteDialogOpen}
+        >
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Delete Shipping Method</DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete this shipping method? This action cannot be undone.
+                Are you sure you want to delete this shipping method? This
+                action cannot be undone.
               </DialogDescription>
             </DialogHeader>
             <div className="border rounded-md p-4 bg-red-50 text-red-700">
               <p className="text-sm">
                 <AlertCircle className="h-4 w-4 inline-block mr-2" />
-                Deleting a shipping method will also affect any shipping rules using this method.
+                Deleting a shipping method will also affect any shipping rules
+                using this method.
               </p>
             </div>
             <DialogFooter>
@@ -1396,7 +1502,9 @@ export default function AdminShippingManagement() {
               </Button>
               <Button
                 variant="destructive"
-                onClick={() => itemToDelete && deleteMethodMutation.mutate(itemToDelete)}
+                onClick={() =>
+                  itemToDelete && deleteMethodMutation.mutate(itemToDelete)
+                }
                 disabled={deleteMethodMutation.isPending}
               >
                 {deleteMethodMutation.isPending && (
@@ -1408,18 +1516,23 @@ export default function AdminShippingManagement() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={isZoneDeleteDialogOpen} onOpenChange={setIsZoneDeleteDialogOpen}>
+        <Dialog
+          open={isZoneDeleteDialogOpen}
+          onOpenChange={setIsZoneDeleteDialogOpen}
+        >
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Delete Shipping Zone</DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete this shipping zone? This action cannot be undone.
+                Are you sure you want to delete this shipping zone? This action
+                cannot be undone.
               </DialogDescription>
             </DialogHeader>
             <div className="border rounded-md p-4 bg-red-50 text-red-700">
               <p className="text-sm">
                 <AlertCircle className="h-4 w-4 inline-block mr-2" />
-                Deleting a shipping zone will also affect any shipping rules using this zone.
+                Deleting a shipping zone will also affect any shipping rules
+                using this zone.
               </p>
             </div>
             <DialogFooter>
@@ -1431,7 +1544,9 @@ export default function AdminShippingManagement() {
               </Button>
               <Button
                 variant="destructive"
-                onClick={() => itemToDelete && deleteZoneMutation.mutate(itemToDelete)}
+                onClick={() =>
+                  itemToDelete && deleteZoneMutation.mutate(itemToDelete)
+                }
                 disabled={deleteZoneMutation.isPending}
               >
                 {deleteZoneMutation.isPending && (
@@ -1443,12 +1558,16 @@ export default function AdminShippingManagement() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={isRuleDeleteDialogOpen} onOpenChange={setIsRuleDeleteDialogOpen}>
+        <Dialog
+          open={isRuleDeleteDialogOpen}
+          onOpenChange={setIsRuleDeleteDialogOpen}
+        >
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Delete Shipping Rule</DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete this shipping rule? This action cannot be undone.
+                Are you sure you want to delete this shipping rule? This action
+                cannot be undone.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
@@ -1460,7 +1579,9 @@ export default function AdminShippingManagement() {
               </Button>
               <Button
                 variant="destructive"
-                onClick={() => itemToDelete && deleteRuleMutation.mutate(itemToDelete)}
+                onClick={() =>
+                  itemToDelete && deleteRuleMutation.mutate(itemToDelete)
+                }
                 disabled={deleteRuleMutation.isPending}
               >
                 {deleteRuleMutation.isPending && (
