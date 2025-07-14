@@ -258,8 +258,8 @@ const PendingShipments = () => {
         title: errorMessage.includes("Token")
           ? "Authentication Error"
           : errorMessage.includes("Permission")
-          ? "Permission Error"
-          : "Error Shipping Order",
+            ? "Permission Error"
+            : "Error Shipping Order",
         description: errorMessage,
         variant: "destructive",
       });
@@ -331,9 +331,9 @@ const PendingShipments = () => {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
-          <CardTitle className="text-xl flex items-center gap-2">
+          <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
             <TruckIcon className="h-5 w-5" />
             Pending Shipments
           </CardTitle>
@@ -341,12 +341,12 @@ const PendingShipments = () => {
             Orders that are ready to be shipped with Shiprocket
           </CardDescription>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
           <Button
             variant="outline"
             size="sm"
             onClick={() => refetchOrders()}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 w-full sm:w-auto"
           >
             <RefreshCw className="h-4 w-4" /> Refresh
           </Button>

@@ -1,8 +1,14 @@
-import React from 'react';
-import { AdminLayout } from '@/components/layout/admin-layout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from '@/components/ui/button';
-import { 
+import React from "react";
+import { AdminLayout } from "@/components/layout/admin-layout";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
   Table,
   TableBody,
   TableCell,
@@ -19,77 +25,73 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { 
-  Plus, 
-  DollarSign,
-  Edit,
-  Trash2,
-  GlobeIcon
-} from 'lucide-react';
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Plus, DollarSign, Edit, Trash2, GlobeIcon } from "lucide-react";
 
 const ShippingRatesPage = () => {
   // Sample data - in a real app, this would come from an API
   const shippingRates = [
-    { 
-      id: 1, 
-      name: 'Standard Shipping', 
-      zone: 'All India', 
-      minWeight: '0kg', 
-      maxWeight: '1kg', 
-      price: '₹80',
-      estimatedDelivery: '3-5 days',
-      active: true
+    {
+      id: 1,
+      name: "Standard Shipping",
+      zone: "All India",
+      minWeight: "0kg",
+      maxWeight: "1kg",
+      price: "₹80",
+      estimatedDelivery: "3-5 days",
+      active: true,
     },
-    { 
-      id: 2, 
-      name: 'Standard Shipping', 
-      zone: 'All India', 
-      minWeight: '1kg', 
-      maxWeight: '5kg', 
-      price: '₹120',
-      estimatedDelivery: '3-5 days',
-      active: true
+    {
+      id: 2,
+      name: "Standard Shipping",
+      zone: "All India",
+      minWeight: "1kg",
+      maxWeight: "5kg",
+      price: "₹120",
+      estimatedDelivery: "3-5 days",
+      active: true,
     },
-    { 
-      id: 3, 
-      name: 'Express Shipping', 
-      zone: 'Metro Cities', 
-      minWeight: '0kg', 
-      maxWeight: '2kg', 
-      price: '₹150',
-      estimatedDelivery: '1-2 days',
-      active: true
+    {
+      id: 3,
+      name: "Express Shipping",
+      zone: "Metro Cities",
+      minWeight: "0kg",
+      maxWeight: "2kg",
+      price: "₹150",
+      estimatedDelivery: "1-2 days",
+      active: true,
     },
-    { 
-      id: 4, 
-      name: 'Express Shipping', 
-      zone: 'Metro Cities', 
-      minWeight: '2kg', 
-      maxWeight: '10kg', 
-      price: '₹250',
-      estimatedDelivery: '1-2 days',
-      active: true
+    {
+      id: 4,
+      name: "Express Shipping",
+      zone: "Metro Cities",
+      minWeight: "2kg",
+      maxWeight: "10kg",
+      price: "₹250",
+      estimatedDelivery: "1-2 days",
+      active: true,
     },
-    { 
-      id: 5, 
-      name: 'Economy Shipping', 
-      zone: 'Remote Areas', 
-      minWeight: '0kg', 
-      maxWeight: '2kg', 
-      price: '₹120',
-      estimatedDelivery: '5-7 days',
-      active: false
+    {
+      id: 5,
+      name: "Economy Shipping",
+      zone: "Remote Areas",
+      minWeight: "0kg",
+      maxWeight: "2kg",
+      price: "₹120",
+      estimatedDelivery: "5-7 days",
+      active: false,
     },
   ];
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Shipping Rates</h1>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+              Shipping Rates
+            </h1>
             <p className="text-muted-foreground">
               Manage shipping rates by zone and weight
             </p>
@@ -153,11 +155,7 @@ const ShippingRatesPage = () => {
                   <Label htmlFor="price" className="text-right">
                     Price
                   </Label>
-                  <Input
-                    id="price"
-                    placeholder="₹100"
-                    className="col-span-3"
-                  />
+                  <Input id="price" placeholder="₹100" className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="delivery" className="text-right">
@@ -182,7 +180,8 @@ const ShippingRatesPage = () => {
           <CardHeader>
             <CardTitle>Configured Shipping Rates</CardTitle>
             <CardDescription>
-              Rates automatically applied based on customer location and cart weight
+              Rates automatically applied based on customer location and cart
+              weight
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -208,7 +207,9 @@ const ShippingRatesPage = () => {
                         {rate.zone}
                       </div>
                     </TableCell>
-                    <TableCell>{rate.minWeight} - {rate.maxWeight}</TableCell>
+                    <TableCell>
+                      {rate.minWeight} - {rate.maxWeight}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center">
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -217,8 +218,10 @@ const ShippingRatesPage = () => {
                     </TableCell>
                     <TableCell>{rate.estimatedDelivery}</TableCell>
                     <TableCell>
-                      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${rate.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                        {rate.active ? 'Active' : 'Inactive'}
+                      <span
+                        className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${rate.active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}
+                      >
+                        {rate.active ? "Active" : "Inactive"}
                       </span>
                     </TableCell>
                     <TableCell>

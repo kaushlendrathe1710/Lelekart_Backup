@@ -37,29 +37,37 @@ export default function AdminDashboard() {
 
   // Calculate dashboard statistics
   const totalOrders = orders?.length || 0;
-  const pendingOrders = orders?.filter(order => order.status === "pending").length || 0;
-  const deliveredOrders = orders?.filter(order => order.status === "delivered").length || 0;
-  const totalRevenue = orders?.reduce((sum, order) => sum + order.total, 0) || 0;
-  
+  const pendingOrders =
+    orders?.filter((order) => order.status === "pending").length || 0;
+  const deliveredOrders =
+    orders?.filter((order) => order.status === "delivered").length || 0;
+  const totalRevenue =
+    orders?.reduce((sum, order) => sum + order.total, 0) || 0;
+
   // Calculate today's orders
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const todayOrders = orders?.filter(order => {
-    const orderDate = new Date(order.date);
-    orderDate.setHours(0, 0, 0, 0);
-    return orderDate.getTime() === today.getTime();
-  }).length || 0;
-  
+  const todayOrders =
+    orders?.filter((order) => {
+      const orderDate = new Date(order.date);
+      orderDate.setHours(0, 0, 0, 0);
+      return orderDate.getTime() === today.getTime();
+    }).length || 0;
+
   // Calculate product statistics
   const totalProducts = products?.length || 0;
-  const totalCategories = [...new Set(products?.map(p => p.category) || [])].length;
-  const lowStockProducts = products?.filter(p => (p.stock || 0) < 10).length || 0;
-  
+  const totalCategories = [...new Set(products?.map((p) => p.category) || [])]
+    .length;
+  const lowStockProducts =
+    products?.filter((p) => (p.stock || 0) < 10).length || 0;
+
   // Calculate average order value
-  const averageOrderValue = totalOrders ? (totalRevenue / totalOrders).toFixed(2) : "0.00";
+  const averageOrderValue = totalOrders
+    ? (totalRevenue / totalOrders).toFixed(2)
+    : "0.00";
 
   // Recent orders for quick view
-  const recentOrders = orders?.slice(0, 5).map(order => ({
+  const recentOrders = orders?.slice(0, 5).map((order) => ({
     id: order.id,
     date: new Date(order.date).toLocaleDateString(),
     status: order.status,
@@ -69,9 +77,9 @@ export default function AdminDashboard() {
 
   // Format currency
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
       maximumFractionDigits: 0,
     }).format(amount);
   };
@@ -118,7 +126,7 @@ export default function AdminDashboard() {
           </div>
 
           <TabsContent value="day" className="space-y-6 mt-4">
-            <StatCards 
+            <StatCards
               isLoading={ordersLoading || productsLoading || usersLoading}
               stats={{
                 totalOrders,
@@ -133,9 +141,9 @@ export default function AdminDashboard() {
               formatCurrency={formatCurrency}
             />
           </TabsContent>
-          
+
           <TabsContent value="week" className="space-y-6 mt-4">
-            <StatCards 
+            <StatCards
               isLoading={ordersLoading || productsLoading || usersLoading}
               stats={{
                 totalOrders,
@@ -150,9 +158,9 @@ export default function AdminDashboard() {
               formatCurrency={formatCurrency}
             />
           </TabsContent>
-          
+
           <TabsContent value="month" className="space-y-6 mt-4">
-            <StatCards 
+            <StatCards
               isLoading={ordersLoading || productsLoading || usersLoading}
               stats={{
                 totalOrders,
@@ -167,9 +175,9 @@ export default function AdminDashboard() {
               formatCurrency={formatCurrency}
             />
           </TabsContent>
-          
+
           <TabsContent value="year" className="space-y-6 mt-4">
-            <StatCards 
+            <StatCards
               isLoading={ordersLoading || productsLoading || usersLoading}
               stats={{
                 totalOrders,
@@ -227,12 +235,15 @@ export default function AdminDashboard() {
               </div>
             </Link>
           </div>
-          
+
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             {ordersLoading ? (
               <div className="p-4 space-y-4">
                 {[...Array(5)].map((_, i) => (
-                  <div key={i} className="flex justify-between items-center py-2">
+                  <div
+                    key={i}
+                    className="flex justify-between items-center py-2"
+                  >
                     <div className="flex items-center space-x-4">
                       <Skeleton className="h-10 w-10 rounded-full" />
                       <div className="space-y-2">
@@ -247,13 +258,20 @@ export default function AdminDashboard() {
             ) : recentOrders && recentOrders.length > 0 ? (
               <div className="divide-y">
                 {recentOrders.map((order) => (
-                  <div key={order.id} className="flex justify-between items-center p-4 hover:bg-gray-50">
+                  <div
+                    key={order.id}
+                    className="flex justify-between items-center p-4 hover:bg-gray-50"
+                  >
                     <div>
                       <div className="font-medium">Order #{order.id}</div>
-                      <div className="text-sm text-gray-500">{order.customer} • {order.date}</div>
+                      <div className="text-sm text-gray-500">
+                        {order.customer} • {order.date}
+                      </div>
                     </div>
                     <div className="flex items-center">
-                      <div className="mr-4 font-medium">{formatCurrency(order.total)}</div>
+                      <div className="mr-4 font-medium">
+                        {formatCurrency(order.total)}
+                      </div>
                       <StatusBadge status={order.status} />
                     </div>
                   </div>
@@ -278,8 +296,8 @@ export default function AdminDashboard() {
 function StatusBadge({ status }: { status: string }) {
   let color = "";
   let text = status;
-  
-  switch(status) {
+
+  switch (status) {
     case "pending":
       color = "bg-yellow-100 text-yellow-800";
       text = "Pending";
@@ -303,9 +321,11 @@ function StatusBadge({ status }: { status: string }) {
     default:
       color = "bg-gray-100 text-gray-800";
   }
-  
+
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${color}`}>
+    <span
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${color}`}
+    >
       {text}
     </span>
   );
@@ -322,7 +342,7 @@ function StatCards({ isLoading, stats, formatCurrency }: any) {
       </div>
     );
   }
-  
+
   const {
     totalOrders,
     pendingOrders,
@@ -333,7 +353,7 @@ function StatCards({ isLoading, stats, formatCurrency }: any) {
     totalCategories,
     lowStockProducts,
   } = stats;
-  
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <Card>
@@ -342,13 +362,15 @@ function StatCards({ isLoading, stats, formatCurrency }: any) {
           <DollarSign className="h-4 w-4 text-gray-500" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
+          <div className="text-2xl font-bold">
+            {formatCurrency(totalRevenue)}
+          </div>
           <p className="text-xs text-muted-foreground">
             {totalOrders} orders total
           </p>
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium">Orders</CardTitle>
@@ -361,7 +383,7 @@ function StatCards({ isLoading, stats, formatCurrency }: any) {
           </p>
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium">Products</CardTitle>
@@ -374,7 +396,7 @@ function StatCards({ isLoading, stats, formatCurrency }: any) {
           </p>
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium">Sales Today</CardTitle>
