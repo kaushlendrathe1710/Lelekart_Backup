@@ -83,7 +83,25 @@ const SellerProfilePage = () => {
   // UI state and utilities
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("business-details");
+
+  // Read tab from query string for initial tab selection
+  const getInitialTab = () => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab");
+      if (
+        tab === "banking" ||
+        tab === "business-details" ||
+        tab === "documents" ||
+        tab === "performance" ||
+        tab === "compliance"
+      ) {
+        return tab;
+      }
+    }
+    return "business-details";
+  };
+  const [activeTab, setActiveTab] = useState(getInitialTab());
 
   // Modal states
   const [isUploadDocumentOpen, setIsUploadDocumentOpen] = useState(false);
@@ -556,12 +574,16 @@ const SellerProfilePage = () => {
                       <Upload className="h-6 w-6 text-white" />
                     )}
                   </div>
+                  <label htmlFor="profile-image-upload" className="sr-only">
+                    Upload profile image
+                  </label>
                   <input
                     type="file"
                     id="profile-image-upload"
                     className="hidden"
                     accept="image/*"
                     onChange={handleProfileImageChange}
+                    title="Upload profile image"
                   />
                 </div>
                 <div>
