@@ -318,11 +318,14 @@ export default function AdminUsers() {
 
   // Count users by role
   const roleCounts =
-    users?.reduce((acc, user) => {
-      const role = user.role || "unknown";
-      acc[role] = (acc[role] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>) || {};
+    users?.reduce(
+      (acc, user) => {
+        const role = user.role || "unknown";
+        acc[role] = (acc[role] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    ) || {};
 
   // Loading state for role stats
   const RoleStatsLoading = () => (
@@ -392,10 +395,12 @@ export default function AdminUsers() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6 px-2 sm:px-4 lg:px-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">User Management</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-lg sm:text-xl lg:text-2xl font-bold tracking-tight">
+            User Management
+          </h1>
+          <p className="text-muted-foreground text-xs sm:text-sm lg:text-base">
             Manage users and their roles in your store
           </p>
         </div>
@@ -404,33 +409,39 @@ export default function AdminUsers() {
         {isLoading ? (
           <RoleStatsLoading />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 lg:gap-4">
             <Card className="bg-white">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Admins</CardTitle>
+                <CardTitle className="text-xs sm:text-sm font-medium">
+                  Admins
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
+                <div className="text-base sm:text-lg lg:text-2xl font-bold">
                   {roleCounts["admin"] || 0}
                 </div>
               </CardContent>
             </Card>
             <Card className="bg-white">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Sellers</CardTitle>
+                <CardTitle className="text-xs sm:text-sm font-medium">
+                  Sellers
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
+                <div className="text-base sm:text-lg lg:text-2xl font-bold">
                   {roleCounts["seller"] || 0}
                 </div>
               </CardContent>
             </Card>
             <Card className="bg-white">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Buyers</CardTitle>
+                <CardTitle className="text-xs sm:text-sm font-medium">
+                  Buyers
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
+                <div className="text-base sm:text-lg lg:text-2xl font-bold">
                   {roleCounts["buyer"] || 0}
                 </div>
               </CardContent>
@@ -442,77 +453,104 @@ export default function AdminUsers() {
         {isLoading ? (
           <UsersTableLoading />
         ) : (
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="space-y-3 sm:space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
               <div className="relative w-full sm:w-64">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-2 sm:left-2.5 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                 <Input
                   type="search"
                   placeholder="Search users..."
-                  className="pl-8 w-full"
+                  className="pl-6 sm:pl-8 w-full h-9 sm:h-10 text-xs sm:text-sm"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => refetch()}
                   disabled={isLoading}
+                  className="text-xs sm:text-sm h-9 sm:h-10"
                 >
                   {isLoading ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
                   ) : (
-                    <RefreshCw className="mr-2 h-4 w-4" />
+                    <RefreshCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                   )}
-                  Refresh
+                  <span className="hidden sm:inline">Refresh</span>
                 </Button>
                 <Link href="/admin/create-user">
-                  <Button size="sm">
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    Add User
+                  <Button size="sm" className="text-xs sm:text-sm h-9 sm:h-10">
+                    <UserPlus className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="hidden sm:inline">Add User</span>
+                    <span className="sm:hidden">Add</span>
                   </Button>
                 </Link>
               </div>
             </div>
 
-            <div className="rounded-md border bg-white">
+            <div className="rounded-md border bg-white overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-20">ID</TableHead>
-                    <TableHead>Username</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="w-12 sm:w-16 lg:w-20 text-xs sm:text-sm">
+                      ID
+                    </TableHead>
+                    <TableHead className="text-xs sm:text-sm">
+                      Username
+                    </TableHead>
+                    <TableHead className="hidden sm:table-cell text-xs sm:text-sm">
+                      Email
+                    </TableHead>
+                    <TableHead className="hidden sm:table-cell text-xs sm:text-sm">
+                      Name
+                    </TableHead>
+                    <TableHead className="text-xs sm:text-sm">Role</TableHead>
+                    <TableHead className="text-right text-xs sm:text-sm">
+                      Actions
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredUsers?.length ? (
                     filteredUsers.map((user) => (
                       <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.id}</TableCell>
-                        <TableCell>{user.username}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>{user.name || "Not provided"}</TableCell>
+                        <TableCell className="font-medium text-xs sm:text-sm">
+                          {user.id}
+                        </TableCell>
+                        <TableCell>
+                          <div className="max-w-[100px] sm:max-w-[120px] lg:max-w-[200px]">
+                            <div className="font-medium truncate text-xs sm:text-sm">
+                              {user.username}
+                            </div>
+                            <div className="text-xs text-muted-foreground sm:hidden">
+                              {user.email}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell text-xs sm:text-sm">
+                          {user.email}
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell text-xs sm:text-sm">
+                          {user.name || "Not provided"}
+                        </TableCell>
                         <TableCell>
                           <Badge
-                            className={`${
+                            className={`text-xs ${
                               user.role === "admin"
                                 ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
                                 : user.role === "seller"
-                                ? "bg-purple-100 text-purple-800 hover:bg-purple-100"
-                                : "bg-green-100 text-green-800 hover:bg-green-100"
+                                  ? "bg-purple-100 text-purple-800 hover:bg-purple-100"
+                                  : "bg-green-100 text-green-800 hover:bg-green-100"
                             }`}
                           >
                             {user.role}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
+                          <div className="flex items-center justify-end gap-1 sm:gap-2">
                             <Select
                               value={user.role}
                               onValueChange={(value) =>
@@ -520,7 +558,7 @@ export default function AdminUsers() {
                               }
                               disabled={updateRoleMutation.isPending}
                             >
-                              <SelectTrigger className="w-28 h-8">
+                              <SelectTrigger className="w-20 sm:w-28 h-8 text-xs">
                                 <SelectValue placeholder="Change role" />
                               </SelectTrigger>
                               <SelectContent>
@@ -576,8 +614,8 @@ export default function AdminUsers() {
                         {isError
                           ? "Error loading users. Try refreshing."
                           : search
-                          ? "No users match your search."
-                          : "No users found."}
+                            ? "No users match your search."
+                            : "No users found."}
                       </TableCell>
                     </TableRow>
                   )}

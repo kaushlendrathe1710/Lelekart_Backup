@@ -507,9 +507,9 @@ export default function CategoryManagement() {
 
   return (
     <AdminLayout>
-      <div className="container px-4 md:px-6 py-4 md:py-6">
+      <div className="container px-2 sm:px-4 md:px-6 py-4 md:py-6 max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <h1 className="text-xl md:text-2xl font-bold">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold">
             Integrated Category Management
           </h1>
           <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
@@ -552,7 +552,7 @@ export default function CategoryManagement() {
                   >
                     <CardHeader className="px-4 md:px-6 pb-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div className="min-w-0 flex-1">
-                        <CardTitle className="text-lg md:text-xl flex flex-wrap items-center gap-2">
+                        <CardTitle className="text-base sm:text-lg md:text-xl flex flex-wrap items-center gap-2">
                           <span className="truncate">{category.name}</span>
                           {category.featured && (
                             <span className="px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800 rounded-full flex-shrink-0">
@@ -566,7 +566,7 @@ export default function CategoryManagement() {
                           )}
                         </CardTitle>
                         {category.description && (
-                          <CardDescription className="mt-1 text-sm">
+                          <CardDescription className="mt-1 text-xs sm:text-sm">
                             {category.description}
                           </CardDescription>
                         )}
@@ -589,7 +589,7 @@ export default function CategoryManagement() {
                       </div>
                     </CardHeader>
                     <CardContent className="px-4 md:px-6">
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-xs sm:text-sm text-muted-foreground">
                         Slug: {category.slug}
                       </div>
 
@@ -605,7 +605,7 @@ export default function CategoryManagement() {
                         onValueChange={(value) => setExpandedCategory(value)}
                       >
                         <AccordionItem value={category.id.toString()}>
-                          <AccordionTrigger className="text-sm font-medium">
+                          <AccordionTrigger className="text-xs sm:text-sm font-medium">
                             Subcategories (
                             {getSubcategoriesForCategory(category.id).length})
                           </AccordionTrigger>
@@ -648,10 +648,10 @@ export default function CategoryManagement() {
 
           <TabsContent value="subcategories">
             <Card>
-              <CardContent className="p-4 md:p-6">
+              <CardContent className="p-2 sm:p-4 md:p-6">
                 {/* Desktop Table */}
-                <div className="hidden md:block">
-                  <Table>
+                <div className="hidden md:block overflow-x-auto">
+                  <Table className="min-w-[600px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead>Name</TableHead>
@@ -823,371 +823,375 @@ export default function CategoryManagement() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Add/Edit Category Dialog */}
+        <Dialog open={isAddCategoryOpen} onOpenChange={setIsAddCategoryOpen}>
+          <DialogContent className="max-w-md w-full">
+            <DialogHeader>
+              <DialogTitle>
+                {editingCategory ? "Edit Category" : "Add New Category"}
+              </DialogTitle>
+              <DialogDescription>
+                {editingCategory
+                  ? "Edit the category details below"
+                  : "Fill in the details to create a new category"}
+              </DialogDescription>
+            </DialogHeader>
+
+            <Form {...categoryForm}>
+              <form
+                onSubmit={categoryForm.handleSubmit(onCategorySubmit)}
+                className="space-y-4 md:space-y-6"
+                id="category-form"
+              >
+                <FormField
+                  control={categoryForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name*</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Electronics" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={categoryForm.control}
+                  name="slug"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Slug</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g. electronics (leave empty to auto-generate)"
+                          {...field}
+                          value={field.value || ""}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={categoryForm.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Enter a description for this category"
+                          {...field}
+                          value={field.value || ""}
+                          rows={3}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="flex flex-col sm:flex-row sm:space-x-8 space-y-4 sm:space-y-0">
+                  <FormField
+                    control={categoryForm.control}
+                    name="active"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between space-x-2">
+                        <FormLabel>Active</FormLabel>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={categoryForm.control}
+                    name="featured"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between space-x-2">
+                        <FormLabel>Featured</FormLabel>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <DialogFooter className="flex flex-col sm:flex-row gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsAddCategoryOpen(false)}
+                    className="w-full sm:w-auto"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={
+                      createCategoryMutation.isPending ||
+                      updateCategoryMutation.isPending
+                    }
+                    className="w-full sm:w-auto"
+                  >
+                    {(createCategoryMutation.isPending ||
+                      updateCategoryMutation.isPending) && (
+                      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    )}
+                    {editingCategory ? "Update Category" : "Add Category"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add/Edit Subcategory Dialog */}
+        <Dialog
+          open={isAddSubcategoryOpen}
+          onOpenChange={setIsAddSubcategoryOpen}
+        >
+          <DialogContent className="max-w-md w-full">
+            <DialogHeader>
+              <DialogTitle>
+                {editingSubcategory
+                  ? "Edit Subcategory"
+                  : "Add New Subcategory"}
+              </DialogTitle>
+              <DialogDescription>
+                {editingSubcategory
+                  ? "Edit the subcategory details below"
+                  : "Fill in the details to create a new subcategory"}
+              </DialogDescription>
+            </DialogHeader>
+
+            <Form {...subcategoryForm}>
+              <form
+                onSubmit={subcategoryForm.handleSubmit(onSubcategorySubmit)}
+                className="space-y-4 md:space-y-6"
+              >
+                <FormField
+                  control={subcategoryForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name*</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Smartphones" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={subcategoryForm.control}
+                  name="categoryId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Parent Category*</FormLabel>
+                      <FormControl>
+                        <select
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          value={field.value}
+                          onChange={(e) =>
+                            field.onChange(parseInt(e.target.value))
+                          }
+                          title="Parent Category"
+                        >
+                          <option value="" disabled>
+                            Select a category
+                          </option>
+                          {categories &&
+                            categories.map((category) => (
+                              <option key={category.id} value={category.id}>
+                                {category.name}
+                              </option>
+                            ))}
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={subcategoryForm.control}
+                  name="slug"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Slug</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g. smartphones (leave empty to auto-generate)"
+                          {...field}
+                          value={field.value || ""}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={subcategoryForm.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Enter a description for this subcategory"
+                          {...field}
+                          value={field.value || ""}
+                          rows={3}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={subcategoryForm.control}
+                  name="displayOrder"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Display Order</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          {...field}
+                          onChange={(e) =>
+                            field.onChange(parseInt(e.target.value))
+                          }
+                          value={field.value}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="flex flex-col sm:flex-row sm:space-x-8 space-y-4 sm:space-y-0">
+                  <FormField
+                    control={subcategoryForm.control}
+                    name="active"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between space-x-2">
+                        <FormLabel>Active</FormLabel>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={subcategoryForm.control}
+                    name="featured"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between space-x-2">
+                        <FormLabel>Featured</FormLabel>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={subcategoryForm.control}
+                  name="parentId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Parent Subcategory (optional)</FormLabel>
+                      <FormControl>
+                        <select
+                          id="parent-subcategory-select"
+                          aria-label="Parent Subcategory"
+                          title="Parent Subcategory"
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          value={field.value}
+                          onChange={(e) =>
+                            field.onChange(
+                              e.target.value === ""
+                                ? null
+                                : parseInt(e.target.value)
+                            )
+                          }
+                        >
+                          <option value="">None (Top-level)</option>
+                          {allSubcategories
+                            ?.filter(
+                              (s) =>
+                                s.categoryId ===
+                                  subcategoryForm.getValues("categoryId") &&
+                                s.id !== subcategoryForm.getValues("id")
+                            )
+                            .map((s) => (
+                              <option key={s.id} value={s.id}>
+                                {s.name}
+                              </option>
+                            ))}
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <DialogFooter className="flex flex-col sm:flex-row gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsAddSubcategoryOpen(false)}
+                    className="w-full sm:w-auto"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={
+                      createSubcategoryMutation.isPending ||
+                      updateSubcategoryMutation.isPending
+                    }
+                    className="w-full sm:w-auto"
+                  >
+                    {(createSubcategoryMutation.isPending ||
+                      updateSubcategoryMutation.isPending) && (
+                      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    )}
+                    {editingSubcategory
+                      ? "Update Subcategory"
+                      : "Add Subcategory"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
       </div>
-
-      {/* Add/Edit Category Dialog */}
-      <Dialog open={isAddCategoryOpen} onOpenChange={setIsAddCategoryOpen}>
-        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editingCategory ? "Edit Category" : "Add New Category"}
-            </DialogTitle>
-            <DialogDescription>
-              {editingCategory
-                ? "Edit the category details below"
-                : "Fill in the details to create a new category"}
-            </DialogDescription>
-          </DialogHeader>
-
-          <Form {...categoryForm}>
-            <form
-              onSubmit={categoryForm.handleSubmit(onCategorySubmit)}
-              className="space-y-4 md:space-y-6"
-            >
-              <FormField
-                control={categoryForm.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name*</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. Electronics" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={categoryForm.control}
-                name="slug"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Slug</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="e.g. electronics (leave empty to auto-generate)"
-                        {...field}
-                        value={field.value || ""}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={categoryForm.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Enter a description for this category"
-                        {...field}
-                        value={field.value || ""}
-                        rows={3}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="flex flex-col sm:flex-row sm:space-x-8 space-y-4 sm:space-y-0">
-                <FormField
-                  control={categoryForm.control}
-                  name="active"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between space-x-2">
-                      <FormLabel>Active</FormLabel>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={categoryForm.control}
-                  name="featured"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between space-x-2">
-                      <FormLabel>Featured</FormLabel>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <DialogFooter className="flex flex-col sm:flex-row gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsAddCategoryOpen(false)}
-                  className="w-full sm:w-auto"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={
-                    createCategoryMutation.isPending ||
-                    updateCategoryMutation.isPending
-                  }
-                  className="w-full sm:w-auto"
-                >
-                  {(createCategoryMutation.isPending ||
-                    updateCategoryMutation.isPending) && (
-                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  )}
-                  {editingCategory ? "Update Category" : "Add Category"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add/Edit Subcategory Dialog */}
-      <Dialog
-        open={isAddSubcategoryOpen}
-        onOpenChange={setIsAddSubcategoryOpen}
-      >
-        <DialogContent className="max-w-lg w-full max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editingSubcategory ? "Edit Subcategory" : "Add New Subcategory"}
-            </DialogTitle>
-            <DialogDescription>
-              {editingSubcategory
-                ? "Edit the subcategory details below"
-                : "Fill in the details to create a new subcategory"}
-            </DialogDescription>
-          </DialogHeader>
-
-          <Form {...subcategoryForm}>
-            <form
-              onSubmit={subcategoryForm.handleSubmit(onSubcategorySubmit)}
-              className="space-y-4 md:space-y-6"
-            >
-              <FormField
-                control={subcategoryForm.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name*</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. Smartphones" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={subcategoryForm.control}
-                name="categoryId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Parent Category*</FormLabel>
-                    <FormControl>
-                      <select
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        value={field.value}
-                        onChange={(e) =>
-                          field.onChange(parseInt(e.target.value))
-                        }
-                      >
-                        <option value="" disabled>
-                          Select a category
-                        </option>
-                        {categories &&
-                          categories.map((category) => (
-                            <option key={category.id} value={category.id}>
-                              {category.name}
-                            </option>
-                          ))}
-                      </select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={subcategoryForm.control}
-                name="slug"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Slug</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="e.g. smartphones (leave empty to auto-generate)"
-                        {...field}
-                        value={field.value || ""}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={subcategoryForm.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Enter a description for this subcategory"
-                        {...field}
-                        value={field.value || ""}
-                        rows={3}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={subcategoryForm.control}
-                name="displayOrder"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Display Order</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min="0"
-                        {...field}
-                        onChange={(e) =>
-                          field.onChange(parseInt(e.target.value))
-                        }
-                        value={field.value}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="flex flex-col sm:flex-row sm:space-x-8 space-y-4 sm:space-y-0">
-                <FormField
-                  control={subcategoryForm.control}
-                  name="active"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between space-x-2">
-                      <FormLabel>Active</FormLabel>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={subcategoryForm.control}
-                  name="featured"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between space-x-2">
-                      <FormLabel>Featured</FormLabel>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={subcategoryForm.control}
-                name="parentId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Parent Subcategory (optional)</FormLabel>
-                    <FormControl>
-                      <select
-                        id="parent-subcategory-select"
-                        aria-label="Parent Subcategory"
-                        title="Parent Subcategory"
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        value={field.value}
-                        onChange={(e) =>
-                          field.onChange(
-                            e.target.value === ""
-                              ? null
-                              : parseInt(e.target.value)
-                          )
-                        }
-                      >
-                        <option value="">None (Top-level)</option>
-                        {allSubcategories
-                          ?.filter(
-                            (s) =>
-                              s.categoryId ===
-                                subcategoryForm.getValues("categoryId") &&
-                              s.id !== subcategoryForm.getValues("id")
-                          )
-                          .map((s) => (
-                            <option key={s.id} value={s.id}>
-                              {s.name}
-                            </option>
-                          ))}
-                      </select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <DialogFooter className="flex flex-col sm:flex-row gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsAddSubcategoryOpen(false)}
-                  className="w-full sm:w-auto"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={
-                    createSubcategoryMutation.isPending ||
-                    updateSubcategoryMutation.isPending
-                  }
-                  className="w-full sm:w-auto"
-                >
-                  {(createSubcategoryMutation.isPending ||
-                    updateSubcategoryMutation.isPending) && (
-                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  )}
-                  {editingSubcategory
-                    ? "Update Subcategory"
-                    : "Add Subcategory"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
     </AdminLayout>
   );
 }
