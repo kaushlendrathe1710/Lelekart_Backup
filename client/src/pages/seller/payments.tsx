@@ -145,8 +145,14 @@ export default function SellerPaymentsPage() {
     dateEnd: "",
   });
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
-  const [payoutSchedule, setPayoutSchedule] = useState<{cycle: string; day: string}>({ cycle: "Weekly", day: "Monday" });
-  const [tempSchedule, setTempSchedule] = useState<{cycle: string; day: string}>(payoutSchedule);
+  const [payoutSchedule, setPayoutSchedule] = useState<{
+    cycle: string;
+    day: string;
+  }>({ cycle: "Weekly", day: "Monday" });
+  const [tempSchedule, setTempSchedule] = useState<{
+    cycle: string;
+    day: string;
+  }>(payoutSchedule);
   const [showFilters, setShowFilters] = useState(false);
 
   // Fetch payments summary
@@ -207,7 +213,9 @@ export default function SellerPaymentsPage() {
     <SellerDashboardLayout>
       <div className="container mx-auto py-4 md:py-6 px-4 md:px-0">
         <div className="mb-4 md:mb-6">
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Payments</h1>
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight">
+            Payments
+          </h1>
           <p className="text-sm md:text-base text-muted-foreground">
             View and manage your payment transactions
           </p>
@@ -258,7 +266,11 @@ export default function SellerPaymentsPage() {
               </p>
             </CardContent>
             <CardFooter className="pt-0">
-              <Button variant="outline" size="sm" className="w-full text-xs md:text-sm">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full text-xs md:text-sm"
+              >
                 Withdraw Funds
               </Button>
             </CardFooter>
@@ -324,7 +336,9 @@ export default function SellerPaymentsPage() {
           {/* Next Payout */}
           <Card>
             <CardHeader className="pb-2 md:pb-3">
-              <CardTitle className="text-xs md:text-sm font-medium">Next Payout</CardTitle>
+              <CardTitle className="text-xs md:text-sm font-medium">
+                Next Payout
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-lg md:text-2xl font-bold">
@@ -368,12 +382,18 @@ export default function SellerPaymentsPage() {
                   <Filter className="h-4 w-4 mr-2" />
                   Filters & Search
                 </span>
-                {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                {showFilters ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
               </Button>
             </div>
 
             {/* Search and Filters */}
-            <div className={`${showFilters ? 'block' : 'hidden'} md:flex flex-col sm:flex-row justify-between gap-3 md:gap-4`}>
+            <div
+              className={`${showFilters ? "block" : "hidden"} md:flex flex-col sm:flex-row justify-between gap-3 md:gap-4`}
+            >
               <div className="flex flex-col sm:flex-row gap-2 md:gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -467,11 +487,21 @@ export default function SellerPaymentsPage() {
           >
             <div className="overflow-x-auto">
               <TabsList className="mb-4 min-w-max">
-                <TabsTrigger value="all" className="text-xs md:text-sm">All Transactions</TabsTrigger>
-                <TabsTrigger value="pending" className="text-xs md:text-sm">Pending</TabsTrigger>
-                <TabsTrigger value="processing" className="text-xs md:text-sm">Processing</TabsTrigger>
-                <TabsTrigger value="paid" className="text-xs md:text-sm">Paid</TabsTrigger>
-                <TabsTrigger value="failed" className="text-xs md:text-sm">Failed</TabsTrigger>
+                <TabsTrigger value="all" className="text-xs md:text-sm">
+                  All Transactions
+                </TabsTrigger>
+                <TabsTrigger value="pending" className="text-xs md:text-sm">
+                  Pending
+                </TabsTrigger>
+                <TabsTrigger value="processing" className="text-xs md:text-sm">
+                  Processing
+                </TabsTrigger>
+                <TabsTrigger value="paid" className="text-xs md:text-sm">
+                  Paid
+                </TabsTrigger>
+                <TabsTrigger value="failed" className="text-xs md:text-sm">
+                  Failed
+                </TabsTrigger>
               </TabsList>
             </div>
 
@@ -641,7 +671,9 @@ export default function SellerPaymentsPage() {
                         <div className="text-right">
                           <span
                             className={`text-sm font-semibold ${
-                              payment.amount < 0 ? "text-red-600" : "text-green-600"
+                              payment.amount < 0
+                                ? "text-red-600"
+                                : "text-green-600"
                             }`}
                           >
                             {payment.amount < 0 ? "-" : "+"}
@@ -653,7 +685,9 @@ export default function SellerPaymentsPage() {
                     <CardContent className="pt-0">
                       <div className="space-y-3">
                         <div className="flex justify-between items-center">
-                          <span className="text-xs text-muted-foreground">Type:</span>
+                          <span className="text-xs text-muted-foreground">
+                            Type:
+                          </span>
                           <div>
                             {payment.type === "payout" ? (
                               <Badge
@@ -670,17 +704,25 @@ export default function SellerPaymentsPage() {
                                 Order
                               </Badge>
                             ) : (
-                              <Badge variant="outline" className="text-xs">{payment.type}</Badge>
+                              <Badge variant="outline" className="text-xs">
+                                {payment.type}
+                              </Badge>
                             )}
                           </div>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-xs text-muted-foreground">Status:</span>
+                          <span className="text-xs text-muted-foreground">
+                            Status:
+                          </span>
                           <div>{getStatusBadge(payment.status)}</div>
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-xs text-muted-foreground mb-1">Description:</span>
-                          <p className="text-sm text-gray-900">{payment.description}</p>
+                          <span className="text-xs text-muted-foreground mb-1">
+                            Description:
+                          </span>
+                          <p className="text-sm text-gray-900">
+                            {payment.description}
+                          </p>
                         </div>
                       </div>
                     </CardContent>
@@ -695,14 +737,23 @@ export default function SellerPaymentsPage() {
                           <Eye className="h-3 w-3 mr-1" />
                           View Details
                         </Button>
-                        {payment.type === "payout" && payment.status === "paid" && (
-                          <Button variant="outline" size="sm" className="flex-1 text-xs">
-                            <FileText className="h-3 w-3 mr-1" />
-                            Receipt
-                          </Button>
-                        )}
+                        {payment.type === "payout" &&
+                          payment.status === "paid" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 text-xs"
+                            >
+                              <FileText className="h-3 w-3 mr-1" />
+                              Receipt
+                            </Button>
+                          )}
                         {payment.status === "failed" && (
-                          <Button variant="outline" size="sm" className="flex-1 text-xs text-red-600">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 text-xs text-red-600"
+                          >
                             <AlertCircle className="h-3 w-3 mr-1" />
                             Issue
                           </Button>
@@ -720,12 +771,25 @@ export default function SellerPaymentsPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm md:text-base">Payout Schedule</CardTitle>
-              <CardDescription className="text-xs md:text-sm">When you'll receive your funds</CardDescription>
+              <CardTitle className="text-sm md:text-base">
+                Payout Schedule
+              </CardTitle>
+              <CardDescription className="text-xs md:text-sm">
+                When you'll receive your funds
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-xs md:text-sm text-muted-foreground mb-2">
-                Your current payout cycle is set to <span className="font-semibold">{payoutSchedule.cycle}</span>{payoutSchedule.cycle === "Weekly" ? <> on <span className="font-semibold">{payoutSchedule.day}</span></> : null}.
+                Your current payout cycle is set to{" "}
+                <span className="font-semibold">{payoutSchedule.cycle}</span>
+                {payoutSchedule.cycle === "Weekly" ? (
+                  <>
+                    {" "}
+                    on{" "}
+                    <span className="font-semibold">{payoutSchedule.day}</span>
+                  </>
+                ) : null}
+                .
               </p>
               <p className="text-xs md:text-sm text-muted-foreground">
                 Funds are typically processed within 1-2 business days after the
@@ -733,7 +797,15 @@ export default function SellerPaymentsPage() {
               </p>
             </CardContent>
             <CardFooter>
-              <Button variant="outline" size="sm" onClick={() => { setTempSchedule(payoutSchedule); setShowScheduleDialog(true); }} className="text-xs md:text-sm">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setTempSchedule(payoutSchedule);
+                  setShowScheduleDialog(true);
+                }}
+                className="text-xs md:text-sm"
+              >
                 Change Schedule
               </Button>
             </CardFooter>
@@ -742,11 +814,14 @@ export default function SellerPaymentsPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-sm md:text-base">Need Help?</CardTitle>
-              <CardDescription className="text-xs md:text-sm">Get support with payments</CardDescription>
+              <CardDescription className="text-xs md:text-sm">
+                Get support with payments
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-xs md:text-sm text-muted-foreground mb-3">
-                Having issues with payments or need to understand the process better?
+                Having issues with payments or need to understand the process
+                better?
               </p>
               <div className="space-y-2">
                 <Button
@@ -773,12 +848,17 @@ export default function SellerPaymentsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm md:text-base">Payment Methods</CardTitle>
-              <CardDescription className="text-xs md:text-sm">How you receive payments</CardDescription>
+              <CardTitle className="text-sm md:text-base">
+                Payment Methods
+              </CardTitle>
+              <CardDescription className="text-xs md:text-sm">
+                How you receive payments
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-xs md:text-sm text-muted-foreground mb-3">
-                Currently supporting bank transfers and UPI payments for Indian sellers.
+                Currently supporting bank transfers and UPI payments for Indian
+                sellers.
               </p>
               <div className="space-y-2">
                 <div className="flex items-center text-xs md:text-sm">
@@ -792,7 +872,12 @@ export default function SellerPaymentsPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button variant="outline" size="sm" className="text-xs md:text-sm">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs md:text-sm"
+                onClick={() => navigate("/seller/profile?tab=banking")}
+              >
                 Update Payment Method
               </Button>
             </CardFooter>
@@ -1390,12 +1475,20 @@ export default function SellerPaymentsPage() {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Change Payout Schedule</DialogTitle>
-            <DialogDescription>Select your preferred payout cycle. This is a demo and will not save to backend.</DialogDescription>
+            <DialogDescription>
+              Select your preferred payout cycle. This is a demo and will not
+              save to backend.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
               <label className="text-sm font-medium">Payout Cycle</label>
-              <Select value={tempSchedule.cycle} onValueChange={v => setTempSchedule(s => ({ ...s, cycle: v }))}>
+              <Select
+                value={tempSchedule.cycle}
+                onValueChange={(v) =>
+                  setTempSchedule((s) => ({ ...s, cycle: v }))
+                }
+              >
                 <SelectTrigger className="mt-1">
                   <SelectValue />
                 </SelectTrigger>
@@ -1409,7 +1502,12 @@ export default function SellerPaymentsPage() {
             {tempSchedule.cycle === "Weekly" && (
               <div>
                 <label className="text-sm font-medium">Payout Day</label>
-                <Select value={tempSchedule.day} onValueChange={v => setTempSchedule(s => ({ ...s, day: v }))}>
+                <Select
+                  value={tempSchedule.day}
+                  onValueChange={(v) =>
+                    setTempSchedule((s) => ({ ...s, day: v }))
+                  }
+                >
                   <SelectTrigger className="mt-1">
                     <SelectValue />
                   </SelectTrigger>
@@ -1425,12 +1523,25 @@ export default function SellerPaymentsPage() {
             )}
           </div>
           <div className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" onClick={() => setShowScheduleDialog(false)}>Cancel</Button>
-            <Button onClick={() => {
-              setPayoutSchedule(tempSchedule);
-              setShowScheduleDialog(false);
-              toast({ title: "Payout schedule updated (demo)", description: `Now set to ${tempSchedule.cycle}${tempSchedule.cycle === "Weekly" ? ` on ${tempSchedule.day}` : ''}.`, duration: 2500 });
-            }}>Save</Button>
+            <Button
+              variant="outline"
+              onClick={() => setShowScheduleDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                setPayoutSchedule(tempSchedule);
+                setShowScheduleDialog(false);
+                toast({
+                  title: "Payout schedule updated (demo)",
+                  description: `Now set to ${tempSchedule.cycle}${tempSchedule.cycle === "Weekly" ? ` on ${tempSchedule.day}` : ""}.`,
+                  duration: 2500,
+                });
+              }}
+            >
+              Save
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
