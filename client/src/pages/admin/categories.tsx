@@ -280,35 +280,40 @@ export default function AdminCategories() {
 
   return (
     <AdminLayout>
-      <div className="space-y-4 md:space-y-6 p-4 md:p-6">
+      <div className="space-y-4 sm:space-y-6 px-2 sm:px-4 lg:px-6">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight">
-            Categories
+          <h1 className="text-lg sm:text-xl lg:text-2xl font-bold tracking-tight">
+            Category Management
           </h1>
-          <p className="text-sm md:text-base text-muted-foreground">
-            Manage product categories that appear in the store
+          <p className="text-muted-foreground text-xs sm:text-sm lg:text-base">
+            Manage product categories and their display order
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {/* Categories List */}
-          <div className="lg:col-span-2">
+          <div>
             <Card>
-              <CardHeader>
-                <CardTitle>Category List</CardTitle>
-                <CardDescription>
+              <CardHeader className="pb-3 sm:pb-4">
+                <CardTitle className="text-base sm:text-lg lg:text-xl">
+                  Categories
+                </CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
                   All categories displayed in order of appearance
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {isLoading ? (
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     {[...Array(5)].map((_, index) => (
-                      <div key={index} className="flex items-center space-x-4">
-                        <Skeleton className="h-12 w-12 rounded" />
-                        <div className="space-y-2">
-                          <Skeleton className="h-4 w-40" />
-                          <Skeleton className="h-3 w-24" />
+                      <div
+                        key={index}
+                        className="flex items-center space-x-3 sm:space-x-4"
+                      >
+                        <Skeleton className="h-10 w-10 sm:h-12 sm:w-12 rounded" />
+                        <div className="space-y-1 sm:space-y-2">
+                          <Skeleton className="h-3 sm:h-4 w-32 sm:w-40" />
+                          <Skeleton className="h-2 sm:h-3 w-20 sm:w-24" />
                         </div>
                       </div>
                     ))}
@@ -320,11 +325,21 @@ export default function AdminCategories() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Image</TableHead>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Display Order</TableHead>
-                            <TableHead>GST Rate (%)</TableHead>
-                            <TableHead>Actions</TableHead>
+                            <TableHead className="text-xs sm:text-sm">
+                              Image
+                            </TableHead>
+                            <TableHead className="text-xs sm:text-sm">
+                              Name
+                            </TableHead>
+                            <TableHead className="text-xs sm:text-sm">
+                              Display Order
+                            </TableHead>
+                            <TableHead className="text-xs sm:text-sm">
+                              GST Rate (%)
+                            </TableHead>
+                            <TableHead className="text-xs sm:text-sm">
+                              Actions
+                            </TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -333,7 +348,7 @@ export default function AdminCategories() {
                             .map((category) => (
                               <TableRow key={category.id}>
                                 <TableCell>
-                                  <div className="h-12 w-12 overflow-hidden rounded border border-gray-200">
+                                  <div className="h-10 w-10 sm:h-12 sm:w-12 overflow-hidden rounded border border-gray-200">
                                     <img
                                       src={category.image}
                                       alt={category.name}
@@ -345,48 +360,53 @@ export default function AdminCategories() {
                                     />
                                   </div>
                                 </TableCell>
-                                <TableCell className="font-medium">
+                                <TableCell className="font-medium text-xs sm:text-sm">
                                   {category.name}
                                 </TableCell>
-                                <TableCell>{category.displayOrder}</TableCell>
-                                <TableCell>
+                                <TableCell className="text-xs sm:text-sm">
+                                  {category.displayOrder}
+                                </TableCell>
+                                <TableCell className="text-xs sm:text-sm">
                                   {category.gstRate
                                     ? `${Number(category.gstRate).toFixed(2)}%`
                                     : "0.00%"}
                                 </TableCell>
                                 <TableCell>
-                                  <div className="flex space-x-2">
+                                  <div className="flex space-x-1 sm:space-x-2">
                                     <Button
                                       size="icon"
                                       variant="ghost"
+                                      className="h-7 w-7 sm:h-8 sm:w-8"
                                       onClick={() => handleMoveUp(category)}
                                     >
-                                      <MoveUp className="h-4 w-4" />
+                                      <MoveUp className="h-3 w-3 sm:h-4 sm:w-4" />
                                       <span className="sr-only">Move up</span>
                                     </Button>
                                     <Button
                                       size="icon"
                                       variant="ghost"
+                                      className="h-7 w-7 sm:h-8 sm:w-8"
                                       onClick={() => handleMoveDown(category)}
                                     >
-                                      <MoveDown className="h-4 w-4" />
+                                      <MoveDown className="h-3 w-3 sm:h-4 sm:w-4" />
                                       <span className="sr-only">Move down</span>
                                     </Button>
                                     <Button
                                       size="icon"
                                       variant="ghost"
+                                      className="h-7 w-7 sm:h-8 sm:w-8"
                                       onClick={() => openEditDialog(category)}
                                     >
-                                      <Edit className="h-4 w-4" />
+                                      <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
                                       <span className="sr-only">Edit</span>
                                     </Button>
                                     <Button
                                       size="icon"
                                       variant="ghost"
-                                      className="text-red-500"
+                                      className="text-red-500 h-7 w-7 sm:h-8 sm:w-8"
                                       onClick={() => openDeleteDialog(category)}
                                     >
-                                      <Trash2 className="h-4 w-4" />
+                                      <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                                       <span className="sr-only">Delete</span>
                                     </Button>
                                   </div>
@@ -398,13 +418,13 @@ export default function AdminCategories() {
                     </div>
 
                     {/* Mobile Cards */}
-                    <div className="md:hidden space-y-4">
+                    <div className="md:hidden space-y-3 sm:space-y-4">
                       {categories
                         .sort((a, b) => a.displayOrder - b.displayOrder)
                         .map((category) => (
-                          <Card key={category.id} className="p-4">
-                            <div className="flex items-center space-x-4">
-                              <div className="h-16 w-16 overflow-hidden rounded border border-gray-200 flex-shrink-0">
+                          <Card key={category.id} className="p-3 sm:p-4">
+                            <div className="flex items-center space-x-3 sm:space-x-4">
+                              <div className="h-12 w-12 sm:h-16 sm:w-16 overflow-hidden rounded border border-gray-200 flex-shrink-0">
                                 <img
                                   src={category.image}
                                   alt={category.name}
@@ -416,10 +436,10 @@ export default function AdminCategories() {
                                 />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <h3 className="font-medium text-sm md:text-base truncate">
+                                <h3 className="font-medium text-sm sm:text-base truncate">
                                   {category.name}
                                 </h3>
-                                <div className="flex items-center space-x-4 mt-1 text-xs md:text-sm text-muted-foreground">
+                                <div className="flex items-center space-x-3 sm:space-x-4 mt-1 text-xs sm:text-sm text-muted-foreground">
                                   <span>Order: {category.displayOrder}</span>
                                   <span>
                                     GST:{" "}
@@ -433,19 +453,19 @@ export default function AdminCategories() {
                                 <Button
                                   size="icon"
                                   variant="ghost"
-                                  className="h-8 w-8"
+                                  className="h-7 w-7 sm:h-8 sm:w-8"
                                   onClick={() => handleMoveUp(category)}
                                 >
-                                  <MoveUp className="h-3 w-3" />
+                                  <MoveUp className="h-3 w-3 sm:h-4 sm:w-4" />
                                   <span className="sr-only">Move up</span>
                                 </Button>
                                 <Button
                                   size="icon"
                                   variant="ghost"
-                                  className="h-8 w-8"
+                                  className="h-7 w-7 sm:h-8 sm:w-8"
                                   onClick={() => handleMoveDown(category)}
                                 >
-                                  <MoveDown className="h-3 w-3" />
+                                  <MoveDown className="h-3 w-3 sm:h-4 sm:w-4" />
                                   <span className="sr-only">Move down</span>
                                 </Button>
                               </div>
@@ -453,19 +473,19 @@ export default function AdminCategories() {
                                 <Button
                                   size="icon"
                                   variant="ghost"
-                                  className="h-8 w-8"
+                                  className="h-7 w-7 sm:h-8 sm:w-8"
                                   onClick={() => openEditDialog(category)}
                                 >
-                                  <Edit className="h-3 w-3" />
+                                  <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
                                   <span className="sr-only">Edit</span>
                                 </Button>
                                 <Button
                                   size="icon"
                                   variant="ghost"
-                                  className="h-8 w-8 text-red-500"
+                                  className="h-7 w-7 sm:h-8 sm:w-8 text-red-500"
                                   onClick={() => openDeleteDialog(category)}
                                 >
-                                  <Trash2 className="h-3 w-3" />
+                                  <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                                   <span className="sr-only">Delete</span>
                                 </Button>
                               </div>
@@ -475,12 +495,12 @@ export default function AdminCategories() {
                     </div>
                   </>
                 ) : (
-                  <div className="py-8 text-center">
-                    <Grid className="mx-auto h-12 w-12 text-gray-300" />
-                    <h3 className="mt-2 text-lg font-medium">
+                  <div className="py-6 sm:py-8 text-center">
+                    <Grid className="mx-auto h-8 w-8 sm:h-12 sm:w-12 text-gray-300" />
+                    <h3 className="mt-2 text-base sm:text-lg font-medium">
                       No Categories Found
                     </h3>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-1 text-xs sm:text-sm text-gray-500">
                       Create your first category to get started
                     </p>
                   </div>
@@ -492,9 +512,11 @@ export default function AdminCategories() {
           {/* Add Category Form */}
           <div>
             <Card>
-              <CardHeader>
-                <CardTitle>Add New Category</CardTitle>
-                <CardDescription>
+              <CardHeader className="pb-3 sm:pb-4">
+                <CardTitle className="text-base sm:text-lg lg:text-xl">
+                  Add New Category
+                </CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
                   Create a new category for products
                 </CardDescription>
               </CardHeader>
@@ -502,16 +524,22 @@ export default function AdminCategories() {
                 <Form {...form}>
                   <form
                     onSubmit={form.handleSubmit(onSubmit)}
-                    className="space-y-4"
+                    className="space-y-3 sm:space-y-4"
                   >
                     <FormField
                       control={form.control}
                       name="name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Category Name</FormLabel>
+                          <FormLabel className="text-xs sm:text-sm">
+                            Category Name
+                          </FormLabel>
                           <FormControl>
-                            <Input placeholder="Electronics" {...field} />
+                            <Input
+                              placeholder="Electronics"
+                              {...field}
+                              className="h-9 sm:h-10 text-xs sm:text-sm"
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -523,11 +551,13 @@ export default function AdminCategories() {
                       name="image"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Category Image</FormLabel>
-                          <div className="space-y-4">
+                          <FormLabel className="text-xs sm:text-sm">
+                            Category Image
+                          </FormLabel>
+                          <div className="space-y-3 sm:space-y-4">
                             {/* Image Upload */}
                             <div>
-                              <p className="text-sm mb-2 font-medium text-muted-foreground">
+                              <p className="text-xs sm:text-sm mb-2 font-medium text-muted-foreground">
                                 Option 1: Upload Image
                               </p>
                               <FileUpload
@@ -546,7 +576,7 @@ export default function AdminCategories() {
 
                             {/* URL Input */}
                             <div>
-                              <p className="text-sm mb-2 font-medium text-muted-foreground">
+                              <p className="text-xs sm:text-sm mb-2 font-medium text-muted-foreground">
                                 Option 2: Enter Image URL
                               </p>
                               <FormControl>
@@ -555,10 +585,10 @@ export default function AdminCategories() {
                                     placeholder="https://example.com/image.png"
                                     value={field.value}
                                     onChange={field.onChange}
-                                    className="flex-1"
+                                    className="flex-1 h-9 sm:h-10 text-xs sm:text-sm"
                                   />
                                   {field.value && (
-                                    <div className="h-10 w-10 overflow-hidden rounded border border-gray-200 flex-shrink-0 self-start">
+                                    <div className="h-8 w-8 sm:h-10 sm:w-10 overflow-hidden rounded border border-gray-200 flex-shrink-0 self-start">
                                       <img
                                         src={field.value}
                                         alt="Preview"
@@ -584,13 +614,16 @@ export default function AdminCategories() {
                       name="displayOrder"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Display Order</FormLabel>
+                          <FormLabel className="text-xs sm:text-sm">
+                            Display Order
+                          </FormLabel>
                           <FormControl>
                             <Input
                               type="number"
                               min="1"
                               placeholder="1"
                               {...field}
+                              className="h-9 sm:h-10 text-xs sm:text-sm"
                               onChange={(e) => {
                                 const value = parseInt(e.target.value);
                                 field.onChange(isNaN(value) ? 0 : value);
@@ -607,7 +640,9 @@ export default function AdminCategories() {
                       name="gstRate"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>GST Rate (%)</FormLabel>
+                          <FormLabel className="text-xs sm:text-sm">
+                            GST Rate (%)
+                          </FormLabel>
                           <FormControl>
                             <Input
                               type="number"
@@ -616,6 +651,7 @@ export default function AdminCategories() {
                               step="0.01"
                               placeholder="0.00"
                               {...field}
+                              className="h-9 sm:h-10 text-xs sm:text-sm"
                               onChange={(e) => {
                                 const value = e.target.value;
                                 // Store as string but validate it's a valid number
