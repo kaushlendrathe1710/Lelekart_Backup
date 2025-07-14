@@ -262,17 +262,7 @@ export default function TicketManagementPage() {
                           >
                             View
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="w-full sm:w-auto"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteTicketMutation.mutate(ticket.id);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
+                          {/* Delete button removed for admin: No delete allowed */}
                         </div>
                       </TableCell>
                     </TableRow>
