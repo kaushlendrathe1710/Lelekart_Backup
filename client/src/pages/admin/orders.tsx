@@ -56,6 +56,7 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 
 // Define GST details type
@@ -235,10 +236,27 @@ export default function AdminOrders() {
         matchesDate = orderDate <= endDate;
       }
 
-      // Search filter (search by order ID)
-      const matchesSearch = !search
-        ? true
-        : order.id.toString().includes(search);
+      // Search filter (search by order ID, customer name, or email)
+      const searchLower = search.trim().toLowerCase();
+      let matchesSearch = true;
+      if (searchLower) {
+        // Remove leading '#' for order ID search
+        const searchId = searchLower.startsWith("#")
+          ? searchLower.slice(1)
+          : searchLower;
+        const idMatch = order.id.toString().includes(searchId);
+        let nameMatch = false;
+        let emailMatch = false;
+        if (isAdminShippingDetails(order.shippingDetails)) {
+          nameMatch = order.shippingDetails.name
+            ?.toLowerCase()
+            .includes(searchLower);
+          emailMatch = order.shippingDetails.email
+            ?.toLowerCase()
+            .includes(searchLower);
+        }
+        matchesSearch = idMatch || nameMatch || emailMatch;
+      }
 
       return matchesStatus && matchesDate && matchesSearch;
     })
@@ -639,14 +657,16 @@ export default function AdminOrders() {
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
             <Select
-              value={statusFilter || ""}
-              onValueChange={(value) => setStatusFilter(value || null)}
+              value={statusFilter || "all"}
+              onValueChange={(value) =>
+                setStatusFilter(value === "all" ? null : value)
+              }
             >
               <SelectTrigger className="w-full sm:w-[160px] lg:w-[180px] h-9 sm:h-10 text-xs sm:text-sm">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Statuses</SelectItem>
+                <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="processing">Processing</SelectItem>
                 <SelectItem value="shipped">Shipped</SelectItem>
@@ -753,7 +773,7 @@ export default function AdminOrders() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {orders?.length === 0 ? (
+                {filteredOrders?.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-6 sm:py-8">
                       <div className="flex flex-col items-center space-y-2">
@@ -765,7 +785,7 @@ export default function AdminOrders() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  orders?.map((order) => (
+                  filteredOrders?.map((order) => (
                     <TableRow key={order.id}>
                       <TableCell className="font-mono text-sm">
                         #{order.id}
