@@ -314,15 +314,10 @@ export default function SellerAnalyticsPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="h-[300px] sm:h-[400px]">
-                    {chartType === "bar" ? (
-                      <BarChart
-                        data={revenueChartData}
-                        index="date"
-                        categories={["revenue"]}
-                        colors={["primary"]}
-                        valueFormatter={(value) => formatCurrency(value)}
-                        className="h-full w-full"
-                      />
+                    {revenueChartData.length === 0 ? (
+                      <div className="flex items-center justify-center h-full text-muted-foreground">
+                        No data available
+                      </div>
                     ) : (
                       <LineChart
                         data={revenueChartData}
@@ -346,16 +341,12 @@ export default function SellerAnalyticsPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="h-[300px] sm:h-[400px]">
-                    {chartType === "bar" ? (
-                      <BarChart
-                        data={orderChartData}
-                        index="date"
-                        categories={["orders"]}
-                        colors={["blue"]}
-                        className="h-full w-full"
-                      />
+                    {orderChartData.length === 0 ? (
+                      <div className="flex items-center justify-center h-full text-muted-foreground">
+                        No data available
+                      </div>
                     ) : (
-                      <LineChart
+                      <BarChart
                         data={orderChartData}
                         index="date"
                         categories={["orders"]}
@@ -384,20 +375,31 @@ export default function SellerAnalyticsPage() {
                           Revenue by Category
                         </h3>
                         <div className="h-[250px] sm:h-[320px]">
-                          <PieChart
-                            data={categoryChartData}
-                            index="category"
-                            categories={["revenue"]}
-                            colors={[
-                              "primary",
-                              "blue",
-                              "cyan",
-                              "indigo",
-                              "violet",
-                            ]}
-                            valueFormatter={(value) => formatCurrency(value)}
-                            className="h-full w-full"
-                          />
+                          {categoryChartData.length === 0 ? (
+                            <div className="flex items-center justify-center h-full text-muted-foreground">
+                              No data available
+                            </div>
+                          ) : (
+                            <PieChart
+                              data={categoryChartData}
+                              index="category"
+                              categories={["revenue"]}
+                              colors={[
+                                "#6366F1", // Indigo
+                                "#F59E42", // Orange
+                                "#10B981", // Green
+                                "#EF4444", // Red
+                                "#FBBF24", // Yellow
+                                "#3B82F6", // Blue
+                                "#A21CAF", // Purple
+                                "#F472B6", // Pink
+                                "#14B8A6", // Teal
+                                "#64748B", // Slate
+                              ]}
+                              valueFormatter={(value) => formatCurrency(value)}
+                              className="h-full w-full"
+                            />
+                          )}
                         </div>
                       </div>
                       <div>
@@ -405,14 +407,21 @@ export default function SellerAnalyticsPage() {
                           Revenue by Payment Method
                         </h3>
                         <div className="h-[250px] sm:h-[320px]">
-                          <DonutChart
-                            data={analyticsData?.paymentMethodData || []}
-                            index="method"
-                            categories={["amount"]}
-                            colors={["primary", "blue", "cyan"]}
-                            valueFormatter={(value) => formatCurrency(value)}
-                            className="h-full w-full"
-                          />
+                          {!analyticsData?.paymentMethodData ||
+                          analyticsData.paymentMethodData.length === 0 ? (
+                            <div className="flex items-center justify-center h-full text-muted-foreground">
+                              No data available
+                            </div>
+                          ) : (
+                            <DonutChart
+                              data={analyticsData.paymentMethodData}
+                              index="method"
+                              categories={["amount"]}
+                              colors={["primary", "blue", "cyan"]}
+                              valueFormatter={(value) => formatCurrency(value)}
+                              className="h-full w-full"
+                            />
+                          )}
                         </div>
                       </div>
                     </div>
@@ -450,84 +459,105 @@ export default function SellerAnalyticsPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {productPerformanceData.map((product, index) => (
-                            <TableRow key={index}>
-                              <TableCell>
-                                <div className="font-medium">
-                                  {product.name}
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  {product.sku}
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {product.unitsSold}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {formatCurrency(product.revenue)}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {product.conversion}%
-                              </TableCell>
-                              <TableCell>
-                                {getTrendIndicator(product.trend)}
+                          {productPerformanceData.length === 0 ? (
+                            <TableRow>
+                              <TableCell
+                                colSpan={5}
+                                className="text-center text-muted-foreground"
+                              >
+                                No data available
                               </TableCell>
                             </TableRow>
-                          ))}
+                          ) : (
+                            productPerformanceData.map(
+                              (product: any, index: number) => (
+                                <TableRow key={index}>
+                                  <TableCell>
+                                    <div className="font-medium">
+                                      {product.name}
+                                    </div>
+                                    <div className="text-sm text-muted-foreground">
+                                      {product.sku}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {product.unitsSold}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {formatCurrency(product.revenue)}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {product.conversion}%
+                                  </TableCell>
+                                  <TableCell>
+                                    {getTrendIndicator(product.trend)}
+                                  </TableCell>
+                                </TableRow>
+                              )
+                            )
+                          )}
                         </TableBody>
                       </Table>
                     </div>
 
                     {/* Mobile Card View */}
                     <div className="md:hidden space-y-4">
-                      {productPerformanceData.map((product, index) => (
-                        <Card key={index} className="p-4">
-                          <div className="space-y-3">
-                            <div>
-                              <div className="font-medium text-base">
-                                {product.name}
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                {product.sku}
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                              <div>
-                                <div className="text-muted-foreground">
-                                  Units Sold
-                                </div>
-                                <div className="font-medium">
-                                  {product.unitsSold}
-                                </div>
-                              </div>
-                              <div>
-                                <div className="text-muted-foreground">
-                                  Revenue
-                                </div>
-                                <div className="font-medium">
-                                  {formatCurrency(product.revenue)}
-                                </div>
-                              </div>
-                              <div>
-                                <div className="text-muted-foreground">
-                                  Conversion
-                                </div>
-                                <div className="font-medium">
-                                  {product.conversion}%
-                                </div>
-                              </div>
-                              <div>
-                                <div className="text-muted-foreground">
-                                  Trend
-                                </div>
-                                <div className="font-medium">
-                                  {getTrendIndicator(product.trend)}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
+                      {productPerformanceData.length === 0 ? (
+                        <Card className="p-4 text-center text-muted-foreground">
+                          No data available
                         </Card>
-                      ))}
+                      ) : (
+                        productPerformanceData.map(
+                          (product: any, index: number) => (
+                            <Card key={index} className="p-4">
+                              <div className="space-y-3">
+                                <div>
+                                  <div className="font-medium text-base">
+                                    {product.name}
+                                  </div>
+                                  <div className="text-sm text-muted-foreground">
+                                    {product.sku}
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                  <div>
+                                    <div className="text-muted-foreground">
+                                      Units Sold
+                                    </div>
+                                    <div className="font-medium">
+                                      {product.unitsSold}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-muted-foreground">
+                                      Revenue
+                                    </div>
+                                    <div className="font-medium">
+                                      {formatCurrency(product.revenue)}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-muted-foreground">
+                                      Conversion
+                                    </div>
+                                    <div className="font-medium">
+                                      {product.conversion}%
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-muted-foreground">
+                                      Trend
+                                    </div>
+                                    <div className="font-medium">
+                                      {getTrendIndicator(product.trend)}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </Card>
+                          )
+                        )
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -554,20 +584,32 @@ export default function SellerAnalyticsPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {(analyticsData?.trafficSources || []).map(
-                        (source, index) => (
-                          <TableRow key={index}>
-                            <TableCell>{source.name}</TableCell>
-                            <TableCell className="text-right">
-                              {source.visitors}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {source.conversion}%
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {formatCurrency(source.revenue)}
-                            </TableCell>
-                          </TableRow>
+                      {!analyticsData?.trafficSources ||
+                      analyticsData.trafficSources.length === 0 ? (
+                        <TableRow>
+                          <TableCell
+                            colSpan={4}
+                            className="text-center text-muted-foreground"
+                          >
+                            No data available
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        (analyticsData.trafficSources || []).map(
+                          (source: any, index: number) => (
+                            <TableRow key={index}>
+                              <TableCell>{source.name}</TableCell>
+                              <TableCell className="text-right">
+                                {source.visitors}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {source.conversion}%
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {formatCurrency(source.revenue)}
+                              </TableCell>
+                            </TableRow>
+                          )
                         )
                       )}
                     </TableBody>
@@ -640,14 +682,21 @@ export default function SellerAnalyticsPage() {
                     Customer Demographics
                   </h3>
                   <div className="h-[150px] sm:h-[200px]">
-                    <PieChart
-                      data={analyticsData?.customerInsights?.demographics || []}
-                      index="group"
-                      categories={["value"]}
-                      colors={["primary", "blue", "cyan", "indigo"]}
-                      valueFormatter={(value) => `${value}%`}
-                      className="h-full w-full"
-                    />
+                    {!analyticsData?.customerInsights?.demographics ||
+                    analyticsData.customerInsights.demographics.length === 0 ? (
+                      <div className="flex items-center justify-center h-full text-muted-foreground">
+                        No data available
+                      </div>
+                    ) : (
+                      <PieChart
+                        data={analyticsData.customerInsights.demographics}
+                        index="group"
+                        categories={["value"]}
+                        colors={["primary", "blue", "cyan", "indigo"]}
+                        valueFormatter={(value) => `${value}%`}
+                        className="h-full w-full"
+                      />
+                    )}
                   </div>
                 </CardContent>
               </Card>
