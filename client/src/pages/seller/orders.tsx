@@ -154,6 +154,18 @@ export default function SellerOrdersPage() {
 
   // Status update mutation removed - only admins can update order status
 
+  // Get customer name from shipping details
+  const getCustomerName = (order: Order) => {
+    if (!order.shippingDetails) return "Customer";
+
+    const details =
+      typeof order.shippingDetails === "string"
+        ? JSON.parse(order.shippingDetails)
+        : order.shippingDetails;
+
+    return details.name || "Customer";
+  };
+
   // Filter orders by search query and status
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
@@ -261,18 +273,6 @@ export default function SellerOrdersPage() {
       default:
         return method;
     }
-  };
-
-  // Get customer name from shipping details
-  const getCustomerName = (order: Order) => {
-    if (!order.shippingDetails) return "Customer";
-
-    const details =
-      typeof order.shippingDetails === "string"
-        ? JSON.parse(order.shippingDetails)
-        : order.shippingDetails;
-
-    return details.name || "Customer";
   };
 
   // Open order details dialog
@@ -577,17 +577,10 @@ export default function SellerOrdersPage() {
                 type="text"
                 placeholder="Search by order ID or customer"
                 className="pl-10 pr-24 w-full"
-                disabled
-                onClick={() =>
-                  alert(
-                    "Search functionality is being improved. Please check back later!"
-                  )
-                }
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400">
-                Coming soon
-              </span>
             </div>
           </div>
         </div>
