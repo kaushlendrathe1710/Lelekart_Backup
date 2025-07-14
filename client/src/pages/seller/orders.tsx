@@ -586,7 +586,7 @@ export default function SellerOrdersPage() {
         </div>
 
         {/* Order Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 md:gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-3 md:gap-4">
           {isLoading ? (
             <>
               {[...Array(5)].map((_, i) => (
@@ -662,6 +662,30 @@ export default function SellerOrdersPage() {
                   </div>
                 </CardContent>
               </Card>
+              <Card className="bg-white">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm md:text-sm font-medium">
+                    Returns
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-xl md:text-2xl font-bold">
+                    {orders.filter(order => ['marked_for_return','approve_return','process_return','reject_return','completed_return'].includes(order.status)).length}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-white">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm md:text-sm font-medium">
+                    Cancelled
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-xl md:text-2xl font-bold">
+                    {statusCounts.cancelled}
+                  </div>
+                </CardContent>
+              </Card>
             </>
           )}
         </div>
@@ -690,6 +714,9 @@ export default function SellerOrdersPage() {
               </TabsTrigger>
               <TabsTrigger value="delivered" className="text-xs md:text-sm">
                 Delivered ({statusCounts.delivered})
+              </TabsTrigger>
+              <TabsTrigger value="returns" className="text-xs md:text-sm">
+                Returns ({orders.filter(order => ['marked_for_return','approve_return','process_return','reject_return','completed_return'].includes(order.status)).length})
               </TabsTrigger>
               <TabsTrigger value="cancelled" className="text-xs md:text-sm">
                 Cancelled ({statusCounts.cancelled})
@@ -730,6 +757,21 @@ export default function SellerOrdersPage() {
               </TabsContent>
             )
           )}
+
+          <TabsContent value="returns">
+            <OrderTable
+              orders={orders.filter(order => ['marked_for_return','approve_return','process_return','reject_return','completed_return'].includes(order.status))}
+              isLoading={isLoading}
+              viewOrderDetails={viewOrderDetails}
+              getStatusBadge={getStatusBadge}
+              formatDate={formatDate}
+              formatPaymentMethod={formatPaymentMethod}
+              getCustomerName={getCustomerName}
+              toast={toast}
+              expandedOrderId={expandedOrderId}
+              setExpandedOrderId={setExpandedOrderId}
+            />
+          </TabsContent>
         </Tabs>
       </div>
 
@@ -1086,6 +1128,7 @@ function OrderTable({
               <TableHead>Amount</TableHead>
               <TableHead>Payment</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Return Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -1100,6 +1143,11 @@ function OrderTable({
                   {formatPaymentMethod(order.paymentMethod)}
                 </TableCell>
                 <TableCell>{getStatusBadge(order.status)}</TableCell>
+                <TableCell>
+                  {['marked_for_return','approve_return','process_return','reject_return','completed_return'].includes(order.status)
+                    ? order.status.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+                    : '-'}
+                </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -1271,6 +1319,18 @@ function OrderTable({
                       >
                         <Printer className="h-4 w-4 mr-2" />
                         Shipping Label
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={!['marked_for_return','approve_return','process_return','reject_return','completed_return'].includes(order.status)}
+                        onClick={() => {
+                          if(['marked_for_return','approve_return','process_return','reject_return','completed_return'].includes(order.status)) {
+                            // Navigate to returns page for this order
+                            window.open(`/seller/returns`, '_blank');
+                          }
+                        }}
+                      >
+                        <Package className="h-4 w-4 mr-2" />
+                        Return
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -1532,6 +1592,20 @@ function OrderTable({
                   >
                     <Printer className="h-4 w-4 mr-2" />
                     Download Shipping Label
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start text-sm"
+                    onClick={() => {
+                      if(['marked_for_return','approve_return','process_return','reject_return','completed_return'].includes(order.status)) {
+                        // Navigate to returns page for this order
+                        window.open(`/seller/returns`, '_blank');
+                      }
+                    }}
+                  >
+                    <Package className="h-4 w-4 mr-2" />
+                    Return
                   </Button>
                 </div>
               )}
