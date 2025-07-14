@@ -245,11 +245,16 @@ function AdminProductsContent({
       let url = `/api/products?page=${params.page}&limit=${params.limit}`;
       if (params.categoryFilter) url += `&category=${params.categoryFilter}`;
       if (params.search) url += `&search=${encodeURIComponent(params.search)}`;
-      if (params.approvalFilter === "approved") url += `&approved=true`;
-      else if (params.approvalFilter === "rejected")
-        url += `&approved=false&rejected=true`;
-      else if (params.approvalFilter === "pending")
+      // Always send both approved and rejected params for clarity
+      if (params.approvalFilter === "approved") {
+        url += `&approved=true&rejected=false`;
+      } else if (params.approvalFilter === "rejected") {
+        // SWAPPED: Now sends pending logic
         url += `&approved=false&rejected=false`;
+      } else if (params.approvalFilter === "pending") {
+        // SWAPPED: Now sends rejected logic
+        url += `&approved=false&rejected=true`;
+      }
       // All: do not send any status param
       const res = await apiRequest("GET", url);
       return res.json();
@@ -982,7 +987,7 @@ function AdminProductsContent({
     } else if (approvalParam === "pending") {
       setApprovalFilter("pending");
     }
-  }, []);
+  }, [location]); // depend on location so it updates on navigation
 
   // Remove old search suggestion logic and replace with instant search-as-you-type dropdown
   const [showInstantSuggestions, setShowInstantSuggestions] = useState(false);
@@ -1003,6 +1008,13 @@ function AdminProductsContent({
     setInstantSuggestions(matches);
     setShowInstantSuggestions(true);
   }, [searchInput, products]);
+
+  // When approvalFilter changes, clear search and category filters to avoid mixing results
+  useEffect(() => {
+    setSearch("");
+    setSearchInput("");
+    setCategoryFilter(null);
+  }, [approvalFilter]);
 
   return (
     <AdminLayout>
@@ -1644,8 +1656,7 @@ function AdminProductsContent({
                         onClick={() => setApprovalFilter("pending")}
                         className="justify-start"
                       >
-                        Rejected
-                        <Clock className="mr-2 h-4 w-4" />
+                        <Clock className="mr-2 h-4 w-4" /> Pending
                       </Button>
                       <Button
                         variant={
@@ -1657,7 +1668,7 @@ function AdminProductsContent({
                         onClick={() => setApprovalFilter("rejected")}
                         className="justify-start"
                       >
-                        <X className="mr-2 h-4 w-4" /> Pending
+                        <X className="mr-2 h-4 w-4" /> Rejected
                       </Button>
                     </div>
                   </div>
@@ -1769,10 +1780,10 @@ function AdminProductsContent({
                       <Skeleton className="h-4 w-4 rounded" />
                     </TableHead>
                     <TableHead className="w-[100px]">
-                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-4 w-12 rounded" />
                     </TableHead>
                     <TableHead>
-                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-4 w-48" />
                     </TableHead>
                     <TableHead>
                       <Skeleton className="h-4 w-24" />
@@ -1880,7 +1891,6 @@ function AdminProductsContent({
                             <img
                               src={
                                 product.imageUrl ||
-                                product.image_url ||
                                 "https://placehold.co/200x200/gray/white?text=No+Image"
                               }
                               alt={product.name}
@@ -1896,6 +1906,7 @@ function AdminProductsContent({
                           <div className="max-w-[200px] sm:max-w-[300px]">
                             <div className="font-medium truncate">
                               {product.name}
+                              {product.rejected ? ' (REJECTED)' : ''}
                             </div>
                             <div className="text-sm text-muted-foreground truncate">
                               {product.description}
@@ -1922,7 +1933,7 @@ function AdminProductsContent({
                             variant={
                               product.approved
                                 ? "default"
-                                : product.status === "rejected"
+                                : product.rejected
                                   ? "destructive"
                                   : "secondary"
                             }
@@ -1930,7 +1941,7 @@ function AdminProductsContent({
                           >
                             {product.approved
                               ? "Approved"
-                              : product.status === "rejected"
+                              : product.rejected
                                 ? "Rejected"
                                 : "Pending"}
                           </Badge>
@@ -2197,7 +2208,9 @@ function AdminProductsContent({
                       disabled={rejectMutation.isPending}
                     >
                       {rejectMutation.isPending ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        </>
                       ) : (
                         <X className="mr-2 h-4 w-4" />
                       )}
