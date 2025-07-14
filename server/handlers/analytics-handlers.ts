@@ -25,6 +25,99 @@ export async function getSellerAnalyticsHandler(req: Request, res: Response) {
     const totalReturns = returns.length;
     const conversionRate = 0; // Placeholder
 
+    // --- Sales Overview & Order Trends (last 30 days) ---
+    const days = 30;
+    // Set 'today' to the start of today (no time), but clamp to real current date if system clock is in the future
+    const now = new Date();
+    const realNow = new Date();
+    const systemToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    );
+    const realToday = new Date(
+      realNow.getFullYear(),
+      realNow.getMonth(),
+      realNow.getDate()
+    );
+    // If systemToday is in the future, use realToday
+    const today = systemToday > realToday ? realToday : systemToday;
+    const dateMap: Record<string, { revenue: number; orders: number }> = {};
+    for (let i = days - 1; i >= 0; i--) {
+      const d = subDays(today, i);
+      // Only include dates up to today (no future dates)
+      if (d > today) continue;
+      const key = format(d, "yyyy-MM-dd");
+      dateMap[key] = { revenue: 0, orders: 0 };
+    }
+    orders.forEach((order) => {
+      const key = format(new Date(order.date), "yyyy-MM-dd");
+      if (dateMap[key]) {
+        dateMap[key].revenue += order.total || 0;
+        dateMap[key].orders += 1;
+      }
+    });
+    const revenueData = Object.entries(dateMap).map(([date, v]) => ({
+      date,
+      revenue: v.revenue,
+    }));
+    const orderData = Object.entries(dateMap).map(([date, v]) => ({
+      date,
+      orders: v.orders,
+    }));
+
+    // --- Revenue by Category ---
+    const categoryMap: Record<string, number> = {};
+    for (const order of orders) {
+      const items = await storage.getOrderItems(order.id, sellerId);
+      for (const item of items) {
+        const cat = item.product.category || "Other";
+        categoryMap[cat] = (categoryMap[cat] || 0) + item.price * item.quantity;
+      }
+    }
+    const categoryData = Object.entries(categoryMap).map(
+      ([category, revenue]) => ({ category, revenue })
+    );
+
+    // --- Revenue by Payment Method ---
+    const paymentMap: Record<string, number> = {};
+    for (const order of orders) {
+      const method = order.paymentMethod || "Other";
+      paymentMap[method] = (paymentMap[method] || 0) + (order.total || 0);
+    }
+    const paymentMethodData = Object.entries(paymentMap).map(
+      ([method, amount]) => ({ method, amount })
+    );
+
+    // --- Product Performance (top 5 by revenue) ---
+    const productPerfMap: Record<
+      string,
+      { name: string; sku: string; unitsSold: number; revenue: number }
+    > = {};
+    for (const order of orders) {
+      const items = await storage.getOrderItems(order.id, sellerId);
+      for (const item of items) {
+        const key = item.product.id;
+        if (!productPerfMap[key]) {
+          productPerfMap[key] = {
+            name: item.product.name,
+            sku: item.product.sku || "",
+            unitsSold: 0,
+            revenue: 0,
+          };
+        }
+        productPerfMap[key].unitsSold += item.quantity;
+        productPerfMap[key].revenue += item.price * item.quantity;
+      }
+    }
+    let topProducts = Object.values(productPerfMap);
+    topProducts.sort((a, b) => b.revenue - a.revenue);
+    topProducts = topProducts.slice(0, 5).map((p) => ({
+      ...p,
+      conversion: 0, // Placeholder
+      trend: 0, // Placeholder
+    }));
+
     // --- Build analytics object in the structure expected by the frontend ---
     const analytics = {
       totals: {
@@ -43,11 +136,11 @@ export async function getSellerAnalyticsHandler(req: Request, res: Response) {
         products: 0,
         returns: 0,
       },
-      revenueData: [], // Placeholder for chart data
-      orderData: [], // Placeholder for chart data
-      categoryData: [], // Placeholder for chart data
-      topProducts: [], // Placeholder for product performance
-      paymentMethodData: [], // Placeholder for payment method breakdown
+      revenueData,
+      orderData,
+      categoryData,
+      paymentMethodData,
+      topProducts,
       trafficSources: [], // Placeholder for traffic source analytics
       customerInsights: null, // Placeholder for customer insights
     };
