@@ -69,7 +69,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Pencil, Trash, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Pencil,
+  Trash,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Schema for subcategory form validation
@@ -85,28 +93,36 @@ type SubcategoryFormValues = z.infer<typeof subcategorySchema>;
 export default function AdminSubcategories() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedSubcategory, setSelectedSubcategory] = useState<Subcategory | null>(null);
+  const [selectedSubcategory, setSelectedSubcategory] =
+    useState<Subcategory | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage] = useState(10);
   const { toast } = useToast();
 
   // Fetch subcategories with pagination
-  const { data: subcategoriesData, isLoading: isLoadingSubcategories } = useQuery<PaginatedSubcategories>({
-    queryKey: ["/api/subcategories", currentPage, perPage],
-    queryFn: async () => {
-      console.log(`Fetching subcategories page ${currentPage} with limit ${perPage}`);
-      const response = await fetch(`/api/subcategories?page=${currentPage}&limit=${perPage}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch subcategories");
-      }
-      const data = await response.json();
-      console.log("Subcategories API response:", data);
-      return data;
-    },
-  });
+  const { data: subcategoriesData, isLoading: isLoadingSubcategories } =
+    useQuery<PaginatedSubcategories>({
+      queryKey: ["/api/subcategories", currentPage, perPage],
+      queryFn: async () => {
+        console.log(
+          `Fetching subcategories page ${currentPage} with limit ${perPage}`
+        );
+        const response = await fetch(
+          `/api/subcategories?page=${currentPage}&limit=${perPage}`
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch subcategories");
+        }
+        const data = await response.json();
+        console.log("Subcategories API response:", data);
+        return data;
+      },
+    });
 
   // Fetch categories for parent category dropdown
-  const { data: categories, isLoading: isLoadingCategories } = useQuery<Category[]>({
+  const { data: categories, isLoading: isLoadingCategories } = useQuery<
+    Category[]
+  >({
     queryKey: ["/api/categories"],
   });
 
@@ -129,7 +145,7 @@ export default function AdminSubcategories() {
         ...data,
         categoryId: parseInt(data.categoryId),
       };
-      
+
       const res = await apiRequest("POST", "/api/subcategories", payload);
       if (!res.ok) {
         const error = await res.json();
@@ -143,17 +159,17 @@ export default function AdminSubcategories() {
         description: "The subcategory has been created successfully",
       });
       form.reset();
-      
+
       // Invalidate all subcategory queries, not just the current page
-      queryClient.invalidateQueries({ 
+      queryClient.invalidateQueries({
         queryKey: ["/api/subcategories"],
-        refetchType: 'all'
+        refetchType: "all",
       });
-      
+
       // Force refetch the current page to immediately show the new subcategory
-      queryClient.refetchQueries({ 
+      queryClient.refetchQueries({
         queryKey: ["/api/subcategories", currentPage, perPage],
-        type: 'active'
+        type: "active",
       });
     },
     onError: (error: Error) => {
@@ -179,7 +195,7 @@ export default function AdminSubcategories() {
         ...data,
         categoryId: parseInt(data.categoryId),
       };
-      
+
       const res = await apiRequest("PUT", `/api/subcategories/${id}`, payload);
       if (!res.ok) {
         const error = await res.json();
@@ -193,17 +209,17 @@ export default function AdminSubcategories() {
         description: "The subcategory has been updated successfully",
       });
       setEditDialogOpen(false);
-      
+
       // Invalidate all subcategory queries
-      queryClient.invalidateQueries({ 
+      queryClient.invalidateQueries({
         queryKey: ["/api/subcategories"],
-        refetchType: 'all'
+        refetchType: "all",
       });
-      
+
       // Force refetch the current page
-      queryClient.refetchQueries({ 
+      queryClient.refetchQueries({
         queryKey: ["/api/subcategories", currentPage, perPage],
-        type: 'active'
+        type: "active",
       });
     },
     onError: (error: Error) => {
@@ -231,17 +247,17 @@ export default function AdminSubcategories() {
         description: "The subcategory has been deleted successfully",
       });
       setDeleteDialogOpen(false);
-      
+
       // Invalidate all subcategory queries
-      queryClient.invalidateQueries({ 
+      queryClient.invalidateQueries({
         queryKey: ["/api/subcategories"],
-        refetchType: 'all'
+        refetchType: "all",
       });
-      
+
       // Force refetch the current page
-      queryClient.refetchQueries({ 
+      queryClient.refetchQueries({
         queryKey: ["/api/subcategories", currentPage, perPage],
-        type: 'active'
+        type: "active",
       });
     },
     onError: (error: Error) => {
@@ -291,13 +307,17 @@ export default function AdminSubcategories() {
   // Handle moving a subcategory up in display order
   const handleMoveUp = (subcategory: Subcategory) => {
     // Find the subcategory with the next lower display order
-    const sortedSubcategories = [...(subcategoriesData?.subcategories || [])].sort((a, b) => a.displayOrder - b.displayOrder);
-    const currentIndex = sortedSubcategories.findIndex(c => c.id === subcategory.id);
-    
+    const sortedSubcategories = [
+      ...(subcategoriesData?.subcategories || []),
+    ].sort((a, b) => a.displayOrder - b.displayOrder);
+    const currentIndex = sortedSubcategories.findIndex(
+      (c) => c.id === subcategory.id
+    );
+
     if (currentIndex > 0) {
       const targetSubcategory = sortedSubcategories[currentIndex - 1];
       const newDisplayOrder = targetSubcategory.displayOrder;
-      
+
       updateMutation.mutate({
         id: subcategory.id,
         data: {
@@ -308,7 +328,7 @@ export default function AdminSubcategories() {
           displayOrder: newDisplayOrder,
         },
       });
-      
+
       // Add a small delay before updating the second item
       setTimeout(() => {
         updateMutation.mutate({
@@ -321,17 +341,17 @@ export default function AdminSubcategories() {
             displayOrder: subcategory.displayOrder,
           },
         });
-        
+
         // Refresh the subcategories list after both updates
         setTimeout(() => {
-          queryClient.invalidateQueries({ 
+          queryClient.invalidateQueries({
             queryKey: ["/api/subcategories"],
-            refetchType: 'all'
+            refetchType: "all",
           });
-          
-          queryClient.refetchQueries({ 
+
+          queryClient.refetchQueries({
             queryKey: ["/api/subcategories", currentPage, perPage],
-            type: 'active'
+            type: "active",
           });
         }, 300);
       }, 300);
@@ -341,13 +361,17 @@ export default function AdminSubcategories() {
   // Handle moving a subcategory down in display order
   const handleMoveDown = (subcategory: Subcategory) => {
     // Find the subcategory with the next higher display order
-    const sortedSubcategories = [...(subcategoriesData?.subcategories || [])].sort((a, b) => a.displayOrder - b.displayOrder);
-    const currentIndex = sortedSubcategories.findIndex(c => c.id === subcategory.id);
-    
+    const sortedSubcategories = [
+      ...(subcategoriesData?.subcategories || []),
+    ].sort((a, b) => a.displayOrder - b.displayOrder);
+    const currentIndex = sortedSubcategories.findIndex(
+      (c) => c.id === subcategory.id
+    );
+
     if (currentIndex < sortedSubcategories.length - 1) {
       const targetSubcategory = sortedSubcategories[currentIndex + 1];
       const newDisplayOrder = targetSubcategory.displayOrder;
-      
+
       updateMutation.mutate({
         id: subcategory.id,
         data: {
@@ -358,7 +382,7 @@ export default function AdminSubcategories() {
           displayOrder: newDisplayOrder,
         },
       });
-      
+
       // Also update the other subcategory's display order
       updateMutation.mutate({
         id: targetSubcategory.id,
@@ -375,7 +399,7 @@ export default function AdminSubcategories() {
 
   // Get category name from categoryId
   const getCategoryName = (categoryId: number) => {
-    const category = categories?.find(cat => cat.id === categoryId);
+    const category = categories?.find((cat) => cat.id === categoryId);
     return category ? category.name : "Unknown";
   };
 
@@ -390,7 +414,7 @@ export default function AdminSubcategories() {
               Manage product subcategories that appear in the store
             </p>
           </div>
-          
+
           <Card>
             <CardHeader>
               <CardTitle>Add New Subcategory</CardTitle>
@@ -407,7 +431,7 @@ export default function AdminSubcategories() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader>
               <CardTitle>All Subcategories</CardTitle>
@@ -429,14 +453,17 @@ export default function AdminSubcategories() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Subcategories</h1>
-          <p className="text-muted-foreground">
-            Manage product subcategories that appear in the store
-          </p>
+      <div className="px-2 sm:px-4 md:px-6 max-w-7xl mx-auto space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Subcategories</h1>
+            <p className="text-muted-foreground">
+              Manage product subcategories that appear in the store
+            </p>
+          </div>
+          {/* Add New Subcategory Button or Actions can go here */}
         </div>
-        
+        {/* Add/Edit Subcategory Form/Card */}
         <Card>
           <CardHeader>
             <CardTitle>Add New Subcategory</CardTitle>
@@ -450,6 +477,7 @@ export default function AdminSubcategories() {
                 onSubmit={form.handleSubmit(onSubmit)}
                 className="space-y-4"
               >
+                {/* Form fields here, ensure all inputs/selects are w-full */}
                 <FormField
                   control={form.control}
                   name="categoryId"
@@ -480,7 +508,7 @@ export default function AdminSubcategories() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="name"
@@ -488,13 +516,16 @@ export default function AdminSubcategories() {
                     <FormItem>
                       <FormLabel>Subcategory Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter subcategory name" {...field} />
+                        <Input
+                          placeholder="Enter subcategory name"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="image"
@@ -508,7 +539,7 @@ export default function AdminSubcategories() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="displayOrder"
@@ -521,7 +552,9 @@ export default function AdminSubcategories() {
                           min="0"
                           placeholder="Enter display order"
                           {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value))}
+                          onChange={(e) =>
+                            field.onChange(parseInt(e.target.value))
+                          }
                           value={field.value.toString()}
                         />
                       </FormControl>
@@ -529,153 +562,179 @@ export default function AdminSubcategories() {
                     </FormItem>
                   )}
                 />
-                
-                <Button type="submit" disabled={createMutation.isPending}>
-                  {createMutation.isPending ? "Creating..." : "Create Subcategory"}
-                </Button>
+
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button type="submit" className="w-full sm:w-auto">
+                    Save
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full sm:w-auto"
+                    onClick={() => form.reset()}
+                  >
+                    Cancel
+                  </Button>
+                </div>
               </form>
             </Form>
           </CardContent>
         </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>All Subcategories</CardTitle>
-            <CardDescription>Manage existing subcategories</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {subcategoriesData?.subcategories && subcategoriesData.subcategories.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Parent Category</TableHead>
-                    <TableHead>Display Order</TableHead>
-                    <TableHead>Image</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {subcategoriesData.subcategories
-                    .sort((a, b) => a.displayOrder - b.displayOrder)
-                    .map((subcategory) => (
-                      <TableRow key={subcategory.id}>
-                        <TableCell className="font-medium">
-                          {subcategory.name}
-                        </TableCell>
-                        <TableCell>{getCategoryName(subcategory.categoryId)}</TableCell>
-                        <TableCell>{subcategory.displayOrder}</TableCell>
-                        <TableCell>
-                          {subcategory.image ? (
-                            <div className="w-10 h-10 overflow-hidden rounded-md">
-                              <img
-                                src={subcategory.image}
-                                alt={subcategory.name}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          ) : (
-                            "No image"
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleMoveUp(subcategory)}
-                            >
-                              <ArrowUp className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleMoveDown(subcategory)}
-                            >
-                              <ArrowDown className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEdit(subcategory)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDelete(subcategory)}
-                            >
-                              <Trash className="h-4 w-4" />
-                            </Button>
+        {/* Table Section */}
+        <div className="overflow-x-auto">
+          <Table className="min-w-[600px]">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Parent Category</TableHead>
+                <TableHead>Display Order</TableHead>
+                <TableHead>Image</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {subcategoriesData?.subcategories &&
+              subcategoriesData.subcategories.length > 0 ? (
+                subcategoriesData.subcategories
+                  .sort((a, b) => a.displayOrder - b.displayOrder)
+                  .map((subcategory) => (
+                    <TableRow key={subcategory.id}>
+                      <TableCell className="font-medium">
+                        {subcategory.name}
+                      </TableCell>
+                      <TableCell>
+                        {getCategoryName(subcategory.categoryId)}
+                      </TableCell>
+                      <TableCell>{subcategory.displayOrder}</TableCell>
+                      <TableCell>
+                        {subcategory.image ? (
+                          <div className="w-10 h-10 overflow-hidden rounded-md">
+                            <img
+                              src={subcategory.image}
+                              alt={subcategory.name}
+                              className="w-full h-full object-cover"
+                            />
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <div className="text-center py-4">
-                No subcategories found. Create your first subcategory above.
-              </div>
-            )}
-          </CardContent>
+                        ) : (
+                          "No image"
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleMoveUp(subcategory)}
+                          >
+                            <ArrowUp className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleMoveDown(subcategory)}
+                          >
+                            <ArrowDown className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(subcategory)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(subcategory)}
+                          >
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-4">
+                    No subcategories found. Create your first subcategory above.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+        {/* Pagination Controls */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 mt-4">
           {subcategoriesData?.pagination && (
-            <CardFooter className="flex justify-between items-center py-4">
-              <div className="text-sm text-muted-foreground">
-                Showing page {currentPage} of {subcategoriesData.pagination.totalPages}
-                {subcategoriesData.pagination.totalItems > 0 && 
-                  ` (${subcategoriesData.pagination.totalItems} ${subcategoriesData.pagination.totalItems === 1 ? 'item' : 'items'})`
-                }
-              </div>
-              <div className="flex space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
-                </Button>
-                {Array.from({ length: subcategoriesData.pagination.totalPages }).map((_, index) => (
-                  <Button
-                    key={index}
-                    variant={currentPage === index + 1 ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handlePageChange(index + 1)}
-                    className={subcategoriesData.pagination.totalPages > 5 ? 
-                      (index + 1 < currentPage - 1 || index + 1 > currentPage + 1) && 
-                      (index + 1 !== 1 && index + 1 !== subcategoriesData.pagination.totalPages) ? 
-                      "hidden sm:inline-flex" : "" : ""}
-                  >
-                    {index + 1}
-                  </Button>
-                ))}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(Math.min(subcategoriesData.pagination.totalPages, currentPage + 1))}
-                  disabled={currentPage === subcategoriesData.pagination.totalPages}
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
-            </CardFooter>
+            <div className="text-sm text-muted-foreground">
+              Showing page {currentPage} of{" "}
+              {subcategoriesData.pagination.totalPages}
+              {subcategoriesData.pagination.totalItems > 0 &&
+                ` (${subcategoriesData.pagination.totalItems} ${subcategoriesData.pagination.totalItems === 1 ? "item" : "items"})`}
+            </div>
           )}
-        </Card>
-        
-        {/* Edit Dialog */}
+          <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Previous
+            </Button>
+            {Array.from({
+              length: subcategoriesData?.pagination?.totalPages || 0,
+            }).map((_, index) => (
+              <Button
+                key={index}
+                variant={currentPage === index + 1 ? "default" : "outline"}
+                size="sm"
+                onClick={() => handlePageChange(index + 1)}
+                className={
+                  subcategoriesData?.pagination?.totalPages > 5
+                    ? (index + 1 < currentPage - 1 ||
+                        index + 1 > currentPage + 1) &&
+                      index + 1 !== 1 &&
+                      index + 1 !== subcategoriesData?.pagination?.totalPages
+                      ? "hidden sm:inline-flex"
+                      : ""
+                    : ""
+                }
+              >
+                {index + 1}
+              </Button>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                handlePageChange(
+                  Math.min(
+                    subcategoriesData?.pagination?.totalPages || 1,
+                    currentPage + 1
+                  )
+                )
+              }
+              disabled={
+                currentPage === subcategoriesData?.pagination?.totalPages || 1
+              }
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        </div>
+        {/* Edit/Delete Dialogs */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-md w-full">
             <DialogHeader>
               <DialogTitle>Edit Subcategory</DialogTitle>
               <DialogDescription>
                 Update the subcategory information below.
               </DialogDescription>
             </DialogHeader>
-            
+
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
@@ -712,7 +771,7 @@ export default function AdminSubcategories() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="name"
@@ -720,13 +779,16 @@ export default function AdminSubcategories() {
                     <FormItem>
                       <FormLabel>Subcategory Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter subcategory name" {...field} />
+                        <Input
+                          placeholder="Enter subcategory name"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="image"
@@ -740,7 +802,7 @@ export default function AdminSubcategories() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="displayOrder"
@@ -753,7 +815,9 @@ export default function AdminSubcategories() {
                           min="0"
                           placeholder="Enter display order"
                           {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value))}
+                          onChange={(e) =>
+                            field.onChange(parseInt(e.target.value))
+                          }
                           value={field.value.toString()}
                         />
                       </FormControl>
@@ -761,7 +825,7 @@ export default function AdminSubcategories() {
                     </FormItem>
                   )}
                 />
-                
+
                 <DialogFooter>
                   <Button
                     variant="outline"
@@ -771,22 +835,24 @@ export default function AdminSubcategories() {
                     Cancel
                   </Button>
                   <Button type="submit" disabled={updateMutation.isPending}>
-                    {updateMutation.isPending ? "Updating..." : "Update Subcategory"}
+                    {updateMutation.isPending
+                      ? "Updating..."
+                      : "Update Subcategory"}
                   </Button>
                 </DialogFooter>
               </form>
             </Form>
           </DialogContent>
         </Dialog>
-        
+
         {/* Delete Confirmation */}
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete the subcategory "{selectedSubcategory?.name}".
-                This action cannot be undone.
+                This will permanently delete the subcategory "
+                {selectedSubcategory?.name}". This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

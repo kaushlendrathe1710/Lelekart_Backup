@@ -48,7 +48,14 @@ import {
   formatDate,
   getFileIcon,
 } from "@/lib/mediaLibraryApi";
-import { Image, Upload, Trash2, MoreVertical, Search, RefreshCw } from "lucide-react";
+import {
+  Image,
+  Upload,
+  Trash2,
+  MoreVertical,
+  Search,
+  RefreshCw,
+} from "lucide-react";
 import AdminLayout from "@/components/layout/admin-layout";
 
 // Constants for upload limits (should match backend)
@@ -72,12 +79,7 @@ export default function MediaLibraryPage() {
   const { toast } = useToast();
 
   // Fetch media items
-  const {
-    data,
-    isLoading,
-    isError,
-    refetch,
-  } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["/api/media", page, limit, search],
     queryFn: () => getMediaItems(page, limit, search),
   });
@@ -88,24 +90,25 @@ export default function MediaLibraryPage() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/media"] });
       setUploadDialogOpen(false);
-      
+
       // Determine the number of files uploaded based on response format
       const filesUploaded = data.items ? data.items.length : 1;
-      
+
       toast({
         title: "Upload Successful",
-        description: filesUploaded === 1 
-          ? "1 file has been uploaded successfully" 
-          : `${filesUploaded} files have been uploaded successfully`,
+        description:
+          filesUploaded === 1
+            ? "1 file has been uploaded successfully"
+            : `${filesUploaded} files have been uploaded successfully`,
       });
-      
+
       resetUploadForm();
     },
     onError: (error: any) => {
       console.error("Upload error:", error);
-      
+
       let errorMessage = "Failed to upload media";
-      
+
       if (error.message) {
         errorMessage = error.message;
       } else if (error.response) {
@@ -116,7 +119,7 @@ export default function MediaLibraryPage() {
           // Use default error message
         }
       }
-      
+
       toast({
         title: "Upload Failed",
         description: errorMessage,
@@ -166,7 +169,7 @@ export default function MediaLibraryPage() {
         return;
       }
       // Check file size
-      const tooLarge = filesArray.find(f => f.size > MAX_FILE_SIZE);
+      const tooLarge = filesArray.find((f) => f.size > MAX_FILE_SIZE);
       if (tooLarge) {
         toast({
           title: "File too large",
@@ -183,7 +186,7 @@ export default function MediaLibraryPage() {
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setDragOver(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       // Convert FileList to Array
       const filesArray = Array.from(e.dataTransfer.files);
@@ -211,7 +214,7 @@ export default function MediaLibraryPage() {
       return;
     }
     // Check file size
-    const tooLarge = selectedFiles.find(f => f.size > MAX_FILE_SIZE);
+    const tooLarge = selectedFiles.find((f) => f.size > MAX_FILE_SIZE);
     if (tooLarge) {
       toast({
         title: "File too large",
@@ -222,19 +225,21 @@ export default function MediaLibraryPage() {
     }
 
     const formData = new FormData();
-    
+
     // Append all files with console logging
     console.log(`Uploading ${selectedFiles.length} files:`);
     selectedFiles.forEach((file, index) => {
-      console.log(`File ${index + 1}: ${file.name}, size: ${file.size}, type: ${file.type}`);
+      console.log(
+        `File ${index + 1}: ${file.name}, size: ${file.size}, type: ${file.type}`
+      );
       formData.append("file", file);
     });
-    
+
     if (alt) {
       formData.append("alt", alt);
       console.log(`Added alt text: ${alt}`);
     }
-    
+
     if (tags) {
       formData.append("tags", tags);
       console.log(`Added tags: ${tags}`);
@@ -243,7 +248,9 @@ export default function MediaLibraryPage() {
     // Debug: List all entries in FormData
     console.log("FormData entries:");
     for (const pair of formData.entries()) {
-      console.log(`${pair[0]}: ${pair[1] instanceof File ? `File: ${(pair[1] as File).name}` : pair[1]}`);
+      console.log(
+        `${pair[0]}: ${pair[1] instanceof File ? `File: ${(pair[1] as File).name}` : pair[1]}`
+      );
     }
 
     uploadMutation.mutate(formData);
@@ -265,16 +272,16 @@ export default function MediaLibraryPage() {
   // Handle pagination
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
     <AdminLayout>
-      <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Media Library</h1>
+      <div className="px-2 sm:px-6 py-4 sm:py-8">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold">Media Library</h1>
 
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
             <div className="relative w-64">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -282,15 +289,15 @@ export default function MediaLibraryPage() {
                 className="pl-8"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
               />
             </div>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="icon"
               onClick={() => {
-                setSearchInput('');
-                setSearch('');
+                setSearchInput("");
+                setSearch("");
                 refetch();
               }}
               title="Reset search"
@@ -304,23 +311,30 @@ export default function MediaLibraryPage() {
                   Upload New
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-full sm:max-w-lg w-[95vw]">
                 <div className="mb-2 text-sm text-muted-foreground">
-                  <strong>Upload Limit:</strong> You can upload up to <b>10 files</b> at a time. Each file must be <b>50MB</b> or less.
+                  <strong>Upload Limit:</strong> You can upload up to{" "}
+                  <b>10 files</b> at a time. Each file must be <b>50MB</b> or
+                  less.
                 </div>
                 <DialogHeader>
                   <DialogTitle>Upload Media</DialogTitle>
                   <DialogDescription>
-                    Upload images or other files to your media library.<br />
+                    Upload images or other files to your media library.
+                    <br />
                     <span className="text-xs text-muted-foreground">
-                      <strong>Upload Limit:</strong> You can upload up to <b>10 files</b> at a time. Each file must be <b>50MB</b> or less.
+                      <strong>Upload Limit:</strong> You can upload up to{" "}
+                      <b>10 files</b> at a time. Each file must be <b>50MB</b>{" "}
+                      or less.
                     </span>
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div
                     className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
-                      dragOver ? "border-primary bg-primary/10" : "border-gray-300"
+                      dragOver
+                        ? "border-primary bg-primary/10"
+                        : "border-gray-300"
                     }`}
                     onDragOver={(e) => {
                       e.preventDefault();
@@ -328,16 +342,27 @@ export default function MediaLibraryPage() {
                     }}
                     onDragLeave={() => setDragOver(false)}
                     onDrop={handleDrop}
-                    onClick={() => document.getElementById("file-upload")?.click()}
-                    style={{ cursor: 'pointer' }}
+                    onClick={() =>
+                      document.getElementById("file-upload")?.click()
+                    }
+                    style={{ cursor: "pointer" }}
                   >
                     {selectedFiles.length > 0 ? (
                       <div className="space-y-4">
-                        <div className="font-medium">Selected {selectedFiles.length} file{selectedFiles.length > 1 ? 's' : ''}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {formatFileSize(selectedFiles.reduce((total, file) => total + file.size, 0))} total
+                        <div className="font-medium">
+                          Selected {selectedFiles.length} file
+                          {selectedFiles.length > 1 ? "s" : ""}
                         </div>
-                        
+                        <div className="text-sm text-muted-foreground">
+                          {formatFileSize(
+                            selectedFiles.reduce(
+                              (total, file) => total + file.size,
+                              0
+                            )
+                          )}{" "}
+                          total
+                        </div>
+
                         {/* Show previews for the first file if it's an image */}
                         {selectedFiles[0]?.type.startsWith("image/") && (
                           <div className="mt-2">
@@ -348,12 +373,13 @@ export default function MediaLibraryPage() {
                             />
                             {selectedFiles.length > 1 && (
                               <p className="text-xs mt-1 text-muted-foreground">
-                                + {selectedFiles.length - 1} more file{selectedFiles.length > 2 ? 's' : ''}
+                                + {selectedFiles.length - 1} more file
+                                {selectedFiles.length > 2 ? "s" : ""}
                               </p>
                             )}
                           </div>
                         )}
-                        
+
                         {/* Show list of file names if not too many */}
                         {selectedFiles.length <= 5 && (
                           <div className="text-left text-sm max-h-20 overflow-y-auto">
@@ -364,9 +390,9 @@ export default function MediaLibraryPage() {
                             ))}
                           </div>
                         )}
-                        
-                        <Button 
-                          variant="outline" 
+
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -418,8 +444,8 @@ export default function MediaLibraryPage() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => {
                       setUploadDialogOpen(false);
                       resetUploadForm();
@@ -429,7 +455,9 @@ export default function MediaLibraryPage() {
                   </Button>
                   <Button
                     onClick={handleUpload}
-                    disabled={selectedFiles.length === 0 || uploadMutation.isPending}
+                    disabled={
+                      selectedFiles.length === 0 || uploadMutation.isPending
+                    }
                   >
                     {uploadMutation.isPending ? (
                       <span className="flex items-center gap-2">
@@ -437,7 +465,12 @@ export default function MediaLibraryPage() {
                         Uploading...
                       </span>
                     ) : (
-                      <span>Upload {selectedFiles.length > 0 ? `(${selectedFiles.length} ${selectedFiles.length === 1 ? 'file' : 'files'})` : ''}</span>
+                      <span>
+                        Upload{" "}
+                        {selectedFiles.length > 0
+                          ? `(${selectedFiles.length} ${selectedFiles.length === 1 ? "file" : "files"})`
+                          : ""}
+                      </span>
                     )}
                   </Button>
                 </DialogFooter>
@@ -453,14 +486,18 @@ export default function MediaLibraryPage() {
         ) : isError ? (
           <div className="text-center py-12">
             <p className="text-red-500">Error loading media library</p>
-            <Button onClick={() => refetch()} className="mt-4">Retry</Button>
+            <Button onClick={() => refetch()} className="mt-4">
+              Retry
+            </Button>
           </div>
         ) : data?.items.length === 0 ? (
           <div className="text-center py-12 border rounded-lg">
             <Image className="mx-auto h-12 w-12 text-muted-foreground" />
             <h3 className="mt-4 text-lg font-medium">No media found</h3>
             <p className="text-sm text-muted-foreground mt-1">
-              {search ? "Try a different search term" : "Upload your first media item"}
+              {search
+                ? "Try a different search term"
+                : "Upload your first media item"}
             </p>
             {search && (
               <Button
@@ -493,15 +530,15 @@ export default function MediaLibraryPage() {
                       >
                         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity duration-200 flex items-center justify-center">
                           <div className="hidden group-hover:flex gap-2">
-                            <Button 
-                              size="sm" 
+                            <Button
+                              size="sm"
                               variant="secondary"
-                              onClick={() => window.open(item.url, '_blank')}
+                              onClick={() => window.open(item.url, "_blank")}
                             >
                               View
                             </Button>
-                            <Button 
-                              size="sm" 
+                            <Button
+                              size="sm"
                               variant="destructive"
                               onClick={() => handleDelete(item.id)}
                             >
@@ -514,21 +551,25 @@ export default function MediaLibraryPage() {
                       <div className="h-full w-full flex items-center justify-center bg-muted">
                         <div className="flex flex-col items-center">
                           <div className="text-4xl mb-2">
-                            {getFileIcon(item.mimeType) === 'image' && <Image />}
-                            {getFileIcon(item.mimeType) === 'file' && <svg 
-                              xmlns="http://www.w3.org/2000/svg" 
-                              width="48" 
-                              height="48" 
-                              viewBox="0 0 24 24" 
-                              fill="none" 
-                              stroke="currentColor" 
-                              strokeWidth="2" 
-                              strokeLinecap="round" 
-                              strokeLinejoin="round"
-                            >
-                              <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-                              <polyline points="14 2 14 8 20 8"/>
-                            </svg>}
+                            {getFileIcon(item.mimeType) === "image" && (
+                              <Image />
+                            )}
+                            {getFileIcon(item.mimeType) === "file" && (
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="48"
+                                height="48"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                                <polyline points="14 2 14 8 20 8" />
+                              </svg>
+                            )}
                           </div>
                           <span className="text-sm font-medium truncate max-w-[200px]">
                             {item.originalName}
@@ -536,15 +577,15 @@ export default function MediaLibraryPage() {
                         </div>
                         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity duration-200 flex items-center justify-center">
                           <div className="hidden group-hover:flex gap-2">
-                            <Button 
-                              size="sm" 
+                            <Button
+                              size="sm"
                               variant="secondary"
-                              onClick={() => window.open(item.url, '_blank')}
+                              onClick={() => window.open(item.url, "_blank")}
                             >
                               View
                             </Button>
-                            <Button 
-                              size="sm" 
+                            <Button
+                              size="sm"
                               variant="destructive"
                               onClick={() => handleDelete(item.id)}
                             >
@@ -558,7 +599,10 @@ export default function MediaLibraryPage() {
                   <CardContent className="p-3">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-medium line-clamp-1" title={item.originalName}>
+                        <h3
+                          className="font-medium truncate max-w-full"
+                          title={item.originalName}
+                        >
                           {item.originalName}
                         </h3>
                         <p className="text-sm text-muted-foreground">
@@ -567,7 +611,11 @@ export default function MediaLibraryPage() {
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                          >
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -583,10 +631,12 @@ export default function MediaLibraryPage() {
                           >
                             Copy URL
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => window.open(item.url, '_blank')}>
+                          <DropdownMenuItem
+                            onClick={() => window.open(item.url, "_blank")}
+                          >
                             Open in new tab
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             className="text-red-500"
                             onClick={() => handleDelete(item.id)}
                           >
@@ -596,9 +646,13 @@ export default function MediaLibraryPage() {
                       </DropdownMenu>
                     </div>
                     {item.tags && (
-                      <div className="mt-2 flex flex-wrap gap-1">
-                        {item.tags.split(',').map((tag, i) => (
-                          <Badge key={i} variant="secondary" className="text-xs">
+                      <div className="mt-2 flex flex-wrap gap-1 max-w-full">
+                        {item.tags.split(",").map((tag, i) => (
+                          <Badge
+                            key={i}
+                            variant="secondary"
+                            className="text-xs"
+                          >
                             {tag.trim()}
                           </Badge>
                         ))}

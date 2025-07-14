@@ -42,10 +42,16 @@ import { Loader2 } from "lucide-react";
 
 // Define schemas for form validation
 const walletSettingsSchema = z.object({
-  firstPurchaseCoins: z.coerce.number().int().positive("Must be a positive number"),
+  firstPurchaseCoins: z.coerce
+    .number()
+    .int()
+    .positive("Must be a positive number"),
   expiryDays: z.coerce.number().int().positive("Must be a positive number"),
   conversionRate: z.coerce.number().positive("Must be a positive number"),
-  maxUsagePercentage: z.coerce.number().min(0).max(100, "Must be between 0 and 100"),
+  maxUsagePercentage: z.coerce
+    .number()
+    .min(0)
+    .max(100, "Must be between 0 and 100"),
   minCartValue: z.coerce.number().min(0, "Must be a non-negative value"),
   applicableCategories: z.string().optional(),
   isActive: z.boolean(),
@@ -73,11 +79,11 @@ export default function WalletManagementPage() {
 
   // Query for wallet settings
   const { data: settings, isLoading: isSettingsLoading } = useQuery({
-    queryKey: ['/api/wallet/settings'],
+    queryKey: ["/api/wallet/settings"],
     queryFn: async () => {
-      const res = await apiRequest('GET', '/api/wallet/settings');
+      const res = await apiRequest("GET", "/api/wallet/settings");
       if (!res.ok) {
-        throw new Error('Failed to fetch wallet settings');
+        throw new Error("Failed to fetch wallet settings");
       }
       return res.json();
     },
@@ -85,24 +91,30 @@ export default function WalletManagementPage() {
 
   // Query for users with wallets
   const { data: users = [], isLoading: isUsersLoading } = useQuery({
-    queryKey: ['/api/wallet/users'],
+    queryKey: ["/api/wallet/users"],
     queryFn: async () => {
-      const res = await apiRequest('GET', '/api/wallet/users');
+      const res = await apiRequest("GET", "/api/wallet/users");
       if (!res.ok) {
-        throw new Error('Failed to fetch users with wallets');
+        throw new Error("Failed to fetch users with wallets");
       }
       return res.json();
     },
   });
 
   // Query for user wallet transactions
-  const { data: transactionsData = { transactions: [], total: 0 }, isLoading: isTransactionsLoading } = useQuery({
-    queryKey: ['/api/wallet/user', selectedUser, 'transactions'],
+  const {
+    data: transactionsData = { transactions: [], total: 0 },
+    isLoading: isTransactionsLoading,
+  } = useQuery({
+    queryKey: ["/api/wallet/user", selectedUser, "transactions"],
     queryFn: async () => {
       if (!selectedUser) return { transactions: [], total: 0 };
-      const res = await apiRequest('GET', `/api/wallet/user/${selectedUser}/transactions`);
+      const res = await apiRequest(
+        "GET",
+        `/api/wallet/user/${selectedUser}/transactions`
+      );
       if (!res.ok) {
-        throw new Error('Failed to fetch user transactions');
+        throw new Error("Failed to fetch user transactions");
       }
       return res.json();
     },
@@ -114,9 +126,9 @@ export default function WalletManagementPage() {
   // Mutation for updating wallet settings
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: WalletSettings) => {
-      const res = await apiRequest('PUT', '/api/wallet/settings', data);
+      const res = await apiRequest("PUT", "/api/wallet/settings", data);
       if (!res.ok) {
-        throw new Error('Failed to update wallet settings');
+        throw new Error("Failed to update wallet settings");
       }
       return res.json();
     },
@@ -125,7 +137,7 @@ export default function WalletManagementPage() {
         title: "Settings Updated",
         description: "Wallet settings have been updated successfully",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/wallet/settings'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/wallet/settings"] });
     },
     onError: (error: Error) => {
       toast({
@@ -139,9 +151,9 @@ export default function WalletManagementPage() {
   // Mutation for manual wallet adjustment
   const adjustWalletMutation = useMutation({
     mutationFn: async (data: WalletAdjustment) => {
-      const res = await apiRequest('POST', '/api/wallet/adjust', data);
+      const res = await apiRequest("POST", "/api/wallet/adjust", data);
       if (!res.ok) {
-        throw new Error('Failed to adjust wallet balance');
+        throw new Error("Failed to adjust wallet balance");
       }
       return res.json();
     },
@@ -150,9 +162,11 @@ export default function WalletManagementPage() {
         title: "Wallet Adjusted",
         description: "User's wallet balance has been adjusted successfully",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/wallet/users'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/wallet/users"] });
       if (selectedUser) {
-        queryClient.invalidateQueries({ queryKey: ['/api/wallet/user', selectedUser, 'transactions'] });
+        queryClient.invalidateQueries({
+          queryKey: ["/api/wallet/user", selectedUser, "transactions"],
+        });
       }
       adjustForm.reset({
         userId: 0,
@@ -200,7 +214,9 @@ export default function WalletManagementPage() {
         firstPurchaseCoins: settings.firstPurchaseCoins,
         expiryDays: settings.coinExpiryDays,
         conversionRate: Number(settings.coinToCurrencyRatio),
-        maxUsagePercentage: settings.maxUsagePercentage ? Number(settings.maxUsagePercentage) : 20,
+        maxUsagePercentage: settings.maxUsagePercentage
+          ? Number(settings.maxUsagePercentage)
+          : 20,
         minCartValue: settings.minCartValue ? Number(settings.minCartValue) : 0,
         applicableCategories: settings.applicableCategories || "",
         isActive: settings.isEnabled,
@@ -220,9 +236,9 @@ export default function WalletManagementPage() {
       maxUsagePercentage: data.maxUsagePercentage,
       minCartValue: data.minCartValue,
       applicableCategories: data.applicableCategories,
-      isEnabled: data.isActive
+      isEnabled: data.isActive,
     };
-    
+
     updateSettingsMutation.mutate(serverData);
   };
 
@@ -238,30 +254,32 @@ export default function WalletManagementPage() {
   // Get transaction type color
   const getTransactionTypeColor = (type: string) => {
     switch (type) {
-      case 'credit':
-        return 'text-green-600';
-      case 'debit':
-        return 'text-red-600';
-      case 'expired':
-        return 'text-orange-600';
+      case "credit":
+        return "text-green-600";
+      case "debit":
+        return "text-red-600";
+      case "expired":
+        return "text-orange-600";
       default:
-        return 'text-gray-600';
+        return "text-gray-600";
     }
   };
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="px-2 sm:px-4 md:px-6 max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Wallet Management</h1>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full max-w-md grid-cols-3">
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-            <TabsTrigger value="users">User Wallets</TabsTrigger>
-            <TabsTrigger value="adjust">Manual Adjust</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto">
+            <TabsList className="min-w-max grid w-full max-w-md grid-cols-3">
+              <TabsTrigger value="settings">Settings</TabsTrigger>
+              <TabsTrigger value="users">User Wallets</TabsTrigger>
+              <TabsTrigger value="adjust">Manual Adjust</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Wallet Settings Tab */}
           <TabsContent value="settings">
@@ -279,7 +297,10 @@ export default function WalletManagementPage() {
                   </div>
                 ) : (
                   <Form {...settingsForm}>
-                    <form onSubmit={settingsForm.handleSubmit(onSettingsSubmit)} className="space-y-4">
+                    <form
+                      onSubmit={settingsForm.handleSubmit(onSettingsSubmit)}
+                      className="space-y-4"
+                    >
                       <FormField
                         control={settingsForm.control}
                         name="firstPurchaseCoins"
@@ -290,7 +311,8 @@ export default function WalletManagementPage() {
                               <Input type="number" {...field} />
                             </FormControl>
                             <FormDescription>
-                              Number of coins awarded for a buyer's first purchase
+                              Number of coins awarded for a buyer's first
+                              purchase
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
@@ -319,7 +341,9 @@ export default function WalletManagementPage() {
                         name="conversionRate"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Conversion Rate (coins per ₹1)</FormLabel>
+                            <FormLabel>
+                              Conversion Rate (coins per ₹1)
+                            </FormLabel>
                             <FormControl>
                               <Input type="number" {...field} />
                             </FormControl>
@@ -338,10 +362,16 @@ export default function WalletManagementPage() {
                           <FormItem>
                             <FormLabel>Max Usage Percentage (%)</FormLabel>
                             <FormControl>
-                              <Input type="number" {...field} min="0" max="100" />
+                              <Input
+                                type="number"
+                                {...field}
+                                min="0"
+                                max="100"
+                              />
                             </FormControl>
                             <FormDescription>
-                              Maximum percentage of order value that can be paid with coins
+                              Maximum percentage of order value that can be paid
+                              with coins
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
@@ -375,7 +405,8 @@ export default function WalletManagementPage() {
                               <Input {...field} />
                             </FormControl>
                             <FormDescription>
-                              Comma-separated list of categories where coins can be applied (leave empty for all categories)
+                              Comma-separated list of categories where coins can
+                              be applied (leave empty for all categories)
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
@@ -385,7 +416,9 @@ export default function WalletManagementPage() {
                       {/* Make the wallet enable/disable option more prominent */}
                       <Card className="border-2 border-primary/20 mt-6 mb-2">
                         <CardHeader className="pb-2">
-                          <CardTitle className="text-base">Wallet System Status</CardTitle>
+                          <CardTitle className="text-base">
+                            Wallet System Status
+                          </CardTitle>
                         </CardHeader>
                         <CardContent>
                           <FormField
@@ -400,14 +433,17 @@ export default function WalletManagementPage() {
                                       onCheckedChange={field.onChange}
                                       className="data-[state=checked]:bg-green-500"
                                     />
-                                    <span className={`font-semibold ${field.value ? 'text-green-500' : 'text-red-500'}`}>
-                                      {field.value ? 'ENABLED' : 'DISABLED'}
+                                    <span
+                                      className={`font-semibold ${field.value ? "text-green-500" : "text-red-500"}`}
+                                    >
+                                      {field.value ? "ENABLED" : "DISABLED"}
                                     </span>
                                   </div>
                                 </FormControl>
                                 <div className="space-y-1 leading-none">
                                   <FormDescription>
-                                    When disabled, users cannot earn or redeem coins throughout the platform
+                                    When disabled, users cannot earn or redeem
+                                    coins throughout the platform
                                   </FormDescription>
                                 </div>
                                 <FormMessage />
@@ -417,7 +453,7 @@ export default function WalletManagementPage() {
                         </CardContent>
                       </Card>
 
-                      <Button 
+                      <Button
                         type="submit"
                         disabled={updateSettingsMutation.isPending}
                         className="w-full sm:w-auto"
@@ -443,108 +479,50 @@ export default function WalletManagementPage() {
                   View and manage user wallet balances
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-2 sm:px-4">
                 {isUsersLoading ? (
                   <div className="flex justify-center py-6">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
                 ) : (
-                  <div>
-                    <div className="rounded-md border">
-                      <Table>
-                        <TableHeader>
+                  <div className="overflow-x-auto">
+                    <Table className="min-w-[800px]">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>ID</TableHead>
+                          <TableHead>Username</TableHead>
+                          <TableHead>Balance</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {users.length === 0 ? (
                           <TableRow>
-                            <TableHead>User ID</TableHead>
-                            <TableHead>Username</TableHead>
-                            <TableHead>Balance (coins)</TableHead>
-                            <TableHead>Actions</TableHead>
+                            <TableCell colSpan={4} className="text-center">
+                              No users with wallets found
+                            </TableCell>
                           </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {users.length === 0 ? (
-                            <TableRow>
-                              <TableCell colSpan={4} className="text-center">
-                                No users with wallets found
+                        ) : (
+                          users.map((user: WalletUser) => (
+                            <TableRow key={user.id}>
+                              <TableCell>{user.id}</TableCell>
+                              <TableCell>{user.username}</TableCell>
+                              <TableCell>{user.balance}</TableCell>
+                              <TableCell>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setSelectedUser(user.id)}
+                                  className="w-full sm:w-auto"
+                                >
+                                  View Transactions
+                                </Button>
                               </TableCell>
                             </TableRow>
-                          ) : (
-                            users.map((user: WalletUser) => (
-                              <TableRow key={user.id}>
-                                <TableCell>{user.id}</TableCell>
-                                <TableCell>{user.username}</TableCell>
-                                <TableCell>{user.balance}</TableCell>
-                                <TableCell>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setSelectedUser(user.id)}
-                                  >
-                                    View Transactions
-                                  </Button>
-                                </TableCell>
-                              </TableRow>
-                            ))
-                          )}
-                        </TableBody>
-                      </Table>
-                    </div>
-
-                    {selectedUser && (
-                      <div className="mt-6">
-                        <h3 className="text-lg font-medium mb-4">
-                          Transactions for User #{selectedUser}
-                        </h3>
-                        {isTransactionsLoading ? (
-                          <div className="flex justify-center py-6">
-                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                          </div>
-                        ) : (
-                          <div className="rounded-md border">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>Date</TableHead>
-                                  <TableHead>Type</TableHead>
-                                  <TableHead>Amount</TableHead>
-                                  <TableHead>Description</TableHead>
-                                  <TableHead>Expires</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {transactions.length === 0 ? (
-                                  <TableRow>
-                                    <TableCell colSpan={5} className="text-center">
-                                      No transactions found
-                                    </TableCell>
-                                  </TableRow>
-                                ) : (
-                                  transactions.map((transaction: any) => (
-                                    <TableRow key={transaction.id}>
-                                      <TableCell>{formatDate(transaction.createdAt)}</TableCell>
-                                      <TableCell className={getTransactionTypeColor(transaction.type)}>
-                                        {transaction.type}
-                                      </TableCell>
-                                      <TableCell>{transaction.amount}</TableCell>
-                                      <TableCell>{transaction.description}</TableCell>
-                                      <TableCell>
-                                        {transaction.expiresAt ? formatDate(transaction.expiresAt) : 'N/A'}
-                                      </TableCell>
-                                    </TableRow>
-                                  ))
-                                )}
-                              </TableBody>
-                            </Table>
-                          </div>
+                          ))
                         )}
-                        <Button
-                          variant="outline"
-                          className="mt-4"
-                          onClick={() => setSelectedUser(null)}
-                        >
-                          Close Transactions
-                        </Button>
-                      </div>
-                    )}
+                      </TableBody>
+                    </Table>
                   </div>
                 )}
               </CardContent>
@@ -562,7 +540,10 @@ export default function WalletManagementPage() {
               </CardHeader>
               <CardContent>
                 <Form {...adjustForm}>
-                  <form onSubmit={adjustForm.handleSubmit(onWalletAdjustSubmit)} className="space-y-4">
+                  <form
+                    onSubmit={adjustForm.handleSubmit(onWalletAdjustSubmit)}
+                    className="space-y-4"
+                  >
                     <FormField
                       control={adjustForm.control}
                       name="userId"
@@ -611,7 +592,7 @@ export default function WalletManagementPage() {
                       )}
                     />
 
-                    <Button 
+                    <Button
                       type="submit"
                       disabled={adjustWalletMutation.isPending}
                       className="w-full sm:w-auto"

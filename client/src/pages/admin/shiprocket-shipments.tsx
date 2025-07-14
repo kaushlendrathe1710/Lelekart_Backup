@@ -54,7 +54,8 @@ const ShiprocketShipments = () => {
     onError: (error: any) => {
       toast({
         title: "Error refreshing token",
-        description: error.message || "There was an error refreshing the token.",
+        description:
+          error.message || "There was an error refreshing the token.",
         variant: "destructive",
       });
     },
@@ -73,19 +74,23 @@ const ShiprocketShipments = () => {
       try {
         const response = await apiRequest("GET", "/api/shiprocket/orders");
         const text = await response.text();
-        
+
         // Check for HTML response first
         if (text.includes("<!DOCTYPE") || text.includes("<html")) {
-          throw new Error("The API returned HTML instead of JSON. Please try generating a new API token.");
+          throw new Error(
+            "The API returned HTML instead of JSON. Please try generating a new API token."
+          );
         }
-        
+
         try {
           // Try to parse as JSON
           const data = JSON.parse(text);
           return data;
         } catch (parseError) {
           // If it's not HTML but not valid JSON either
-          throw new Error(`Invalid API response format: ${text.substring(0, 100)}...`);
+          throw new Error(
+            `Invalid API response format: ${text.substring(0, 100)}...`
+          );
         }
       } catch (error) {
         console.error("Shipped orders API error:", error);
@@ -94,11 +99,12 @@ const ShiprocketShipments = () => {
     },
     retry: (failureCount, error) => {
       // Don't retry if we get HTML response
-      if (error instanceof Error && (
-        error.message.includes("<!DOCTYPE") || 
-        error.message.includes("<html") || 
-        error.message.includes("returned HTML")
-      )) {
+      if (
+        error instanceof Error &&
+        (error.message.includes("<!DOCTYPE") ||
+          error.message.includes("<html") ||
+          error.message.includes("returned HTML"))
+      ) {
         return false;
       }
       // For other errors, retry up to 2 times
@@ -108,7 +114,14 @@ const ShiprocketShipments = () => {
 
   // Function to get status badge color
   const getStatusBadge = (status: string) => {
-    const statusMap: { [key: string]: { variant: "default" | "secondary" | "destructive" | "outline"; bgColor: string; textColor: string; borderColor: string } } = {
+    const statusMap: {
+      [key: string]: {
+        variant: "default" | "secondary" | "destructive" | "outline";
+        bgColor: string;
+        textColor: string;
+        borderColor: string;
+      };
+    } = {
       shipped: {
         variant: "outline",
         bgColor: "bg-blue-50",
@@ -154,40 +167,42 @@ const ShiprocketShipments = () => {
     };
 
     const lowerStatus = (status || "").toLowerCase().replace(/[^a-z]/g, "");
-    return statusMap[lowerStatus] || {
-      variant: "outline",
-      bgColor: "bg-gray-50",
-      textColor: "text-gray-700",
-      borderColor: "border-gray-200",
-    };
+    return (
+      statusMap[lowerStatus] || {
+        variant: "outline",
+        bgColor: "bg-gray-50",
+        textColor: "text-gray-700",
+        borderColor: "border-gray-200",
+      }
+    );
   };
 
   // Function to determine tracking URL
   const getTrackingUrl = (order: any) => {
     if (!order.courierName || !order.awbCode) return null;
-    
+
     // Map of courier names to tracking URLs
     const trackingUrls: { [key: string]: string } = {
-      "Delhivery": "https://www.delhivery.com/track/package/{}",
+      Delhivery: "https://www.delhivery.com/track/package/{}",
       "Ecom Express": "https://ecomexpress.in/tracking/?awb_field={}",
-      "DTDC": "https://www.dtdc.in/tracking/tracking.asp?Type=AWB&strCnno={}",
-      "Bluedart": "https://www.bluedart.com/tracking?trackfor={}&trackid=",
-      "Shadowfax": "https://deliveries.shadowfax.in/track/{}",
-      "XpressBees": "https://www.xpressbees.com/track?isawb=true&trackid={}",
+      DTDC: "https://www.dtdc.in/tracking/tracking.asp?Type=AWB&strCnno={}",
+      Bluedart: "https://www.bluedart.com/tracking?trackfor={}&trackid=",
+      Shadowfax: "https://deliveries.shadowfax.in/track/{}",
+      XpressBees: "https://www.xpressbees.com/track?isawb=true&trackid={}",
     };
-    
+
     // Default Shiprocket tracking
     const defaultUrl = "https://shiprocket.co/tracking/{}";
-    
+
     const urlTemplate = trackingUrls[order.courierName] || defaultUrl;
     return urlTemplate.replace("{}", order.awbCode);
   };
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
-          <CardTitle className="text-xl flex items-center gap-2">
+          <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
             <TruckIcon className="h-5 w-5" />
             Shiprocket Shipments
           </CardTitle>
@@ -199,7 +214,7 @@ const ShiprocketShipments = () => {
           variant="outline"
           size="sm"
           onClick={() => refetchOrders()}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 w-full sm:w-auto"
         >
           <RefreshCw className="h-4 w-4" /> Refresh
         </Button>
@@ -211,14 +226,16 @@ const ShiprocketShipments = () => {
           </div>
         ) : isErrorOrders ? (
           <div className="py-4">
-            <ShiprocketErrorDisplay 
-              error={shippedOrdersError} 
+            <ShiprocketErrorDisplay
+              error={shippedOrdersError}
               onRetry={() => {
                 refetchOrders();
                 // Also try regenerating the token if the error is related to the token
-                if (String(shippedOrdersError).includes('token') || 
-                    String(shippedOrdersError).includes('<!DOCTYPE') ||
-                    String(shippedOrdersError).includes('<html')) {
+                if (
+                  String(shippedOrdersError).includes("token") ||
+                  String(shippedOrdersError).includes("<!DOCTYPE") ||
+                  String(shippedOrdersError).includes("<html")
+                ) {
                   generateTokenMutation.mutate();
                 }
               }}
@@ -250,7 +267,7 @@ const ShiprocketShipments = () => {
                 {shippedOrders?.map((order: any) => {
                   const statusBadge = getStatusBadge(order.shippingStatus);
                   const trackingUrl = getTrackingUrl(order);
-                  
+
                   return (
                     <TableRow key={order.id}>
                       <TableCell className="font-medium">
@@ -272,9 +289,13 @@ const ShiprocketShipments = () => {
                       </TableCell>
                       <TableCell>
                         {order.awbCode ? (
-                          <span className="font-mono text-xs">{order.awbCode}</span>
+                          <span className="font-mono text-xs">
+                            {order.awbCode}
+                          </span>
                         ) : (
-                          <span className="text-gray-500 text-xs">Not assigned</span>
+                          <span className="text-gray-500 text-xs">
+                            Not assigned
+                          </span>
                         )}
                       </TableCell>
                       <TableCell>{formatCurrency(order.total)}</TableCell>
@@ -301,7 +322,9 @@ const ShiprocketShipments = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => window.open(`/admin/orders/${order.id}`, "_blank")}
+                            onClick={() =>
+                              window.open(`/admin/orders/${order.id}`, "_blank")
+                            }
                             className="flex items-center gap-1"
                           >
                             <Search className="h-3 w-3" /> Details
