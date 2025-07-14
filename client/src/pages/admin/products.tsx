@@ -542,6 +542,7 @@ function AdminProductsContent({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/product-stats"] }); // Ensure stats update
       toast({
         title: "Product deleted",
         description: "The product has been successfully deleted.",
@@ -563,6 +564,7 @@ function AdminProductsContent({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/product-stats"] }); // Ensure stats update
       setSelectedProducts([]);
       toast({
         title: "Products deleted",
