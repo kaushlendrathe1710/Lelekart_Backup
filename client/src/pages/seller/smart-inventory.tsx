@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { SellerDashboardLayout } from "@/components/layout/seller-dashboard-layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
@@ -464,18 +464,8 @@ function DemandForecastingTab({ productId }: { productId: number }) {
           `/api/seller/sales-history/${productId}`
         );
         if (!res.ok) throw new Error("Failed to fetch sales history");
-        let data = await res.json();
+        const data = await res.json();
         setSalesError(null);
-        // Patch: Fill missing fields for fallback sales history
-        if (Array.isArray(data)) {
-          data = data.map((sale: any) => ({
-            ...sale,
-            revenue: typeof sale.revenue === "number" ? sale.revenue : sale.quantity * 0,
-            profitMargin: typeof sale.profitMargin === "number" ? sale.profitMargin : 0,
-            channel: sale.channel || "marketplace",
-            id: sale.id || `${sale.date}-${sale.quantity}`,
-          }));
-        }
         return data;
       } catch (err: any) {
         setSalesError(err.message || "Failed to fetch sales history");
@@ -486,28 +476,36 @@ function DemandForecastingTab({ productId }: { productId: number }) {
   });
 
   // Prepare chart data from latest forecast
-  const chartData = useMemo(() => {
+  const chartData = React.useMemo(() => {
     if (!forecasts || forecasts.length === 0) return [];
+
+    // Get the most recent forecast
     const latestForecast = forecasts[0];
+
     try {
+      // Only parse if forecastData is a valid string
       if (!latestForecast.forecastData || typeof latestForecast.forecastData !== 'string') {
+        console.warn('No valid forecastData to parse:', latestForecast.forecastData);
         return [];
       }
       const forecastData = JSON.parse(latestForecast.forecastData);
+
       if (Array.isArray(forecastData)) {
         return forecastData.map((item: any) => ({
           name: item.period,
           forecast: item.value,
         }));
       }
+
       return [];
     } catch (e) {
+      console.error('Error parsing forecast data:', e);
       return [];
     }
   }, [forecasts]);
 
   // Prepare historical sales data for chart
-  const salesData = useMemo(() => {
+  const salesData = React.useMemo(() => {
     if (!salesHistory || salesHistory.length === 0) return [];
 
     // Group by date (month) and sum quantities
@@ -531,7 +529,7 @@ function DemandForecastingTab({ productId }: { productId: number }) {
   }, [salesHistory]);
 
   // Combined chart data (if we have both forecasts and sales history)
-  const combinedData = useMemo(() => {
+  const combinedData = React.useMemo(() => {
     if (chartData.length === 0 && salesData.length === 0) return [];
 
     // Create a map of all periods

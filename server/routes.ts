@@ -9351,25 +9351,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      let salesHistory = await storage.getSalesHistory(productId, sellerId);
-      if (!salesHistory || salesHistory.length === 0) {
-        // Auto-generate sales history from orders if no manual records exist
-        const orders = await storage.getOrders(undefined, sellerId);
-        const sales = {};
-        for (const order of orders) {
-          // Fetch order items for this order and seller
-          const orderItems = await storage.getOrderItems(order.id, sellerId);
-          for (const item of orderItems) {
-            if (item.productId === productId) {
-              const date = new Date(order.date);
-              const key = date.toISOString().split('T')[0];
-              if (!sales[key]) sales[key] = { date: key, quantity: 0 };
-              sales[key].quantity += item.quantity;
-            }
-          }
-        }
-        salesHistory = Object.values(sales);
-      }
+      const salesHistory = await storage.getSalesHistory(productId, sellerId);
       res.json(salesHistory);
     } catch (error) {
       console.error("Error fetching sales history:", error);
