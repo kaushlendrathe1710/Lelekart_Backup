@@ -142,14 +142,31 @@ export default function SearchResultsPage() {
   );
 
   // Render results grid
-  const renderResults = () => (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-      {results &&
-        results.map((product: Product) => (
+  const renderResults = () => {
+    let sortedResults = results ? [...results] : [];
+    if (sortParam && sortedResults.length > 0) {
+      if (sortParam === "price_asc") {
+        sortedResults.sort((a, b) => (a.price || 0) - (b.price || 0));
+      } else if (sortParam === "price_desc") {
+        sortedResults.sort((a, b) => (b.price || 0) - (a.price || 0));
+      } else if (sortParam === "newest") {
+        sortedResults.sort((a, b) => {
+          // If createdAt is missing, treat as oldest
+          const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return bTime - aTime;
+        });
+      }
+      // else 'relevance' or unknown: do not sort
+    }
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {sortedResults.map((product: Product) => (
           <ProductCard key={product.id} product={product} />
         ))}
-    </div>
-  );
+      </div>
+    );
+  };
 
   // Render main content based on state
   const renderContent = () => {
