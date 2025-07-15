@@ -83,6 +83,15 @@ app.use((req, res, next) => {
 
   const server = await registerRoutes(app);
 
+  // Catch-all 404 handler for unhandled requests (after all routes, before error handler)
+  app.use((req, res, next) => {
+    if (req.method === "GET" && req.accepts("html")) {
+      // Let Vite/static handler serve index.html for SPA routes
+      return next();
+    }
+    res.status(404).json({ message: "Not Found" });
+  });
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
