@@ -25,8 +25,24 @@ export async function getSellerAnalyticsHandler(req: Request, res: Response) {
     const totalReturns = returns.length;
     const conversionRate = 0; // Placeholder
 
-    // --- Sales Overview & Order Trends (last 30 days) ---
-    const days = 30;
+    // --- Sales Overview & Order Trends (respect selected date range) ---
+    let days = 30;
+    const rangeParam = req.query.range as string;
+    switch (rangeParam) {
+      case 'last7':
+        days = 7;
+        break;
+      case 'last90':
+        days = 90;
+        break;
+      case 'year':
+        days = 365;
+        break;
+      case 'last30':
+      default:
+        days = 30;
+        break;
+    }
     // Set 'today' to the start of today (no time), but clamp to real current date if system clock is in the future
     const now = new Date();
     const realNow = new Date();
@@ -50,8 +66,23 @@ export async function getSellerAnalyticsHandler(req: Request, res: Response) {
       const key = format(d, "yyyy-MM-dd");
       dateMap[key] = { revenue: 0, orders: 0 };
     }
+    // Robustly parse order dates and include all orders in the selected period
     orders.forEach((order) => {
-      const key = format(new Date(order.date), "yyyy-MM-dd");
+      let orderDate: Date | null = null;
+      if (order.date instanceof Date) {
+        orderDate = order.date;
+      } else if (typeof order.date === 'string' || typeof order.date === 'number') {
+        const parsed = new Date(order.date);
+        if (!isNaN(parsed.getTime())) {
+          orderDate = parsed;
+        }
+      }
+      if (!orderDate) {
+        // Optionally log skipped orders for debugging
+        // console.warn('Skipping order with invalid date:', order);
+        return;
+      }
+      const key = format(orderDate, "yyyy-MM-dd");
       if (dateMap[key]) {
         dateMap[key].revenue += order.total || 0;
         dateMap[key].orders += 1;
@@ -118,6 +149,73 @@ export async function getSellerAnalyticsHandler(req: Request, res: Response) {
       trend: 0, // Placeholder
     }));
 
+    // --- Traffic Sources (real data) ---
+    const trafficMap: Record<string, { visitors: number; conversions: number; revenue: number }> = {};
+    for (const order of orders) {
+      // Prefer UTM/referrer/source if present, else paymentMethod
+      let source = (order as any).utm_source || (order as any).referrer || (order as any).source || order.paymentMethod || 'Other';
+      if (!trafficMap[source]) {
+        trafficMap[source] = { visitors: 0, conversions: 0, revenue: 0 };
+      }
+      trafficMap[source].visitors += 1; // Each order = 1 visitor (for now)
+      trafficMap[source].conversions += 1;
+      trafficMap[source].revenue += order.total || 0;
+    }
+    const trafficSources = Object.entries(trafficMap).map(([name, v]) => ({
+      name,
+      visitors: v.visitors,
+      conversion: v.visitors > 0 ? Math.round((v.conversions / v.visitors) * 100) : 0,
+      revenue: v.revenue,
+    }));
+
+    // --- Customer Insights (real data) ---
+    // Group orders by userId
+    const customerOrderMap: Record<string, { count: number; total: number; cities: Set<string>; states: Set<string> }> = {};
+    for (const order of orders) {
+      const userId = order.userId || 'unknown';
+      if (!customerOrderMap[userId]) {
+        customerOrderMap[userId] = { count: 0, total: 0, cities: new Set(), states: new Set() };
+      }
+      customerOrderMap[userId].count += 1;
+      customerOrderMap[userId].total += order.total || 0;
+      // Demographics from shippingDetails
+      let city = undefined, state = undefined;
+      if (order.shippingDetails) {
+        let details = order.shippingDetails;
+        if (typeof details === 'string') {
+          try { details = JSON.parse(details); } catch (e) { details = {}; }
+        }
+        if (typeof details === 'object' && details !== null) {
+          if (typeof (details as any).city === 'string') city = (details as any).city;
+          if (typeof (details as any).state === 'string') state = (details as any).state;
+        }
+      }
+      if (city) customerOrderMap[userId].cities.add(city);
+      if (state) customerOrderMap[userId].states.add(state);
+    }
+    const uniqueCustomers = Object.keys(customerOrderMap).length;
+    const repeatCustomers = Object.values(customerOrderMap).filter(c => c.count > 1).length;
+    const repeatPurchaseRate = uniqueCustomers > 0 ? (repeatCustomers / uniqueCustomers) * 100 : 0;
+    const avgCustomerValue = uniqueCustomers > 0 ? totalRevenue / uniqueCustomers : 0;
+    // Demographics: aggregate by city and state
+    const cityMap: Record<string, number> = {};
+    const stateMap: Record<string, number> = {};
+    Object.values(customerOrderMap).forEach(cust => {
+      cust.cities.forEach(city => { cityMap[city] = (cityMap[city] || 0) + 1; });
+      cust.states.forEach(state => { stateMap[state] = (stateMap[state] || 0) + 1; });
+    });
+    const demographics = [
+      ...Object.entries(cityMap).map(([group, value]) => ({ group: `City: ${group}`, value })),
+      ...Object.entries(stateMap).map(([group, value]) => ({ group: `State: ${group}`, value })),
+    ];
+    const customerInsights = {
+      repeatPurchaseRate,
+      previousRepeatPurchaseRate: 0, // Not tracked for now
+      avgCustomerValue,
+      previousAvgCustomerValue: 0, // Not tracked for now
+      demographics,
+    };
+
     // --- Build analytics object in the structure expected by the frontend ---
     const analytics = {
       totals: {
@@ -141,8 +239,8 @@ export async function getSellerAnalyticsHandler(req: Request, res: Response) {
       categoryData,
       paymentMethodData,
       topProducts,
-      trafficSources: [], // Placeholder for traffic source analytics
-      customerInsights: null, // Placeholder for customer insights
+      trafficSources,
+      customerInsights,
     };
 
     return res.status(200).json(analytics);
