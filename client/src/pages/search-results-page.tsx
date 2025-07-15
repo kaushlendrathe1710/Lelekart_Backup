@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { SimplifiedSearchResults } from "@/components/search/simplified-search-results";
 import { searchProducts } from "@/services/simplified-search-service";
 import { Product } from "@shared/schema";
+import { Helmet } from "react-helmet-async";
 
 export default function SearchResultsPage() {
   // Use state to track current URL parameters to ensure component re-renders
@@ -66,6 +67,17 @@ export default function SearchResultsPage() {
       if (queryParam) pageTitle += ` matching "${queryParam}"`;
     }
   }
+
+  // Build page title and meta description based on search query
+  const metaTitle = queryParam
+    ? `Search results for "${queryParam}" | LeleKart`
+    : "Product Search | LeleKart";
+  const metaDescription = queryParam
+    ? `Find products matching '${queryParam}' on LeleKart. Discover the best deals and a wide range of products.`
+    : "Search for products on LeleKart. Discover the best deals and a wide range of products.";
+  const metaKeywords = queryParam
+    ? `${queryParam}, online shopping, LeleKart, buy online, deals`
+    : "online shopping, LeleKart, buy online, deals";
 
   // Fetch search results using the simplified search function
   const {
@@ -177,157 +189,164 @@ export default function SearchResultsPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold mb-4">{pageTitle}</h1>
+    <>
+      <Helmet>
+        <title>{metaTitle}</title>
+        <meta name="description" content={metaDescription} />
+        <meta name="keywords" content={metaKeywords} />
+      </Helmet>
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold mb-4">{pageTitle}</h1>
 
-        <div className="mb-6">
-          {/* Search form using simplified component */}
-          <SimplifiedSearchResults
-            initialQuery={queryParam}
-            onSearch={handleSearch}
-          />
+          <div className="mb-6">
+            {/* Search form using simplified component */}
+            <SimplifiedSearchResults
+              initialQuery={queryParam}
+              onSearch={handleSearch}
+            />
 
-          {/* Active filters display */}
-          {(categoryParam ||
-            minPriceParam ||
-            maxPriceParam ||
-            brandParam ||
-            colorParam ||
-            sizeParam) && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              <span className="text-sm text-gray-500 pt-1">
-                Active filters:
-              </span>
+            {/* Active filters display */}
+            {(categoryParam ||
+              minPriceParam ||
+              maxPriceParam ||
+              brandParam ||
+              colorParam ||
+              sizeParam) && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="text-sm text-gray-500 pt-1">
+                  Active filters:
+                </span>
 
-              {/* Category filter tag */}
-              {categoryParam && (
-                <Card className="bg-blue-50 border-blue-200">
-                  <CardContent className="py-1 px-3 flex items-center">
-                    <span className="text-sm">Category: {categoryParam}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5 ml-1 text-gray-500"
-                      onClick={() => {
-                        const newParams = new URLSearchParams(urlParams);
-                        newParams.delete("category");
-                        window.location.href = `/search?${newParams.toString()}`;
-                      }}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
+                {/* Category filter tag */}
+                {categoryParam && (
+                  <Card className="bg-blue-50 border-blue-200">
+                    <CardContent className="py-1 px-3 flex items-center">
+                      <span className="text-sm">Category: {categoryParam}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 ml-1 text-gray-500"
+                        onClick={() => {
+                          const newParams = new URLSearchParams(urlParams);
+                          newParams.delete("category");
+                          window.location.href = `/search?${newParams.toString()}`;
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
 
-              {/* Color filter tag */}
-              {colorParam && (
-                <Card className="bg-blue-50 border-blue-200">
-                  <CardContent className="py-1 px-3 flex items-center">
-                    <span className="text-sm">Color: {colorParam}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5 ml-1 text-gray-500"
-                      onClick={() => {
-                        const newParams = new URLSearchParams(urlParams);
-                        newParams.delete("color");
-                        window.location.href = `/search?${newParams.toString()}`;
-                      }}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
+                {/* Color filter tag */}
+                {colorParam && (
+                  <Card className="bg-blue-50 border-blue-200">
+                    <CardContent className="py-1 px-3 flex items-center">
+                      <span className="text-sm">Color: {colorParam}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 ml-1 text-gray-500"
+                        onClick={() => {
+                          const newParams = new URLSearchParams(urlParams);
+                          newParams.delete("color");
+                          window.location.href = `/search?${newParams.toString()}`;
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
 
-              {/* Brand filter tag */}
-              {brandParam && (
-                <Card className="bg-blue-50 border-blue-200">
-                  <CardContent className="py-1 px-3 flex items-center">
-                    <span className="text-sm">Brand: {brandParam}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5 ml-1 text-gray-500"
-                      onClick={() => {
-                        const newParams = new URLSearchParams(urlParams);
-                        newParams.delete("brand");
-                        window.location.href = `/search?${newParams.toString()}`;
-                      }}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
+                {/* Brand filter tag */}
+                {brandParam && (
+                  <Card className="bg-blue-50 border-blue-200">
+                    <CardContent className="py-1 px-3 flex items-center">
+                      <span className="text-sm">Brand: {brandParam}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 ml-1 text-gray-500"
+                        onClick={() => {
+                          const newParams = new URLSearchParams(urlParams);
+                          newParams.delete("brand");
+                          window.location.href = `/search?${newParams.toString()}`;
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
 
-              {/* Price range filter tag */}
-              {(minPriceParam || maxPriceParam) && (
-                <Card className="bg-blue-50 border-blue-200">
-                  <CardContent className="py-1 px-3 flex items-center">
-                    <span className="text-sm">
-                      Price: {minPriceParam ? `₹${minPriceParam}` : ""}
-                      {minPriceParam && maxPriceParam ? " - " : ""}
-                      {maxPriceParam ? `₹${maxPriceParam}` : ""}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5 ml-1 text-gray-500"
-                      onClick={() => {
-                        const newParams = new URLSearchParams(urlParams);
-                        newParams.delete("minPrice");
-                        newParams.delete("maxPrice");
-                        window.location.href = `/search?${newParams.toString()}`;
-                      }}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
+                {/* Price range filter tag */}
+                {(minPriceParam || maxPriceParam) && (
+                  <Card className="bg-blue-50 border-blue-200">
+                    <CardContent className="py-1 px-3 flex items-center">
+                      <span className="text-sm">
+                        Price: {minPriceParam ? `₹${minPriceParam}` : ""}
+                        {minPriceParam && maxPriceParam ? " - " : ""}
+                        {maxPriceParam ? `₹${maxPriceParam}` : ""}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 ml-1 text-gray-500"
+                        onClick={() => {
+                          const newParams = new URLSearchParams(urlParams);
+                          newParams.delete("minPrice");
+                          newParams.delete("maxPrice");
+                          window.location.href = `/search?${newParams.toString()}`;
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Results count and sort options */}
+          {results && results.length > 0 && (
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm text-gray-500">
+                Found {results.length} result{results.length !== 1 ? "s" : ""}
+              </p>
+
+              {/* Sort options */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">Sort by:</span>
+                <select
+                  className="text-sm border rounded px-2 py-1"
+                  value={sortParam || "relevance"}
+                  onChange={(e) => {
+                    const newParams = new URLSearchParams(urlParams);
+                    if (e.target.value === "relevance") {
+                      newParams.delete("sort");
+                    } else {
+                      newParams.set("sort", e.target.value);
+                    }
+                    window.location.href = `/search?${newParams.toString()}`;
+                  }}
+                  aria-label="Sort search results"
+                >
+                  <option value="relevance">Relevance</option>
+                  <option value="price_asc">Price: Low to High</option>
+                  <option value="price_desc">Price: High to Low</option>
+                  <option value="newest">Newest</option>
+                </select>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Results count and sort options */}
-        {results && results.length > 0 && (
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-sm text-gray-500">
-              Found {results.length} result{results.length !== 1 ? "s" : ""}
-            </p>
-
-            {/* Sort options */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500">Sort by:</span>
-              <select
-                className="text-sm border rounded px-2 py-1"
-                value={sortParam || "relevance"}
-                onChange={(e) => {
-                  const newParams = new URLSearchParams(urlParams);
-                  if (e.target.value === "relevance") {
-                    newParams.delete("sort");
-                  } else {
-                    newParams.set("sort", e.target.value);
-                  }
-                  window.location.href = `/search?${newParams.toString()}`;
-                }}
-                aria-label="Sort search results"
-              >
-                <option value="relevance">Relevance</option>
-                <option value="price_asc">Price: Low to High</option>
-                <option value="price_desc">Price: High to Low</option>
-                <option value="newest">Newest</option>
-              </select>
-            </div>
-          </div>
-        )}
+        {/* Render the appropriate content based on state */}
+        {renderContent()}
       </div>
-
-      {/* Render the appropriate content based on state */}
-      {renderContent()}
-    </div>
+    </>
   );
 }
