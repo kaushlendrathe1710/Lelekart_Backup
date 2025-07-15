@@ -29,6 +29,7 @@ import { Product, Subcategory } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Pagination } from "@/components/ui/pagination";
+import { Helmet } from "react-helmet-async";
 
 export default function CategoryPage() {
   const [location, setLocation] = useLocation();
@@ -260,29 +261,52 @@ export default function CategoryPage() {
     setPriceRange([value[0], value[1]]);
   };
 
+  // Build page title and meta description based on category
+  const metaTitle = displayName
+    ? `${displayName} - Buy ${displayName} Online at Best Prices | LeleKart`
+    : "Shop by Category | LeleKart";
+  const metaDescription = displayName
+    ? `Shop for ${displayName} online at LeleKart. Discover a wide range of products, best deals, and fast delivery. Shop for affordable products at LeleKart. Buy online organic and herbal products. Shop now and save more.`
+    : "Shop by category on LeleKart. Discover a wide range of products, best deals, and fast delivery. Shop for affordable products at LeleKart. Buy online organic and herbal products. Shop now and save more.";
+  const metaKeywords = displayName
+    ? `${displayName}, online shopping, LeleKart, buy ${displayName} online, deals, affordable products, organic products, herbal products, shop now, save more`
+    : "online shopping, LeleKart, buy online, deals, affordable products, organic products, herbal products, shop now, save more";
+
   if (error) {
     return (
-      <Layout>
-        <div className="container mx-auto py-8">
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold text-red-600">
-              Error Loading Products
-            </h2>
-            <p className="mt-2 text-gray-600">
-              We couldn't load products for this category. Please try again
-              later.
-            </p>
-            <Button className="mt-4" onClick={() => setLocation("/")}>
-              Return to Home
-            </Button>
+      <>
+        <Helmet>
+          <title>{metaTitle}</title>
+          <meta name="description" content={metaDescription} />
+          <meta name="keywords" content={metaKeywords} />
+        </Helmet>
+        <Layout>
+          <div className="container mx-auto py-8">
+            <div className="text-center py-12">
+              <h2 className="text-2xl font-bold text-red-600">
+                Error Loading Products
+              </h2>
+              <p className="mt-2 text-gray-600">
+                We couldn't load products for this category. Please try again
+                later.
+              </p>
+              <Button className="mt-4" onClick={() => setLocation("/")}>
+                Return to Home
+              </Button>
+            </div>
           </div>
-        </div>
-      </Layout>
+        </Layout>
+      </>
     );
   }
 
   return (
-    <div className="container mx-auto py-8">
+    <>
+      <Helmet>
+        <title>{metaTitle}</title>
+        <meta name="description" content={metaDescription} />
+        <meta name="keywords" content={metaKeywords} />
+      </Helmet>
       {/* Header section with category title and filters */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
@@ -599,6 +623,6 @@ export default function CategoryPage() {
           )}
         </div>
       )}
-    </div>
+    </>
   );
 }

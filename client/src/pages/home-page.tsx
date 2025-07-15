@@ -26,6 +26,7 @@ import { useProductLoader } from "@/lib/product-loader";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 import { ArrowUp } from "lucide-react";
+import { Helmet } from "react-helmet-async";
 
 // Memoize categories to prevent unnecessary re-renders
 const allCategories = [
@@ -301,6 +302,20 @@ export default function HomePage() {
 
   return (
     <>
+      <Helmet>
+        <title>
+          LeleKart - India’s Leading Online Shopping Site for Electronics,
+          Fashion, Home & More
+        </title>
+        <meta
+          name="description"
+          content="Shop online for electronics, fashion, home appliances, mobiles, beauty, toys, grocery and more at LeleKart. Best deals, fast delivery, and secure payments. Shop for affordable products at LeleKart. Buy online organic and herbal products. Shop now and save more."
+        />
+        <meta
+          name="keywords"
+          content="online shopping, electronics, fashion, mobiles, home appliances, beauty, toys, grocery, India, LeleKart, affordable products, organic products, herbal products, shop now, save more"
+        />
+      </Helmet>
       {/* Hero Section - Load immediately */}
       {isLoadingHero ? (
         <div className="h-64 bg-gradient-to-r from-blue-500 to-indigo-700 flex items-center justify-center">
@@ -523,7 +538,7 @@ export default function HomePage() {
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           className="fixed bottom-8 right-8 z-50 bg-primary text-white rounded-full shadow-2xl p-2 hover:bg-primary/90 transition-colors flex items-center justify-center border-4 border-white"
-          style={{ boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)' }}
+          style={{ boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.37)" }}
           aria-label="Scroll to top"
         >
           <ArrowUp className="h-6 w-6" />
