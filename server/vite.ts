@@ -86,6 +86,8 @@ export function serveStatic(app: Express) {
           res.setHeader("Content-Type", "application/javascript");
         } else if (path.endsWith(".css")) {
           res.setHeader("Content-Type", "text/css");
+        } else if (path.endsWith(".xml")) {
+          res.setHeader("Content-Type", "application/xml");
         }
       },
     })
