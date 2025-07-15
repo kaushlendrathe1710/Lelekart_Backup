@@ -430,20 +430,47 @@ export default function SellerDashboardPage() {
                 <CardDescription>Latest customer orders</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex flex-col items-center justify-center py-6 text-center">
-                  <div className="rounded-full bg-gray-100 p-3 mb-4">
-                    <PackageOpen className="h-6 w-6 text-muted-foreground" />
+                {dashboardSummary?.recentOrders && dashboardSummary.recentOrders.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="py-2 px-3 text-left font-medium">Order ID</th>
+                          <th className="py-2 px-3 text-left font-medium">Date</th>
+                          <th className="py-2 px-3 text-left font-medium">Customer</th>
+                          <th className="py-2 px-3 text-left font-medium">Amount</th>
+                          <th className="py-2 px-3 text-left font-medium">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dashboardSummary.recentOrders.slice(0, 5).map((order: any) => (
+                          <tr key={order.id} className="border-b border-border">
+                            <td className="py-2 px-3">#{order.id}</td>
+                            <td className="py-2 px-3">{new Date(order.date).toLocaleDateString()}</td>
+                            <td className="py-2 px-3">{order.customerName || order.customer || '-'}</td>
+                            <td className="py-2 px-3">₹{order.total?.toFixed ? order.total.toFixed(2) : order.total}</td>
+                            <td className="py-2 px-3 capitalize">{order.status?.replace(/_/g, ' ')}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                  <h3 className="text-lg font-medium">No orders yet</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Customer orders will appear here
-                  </p>
-                  <Button variant="link" className="mt-2" asChild>
-                    <Link href="/seller/products/add">
-                      Add a product to start selling
-                    </Link>
-                  </Button>
-                </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-6 text-center">
+                    <div className="rounded-full bg-gray-100 p-3 mb-4">
+                      <PackageOpen className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-medium">No orders yet</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Customer orders will appear here
+                    </p>
+                    <Button variant="link" className="mt-2" asChild>
+                      <Link href="/seller/products/add">
+                        Add a product to start selling
+                      </Link>
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
