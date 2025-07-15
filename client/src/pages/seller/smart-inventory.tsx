@@ -399,17 +399,26 @@ export default function SmartInventory() {
 function DemandForecastingTab({ productId }: { productId: number }) {
   const { toast } = useToast();
   const [period, setPeriod] = useState<string>("monthly");
+  const [forecastError, setForecastError] = useState<string | null>(null);
+  const [salesError, setSalesError] = useState<string | null>(null);
 
   // Get demand forecasts
-  const { data: forecasts, isLoading } = useQuery({
+  const { data: forecasts, isLoading, error: forecastQueryError } = useQuery({
     queryKey: ["/api/seller/demand-forecasts", productId],
     queryFn: async () => {
-      const res = await apiRequest(
-        "GET",
-        `/api/seller/demand-forecasts/${productId}`
-      );
-      const data = await res.json();
-      return data;
+      try {
+        const res = await apiRequest(
+          "GET",
+          `/api/seller/demand-forecasts/${productId}`
+        );
+        if (!res.ok) throw new Error("Failed to fetch demand forecasts");
+        const data = await res.json();
+        setForecastError(null);
+        return data;
+      } catch (err: any) {
+        setForecastError(err.message || "Failed to fetch demand forecasts");
+        return [];
+      }
     },
     enabled: !!productId,
   });
@@ -446,15 +455,22 @@ function DemandForecastingTab({ productId }: { productId: number }) {
   });
 
   // Get sales history
-  const { data: salesHistory, isLoading: isLoadingSales } = useQuery({
+  const { data: salesHistory, isLoading: isLoadingSales, error: salesQueryError } = useQuery({
     queryKey: ["/api/seller/sales-history", productId],
     queryFn: async () => {
-      const res = await apiRequest(
-        "GET",
-        `/api/seller/sales-history/${productId}`
-      );
-      const data = await res.json();
-      return data;
+      try {
+        const res = await apiRequest(
+          "GET",
+          `/api/seller/sales-history/${productId}`
+        );
+        if (!res.ok) throw new Error("Failed to fetch sales history");
+        const data = await res.json();
+        setSalesError(null);
+        return data;
+      } catch (err: any) {
+        setSalesError(err.message || "Failed to fetch sales history");
+        return [];
+      }
     },
     enabled: !!productId,
   });
@@ -467,7 +483,11 @@ function DemandForecastingTab({ productId }: { productId: number }) {
     const latestForecast = forecasts[0];
 
     try {
-      // Convert forecast data to chart format
+      // Only parse if forecastData is a valid string
+      if (!latestForecast.forecastData || typeof latestForecast.forecastData !== 'string') {
+        console.warn('No valid forecastData to parse:', latestForecast.forecastData);
+        return [];
+      }
       const forecastData = JSON.parse(latestForecast.forecastData);
 
       if (Array.isArray(forecastData)) {
@@ -479,7 +499,7 @@ function DemandForecastingTab({ productId }: { productId: number }) {
 
       return [];
     } catch (e) {
-      console.error("Error parsing forecast data:", e);
+      console.error('Error parsing forecast data:', e);
       return [];
     }
   }, [forecasts]);
@@ -533,6 +553,17 @@ function DemandForecastingTab({ productId }: { productId: number }) {
     );
   }, [chartData, salesData]);
 
+  if (!productId) {
+    return (
+      <div className="text-center p-6">
+        <div className="inline-flex rounded-full p-3 bg-primary/10 mb-4">
+          <TrendingUp className="h-6 w-6 text-primary" />
+        </div>
+        <h3 className="text-xl font-semibold mb-2">Please select a product to view insights.</h3>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <Card>
@@ -555,6 +586,11 @@ function DemandForecastingTab({ productId }: { productId: number }) {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {forecastError && (
+            <div className="bg-red-100 text-red-800 border border-red-200 rounded p-4 mb-4">
+              <strong>Error:</strong> {forecastError}
+            </div>
+          )}
           {isLoading ? (
             <div className="flex justify-center items-center h-64">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -627,7 +663,7 @@ function DemandForecastingTab({ productId }: { productId: number }) {
                 </p>
               </div>
             </div>
-          ) : (
+          ) : !forecastError ? (
             <div className="text-center p-6">
               <div className="inline-flex rounded-full p-3 bg-primary/10 mb-4">
                 <TrendingUp className="h-6 w-6 text-primary" />
@@ -649,7 +685,7 @@ function DemandForecastingTab({ productId }: { productId: number }) {
                 Generate Forecast
               </Button>
             </div>
-          )}
+          ) : null}
         </CardContent>
       </Card>
 
@@ -661,6 +697,11 @@ function DemandForecastingTab({ productId }: { productId: number }) {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {salesError && (
+            <div className="bg-red-100 text-red-800 border border-red-200 rounded p-4 mb-4">
+              <strong>Error:</strong> {salesError}
+            </div>
+          )}
           {isLoadingSales ? (
             <div className="flex justify-center items-center h-64">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -728,7 +769,7 @@ function DemandForecastingTab({ productId }: { productId: number }) {
                 </table>
               </div>
             </div>
-          ) : (
+          ) : !salesError ? (
             <div className="text-center p-6">
               <div className="inline-flex rounded-full p-3 bg-primary/10 mb-4">
                 <LineChart className="h-6 w-6 text-primary" />
@@ -739,7 +780,7 @@ function DemandForecastingTab({ productId }: { productId: number }) {
                 More sales data will improve the accuracy of demand forecasts.
               </p>
             </div>
-          )}
+          ) : null}
         </CardContent>
       </Card>
     </div>
@@ -1410,6 +1451,17 @@ function AIContentTab({ productId }: { productId: number }) {
     },
   });
 
+  if (!productId) {
+    return (
+      <div className="text-center p-6">
+        <div className="inline-flex rounded-full p-3 bg-primary/10 mb-4">
+          <PencilRuler className="h-6 w-6 text-primary" />
+        </div>
+        <h3 className="text-xl font-semibold mb-2">Please select a product to view insights.</h3>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <Card>
@@ -1464,7 +1516,7 @@ function AIContentTab({ productId }: { productId: number }) {
                 </p>
               </div>
 
-              {contents.map((content: any) => (
+              {contents.filter((content: any) => content.productId === productId).map((content: any) => (
                 <Card key={content.id} className="border border-border">
                   <CardHeader className="bg-muted/30 pb-3">
                     <div className="flex items-center justify-between">
