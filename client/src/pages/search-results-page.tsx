@@ -73,11 +73,11 @@ export default function SearchResultsPage() {
     ? `Search results for "${queryParam}" | LeleKart`
     : "Product Search | LeleKart";
   const metaDescription = queryParam
-    ? `Find products matching '${queryParam}' on LeleKart. Discover the best deals and a wide range of products.`
-    : "Search for products on LeleKart. Discover the best deals and a wide range of products.";
+    ? `Find products matching '${queryParam}' on LeleKart. Discover the best deals and a wide range of products. Shop for affordable products at LeleKart. Buy online organic and herbal products. Shop now and save more.`
+    : "Search for products on LeleKart. Discover the best deals and a wide range of products. Shop for affordable products at LeleKart. Buy online organic and herbal products. Shop now and save more.";
   const metaKeywords = queryParam
-    ? `${queryParam}, online shopping, LeleKart, buy online, deals`
-    : "online shopping, LeleKart, buy online, deals";
+    ? `${queryParam}, online shopping, LeleKart, buy online, deals, affordable products, organic products, herbal products, shop now, save more`
+    : "online shopping, LeleKart, buy online, deals, affordable products, organic products, herbal products, shop now, save more";
 
   // Fetch search results using the simplified search function
   const {

@@ -266,11 +266,11 @@ export default function CategoryPage() {
     ? `${displayName} - Buy ${displayName} Online at Best Prices | LeleKart`
     : "Shop by Category | LeleKart";
   const metaDescription = displayName
-    ? `Shop for ${displayName} online at LeleKart. Discover a wide range of products, best deals, and fast delivery.`
-    : "Shop by category on LeleKart. Discover a wide range of products, best deals, and fast delivery.";
+    ? `Shop for ${displayName} online at LeleKart. Discover a wide range of products, best deals, and fast delivery. Shop for affordable products at LeleKart. Buy online organic and herbal products. Shop now and save more.`
+    : "Shop by category on LeleKart. Discover a wide range of products, best deals, and fast delivery. Shop for affordable products at LeleKart. Buy online organic and herbal products. Shop now and save more.";
   const metaKeywords = displayName
-    ? `${displayName}, online shopping, LeleKart, buy ${displayName} online, deals`
-    : "online shopping, LeleKart, buy online, deals";
+    ? `${displayName}, online shopping, LeleKart, buy ${displayName} online, deals, affordable products, organic products, herbal products, shop now, save more`
+    : "online shopping, LeleKart, buy online, deals, affordable products, organic products, herbal products, shop now, save more";
 
   if (error) {
     return (

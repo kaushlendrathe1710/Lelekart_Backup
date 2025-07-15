@@ -309,11 +309,11 @@ export default function HomePage() {
         </title>
         <meta
           name="description"
-          content="Shop online for electronics, fashion, home appliances, mobiles, beauty, toys, grocery and more at LeleKart. Best deals, fast delivery, and secure payments."
+          content="Shop online for electronics, fashion, home appliances, mobiles, beauty, toys, grocery and more at LeleKart. Best deals, fast delivery, and secure payments. Shop for affordable products at LeleKart. Buy online organic and herbal products. Shop now and save more."
         />
         <meta
           name="keywords"
-          content="online shopping, electronics, fashion, mobiles, home appliances, beauty, toys, grocery, India, LeleKart"
+          content="online shopping, electronics, fashion, mobiles, home appliances, beauty, toys, grocery, India, LeleKart, affordable products, organic products, herbal products, shop now, save more"
         />
       </Helmet>
       {/* Hero Section - Load immediately */}
