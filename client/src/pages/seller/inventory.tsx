@@ -66,6 +66,12 @@ export default function InventoryPage() {
   const [editingCategory, setEditingCategory] = useState<string>("");
   const [editingSubcategory, setEditingSubcategory] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
+  const [editingCategoryProductId, setEditingCategoryProductId] = useState<null | number>(null);
+  const [editingSubcategoryProductId, setEditingSubcategoryProductId] = useState<null | number>(null);
+  const [categoryEditValue, setCategoryEditValue] = useState<string>("");
+  const [subcategoryEditValue, setSubcategoryEditValue] = useState<string>("");
+  const [editingSubcategories, setEditingSubcategories] = useState<any[]>([]);
+  const [editingSubcategoriesLoading, setEditingSubcategoriesLoading] = useState(false);
 
   // Fetch product categories to use in filters
   const { data: categories } = useQuery({
@@ -78,6 +84,31 @@ export default function InventoryPage() {
       return res.json();
     },
   });
+
+  // Fetch all subcategories once for client-side filtering (like Edit Product page)
+  const { data: allSubcategories = [] } = useQuery({
+    queryKey: ["/api/subcategories/all"],
+    queryFn: async () => {
+      const res = await fetch("/api/subcategories/all");
+      if (!res.ok) throw new Error("Failed to fetch subcategories");
+      return res.json();
+    },
+    enabled: !!categories,
+  });
+
+  // Function to get subcategories for a given category from allSubcategories
+  const getSubcategoriesForCategory = (categoryName: string) => {
+    if (!categories || !allSubcategories) return [];
+    const categoryObj = categories.find(
+      (c: { id: number; name: string }) =>
+        c.name.trim().toLowerCase() === categoryName.trim().toLowerCase()
+    );
+    if (!categoryObj) return [];
+    // Only subcategories with parentId == null (level 1)
+    return allSubcategories.filter(
+      (sub: any) => sub.categoryId === categoryObj.id && (sub.parentId == null)
+    );
+  };
 
   // Fetch subcategories based on selected category
   const { data: subcategories } = useQuery({
@@ -102,7 +133,6 @@ export default function InventoryPage() {
     enabled: !!categories && categoryFilter !== "all",
   });
 
-  // Fetch seller products with filters
   // Mutation to update product category and subcategory
   const updateProductMutation = useMutation({
     mutationFn: async ({
@@ -115,13 +145,18 @@ export default function InventoryPage() {
       subcategory: string;
     }) => {
       const response = await apiRequest(
-        "PATCH",
-        `/api/seller/products/${productId}`,
-        { category, subcategory }
+        "PUT",
+        `/api/products/${productId}`,
+        {
+          productData: {
+            category,
+            subcategory1: subcategory,
+          },
+        }
       );
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       toast({
         title: "Product updated",
         description:
@@ -129,6 +164,30 @@ export default function InventoryPage() {
         variant: "default",
       });
       setEditingProduct(null);
+      // INSTANTLY update the cache for products list
+      queryClient.setQueryData([
+        "/api/seller/products",
+        page,
+        limit,
+        searchQuery,
+        categoryFilter,
+        stockFilter,
+        subcategoryFilter,
+      ], (oldData: any) => {
+        if (!oldData || !oldData.products) return oldData;
+        return {
+          ...oldData,
+          products: oldData.products.map((p: any) =>
+            p.id === variables.productId
+              ? {
+                  ...p,
+                  category: variables.category,
+                  subcategory1: variables.subcategory,
+                }
+              : p
+          ),
+        };
+      });
       // Invalidate seller-specific queries to ensure proper cache isolation
       queryClient.invalidateQueries({
         queryKey: ["/api/seller/products", user?.id],
@@ -153,6 +212,27 @@ export default function InventoryPage() {
       category: editingCategory,
       subcategory: editingSubcategory,
     });
+  };
+
+  // Function to save only category
+  const saveCategoryChange = (product: any) => {
+    updateProductMutation.mutate({
+      productId: product.id,
+      category: categoryEditValue,
+      subcategory: product.subcategory1 || product.subcategory || "",
+    });
+    setEditingCategoryProductId(null);
+    setCategoryEditValue("");
+  };
+  // Function to save only subcategory
+  const saveSubcategoryChange = (product: any) => {
+    updateProductMutation.mutate({
+      productId: product.id,
+      category: product.category,
+      subcategory: subcategoryEditValue === "none" ? "" : subcategoryEditValue,
+    });
+    setEditingSubcategoryProductId(null);
+    setSubcategoryEditValue("");
   };
 
   const {
@@ -442,22 +522,19 @@ export default function InventoryPage() {
                         <div className="flex items-center">
                           <div className="h-10 w-10 flex-shrink-0 rounded bg-gray-100 border">
                             {(() => {
-                              // Parse images if it's a JSON string
                               let imagesList: string[] = [];
-
                               if (product.images) {
                                 try {
                                   if (typeof product.images === "string") {
                                     // Try to parse the JSON string
                                     imagesList = JSON.parse(product.images);
+                                    if (!Array.isArray(imagesList)) imagesList = [];
                                   } else if (Array.isArray(product.images)) {
                                     imagesList = product.images;
                                   }
                                 } catch (error) {
-                                  console.error(
-                                    "Error parsing product images:",
-                                    error
-                                  );
+                                  console.error("Error parsing product images:", error);
+                                  imagesList = [];
                                 }
                               }
 
@@ -506,14 +583,11 @@ export default function InventoryPage() {
                         {product.sku || "-"}
                       </td>
                       <td className="px-4 py-4 text-sm text-gray-500">
-                        {editingProduct === product.id ? (
-                          <div className="space-y-2">
+                        {editingCategoryProductId === product.id ? (
+                          <div className="flex items-center space-x-2">
                             <Select
-                              value={editingCategory || product.category}
-                              onValueChange={(value) => {
-                                setEditingCategory(value);
-                                setEditingSubcategory(""); // Reset subcategory when category changes
-                              }}
+                              value={categoryEditValue || product.category}
+                              onValueChange={setCategoryEditValue}
                             >
                               <SelectTrigger className="h-8 w-full">
                                 <SelectValue />
@@ -531,88 +605,122 @@ export default function InventoryPage() {
                                 )}
                               </SelectContent>
                             </Select>
-                            {editingProduct === product.id && (
-                              <div className="flex justify-between space-x-1 mt-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-xs h-6 px-2 text-primary"
+                              onClick={() => saveCategoryChange(product)}
+                              disabled={updateProductMutation.isPending}
+                            >
+                              <Check className="h-3 w-3 mr-1" />
+                              Save
+                            </Button>
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   className="text-xs h-6 px-2"
                                   onClick={() => {
-                                    setEditingProduct(null);
-                                    setEditingCategory("");
-                                    setEditingSubcategory("");
+                                setEditingCategoryProductId(null);
+                                setCategoryEditValue("");
                                   }}
                                 >
                                   <X className="h-3 w-3 mr-1" />
                                   Cancel
                                 </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-xs h-6 px-2 text-primary"
-                                  onClick={saveProductCategoryChanges}
-                                  disabled={updateProductMutation.isPending}
-                                >
-                                  {updateProductMutation.isPending ? (
-                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                  ) : (
-                                    <Check className="h-3 w-3 mr-1" />
-                                  )}
-                                  Save
-                                </Button>
-                              </div>
-                            )}
                           </div>
                         ) : (
-                          <div>{product.category}</div>
+                          <div className="flex items-center space-x-2">
+                            <span>{product.category}</span>
+                                <Button
+                                  variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 p-0"
+                              onClick={() => {
+                                setEditingCategoryProductId(product.id);
+                                setCategoryEditValue(product.category);
+                                setEditingSubcategoryProductId(null);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                                </Button>
+                              </div>
                         )}
                       </td>
                       <td className="px-4 py-4 text-sm text-gray-500">
-                        {editingProduct === product.id ? (
+                        {editingSubcategoryProductId === product.id ? (
+                          <div className="flex items-center space-x-2">
                           <Select
-                            value={editingSubcategory}
-                            onValueChange={setEditingSubcategory}
-                            disabled={!editingCategory}
+                              value={
+                                typeof subcategoryEditValue === "string" && subcategoryEditValue.trim().length > 0
+                                  ? subcategoryEditValue.trim()
+                                  : "none"
+                              }
+                              onValueChange={setSubcategoryEditValue}
+                              disabled={!product.category}
                           >
                             <SelectTrigger className="h-8 w-full">
                               <SelectValue placeholder="Select subcategory" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">None</SelectItem>
-                              {subcategories
-                                ?.filter(
-                                  (sub: {
-                                    id: number;
-                                    name: string;
-                                    categoryId: number;
-                                  }) => {
-                                    // Find the category ID that matches the current editing category
-                                    const categoryId = categories?.find(
-                                      (c: { id: number; name: string }) =>
-                                        c.name === editingCategory
-                                    )?.id;
-                                    return sub.categoryId === categoryId;
-                                  }
-                                )
-                                .map(
-                                  (subcategory: {
-                                    id: number;
-                                    name: string;
-                                  }) => (
-                                    <SelectItem
-                                      key={subcategory.id}
-                                      value={subcategory.name}
-                                    >
-                                      {subcategory.name}
-                                    </SelectItem>
+                              <SelectItem value="none">None</SelectItem>
+                              {Array.isArray(editingSubcategories) &&
+                                editingSubcategories
+                                  .filter((sub: { id: number; name: any }) =>
+                                    typeof sub.name === "string" && !!sub.name.trim()
                                   )
-                                )}
+                                  .map((subcategory: { id: number; name: string }) => {
+                                    const value = subcategory.name.trim();
+                                    if (!value) return null;
+                                    return (
+                                      <SelectItem key={subcategory.id} value={value}>
+                                        {value}
+                                      </SelectItem>
+                                    );
+                                  })}
                             </SelectContent>
                           </Select>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-xs h-6 px-2 text-primary"
+                              onClick={() => saveSubcategoryChange(product)}
+                              disabled={updateProductMutation.isPending}
+                            >
+                              <Check className="h-3 w-3 mr-1" />
+                              Save
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-xs h-6 px-2"
+                              onClick={() => {
+                                setEditingSubcategoryProductId(null);
+                                setSubcategoryEditValue("");
+                              }}
+                            >
+                              <X className="h-3 w-3 mr-1" />
+                              Cancel
+                            </Button>
+                          </div>
                         ) : (
-                          <div>
-                            {/* Show subcategory1 if present, else fallback to subcategory, else '-' */}
-                            {product.subcategory1 || product.subcategory || "-"}
+                          <div className="flex items-center space-x-2">
+                            <span>{product.subcategory1 || product.subcategory || "-"}</span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 p-0"
+                              onClick={() => {
+                                if (!categories || !allSubcategories) return;
+                                setEditingSubcategoryProductId(product.id);
+                                const subcat = (product.subcategory1 || product.subcategory || "").trim();
+                                setSubcategoryEditValue(subcat.length > 0 ? subcat : "");
+                                setEditingCategoryProductId(null);
+                                const subs = getSubcategoriesForCategory(product.category);
+                                setEditingSubcategories(subs);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
                           </div>
                         )}
                       </td>
@@ -727,19 +835,17 @@ export default function InventoryPage() {
                     <div className="h-16 w-16 flex-shrink-0 rounded bg-gray-100 border">
                       {(() => {
                         let imagesList: string[] = [];
-
                         if (product.images) {
                           try {
                             if (typeof product.images === "string") {
                               imagesList = JSON.parse(product.images);
+                              if (!Array.isArray(imagesList)) imagesList = [];
                             } else if (Array.isArray(product.images)) {
                               imagesList = product.images;
                             }
                           } catch (error) {
-                            console.error(
-                              "Error parsing product images:",
-                              error
-                            );
+                            console.error("Error parsing product images:", error);
+                            imagesList = [];
                           }
                         }
 
@@ -804,33 +910,63 @@ export default function InventoryPage() {
                         <span className="text-sm font-medium text-muted-foreground">
                           Category:
                         </span>
-                        <span className="text-sm mt-1">
-                          {editingProduct === product.id ? (
+                        <span className="text-sm mt-1 flex items-center space-x-2">
+                          {editingCategoryProductId === product.id ? (
+                            <>
                             <Select
-                              value={editingCategory || product.category}
-                              onValueChange={(value) => {
-                                setEditingCategory(value);
-                                setEditingSubcategory("");
-                              }}
+                                value={categoryEditValue || product.category}
+                                onValueChange={setCategoryEditValue}
                             >
                               <SelectTrigger className="h-8">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                {categories?.map(
-                                  (category: { id: number; name: string }) => (
-                                    <SelectItem
-                                      key={category.id}
-                                      value={category.name}
-                                    >
+                                  {categories?.map((category: { id: number; name: string }) => (
+                                    <SelectItem key={category.id} value={category.name}>
                                       {category.name}
                                     </SelectItem>
-                                  )
-                                )}
+                                  ))}
                               </SelectContent>
                             </Select>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-xs h-6 px-2 text-primary"
+                                onClick={() => saveCategoryChange(product)}
+                                disabled={updateProductMutation.isPending}
+                              >
+                                <Check className="h-3 w-3 mr-1" />
+                                Save
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-xs h-6 px-2"
+                                onClick={() => {
+                                  setEditingCategoryProductId(null);
+                                  setCategoryEditValue("");
+                                }}
+                              >
+                                <X className="h-3 w-3 mr-1" />
+                                Cancel
+                              </Button>
+                            </>
                           ) : (
-                            product.category
+                            <>
+                              <span>{product.category}</span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 p-0"
+                                onClick={() => {
+                                  setEditingCategoryProductId(product.id);
+                                  setCategoryEditValue(product.category);
+                                  setEditingSubcategoryProductId(null);
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </>
                           )}
                         </span>
                       </div>
@@ -838,49 +974,86 @@ export default function InventoryPage() {
                         <span className="text-sm font-medium text-muted-foreground">
                           Subcategory:
                         </span>
-                        <span className="text-sm mt-1">
-                          {editingProduct === product.id ? (
+                        <span className="text-sm mt-1 flex items-center space-x-2">
+                          {editingSubcategoryProductId === product.id ? (
+                            <>
                             <Select
-                              value={editingSubcategory}
-                              onValueChange={setEditingSubcategory}
-                              disabled={!editingCategory}
+                                value={
+                                  typeof subcategoryEditValue === "string" && subcategoryEditValue.trim().length > 0
+                                    ? subcategoryEditValue.trim()
+                                    : "none"
+                                }
+                                onValueChange={setSubcategoryEditValue}
+                                disabled={!product.category}
                             >
                               <SelectTrigger className="h-8">
                                 <SelectValue placeholder="Select subcategory" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="">None</SelectItem>
-                                {subcategories
-                                  ?.filter(
-                                    (sub: {
-                                      id: number;
-                                      name: string;
-                                      categoryId: number;
-                                    }) => {
-                                      const categoryId = categories?.find(
-                                        (c: { id: number; name: string }) =>
-                                          c.name === editingCategory
-                                      )?.id;
-                                      return sub.categoryId === categoryId;
-                                    }
-                                  )
-                                  .map(
-                                    (subcategory: {
-                                      id: number;
-                                      name: string;
-                                    }) => (
-                                      <SelectItem
-                                        key={subcategory.id}
-                                        value={subcategory.name}
-                                      >
-                                        {subcategory.name}
-                                      </SelectItem>
+                                <SelectItem value="none">None</SelectItem>
+                                {Array.isArray(editingSubcategories) &&
+                                  editingSubcategories
+                                    .filter((sub: { id: number; name: any }) =>
+                                      typeof sub.name === "string" && !!sub.name.trim()
                                     )
-                                  )}
+                                    .map((subcategory: { id: number; name: string }) => {
+                                      const value = subcategory.name.trim();
+                                      if (!value) return null;
+                                      if (typeof value !== "string" || value === "") {
+                                        console.error("Bad SelectItem value:", value, subcategory);
+                                        return null;
+                                      }
+                                      return (
+                                        <SelectItem key={subcategory.id} value={value}>
+                                          {value}
+                                        </SelectItem>
+                                      );
+                                    })}
                               </SelectContent>
                             </Select>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-xs h-6 px-2 text-primary"
+                                onClick={() => saveSubcategoryChange(product)}
+                                disabled={updateProductMutation.isPending}
+                              >
+                                <Check className="h-3 w-3 mr-1" />
+                                Save
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-xs h-6 px-2"
+                                onClick={() => {
+                                  setEditingSubcategoryProductId(null);
+                                  setSubcategoryEditValue("");
+                                }}
+                              >
+                                <X className="h-3 w-3 mr-1" />
+                                Cancel
+                              </Button>
+                            </>
                           ) : (
-                            product.subcategory1 || product.subcategory || "-"
+                            <>
+                              <span>{product.subcategory1 || product.subcategory || "-"}</span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 p-0"
+                                onClick={() => {
+                                  if (!categories || !allSubcategories) return;
+                                  setEditingSubcategoryProductId(product.id);
+                                  const subcat = (product.subcategory1 || product.subcategory || "").trim();
+                                  setSubcategoryEditValue(subcat.length > 0 ? subcat : "");
+                                  setEditingCategoryProductId(null);
+                                  const subs = getSubcategoriesForCategory(product.category);
+                                  setEditingSubcategories(subs);
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </>
                           )}
                         </span>
                       </div>
@@ -936,16 +1109,17 @@ export default function InventoryPage() {
                     </div>
 
                     {/* Edit Actions */}
-                    {editingProduct === product.id && (
+                    {editingCategoryProductId === product.id || editingSubcategoryProductId === product.id ? (
                       <div className="flex gap-2 pt-2 border-t">
                         <Button
                           variant="ghost"
                           size="sm"
                           className="flex-1 text-xs"
                           onClick={() => {
-                            setEditingProduct(null);
-                            setEditingCategory("");
-                            setEditingSubcategory("");
+                            setEditingCategoryProductId(null);
+                            setCategoryEditValue("");
+                            setEditingSubcategoryProductId(null);
+                            setSubcategoryEditValue("");
                           }}
                         >
                           <X className="h-3 w-3 mr-1" />
@@ -955,7 +1129,13 @@ export default function InventoryPage() {
                           variant="default"
                           size="sm"
                           className="flex-1 text-xs"
-                          onClick={saveProductCategoryChanges}
+                          onClick={() => {
+                            if (editingCategoryProductId === product.id) {
+                              saveCategoryChange(product);
+                            } else if (editingSubcategoryProductId === product.id) {
+                              saveSubcategoryChange(product);
+                            }
+                          }}
                           disabled={updateProductMutation.isPending}
                         >
                           {updateProductMutation.isPending ? (
@@ -964,6 +1144,36 @@ export default function InventoryPage() {
                             <Check className="h-3 w-3 mr-1" />
                           )}
                           Save
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2 pt-2 border-t">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex-1 text-xs"
+                          onClick={() => {
+                            setEditingCategoryProductId(null);
+                            setCategoryEditValue("");
+                            setEditingSubcategoryProductId(null);
+                            setSubcategoryEditValue("");
+                          }}
+                        >
+                          <X className="h-3 w-3 mr-1" />
+                          Cancel
+                        </Button>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="flex-1 text-xs"
+                          onClick={() => {
+                            setEditingProduct(product.id);
+                            setEditingCategory(product.category);
+                            setEditingSubcategory(product.subcategory1 || product.subcategory || "");
+                          }}
+                        >
+                          <Edit className="h-3 w-3 mr-1" />
+                          Edit
                         </Button>
                       </div>
                     )}
