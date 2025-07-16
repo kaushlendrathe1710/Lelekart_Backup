@@ -55,6 +55,7 @@ import {
 } from "./handlers/export-handler"; // Import export handlers
 import QRCode from "qrcode";
 import { sendEmail, EMAIL_TEMPLATES } from "./services/email-service";
+import affiliateMarketingRoutes from "./routes/affiliate-marketing-routes";
 
 // Helper function to apply product display settings
 function applyProductDisplaySettings(products: any[], settings: any) {
@@ -328,6 +329,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Initialize default daily backup at midnight (0:00)
   scheduleDailyBackup(0, 0);
+
+  // Register affiliate marketing routes
+  app.use(affiliateMarketingRoutes);
 
   // Register return management routes
   app.use("/api/returns", returnRoutes);
@@ -11498,9 +11502,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Shiprocket API Routes
-  // [Shiprocket integration routes removed]
-
   // Dashboard Statistics API
   app.get("/api/admin/dashboard/stats", async (req, res) => {
     try {
@@ -11834,8 +11835,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to get product approval counts" });
     }
   });
-
-  // [Shiprocket integration routes removed]
 
   // Notification routes
   app.get("/api/notifications", async (req, res) => {
