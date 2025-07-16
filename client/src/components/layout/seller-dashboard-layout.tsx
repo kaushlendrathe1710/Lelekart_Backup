@@ -140,7 +140,7 @@ export function SellerDashboardLayout({
   return (
     <AuthProvider>
       <SidebarProvider defaultOpen={true}>
-        <div className="flex min-h-screen flex-col bg-gray-50">
+        <div className="flex min-h-screen flex-col">
           {/* Impersonation Banner - already memoized internally */}
           <ImpersonationBanner />
 
@@ -243,7 +243,7 @@ export function SellerDashboardLayout({
           {/* Add a spacer to push content below the fixed header */}
           <div className="h-14"></div>
 
-          <div className="flex flex-1">
+          <div className="flex flex-1 min-h-0">
             <Sidebar className="border-r shadow-sm bg-white">
               <SidebarHeader className="border-b">
                 <div className="flex items-center gap-2 px-3 py-3">
@@ -486,7 +486,7 @@ export function SellerDashboardLayout({
                 </div>
               </SidebarFooter>
             </Sidebar>
-            <SidebarInset className="w-full p-4 md:p-6">
+            <SidebarInset className="w-full flex-1 min-h-0 p-4 md:p-6">
               {children}
             </SidebarInset>
           </div>

@@ -130,8 +130,8 @@ export default function SellerAnalyticsPage() {
 
   return (
     <SellerDashboardLayout>
-      <div className="container py-2">
-        <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="container min-h-screen flex flex-col flex-1 min-h-0 py-0">
+        <div className="mb-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
               Seller Analytics
@@ -172,13 +172,13 @@ export default function SellerAnalyticsPage() {
         </div>
 
         {isLoading ? (
-          <div className="flex justify-center items-center h-[400px]">
+          <div className="flex justify-center items-center h-40">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           </div>
         ) : (
           <>
             {/* Key Metrics Section */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-2">
               {/* Total Revenue Card */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -313,7 +313,7 @@ export default function SellerAnalyticsPage() {
                       Key sales performance indicators over time
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="h-[300px] sm:h-[400px]">
+                  <CardContent className="h-40 sm:h-60">
                     {revenueChartData.length === 0 ? (
                       <div className="flex items-center justify-center h-full text-muted-foreground">
                         No data available
@@ -340,11 +340,9 @@ export default function SellerAnalyticsPage() {
                       Number of orders placed during the selected period
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="h-[300px] sm:h-[400px]">
+                  <CardContent className="h-40 sm:h-60">
                     {orderChartData.length === 0 ? (
-                      <div className="flex items-center justify-center h-full text-muted-foreground">
-                        No data available
-                      </div>
+                      <div className="text-center text-muted-foreground py-8">No orders in this period.</div>
                     ) : (
                       <BarChart
                         data={orderChartData}
@@ -369,12 +367,12 @@ export default function SellerAnalyticsPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 h-auto lg:h-[400px]">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 h-auto lg:h-60">
                       <div>
                         <h3 className="text-sm font-medium mb-4">
                           Revenue by Category
                         </h3>
-                        <div className="h-[250px] sm:h-[320px]">
+                        <div className="h-40 sm:h-52">
                           {categoryChartData.length === 0 ? (
                             <div className="flex items-center justify-center h-full text-muted-foreground">
                               No data available
