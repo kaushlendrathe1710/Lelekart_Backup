@@ -5720,6 +5720,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       redeemCoinsUsed = Number(redeemCoinsUsed) || 0;
       rewardDiscount = Number(rewardDiscount) || 0;
       rewardPointsUsed = Number(rewardPointsUsed) || 0;
+      const couponDiscount = Number(req.body.couponDiscount) || 0;
       const subtotalNum = Number(subtotal) || 0;
       const totalDeliveryChargesNum = Number(totalDeliveryCharges) || 0;
       // When calculating total:
@@ -5728,9 +5729,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalDeliveryChargesNum -
         walletDiscount -
         rewardDiscount -
-        redeemDiscount;
+        redeemDiscount -
+        couponDiscount;
       console.log(
-        `Final order total: ₹${total} (subtotal: ₹${subtotalNum} + delivery: ₹${totalDeliveryChargesNum} - wallet: ₹${walletDiscount} - reward: ₹${rewardDiscount} - redeem: ₹${redeemDiscount})`
+        `Final order total: ₹${total} (subtotal: ₹${subtotalNum} + delivery: ₹${totalDeliveryChargesNum} - wallet: ₹${walletDiscount} - reward: ₹${rewardDiscount} - redeem: ₹${redeemDiscount} - coupon: ₹${couponDiscount})`
       );
 
       // Create order with payment method from request body
@@ -5747,17 +5749,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ? shippingDetails
             : JSON.stringify(shippingDetails || {}),
         paymentMethod: paymentMethod || "cod",
+        walletDiscount: Number(walletDiscount) || 0,
+        walletCoinsUsed: Number(walletCoinsUsed) || 0,
+        redeemDiscount: Number(redeemDiscount) || 0,
+        redeemCoinsUsed: Number(redeemCoinsUsed) || 0,
+        rewardDiscount: Number(rewardDiscount) || 0,
+        rewardPointsUsed: Number(rewardPointsUsed) || 0,
+        couponCode: req.body.couponCode || null,
+        couponDiscount: couponDiscount,
       };
-
-      // Add wallet information (always, even if zero)
-      orderData.walletDiscount = Number(walletDiscount) || 0;
-      orderData.walletCoinsUsed = Number(walletCoinsUsed) || 0;
-      // Add redeem information (always, even if zero)
-      orderData.redeemDiscount = Number(redeemDiscount) || 0;
-      orderData.redeemCoinsUsed = Number(redeemCoinsUsed) || 0;
-      // Add reward information (always, even if zero)
-      orderData.rewardDiscount = Number(rewardDiscount) || 0;
-      orderData.rewardPointsUsed = Number(rewardPointsUsed) || 0;
 
       // Add validated address ID if available
       if (validatedAddressId) {
@@ -8013,173 +8013,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(updatedCategory);
     } catch (error) {
       res.status(500).json({ error: "Failed to update category" });
-    }
-  });
-
-  app.delete("/api/categories/:id", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-
-    // Allow admin or co-admin with canDeleteCategories permission
-    const isAdmin = req.user.role === "admin" && !req.user.isCoAdmin;
-    const isAuthorizedCoAdmin =
-      req.user.role === "admin" &&
-      req.user.isCoAdmin &&
-      req.user.permissions &&
-      req.user.permissions.canDeleteCategories;
-
-    if (!isAdmin && !isAuthorizedCoAdmin) {
-      return res.status(403).json({ error: "Not authorized" });
-    }
-
-    try {
-      const id = parseInt(req.params.id);
-      const category = await storage.getCategory(id);
-
-      if (!category) {
-        return res.status(404).json({ error: "Category not found" });
-      }
-
-      await storage.deleteCategory(id);
-      res.status(204).send();
-    } catch (error) {
-      res.status(500).json({ error: "Failed to delete category" });
-    }
-  });
-
-  // Subcategory endpoints
-  app.get("/api/subcategories", async (req, res) => {
-    try {
-      const categoryId = req.query.categoryId
-        ? parseInt(req.query.categoryId as string)
-        : undefined;
-      const page = req.query.page ? parseInt(req.query.page as string) : 1;
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
-      console.log(
-        `Fetching subcategories${
-          categoryId ? ` for category ${categoryId}` : ""
-        } (page ${page}, limit ${limit})...`
-      );
-
-      const { subcategories, totalItems, totalPages } =
-        await storage.getSubcategoriesPaginated(categoryId, page, limit);
-      console.log(
-        `Found ${subcategories.length} subcategories (page ${page}/${totalPages})`
-      );
-      res.json({
-        subcategories,
-        pagination: {
-          totalItems,
-          totalPages,
-          currentPage: page,
-          perPage: limit,
-        },
-      });
-    } catch (error) {
-      console.error("Error fetching subcategories:", error);
-      res.status(500).json({ error: "Failed to fetch subcategories" });
-    }
-  });
-
-  // Get all subcategories (non-paginated, for admin interface)
-  app.get("/api/subcategories/all", async (req, res) => {
-    try {
-      console.log("Fetching all subcategories...");
-      const allSubcategories = await storage.getAllSubcategories();
-      console.log(`Found ${allSubcategories.length} subcategories`);
-      res.json(allSubcategories);
-    } catch (error) {
-      console.error("Error fetching all subcategories:", error);
-      res.status(500).json({ error: "Failed to fetch all subcategories" });
-    }
-  });
-
-  app.get("/api/subcategories/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const subcategory = await storage.getSubcategory(id);
-
-      if (!subcategory) {
-        return res.status(404).json({ error: "Subcategory not found" });
-      }
-
-      res.json(subcategory);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch subcategory" });
-    }
-  });
-
-  app.post("/api/subcategories", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-
-    // Allow admin or co-admin with canCreateCategories permission
-    const isAdmin = req.user.role === "admin" && !req.user.isCoAdmin;
-    const isAuthorizedCoAdmin =
-      req.user.role === "admin" &&
-      req.user.isCoAdmin &&
-      req.user.permissions &&
-      req.user.permissions.canCreateCategories;
-
-    if (!isAdmin && !isAuthorizedCoAdmin) {
-      return res.status(403).json({ error: "Not authorized" });
-    }
-
-    try {
-      const subcategoryData = insertSubcategorySchema.parse(req.body);
-
-      // Validate that the category exists
-      const category = await storage.getCategory(subcategoryData.categoryId);
-      if (!category) {
-        return res.status(400).json({ error: "Parent category not found" });
-      }
-
-      const subcategory = await storage.createSubcategory(subcategoryData);
-      res.status(201).json(subcategory);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: error.errors });
-      }
-      res.status(500).json({ error: "Failed to create subcategory" });
-    }
-  });
-
-  app.put("/api/subcategories/:id", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-
-    // Allow admin or co-admin with canEditCategories permission
-    const isAdmin = req.user.role === "admin" && !req.user.isCoAdmin;
-    const isAuthorizedCoAdmin =
-      req.user.role === "admin" &&
-      req.user.isCoAdmin &&
-      req.user.permissions &&
-      req.user.permissions.canEditCategories;
-
-    if (!isAdmin && !isAuthorizedCoAdmin) {
-      return res.status(403).json({ error: "Not authorized" });
-    }
-
-    try {
-      const id = parseInt(req.params.id);
-      const subcategory = await storage.getSubcategory(id);
-
-      if (!subcategory) {
-        return res.status(404).json({ error: "Subcategory not found" });
-      }
-
-      // If categoryId is being updated, check that the new category exists
-      if (
-        req.body.categoryId &&
-        req.body.categoryId !== subcategory.categoryId
-      ) {
-        const category = await storage.getCategory(req.body.categoryId);
-        if (!category) {
-          return res.status(400).json({ error: "Parent category not found" });
-        }
-      }
-
-      const updatedSubcategory = await storage.updateSubcategory(id, req.body);
-      res.json(updatedSubcategory);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to update subcategory" });
     }
   });
 

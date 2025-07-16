@@ -3133,7 +3133,11 @@ export class DatabaseStorage implements IStorage {
 
         return {
           ...result[0].product,
-          subcategoryId: result[0].product.subcategoryId !== null && result[0].product.subcategoryId !== undefined ? Number(result[0].product.subcategoryId) : null, // Ensure number or null
+          subcategoryId:
+            result[0].product.subcategoryId !== null &&
+            result[0].product.subcategoryId !== undefined
+              ? Number(result[0].product.subcategoryId)
+              : null, // Ensure number or null
           sellerName: result[0].sellerName,
           sellerUsername: result[0].sellerUsername,
         };
@@ -4619,19 +4623,17 @@ export class DatabaseStorage implements IStorage {
 
     // Add console logging for debugging
     console.log("Creating order with data:", orderToInsert);
+    console.log("Incoming total:", orderToInsert.total, "couponDiscount:", orderToInsert.couponDiscount);
 
     // Only include the basic fields that we know exist in the database
     // Exclude any Shiprocket fields (shipping_status, etc) that might not exist yet
     // Calculate the final total after all discounts (wallet, redeem, reward, etc)
     let finalTotal = orderToInsert.total ?? 0;
-    if (orderToInsert.walletDiscount)
-      finalTotal -= orderToInsert.walletDiscount;
-    if (orderToInsert.redeemDiscount)
-      finalTotal -= orderToInsert.redeemDiscount;
-    if (orderToInsert.rewardDiscount)
-      finalTotal -= orderToInsert.rewardDiscount;
-    // Prevent negative totals
-    if (finalTotal < 0) finalTotal = 0;
+    // If the total does NOT already have couponDiscount subtracted, subtract it here
+    // (Assume frontend already subtracts couponDiscount, so do NOT subtract again)
+    // If you want to ensure, you can add a flag or check, but for now, just log for debug
+    // if (orderToInsert.couponDiscount) finalTotal -= orderToInsert.couponDiscount;
+    console.log("Final total to save:", finalTotal);
 
     const orderData = [
       {
@@ -4660,6 +4662,8 @@ export class DatabaseStorage implements IStorage {
         redeemCoinsUsed: orderToInsert.redeemCoinsUsed ?? 0,
         rewardDiscount: orderToInsert.rewardDiscount ?? 0,
         rewardPointsUsed: orderToInsert.rewardPointsUsed ?? 0,
+        couponCode: orderToInsert.couponCode ?? null,
+        couponDiscount: orderToInsert.couponDiscount ?? 0,
       },
     ];
 
@@ -6631,7 +6635,7 @@ export class DatabaseStorage implements IStorage {
         .leftJoin(users, eq(supportTickets.userId, users.id))
         .orderBy(desc(supportTickets.createdAt));
     } catch (error) {
-      console.error('Error getting all support tickets:', error);
+      console.error("Error getting all support tickets:", error);
       return [];
     }
   }
@@ -10846,7 +10850,9 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getReturnRequestsForOrderItem(orderItemId: number): Promise<ReturnRequest[]> {
+  async getReturnRequestsForOrderItem(
+    orderItemId: number
+  ): Promise<ReturnRequest[]> {
     try {
       const requests = await db
         .select()
@@ -10855,9 +10861,12 @@ export class DatabaseStorage implements IStorage {
         .orderBy(desc(returnRequests.createdAt));
       return requests;
     } catch (error) {
-      console.error(`Error getting return requests for order item ${orderItemId}:`, error);
+      console.error(
+        `Error getting return requests for order item ${orderItemId}:`,
+        error
+      );
       return [];
     }
-}
+  }
 }
 export const storage = new DatabaseStorage();
