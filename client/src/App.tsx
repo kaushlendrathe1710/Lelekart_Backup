@@ -81,6 +81,7 @@ import MediaLibraryPage from "./pages/admin/media-library";
 import AdminBackupsPage from "./pages/admin/backups";
 import AdminNotificationsPage from "./pages/admin/notifications";
 import TicketManagementPage from "./pages/admin/ticket-management";
+import AffiliateMarketingPage from "./pages/admin/affilate-marketing";
 // Import shared components
 import { SuspenseWrapper } from "./components/shared/suspense-wrapper";
 import PressReleaseDetail from "./pages/static/press-release";
@@ -928,6 +929,16 @@ function App() {
                             path="/admin/gst-management"
                             role="admin"
                             component={GSTManagementPage}
+                          />
+                        )}
+                      </Route>
+
+                      <Route path="/admin/affilate-marketing">
+                        {() => (
+                          <ProtectedRoute
+                            path="/admin/affilate-marketing"
+                            role="admin"
+                            component={AffiliateMarketingPage}
                           />
                         )}
                       </Route>

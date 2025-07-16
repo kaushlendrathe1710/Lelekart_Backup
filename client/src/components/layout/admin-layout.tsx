@@ -42,6 +42,7 @@ import {
   DollarSign,
   Upload,
   RefreshCcw,
+  BarChart3,
 } from "lucide-react";
 import { useState } from "react";
 import {
@@ -251,6 +252,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       title: "GST Management",
       href: "/admin/gst-management",
       icon: <DollarSign className="h-5 w-5" />,
+    },
+    {
+      title: "Affiliate Marketing",
+      href: "/admin/affilate-marketing",
+      icon: <BarChart3 className="h-5 w-5" />,
     },
   ];
 

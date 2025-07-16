@@ -2283,3 +2283,24 @@ export const mediaLibraryRelations = relations(mediaLibrary, ({ one }) => ({
 
 export type MediaLibraryItem = typeof mediaLibrary.$inferSelect;
 export type InsertMediaLibraryItem = z.infer<typeof insertMediaLibrarySchema>;
+
+export const affiliateMarketing = pgTable("affiliate_marketing", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  platform: text("platform").notNull(),
+  code: text("code").notNull().unique(),
+  usageCount: integer("usage_count").notNull().default(0),
+});
+
+export const insertAffiliateMarketingSchema = createInsertSchema(
+  affiliateMarketing
+).pick({
+  name: true,
+  platform: true,
+  code: true,
+});
+
+export type AffiliateMarketing = typeof affiliateMarketing.$inferSelect;
+export type InsertAffiliateMarketing = z.infer<
+  typeof insertAffiliateMarketingSchema
+>;
