@@ -76,7 +76,12 @@ export default function AffiliateMarketingPage() {
   });
 
   // Add form state
-  const [form, setForm] = useState({ name: "", platform: "", code: "" });
+  const [form, setForm] = useState({
+    name: "",
+    platform: "",
+    code: "",
+    discountPercentage: "",
+  });
   const [formPlatformType, setFormPlatformType] = useState(PLATFORM_OPTIONS[0]);
   // Edit form state
   const [editId, setEditId] = useState<number | null>(null);
@@ -84,6 +89,7 @@ export default function AffiliateMarketingPage() {
     name: "",
     platform: "",
     code: "",
+    discountPercentage: "",
   });
   const [editPlatformType, setEditPlatformType] = useState(PLATFORM_OPTIONS[0]);
   const [showForm, setShowForm] = useState(false);
@@ -95,9 +101,13 @@ export default function AffiliateMarketingPage() {
   // Error state for required fields
   const [nameError, setNameError] = useState("");
   const [platformError, setPlatformError] = useState("");
+  const [discountError, setDiscountError] = useState("");
+  const [editDiscountError, setEditDiscountError] = useState("");
 
   // Add form handlers
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
   const handlePlatformTypeChange = (
@@ -117,7 +127,9 @@ export default function AffiliateMarketingPage() {
   };
 
   // Edit form handlers
-  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEditChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     setEditForm({ ...editForm, [e.target.name]: e.target.value });
   };
   const handleEditPlatformTypeChange = (
@@ -167,16 +179,39 @@ export default function AffiliateMarketingPage() {
       setCodeError("Code must be unique.");
       valid = false;
     }
+    if (
+      form.discountPercentage === "" ||
+      isNaN(Number(form.discountPercentage))
+    ) {
+      setDiscountError("Discount % is required.");
+      valid = false;
+    } else if (
+      Number(form.discountPercentage) < 0 ||
+      Number(form.discountPercentage) > 100
+    ) {
+      setDiscountError("Discount % must be between 0 and 100.");
+      valid = false;
+    } else {
+      setDiscountError("");
+    }
     if (!valid) return;
-    addMutation.mutate(form);
-    setForm({ name: "", platform: "", code: "" });
+    addMutation.mutate({
+      ...form,
+      discountPercentage: Number(form.discountPercentage),
+    });
+    setForm({ name: "", platform: "", code: "", discountPercentage: "" });
     setFormPlatformType(PLATFORM_OPTIONS[0]);
     setShowForm(false);
   };
 
   const handleEdit = (row: any) => {
     setEditId(row.id);
-    setEditForm({ name: row.name, platform: row.platform, code: row.code });
+    setEditForm({
+      name: row.name,
+      platform: row.platform,
+      code: row.code,
+      discountPercentage: row.discountPercentage,
+    });
     if (PLATFORM_OPTIONS.includes(row.platform)) {
       setEditPlatformType(row.platform);
     } else {
@@ -197,7 +232,26 @@ export default function AffiliateMarketingPage() {
       return;
     }
     setEditCodeError("");
-    updateMutation.mutate({ id, ...editForm });
+    if (
+      editForm.discountPercentage === "" ||
+      isNaN(Number(editForm.discountPercentage))
+    ) {
+      setEditDiscountError("Discount % is required.");
+      return;
+    } else if (
+      Number(editForm.discountPercentage) < 0 ||
+      Number(editForm.discountPercentage) > 100
+    ) {
+      setEditDiscountError("Discount % must be between 0 and 100.");
+      return;
+    } else {
+      setEditDiscountError("");
+    }
+    updateMutation.mutate({
+      id,
+      ...editForm,
+      discountPercentage: Number(editForm.discountPercentage),
+    });
     setEditId(null);
   };
   const handleEditCancel = () => {
@@ -319,6 +373,24 @@ export default function AffiliateMarketingPage() {
                       </span>
                     )}
                   </div>
+                  <div className="flex flex-col w-full md:w-auto">
+                    <Input
+                      name="discountPercentage"
+                      type="number"
+                      min={0}
+                      max={100}
+                      placeholder="Discount %"
+                      value={form.discountPercentage}
+                      onChange={handleChange}
+                      required
+                      className="bg-white"
+                    />
+                    {discountError && (
+                      <span className="text-red-500 text-xs mt-1">
+                        {discountError}
+                      </span>
+                    )}
+                  </div>
                   <Button
                     type="submit"
                     disabled={addMutation.isPending}
@@ -345,6 +417,9 @@ export default function AffiliateMarketingPage() {
                     </TableHead>
                     <TableHead className="py-3 px-4 text-left">Code</TableHead>
                     <TableHead className="py-3 px-4 text-left">
+                      Discount %
+                    </TableHead>
+                    <TableHead className="py-3 px-4 text-left">
                       No of Usage
                     </TableHead>
                     <TableHead className="py-3 px-4 text-center">
@@ -356,7 +431,7 @@ export default function AffiliateMarketingPage() {
                   {isLoading ? (
                     <TableRow>
                       <TableCell
-                        colSpan={5}
+                        colSpan={6}
                         className="text-center py-8 text-gray-400"
                       >
                         Loading...
@@ -365,7 +440,7 @@ export default function AffiliateMarketingPage() {
                   ) : error ? (
                     <TableRow>
                       <TableCell
-                        colSpan={5}
+                        colSpan={6}
                         className="text-center py-8 text-red-500"
                       >
                         Error loading data
@@ -443,6 +518,25 @@ export default function AffiliateMarketingPage() {
                                   )}
                                 </div>
                               </TableCell>
+                              <TableCell className="py-2 px-4">
+                                <div className="flex flex-col">
+                                  <Input
+                                    name="discountPercentage"
+                                    type="number"
+                                    min={0}
+                                    max={100}
+                                    value={editForm.discountPercentage}
+                                    onChange={handleEditChange}
+                                    className="bg-white"
+                                    required
+                                  />
+                                  {editDiscountError && (
+                                    <span className="text-red-500 text-xs mt-1">
+                                      {editDiscountError}
+                                    </span>
+                                  )}
+                                </div>
+                              </TableCell>
                               <TableCell className="py-2 px-4 text-gray-500 font-mono">
                                 {row.usageCount}
                               </TableCell>
@@ -487,6 +581,9 @@ export default function AffiliateMarketingPage() {
                               <TableCell className="py-2 px-4 text-blue-700 font-mono">
                                 {row.code}
                               </TableCell>
+                              <TableCell className="py-2 px-4 text-green-700 font-mono">
+                                {row.discountPercentage}%
+                              </TableCell>
                               <TableCell className="py-2 px-4 text-gray-500 font-mono">
                                 {row.usageCount}
                               </TableCell>
@@ -524,7 +621,7 @@ export default function AffiliateMarketingPage() {
                   ) : (
                     <TableRow>
                       <TableCell
-                        colSpan={5}
+                        colSpan={6}
                         className="text-center py-8 text-gray-400"
                       >
                         No affiliates found. Click "Add Affiliate" to create

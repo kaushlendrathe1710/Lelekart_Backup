@@ -222,6 +222,10 @@ export const orders = pgTable("orders", {
   rewardDiscount: integer("reward_discount").default(0), // Amount discounted using reward points
   rewardPointsUsed: integer("reward_points_used").default(0), // Number of reward points used
 
+  // Coupon/affiliate code fields
+  couponCode: text("coupon_code"), // Coupon or affiliate code applied
+  couponDiscount: integer("coupon_discount"), // Discount amount from coupon
+
   // Shiprocket integration fields
   shippingStatus: text("shipping_status"), // Status of the order in Shiprocket
   shiprocketOrderId: text("shiprocket_order_id"), // Order ID in Shiprocket
@@ -250,6 +254,9 @@ export const insertOrderSchema = createInsertSchema(orders).pick({
   redeemCoinsUsed: true,
   rewardDiscount: true,
   rewardPointsUsed: true,
+  // Coupon/affiliate code fields
+  couponCode: true,
+  couponDiscount: true,
   // Shiprocket fields
   shippingStatus: true,
   shiprocketOrderId: true,
@@ -467,7 +474,9 @@ export const subcategories = pgTable("subcategories", (table) => {
     categoryId: integer("category_id")
       .notNull()
       .references(() => categories.id, { onDelete: "cascade" }),
-    parentId: integer("parent_id").references(() => (table as any).id, { onDelete: "cascade" }),
+    parentId: integer("parent_id").references(() => (table as any).id, {
+      onDelete: "cascade",
+    }),
     displayOrder: integer("display_order").notNull().default(0),
     active: boolean("active").notNull().default(true),
     featured: boolean("featured").notNull().default(false), // New: Featured flag for promotional subcategories
@@ -2290,6 +2299,7 @@ export const affiliateMarketing = pgTable("affiliate_marketing", {
   platform: text("platform").notNull(),
   code: text("code").notNull().unique(),
   usageCount: integer("usage_count").notNull().default(0),
+  discountPercentage: integer("discount_percentage").notNull().default(0),
 });
 
 export const insertAffiliateMarketingSchema = createInsertSchema(
@@ -2298,6 +2308,7 @@ export const insertAffiliateMarketingSchema = createInsertSchema(
   name: true,
   platform: true,
   code: true,
+  discountPercentage: true,
 });
 
 export type AffiliateMarketing = typeof affiliateMarketing.$inferSelect;

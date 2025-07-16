@@ -483,14 +483,70 @@ export default function CheckoutPage() {
   // Calculate wallet discount
   const { maxDiscount: maxWalletDiscount, maxCoins: maxWalletCoins } =
     calculateMaxWalletDiscount();
-  // The final total after wallet discount and redeem coins
+
+  // Coupon code state
+  const [couponCode, setCouponCode] = useState("");
+  const [couponError, setCouponError] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+
+  // Coupon discount state
+  const [couponDiscount, setCouponDiscount] = useState(0);
+
+  // Coupon apply handler
+  const handleApplyCoupon = async () => {
+    setCouponError("");
+    setCouponLoading(true);
+    setAppliedCoupon(null);
+    setCouponDiscount(0);
+    if (!couponCode.trim()) {
+      setCouponError("Please enter a coupon code.");
+      setCouponLoading(false);
+      return;
+    }
+    try {
+      const res = await fetch(
+        `/api/admin/affiliates?code=${encodeURIComponent(couponCode.trim())}`
+      );
+      if (!res.ok) throw new Error("Invalid coupon code");
+      const affiliate = await res.json();
+      if (!affiliate || !affiliate.discountPercentage) {
+        setCouponError("Invalid or inactive coupon code.");
+        setCouponLoading(false);
+        return;
+      }
+      setAppliedCoupon(affiliate);
+      setCouponDiscount(affiliate.discountPercentage);
+      setCouponError("");
+    } catch (err) {
+      setCouponError("Invalid or inactive coupon code.");
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  // Add a handler to remove the applied coupon
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponDiscount(0);
+    setCouponCode("");
+    setCouponError("");
+  };
+
+  // Calculate coupon discount
+  const couponDiscountAmount = appliedCoupon
+    ? Math.round(
+        (subtotal + deliveryCharges) * (appliedCoupon.discountPercentage / 100)
+      )
+    : 0;
+
+  // The final total after wallet, redeem, and coupon discount
   const finalOrderTotal =
-    useWalletCoins && walletDiscount > 0
-      ? subtotal +
-        deliveryCharges -
-        walletDiscount -
-        (useRedeemedCoins ? redeemAmount : 0)
-      : subtotal + deliveryCharges - (useRedeemedCoins ? redeemAmount : 0);
+    subtotal +
+    deliveryCharges -
+    (useWalletCoins && walletDiscount > 0 ? walletDiscount : 0) -
+    (useRedeemedCoins ? redeemAmount : 0) -
+    (appliedCoupon ? couponDiscountAmount : 0);
 
   // Update wallet discount state only when checkbox is checked and wallet is eligible
   useEffect(() => {
@@ -734,7 +790,7 @@ export default function CheckoutPage() {
         // Prepare order data
         const orderData: any = {
           userId: user.id,
-          // Use the final total after wallet discount
+          // Use the final total after all discounts
           total: finalOrderTotal,
           // status is removed from client request and will be set by server
           paymentMethod: values.paymentMethod,
@@ -769,6 +825,12 @@ export default function CheckoutPage() {
         orderData.rewardDiscount = rewardPointsInput;
         orderData.rewardPointsUsed = rewardPointsInput;
 
+        // Add coupon info if applied
+        if (appliedCoupon) {
+          orderData.couponCode = appliedCoupon.code;
+          orderData.couponDiscount = couponDiscountAmount;
+        }
+
         // Log order data before submission
         console.log("Submitting order with data:", orderData);
 
@@ -791,6 +853,19 @@ export default function CheckoutPage() {
         }
 
         const order = await orderResponse.json();
+
+        // If a coupon was applied, increment its usage count
+        if (appliedCoupon && appliedCoupon.id) {
+          try {
+            await fetch(`/api/admin/affiliates/${appliedCoupon.id}/increment-usage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+            });
+          } catch (err) {
+            console.error('Failed to increment affiliate usage:', err);
+          }
+        }
 
         // Refetch notifications so the buyer sees the order placed notification
         await refetchNotifications();
@@ -1500,6 +1575,53 @@ export default function CheckoutPage() {
               Order Summary
             </h2>
 
+            <div className="mb-4 flex flex-col md:flex-row md:items-center gap-2">
+              <Input
+                type="text"
+                placeholder="Enter coupon code"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value)}
+                className="w-full md:w-64 bg-white"
+                disabled={!!appliedCoupon}
+              />
+              <Button
+                type="button"
+                onClick={handleApplyCoupon}
+                disabled={couponLoading || !!appliedCoupon}
+                className="w-full md:w-auto"
+              >
+                {appliedCoupon
+                  ? "Applied"
+                  : couponLoading
+                    ? "Applying..."
+                    : "Apply"}
+              </Button>
+            </div>
+            {couponError && (
+              <Alert variant="destructive" className="mb-2">
+                {couponError}
+              </Alert>
+            )}
+            {appliedCoupon && (
+              <Alert
+                variant="default"
+                className="mb-2 flex items-center justify-between"
+              >
+                <span>
+                  Coupon <b>{appliedCoupon.code}</b> applied!{" "}
+                  {appliedCoupon.discountPercentage}% off
+                </span>
+                <button
+                  type="button"
+                  className="ml-2 text-red-500 hover:text-red-700 font-bold text-lg"
+                  onClick={handleRemoveCoupon}
+                  aria-label="Remove coupon"
+                >
+                  ×
+                </button>
+              </Alert>
+            )}
+
             <div className="space-y-4 mb-4">
               {cartItems.map((item) => (
                 <div
@@ -1686,9 +1808,19 @@ export default function CheckoutPage() {
                 </span>
               </div>
             )}
-            {/* Show original total with strikethrough and discounted total in green if wallet discount is applied */}
-            <hr className="my-4" />
-            {useWalletCoins && walletDiscount > 0 ? (
+            {/* Show coupon discount if applied */}
+            {appliedCoupon && (
+              <div className="flex justify-between mb-2">
+                <span className="text-gray-600">Coupon Discount</span>
+                <span className="font-medium text-green-600">
+                  -₹{couponDiscountAmount}
+                </span>
+              </div>
+            )}
+            {/* Show original total with strikethrough and discounted total in green if any discount is applied */}
+            {walletDiscount > 0 ||
+            redeemAmount > 0 ||
+            couponDiscountAmount > 0 ? (
               <div className="flex flex-col mb-6">
                 <div className="flex justify-between mb-1">
                   <span className="text-lg font-semibold">Total</span>
