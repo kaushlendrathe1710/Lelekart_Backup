@@ -87,6 +87,14 @@ export default function AffiliateMarketingPage() {
   });
   const [editPlatformType, setEditPlatformType] = useState(PLATFORM_OPTIONS[0]);
   const [showForm, setShowForm] = useState(false);
+  // Search state
+  const [search, setSearch] = useState("");
+  // Error state for code uniqueness
+  const [codeError, setCodeError] = useState("");
+  const [editCodeError, setEditCodeError] = useState("");
+  // Error state for required fields
+  const [nameError, setNameError] = useState("");
+  const [platformError, setPlatformError] = useState("");
 
   // Add form handlers
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -130,6 +138,36 @@ export default function AffiliateMarketingPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    let valid = true;
+    if (!form.name.trim()) {
+      setNameError("Name is required.");
+      valid = false;
+    } else {
+      setNameError("");
+    }
+    if (!form.platform.trim()) {
+      setPlatformError("Platform is required.");
+      valid = false;
+    } else {
+      setPlatformError("");
+    }
+    if (!form.code.trim()) {
+      setCodeError("Code is required.");
+      valid = false;
+    } else {
+      setCodeError("");
+    }
+    // Uniqueness check (case-insensitive)
+    if (
+      data &&
+      data.some(
+        (row: any) => row.code.toLowerCase() === form.code.toLowerCase()
+      )
+    ) {
+      setCodeError("Code must be unique.");
+      valid = false;
+    }
+    if (!valid) return;
     addMutation.mutate(form);
     setForm({ name: "", platform: "", code: "" });
     setFormPlatformType(PLATFORM_OPTIONS[0]);
@@ -146,6 +184,19 @@ export default function AffiliateMarketingPage() {
     }
   };
   const handleEditSave = (id: number) => {
+    // Uniqueness check (case-insensitive, ignore current row)
+    if (
+      data &&
+      data.some(
+        (row: any) =>
+          row.id !== id &&
+          row.code.toLowerCase() === editForm.code.toLowerCase()
+      )
+    ) {
+      setEditCodeError("Code must be unique.");
+      return;
+    }
+    setEditCodeError("");
     updateMutation.mutate({ id, ...editForm });
     setEditId(null);
   };
@@ -180,6 +231,17 @@ export default function AffiliateMarketingPage() {
             </Button>
           </div>
 
+          {/* Search Bar */}
+          <div className="mb-4 flex items-center gap-2">
+            <Input
+              type="text"
+              placeholder="Search by name or code..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full md:w-96 bg-white"
+            />
+          </div>
+
           {showForm && (
             <Card className="mb-8 shadow-lg border border-blue-100 bg-blue-50">
               <CardHeader>
@@ -190,14 +252,21 @@ export default function AffiliateMarketingPage() {
                   onSubmit={handleSubmit}
                   className="flex flex-col md:flex-row gap-4 items-center"
                 >
-                  <Input
-                    name="name"
-                    placeholder="Name"
-                    value={form.name}
-                    onChange={handleChange}
-                    required
-                    className="bg-white"
-                  />
+                  <div className="flex flex-col w-full md:w-auto">
+                    <Input
+                      name="name"
+                      placeholder="Name"
+                      value={form.name}
+                      onChange={handleChange}
+                      required
+                      className="bg-white"
+                    />
+                    {nameError && (
+                      <span className="text-red-500 text-xs mt-1">
+                        {nameError}
+                      </span>
+                    )}
+                  </div>
                   <select
                     name="platformType"
                     value={formPlatformType}
@@ -212,14 +281,21 @@ export default function AffiliateMarketingPage() {
                     ))}
                   </select>
                   {formPlatformType === "Custom" && (
-                    <Input
-                      name="platform"
-                      placeholder="Custom Platform"
-                      value={form.platform}
-                      onChange={handleCustomPlatformChange}
-                      required
-                      className="bg-white"
-                    />
+                    <div className="flex flex-col w-full md:w-auto">
+                      <Input
+                        name="platform"
+                        placeholder="Custom Platform"
+                        value={form.platform}
+                        onChange={handleCustomPlatformChange}
+                        required
+                        className="bg-white"
+                      />
+                      {platformError && (
+                        <span className="text-red-500 text-xs mt-1">
+                          {platformError}
+                        </span>
+                      )}
+                    </div>
                   )}
                   {formPlatformType !== "Custom" && (
                     <input
@@ -228,14 +304,21 @@ export default function AffiliateMarketingPage() {
                       value={form.platform}
                     />
                   )}
-                  <Input
-                    name="code"
-                    placeholder="Code"
-                    value={form.code}
-                    onChange={handleChange}
-                    required
-                    className="bg-white"
-                  />
+                  <div className="flex flex-col w-full md:w-auto">
+                    <Input
+                      name="code"
+                      placeholder="Code"
+                      value={form.code}
+                      onChange={handleChange}
+                      required
+                      className="bg-white"
+                    />
+                    {codeError && (
+                      <span className="text-red-500 text-xs mt-1">
+                        {codeError}
+                      </span>
+                    )}
+                  </div>
                   <Button
                     type="submit"
                     disabled={addMutation.isPending}
@@ -289,139 +372,155 @@ export default function AffiliateMarketingPage() {
                       </TableCell>
                     </TableRow>
                   ) : data && data.length > 0 ? (
-                    data.map((row: any, idx: number) => (
-                      <TableRow
-                        key={row.id}
-                        className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
-                      >
-                        {editId === row.id ? (
-                          <>
-                            <TableCell className="py-2 px-4">
-                              <Input
-                                name="name"
-                                value={editForm.name}
-                                onChange={handleEditChange}
-                                className="bg-white"
-                              />
-                            </TableCell>
-                            <TableCell className="py-2 px-4">
-                              <select
-                                name="editPlatformType"
-                                value={editPlatformType}
-                                onChange={handleEditPlatformTypeChange}
-                                className="bg-white border rounded px-3 py-2 text-gray-700"
-                                aria-label="Edit Platform Type"
-                              >
-                                {PLATFORM_OPTIONS.map((option) => (
-                                  <option key={option} value={option}>
-                                    {option}
-                                  </option>
-                                ))}
-                              </select>
-                              {editPlatformType === "Custom" && (
+                    data
+                      .filter((row: any) => {
+                        const q = search.trim().toLowerCase();
+                        if (!q) return true;
+                        return (
+                          row.name.toLowerCase().includes(q) ||
+                          row.code.toLowerCase().includes(q)
+                        );
+                      })
+                      .map((row: any, idx: number) => (
+                        <TableRow
+                          key={row.id}
+                          className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                        >
+                          {editId === row.id ? (
+                            <>
+                              <TableCell className="py-2 px-4">
                                 <Input
-                                  name="platform"
-                                  placeholder="Custom Platform"
-                                  value={editForm.platform}
-                                  onChange={handleEditCustomPlatformChange}
-                                  required
-                                  className="bg-white mt-2"
+                                  name="name"
+                                  value={editForm.name}
+                                  onChange={handleEditChange}
+                                  className="bg-white"
                                 />
-                              )}
-                              {editPlatformType !== "Custom" && (
-                                <input
-                                  type="hidden"
-                                  name="platform"
-                                  value={editForm.platform}
-                                />
-                              )}
-                            </TableCell>
-                            <TableCell className="py-2 px-4">
-                              <Input
-                                name="code"
-                                value={editForm.code}
-                                onChange={handleEditChange}
-                                className="bg-white"
-                              />
-                            </TableCell>
-                            <TableCell className="py-2 px-4 text-gray-500 font-mono">
-                              {row.usageCount}
-                            </TableCell>
-                            <TableCell className="py-2 px-4 text-center flex gap-2 justify-center">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    size="icon"
-                                    variant="default"
-                                    onClick={() => handleEditSave(row.id)}
-                                    disabled={updateMutation.isPending}
-                                    className="bg-green-500 hover:bg-green-600 text-white"
-                                  >
-                                    <Check size={18} />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Save</TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    size="icon"
-                                    variant="secondary"
-                                    onClick={handleEditCancel}
-                                    className="bg-gray-200 hover:bg-gray-300 text-gray-700"
-                                  >
-                                    <X size={18} />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Cancel</TooltipContent>
-                              </Tooltip>
-                            </TableCell>
-                          </>
-                        ) : (
-                          <>
-                            <TableCell className="py-2 px-4 font-medium text-gray-800">
-                              {row.name}
-                            </TableCell>
-                            <TableCell className="py-2 px-4 text-gray-700">
-                              {row.platform}
-                            </TableCell>
-                            <TableCell className="py-2 px-4 text-blue-700 font-mono">
-                              {row.code}
-                            </TableCell>
-                            <TableCell className="py-2 px-4 text-gray-500 font-mono">
-                              {row.usageCount}
-                            </TableCell>
-                            <TableCell className="py-2 px-4 text-center flex gap-2 justify-center">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    onClick={() => handleEdit(row)}
-                                  >
-                                    <Pencil size={18} />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Edit</TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    size="icon"
-                                    variant="destructive"
-                                    onClick={() => handleDelete(row.id)}
-                                    disabled={deleteMutation.isPending}
-                                  >
-                                    <Trash2 size={18} />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Delete</TooltipContent>
-                              </Tooltip>
-                            </TableCell>
-                          </>
-                        )}
-                      </TableRow>
-                    ))
+                              </TableCell>
+                              <TableCell className="py-2 px-4">
+                                <select
+                                  name="editPlatformType"
+                                  value={editPlatformType}
+                                  onChange={handleEditPlatformTypeChange}
+                                  className="bg-white border rounded px-3 py-2 text-gray-700"
+                                  aria-label="Edit Platform Type"
+                                >
+                                  {PLATFORM_OPTIONS.map((option) => (
+                                    <option key={option} value={option}>
+                                      {option}
+                                    </option>
+                                  ))}
+                                </select>
+                                {editPlatformType === "Custom" && (
+                                  <Input
+                                    name="platform"
+                                    placeholder="Custom Platform"
+                                    value={editForm.platform}
+                                    onChange={handleEditCustomPlatformChange}
+                                    required
+                                    className="bg-white mt-2"
+                                  />
+                                )}
+                                {editPlatformType !== "Custom" && (
+                                  <input
+                                    type="hidden"
+                                    name="platform"
+                                    value={editForm.platform}
+                                  />
+                                )}
+                              </TableCell>
+                              <TableCell className="py-2 px-4">
+                                <div className="flex flex-col">
+                                  <Input
+                                    name="code"
+                                    value={editForm.code}
+                                    onChange={handleEditChange}
+                                    className="bg-white"
+                                  />
+                                  {editCodeError && (
+                                    <span className="text-red-500 text-xs mt-1">
+                                      {editCodeError}
+                                    </span>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell className="py-2 px-4 text-gray-500 font-mono">
+                                {row.usageCount}
+                              </TableCell>
+                              <TableCell className="py-2 px-4 text-center flex gap-2 justify-center">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="icon"
+                                      variant="default"
+                                      onClick={() => handleEditSave(row.id)}
+                                      disabled={updateMutation.isPending}
+                                      className="bg-green-500 hover:bg-green-600 text-white"
+                                    >
+                                      <Check size={18} />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Save</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="icon"
+                                      variant="secondary"
+                                      onClick={handleEditCancel}
+                                      className="bg-gray-200 hover:bg-gray-300 text-gray-700"
+                                    >
+                                      <X size={18} />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Cancel</TooltipContent>
+                                </Tooltip>
+                              </TableCell>
+                            </>
+                          ) : (
+                            <>
+                              <TableCell className="py-2 px-4 font-medium text-gray-800">
+                                {row.name}
+                              </TableCell>
+                              <TableCell className="py-2 px-4 text-gray-700">
+                                {row.platform}
+                              </TableCell>
+                              <TableCell className="py-2 px-4 text-blue-700 font-mono">
+                                {row.code}
+                              </TableCell>
+                              <TableCell className="py-2 px-4 text-gray-500 font-mono">
+                                {row.usageCount}
+                              </TableCell>
+                              <TableCell className="py-2 px-4 text-center flex gap-2 justify-center">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      onClick={() => handleEdit(row)}
+                                    >
+                                      <Pencil size={18} />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Edit</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="icon"
+                                      variant="destructive"
+                                      onClick={() => handleDelete(row.id)}
+                                      disabled={deleteMutation.isPending}
+                                    >
+                                      <Trash2 size={18} />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Delete</TooltipContent>
+                                </Tooltip>
+                              </TableCell>
+                            </>
+                          )}
+                        </TableRow>
+                      ))
                   ) : (
                     <TableRow>
                       <TableCell
