@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -32,6 +32,8 @@ import {
   AlignJustify,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface Product {
   id: number;
@@ -67,6 +69,8 @@ export default function SellerProductsPage() {
   const [category, setCategory] = useState("all");
   const [subcategory, setSubcategory] = useState("all");
   const [stockFilter, setStockFilter] = useState("all");
+  const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
+  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
 
   // View mode state
   const VIEW_MODES = [
@@ -89,6 +93,12 @@ export default function SellerProductsPage() {
 
   const { toast } = useToast();
   const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  // Add state for inline editing
+  const [editingProductId, setEditingProductId] = useState<number | null>(null);
+  const [editingCategory, setEditingCategory] = useState<string>("");
+  const [editingSubcategory, setEditingSubcategory] = useState<string>("");
+  const queryClient = useQueryClient();
 
   if (!user) {
     return (
@@ -130,6 +140,109 @@ export default function SellerProductsPage() {
     return (
       product.subcategory1 || product.subcategory2 || product.subcategory || "-"
     );
+  };
+
+  // Helper to get level 1 subcategories for a category
+  const getLevel1Subcategories = (categoryName: string) => {
+    if (!categoriesData || !subcategoriesData) return [];
+    const categoryObj = categoriesData.find(
+      (c: { id: number; name: string }) =>
+        c.name.trim().toLowerCase() === categoryName.trim().toLowerCase()
+    );
+    if (!categoryObj) return [];
+    return subcategoriesData.filter(
+      (sub: any) => sub.categoryId === categoryObj.id && sub.parentId == null
+    );
+  };
+
+  // Mutation to update product category/subcategory
+  const updateCategoryMutation = useMutation({
+    mutationFn: async ({
+      productId,
+      category,
+      subcategory,
+    }: {
+      productId: number;
+      category: string;
+      subcategory: string;
+    }) => {
+      // Fetch current product data
+      const currentRes = await fetch(`/api/products/${productId}`);
+      if (!currentRes.ok) throw new Error("Failed to fetch current product data");
+      const currentProduct = await currentRes.json();
+
+      // Prepare updated product data
+      const updatedProduct = {
+        ...currentProduct,
+        category,
+        subcategory1: subcategory, // update subcategory1 field
+      };
+      // Ensure required fields are not undefined
+      const requiredFields = [
+        'gstRate', 'subcategory1', 'subcategory2', 'category', 'price', 'name', 'stock', 'sku'
+      ];
+      for (const field of requiredFields) {
+        if (updatedProduct[field] === undefined) {
+          updatedProduct[field] = null;
+        }
+      }
+      // Remove fields that should not be sent back to the backend
+      const dateFields = ['createdAt', 'updatedAt', 'deletedAt'];
+      for (const field of dateFields) {
+        if (field in updatedProduct) {
+          delete updatedProduct[field];
+        }
+      }
+      // Send full product object, wrapped in productData
+      const response = await fetch(`/api/products/${productId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ productData: updatedProduct }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to update product category");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Product updated",
+        description: "Product category and subcategory have been updated successfully",
+        variant: "default",
+      });
+      setEditingProductId(null);
+      setEditingCategory("");
+      setEditingSubcategory("");
+      queryClient.invalidateQueries({
+        queryKey: ["/api/seller/products", user?.id],
+        exact: false,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update failed",
+        description: error.message || "Failed to update product category",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Save handlers
+  const saveCategoryChange = (product: Product) => {
+    updateCategoryMutation.mutate({
+      productId: product.id,
+      category: editingCategory,
+      subcategory: product.subcategory1 || product.subcategory || "",
+    });
+  };
+  const saveSubcategoryChange = (product: Product) => {
+    updateCategoryMutation.mutate({
+      productId: product.id,
+      category: product.category,
+      subcategory: editingSubcategory === "none" ? "" : editingSubcategory,
+    });
   };
 
   // Fetch categories
@@ -222,15 +335,25 @@ export default function SellerProductsPage() {
     }
   };
 
+  // Bulk delete handler
+  const handleBulkDeleteProducts = async () => {
+    if (selectedProducts.length === 0) return;
+    setIsBulkDeleteDialogOpen(false);
+    for (const id of selectedProducts) {
+      await handleDeleteProduct(id);
+    }
+    setSelectedProducts([]);
+  };
+
   return (
     <SellerDashboardLayout>
       <CartProvider>
-        <div className="container mx-auto py-8">
+        <div className="container mx-auto py-2">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">My Products</h1>
           </div>
           {/* VIEW MODE SWITCHER */}
-          <div className="flex flex-wrap gap-2 mb-4 items-center">
+          <div className="flex flex-wrap gap-2 mb-2 items-center">
             <span className="text-sm font-medium mr-2">View:</span>
             {VIEW_MODES.map((mode) => {
               const Icon = mode.icon;
@@ -253,7 +376,31 @@ export default function SellerProductsPage() {
               ({VIEW_MODES.find((m) => m.key === viewMode)?.label})
             </span>
           </div>
-          <div className="flex gap-4 mb-6">
+          {/* Bulk Delete Button */}
+          <div className="flex items-center gap-2 mb-2">
+            <Button
+              variant="destructive"
+              disabled={selectedProducts.length === 0}
+              onClick={() => setIsBulkDeleteDialogOpen(true)}
+              className="text-xs"
+            >
+              Delete Selected
+              {selectedProducts.length > 0 && ` (${selectedProducts.length})`}
+            </Button>
+            <Checkbox
+              checked={productsData && productsData.products && selectedProducts.length === productsData.products.length}
+              onCheckedChange={(checked) => {
+                if (checked && productsData && productsData.products) {
+                  setSelectedProducts(productsData.products.map((p: Product) => p.id));
+                } else {
+                  setSelectedProducts([]);
+                }
+              }}
+              className="ml-2"
+            />
+            <span className="text-xs">Select All</span>
+          </div>
+          <div className="flex gap-2 mb-2">
             <input
               className="border px-3 py-2 rounded w-full"
               placeholder="Search products..."
@@ -313,7 +460,7 @@ export default function SellerProductsPage() {
             </Select>
           </div>
           {isLoading ? (
-            <div className="flex justify-center items-center h-60">
+            <div className="flex justify-center items-center h-32">
               <Loader2 className="w-10 h-10 animate-spin text-primary" />
             </div>
           ) : error ? (
@@ -559,6 +706,16 @@ export default function SellerProductsPage() {
                           key={product.id}
                           className="flex items-center gap-4 p-3 hover:bg-muted/30"
                         >
+                          <Checkbox
+                            checked={selectedProducts.includes(product.id)}
+                            onCheckedChange={() => {
+                              setSelectedProducts(prev =>
+                                prev.includes(product.id)
+                                  ? prev.filter(id => id !== product.id)
+                                  : [...prev, product.id]
+                              );
+                            }}
+                          />
                           <img
                             src={getProductImageUrl(product)}
                             alt={product.name}
@@ -608,6 +765,16 @@ export default function SellerProductsPage() {
                           key={product.id}
                           className="flex flex-col md:flex-row gap-2 p-3 hover:bg-muted/30"
                         >
+                          <Checkbox
+                            checked={selectedProducts.includes(product.id)}
+                            onCheckedChange={() => {
+                              setSelectedProducts(prev =>
+                                prev.includes(product.id)
+                                  ? prev.filter(id => id !== product.id)
+                                  : [...prev, product.id]
+                              );
+                            }}
+                          />
                           <div className="flex items-center gap-3">
                             <img
                               src={getProductImageUrl(product)}
@@ -719,6 +886,16 @@ export default function SellerProductsPage() {
                           {products.map((product: Product) => (
                             <tr key={product.id}>
                               <td className="border px-2 py-1">
+                                <Checkbox
+                                  checked={selectedProducts.includes(product.id)}
+                                  onCheckedChange={() => {
+                                    setSelectedProducts(prev =>
+                                      prev.includes(product.id)
+                                        ? prev.filter(id => id !== product.id)
+                                        : [...prev, product.id]
+                                    );
+                                  }}
+                                />
                                 <img
                                   src={getProductImageUrl(product)}
                                   alt={product.name}
@@ -738,10 +915,126 @@ export default function SellerProductsPage() {
                                 {product.stock}
                               </td>
                               <td className="border px-2 py-1">
-                                {product.category}
+                                {editingProductId === product.id ? (
+                                  <div className="flex items-center space-x-2">
+                                    <Select
+                                      value={editingCategory || product.category}
+                                      onValueChange={setEditingCategory}
+                                    >
+                                      <SelectTrigger className="h-8 w-full">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {categoriesData?.map((cat: any) => (
+                                          <SelectItem key={cat.id} value={cat.name}>
+                                            {cat.name}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-xs h-6 px-2 text-primary"
+                                      onClick={() => saveCategoryChange(product)}
+                                      disabled={updateCategoryMutation.isPending}
+                                    >
+                                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                                      Save
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-xs h-6 px-2"
+                                      onClick={() => {
+                                        setEditingProductId(null);
+                                        setEditingCategory("");
+                                      }}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center space-x-2">
+                                    <span>{product.category}</span>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6 p-0"
+                                      onClick={() => {
+                                        setEditingProductId(product.id);
+                                        setEditingCategory(product.category);
+                                        setEditingSubcategory("");
+                                      }}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                )}
                               </td>
                               <td className="border px-2 py-1">
-                                {getSubcategoryDisplay(product)}
+                                {editingProductId === product.id ? (
+                                  <div className="flex items-center space-x-2">
+                                    <Select
+                                      value={
+                                        typeof editingSubcategory === "string" && editingSubcategory.trim().length > 0
+                                          ? editingSubcategory.trim()
+                                          : "none"
+                                      }
+                                      onValueChange={setEditingSubcategory}
+                                      disabled={!product.category}
+                                    >
+                                      <SelectTrigger className="h-8 w-full">
+                                        <SelectValue placeholder="Select subcategory" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="none">None</SelectItem>
+                                        {getLevel1Subcategories(product.category).map((sub: any) => (
+                                          <SelectItem key={sub.id} value={sub.name}>
+                                            {sub.name}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-xs h-6 px-2 text-primary"
+                                      onClick={() => saveSubcategoryChange(product)}
+                                      disabled={updateCategoryMutation.isPending}
+                                    >
+                                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                                      Save
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-xs h-6 px-2"
+                                      onClick={() => {
+                                        setEditingProductId(null);
+                                        setEditingSubcategory("");
+                                      }}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center space-x-2">
+                                    <span>{getSubcategoryDisplay(product)}</span>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6 p-0"
+                                      onClick={() => {
+                                        setEditingProductId(product.id);
+                                        setEditingSubcategory(product.subcategory1 || product.subcategory || "");
+                                        setEditingCategory("");
+                                      }}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                )}
                               </td>
                               <td className="border px-2 py-1">
                                 <Link
@@ -778,14 +1071,14 @@ export default function SellerProductsPage() {
                 // Default fallback
                 return null;
               })()}
-              <div className="mt-8 flex justify-end">
+              <div className="mt-2 flex justify-end">
                 <Pagination
                   currentPage={currentPage}
                   totalPages={totalPages}
                   onPageChange={(page) => setCurrentPage(page)}
                 />
               </div>
-              <div className="text-sm text-gray-500 text-center mt-4">
+              <div className="text-sm text-gray-500 text-center mt-1">
                 Showing {(currentPage - 1) * pageSize + 1} to{" "}
                 {Math.min(currentPage * pageSize, productsData.products.length)}{" "}
                 of {productsData.products.length} products
@@ -804,6 +1097,26 @@ export default function SellerProductsPage() {
             </Card>
           )}
         </div>
+        {/* Bulk Delete Confirmation Dialog */}
+        <AlertDialog open={isBulkDeleteDialogOpen} onOpenChange={setIsBulkDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete {selectedProducts.length} products?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the selected products and remove them from our servers.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleBulkDeleteProducts}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete Selected
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CartProvider>
     </SellerDashboardLayout>
   );
