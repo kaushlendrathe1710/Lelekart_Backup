@@ -211,8 +211,8 @@ export default function SellerPaymentsPage() {
 
   return (
     <SellerDashboardLayout>
-      <div className="container mx-auto py-4 md:py-6 px-4 md:px-0">
-        <div className="mb-4 md:mb-6">
+      <div className="container mx-auto py-1 md:py-2 px-4 md:px-0">
+        <div className="mb-2 md:mb-3">
           <h1 className="text-xl md:text-2xl font-bold tracking-tight">
             Payments
           </h1>
@@ -222,7 +222,7 @@ export default function SellerPaymentsPage() {
         </div>
 
         {/* Purchase Price Information */}
-        <Card className="mb-4 md:mb-6 border-primary/20 bg-primary/5">
+        <Card className="mb-2 md:mb-3 border-primary/20 bg-primary/5">
           <CardContent className="pt-4 md:pt-6 pb-4 md:pb-6">
             <div className="flex items-start gap-3 md:gap-4">
               <div className="p-2 md:p-3 rounded-full bg-primary/10">
@@ -245,7 +245,7 @@ export default function SellerPaymentsPage() {
         </Card>
 
         {/* Payment Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3 mb-2 md:mb-3">
           {/* Available Balance */}
           <Card>
             <CardHeader className="pb-2 md:pb-3">
