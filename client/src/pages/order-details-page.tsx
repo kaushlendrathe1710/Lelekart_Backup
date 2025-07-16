@@ -100,6 +100,7 @@ interface Order {
   discount?: number;
   walletDiscount?: number;
   rewardDiscount?: number;
+  couponDiscount?: number;
 }
 
 function formatDate(dateString: string) {
@@ -597,7 +598,7 @@ export default function OrderDetailsPage() {
                         <span>-₹{order.discount?.toFixed(2)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between font-semibold text-base mt-2">
+                    <div className="flex justify-between text-sm mt-2">
                       <span>Total:</span>
                       <span>
                         ₹
@@ -609,10 +610,17 @@ export default function OrderDetailsPage() {
                           deliveryCharges -
                           (order.walletDiscount || 0) -
                           (order.rewardDiscount || 0) -
-                          (order.discount || 0)
+                          (order.discount || 0) -
+                          (order.couponDiscount || 0)
                         ).toFixed(2)}
                       </span>
                     </div>
+                    {(order.couponDiscount ?? 0) > 0 && (
+                      <div className="flex justify-between text-green-600 text-sm">
+                        <span>Coupon Discount:</span>
+                        <span>-₹{order.couponDiscount?.toFixed(2)}</span>
+                      </div>
+                    )}
                   </>
                 );
               })()}
@@ -854,8 +862,21 @@ export default function OrderDetailsPage() {
                       )}
                       <div className="flex justify-between font-bold">
                         <span>Grand Total:</span>
-                        <span>₹{order.total.toFixed(2)}</span>
+                        <span>
+                          ₹
+                          {(
+                            order.total -
+                            (order.walletDiscount || 0) -
+                            (order.couponDiscount || 0)
+                          ).toFixed(2)}
+                        </span>
                       </div>
+                      {(order.couponDiscount ?? 0) > 0 && (
+                        <div className="flex justify-between text-green-600">
+                          <span>Coupon Discount:</span>
+                          <span>-₹{order.couponDiscount?.toFixed(2)}</span>
+                        </div>
+                      )}
                     </>
                   );
                 })()}
@@ -1024,6 +1045,20 @@ export default function OrderDetailsPage() {
                         <tr>
                           <td
                             colSpan={4}
+                            className="px-2 sm:px-6 py-3 text-right text-sm font-medium text-green-600"
+                          >
+                            Coupon Discount:
+                          </td>
+                          <td
+                            colSpan={2}
+                            className="px-2 sm:px-6 py-3 text-left text-sm text-green-600"
+                          >
+                            -₹{order.couponDiscount?.toFixed(2)}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td
+                            colSpan={4}
                             className="px-2 sm:px-6 py-3 text-right text-sm font-bold"
                           >
                             Grand Total:
@@ -1032,7 +1067,12 @@ export default function OrderDetailsPage() {
                             colSpan={2}
                             className="px-2 sm:px-6 py-3 text-left text-sm font-bold"
                           >
-                            ₹{order.total.toFixed(2)}
+                            ₹
+                            {(
+                              order.total -
+                              (order.walletDiscount || 0) -
+                              (order.couponDiscount || 0)
+                            ).toFixed(2)}
                           </td>
                         </tr>
                       </>

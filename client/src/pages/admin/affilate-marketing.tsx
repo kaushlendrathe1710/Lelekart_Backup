@@ -53,6 +53,15 @@ const deleteAffiliate = async (id: number) => {
   return res.json();
 };
 
+function generateRandomCode(length = 8) {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
 export default function AffiliateMarketingPage() {
   const queryClient = useQueryClient();
   const { data, isLoading, error } = useQuery({
@@ -202,6 +211,18 @@ export default function AffiliateMarketingPage() {
     setForm({ name: "", platform: "", code: "", discountPercentage: "" });
     setFormPlatformType(PLATFORM_OPTIONS[0]);
     setShowForm(false);
+  };
+
+  const handleGenerateCode = () => {
+    let newCode: string;
+    do {
+      newCode = generateRandomCode();
+    } while (
+      data &&
+      data.some((row: any) => row.code.toLowerCase() === newCode.toLowerCase())
+    );
+    setForm({ ...form, code: newCode });
+    setCodeError("");
   };
 
   const handleEdit = (row: any) => {
@@ -359,14 +380,24 @@ export default function AffiliateMarketingPage() {
                     />
                   )}
                   <div className="flex flex-col w-full md:w-auto">
-                    <Input
-                      name="code"
-                      placeholder="Code"
-                      value={form.code}
-                      onChange={handleChange}
-                      required
-                      className="bg-white"
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        name="code"
+                        placeholder="Code"
+                        value={form.code}
+                        onChange={handleChange}
+                        required
+                        className="bg-white"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleGenerateCode}
+                        title="Auto-generate code"
+                      >
+                        Auto
+                      </Button>
+                    </div>
                     {codeError && (
                       <span className="text-red-500 text-xs mt-1">
                         {codeError}
@@ -505,12 +536,39 @@ export default function AffiliateMarketingPage() {
                               </TableCell>
                               <TableCell className="py-2 px-4">
                                 <div className="flex flex-col">
-                                  <Input
-                                    name="code"
-                                    value={editForm.code}
-                                    onChange={handleEditChange}
-                                    className="bg-white"
-                                  />
+                                  <div className="flex gap-2">
+                                    <Input
+                                      name="code"
+                                      value={editForm.code}
+                                      onChange={handleEditChange}
+                                      className="bg-white"
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      onClick={() => {
+                                        let newCode: string;
+                                        do {
+                                          newCode = generateRandomCode();
+                                        } while (
+                                          data &&
+                                          data.some(
+                                            (row: any) =>
+                                              row.code.toLowerCase() ===
+                                              newCode.toLowerCase()
+                                          )
+                                        );
+                                        setEditForm({
+                                          ...editForm,
+                                          code: newCode,
+                                        });
+                                        setEditCodeError("");
+                                      }}
+                                      title="Auto-generate code"
+                                    >
+                                      Auto
+                                    </Button>
+                                  </div>
                                   {editCodeError && (
                                     <span className="text-red-500 text-xs mt-1">
                                       {editCodeError}

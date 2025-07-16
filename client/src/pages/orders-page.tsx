@@ -5,25 +5,25 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { 
-  Package2, 
-  Truck, 
-  ClipboardCheck, 
-  Clock, 
+import {
+  Package2,
+  Truck,
+  ClipboardCheck,
+  Clock,
   Search,
   ShoppingBag,
   ChevronRight,
   ArrowDownAZ,
   ArrowUpAZ,
-  X
+  X,
 } from "lucide-react";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogDescription,
-  DialogFooter
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -41,46 +41,47 @@ interface Order {
   walletDiscount?: number;
   rewardDiscount?: number;
   discount?: number;
+  couponDiscount?: number;
 }
 
 // Helper to format dates with time
 function formatDate(dateString: string) {
-  const options: Intl.DateTimeFormatOptions = { 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+  const options: Intl.DateTimeFormatOptions = {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   };
-  return new Date(dateString).toLocaleString('en-IN', options);
+  return new Date(dateString).toLocaleString("en-IN", options);
 }
 
 // Helper to get status badge color
 function getStatusColor(status: string) {
   switch (status.toLowerCase()) {
-    case 'delivered':
-      return 'bg-green-100 text-green-800';
-    case 'shipped':
-      return 'bg-blue-100 text-blue-800';
-    case 'processing':
-      return 'bg-yellow-100 text-yellow-800';
-    case 'cancelled':
-      return 'bg-red-100 text-red-800';
+    case "delivered":
+      return "bg-green-100 text-green-800";
+    case "shipped":
+      return "bg-blue-100 text-blue-800";
+    case "processing":
+      return "bg-yellow-100 text-yellow-800";
+    case "cancelled":
+      return "bg-red-100 text-red-800";
     default:
-      return 'bg-gray-100 text-gray-800';
+      return "bg-gray-100 text-gray-800";
   }
 }
 
 // Helper to get status icon
 function StatusIcon({ status }: { status: string }) {
   switch (status.toLowerCase()) {
-    case 'delivered':
+    case "delivered":
       return <ClipboardCheck className="h-5 w-5 text-green-600" />;
-    case 'shipped':
+    case "shipped":
       return <Truck className="h-5 w-5 text-blue-600" />;
-    case 'processing':
+    case "processing":
       return <Package2 className="h-5 w-5 text-yellow-600" />;
-    case 'cancelled':
+    case "cancelled":
       return <Clock className="h-5 w-5 text-red-600" />;
     default:
       return <Clock className="h-5 w-5 text-gray-600" />;
@@ -98,11 +99,14 @@ export default function OrdersPage() {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [returningOrderId, setReturningOrderId] = useState<number | null>(null);
   const { toast } = useToast();
-  
+
   // Cancel order mutation
   const cancelOrderMutation = useMutation({
     mutationFn: async (orderId: number) => {
-      const response = await apiRequest("POST", `/api/orders/${orderId}/cancel`);
+      const response = await apiRequest(
+        "POST",
+        `/api/orders/${orderId}/cancel`
+      );
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to cancel order");
@@ -128,23 +132,23 @@ export default function OrdersPage() {
       });
     },
   });
-  
+
   // Function to fetch orders
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/orders', {
-        credentials: 'include',
+      const response = await fetch("/api/orders", {
+        credentials: "include",
         headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
       });
-      
+
       if (!response.ok) {
         throw new Error("Failed to fetch orders");
       }
-      
+
       const data = await response.json();
       setOrders(data);
       setFilteredOrders(data);
@@ -162,16 +166,16 @@ export default function OrdersPage() {
 
   useEffect(() => {
     // Check if user is logged in
-    const cachedUser = queryClient.getQueryData<any>(['/api/user']);
+    const cachedUser = queryClient.getQueryData<any>(["/api/user"]);
     if (!cachedUser) {
-      navigate('/auth');
+      navigate("/auth");
       return;
     }
-    
+
     // Fetch orders on component mount
     fetchOrders();
   }, [navigate]);
-  
+
   // Sort orders by date
   const sortOrders = (ordersToSort: Order[]): Order[] => {
     return [...ordersToSort].sort((a, b) => {
@@ -180,7 +184,7 @@ export default function OrdersPage() {
       return sortDescending ? dateB - dateA : dateA - dateB;
     });
   };
-  
+
   // Handle search and sorting
   useEffect(() => {
     // Check if orders array is available first
@@ -188,54 +192,54 @@ export default function OrdersPage() {
       setFilteredOrders([]);
       return;
     }
-    
+
     let result = [...orders];
-    
+
     // Apply search filter
     if (searchQuery.trim() !== "") {
       const query = searchQuery.toLowerCase();
-      
+
       result = result.filter((order) => {
         const idMatch = order.id.toString().includes(query);
         const statusMatch = order.status.toLowerCase().includes(query);
         const paymentMatch = order.paymentMethod.toLowerCase().includes(query);
-        
+
         return idMatch || statusMatch || paymentMatch;
       });
     }
-    
+
     // Apply sorting
     result = sortOrders(result);
-    
+
     setFilteredOrders(result);
   }, [searchQuery, orders, sortDescending]);
-  
+
   const handleReturnOrder = async (orderId: number) => {
     setReturningOrderId(orderId);
     try {
       const response = await fetch(`/api/orders/${orderId}/mark-for-return`, {
-        method: 'POST',
-        credentials: 'include',
+        method: "POST",
+        credentials: "include",
       });
       if (!response.ok) {
-        throw new Error('Failed to mark order for return');
+        throw new Error("Failed to mark order for return");
       }
       toast({
-        title: 'Return Initiated',
-        description: 'Order marked for return. You can track it in My Returns.',
+        title: "Return Initiated",
+        description: "Order marked for return. You can track it in My Returns.",
       });
       fetchOrders();
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to mark order for return. Please try again.',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to mark order for return. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setReturningOrderId(null);
     }
   };
-  
+
   const renderContent = () => {
     if (loading) {
       return (
@@ -244,24 +248,30 @@ export default function OrdersPage() {
         </div>
       );
     }
-    
+
     return (
       <div>
         <div className="mb-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
             <div>
               <h1 className="text-2xl font-bold">My Orders</h1>
-              <p className="text-muted-foreground">Track, return, or buy again</p>
+              <p className="text-muted-foreground">
+                Track, return, or buy again
+              </p>
             </div>
-            
+
             <div className="mt-4 md:mt-0 flex flex-col md:flex-row gap-3 w-full md:w-auto">
               {/* Sort Toggle Button */}
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 className="flex items-center justify-center gap-2 h-10"
                 onClick={() => setSortDescending(!sortDescending)}
-                aria-label={sortDescending ? "Sort by oldest first" : "Sort by newest first"}
+                aria-label={
+                  sortDescending
+                    ? "Sort by oldest first"
+                    : "Sort by newest first"
+                }
               >
                 {sortDescending ? (
                   <>
@@ -275,7 +285,7 @@ export default function OrdersPage() {
                   </>
                 )}
               </Button>
-              
+
               {/* Search Box */}
               <div className="relative md:min-w-[250px]">
                 <Input
@@ -291,23 +301,23 @@ export default function OrdersPage() {
             </div>
           </div>
         </div>
-        
+
         {filteredOrders.length === 0 ? (
           <div className="bg-background rounded-lg shadow-sm p-8 text-center">
             <ShoppingBag className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
             <h2 className="text-xl font-semibold mb-2">No Orders Found</h2>
             <p className="text-muted-foreground mb-4">
-              {searchQuery ? "No orders match your search criteria." : "You haven't placed any orders yet."}
+              {searchQuery
+                ? "No orders match your search criteria."
+                : "You haven't placed any orders yet."}
             </p>
-            <Button onClick={() => navigate("/")}>
-              Start Shopping
-            </Button>
+            <Button onClick={() => navigate("/")}>Start Shopping</Button>
           </div>
         ) : (
           <div className="space-y-4">
             {filteredOrders.map((order) => (
-              <Card 
-                key={order.id} 
+              <Card
+                key={order.id}
                 className="p-6 hover:shadow-md transition-shadow cursor-pointer"
                 onClick={() => navigate(`/order/${order.id}`)}
               >
@@ -316,44 +326,68 @@ export default function OrdersPage() {
                     <div className="flex items-center space-x-2 mb-2">
                       <StatusIcon status={order.status} />
                       <Badge className={getStatusColor(order.status)}>
-                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                        {order.status.charAt(0).toUpperCase() +
+                          order.status.slice(1)}
                       </Badge>
                     </div>
-                    
+
                     <h3 className="font-medium">Order #{order.id}</h3>
-                    <p className="text-sm text-muted-foreground">Placed on {formatDate(order.date)}</p>
-                    
+                    <p className="text-sm text-muted-foreground">
+                      Placed on {formatDate(order.date)}
+                    </p>
+
                     <div className="mt-3">
                       <p className="text-sm text-muted-foreground">
-                        <span className="font-medium">Payment Method:</span> {order.paymentMethod === 'cod' ? 'Cash on Delivery' : order.paymentMethod}
+                        <span className="font-medium">Payment Method:</span>{" "}
+                        {order.paymentMethod === "cod"
+                          ? "Cash on Delivery"
+                          : order.paymentMethod}
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="mt-4 md:mt-0 flex flex-col md:items-end justify-between">
                     {/* Show the final total after all discounts */}
                     <p className="font-semibold text-xl">
-                      ₹{order.total.toFixed(2)}
+                      ₹
+                      {(
+                        order.total -
+                        (order.walletDiscount || 0) -
+                        (order.couponDiscount || 0)
+                      ).toFixed(2)}
                     </p>
                     {/* Show wallet discount if used and > 0 */}
                     {(order.walletDiscount ?? 0) > 0 && (
-                      <p className="text-green-600 text-sm">Wallet Points Used: -₹{order.walletDiscount?.toFixed(2)}</p>
+                      <p className="text-green-600 text-sm">
+                        Wallet Points Used: -₹{order.walletDiscount?.toFixed(2)}
+                      </p>
+                    )}
+                    {/* Show coupon discount if used and > 0 */}
+                    {(order.couponDiscount ?? 0) > 0 && (
+                      <p className="text-green-600 text-sm">
+                        Coupon Discount: -₹{order.couponDiscount?.toFixed(2)}
+                      </p>
                     )}
                     {(order.discount ?? 0) > 0 && (
-                      <p className="text-green-600 text-sm">Redeemed Coins Used: -₹{order.discount?.toFixed(2)}</p>
+                      <p className="text-green-600 text-sm">
+                        Redeemed Coins Used: -₹{order.discount?.toFixed(2)}
+                      </p>
                     )}
                     {/* Show reward discount if used and > 0 */}
                     {order.rewardDiscount && order.rewardDiscount > 0 ? (
-                      <p className="text-blue-600 text-sm">Reward Points Used: -₹{order.rewardDiscount.toFixed(2)}</p>
+                      <p className="text-blue-600 text-sm">
+                        Reward Points Used: -₹{order.rewardDiscount.toFixed(2)}
+                      </p>
                     ) : null}
-                    
+
                     <div className="flex space-x-2 mt-2 md:mt-auto">
                       {/* Only show cancel button for pending/processing orders */}
-                      {(order.status === 'pending' || order.status === 'processing') && (
-                        <Button 
-                          variant="outline" 
+                      {(order.status === "pending" ||
+                        order.status === "processing") && (
+                        <Button
+                          variant="outline"
                           size="sm"
-                          className="flex items-center text-red-500 border-red-200 hover:bg-red-50" 
+                          className="flex items-center text-red-500 border-red-200 hover:bg-red-50"
                           onClick={(e) => {
                             e.stopPropagation();
                             setOrderToCancel(order);
@@ -364,14 +398,14 @@ export default function OrdersPage() {
                           Cancel Order
                         </Button>
                       )}
-                      
-                      {order.status === 'delivered' && (
+
+                      {order.status === "delivered" && (
                         <Button
                           variant="outline"
                           size="sm"
                           className="flex items-center text-blue-500 border-blue-200 hover:bg-blue-50"
                           disabled={returningOrderId === order.id}
-                          onClick={e => {
+                          onClick={(e) => {
                             e.stopPropagation();
                             handleReturnOrder(order.id);
                           }}
@@ -382,10 +416,10 @@ export default function OrdersPage() {
                           Return
                         </Button>
                       )}
-                      
-                      <Button 
-                        variant="ghost" 
-                        className="flex items-center" 
+
+                      <Button
+                        variant="ghost"
+                        className="flex items-center"
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate(`/order/${order.id}`);
@@ -403,32 +437,34 @@ export default function OrdersPage() {
       </div>
     );
   };
-  
+
   return (
     <DashboardLayout>
       {renderContent()}
-      
+
       {/* Cancel Order Confirmation Dialog */}
       <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Cancel Order #{orderToCancel?.id}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to cancel this order? This action cannot be undone.
+              Are you sure you want to cancel this order? This action cannot be
+              undone.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="p-4 mt-2 bg-red-50 border border-red-100 rounded-md">
             <p className="text-sm text-red-800">
-              <strong>Note:</strong> Order cancellation is only possible for orders that have not been shipped. 
-              If payment was made, a refund will be initiated automatically.
+              <strong>Note:</strong> Order cancellation is only possible for
+              orders that have not been shipped. If payment was made, a refund
+              will be initiated automatically.
             </p>
           </div>
-          
+
           <DialogFooter className="flex justify-between sm:justify-between mt-4">
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={() => {
                 setShowCancelDialog(false);
                 setOrderToCancel(null);
@@ -436,10 +472,10 @@ export default function OrdersPage() {
             >
               Keep Order
             </Button>
-            <Button 
-              type="button" 
+            <Button
+              type="button"
               variant="destructive"
-              disabled={cancelOrderMutation.isPending} 
+              disabled={cancelOrderMutation.isPending}
               onClick={() => {
                 if (orderToCancel) {
                   cancelOrderMutation.mutate(orderToCancel.id);
@@ -451,7 +487,7 @@ export default function OrdersPage() {
                   <span className="animate-spin mr-2">⟳</span> Cancelling...
                 </>
               ) : (
-                'Cancel Order'
+                "Cancel Order"
               )}
             </Button>
           </DialogFooter>
