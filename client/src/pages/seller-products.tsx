@@ -33,7 +33,16 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Product {
   id: number;
@@ -168,7 +177,8 @@ export default function SellerProductsPage() {
     }) => {
       // Fetch current product data
       const currentRes = await fetch(`/api/products/${productId}`);
-      if (!currentRes.ok) throw new Error("Failed to fetch current product data");
+      if (!currentRes.ok)
+        throw new Error("Failed to fetch current product data");
       const currentProduct = await currentRes.json();
 
       // Prepare updated product data
@@ -179,7 +189,14 @@ export default function SellerProductsPage() {
       };
       // Ensure required fields are not undefined
       const requiredFields = [
-        'gstRate', 'subcategory1', 'subcategory2', 'category', 'price', 'name', 'stock', 'sku'
+        "gstRate",
+        "subcategory1",
+        "subcategory2",
+        "category",
+        "price",
+        "name",
+        "stock",
+        "sku",
       ];
       for (const field of requiredFields) {
         if (updatedProduct[field] === undefined) {
@@ -187,7 +204,7 @@ export default function SellerProductsPage() {
         }
       }
       // Remove fields that should not be sent back to the backend
-      const dateFields = ['createdAt', 'updatedAt', 'deletedAt'];
+      const dateFields = ["createdAt", "updatedAt", "deletedAt"];
       for (const field of dateFields) {
         if (field in updatedProduct) {
           delete updatedProduct[field];
@@ -209,7 +226,8 @@ export default function SellerProductsPage() {
     onSuccess: () => {
       toast({
         title: "Product updated",
-        description: "Product category and subcategory have been updated successfully",
+        description:
+          "Product category and subcategory have been updated successfully",
         variant: "default",
       });
       setEditingProductId(null);
@@ -388,10 +406,16 @@ export default function SellerProductsPage() {
               {selectedProducts.length > 0 && ` (${selectedProducts.length})`}
             </Button>
             <Checkbox
-              checked={productsData && productsData.products && selectedProducts.length === productsData.products.length}
+              checked={
+                productsData &&
+                productsData.products &&
+                selectedProducts.length === productsData.products.length
+              }
               onCheckedChange={(checked) => {
                 if (checked && productsData && productsData.products) {
-                  setSelectedProducts(productsData.products.map((p: Product) => p.id));
+                  setSelectedProducts(
+                    productsData.products.map((p: Product) => p.id)
+                  );
                 } else {
                   setSelectedProducts([]);
                 }
@@ -482,11 +506,24 @@ export default function SellerProductsPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                       {products.map((product: Product) => (
                         <div key={product.id} className="p-2">
-                          <img
-                            src={getProductImageUrl(product)}
-                            alt={product.name}
-                            className="w-full h-48 object-cover rounded-lg border mb-2"
-                          />
+                          <div className="flex items-center mb-2">
+                            <Checkbox
+                              checked={selectedProducts.includes(product.id)}
+                              onCheckedChange={() => {
+                                setSelectedProducts((prev) =>
+                                  prev.includes(product.id)
+                                    ? prev.filter((id) => id !== product.id)
+                                    : [...prev, product.id]
+                                );
+                              }}
+                              className="mr-2"
+                            />
+                            <img
+                              src={getProductImageUrl(product)}
+                              alt={product.name}
+                              className="w-full h-48 object-cover rounded-lg border"
+                            />
+                          </div>
                           <div className="mt-2 text-center font-bold text-lg">
                             {product.name}
                           </div>
@@ -522,11 +559,24 @@ export default function SellerProductsPage() {
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
                       {products.map((product: Product) => (
                         <div key={product.id} className="p-2">
-                          <img
-                            src={getProductImageUrl(product)}
-                            alt={product.name}
-                            className="w-full h-40 object-cover rounded-md border mb-1"
-                          />
+                          <div className="flex items-center mb-2">
+                            <Checkbox
+                              checked={selectedProducts.includes(product.id)}
+                              onCheckedChange={() => {
+                                setSelectedProducts((prev) =>
+                                  prev.includes(product.id)
+                                    ? prev.filter((id) => id !== product.id)
+                                    : [...prev, product.id]
+                                );
+                              }}
+                              className="mr-2"
+                            />
+                            <img
+                              src={getProductImageUrl(product)}
+                              alt={product.name}
+                              className="w-full h-40 object-cover rounded-md border"
+                            />
+                          </div>
                           <div className="mt-1 text-center font-semibold">
                             {product.name}
                           </div>
@@ -562,14 +612,25 @@ export default function SellerProductsPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                       {products.map((product: Product, colIndex: number) => (
                         <div key={product.id} className="flex flex-col h-full">
+                          <div className="flex items-center mb-2">
+                            <Checkbox
+                              checked={selectedProducts.includes(product.id)}
+                              onCheckedChange={() => {
+                                setSelectedProducts(prev =>
+                                  prev.includes(product.id)
+                                    ? prev.filter(id => id !== product.id)
+                                    : [...prev, product.id]
+                                );
+                              }}
+                              className="mr-2"
+                            />
+                          </div>
                           <div className="flex-1">
                             <ProductCard
-                              product={
-                                {
-                                  ...product,
-                                  imageUrl: getProductImageUrl(product),
-                                } as any
-                              }
+                              product={{
+                                ...product,
+                                imageUrl: getProductImageUrl(product),
+                              } as any}
                               showAddToCart={false}
                               priority={colIndex === 0}
                             />
@@ -623,11 +684,24 @@ export default function SellerProductsPage() {
                     <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
                       {products.map((product: Product) => (
                         <div key={product.id} className="p-1">
-                          <img
-                            src={getProductImageUrl(product)}
-                            alt={product.name}
-                            className="w-full h-20 object-cover rounded border"
-                          />
+                          <div className="flex items-center mb-2">
+                            <Checkbox
+                              checked={selectedProducts.includes(product.id)}
+                              onCheckedChange={() => {
+                                setSelectedProducts((prev) =>
+                                  prev.includes(product.id)
+                                    ? prev.filter((id) => id !== product.id)
+                                    : [...prev, product.id]
+                                );
+                              }}
+                              className="mr-2"
+                            />
+                            <img
+                              src={getProductImageUrl(product)}
+                              alt={product.name}
+                              className="w-full h-20 object-cover rounded border"
+                            />
+                          </div>
                           <div className="flex flex-col items-center mt-1">
                             <Link href={`/seller/products/edit/${product.id}`}>
                               <Button
@@ -660,11 +734,24 @@ export default function SellerProductsPage() {
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                       {products.map((product: Product) => (
                         <div key={product.id} className="p-2">
-                          <img
-                            src={getProductImageUrl(product)}
-                            alt={product.name}
-                            className="w-full h-32 object-cover rounded border mb-1"
-                          />
+                          <div className="flex items-center mb-2">
+                            <Checkbox
+                              checked={selectedProducts.includes(product.id)}
+                              onCheckedChange={() => {
+                                setSelectedProducts((prev) =>
+                                  prev.includes(product.id)
+                                    ? prev.filter((id) => id !== product.id)
+                                    : [...prev, product.id]
+                                );
+                              }}
+                              className="mr-2"
+                            />
+                            <img
+                              src={getProductImageUrl(product)}
+                              alt={product.name}
+                              className="w-full h-32 object-cover rounded border"
+                            />
+                          </div>
                           <div className="mt-1 text-center font-medium">
                             {product.name}
                           </div>
@@ -709,9 +796,9 @@ export default function SellerProductsPage() {
                           <Checkbox
                             checked={selectedProducts.includes(product.id)}
                             onCheckedChange={() => {
-                              setSelectedProducts(prev =>
+                              setSelectedProducts((prev) =>
                                 prev.includes(product.id)
-                                  ? prev.filter(id => id !== product.id)
+                                  ? prev.filter((id) => id !== product.id)
                                   : [...prev, product.id]
                               );
                             }}
@@ -768,9 +855,9 @@ export default function SellerProductsPage() {
                           <Checkbox
                             checked={selectedProducts.includes(product.id)}
                             onCheckedChange={() => {
-                              setSelectedProducts(prev =>
+                              setSelectedProducts((prev) =>
                                 prev.includes(product.id)
-                                  ? prev.filter(id => id !== product.id)
+                                  ? prev.filter((id) => id !== product.id)
                                   : [...prev, product.id]
                               );
                             }}
@@ -834,11 +921,24 @@ export default function SellerProductsPage() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {products.map((product: Product) => (
                         <div key={product.id} className="p-2">
-                          <img
-                            src={getProductImageUrl(product)}
-                            alt={product.name}
-                            className="w-full h-32 object-cover rounded border mb-1"
-                          />
+                          <div className="flex items-center mb-2">
+                            <Checkbox
+                              checked={selectedProducts.includes(product.id)}
+                              onCheckedChange={() => {
+                                setSelectedProducts((prev) =>
+                                  prev.includes(product.id)
+                                    ? prev.filter((id) => id !== product.id)
+                                    : [...prev, product.id]
+                                );
+                              }}
+                              className="mr-2"
+                            />
+                            <img
+                              src={getProductImageUrl(product)}
+                              alt={product.name}
+                              className="w-full h-32 object-cover rounded border"
+                            />
+                          </div>
                           <div className="mt-1 text-center">{product.name}</div>
                           <div className="flex justify-center mt-1">
                             <Link href={`/seller/products/edit/${product.id}`}>
@@ -887,11 +987,13 @@ export default function SellerProductsPage() {
                             <tr key={product.id}>
                               <td className="border px-2 py-1">
                                 <Checkbox
-                                  checked={selectedProducts.includes(product.id)}
+                                  checked={selectedProducts.includes(
+                                    product.id
+                                  )}
                                   onCheckedChange={() => {
-                                    setSelectedProducts(prev =>
+                                    setSelectedProducts((prev) =>
                                       prev.includes(product.id)
-                                        ? prev.filter(id => id !== product.id)
+                                        ? prev.filter((id) => id !== product.id)
                                         : [...prev, product.id]
                                     );
                                   }}
@@ -918,7 +1020,9 @@ export default function SellerProductsPage() {
                                 {editingProductId === product.id ? (
                                   <div className="flex items-center space-x-2">
                                     <Select
-                                      value={editingCategory || product.category}
+                                      value={
+                                        editingCategory || product.category
+                                      }
                                       onValueChange={setEditingCategory}
                                     >
                                       <SelectTrigger className="h-8 w-full">
@@ -926,7 +1030,10 @@ export default function SellerProductsPage() {
                                       </SelectTrigger>
                                       <SelectContent>
                                         {categoriesData?.map((cat: any) => (
-                                          <SelectItem key={cat.id} value={cat.name}>
+                                          <SelectItem
+                                            key={cat.id}
+                                            value={cat.name}
+                                          >
                                             {cat.name}
                                           </SelectItem>
                                         ))}
@@ -936,8 +1043,12 @@ export default function SellerProductsPage() {
                                       variant="ghost"
                                       size="sm"
                                       className="text-xs h-6 px-2 text-primary"
-                                      onClick={() => saveCategoryChange(product)}
-                                      disabled={updateCategoryMutation.isPending}
+                                      onClick={() =>
+                                        saveCategoryChange(product)
+                                      }
+                                      disabled={
+                                        updateCategoryMutation.isPending
+                                      }
                                     >
                                       <CheckCircle2 className="h-3 w-3 mr-1" />
                                       Save
@@ -977,7 +1088,9 @@ export default function SellerProductsPage() {
                                   <div className="flex items-center space-x-2">
                                     <Select
                                       value={
-                                        typeof editingSubcategory === "string" && editingSubcategory.trim().length > 0
+                                        typeof editingSubcategory ===
+                                          "string" &&
+                                        editingSubcategory.trim().length > 0
                                           ? editingSubcategory.trim()
                                           : "none"
                                       }
@@ -988,9 +1101,16 @@ export default function SellerProductsPage() {
                                         <SelectValue placeholder="Select subcategory" />
                                       </SelectTrigger>
                                       <SelectContent>
-                                        <SelectItem value="none">None</SelectItem>
-                                        {getLevel1Subcategories(product.category).map((sub: any) => (
-                                          <SelectItem key={sub.id} value={sub.name}>
+                                        <SelectItem value="none">
+                                          None
+                                        </SelectItem>
+                                        {getLevel1Subcategories(
+                                          product.category
+                                        ).map((sub: any) => (
+                                          <SelectItem
+                                            key={sub.id}
+                                            value={sub.name}
+                                          >
                                             {sub.name}
                                           </SelectItem>
                                         ))}
@@ -1000,8 +1120,12 @@ export default function SellerProductsPage() {
                                       variant="ghost"
                                       size="sm"
                                       className="text-xs h-6 px-2 text-primary"
-                                      onClick={() => saveSubcategoryChange(product)}
-                                      disabled={updateCategoryMutation.isPending}
+                                      onClick={() =>
+                                        saveSubcategoryChange(product)
+                                      }
+                                      disabled={
+                                        updateCategoryMutation.isPending
+                                      }
                                     >
                                       <CheckCircle2 className="h-3 w-3 mr-1" />
                                       Save
@@ -1020,14 +1144,20 @@ export default function SellerProductsPage() {
                                   </div>
                                 ) : (
                                   <div className="flex items-center space-x-2">
-                                    <span>{getSubcategoryDisplay(product)}</span>
+                                    <span>
+                                      {getSubcategoryDisplay(product)}
+                                    </span>
                                     <Button
                                       variant="ghost"
                                       size="icon"
                                       className="h-6 w-6 p-0"
                                       onClick={() => {
                                         setEditingProductId(product.id);
-                                        setEditingSubcategory(product.subcategory1 || product.subcategory || "");
+                                        setEditingSubcategory(
+                                          product.subcategory1 ||
+                                            product.subcategory ||
+                                            ""
+                                        );
                                         setEditingCategory("");
                                       }}
                                     >
@@ -1098,12 +1228,18 @@ export default function SellerProductsPage() {
           )}
         </div>
         {/* Bulk Delete Confirmation Dialog */}
-        <AlertDialog open={isBulkDeleteDialogOpen} onOpenChange={setIsBulkDeleteDialogOpen}>
+        <AlertDialog
+          open={isBulkDeleteDialogOpen}
+          onOpenChange={setIsBulkDeleteDialogOpen}
+        >
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete {selectedProducts.length} products?</AlertDialogTitle>
+              <AlertDialogTitle>
+                Delete {selectedProducts.length} products?
+              </AlertDialogTitle>
               <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the selected products and remove them from our servers.
+                This action cannot be undone. This will permanently delete the
+                selected products and remove them from our servers.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
