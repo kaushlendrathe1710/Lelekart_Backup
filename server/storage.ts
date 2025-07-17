@@ -3699,19 +3699,29 @@ export class DatabaseStorage implements IStorage {
 
       // Always delete related AI generated content first
       try {
-        await db.delete(aiGeneratedContent).where(eq(aiGeneratedContent.productId, id));
+        await db
+          .delete(aiGeneratedContent)
+          .where(eq(aiGeneratedContent.productId, id));
         console.log(`[DEBUG] Deleted ai_generated_content for product ${id}`);
       } catch (aiError) {
-        console.error(`[DEBUG] Error deleting ai_generated_content for product ${id}:`, aiError);
+        console.error(
+          `[DEBUG] Error deleting ai_generated_content for product ${id}:`,
+          aiError
+        );
         // Continue anyway, but log
       }
 
       // Always delete related demand forecasts first
       try {
-        await db.delete(demandForecasts).where(eq(demandForecasts.productId, id));
+        await db
+          .delete(demandForecasts)
+          .where(eq(demandForecasts.productId, id));
         console.log(`[DEBUG] Deleted demand_forecasts for product ${id}`);
       } catch (err) {
-        console.warn(`[DEBUG] Error deleting demand_forecasts for product ${id}:`, err);
+        console.warn(
+          `[DEBUG] Error deleting demand_forecasts for product ${id}:`,
+          err
+        );
       }
 
       // Check if product is in an order - if so, use soft delete
@@ -4623,7 +4633,12 @@ export class DatabaseStorage implements IStorage {
 
     // Add console logging for debugging
     console.log("Creating order with data:", orderToInsert);
-    console.log("Incoming total:", orderToInsert.total, "couponDiscount:", orderToInsert.couponDiscount);
+    console.log(
+      "Incoming total:",
+      orderToInsert.total,
+      "couponDiscount:",
+      orderToInsert.couponDiscount
+    );
 
     // Only include the basic fields that we know exist in the database
     // Exclude any Shiprocket fields (shipping_status, etc) that might not exist yet
@@ -7601,6 +7616,35 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error(`Error deleting shipping rule with ID ${id}:`, error);
       throw new Error("Failed to delete shipping rule");
+    }
+  }
+
+  // AI Generated Content
+  async getAIGeneratedContents(
+    productId: number,
+    sellerId: number,
+    contentType?: string
+  ): Promise<AIGeneratedContent[]> {
+    try {
+      // Build the where condition
+      let whereCondition = and(
+        eq(aiGeneratedContent.productId, productId),
+        eq(aiGeneratedContent.sellerId, sellerId)
+      );
+      if (contentType) {
+        whereCondition = and(
+          whereCondition,
+          eq(aiGeneratedContent.contentType, contentType)
+        );
+      }
+      return await db
+        .select()
+        .from(aiGeneratedContent)
+        .where(whereCondition)
+        .orderBy(aiGeneratedContent.createdAt);
+    } catch (error) {
+      console.error("Error fetching AI generated contents:", error);
+      return [];
     }
   }
 
