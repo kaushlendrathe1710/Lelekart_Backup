@@ -10,6 +10,7 @@ import { useContext, memo } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { WishlistButton } from "./wishlist-button";
 import { ProductImage } from "./product-image";
+import { fbq } from "@/lib/metaPixel";
 
 // Define an extended Product interface to include image_url and GST details
 interface ExtendedProduct extends Omit<Product, "imageUrl"> {
@@ -154,6 +155,23 @@ export const ProductCard = memo(function ProductCard({
                 "[ProductCard] Error adding to recently viewed:",
                 e
               );
+            }
+            // --- Meta Pixel product click tracking ---
+            try {
+              fbq("track", "ViewContent", {
+                content_ids: [product.id],
+                content_name: product.name,
+                content_type: "product",
+                value: product.price,
+                currency: "INR",
+              });
+              console.log(
+                "[MetaPixel] ViewContent fired for product",
+                product.id,
+                product.name
+              );
+            } catch (e) {
+              console.error("[MetaPixel] Error firing ViewContent pixel", e);
             }
           }}
         >
