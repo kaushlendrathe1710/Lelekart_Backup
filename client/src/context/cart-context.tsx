@@ -1,4 +1,10 @@
-import React, { createContext, useState, useEffect, useContext, ReactNode } from "react";
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useContext,
+  ReactNode,
+} from "react";
 import { Product as BaseProduct, User, ProductVariant } from "@shared/schema";
 
 // Extend the Product type to include the isVariant property and variant-related fields
@@ -12,6 +18,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import { fbq } from "../lib/metaPixel";
 
 interface CartItem {
   product: Product;
@@ -23,18 +30,28 @@ interface CartItem {
 
 interface CartContextType {
   cartItems: CartItem[];
-  addToCart: (product: Product, quantity?: number, variant?: ProductVariant) => void;
+  addToCart: (
+    product: Product,
+    quantity?: number,
+    variant?: ProductVariant
+  ) => void;
   removeFromCart: (itemId: number) => void;
   updateQuantity: (itemId: number, quantity: number) => void;
   clearCart: () => void;
   isOpen: boolean;
   toggleCart: () => void;
-  buyNow: (product: Product, quantity?: number, variant?: ProductVariant) => void;
+  buyNow: (
+    product: Product,
+    quantity?: number,
+    variant?: ProductVariant
+  ) => void;
   validateCart: () => Promise<boolean>;
   cleanupInvalidCartItems: () => Promise<boolean>;
 }
 
-export const CartContext = createContext<CartContextType | undefined>(undefined);
+export const CartContext = createContext<CartContextType | undefined>(
+  undefined
+);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -42,13 +59,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
-  
+
   // Helper: localStorage key
-  const GUEST_CART_KEY = 'lelekart_guest_cart';
+  const GUEST_CART_KEY = "lelekart_guest_cart";
 
   // Load guest cart from localStorage on mount
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       const stored = localStorage.getItem(GUEST_CART_KEY);
       if (stored) {
         try {
@@ -62,25 +79,29 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Save guest cart to localStorage whenever it changes
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       localStorage.setItem(GUEST_CART_KEY, JSON.stringify(guestCart));
     }
   }, [guestCart]);
 
   // Get user data with better error handling and logging
-  const { data: user, error: userError, isLoading: isUserLoading } = useQuery<User>({
-    queryKey: ['/api/user'],
+  const {
+    data: user,
+    error: userError,
+    isLoading: isUserLoading,
+  } = useQuery<User>({
+    queryKey: ["/api/user"],
     queryFn: async () => {
       try {
-        const res = await fetch('/api/user', { 
-          method: 'GET',
-          credentials: 'include',
+        const res = await fetch("/api/user", {
+          method: "GET",
+          credentials: "include",
           headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache'
-          }
+            "Content-Type": "application/json",
+            "Cache-Control": "no-cache",
+          },
         });
-        
+
         if (!res.ok) {
           if (res.status === 401) {
             // User not authenticated, return null
@@ -88,7 +109,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           }
           throw new Error(`Failed to fetch user: ${res.status}`);
         }
-        
+
         const userData = await res.json();
         return userData;
       } catch (err) {
@@ -105,24 +126,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
   });
 
   // Fetch cart items using React Query for real-time updates
-  const { data: serverCartItems = [], isLoading: isCartLoading } = useQuery<CartItem[]>({
-    queryKey: ['/api/cart'],
+  const { data: serverCartItems = [], isLoading: isCartLoading } = useQuery<
+    CartItem[]
+  >({
+    queryKey: ["/api/cart"],
     queryFn: async () => {
       if (!user) {
         return [];
       }
-      
+
       try {
         // Fetch cart items for logged-in user
-        const res = await fetch('/api/cart', { 
-          method: 'GET',
-          credentials: 'include',
+        const res = await fetch("/api/cart", {
+          method: "GET",
+          credentials: "include",
           headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache'
-          }
+            "Content-Type": "application/json",
+            "Cache-Control": "no-cache",
+          },
         });
-        
+
         if (!res.ok) {
           if (res.status === 401) {
             // Handle auth error gracefully by returning empty cart
@@ -130,7 +153,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           }
           throw new Error(`Failed to fetch cart: ${res.status}`);
         }
-        
+
         const cartData = await res.json();
         return cartData;
       } catch (err) {
@@ -185,7 +208,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         // Clear guest cart only after all items are processed
         setGuestCart([]);
         localStorage.removeItem(GUEST_CART_KEY);
-        
+
         // Refresh server cart data
         await queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
 
@@ -213,14 +236,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Add to cart API mutation
   const addToCartMutation = useMutation({
-    mutationFn: async ({ 
-      productId, 
-      quantity, 
-      variantId 
-    }: { 
-      productId: number; 
-      quantity: number; 
-      variantId?: number 
+    mutationFn: async ({
+      productId,
+      quantity,
+      variantId,
+    }: {
+      productId: number;
+      quantity: number;
+      variantId?: number;
     }) => {
       try {
         const res = await fetch("/api/cart", {
@@ -228,15 +251,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
           credentials: "include",
           headers: {
             "Content-Type": "application/json",
-            "Cache-Control": "no-cache"
+            "Cache-Control": "no-cache",
           },
           body: JSON.stringify({
             productId,
             quantity,
-            variantId
-          })
+            variantId,
+          }),
         });
-        
+
         if (!res.ok) {
           if (res.status === 401) {
             // Handle authentication error
@@ -245,16 +268,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
               description: "Please log in to add items to your cart",
               variant: "destructive",
             });
-            
+
             // Redirect to auth page
             setTimeout(() => navigate("/auth"), 1500);
             throw new Error("Authentication required");
           }
-          
+
           const errorData = await res.json();
           throw new Error(errorData.error || `Server error: ${res.status}`);
         }
-        
+
         return res.json();
       } catch (error) {
         console.error("Error in addToCartMutation:", error);
@@ -279,20 +302,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Update cart API mutation
   const updateCartMutation = useMutation({
-    mutationFn: async ({ cartItemId, quantity }: { cartItemId: number; quantity: number }) => {
+    mutationFn: async ({
+      cartItemId,
+      quantity,
+    }: {
+      cartItemId: number;
+      quantity: number;
+    }) => {
       try {
         const res = await fetch(`/api/cart/${cartItemId}`, {
           method: "PUT",
           credentials: "include",
           headers: {
             "Content-Type": "application/json",
-            "Cache-Control": "no-cache"
+            "Cache-Control": "no-cache",
           },
           body: JSON.stringify({
             quantity,
-          })
+          }),
         });
-        
+
         if (!res.ok) {
           if (res.status === 401) {
             // Handle authentication error
@@ -301,16 +330,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
               description: "Please log in to update your cart",
               variant: "destructive",
             });
-            
+
             // Redirect to auth page
             setTimeout(() => navigate("/auth"), 1500);
             throw new Error("Authentication required");
           }
-          
+
           const errorData = await res.json();
           throw new Error(errorData.error || `Server error: ${res.status}`);
         }
-        
+
         return res.json();
       } catch (error) {
         console.error("Error in updateCartMutation:", error);
@@ -342,10 +371,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
           credentials: "include",
           headers: {
             "Content-Type": "application/json",
-            "Cache-Control": "no-cache"
-          }
+            "Cache-Control": "no-cache",
+          },
         });
-        
+
         if (!res.ok) {
           if (res.status === 401) {
             // Handle authentication error
@@ -354,17 +383,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
               description: "Please log in to manage your cart",
               variant: "destructive",
             });
-            
+
             // Redirect to auth page
             setTimeout(() => navigate("/auth"), 1500);
             throw new Error("Authentication required");
           }
-          
+
           // Try to get error details if possible
-          const errorData = await res.json().catch(() => ({ error: `Server error: ${res.status}` }));
+          const errorData = await res
+            .json()
+            .catch(() => ({ error: `Server error: ${res.status}` }));
           throw new Error(errorData.error || `Server error: ${res.status}`);
         }
-        
+
         // Some DELETE endpoints don't return JSON, handle that gracefully
         return res.json().catch(() => ({}));
       } catch (error) {
@@ -389,7 +420,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
   });
 
   // Add to cart function (for both guest and logged-in users)
-  const addToCart = async (product: Product, quantity = 1, variant?: ProductVariant) => {
+  const addToCart = async (
+    product: Product,
+    quantity = 1,
+    variant?: ProductVariant
+  ) => {
+    // Fire Meta Pixel AddToCart event
+    fbq("track", "AddToCart", {
+      content_name: product.name,
+      content_ids: [product.id],
+      content_type: "product",
+      value: variant ? variant.price : product.price,
+      currency: "INR",
+      ...(variant && {
+        variant_id: variant.id,
+        variant_color: variant.color,
+        variant_size: variant.size,
+      }),
+    });
     // Check if user is logged in
     if (user) {
       // User is logged in, use server-side cart
@@ -408,9 +456,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
     } else {
       // User is a guest, use local storage cart
-      setGuestCart(prevCart => {
-        const existingItemIndex = prevCart.findIndex(item => 
-          item.product.id === product.id && item.variant?.id === variant?.id
+      setGuestCart((prevCart) => {
+        const existingItemIndex = prevCart.findIndex(
+          (item) =>
+            item.product.id === product.id && item.variant?.id === variant?.id
         );
 
         let newCart;
@@ -420,20 +469,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
           newCart[existingItemIndex].quantity += quantity;
         } else {
           // Add new item to cart
-          const newItem: CartItem = { 
-            product, 
-            quantity, 
+          const newItem: CartItem = {
+            product,
+            quantity,
             variant,
             // Use a temporary unique ID for guest cart items (timestamp + random)
             id: Date.now() + Math.random(),
           };
           newCart = [...prevCart, newItem];
         }
-        
+
         localStorage.setItem(GUEST_CART_KEY, JSON.stringify(newCart));
         return newCart;
       });
-      
+
       toast({
         title: "Added to cart",
         description: `${product.name} has been added to your cart`,
@@ -461,7 +510,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       });
     } else {
       // Guest cart: itemId is the index
-      setGuestCart(prevCart => {
+      setGuestCart((prevCart) => {
         const newCart = prevCart.filter((_, index) => index !== itemId);
         localStorage.setItem(GUEST_CART_KEY, JSON.stringify(newCart));
         return newCart;
@@ -480,7 +529,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (user) {
       // Optimistically update the cart in the UI
       const prevCart = [...serverCartItems];
-      const cartItemIdx = serverCartItems.findIndex(item => item.id === itemId);
+      const cartItemIdx = serverCartItems.findIndex(
+        (item) => item.id === itemId
+      );
       if (cartItemIdx > -1) {
         const updatedCart = [...serverCartItems];
         updatedCart[cartItemIdx] = {
@@ -501,7 +552,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       );
     } else {
       // Guest cart: itemId is the index
-      setGuestCart(prevCart => {
+      setGuestCart((prevCart) => {
         const newCart = prevCart.map((item, index) => {
           if (index === itemId) {
             return { ...item, quantity: newQuantity };
@@ -560,19 +611,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Toggle cart sidebar visibility
   const toggleCart = () => {
-    setIsOpen(prev => !prev);
+    setIsOpen((prev) => !prev);
   };
-  
+
   // Buy now functionality (add to cart and redirect to checkout)
-  const buyNow = async (product: Product, quantity = 1, variant?: ProductVariant) => {
+  const buyNow = async (
+    product: Product,
+    quantity = 1,
+    variant?: ProductVariant
+  ) => {
     // Handle buy now flow for direct purchase
     console.log("buyNow called in cart context with:", {
       productId: product.id,
       quantity,
       variantId: variant?.id,
-      hasVariant: !!variant
+      hasVariant: !!variant,
     });
-    
+
     if (isUserLoading) {
       toast({
         title: "Please wait",
@@ -581,7 +636,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       });
       return;
     }
-    
+
     if (!user) {
       // Redirect to auth page if not logged in
       toast({
@@ -592,17 +647,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
       navigate("/auth");
       return;
     }
-    
+
     // Only buyers can purchase
-    if (user.role !== 'buyer') {
+    if (user.role !== "buyer") {
       toast({
         title: "Action Not Allowed",
-        description: "Only buyers can make purchases. Please switch to a buyer account.",
+        description:
+          "Only buyers can make purchases. Please switch to a buyer account.",
         variant: "destructive",
       });
       return;
     }
-    
+
     // Check for available stock
     const availableStock = variant?.stock ?? product.stock ?? 0;
     if (availableStock <= 0) {
@@ -613,7 +669,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       });
       return;
     }
-    
+
     // Limit quantity to available stock
     const requestedQuantity = Math.min(quantity, availableStock);
     if (requestedQuantity < quantity) {
@@ -623,9 +679,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
         variant: "default",
       });
     }
-    
+
     // Validate that the product ID is valid
-    if (!product || !product.id || typeof product.id !== 'number' || isNaN(product.id)) {
+    if (
+      !product ||
+      !product.id ||
+      typeof product.id !== "number" ||
+      isNaN(product.id)
+    ) {
       toast({
         title: "Invalid Product",
         description: "The selected product cannot be purchased.",
@@ -633,19 +694,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
       });
       return;
     }
-    
+
     // Check if product has variants but none are selected
-    if ((product.hasVariants || (product.variants && product.variants.length > 0)) && !variant) {
+    if (
+      (product.hasVariants ||
+        (product.variants && product.variants.length > 0)) &&
+      !variant
+    ) {
       toast({
         title: "Selection Required",
-        description: "Please select product options before proceeding to checkout",
+        description:
+          "Please select product options before proceeding to checkout",
         variant: "default",
       });
-      
+
       // Don't proceed - user needs to select variant first
       return;
     }
-    
+
     try {
       // Use direct fetch API for more explicit control over the buy now process
       // This avoids race conditions with React Query and ensures the cart item is created
@@ -654,14 +720,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          "Cache-Control": "no-cache"
+          "Cache-Control": "no-cache",
         },
         body: JSON.stringify({
           productId: product.id,
           quantity: requestedQuantity,
           variantId: variant?.id,
-          buyNow: true // Signal to the server this is a buy now request
-        })
+          buyNow: true, // Signal to the server this is a buy now request
+        }),
       });
 
       if (!response.ok) {
@@ -673,17 +739,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
       // Get the response data
       const cartItem = await response.json();
       console.log("Successfully added to cart:", cartItem);
-      
+
       // Force refresh cart data
       await queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
-      
+
       // Show success message
       toast({
         title: "Added to cart",
-        description: `${product.name}${variant ? ` (${variant.color || ''}${variant.size ? `, ${variant.size}` : ''})` : ''} has been added to your cart`,
+        description: `${product.name}${variant ? ` (${variant.color || ""}${variant.size ? `, ${variant.size}` : ""})` : ""} has been added to your cart`,
         variant: "default",
       });
-      
+
       // Redirect to checkout with buynow parameter
       setTimeout(() => {
         window.location.href = "/checkout?buynow=true";
@@ -692,7 +758,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       console.error("Buy Now error:", error);
       toast({
         title: "Purchase Failed",
-        description: error instanceof Error ? error.message : "An error occurred while processing your purchase",
+        description:
+          error instanceof Error
+            ? error.message
+            : "An error occurred while processing your purchase",
         variant: "destructive",
       });
     }
@@ -704,42 +773,44 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!user) {
       return true; // No validation needed for unauthenticated users
     }
-    
+
     try {
       const response = await fetch("/api/cart/validate", {
         method: "GET",
         credentials: "include",
         headers: {
-          "Content-Type": "application/json"
-        }
+          "Content-Type": "application/json",
+        },
       });
-      
+
       if (!response.ok) {
         throw new Error(`Cart validation failed: ${response.statusText}`);
       }
-      
+
       const result = await response.json();
-      
+
       if (result.invalid && result.invalid.length > 0) {
         // Show notifications about invalid items
         toast({
           title: "Cart Updated",
-          description: "Some items in your cart are no longer available and will be removed.",
+          description:
+            "Some items in your cart are no longer available and will be removed.",
           variant: "destructive",
         });
-        
+
         // Auto-remove invalid items from cart
         for (const item of result.invalid) {
           // Find the cart item with this product ID
-          const invalidCartItem = cartItems.find(ci => 
-            ci.product.id === item.productId &&
-            (!item.variantId || ci.variant?.id === item.variantId)
+          const invalidCartItem = cartItems.find(
+            (ci) =>
+              ci.product.id === item.productId &&
+              (!item.variantId || ci.variant?.id === item.variantId)
           );
-          
+
           if (invalidCartItem?.id) {
             // Remove the invalid item from cart
             removeFromCart(invalidCartItem.id);
-            
+
             toast({
               title: "Item Removed",
               description: `${invalidCartItem.product.name} was removed from your cart (${item.error})`,
@@ -747,11 +818,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
             });
           }
         }
-        
+
         // After cleanup, cart is still considered invalid
         return false;
       }
-      
+
       // Validation passed successfully
       return true;
     } catch (error) {
@@ -766,34 +837,35 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!user) {
       return true; // No cleanup needed for unauthenticated users
     }
-    
+
     try {
       // First validate to identify invalid items
       const response = await fetch("/api/cart/validate", {
         method: "GET",
         credentials: "include",
         headers: {
-          "Content-Type": "application/json"
-        }
+          "Content-Type": "application/json",
+        },
       });
-      
+
       if (!response.ok) {
         throw new Error(`Cart validation failed: ${response.statusText}`);
       }
-      
+
       const result = await response.json();
-      
+
       if (result.invalid && result.invalid.length > 0) {
         // Show notification about cleanup action
         toast({
           title: "Cart Updated",
-          description: "Some items in your cart were no longer available and have been removed. Please review your updated cart.",
+          description:
+            "Some items in your cart were no longer available and have been removed. Please review your updated cart.",
           variant: "destructive",
         });
-        
+
         // Process each invalid item
         let cleanupSuccessful = true;
-        
+
         for (const item of result.invalid) {
           if (item.id) {
             try {
@@ -802,7 +874,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
                 method: "DELETE",
                 credentials: "include",
               });
-              
+
               if (!deleteResponse.ok) {
                 cleanupSuccessful = false;
               }
@@ -811,18 +883,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
             }
           } else {
             // If the item doesn't have an ID, try to find it by product ID
-            const invalidCartItem = cartItems.find(ci => 
-              ci.product.id === item.productId &&
-              (!item.variantId || ci.variant?.id === item.variantId)
+            const invalidCartItem = cartItems.find(
+              (ci) =>
+                ci.product.id === item.productId &&
+                (!item.variantId || ci.variant?.id === item.variantId)
             );
-            
+
             if (invalidCartItem?.id) {
               try {
-                const deleteResponse = await fetch(`/api/cart/${invalidCartItem.id}`, {
-                  method: "DELETE",
-                  credentials: "include",
-                });
-                
+                const deleteResponse = await fetch(
+                  `/api/cart/${invalidCartItem.id}`,
+                  {
+                    method: "DELETE",
+                    credentials: "include",
+                  }
+                );
+
                 if (!deleteResponse.ok) {
                   cleanupSuccessful = false;
                 }
@@ -834,15 +910,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
             }
           }
         }
-        
+
         // Refresh cart data after cleanup
         queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
-        
+
         if (!cleanupSuccessful) {
           return false;
         }
       }
-      
+
       return true; // Cleanup succeeded or no invalid items found
     } catch (error) {
       return false;
@@ -863,11 +939,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <CartContext.Provider
-      value={contextValue}
-    >
-      {children}
-    </CartContext.Provider>
+    <CartContext.Provider value={contextValue}>{children}</CartContext.Provider>
   );
 }
 

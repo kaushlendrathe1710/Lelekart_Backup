@@ -4,6 +4,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useMetaPixelPageView } from "./hooks/useMetaPixelPageView";
+import { injectMetaPixel } from "./lib/metaPixel";
 
 // Redirector component for client-side navigation without using window.location
 // This helps prevent double-forward-slash issues in URLs
@@ -161,6 +163,10 @@ import TrackOrderPage from "./pages/track-order-page";
 import RecentlyViewedPage from "./pages/buyer/recently-viewed";
 
 function App() {
+  useEffect(() => {
+    injectMetaPixel();
+  }, []);
+  useMetaPixelPageView();
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
