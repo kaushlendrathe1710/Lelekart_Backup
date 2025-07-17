@@ -207,6 +207,11 @@ export default function SellerSettingsPage() {
           setNotificationSettings(JSON.parse(settings.notificationPreferences));
         } catch (e) {
           console.error("Error parsing notification preferences:", e);
+          setNotificationSettings({
+            email: { orders: true, payments: true, returns: true, reviews: true, promotions: false },
+            sms: { orders: true, payments: false, returns: false, reviews: false, promotions: false },
+            push: { orders: true, payments: true, returns: true, reviews: true, promotions: true },
+          });
         }
       }
 
@@ -222,6 +227,7 @@ export default function SellerSettingsPage() {
           });
         } catch (e) {
           console.error("Error parsing personal info:", e);
+          setPersonalInfo({ name: "", email: "", phone: "", alternatePhone: "" });
         }
       }
 
@@ -238,54 +244,7 @@ export default function SellerSettingsPage() {
           });
         } catch (e) {
           console.error("Error parsing address:", e);
-        }
-      }
-
-      // Parse and set pickup address
-      if (settings.pickupAddress) {
-        try {
-          const parsedPickupAddress = JSON.parse(settings.pickupAddress);
-          setPickupAddress({
-            businessName: parsedPickupAddress.businessName || "",
-            gstin: parsedPickupAddress.gstin || "",
-            contactName: parsedPickupAddress.contactName || "",
-            phone: parsedPickupAddress.phone || "",
-            line1: parsedPickupAddress.line1 || "",
-            line2: parsedPickupAddress.line2 || "",
-            city: parsedPickupAddress.city || "",
-            state: parsedPickupAddress.state || "",
-            pincode: parsedPickupAddress.pincode || "",
-            authorizationSignature:
-              parsedPickupAddress.authorizationSignature || "",
-          });
-        } catch (e) {
-          console.error("Error parsing pickup address:", e);
-        }
-      }
-
-      // Parse and set tax information for billing
-      if (settings.taxInformation) {
-        try {
-          const parsedTaxInfo = JSON.parse(settings.taxInformation);
-          setBillingInfo({
-            gstin: parsedTaxInfo.gstin || "",
-            businessName: parsedTaxInfo.businessName || "",
-            panNumber: parsedTaxInfo.panNumber || "",
-            businessType: parsedTaxInfo.businessType || "individual",
-          });
-
-          // Also set bank information if it's part of tax information
-          if (parsedTaxInfo.bankInfo) {
-            setBankInfo({
-              accountName: parsedTaxInfo.bankInfo.accountName || "",
-              accountNumber: parsedTaxInfo.bankInfo.accountNumber || "",
-              ifscCode: parsedTaxInfo.bankInfo.ifscCode || "",
-              bankName: parsedTaxInfo.bankInfo.bankName || "",
-              branchName: parsedTaxInfo.bankInfo.branchName || "",
-            });
-          }
-        } catch (e) {
-          console.error("Error parsing tax information:", e);
+          setAddress({ line1: "", line2: "", city: "", state: "", pincode: "" });
         }
       }
 
@@ -307,47 +266,35 @@ export default function SellerSettingsPage() {
               website: parsedStoreSettings.socialLinks?.website || "",
             },
             businessHours: parsedStoreSettings.businessHours || [
-              {
-                day: "Monday",
-                open: true,
-                openTime: "09:00",
-                closeTime: "18:00",
-              },
-              {
-                day: "Tuesday",
-                open: true,
-                openTime: "09:00",
-                closeTime: "18:00",
-              },
-              {
-                day: "Wednesday",
-                open: true,
-                openTime: "09:00",
-                closeTime: "18:00",
-              },
-              {
-                day: "Thursday",
-                open: true,
-                openTime: "09:00",
-                closeTime: "18:00",
-              },
-              {
-                day: "Friday",
-                open: true,
-                openTime: "09:00",
-                closeTime: "18:00",
-              },
-              {
-                day: "Saturday",
-                open: true,
-                openTime: "10:00",
-                closeTime: "16:00",
-              },
+              { day: "Monday", open: true, openTime: "09:00", closeTime: "18:00" },
+              { day: "Tuesday", open: true, openTime: "09:00", closeTime: "18:00" },
+              { day: "Wednesday", open: true, openTime: "09:00", closeTime: "18:00" },
+              { day: "Thursday", open: true, openTime: "09:00", closeTime: "18:00" },
+              { day: "Friday", open: true, openTime: "09:00", closeTime: "18:00" },
+              { day: "Saturday", open: true, openTime: "10:00", closeTime: "16:00" },
               { day: "Sunday", open: false, openTime: "", closeTime: "" },
             ],
           });
         } catch (e) {
           console.error("Error parsing store settings:", e);
+          setStoreSettings({
+            name: "",
+            description: "",
+            contactEmail: "",
+            contactPhone: "",
+            logo: "",
+            banner: "",
+            socialLinks: { facebook: "", instagram: "", twitter: "", website: "" },
+            businessHours: [
+              { day: "Monday", open: true, openTime: "09:00", closeTime: "18:00" },
+              { day: "Tuesday", open: true, openTime: "09:00", closeTime: "18:00" },
+              { day: "Wednesday", open: true, openTime: "09:00", closeTime: "18:00" },
+              { day: "Thursday", open: true, openTime: "09:00", closeTime: "18:00" },
+              { day: "Friday", open: true, openTime: "09:00", closeTime: "18:00" },
+              { day: "Saturday", open: true, openTime: "10:00", closeTime: "16:00" },
+              { day: "Sunday", open: false, openTime: "", closeTime: "" },
+            ],
+          });
         }
       }
     }
