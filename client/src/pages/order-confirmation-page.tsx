@@ -22,6 +22,7 @@ import {
 import { useHeroButtons } from "@/hooks/use-hero-buttons";
 import { queryClient } from "@/lib/queryClient";
 import { InvoiceDialog } from "@/components/order/invoice-dialog";
+import { fbq } from "../lib/metaPixel";
 
 // Helper component for hero buttons
 function HeroButtons({
@@ -252,6 +253,19 @@ export default function OrderConfirmationPage() {
 
     fetchOrderWithRetry();
   }, [orderId]);
+
+  useEffect(() => {
+    if (orderDetails && orderDetails.items && orderDetails.items.length > 0) {
+      fbq("track", "Purchase", {
+        content_ids: orderDetails.items.map(
+          (item: any) => item.product?.id || item.productId
+        ),
+        content_type: "product",
+        value: orderDetails.total,
+        currency: "INR",
+      });
+    }
+  }, [orderDetails]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);

@@ -53,6 +53,7 @@ import { useWallet } from "@/context/wallet-context";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useNotifications } from "@/contexts/notification-context";
+import { fbq } from "../lib/metaPixel";
 
 // Define form schema with Zod - with more permissive validation
 const checkoutSchema = z.object({
