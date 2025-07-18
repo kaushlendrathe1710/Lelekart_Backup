@@ -4792,9 +4792,12 @@ export default function AddProductPage() {
                       <VariantMatrixGenerator
                         onSaveVariants={async (generatedVariants) => {
                           console.log(
-                            "Matrix generator onSaveVariants called with:",
-                            generatedVariants
+                            "[MATRIX GENERATOR] onSaveVariants called. Variant count:",
+                            generatedVariants.length
                           );
+                          generatedVariants.forEach((v, i) => {
+                            console.log(`[MATRIX GENERATOR] Variant[${i}]:`, v);
+                          });
                           try {
                             setIsUploading(true);
                             setUploadProgress(0);
@@ -4871,7 +4874,6 @@ export default function AddProductPage() {
                                       Date.now() +
                                       Math.floor(Math.random() * 1000)
                                     ),
-                                  productId: product?.id,
                                   sku:
                                     variant.sku ||
                                     `${form.getValues("name").substring(0, 5)}-${variant.color}-${variant.size}`.replace(

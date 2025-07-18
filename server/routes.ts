@@ -328,7 +328,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/subcategories/all", async (_req, res) => {
     try {
       const subcategories = await storage.getAllSubcategories();
-      console.log("[Backend] Subcategories fetched:", subcategories);
+    
       res.json(subcategories);
     } catch (error) {
       console.error("Error fetching all subcategories:", error);
@@ -3573,8 +3573,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const { productData, variants } = req.body;
 
-        console.log("Creating product with data:", JSON.stringify(productData));
-        console.log("Variants received:", variants ? variants.length : 0);
+        console.log("[PRODUCT CREATE] Creating product with data:", JSON.stringify(productData));
+        if (variants) {
+          console.log(`[PRODUCT CREATE] Variants received: count = ${variants.length}`);
+          variants.forEach((v, i) => {
+            console.log(`[PRODUCT CREATE] Variant[${i}]:`, JSON.stringify(v));
+          });
+        } else {
+          console.log("[PRODUCT CREATE] No variants received.");
+        }
 
         // Process subcategoryId
         let subcategoryId = productData.subcategoryId;
@@ -3765,10 +3772,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { productData, variants } = req.body;
 
       console.log(
-        "Creating draft product with data:",
+        "[PRODUCT DRAFT] Creating draft product with data:",
         JSON.stringify(productData)
       );
-      console.log("Variants received:", variants ? variants.length : 0);
+      if (variants) {
+        console.log(`[PRODUCT DRAFT] Variants received: count = ${variants.length}`);
+        variants.forEach((v, i) => {
+          console.log(`[PRODUCT DRAFT] Variant[${i}]:`, JSON.stringify(v));
+        });
+      } else {
+        console.log("[PRODUCT DRAFT] No variants received.");
+      }
 
       // Process subcategoryId
       let subcategoryId = productData.subcategoryId;
@@ -7937,7 +7951,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("Fetching categories...");
       const categories = await storage.getCategories();
-      console.log("[Backend] Categories fetched:", categories);
+    
       if (categories.length === 0) {
         console.log("No categories found, returning default categories");
         const defaultCategories = [
