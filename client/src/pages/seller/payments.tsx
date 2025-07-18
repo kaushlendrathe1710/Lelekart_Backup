@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { SellerDashboardLayout } from "@/components/layout/seller-dashboard-layout";
@@ -212,6 +212,21 @@ export default function SellerPaymentsPage() {
     setShowDetailDialog(true);
   };
 
+  const savePayoutScheduleMutation = useMutation({
+    mutationFn: async (schedule: { cycle: string; day: string }) => {
+      const res = await fetch("/api/seller/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payoutSchedule: JSON.stringify(schedule) }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to save payout schedule");
+      }
+      return res.json();
+    },
+  });
+
   return (
     <SellerDashboardLayout>
       <div className="container mx-auto py-1 md:py-2 px-4 md:px-0">
@@ -364,6 +379,7 @@ export default function SellerPaymentsPage() {
                 variant="link"
                 size="sm"
                 className="px-0 h-auto text-primary text-xs md:text-sm"
+                onClick={() => setShowScheduleDialog(true)}
               >
                 <Calendar className="h-3 w-3 md:h-4 md:w-4 mr-1" />
                 View payout schedule
@@ -1480,8 +1496,8 @@ export default function SellerPaymentsPage() {
           <DialogHeader>
             <DialogTitle>Change Payout Schedule</DialogTitle>
             <DialogDescription>
-              Select your preferred payout cycle. This is a demo and will not
-              save to backend.
+              Select your preferred payout cycle. This will be saved to your
+              account settings.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -1534,17 +1550,27 @@ export default function SellerPaymentsPage() {
               Cancel
             </Button>
             <Button
-              onClick={() => {
-                setPayoutSchedule(tempSchedule);
-                setShowScheduleDialog(false);
-                toast({
-                  title: "Payout schedule updated (demo)",
-                  description: `Now set to ${tempSchedule.cycle}${tempSchedule.cycle === "Weekly" ? ` on ${tempSchedule.day}` : ""}.`,
-                  duration: 2500,
-                });
+              disabled={savePayoutScheduleMutation.isLoading}
+              onClick={async () => {
+                try {
+                  await savePayoutScheduleMutation.mutateAsync(tempSchedule);
+                  setPayoutSchedule(tempSchedule);
+                  setShowScheduleDialog(false);
+                  toast({
+                    title: "Payout schedule updated",
+                    description: `Now set to ${tempSchedule.cycle}${tempSchedule.cycle === "Weekly" ? ` on ${tempSchedule.day}` : ""}.`,
+                    duration: 2500,
+                  });
+                } catch (err: any) {
+                  toast({
+                    title: "Failed to update payout schedule",
+                    description: err.message,
+                    variant: "destructive",
+                  });
+                }
               }}
             >
-              Save
+              {savePayoutScheduleMutation.isLoading ? "Saving..." : "Save"}
             </Button>
           </div>
         </DialogContent>
