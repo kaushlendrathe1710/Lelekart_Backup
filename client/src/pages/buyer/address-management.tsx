@@ -904,33 +904,35 @@ const AddressManagement: React.FC = () => {
 
         {/* Edit Address Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>Edit Address</DialogTitle>
-              <DialogDescription>
-                Update the details for your address
-              </DialogDescription>
-            </DialogHeader>
-            {selectedAddress && (
-              <AddressForm
-                defaultValues={{
-                  addressName: selectedAddress.addressName,
-                  fullName: selectedAddress.fullName,
-                  address: selectedAddress.address,
-                  city: selectedAddress.city,
-                  state: selectedAddress.state,
-                  pincode: selectedAddress.pincode,
-                  phone: selectedAddress.phone,
-                  isDefault: selectedAddress.isDefault,
-                  addressType: selectedAddress.addressType || "both",
-                }}
-                onSubmit={handleUpdateAddress}
-                onCancel={() => {
-                  setIsEditDialogOpen(false);
-                  setSelectedAddress(null);
-                }}
-              />
-            )}
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto w-full p-0">
+            <div className="p-4 sm:p-6">
+              <DialogHeader>
+                <DialogTitle>Edit Address</DialogTitle>
+                <DialogDescription>
+                  Update the details for your address
+                </DialogDescription>
+              </DialogHeader>
+              {selectedAddress && (
+                <AddressForm
+                  defaultValues={{
+                    addressName: selectedAddress.addressName,
+                    fullName: selectedAddress.fullName,
+                    address: selectedAddress.address,
+                    city: selectedAddress.city,
+                    state: selectedAddress.state,
+                    pincode: selectedAddress.pincode,
+                    phone: selectedAddress.phone,
+                    isDefault: selectedAddress.isDefault,
+                    addressType: selectedAddress.addressType || "both",
+                  }}
+                  onSubmit={handleUpdateAddress}
+                  onCancel={() => {
+                    setIsEditDialogOpen(false);
+                    setSelectedAddress(null);
+                  }}
+                />
+              )}
+            </div>
           </DialogContent>
         </Dialog>
       </div>
