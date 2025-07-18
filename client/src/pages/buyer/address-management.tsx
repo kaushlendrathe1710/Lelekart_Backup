@@ -810,17 +810,19 @@ const AddressManagement: React.FC = () => {
                 Add New Address
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px]">
-              <DialogHeader>
-                <DialogTitle>Add New Address</DialogTitle>
-                <DialogDescription>
-                  Enter the details for your new address
-                </DialogDescription>
-              </DialogHeader>
-              <AddressForm
-                onSubmit={handleAddAddress}
-                onCancel={() => setIsAddDialogOpen(false)}
-              />
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto w-full p-0">
+              <div className="p-4 sm:p-6">
+                <DialogHeader>
+                  <DialogTitle>Add New Address</DialogTitle>
+                  <DialogDescription>
+                    Enter the details for your new address
+                  </DialogDescription>
+                </DialogHeader>
+                <AddressForm
+                  onSubmit={handleAddAddress}
+                  onCancel={() => setIsAddDialogOpen(false)}
+                />
+              </div>
             </DialogContent>
           </Dialog>
         </div>
