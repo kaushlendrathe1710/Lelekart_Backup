@@ -324,6 +324,40 @@ import {
 } from "./handlers/shipping-handlers";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // --- CRITICAL: Register this API route first! ---
+  app.get("/api/subcategories/all", async (_req, res) => {
+    try {
+      const subcategories = await storage.getAllSubcategories();
+      console.log("[Backend] Subcategories fetched:", subcategories);
+      res.json(subcategories);
+    } catch (error) {
+      console.error("Error fetching all subcategories:", error);
+      res.status(500).json({ error: "Failed to fetch subcategories" });
+    }
+  });
+  // --- Subcategory CRUD routes ---
+app.post("/api/subcategories", async (req, res) => {
+  try {
+    // You may want to add authentication/authorization checks here
+    const subcategory = await storage.createSubcategory(req.body);
+    res.status(201).json(subcategory);
+  } catch (error) {
+    console.error("Error creating subcategory:", error);
+    res.status(500).json({ error: "Failed to create subcategory" });
+  }
+});
+
+app.put("/api/subcategories/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const updated = await storage.updateSubcategory(id, req.body);
+    res.json(updated);
+  } catch (error) {
+    console.error("Error updating subcategory:", error);
+    res.status(500).json({ error: "Failed to update subcategory" });
+  }
+});
+
   // Setup authentication routes with OTP-based authentication
   setupAuth(app);
 
@@ -7879,8 +7913,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("Fetching categories...");
       const categories = await storage.getCategories();
-
-      // If no categories exist yet, return default categories
+      console.log("[Backend] Categories fetched:", categories);
       if (categories.length === 0) {
         console.log("No categories found, returning default categories");
         const defaultCategories = [

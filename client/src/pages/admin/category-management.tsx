@@ -123,7 +123,12 @@ export default function CategoryManagement() {
     queryKey: ["/api/categories"],
     queryFn: async () => {
       const res = await apiRequest("GET", "/api/categories");
-      return res.json();
+      const data = await res.json();
+      console.log("[Admin] Categories API response:", data);
+      return data;
+    },
+    onError: (err) => {
+      console.error("[Admin] Categories API error:", err);
     },
   });
 
@@ -136,7 +141,12 @@ export default function CategoryManagement() {
     queryKey: ["/api/subcategories/all"],
     queryFn: async () => {
       const res = await apiRequest("GET", "/api/subcategories/all");
-      return res.json();
+      const data = await res.json();
+      console.log("[Admin] Subcategories API response:", data);
+      return data;
+    },
+    onError: (err) => {
+      console.error("[Admin] Subcategories API error:", err);
     },
   });
 
