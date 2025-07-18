@@ -203,7 +203,10 @@ export default function SellerDashboardPage() {
                   Add Product
                 </Link>
               </Button>
-              <Button className="flex items-center justify-center gap-2 w-full sm:w-auto" asChild>
+              <Button
+                className="flex items-center justify-center gap-2 w-full sm:w-auto"
+                asChild
+              >
                 <Link href="/seller/orders">
                   <PackageOpen className="h-4 w-4" />
                   View Orders
@@ -295,7 +298,10 @@ export default function SellerDashboardPage() {
                       </div>
                     ) : (
                       <p className="text-2xl font-bold">
-                        ₹{dashboardSummary?.totalRevenue?.toFixed(2) || "0"}
+                        {!dashboardSummary?.totalProducts ||
+                        !dashboardSummary?.totalOrders
+                          ? ""
+                          : `₹${dashboardSummary?.totalRevenue?.toFixed(2)}`}
                       </p>
                     )}
                   </div>
@@ -430,28 +436,55 @@ export default function SellerDashboardPage() {
                 <CardDescription>Latest customer orders</CardDescription>
               </CardHeader>
               <CardContent>
-                {dashboardSummary?.recentOrders && dashboardSummary.recentOrders.length > 0 ? (
+                {dashboardSummary?.recentOrders &&
+                dashboardSummary.recentOrders.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="min-w-full text-sm">
                       <thead>
                         <tr className="border-b border-border">
-                          <th className="py-2 px-3 text-left font-medium">Order ID</th>
-                          <th className="py-2 px-3 text-left font-medium">Date</th>
-                          <th className="py-2 px-3 text-left font-medium">Customer</th>
-                          <th className="py-2 px-3 text-left font-medium">Amount</th>
-                          <th className="py-2 px-3 text-left font-medium">Status</th>
+                          <th className="py-2 px-3 text-left font-medium">
+                            Order ID
+                          </th>
+                          <th className="py-2 px-3 text-left font-medium">
+                            Date
+                          </th>
+                          <th className="py-2 px-3 text-left font-medium">
+                            Customer
+                          </th>
+                          <th className="py-2 px-3 text-left font-medium">
+                            Amount
+                          </th>
+                          <th className="py-2 px-3 text-left font-medium">
+                            Status
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
-                        {dashboardSummary.recentOrders.slice(0, 5).map((order: any) => (
-                          <tr key={order.id} className="border-b border-border">
-                            <td className="py-2 px-3">#{order.id}</td>
-                            <td className="py-2 px-3">{new Date(order.date).toLocaleDateString()}</td>
-                            <td className="py-2 px-3">{order.customerName || order.customer || '-'}</td>
-                            <td className="py-2 px-3">₹{order.total?.toFixed ? order.total.toFixed(2) : order.total}</td>
-                            <td className="py-2 px-3 capitalize">{order.status?.replace(/_/g, ' ')}</td>
-                          </tr>
-                        ))}
+                        {dashboardSummary.recentOrders
+                          .slice(0, 5)
+                          .map((order: any) => (
+                            <tr
+                              key={order.id}
+                              className="border-b border-border"
+                            >
+                              <td className="py-2 px-3">#{order.id}</td>
+                              <td className="py-2 px-3">
+                                {new Date(order.date).toLocaleDateString()}
+                              </td>
+                              <td className="py-2 px-3">
+                                {order.customerName || order.customer || "-"}
+                              </td>
+                              <td className="py-2 px-3">
+                                ₹
+                                {order.total?.toFixed
+                                  ? order.total.toFixed(2)
+                                  : order.total}
+                              </td>
+                              <td className="py-2 px-3 capitalize">
+                                {order.status?.replace(/_/g, " ")}
+                              </td>
+                            </tr>
+                          ))}
                       </tbody>
                     </table>
                   </div>
