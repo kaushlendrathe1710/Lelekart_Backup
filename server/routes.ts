@@ -10881,7 +10881,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .json({ error: "Only admins can add reward points" });
     }
 
-    await rewardsHandlers.addRewardPoints(req, res);
+    await rewardsHandlers.addPointsToUser(req, res);
+  });
+
+  // Add reward points (admin only, admin route for compatibility)
+  app.post("/api/admin/rewards/points", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin" && req.user.role !== "co-admin") {
+      return res.status(403).json({ error: "Only admins can add reward points" });
+    }
+    await rewardsHandlers.addPointsToUser(req, res);
   });
 
   // Redeem reward points (user or admin)
