@@ -154,6 +154,9 @@ export default function SellerPaymentsPage() {
     day: string;
   }>(payoutSchedule);
   const [showFilters, setShowFilters] = useState(false);
+  const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawError, setWithdrawError] = useState("");
 
   // Fetch payments summary
   const { data: summaryData, isLoading: isSummaryLoading } = useQuery({
@@ -270,6 +273,7 @@ export default function SellerPaymentsPage() {
                 variant="outline"
                 size="sm"
                 className="w-full text-xs md:text-sm"
+                onClick={() => setShowWithdrawDialog(true)}
               >
                 Withdraw Funds
               </Button>
@@ -1541,6 +1545,85 @@ export default function SellerPaymentsPage() {
               }}
             >
               Save
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Withdraw Funds Dialog */}
+      <Dialog open={showWithdrawDialog} onOpenChange={setShowWithdrawDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Withdraw Funds</DialogTitle>
+            <DialogDescription>
+              Enter the amount you wish to withdraw. Minimum withdrawal amount
+              is ₹10,000.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="flex justify-between">
+              <span className="text-sm">Available Balance:</span>
+              <span className="text-sm font-medium">
+                {formatCurrency(summaryData?.availableBalance || 0)}
+              </span>
+            </div>
+            <div>
+              <label htmlFor="withdraw-amount" className="text-sm font-medium">
+                Withdrawal Amount
+              </label>
+              <Input
+                id="withdraw-amount"
+                type="number"
+                min={10000}
+                placeholder="Enter amount (min ₹10,000)"
+                value={withdrawAmount}
+                onChange={(e) => {
+                  setWithdrawAmount(e.target.value);
+                  setWithdrawError("");
+                }}
+              />
+              {withdrawError && (
+                <p className="text-xs text-red-600 mt-1">{withdrawError}</p>
+              )}
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowWithdrawDialog(false);
+                setWithdrawAmount("");
+                setWithdrawError("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                const amount = Number(withdrawAmount);
+                const available = summaryData?.availableBalance || 0;
+                if (!withdrawAmount || isNaN(amount)) {
+                  setWithdrawError("Please enter a valid amount.");
+                  return;
+                }
+                if (amount < 10000) {
+                  setWithdrawError("Minimum withdrawal amount is ₹10,000.");
+                  return;
+                }
+                if (amount > available) {
+                  setWithdrawError("Amount exceeds available balance.");
+                  return;
+                }
+                setShowWithdrawDialog(false);
+                setWithdrawAmount("");
+                setWithdrawError("");
+                toast({
+                  title: "Withdrawal Requested",
+                  description: `You have requested to withdraw ₹${amount}. (Demo only, no backend call)`,
+                });
+              }}
+            >
+              Confirm Withdrawal
             </Button>
           </div>
         </DialogContent>
