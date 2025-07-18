@@ -11,6 +11,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { WishlistButton } from "./wishlist-button";
 import { cn } from "@/lib/utils";
 import { Link, useLocation } from "wouter";
+import { useCart } from "@/context/cart-context";
 
 // Base64 encoded fashion images
 const FASHION_IMAGES = [
@@ -42,6 +43,7 @@ export function FashionProductCardFixed({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const { cartItems, addToCart } = useCart();
 
   // Get user data to check if logged in
   const { data: user } = useQuery<User | null>({
@@ -127,6 +129,15 @@ export function FashionProductCardFixed({
     }
   };
 
+  // Check if product is already in cart
+  const isInCart = cartItems.some((item) => item.product.id === product.id);
+
+  const handleGoToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setLocation("/cart");
+  };
+
   // Format price in Indian Rupees
   const formatPrice = (price: number) => {
     return `₹${price.toLocaleString("en-IN")}`;
@@ -175,15 +186,27 @@ export function FashionProductCardFixed({
               </div>
             </div>
 
-            <Button
-              variant="ghost"
-              size="sm"
-              className="mt-2 w-full text-primary hover:bg-primary/10"
-              onClick={handleAddToCart}
-            >
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              Add to Cart
-            </Button>
+            {isInCart ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-2 w-full text-primary hover:bg-primary/10"
+                onClick={handleGoToCart}
+              >
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                Go to Cart
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-2 w-full text-primary hover:bg-primary/10"
+                onClick={handleAddToCart}
+              >
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                Add to Cart
+              </Button>
+            )}
           </CardContent>
         </Card>
       </Link>

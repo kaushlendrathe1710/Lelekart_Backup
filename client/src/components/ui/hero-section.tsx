@@ -41,7 +41,7 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
   const sliderRef = useRef<HTMLDivElement>(null);
   const intervalRef = useRef<number | null>(null);
   const [, navigate] = useLocation();
-  const { addToCart } = useCart();
+  const { cartItems, addToCart } = useCart();
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -128,7 +128,10 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
           newHours--;
         }
 
-        if (newHours < 0 || (newHours === 0 && newMinutes === 0 && newSeconds === 0)) {
+        if (
+          newHours < 0 ||
+          (newHours === 0 && newMinutes === 0 && newSeconds === 0)
+        ) {
           // When timer ends, refetch the deal and reset timer
           queryClient.invalidateQueries(["/api/deal-of-the-day"]);
           return { hours: 0, minutes: 0, seconds: 0 };
@@ -263,6 +266,17 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
         variant: "destructive",
       });
     }
+  };
+
+  // Check if deal product is in cart
+  const isDealInCart = dealOfTheDay?.productId
+    ? cartItems.some((item) => item.product.id === dealOfTheDay.productId)
+    : false;
+
+  const handleGoToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigate("/cart");
   };
 
   return (
@@ -433,12 +447,14 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
 
                   <Button
                     className="bg-blue-600 hover:bg-blue-700"
-                    onClick={handleDealAddToCart}
-                    aria-label="Add to Cart"
-                    title="Add to Cart"
+                    onClick={
+                      isDealInCart ? handleGoToCart : handleDealAddToCart
+                    }
+                    aria-label={isDealInCart ? "Go to Cart" : "Add to Cart"}
+                    title={isDealInCart ? "Go to Cart" : "Add to Cart"}
                   >
                     <ShoppingCart className="h-4 w-4 mr-2" />
-                    Add to Cart
+                    {isDealInCart ? "Go to Cart" : "Add to Cart"}
                   </Button>
                 </div>
 
