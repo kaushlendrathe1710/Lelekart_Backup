@@ -336,27 +336,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   // --- Subcategory CRUD routes ---
-app.post("/api/subcategories", async (req, res) => {
-  try {
-    // You may want to add authentication/authorization checks here
-    const subcategory = await storage.createSubcategory(req.body);
-    res.status(201).json(subcategory);
-  } catch (error) {
-    console.error("Error creating subcategory:", error);
-    res.status(500).json({ error: "Failed to create subcategory" });
-  }
-});
+  app.post("/api/subcategories", async (req, res) => {
+    try {
+      // You may want to add authentication/authorization checks here
+      const subcategory = await storage.createSubcategory(req.body);
+      res.status(201).json(subcategory);
+    } catch (error) {
+      console.error("Error creating subcategory:", error);
+      res.status(500).json({ error: "Failed to create subcategory" });
+    }
+  });
 
-app.put("/api/subcategories/:id", async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    const updated = await storage.updateSubcategory(id, req.body);
-    res.json(updated);
-  } catch (error) {
-    console.error("Error updating subcategory:", error);
-    res.status(500).json({ error: "Failed to update subcategory" });
-  }
-});
+  app.put("/api/subcategories/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updated = await storage.updateSubcategory(id, req.body);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating subcategory:", error);
+      res.status(500).json({ error: "Failed to update subcategory" });
+    }
+  });
 
   // Setup authentication routes with OTP-based authentication
   setupAuth(app);
@@ -2844,8 +2844,8 @@ app.put("/api/subcategories/:id", async (req, res) => {
           ? parseInt(req.query.limit as string)
           : 36;
         const page = req.query.page ? parseInt(req.query.page as string) : 1;
-          const perCategory =
-            Math.ceil((limit * page * 10) / allCategories.length) + 100;
+        const perCategory =
+          Math.ceil((limit * page * 10) / allCategories.length) + 100;
         // Fetch products for each category
         const categoryProductsArr = await Promise.all(
           allCategories.map((cat) =>
@@ -3969,8 +3969,16 @@ app.put("/api/subcategories/:id", async (req, res) => {
         const { productData, variants, deletedVariantIds } = req.body;
 
         // Log subcategory1 and subcategory2 for debugging
-        console.log(`DEBUG: Product ${id} subcategory1 in request:`, productData?.subcategory1, `(type: ${typeof productData?.subcategory1})`);
-        console.log(`DEBUG: Product ${id} subcategory2 in request:`, productData?.subcategory2, `(type: ${typeof productData?.subcategory2})`);
+        console.log(
+          `DEBUG: Product ${id} subcategory1 in request:`,
+          productData?.subcategory1,
+          `(type: ${typeof productData?.subcategory1})`
+        );
+        console.log(
+          `DEBUG: Product ${id} subcategory2 in request:`,
+          productData?.subcategory2,
+          `(type: ${typeof productData?.subcategory2})`
+        );
 
         // Process productData for update to ensure proper handling of gstRate and new fields
         let processedProductData = { ...productData };
@@ -4075,12 +4083,22 @@ app.put("/api/subcategories/:id", async (req, res) => {
 
         // Handle subcategory1 and subcategory2 fields
         if (processedProductData.subcategory1 !== undefined) {
-          console.log(`DEBUG: Product ${id} processed subcategory1:`, processedProductData.subcategory1, `(type: ${typeof processedProductData.subcategory1})`);
-          processedProductData.subcategory1 = processedProductData.subcategory1 || null;
+          console.log(
+            `DEBUG: Product ${id} processed subcategory1:`,
+            processedProductData.subcategory1,
+            `(type: ${typeof processedProductData.subcategory1})`
+          );
+          processedProductData.subcategory1 =
+            processedProductData.subcategory1 || null;
         }
         if (processedProductData.subcategory2 !== undefined) {
-          console.log(`DEBUG: Product ${id} processed subcategory2:`, processedProductData.subcategory2, `(type: ${typeof processedProductData.subcategory2})`);
-          processedProductData.subcategory2 = processedProductData.subcategory2 || null;
+          console.log(
+            `DEBUG: Product ${id} processed subcategory2:`,
+            processedProductData.subcategory2,
+            `(type: ${typeof processedProductData.subcategory2})`
+          );
+          processedProductData.subcategory2 =
+            processedProductData.subcategory2 || null;
         }
 
         console.log(
@@ -6199,6 +6217,7 @@ app.put("/api/subcategories/:id", async (req, res) => {
 
     try {
       const orderId = parseInt(req.params.id);
+      const { reason } = req.body;
       const order = await storage.getOrder(orderId);
 
       if (!order) {
@@ -6228,6 +6247,11 @@ app.put("/api/subcategories/:id", async (req, res) => {
 
       // Process order cancellation (includes wallet refund logic)
       const updatedOrder = await handleOrderStatusChange(orderId, "cancelled");
+
+      // Store the cancellation reason
+      if (reason) {
+        await storage.updateOrder(orderId, { cancellationReason: reason });
+      }
 
       // If this is a multi-seller order, update all seller orders to cancelled
       if (order.multiSeller) {
@@ -6274,9 +6298,9 @@ app.put("/api/subcategories/:id", async (req, res) => {
 
       res.json({
         message: "Order cancelled successfully",
-        order: updatedOrder,
+        order: { ...updatedOrder, cancellationReason: reason },
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error cancelling order:", error);
       res.status(500).json({ error: "Failed to cancel order" });
     }
@@ -10921,7 +10945,9 @@ app.put("/api/subcategories/:id", async (req, res) => {
   app.post("/api/admin/rewards/points", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     if (req.user.role !== "admin" && req.user.role !== "co-admin") {
-      return res.status(403).json({ error: "Only admins can add reward points" });
+      return res
+        .status(403)
+        .json({ error: "Only admins can add reward points" });
     }
     await rewardsHandlers.addPointsToUser(req, res);
   });

@@ -28,6 +28,13 @@ import {
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Types
 interface Order {
@@ -99,13 +106,21 @@ export default function OrdersPage() {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [returningOrderId, setReturningOrderId] = useState<number | null>(null);
   const { toast } = useToast();
+  const [cancelReason, setCancelReason] = useState("");
 
   // Cancel order mutation
   const cancelOrderMutation = useMutation({
-    mutationFn: async (orderId: number) => {
+    mutationFn: async ({
+      orderId,
+      reason,
+    }: {
+      orderId: number;
+      reason: string;
+    }) => {
       const response = await apiRequest(
         "POST",
-        `/api/orders/${orderId}/cancel`
+        `/api/orders/${orderId}/cancel`,
+        { reason }
       );
       if (!response.ok) {
         const errorData = await response.json();
@@ -123,6 +138,7 @@ export default function OrdersPage() {
       // Close dialog
       setShowCancelDialog(false);
       setOrderToCancel(null);
+      setCancelReason("");
     },
     onError: (error: Error) => {
       toast({
@@ -461,6 +477,35 @@ export default function OrdersPage() {
             </p>
           </div>
 
+          {/* Reason selection */}
+          <div className="mt-4">
+            <label className="block text-sm font-medium mb-2">
+              Select a reason for cancellation{" "}
+              <span className="text-red-500">*</span>
+            </label>
+            <Select value={cancelReason} onValueChange={setCancelReason}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Choose a reason" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Late delivery date">
+                  Due to late delivery date
+                </SelectItem>
+                <SelectItem value="Product quality issue">
+                  Due to product quality
+                </SelectItem>
+                <SelectItem value="Found cheaper price elsewhere">
+                  Looking for cheaper price
+                </SelectItem>
+                <SelectItem value="Ordered by mistake">
+                  Ordered by mistake
+                </SelectItem>
+                <SelectItem value="Change of mind">Change of mind</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <DialogFooter className="flex justify-between sm:justify-between mt-4">
             <Button
               type="button"
@@ -468,6 +513,7 @@ export default function OrdersPage() {
               onClick={() => {
                 setShowCancelDialog(false);
                 setOrderToCancel(null);
+                setCancelReason("");
               }}
             >
               Keep Order
@@ -475,10 +521,13 @@ export default function OrdersPage() {
             <Button
               type="button"
               variant="destructive"
-              disabled={cancelOrderMutation.isPending}
+              disabled={cancelOrderMutation.isPending || !cancelReason}
               onClick={() => {
-                if (orderToCancel) {
-                  cancelOrderMutation.mutate(orderToCancel.id);
+                if (orderToCancel && cancelReason) {
+                  cancelOrderMutation.mutate({
+                    orderId: orderToCancel.id,
+                    reason: cancelReason,
+                  });
                 }
               }}
             >

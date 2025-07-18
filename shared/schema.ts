@@ -234,6 +234,8 @@ export const orders = pgTable("orders", {
   courierName: text("courier_name"), // Name of the courier service
   trackingDetails: text("tracking_details"), // Stored as JSON string with tracking details
   estimatedDeliveryDate: timestamp("estimated_delivery_date"), // Estimated delivery date
+  // New field for cancellation reason
+  cancellationReason: text("cancellation_reason"),
 });
 
 export const insertOrderSchema = createInsertSchema(orders).pick({
@@ -265,6 +267,8 @@ export const insertOrderSchema = createInsertSchema(orders).pick({
   courierName: true,
   awbCode: true,
   estimatedDeliveryDate: true,
+  // New field for cancellation reason
+  cancellationReason: true,
 });
 
 // Seller Orders schema - for tracking per-seller sub-orders
