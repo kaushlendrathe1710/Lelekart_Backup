@@ -911,6 +911,7 @@ export const userAddresses = pgTable("user_addresses", {
   addressType: text("address_type").notNull().default("both"), // 'shipping', 'billing', or 'both'
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  deleted: boolean("deleted").notNull().default(false), // Soft delete flag
 });
 
 export const insertUserAddressSchema = createInsertSchema(userAddresses).pick({
