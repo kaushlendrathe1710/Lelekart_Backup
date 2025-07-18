@@ -2261,7 +2261,7 @@ export class DatabaseStorage implements IStorage {
       return await db
         .select()
         .from(userAddresses)
-        .where(eq(userAddresses.userId, userId));
+        .where(and(eq(userAddresses.userId, userId), eq(userAddresses.deleted, false)));
     } catch (error) {
       console.error("Error in getUserAddresses:", error);
       return [];
@@ -2273,7 +2273,7 @@ export class DatabaseStorage implements IStorage {
       const [address] = await db
         .select()
         .from(userAddresses)
-        .where(eq(userAddresses.id, id));
+        .where(and(eq(userAddresses.id, id), eq(userAddresses.deleted, false)));
       return address;
     } catch (error) {
       console.error(`Error getting address ${id}:`, error);
@@ -2387,20 +2387,15 @@ export class DatabaseStorage implements IStorage {
       );
 
       if (ordersUsingAddress.length > 0) {
-        // Address is used in orders, so we need to handle this case
+        // Address is used in orders, so do a soft delete
         console.log(
-          `Cannot delete address ID ${id} because it's used in orders`
+          `Soft deleting address ID ${id} because it's used in orders`
         );
-
-        // Option 1: We could throw an error explaining the situation
-        throw new Error(
-          "This address cannot be deleted because it's used in completed orders."
-        );
-
-        // Option 2 (alternate): We could set a 'deleted' flag if we had one
-        // await db.update(userAddresses)
-        //   .set({ deleted: true })
-        //   .where(eq(userAddresses.id, id));
+        await db
+          .update(userAddresses)
+          .set({ deleted: true, updatedAt: new Date() })
+          .where(eq(userAddresses.id, id));
+        return;
       }
 
       // Get the address before deleting (to check if it's a default address)
@@ -2430,7 +2425,7 @@ export class DatabaseStorage implements IStorage {
         const otherAddresses = await db
           .select()
           .from(userAddresses)
-          .where(eq(userAddresses.userId, existingAddress.userId))
+          .where(and(eq(userAddresses.userId, existingAddress.userId), eq(userAddresses.deleted, false)))
           .limit(1);
 
         if (otherAddresses.length > 0) {

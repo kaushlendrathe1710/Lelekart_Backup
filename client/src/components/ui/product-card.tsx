@@ -11,6 +11,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { WishlistButton } from "./wishlist-button";
 import { ProductImage } from "./product-image";
 import { fbq } from "@/lib/metaPixel";
+import { useCart } from "@/context/cart-context";
 
 // Define an extended Product interface to include image_url and GST details
 interface ExtendedProduct extends Omit<Product, "imageUrl"> {
@@ -44,6 +45,8 @@ export const ProductCard = memo(function ProductCard({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  // Use the useCart hook for cart context
+  const { cartItems, addToCart } = useCart();
 
   // Get user data to check if logged in
   const { data: user } = useQuery<User | null>({
@@ -108,6 +111,15 @@ export const ProductCard = memo(function ProductCard({
     hasDiscount && product.mrp
       ? Math.round(((product.mrp - product.price) / product.mrp) * 100)
       : 0;
+
+  // Check if product is already in cart
+  const isInCart = cartItems.some((item) => item.product.id === product.id);
+
+  const handleGoToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setLocation("/cart");
+  };
 
   // Use the same dimensions and styling for all product cards regardless of featured status
   return (
@@ -204,21 +216,36 @@ export const ProductCard = memo(function ProductCard({
                 {stripHtmlTags(product.description).slice(0, 30)}...
               </div>
             </div>
-            {showAddToCart && (
-              <Button
-                variant={featured ? "outline" : "ghost"}
-                size="sm"
-                className={`mt-2 w-full ${
-                  featured
-                    ? "border-primary text-primary hover:bg-primary hover:text-white"
-                    : "text-primary hover:bg-primary/10"
-                }`}
-                onClick={handleAddToCart}
-              >
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                Add to Cart
-              </Button>
-            )}
+            {showAddToCart &&
+              (isInCart ? (
+                <Button
+                  variant={featured ? "outline" : "ghost"}
+                  size="sm"
+                  className={`mt-2 w-full ${
+                    featured
+                      ? "border-primary text-primary hover:bg-primary hover:text-white"
+                      : "text-primary hover:bg-primary/10"
+                  }`}
+                  onClick={handleGoToCart}
+                >
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  Go to Cart
+                </Button>
+              ) : (
+                <Button
+                  variant={featured ? "outline" : "ghost"}
+                  size="sm"
+                  className={`mt-2 w-full ${
+                    featured
+                      ? "border-primary text-primary hover:bg-primary hover:text-white"
+                      : "text-primary hover:bg-primary/10"
+                  }`}
+                  onClick={handleAddToCart}
+                >
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  Add to Cart
+                </Button>
+              ))}
           </CardContent>
         </Card>
       </Link>
