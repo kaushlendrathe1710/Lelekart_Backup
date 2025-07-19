@@ -1835,13 +1835,17 @@ export default function ProductDetailsPage() {
                       variants={product.variants}
                       onVariantChange={(variant) => {
                         setSelectedVariant(variant);
-                        // ... existing code ...
+                        // Update color and size based on the selected variant
+                        if (variant) {
+                          setSelectedColor(variant.color || null);
+                          setSelectedSize(variant.size || null);
+                        }
                       }}
                       onValidSelectionChange={(isValid) => {
                         setIsValidSelection(isValid);
                       }}
                       onVariantImagesChange={(images) => {
-                        // ... existing code ...
+                        setSelectedVariantImages(images);
                       }}
                       onViewVariantImages={(images, variantInfo) => {
                         setModalImages(images);
@@ -1872,7 +1876,9 @@ export default function ProductDetailsPage() {
                             }`}
                             onClick={() => {
                               setSelectedColor(color);
-                              // ... existing code ...
+                              // Clear selected variant when manually selecting color
+                              setSelectedVariant(null);
+                              setSelectedVariantImages([]);
                             }}
                           >
                             {color}
@@ -2172,9 +2178,106 @@ export default function ProductDetailsPage() {
                         </thead>
                         <tbody className="divide-y divide-gray-200 bg-white">
                           {product.variants.map(
-                            (variant: any, index: number) => {
-                              // ... existing code ...
-                            }
+                            (variant: any, index: number) => (
+                              <tr key={index} className="hover:bg-gray-50">
+                                <td className="px-4 py-3 text-sm">
+                                  <div>
+                                    <div className="font-medium text-gray-900">
+                                      {variant.color && variant.size
+                                        ? `${variant.color} - ${variant.size}`
+                                        : variant.color ||
+                                          variant.size ||
+                                          "Default"}
+                                    </div>
+                                    {variant.sku && (
+                                      <div className="text-gray-500 text-xs">
+                                        SKU: {variant.sku}
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3 text-sm">
+                                  <div className="text-gray-900 font-medium">
+                                    ₹
+                                    {variant.price?.toLocaleString("en-IN") ||
+                                      "N/A"}
+                                  </div>
+                                  {variant.mrp &&
+                                    variant.mrp > variant.price && (
+                                      <div className="text-gray-500 text-xs line-through">
+                                        MRP: ₹
+                                        {variant.mrp.toLocaleString("en-IN")}
+                                      </div>
+                                    )}
+                                </td>
+                                <td className="px-4 py-3 text-sm">
+                                  <span
+                                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                      variant.stock > 0
+                                        ? "bg-green-100 text-green-800"
+                                        : "bg-red-100 text-red-800"
+                                    }`}
+                                  >
+                                    {variant.stock > 0
+                                      ? "In Stock"
+                                      : "Out of Stock"}
+                                  </span>
+                                  {variant.stock > 0 && (
+                                    <div className="text-gray-500 text-xs mt-1">
+                                      {variant.stock} available
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-500">
+                                  {variant.sku || "N/A"}
+                                </td>
+                                <td className="px-4 py-3 text-sm">
+                                  {variant.images ? (
+                                    <div className="flex space-x-1">
+                                      {(() => {
+                                        try {
+                                          const images =
+                                            typeof variant.images === "string"
+                                              ? JSON.parse(variant.images)
+                                              : variant.images;
+                                          return Array.isArray(images)
+                                            ? images
+                                                .slice(0, 3)
+                                                .map(
+                                                  (
+                                                    img: string,
+                                                    imgIndex: number
+                                                  ) => (
+                                                    <img
+                                                      key={imgIndex}
+                                                      src={img}
+                                                      alt={`Variant ${index + 1}`}
+                                                      className="w-8 h-8 object-cover rounded border"
+                                                      onError={(e) => {
+                                                        e.currentTarget.style.display =
+                                                          "none";
+                                                      }}
+                                                    />
+                                                  )
+                                                )
+                                            : null;
+                                        } catch {
+                                          return (
+                                            <span className="text-gray-400 text-xs">
+                                              Invalid format
+                                            </span>
+                                          );
+                                        }
+                                      })()}
+                                    </div>
+                                  ) : (
+                                    <span className="text-gray-400 text-xs">
+                                      No images
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            )
                           )}
                         </tbody>
                       </table>
