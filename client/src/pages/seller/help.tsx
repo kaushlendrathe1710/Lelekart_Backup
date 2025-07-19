@@ -57,6 +57,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Link } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 
 // Helper for ticket status badge
 const getStatusBadge = (status: string) => {
@@ -103,6 +104,7 @@ const getStatusBadge = (status: string) => {
 };
 
 export default function SellerSupportPage() {
+  const { user } = useAuth();
   const [currentTab, setCurrentTab] = useState("tickets");
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [showTicketDialog, setShowTicketDialog] = useState(false);
@@ -790,7 +792,7 @@ export default function SellerSupportPage() {
                 <h3 className="text-sm font-medium mb-3">Conversation</h3>
                 <div
                   className="border rounded-lg overflow-y-auto max-h-[300px] p-4 space-y-4 flex flex-col-reverse"
-                  style={{ scrollBehavior: "smooth" }}
+                  style={{ scrollBehavior: "smooth", paddingBottom: '60px' }}
                   ref={chatContainerRef}
                 >
                   {isMessagesLoading ? (
@@ -801,51 +803,61 @@ export default function SellerSupportPage() {
                     <p className="text-center text-muted-foreground py-4">
                       No messages yet
                     </p>
-                  ) : (
+                  ) :
                     ticketMessages
                       .slice()
                       .reverse()
-                      .map((message: any, index: number) => (
-                        <div
-                          key={index}
-                          className={`flex gap-3 ${message.isFromSeller ? "justify-end" : "justify-start"}`}
-                        >
-                          {!message.isFromSeller && (
-                            <Avatar>
-                              <AvatarFallback>
-                                {message.senderName?.charAt(0) || "S"}
-                              </AvatarFallback>
-                            </Avatar>
-                          )}
+                      .map((message: any, index: number) => {
+                        const isFromSeller = message.userId === user?.id;
+                        const isFromAdmin = message.senderRole === 'admin' || message.senderRole === 'co-admin';
+                        let label = '';
+                        if (isFromSeller) {
+                          label = `${user?.name || 'You'} (seller)`;
+                        } else if (isFromAdmin) {
+                          label = `Support Agent (admin)`;
+                        } else {
+                          label = message.senderName || 'User';
+                        }
+                        return (
                           <div
-                            className={`max-w-[70%] ${message.isFromSeller ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-900"} p-3 rounded-2xl shadow-sm`}
+                            key={index}
+                            className={`flex gap-3 ${isFromSeller ? "justify-end" : "justify-start"}`}
                           >
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="font-medium text-sm">
-                                {message.isFromSeller
-                                  ? "You"
-                                  : message.senderName || "Support Agent"}
-                              </span>
-                              <span className="text-xs text-muted-foreground ml-2">
-                                {formatDate(message.createdAt)}
-                              </span>
+                            {!isFromSeller && (
+                              <Avatar>
+                                <AvatarFallback>
+                                  {label.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                            )}
+                            <div
+                              className={`max-w-[70%] ${isFromSeller ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-900"} p-3 rounded-2xl shadow-sm`}
+                            >
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="font-medium text-sm">
+                                  {label}
+                                </span>
+                                <span className="text-xs text-muted-foreground ml-2">
+                                  {formatDate(message.createdAt)}
+                                </span>
+                              </div>
+                              <div className="whitespace-pre-line text-sm">
+                                {message.message}
+                              </div>
                             </div>
-                            <div className="whitespace-pre-line text-sm">
-                              {message.message}
-                            </div>
+                            {isFromSeller && (
+                              <Avatar>
+                                <AvatarFallback>{(user?.name || 'Y').charAt(0)}</AvatarFallback>
+                              </Avatar>
+                            )}
                           </div>
-                          {message.isFromSeller && (
-                            <Avatar>
-                              <AvatarFallback>Y</AvatarFallback>
-                            </Avatar>
-                          )}
-                        </div>
-                      ))
-                  )}
+                        );
+                      })
+                  }
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 mt-4 sticky bottom-0 bg-white p-2 border-t">
+              <div className="flex items-center gap-2 mt-4 sticky bottom-0 bg-white p-2 border-t z-10">
                 <Textarea
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
