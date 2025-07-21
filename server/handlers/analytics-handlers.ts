@@ -21,7 +21,9 @@ export async function getSellerAnalyticsHandler(req: Request, res: Response) {
 
     // --- Calculate metrics ---
     const totalOrders = deliveredOrders.length;
+
     const totalRevenue = deliveredOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+
     const avgOrderValue = totalOrders ? totalRevenue / totalOrders : 0;
     const totalProducts = products.length;
     const totalReturns = returns.length;
@@ -209,7 +211,7 @@ export async function getSellerAnalyticsHandler(req: Request, res: Response) {
           try {
             details = JSON.parse(details);
           } catch (e) {
-            details = {};
+            details = "";
           }
         }
         if (typeof details === "object" && details !== null) {
