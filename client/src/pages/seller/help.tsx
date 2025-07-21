@@ -711,7 +711,7 @@ export default function SellerSupportPage() {
 
       {/* View Ticket Dialog */}
       <Dialog open={showTicketDialog} onOpenChange={setShowTicketDialog}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
@@ -729,8 +729,8 @@ export default function SellerSupportPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex flex-col md:flex-row gap-6">
-            <div className="md:w-1/3 space-y-4">
+          <div className="flex-1 flex flex-col md:flex-row gap-6 overflow-hidden">
+            <div className="md:w-1/3 space-y-4 overflow-y-auto pr-2">
               <div className="bg-muted p-4 rounded-lg">
                 <h3 className="text-sm font-medium mb-2">Ticket Details</h3>
                 <div className="space-y-2 text-sm">
@@ -787,77 +787,80 @@ export default function SellerSupportPage() {
               </div>
             </div>
 
-            <div className="md:w-2/3 space-y-4">
-              <div>
-                <h3 className="text-sm font-medium mb-3">Conversation</h3>
-                <div
-                  className="border rounded-lg overflow-y-auto max-h-[300px] p-4 space-y-4 flex flex-col-reverse"
-                  style={{ scrollBehavior: "smooth", paddingBottom: '60px' }}
-                  ref={chatContainerRef}
-                >
-                  {isMessagesLoading ? (
-                    <div className="flex justify-center py-4">
-                      <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : ticketMessages.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-4">
+            <div className="md:w-2/3 flex flex-col h-full">
+              <h3 className="text-sm font-medium mb-3 flex-shrink-0">
+                Conversation
+              </h3>
+              <div
+                className="flex-1 overflow-y-auto p-4 border rounded-lg space-y-4 scroll-smooth"
+                ref={chatContainerRef}
+              >
+                {isMessagesLoading ? (
+                  <div className="flex justify-center items-center h-full">
+                    <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : ticketMessages.length === 0 ? (
+                  <div className="flex justify-center items-center h-full">
+                    <p className="text-center text-muted-foreground">
                       No messages yet
                     </p>
-                  ) :
-                    ticketMessages
-                      .slice()
-                      .reverse()
-                      .map((message: any, index: number) => {
-                        const isFromSeller = message.userId === user?.id;
-                        const isFromAdmin = message.senderRole === 'admin' || message.senderRole === 'co-admin';
-                        let label = '';
-                        if (isFromSeller) {
-                          label = `${user?.name || 'You'} (seller)`;
-                        } else if (isFromAdmin) {
-                          label = `Support Agent (admin)`;
-                        } else {
-                          label = message.senderName || 'User';
-                        }
-                        return (
-                          <div
-                            key={index}
-                            className={`flex gap-3 ${isFromSeller ? "justify-end" : "justify-start"}`}
-                          >
-                            {!isFromSeller && (
-                              <Avatar>
-                                <AvatarFallback>
-                                  {label.charAt(0)}
-                                </AvatarFallback>
-                              </Avatar>
-                            )}
-                            <div
-                              className={`max-w-[70%] ${isFromSeller ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-900"} p-3 rounded-2xl shadow-sm`}
-                            >
-                              <div className="flex justify-between items-center mb-1">
-                                <span className="font-medium text-sm">
-                                  {label}
-                                </span>
-                                <span className="text-xs text-muted-foreground ml-2">
-                                  {formatDate(message.createdAt)}
-                                </span>
-                              </div>
-                              <div className="whitespace-pre-line text-sm">
-                                {message.message}
-                              </div>
-                            </div>
-                            {isFromSeller && (
-                              <Avatar>
-                                <AvatarFallback>{(user?.name || 'Y').charAt(0)}</AvatarFallback>
-                              </Avatar>
-                            )}
+                  </div>
+                ) : (
+                  ticketMessages.map((message: any, index: number) => {
+                    const isFromSeller = message.userId === user?.id;
+                    const isFromAdmin =
+                      message.senderRole === "admin" ||
+                      message.senderRole === "co-admin";
+                    let label = "";
+                    if (isFromSeller) {
+                      label = `${user?.name || "You"} (seller)`;
+                    } else if (isFromAdmin) {
+                      label = `Support Agent (admin)`;
+                    } else {
+                      label = message.senderName || "User";
+                    }
+                    return (
+                      <div
+                        key={index}
+                        className={`flex gap-3 ${
+                          isFromSeller ? "justify-end" : "justify-start"
+                        }`}
+                      >
+                        {!isFromSeller && (
+                          <Avatar>
+                            <AvatarFallback>{label.charAt(0)}</AvatarFallback>
+                          </Avatar>
+                        )}
+                        <div
+                          className={`max-w-[70%] ${
+                            isFromSeller
+                              ? "bg-blue-500 text-white"
+                              : "bg-gray-200 text-gray-900"
+                          } p-3 rounded-2xl shadow-sm`}
+                        >
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="font-medium text-sm">{label}</span>
+                            <span className="text-xs text-muted-foreground ml-2">
+                              {formatDate(message.createdAt)}
+                            </span>
                           </div>
-                        );
-                      })
-                  }
-                </div>
+                          <div className="whitespace-pre-line text-sm">
+                            {message.message}
+                          </div>
+                        </div>
+                        {isFromSeller && (
+                          <Avatar>
+                            <AvatarFallback>
+                              {(user?.name || "Y").charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
               </div>
-
-              <div className="flex items-center gap-2 mt-4 sticky bottom-0 bg-white p-2 border-t z-10">
+              <div className="flex-shrink-0 flex items-center gap-2 mt-4">
                 <Textarea
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
