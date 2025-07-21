@@ -115,6 +115,8 @@ type Seller = {
   role: string;
 };
 
+type Category = { name: string; id: number };
+
 function AdminProductsContent({
   setLocationProp,
 }: {
@@ -270,11 +272,6 @@ function AdminProductsContent({
     limit: itemsPerPage,
   };
 
-  // Extract unique categories for filtering
-  const categories = Array.from(
-    new Set(products.map((p) => p.category).filter(Boolean))
-  ) as string[];
-
   // Fetch all categories and subcategories from the server for the dropdowns
   const { data: allCategories } = useQuery({
     queryKey: ["/api/categories"],
@@ -284,6 +281,11 @@ function AdminProductsContent({
       return res.json();
     },
   });
+
+  // Use all categories from the server for the filter dropdown
+  const categories =
+    (allCategories as Category[] | undefined)?.map((c: Category) => c.name) ||
+    [];
 
   // Fetch filtered subcategories based on the currently edited category
   const { data: categorySubcategories = [] } = useQuery({
@@ -1690,7 +1692,7 @@ function AdminProductsContent({
                       >
                         All Categories
                       </Button>
-                      {categories.map((category) => (
+                      {categories.map((category: string) => (
                         <Button
                           key={category}
                           variant={
@@ -1908,7 +1910,7 @@ function AdminProductsContent({
                           <div className="max-w-[200px] sm:max-w-[300px]">
                             <div className="font-medium truncate">
                               {product.name}
-                              {product.rejected ? ' (REJECTED)' : ''}
+                              {product.rejected ? " (REJECTED)" : ""}
                             </div>
                             <div className="text-sm text-muted-foreground truncate">
                               {product.description}
