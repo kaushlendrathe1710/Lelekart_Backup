@@ -139,7 +139,9 @@ export default function SmartInventory() {
                   <Layers className="h-4 w-4 md:h-5 md:w-5" />
                   Your Products
                 </CardTitle>
-                <CardDescription className="text-xs md:text-sm">Select a product to analyze</CardDescription>
+                <CardDescription className="text-xs md:text-sm">
+                  Select a product to analyze
+                </CardDescription>
               </CardHeader>
               <CardContent className="pt-4">
                 {isLoadingProducts ? (
@@ -282,7 +284,9 @@ export default function SmartInventory() {
                       className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 text-xs md:text-sm"
                     >
                       <TrendingUp className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
-                      <span className="hidden sm:inline">Demand Forecasting</span>
+                      <span className="hidden sm:inline">
+                        Demand Forecasting
+                      </span>
                       <span className="sm:hidden">Demand</span>
                     </TabsTrigger>
                     <TabsTrigger
@@ -290,7 +294,9 @@ export default function SmartInventory() {
                       className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 text-xs md:text-sm"
                     >
                       <DollarSign className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
-                      <span className="hidden sm:inline">Price Optimization</span>
+                      <span className="hidden sm:inline">
+                        Price Optimization
+                      </span>
                       <span className="sm:hidden">Price</span>
                     </TabsTrigger>
                     <TabsTrigger
@@ -298,7 +304,9 @@ export default function SmartInventory() {
                       className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 text-xs md:text-sm"
                     >
                       <ShoppingBag className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
-                      <span className="hidden sm:inline">Inventory Optimization</span>
+                      <span className="hidden sm:inline">
+                        Inventory Optimization
+                      </span>
                       <span className="sm:hidden">Inventory</span>
                     </TabsTrigger>
                     <TabsTrigger
@@ -306,7 +314,9 @@ export default function SmartInventory() {
                       className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 text-xs md:text-sm"
                     >
                       <PencilRuler className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
-                      <span className="hidden sm:inline">AI Content Generator</span>
+                      <span className="hidden sm:inline">
+                        AI Content Generator
+                      </span>
                       <span className="sm:hidden">Content</span>
                     </TabsTrigger>
                   </TabsList>
@@ -348,7 +358,9 @@ export default function SmartInventory() {
                     <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-none">
                       <CardContent className="flex flex-col items-center text-center p-4 md:p-6">
                         <TrendingUp className="h-6 w-6 md:h-8 md:w-8 text-blue-600 mb-2" />
-                        <h4 className="font-medium mb-1 text-sm md:text-base">Demand Forecasting</h4>
+                        <h4 className="font-medium mb-1 text-sm md:text-base">
+                          Demand Forecasting
+                        </h4>
                         <p className="text-xs text-muted-foreground">
                           Predict future sales with ML models
                         </p>
@@ -357,7 +369,9 @@ export default function SmartInventory() {
                     <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-none">
                       <CardContent className="flex flex-col items-center text-center p-4 md:p-6">
                         <DollarSign className="h-6 w-6 md:h-8 md:w-8 text-amber-600 mb-2" />
-                        <h4 className="font-medium mb-1 text-sm md:text-base">Price Optimization</h4>
+                        <h4 className="font-medium mb-1 text-sm md:text-base">
+                          Price Optimization
+                        </h4>
                         <p className="text-xs text-muted-foreground">
                           Find the perfect price point
                         </p>
@@ -403,7 +417,11 @@ function DemandForecastingTab({ productId }: { productId: number }) {
   const [salesError, setSalesError] = useState<string | null>(null);
 
   // Get demand forecasts
-  const { data: forecasts, isLoading, error: forecastQueryError } = useQuery({
+  const {
+    data: forecasts,
+    isLoading,
+    error: forecastQueryError,
+  } = useQuery({
     queryKey: ["/api/seller/demand-forecasts", productId],
     queryFn: async () => {
       try {
@@ -455,7 +473,11 @@ function DemandForecastingTab({ productId }: { productId: number }) {
   });
 
   // Get sales history
-  const { data: salesHistory, isLoading: isLoadingSales, error: salesQueryError } = useQuery({
+  const {
+    data: salesHistory,
+    isLoading: isLoadingSales,
+    error: salesQueryError,
+  } = useQuery({
     queryKey: ["/api/seller/sales-history", productId],
     queryFn: async () => {
       try {
@@ -484,8 +506,14 @@ function DemandForecastingTab({ productId }: { productId: number }) {
 
     try {
       // Only parse if forecastData is a valid string
-      if (!latestForecast.forecastData || typeof latestForecast.forecastData !== 'string') {
-        console.warn('No valid forecastData to parse:', latestForecast.forecastData);
+      if (
+        !latestForecast.forecastData ||
+        typeof latestForecast.forecastData !== "string"
+      ) {
+        console.warn(
+          "No valid forecastData to parse:",
+          latestForecast.forecastData
+        );
         return [];
       }
       const forecastData = JSON.parse(latestForecast.forecastData);
@@ -499,7 +527,7 @@ function DemandForecastingTab({ productId }: { productId: number }) {
 
       return [];
     } catch (e) {
-      console.error('Error parsing forecast data:', e);
+      console.error("Error parsing forecast data:", e);
       return [];
     }
   }, [forecasts]);
@@ -559,7 +587,9 @@ function DemandForecastingTab({ productId }: { productId: number }) {
         <div className="inline-flex rounded-full p-3 bg-primary/10 mb-4">
           <TrendingUp className="h-6 w-6 text-primary" />
         </div>
-        <h3 className="text-xl font-semibold mb-2">Please select a product to view insights.</h3>
+        <h3 className="text-xl font-semibold mb-2">
+          Please select a product to view insights.
+        </h3>
       </div>
     );
   }
@@ -1457,7 +1487,9 @@ function AIContentTab({ productId }: { productId: number }) {
         <div className="inline-flex rounded-full p-3 bg-primary/10 mb-4">
           <PencilRuler className="h-6 w-6 text-primary" />
         </div>
-        <h3 className="text-xl font-semibold mb-2">Please select a product to view insights.</h3>
+        <h3 className="text-xl font-semibold mb-2">
+          Please select a product to view insights.
+        </h3>
       </div>
     );
   }
@@ -1516,7 +1548,7 @@ function AIContentTab({ productId }: { productId: number }) {
                 </p>
               </div>
 
-              {contents.filter((content: any) => content.productId === productId).map((content: any) => (
+              {contents.map((content: any) => (
                 <Card key={content.id} className="border border-border">
                   <CardHeader className="bg-muted/30 pb-3">
                     <div className="flex items-center justify-between">
