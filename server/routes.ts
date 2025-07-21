@@ -9001,24 +9001,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const reviewId = parseInt(req.params.id);
-      const review = await storage.getReview(reviewId);
 
+      // Check if the review exists
+      const review = await storage.getReview(reviewId);
       if (!review) {
         return res.status(404).json({ error: "Review not found" });
-      }
-
-      // Can't mark your own review as helpful
-      if (review.userId === req.user.id) {
-        return res
-          .status(400)
-          .json({ error: "Cannot mark your own review as helpful" });
       }
 
       const helpfulVote = await storage.markReviewHelpful(
         reviewId,
         req.user.id
       );
-      res.status(201).json(helpfulVote);
+      res.json(helpfulVote);
     } catch (error) {
       console.error("Error marking review as helpful:", error);
       res.status(500).json({ error: "Failed to mark review as helpful" });
