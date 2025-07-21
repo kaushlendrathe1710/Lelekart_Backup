@@ -1833,11 +1833,6 @@ export default function ProductDetailsPage() {
                   <div className="mt-6">
                     <VariantSelector
                       variants={product.variants}
-                      baseProduct={{
-                        stock: product.stock,
-                        sku: product.sku,
-                        size: product.size,
-                      }}
                       onVariantChange={(variant) => {
                         setSelectedVariant(variant);
                         if (variant) {
@@ -1858,6 +1853,7 @@ export default function ProductDetailsPage() {
                       }}
                       showImagePreviews={true}
                       includeStock={true}
+                      mainProductImages={getProductImages(product)}
                     />
                   </div>
                 )}

@@ -74,6 +74,7 @@ interface VariantSelectorProps {
   ) => void; // Callback for viewing all images of a variant
   includeStock?: boolean; // Whether to show stock information
   showImagePreviews?: boolean; // Whether to show image previews in the variant selector
+  mainProductImages?: string[]; // Main product images
 }
 
 export function VariantSelector({
@@ -84,6 +85,7 @@ export function VariantSelector({
   onViewVariantImages = () => {}, // Default empty function for viewing variant images
   includeStock = true, // Default to showing stock information
   showImagePreviews = true, // Default to showing image previews
+  mainProductImages = [],
 }: VariantSelectorProps) {
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
@@ -489,7 +491,7 @@ export function VariantSelector({
         );
 
         // Update the parent with these images - they'll be shown first, followed by default images
-        onVariantImagesChange(colorSpecificImages);
+        onVariantImagesChange([...mainProductImages, ...colorSpecificImages]);
       }
       // If we have a specific variant selected but no color-specific images, use variant images
       else if (matchedVariant && matchedVariant.images) {
@@ -497,7 +499,7 @@ export function VariantSelector({
         const variantImages = parseVariantImages(matchedVariant);
 
         // Update parent with these images - they'll be shown first, followed by default images
-        onVariantImagesChange(variantImages);
+        onVariantImagesChange([...mainProductImages, ...variantImages]);
       }
       // If no variant selected with images, pass an empty array
       // The product details page will still show the main product images
@@ -505,6 +507,8 @@ export function VariantSelector({
         // No color/variant-specific images, will use main product images
         onVariantImagesChange([]);
       }
+    } else {
+      onVariantImagesChange([]);
     }
   }, [
     selectedColor,
@@ -514,6 +518,7 @@ export function VariantSelector({
     onVariantChange,
     onVariantImagesChange,
     onValidSelectionChange,
+    mainProductImages,
   ]);
 
   // If no valid variants found, show debug message
