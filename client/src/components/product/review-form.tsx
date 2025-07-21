@@ -1,16 +1,31 @@
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { insertReviewSchema } from '@shared/schema';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
-import { apiRequest, queryClient } from '@/lib/queryClient';
-import { Loader2, Upload, X } from 'lucide-react';
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { insertReviewSchema } from "@shared/schema";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Loader2, Upload, X } from "lucide-react";
+import { FileUpload } from "@/components/ui/file-upload";
 
 interface ReviewFormProps {
   productId: number;
@@ -19,22 +34,27 @@ interface ReviewFormProps {
 
 // Extend schema for client-side validation
 const reviewFormSchema = insertReviewSchema
-  .omit({ userId: true, productId: true, verifiedPurchase: true, helpfulCount: true })
+  .omit({
+    userId: true,
+    productId: true,
+    verifiedPurchase: true,
+    helpfulCount: true,
+  })
   .extend({
     images: z.array(z.string()).optional(),
   });
 
 type ReviewFormValues = z.infer<typeof reviewFormSchema>;
 
-const StarRatingInput = ({ 
-  value, 
-  onChange 
-}: { 
-  value: number, 
-  onChange: (value: number) => void 
+const StarRatingInput = ({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (value: number) => void;
 }) => {
   const [hoverRating, setHoverRating] = useState(0);
-  
+
   return (
     <div className="flex">
       {[1, 2, 3, 4, 5].map((star) => (
@@ -49,7 +69,9 @@ const StarRatingInput = ({
           <svg
             xmlns="http://www.w3.org/2000/svg"
             className={`h-8 w-8 ${
-              star <= (hoverRating || value) ? 'text-yellow-400' : 'text-gray-300'
+              star <= (hoverRating || value)
+                ? "text-yellow-400"
+                : "text-gray-300"
             } transition-colors duration-150`}
             viewBox="0 0 20 20"
             fill="currentColor"
@@ -70,67 +92,78 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
-  const [newImageUrl, setNewImageUrl] = useState('');
-  
+  const [newImageUrl, setNewImageUrl] = useState("");
+  const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
+
   const form = useForm<ReviewFormValues>({
     resolver: zodResolver(reviewFormSchema),
     defaultValues: {
-      title: '',
-      review: '',
+      title: "",
+      review: "",
       rating: 5,
       images: [],
     },
   });
-  
+
   const addImageUrl = () => {
     if (!newImageUrl) return;
     if (imageUrls.includes(newImageUrl)) {
       toast({
-        title: 'Duplicate image',
-        description: 'This image URL is already added',
-        variant: 'destructive',
+        title: "Duplicate image",
+        description: "This image URL is already added",
+        variant: "destructive",
       });
       return;
     }
-    
+
     setImageUrls([...imageUrls, newImageUrl]);
-    setNewImageUrl('');
+    setNewImageUrl("");
   };
-  
-  const removeImageUrl = (url: string) => {
-    setImageUrls(imageUrls.filter((imageUrl) => imageUrl !== url));
+
+  const allImageUrls = [...uploadedImageUrls, ...imageUrls];
+
+  const removeImage = (url: string) => {
+    setImageUrls((prev) => prev.filter((imageUrl) => imageUrl !== url));
+    setUploadedImageUrls((prev) => prev.filter((imageUrl) => imageUrl !== url));
   };
-  
+
   const onSubmit = async (data: ReviewFormValues) => {
     setIsSubmitting(true);
     try {
       const reviewData = {
         ...data,
-        images: imageUrls,
+        images: allImageUrls,
       };
-      
-      await apiRequest('POST', `/api/products/${productId}/reviews`, reviewData);
-      
+
+      await apiRequest(
+        "POST",
+        `/api/products/${productId}/reviews`,
+        reviewData
+      );
+
       toast({
-        title: 'Review submitted',
-        description: 'Thank you for your review!',
+        title: "Review submitted",
+        description: "Thank you for your review!",
       });
-      
+
       // Reset form
       form.reset();
       setImageUrls([]);
-      
+      setUploadedImageUrls([]);
+
       // Invalidate queries to refresh reviews
-      queryClient.invalidateQueries({ queryKey: ['productReviews'] });
-      queryClient.invalidateQueries({ queryKey: [`product_${productId}_rating`] });
-      
+      queryClient.invalidateQueries({ queryKey: ["productReviews"] });
+      queryClient.invalidateQueries({
+        queryKey: [`product_${productId}_rating`],
+      });
+
       if (onSuccess) onSuccess();
     } catch (error) {
-      console.error('Error submitting review:', error);
+      console.error("Error submitting review:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to submit review. Please try again.',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to submit review. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
@@ -161,7 +194,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) => {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="title"
@@ -175,7 +208,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) => {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="review"
@@ -193,32 +226,46 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) => {
                 </FormItem>
               )}
             />
-            
+
             <div className="space-y-2">
               <FormLabel>Add Images (Optional)</FormLabel>
-              <div className="flex gap-2">
+              {/* File upload option */}
+              <FileUpload
+                onChange={(urls) => {
+                  // Accept both single and multiple
+                  if (Array.isArray(urls)) setUploadedImageUrls(urls);
+                  else setUploadedImageUrls(urls ? [urls] : []);
+                }}
+                value={
+                  uploadedImageUrls.length === 1
+                    ? uploadedImageUrls[0]
+                    : undefined
+                }
+                multiple
+                showMediaLibrary
+                label="Upload or select images"
+              />
+              {/* URL input option */}
+              <div className="flex gap-2 mt-2">
                 <Input
                   placeholder="Enter image URL"
                   value={newImageUrl}
                   onChange={(e) => setNewImageUrl(e.target.value)}
                   className="flex-1"
                 />
-                <Button 
-                  type="button" 
-                  onClick={addImageUrl}
-                  variant="outline"
-                >
+                <Button type="button" onClick={addImageUrl} variant="outline">
                   <Upload className="h-4 w-4 mr-1" />
                   Add
                 </Button>
               </div>
               <FormDescription>
-                Add image URLs to include photos with your review
+                Add image URLs or upload images to include photos with your
+                review
               </FormDescription>
-              
-              {imageUrls.length > 0 && (
+              {/* Preview all images (uploaded + URLs) */}
+              {allImageUrls.length > 0 && (
                 <div className="grid grid-cols-3 gap-2 mt-2">
-                  {imageUrls.map((url, index) => (
+                  {allImageUrls.map((url, index) => (
                     <div key={index} className="relative group">
                       <img
                         src={url}
@@ -226,12 +273,12 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) => {
                         className="h-24 w-full object-cover rounded-md"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
-                          target.src = '/images/placeholder.svg';
+                          target.src = "/images/placeholder.svg";
                         }}
                       />
                       <button
                         type="button"
-                        onClick={() => removeImageUrl(url)}
+                        onClick={() => removeImage(url)}
                         className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <X className="h-4 w-4" />
@@ -241,7 +288,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) => {
                 </div>
               )}
             </div>
-            
+
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
@@ -249,7 +296,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) => {
                   Submitting...
                 </>
               ) : (
-                'Submit Review'
+                "Submit Review"
               )}
             </Button>
           </form>
