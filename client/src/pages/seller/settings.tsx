@@ -48,6 +48,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  validateName,
+  validatePhone,
+  validatePincode,
+  validateGstin,
+  validatePan,
+  validateIfsc,
+} from "@/lib/validation";
+import {
   Bell,
   Calendar,
   Check,
@@ -59,14 +67,17 @@ import {
   MessageSquare,
   Moon,
   Percent,
+  Pencil,
   PhoneCall,
   Save,
   Settings,
   ShieldAlert,
   Sun,
+  Trash2,
   Truck,
   UserCog,
   Wallet,
+  X,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "react-router-dom";
@@ -84,8 +95,74 @@ export default function SellerSettingsPage() {
   const [isSavingBillingInfo, setIsSavingBillingInfo] = useState(false);
   const [isSavingBankInfo, setIsSavingBankInfo] = useState(false);
 
-  // Store settings state
-  const [storeSettings, setStoreSettings] = useState({
+  const [isEditingPersonalInfo, setIsEditingPersonalInfo] = useState(false);
+  const [originalPersonalInfo, setOriginalPersonalInfo] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    alternatePhone: "",
+  });
+  const [personalInfoErrors, setPersonalInfoErrors] = useState({
+    name: "",
+    phone: "",
+    alternatePhone: "",
+  });
+
+  const [isEditingAddress, setIsEditingAddress] = useState(false);
+  const [originalAddress, setOriginalAddress] = useState({
+    line1: "",
+    line2: "",
+    city: "",
+    state: "",
+    pincode: "",
+  });
+  const [addressErrors, setAddressErrors] = useState({
+    line1: "",
+    city: "",
+    state: "",
+    pincode: "",
+  });
+
+  const [isEditingPickupAddress, setIsEditingPickupAddress] = useState(false);
+  const [originalPickupAddress, setOriginalPickupAddress] = useState({
+    businessName: "",
+    gstin: "",
+    contactName: "",
+    phone: "",
+    line1: "",
+    line2: "",
+    city: "",
+    state: "",
+    pincode: "",
+    authorizationSignature: "",
+  });
+  const [pickupAddress, setPickupAddress] = useState({
+    businessName: "",
+    gstin: "",
+    contactName: "",
+    phone: "",
+    line1: "",
+    line2: "",
+    city: "",
+    state: "",
+    pincode: "",
+    authorizationSignature: "",
+  });
+  const [pickupAddressErrors, setPickupAddressErrors] = useState({
+    businessName: "",
+    contactName: "",
+    phone: "",
+    line1: "",
+    city: "",
+    state: "",
+    pincode: "",
+  });
+
+  const [isEditingStoreInfo, setIsEditingStoreInfo] = useState(false);
+  const [isEditingStoreBranding, setIsEditingStoreBranding] = useState(false);
+  const [isEditingSocialLinks, setIsEditingSocialLinks] = useState(false);
+  const [isEditingBusinessHours, setIsEditingBusinessHours] = useState(false);
+  const [originalStoreSettings, setOriginalStoreSettings] = useState({
     name: "",
     description: "",
     contactEmail: "",
@@ -108,53 +185,38 @@ export default function SellerSettingsPage() {
       { day: "Sunday", open: false, openTime: "", closeTime: "" },
     ],
   });
-
-  // Personal information state
-  const [personalInfo, setPersonalInfo] = useState({
+  const [storeInfoErrors, setStoreInfoErrors] = useState({
     name: "",
-    email: "",
-    phone: "",
-    alternatePhone: "",
+    contactEmail: "",
+    contactPhone: "",
   });
 
-  // Address information state
-  const [address, setAddress] = useState({
-    line1: "",
-    line2: "",
-    city: "",
-    state: "",
-    pincode: "",
-  });
-
-  // Pickup address state (for seller address on invoices)
-  const [pickupAddress, setPickupAddress] = useState({
-    businessName: "",
-    gstin: "",
-    contactName: "",
-    phone: "",
-    line1: "",
-    line2: "",
-    city: "",
-    state: "",
-    pincode: "",
-    authorizationSignature: "",
-  });
-
-  // Billing information state
-  const [billingInfo, setBillingInfo] = useState({
+  const [isEditingBillingInfo, setIsEditingBillingInfo] = useState(false);
+  const [originalBillingInfo, setOriginalBillingInfo] = useState({
     gstin: "",
     businessName: "",
     panNumber: "",
     businessType: "individual",
   });
+  const [billingInfoErrors, setBillingInfoErrors] = useState({
+    gstin: "",
+    businessName: "",
+    panNumber: "",
+  });
 
-  // Bank account information state
-  const [bankInfo, setBankInfo] = useState({
+  const [isEditingBankInfo, setIsEditingBankInfo] = useState(false);
+  const [originalBankInfo, setOriginalBankInfo] = useState({
     accountName: "",
     accountNumber: "",
     ifscCode: "",
     bankName: "",
     branchName: "",
+  });
+  const [bankInfoErrors, setBankInfoErrors] = useState({
+    accountName: "",
+    accountNumber: "",
+    ifscCode: "",
+    bankName: "",
   });
 
   const [notificationSettings, setNotificationSettings] = useState({
@@ -219,7 +281,7 @@ export default function SellerSettingsPage() {
       if (settings.personalInfo) {
         try {
           const parsedPersonalInfo = JSON.parse(settings.personalInfo);
-          setPersonalInfo({
+          setOriginalPersonalInfo({
             name: parsedPersonalInfo.name || "",
             email: parsedPersonalInfo.email || "",
             phone: parsedPersonalInfo.phone || "",
@@ -227,7 +289,7 @@ export default function SellerSettingsPage() {
           });
         } catch (e) {
           console.error("Error parsing personal info:", e);
-          setPersonalInfo({ name: "", email: "", phone: "", alternatePhone: "" });
+          setOriginalPersonalInfo({ name: "", email: "", phone: "", alternatePhone: "" });
         }
       }
 
@@ -235,7 +297,7 @@ export default function SellerSettingsPage() {
       if (settings.address) {
         try {
           const parsedAddress = JSON.parse(settings.address);
-          setAddress({
+          setOriginalAddress({
             line1: parsedAddress.line1 || "",
             line2: parsedAddress.line2 || "",
             city: parsedAddress.city || "",
@@ -244,7 +306,7 @@ export default function SellerSettingsPage() {
           });
         } catch (e) {
           console.error("Error parsing address:", e);
-          setAddress({ line1: "", line2: "", city: "", state: "", pincode: "" });
+          setOriginalAddress({ line1: "", line2: "", city: "", state: "", pincode: "" });
         }
       }
 
@@ -252,7 +314,7 @@ export default function SellerSettingsPage() {
       if (settings.store) {
         try {
           const parsedStoreSettings = JSON.parse(settings.store);
-          setStoreSettings({
+          setOriginalStoreSettings({
             name: parsedStoreSettings.name || "",
             description: parsedStoreSettings.description || "",
             contactEmail: parsedStoreSettings.contactEmail || "",
@@ -277,7 +339,7 @@ export default function SellerSettingsPage() {
           });
         } catch (e) {
           console.error("Error parsing store settings:", e);
-          setStoreSettings({
+          setOriginalStoreSettings({
             name: "",
             description: "",
             contactEmail: "",
@@ -307,6 +369,29 @@ export default function SellerSettingsPage() {
       setCurrentTab("bank");
     }
   }, [location.search]);
+
+  const handleEdit = (
+    setOriginalState: Function,
+    currentState: any,
+    setEditingState: Function
+  ) => {
+    setOriginalState(currentState);
+    setEditingState(true);
+  };
+
+  const handleCancel = (
+    setEditingState: Function,
+    setCurrentState: Function,
+    originalState: any,
+    setErrorsState?: Function,
+    initialErrors?: any
+  ) => {
+    setEditingState(false);
+    setCurrentState(originalState);
+    if (setErrorsState && initialErrors) {
+      setErrorsState(initialErrors);
+    }
+  };
 
   const toggleHolidayMode = async () => {
     setIsLoading(true);
@@ -431,6 +516,32 @@ export default function SellerSettingsPage() {
   };
 
   const savePersonalInfo = async () => {
+    const errors = { name: "", phone: "", alternatePhone: "" };
+    if (!validateName(originalPersonalInfo.name)) {
+      errors.name = "Please enter a valid name (letters and spaces only).";
+    }
+    if (!validatePhone(originalPersonalInfo.phone)) {
+      errors.phone = "Please enter a valid 10-digit Indian mobile number.";
+    }
+    if (
+      originalPersonalInfo.alternatePhone &&
+      !validatePhone(originalPersonalInfo.alternatePhone)
+    ) {
+      errors.alternatePhone =
+        "Please enter a valid 10-digit Indian mobile number.";
+    }
+
+    setPersonalInfoErrors(errors);
+
+    if (Object.values(errors).some((e) => e !== "")) {
+      toast({
+        title: "Validation Error",
+        description: "Please fix the errors before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSavingPersonalInfo(true);
     try {
       const response = await fetch("/api/seller/settings/personal-info", {
@@ -438,7 +549,7 @@ export default function SellerSettingsPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(personalInfo),
+        body: JSON.stringify(originalPersonalInfo),
       });
 
       if (!response.ok) {
@@ -449,6 +560,7 @@ export default function SellerSettingsPage() {
         title: "Personal Information Saved",
         description: "Your personal information has been updated successfully.",
       });
+      setIsEditingPersonalInfo(false);
     } catch (error) {
       console.error("Error saving personal information:", error);
       toast({
@@ -461,14 +573,61 @@ export default function SellerSettingsPage() {
     }
   };
 
+  const deletePersonalInfo = async () => {
+    const clearedInfo = {
+      ...originalPersonalInfo,
+      name: "",
+      phone: "",
+      alternatePhone: "",
+    };
+    setOriginalPersonalInfo(clearedInfo);
+    try {
+      const response = await fetch("/api/seller/settings/personal-info", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(clearedInfo),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete personal information");
+      }
+
+      toast({
+        title: "Personal Information Cleared",
+        description: "Your personal information has been cleared.",
+      });
+      setIsEditingPersonalInfo(false);
+    } catch (error) {
+      console.error("Error deleting personal information:", error);
+      toast({
+        title: "Deletion Failed",
+        description:
+          "Could not clear personal information. Please try again.",
+        variant: "destructive",
+      });
+      setOriginalPersonalInfo(originalPersonalInfo); // Revert on failure
+    }
+  };
+
   const saveAddress = async () => {
-    if (!address.pincode || address.pincode.length !== 6) {
+    if (!originalAddress.pincode || !validatePincode(originalAddress.pincode)) {
       toast({
         title: "Validation Error",
         description: "Please enter a valid 6-digit pincode",
         variant: "destructive",
       });
       return;
+    }
+    if (!originalAddress.line1.trim()) {
+      setAddressErrors((prev) => ({
+        ...prev,
+        line1: "Address Line 1 is required.",
+      }));
+      return;
+    } else {
+      setAddressErrors((prev) => ({ ...prev, line1: "" }));
     }
 
     setIsSavingAddress(true);
@@ -478,7 +637,7 @@ export default function SellerSettingsPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(address),
+        body: JSON.stringify(originalAddress),
       });
 
       if (!response.ok) {
@@ -489,6 +648,7 @@ export default function SellerSettingsPage() {
         title: "Address Information Saved",
         description: "Your address information has been updated successfully.",
       });
+      setIsEditingAddress(false);
     } catch (error) {
       console.error("Error saving address information:", error);
       toast({
@@ -498,6 +658,44 @@ export default function SellerSettingsPage() {
       });
     } finally {
       setIsSavingAddress(false);
+    }
+  };
+
+  const deleteAddress = async () => {
+    const clearedAddress = {
+      line1: "",
+      line2: "",
+      city: "",
+      state: "",
+      pincode: "",
+    };
+    setOriginalAddress(clearedAddress);
+    try {
+      const response = await fetch("/api/seller/settings/address", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(clearedAddress),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete address information");
+      }
+
+      toast({
+        title: "Address Information Cleared",
+        description: "Your address has been cleared.",
+      });
+      setIsEditingAddress(false);
+    } catch (error) {
+      console.error("Error deleting address:", error);
+      toast({
+        title: "Deletion Failed",
+        description: "Could not clear address. Please try again.",
+        variant: "destructive",
+      });
+      setOriginalAddress(originalAddress); // Revert on failure
     }
   };
 
@@ -511,7 +709,7 @@ export default function SellerSettingsPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          store: JSON.stringify(storeSettings),
+          store: JSON.stringify(originalStoreSettings),
         }),
       });
 
@@ -523,6 +721,10 @@ export default function SellerSettingsPage() {
         title: "Store Settings Saved",
         description: "Your store settings have been updated successfully.",
       });
+      setIsEditingStoreInfo(false);
+      setIsEditingStoreBranding(false);
+      setIsEditingSocialLinks(false);
+      setIsEditingBusinessHours(false);
     } catch (error) {
       console.error("Error saving store settings:", error);
       toast({
@@ -536,10 +738,44 @@ export default function SellerSettingsPage() {
   };
 
   const savePickupAddress = async () => {
-    if (!pickupAddress.pincode || pickupAddress.pincode.length !== 6) {
+    const errors = {
+      businessName: "",
+      contactName: "",
+      phone: "",
+      line1: "",
+      city: "",
+      state: "",
+      pincode: "",
+    };
+    let hasError = false;
+
+    if (!pickupAddress.businessName.trim()) {
+      errors.businessName = "Business name is required.";
+      hasError = true;
+    }
+    if (!pickupAddress.contactName.trim()) {
+      errors.contactName = "Contact name is required.";
+      hasError = true;
+    }
+    if (!validatePhone(pickupAddress.phone)) {
+      errors.phone = "Please enter a valid 10-digit Indian mobile number.";
+      hasError = true;
+    }
+    if (!pickupAddress.line1.trim()) {
+      errors.line1 = "Address line 1 is required.";
+      hasError = true;
+    }
+    if (!validatePincode(pickupAddress.pincode)) {
+      errors.pincode = "Please enter a valid 6-digit Indian pincode.";
+      hasError = true;
+    }
+
+    setPickupAddressErrors(errors);
+
+    if (hasError) {
       toast({
         title: "Validation Error",
-        description: "Please enter a valid 6-digit pincode",
+        description: "Please fix the errors before saving.",
         variant: "destructive",
       });
       return;
@@ -562,13 +798,14 @@ export default function SellerSettingsPage() {
       }
 
       // Invalidate the settings query to force a refetch
-      queryClient.invalidateQueries(["/api/seller/settings"]);
+      queryClient.invalidateQueries({ queryKey: ["/api/seller/settings"] });
 
       toast({
         title: "Pickup Address Saved",
         description:
           "Your pickup address has been updated successfully. This address will be used on invoices.",
       });
+      setIsEditingPickupAddress(false);
     } catch (error) {
       console.error("Error saving pickup address:", error);
       toast({
@@ -581,7 +818,68 @@ export default function SellerSettingsPage() {
     }
   };
 
+  const deletePickupAddress = async () => {
+    const clearedPickupAddress = {
+      businessName: "",
+      gstin: "",
+      contactName: "",
+      phone: "",
+      line1: "",
+      line2: "",
+      city: "",
+      state: "",
+      pincode: "",
+      authorizationSignature: "",
+    };
+    setPickupAddress(clearedPickupAddress);
+
+    try {
+      await fetch("/api/seller/settings/pickup-address", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ pickupAddress: clearedPickupAddress }),
+      });
+      toast({
+        title: "Pickup Address Cleared",
+        description: "Your pickup address has been cleared.",
+      });
+      setIsEditingPickupAddress(false);
+    } catch (error) {
+      console.error("Error clearing pickup address:", error);
+      toast({
+        title: "Error",
+        description: "Could not clear pickup address.",
+        variant: "destructive",
+      });
+      setPickupAddress(pickupAddress); // Revert on failure
+    }
+  };
+
   const saveBillingInfo = async () => {
+    const errors = { gstin: "", businessName: "", panNumber: "" };
+    if (!validateGstin(originalBillingInfo.gstin)) {
+      errors.gstin = "Please enter a valid GSTIN.";
+    }
+    if (!validateName(originalBillingInfo.businessName)) {
+      errors.businessName = "Please enter a valid business name.";
+    }
+    if (!validatePan(originalBillingInfo.panNumber)) {
+      errors.panNumber = "Please enter a valid PAN number.";
+    }
+
+    setBillingInfoErrors(errors);
+
+    if (Object.values(errors).some((e) => e !== "")) {
+      toast({
+        title: "Validation Error",
+        description: "Please fix the errors before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSavingBillingInfo(true);
     try {
       const response = await fetch("/api/seller/settings", {
@@ -591,7 +889,7 @@ export default function SellerSettingsPage() {
         },
         body: JSON.stringify({
           taxInformation: JSON.stringify({
-            ...billingInfo,
+            ...originalBillingInfo,
             // Don't include bank info here, as we'll send it separately
           }),
         }),
@@ -605,6 +903,7 @@ export default function SellerSettingsPage() {
         title: "Billing Information Saved",
         description: "Your billing information has been updated successfully.",
       });
+      setIsEditingBillingInfo(false);
     } catch (error) {
       console.error("Error saving billing information:", error);
       toast({
@@ -617,7 +916,74 @@ export default function SellerSettingsPage() {
     }
   };
 
+  const deleteBillingInfo = async () => {
+    const clearedBillingInfo = {
+      gstin: "",
+      businessName: "",
+      panNumber: "",
+      businessType: "individual",
+    };
+    setOriginalBillingInfo(clearedBillingInfo);
+    try {
+      const response = await fetch("/api/seller/settings", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          taxInformation: JSON.stringify(clearedBillingInfo),
+        }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to delete billing info.");
+      }
+      toast({
+        title: "Billing Info Cleared",
+        description: "Billing info has been cleared.",
+      });
+      setIsEditingBillingInfo(false);
+    } catch (error) {
+      console.error("Error clearing billing info:", error);
+      toast({
+        title: "Error",
+        description: "Could not clear billing info.",
+        variant: "destructive",
+      });
+      setOriginalBillingInfo(originalBillingInfo);
+    }
+  };
+
   const saveBankInfo = async () => {
+    const errors = {
+      accountName: "",
+      accountNumber: "",
+      ifscCode: "",
+      bankName: "",
+    };
+    if (!validateName(originalBankInfo.accountName)) {
+      errors.accountName = "Please enter a valid account holder name.";
+    }
+    if (originalBankInfo.accountNumber.length < 9) {
+      errors.accountNumber = "Account number must be at least 9 digits.";
+    }
+    if (!validateIfsc(originalBankInfo.ifscCode)) {
+      errors.ifscCode = "Please enter a valid IFSC code.";
+    }
+    if (!originalBankInfo.bankName.trim()) {
+      errors.bankName = "Please enter the bank name.";
+    }
+
+    setBankInfoErrors(errors);
+
+    if (Object.values(errors).some((e) => e !== "")) {
+      toast({
+        title: "Validation Error",
+        description: "Please fix the errors before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSavingBankInfo(true);
     try {
       const response = await fetch("/api/seller/settings", {
@@ -627,7 +993,7 @@ export default function SellerSettingsPage() {
         },
         body: JSON.stringify({
           taxInformation: JSON.stringify({
-            bankInfo: bankInfo,
+            bankInfo: originalBankInfo,
           }),
         }),
       });
@@ -641,6 +1007,7 @@ export default function SellerSettingsPage() {
         description:
           "Your bank account information has been updated successfully.",
       });
+      setIsEditingBankInfo(false);
     } catch (error) {
       console.error("Error saving bank information:", error);
       toast({
@@ -650,6 +1017,44 @@ export default function SellerSettingsPage() {
       });
     } finally {
       setIsSavingBankInfo(false);
+    }
+  };
+
+  const deleteBankInfo = async () => {
+    const clearedBankInfo = {
+      accountName: "",
+      accountNumber: "",
+      ifscCode: "",
+      bankName: "",
+      branchName: "",
+    };
+    setOriginalBankInfo(clearedBankInfo);
+    try {
+      const response = await fetch("/api/seller/settings", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          taxInformation: JSON.stringify({ bankInfo: clearedBankInfo }),
+        }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to delete bank info.");
+      }
+      toast({
+        title: "Bank Info Cleared",
+        description: "Bank info has been cleared.",
+      });
+      setIsEditingBankInfo(false);
+    } catch (error) {
+      console.error("Error clearing bank info:", error);
+      toast({
+        title: "Error",
+        description: "Could not clear bank info.",
+        variant: "destructive",
+      });
+      setOriginalBankInfo(originalBankInfo);
     }
   };
 
@@ -767,38 +1172,46 @@ export default function SellerSettingsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="name" className="text-sm">Full Name</Label>
+                        {isEditingPersonalInfo ? (
+                          <>
                         <Input
                           id="name"
-                          value={personalInfo.name}
+                          value={originalPersonalInfo.name}
                           onChange={(e) =>
-                            setPersonalInfo({
-                              ...personalInfo,
+                            setOriginalPersonalInfo({
+                              ...originalPersonalInfo,
                               name: e.target.value,
                             })
                           }
                           className="text-sm"
-                        />
+                            />
+                            {personalInfoErrors.name && (
+                              <p className="text-xs text-red-500">
+                                {personalInfoErrors.name}
+                              </p>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-sm py-2">{originalPersonalInfo.name}</p>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="email" className="text-sm">Email Address</Label>
                         <Input
                           id="email"
                           type="email"
-                          value={personalInfo.email}
-                          onChange={(e) =>
-                            setPersonalInfo({
-                              ...personalInfo,
-                              email: e.target.value,
-                            })
-                          }
-                          className="text-sm"
+                          value={originalPersonalInfo.email}
+                          readOnly
+                          className="text-sm bg-gray-100 cursor-not-allowed"
                         />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="phone" className="text-sm">Phone Number</Label>
+                        {isEditingPersonalInfo ? (
+                          <>
                         <Input
                           id="phone"
-                          value={personalInfo.phone}
+                          value={originalPersonalInfo.phone}
                           maxLength={10}
                           onKeyPress={(e) => {
                             // Allow only digits
@@ -809,23 +1222,33 @@ export default function SellerSettingsPage() {
                           onChange={(e) => {
                             // Only allow digits in the field
                             const value = e.target.value.replace(/[^0-9]/g, "");
-                            e.target.value = value;
-                            setPersonalInfo({ ...personalInfo, phone: value });
+                            setOriginalPersonalInfo({ ...originalPersonalInfo, phone: value });
                           }}
-                          className="text-sm"
-                        />
+                              className="text-sm"
+                            />
+                            {personalInfoErrors.phone && (
+                              <p className="text-xs text-red-500">
+                                {personalInfoErrors.phone}
+                              </p>
+                            )}
                         <p className="text-xs text-muted-foreground">
                           Enter a 10-digit number without spaces or special
                           characters
                         </p>
+                          </>
+                        ) : (
+                          <p className="text-sm py-2">{originalPersonalInfo.phone}</p>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="alternatePhone" className="text-sm">
                           Alternate Phone (Optional)
                         </Label>
+                        {isEditingPersonalInfo ? (
+                          <>
                         <Input
                           id="alternatePhone"
-                          value={personalInfo.alternatePhone}
+                          value={originalPersonalInfo.alternatePhone}
                           maxLength={10}
                           onKeyPress={(e) => {
                             // Allow only digits
@@ -836,39 +1259,115 @@ export default function SellerSettingsPage() {
                           onChange={(e) => {
                             // Only allow digits in the field
                             const value = e.target.value.replace(/[^0-9]/g, "");
-                            e.target.value = value;
-                            setPersonalInfo({
-                              ...personalInfo,
+                            setOriginalPersonalInfo({
+                              ...originalPersonalInfo,
                               alternatePhone: value,
                             });
                           }}
-                          className="text-sm"
-                        />
+                              className="text-sm"
+                            />
+                            {personalInfoErrors.alternatePhone && (
+                              <p className="text-xs text-red-500">
+                                {personalInfoErrors.alternatePhone}
+                              </p>
+                            )}
                         <p className="text-xs text-muted-foreground">
                           Enter a 10-digit number without spaces or special
                           characters
                         </p>
+                          </>
+                        ) : (
+                          <p className="text-sm py-2">
+                            {originalPersonalInfo.alternatePhone}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </CardContent>
-                  <CardFooter className="flex justify-end">
-                    <Button
-                      onClick={savePersonalInfo}
-                      disabled={isSavingPersonalInfo}
-                      className="text-xs md:text-sm"
-                    >
-                      {isSavingPersonalInfo ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="mr-2 h-4 w-4" />
-                          Save Changes
-                        </>
-                      )}
-                    </Button>
+                  <CardFooter className="flex justify-end space-x-2">
+                    {isEditingPersonalInfo ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          onClick={() =>
+                            handleCancel(
+                              setIsEditingPersonalInfo,
+                              setOriginalPersonalInfo,
+                              originalPersonalInfo,
+                              setPersonalInfoErrors,
+                              { name: "", phone: "", alternatePhone: "" }
+                            )
+                          }
+                          className="text-xs md:text-sm"
+                        >
+                          <X className="mr-2 h-4 w-4" />
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={savePersonalInfo}
+                          disabled={isSavingPersonalInfo}
+                          className="text-xs md:text-sm"
+                        >
+                          {isSavingPersonalInfo ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="mr-2 h-4 w-4" />
+                              Save Changes
+                            </>
+                          )}
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="destructive"
+                              className="text-xs md:text-sm"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                Are you sure?
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will clear your personal information. This
+                                action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={deletePersonalInfo}
+                              >
+                                Continue
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                        <Button
+                          onClick={() =>
+                            handleEdit(
+                              setOriginalPersonalInfo,
+                              originalPersonalInfo,
+                              setIsEditingPersonalInfo
+                            )
+                          }
+                          className="text-xs md:text-sm"
+                        >
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
+                        </Button>
+                      </>
+                    )}
                   </CardFooter>
                 </Card>
 
@@ -882,36 +1381,53 @@ export default function SellerSettingsPage() {
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="addressLine1" className="text-sm">Address Line 1</Label>
+                      {isEditingAddress ? (
+                        <>
                       <Input
                         id="addressLine1"
-                        value={address.line1}
+                        value={originalAddress.line1}
                         onChange={(e) =>
-                          setAddress({ ...address, line1: e.target.value })
+                          setOriginalAddress({ ...originalAddress, line1: e.target.value })
                         }
                         className="text-sm"
-                      />
+                          />
+                          {addressErrors.line1 && (
+                            <p className="text-xs text-red-500">
+                              {addressErrors.line1}
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-sm py-2">{originalAddress.line1}</p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="addressLine2" className="text-sm">
                         Address Line 2 (Optional)
                       </Label>
+                      {isEditingAddress ? (
                       <Input
                         id="addressLine2"
-                        value={address.line2}
+                        value={originalAddress.line2}
                         onChange={(e) =>
-                          setAddress({ ...address, line2: e.target.value })
+                          setOriginalAddress({ ...originalAddress, line2: e.target.value })
                         }
                         className="text-sm"
                       />
+                      ) : (
+                        <p className="text-sm py-2">{originalAddress.line2}</p>
+                      )}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="pincode" className="text-sm">
                           Pincode <span className="text-red-500">*</span>
                         </Label>
+                        {isEditingAddress ? (
+                          <>
                         <Input
                           id="pincode"
-                          value={address.pincode}
+                          value={originalAddress.pincode}
                           maxLength={6}
                           required
                           onKeyPress={(e) => {
@@ -923,36 +1439,32 @@ export default function SellerSettingsPage() {
                           onChange={async (e) => {
                             // Only allow digits in the field
                             const value = e.target.value.replace(/[^0-9]/g, "");
-                            e.target.value = value;
 
                             const pincode = value;
-                            setAddress({ ...address, pincode });
-                            console.log("Pincode changed:", pincode);
+                            setOriginalAddress({ ...originalAddress, pincode });
+
+                            if (validatePincode(pincode)) {
+                              setAddressErrors((prev) => ({
+                                ...prev,
+                                pincode: "",
+                              }));
+                            } else {
+                              setAddressErrors((prev) => ({
+                                ...prev,
+                                pincode: "Invalid pincode.",
+                              }));
+                            }
 
                             // If pincode is 6 digits, try to auto-populate city and state
                             if (pincode.length === 6) {
-                              console.log(
-                                "Fetching data for pincode:",
-                                pincode
-                              );
                               try {
                                 const response = await fetch(
                                   `/api/pincode/${pincode}`
                                 );
-                                console.log(
-                                  "Pincode API response:",
-                                  response.status
-                                );
                                 if (response.ok) {
                                   const data = await response.json();
-                                  console.log("Pincode data received:", data);
                                   if (data && data.state) {
-                                    console.log(
-                                      "Setting address with pincode data:",
-                                      data.state,
-                                      data.district
-                                    );
-                                    setAddress((prev) => ({
+                                    setOriginalAddress((prev) => ({
                                       ...prev,
                                       pincode,
                                       city: data.district || prev.city,
@@ -965,51 +1477,132 @@ export default function SellerSettingsPage() {
                               }
                             }
                           }}
-                          className="text-sm"
-                        />
+                              className="text-sm"
+                            />
+                            {addressErrors.pincode && (
+                              <p className="text-xs text-red-500">
+                                {addressErrors.pincode}
+                              </p>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-sm py-2">{originalAddress.pincode}</p>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="city" className="text-sm">City</Label>
+                        {isEditingAddress ? (
                         <Input
                           id="city"
-                          value={address.city}
+                          value={originalAddress.city}
                           onChange={(e) =>
-                            setAddress({ ...address, city: e.target.value })
+                            setOriginalAddress({ ...originalAddress, city: e.target.value })
                           }
                           className="text-sm"
                         />
+                        ) : (
+                          <p className="text-sm py-2">{originalAddress.city}</p>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="state" className="text-sm">State</Label>
+                        {isEditingAddress ? (
                         <Input
                           id="state"
-                          value={address.state}
+                          value={originalAddress.state}
                           onChange={(e) =>
-                            setAddress({ ...address, state: e.target.value })
+                            setOriginalAddress({ ...originalAddress, state: e.target.value })
                           }
                           className="text-sm"
                         />
+                        ) : (
+                          <p className="text-sm py-2">{originalAddress.state}</p>
+                        )}
                       </div>
                     </div>
                   </CardContent>
-                  <CardFooter className="flex justify-end">
-                    <Button
-                      onClick={saveAddress}
-                      disabled={isSavingAddress}
-                      className="text-xs md:text-sm"
-                    >
-                      {isSavingAddress ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="mr-2 h-4 w-4" />
-                          Save Changes
-                        </>
-                      )}
-                    </Button>
+                  <CardFooter className="flex justify-end space-x-2">
+                    {isEditingAddress ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          onClick={() =>
+                            handleCancel(
+                              setIsEditingAddress,
+                              setOriginalAddress,
+                              originalAddress,
+                              setAddressErrors,
+                              { line1: "", city: "", state: "", pincode: "" }
+                            )
+                          }
+                          className="text-xs md:text-sm"
+                        >
+                          <X className="mr-2 h-4 w-4" />
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={saveAddress}
+                          disabled={isSavingAddress}
+                          className="text-xs md:text-sm"
+                        >
+                          {isSavingAddress ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="mr-2 h-4 w-4" />
+                              Save Changes
+                            </>
+                          )}
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="destructive"
+                              className="text-xs md:text-sm"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                Are you sure?
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will clear your address information. This
+                                action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={deleteAddress}>
+                                Continue
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                        <Button
+                          onClick={() =>
+                            handleEdit(
+                              setOriginalAddress,
+                              originalAddress,
+                              setIsEditingAddress
+                            )
+                          }
+                          className="text-xs md:text-sm"
+                        >
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
+                        </Button>
+                      </>
+                    )}
                   </CardFooter>
                 </Card>
               </TabsContent>
@@ -1297,23 +1890,52 @@ export default function SellerSettingsPage() {
                       </div>
                     </div>
                   </CardContent>
-                  <CardFooter className="flex justify-end">
-                    <Button
-                      onClick={saveNotificationSettings}
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="mr-2 h-4 w-4" />
-                          Save Preferences
-                        </>
-                      )}
-                    </Button>
+                  <CardFooter className="flex justify-end space-x-2">
+                    {isEditingStoreInfo ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          onClick={() =>
+                            handleCancel(
+                              setIsEditingStoreInfo,
+                              setOriginalStoreSettings,
+                              originalStoreSettings
+                            )
+                          }
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={saveStoreSettings}
+                          disabled={isSavingStoreSettings}
+                        >
+                          {isSavingStoreSettings ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="mr-2 h-4 w-4" />
+                              Save Changes
+                            </>
+                          )}
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        onClick={() =>
+                          handleEdit(
+                            setOriginalStoreSettings,
+                            originalStoreSettings,
+                            setIsEditingStoreInfo
+                          )
+                        }
+                      >
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
+                      </Button>
+                    )}
                   </CardFooter>
                 </Card>
               </TabsContent>
@@ -1331,10 +1953,10 @@ export default function SellerSettingsPage() {
                       <Label htmlFor="storeName">Store Name</Label>
                       <Input
                         id="storeName"
-                        value={storeSettings.name}
+                        value={originalStoreSettings.name}
                         onChange={(e) =>
-                          setStoreSettings({
-                            ...storeSettings,
+                          setOriginalStoreSettings({
+                            ...originalStoreSettings,
                             name: e.target.value,
                           })
                         }
@@ -1348,10 +1970,10 @@ export default function SellerSettingsPage() {
                       <Textarea
                         id="storeDescription"
                         rows={4}
-                        value={storeSettings.description}
+                        value={originalStoreSettings.description}
                         onChange={(e) =>
-                          setStoreSettings({
-                            ...storeSettings,
+                          setOriginalStoreSettings({
+                            ...originalStoreSettings,
                             description: e.target.value,
                           })
                         }
@@ -1364,10 +1986,10 @@ export default function SellerSettingsPage() {
                         <Input
                           id="contactEmail"
                           type="email"
-                          value={storeSettings.contactEmail}
+                          value={originalStoreSettings.contactEmail}
                           onChange={(e) =>
-                            setStoreSettings({
-                              ...storeSettings,
+                            setOriginalStoreSettings({
+                              ...originalStoreSettings,
                               contactEmail: e.target.value,
                             })
                           }
@@ -1378,7 +2000,7 @@ export default function SellerSettingsPage() {
                         <Label htmlFor="contactPhone">Contact Phone</Label>
                         <Input
                           id="contactPhone"
-                          value={storeSettings.contactPhone}
+                          value={originalStoreSettings.contactPhone}
                           maxLength={10}
                           onKeyPress={(e) => {
                             // Allow only digits
@@ -1389,9 +2011,8 @@ export default function SellerSettingsPage() {
                           onChange={(e) => {
                             // Only allow digits in the field
                             const value = e.target.value.replace(/[^0-9]/g, "");
-                            e.target.value = value;
-                            setStoreSettings({
-                              ...storeSettings,
+                            setOriginalStoreSettings({
+                              ...originalStoreSettings,
                               contactPhone: value,
                             });
                           }}
@@ -1404,23 +2025,52 @@ export default function SellerSettingsPage() {
                       </div>
                     </div>
                   </CardContent>
-                  <CardFooter className="flex justify-end">
-                    <Button
-                      onClick={saveStoreSettings}
-                      disabled={isSavingStoreSettings}
-                    >
-                      {isSavingStoreSettings ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="mr-2 h-4 w-4" />
-                          Save Changes
-                        </>
-                      )}
-                    </Button>
+                  <CardFooter className="flex justify-end space-x-2">
+                    {isEditingStoreInfo ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          onClick={() =>
+                            handleCancel(
+                              setIsEditingStoreInfo,
+                              setOriginalStoreSettings,
+                              originalStoreSettings
+                            )
+                          }
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={saveStoreSettings}
+                          disabled={isSavingStoreSettings}
+                        >
+                          {isSavingStoreSettings ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="mr-2 h-4 w-4" />
+                              Save Changes
+                            </>
+                          )}
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        onClick={() =>
+                          handleEdit(
+                            setOriginalStoreSettings,
+                            originalStoreSettings,
+                            setIsEditingStoreInfo
+                          )
+                        }
+                      >
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
+                      </Button>
+                    )}
                   </CardFooter>
                 </Card>
 
@@ -1439,27 +2089,28 @@ export default function SellerSettingsPage() {
                           <div className="flex items-center space-x-2">
                             <Input
                               id="storeLogo"
-                              value={storeSettings.logo}
+                              value={originalStoreSettings.logo}
                               onChange={(e) =>
-                                setStoreSettings({
-                                  ...storeSettings,
+                                setOriginalStoreSettings({
+                                  ...originalStoreSettings,
                                   logo: e.target.value,
                                 })
                               }
                               placeholder="https://example.com/logo.png"
                               className="flex-1"
+                              readOnly={!isEditingStoreBranding}
                             />
                             <span className="text-sm text-muted-foreground">
                               or
                             </span>
                             <FileUpload
-                              onChange={(url) =>
-                                setStoreSettings({
-                                  ...storeSettings,
+                              onChange={(url: string) =>
+                                setOriginalStoreSettings({
+                                  ...originalStoreSettings,
                                   logo: url,
                                 })
                               }
-                              value={storeSettings.logo}
+                              value={originalStoreSettings.logo}
                               label="Upload Logo"
                               accept="image/*"
                               maxSizeMB={2}
@@ -1471,10 +2122,10 @@ export default function SellerSettingsPage() {
                             Supported formats: JPG, PNG, SVG.
                           </div>
                         </div>
-                        {storeSettings.logo && (
+                        {originalStoreSettings.logo && (
                           <div className="mt-2 p-2 border rounded-md flex justify-center">
                             <img
-                              src={storeSettings.logo}
+                              src={originalStoreSettings.logo}
                               alt="Store Logo"
                               className="h-20 w-auto object-contain"
                               onError={(e) =>
@@ -1491,27 +2142,28 @@ export default function SellerSettingsPage() {
                           <div className="flex items-center space-x-2">
                             <Input
                               id="storeBanner"
-                              value={storeSettings.banner}
+                              value={originalStoreSettings.banner}
                               onChange={(e) =>
-                                setStoreSettings({
-                                  ...storeSettings,
+                                setOriginalStoreSettings({
+                                  ...originalStoreSettings,
                                   banner: e.target.value,
                                 })
                               }
                               placeholder="https://example.com/banner.jpg"
                               className="flex-1"
+                              readOnly={!isEditingStoreBranding}
                             />
                             <span className="text-sm text-muted-foreground">
                               or
                             </span>
                             <FileUpload
-                              onChange={(url) =>
-                                setStoreSettings({
-                                  ...storeSettings,
+                              onChange={(url: string) =>
+                                setOriginalStoreSettings({
+                                  ...originalStoreSettings,
                                   banner: url,
                                 })
                               }
-                              value={storeSettings.banner}
+                              value={originalStoreSettings.banner}
                               label="Upload Banner"
                               accept="image/*"
                               maxSizeMB={5}
@@ -1523,10 +2175,10 @@ export default function SellerSettingsPage() {
                             Supported formats: JPG, PNG.
                           </div>
                         </div>
-                        {storeSettings.banner && (
+                        {originalStoreSettings.banner && (
                           <div className="mt-2 p-2 border rounded-md flex justify-center">
                             <img
-                              src={storeSettings.banner}
+                              src={originalStoreSettings.banner}
                               alt="Store Banner"
                               className="h-20 w-full object-cover rounded-md"
                               onError={(e) =>
@@ -1539,23 +2191,52 @@ export default function SellerSettingsPage() {
                       </div>
                     </div>
                   </CardContent>
-                  <CardFooter className="flex justify-end">
-                    <Button
-                      onClick={saveStoreSettings}
-                      disabled={isSavingStoreSettings}
-                    >
-                      {isSavingStoreSettings ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="mr-2 h-4 w-4" />
-                          Save Changes
-                        </>
-                      )}
-                    </Button>
+                  <CardFooter className="flex justify-end space-x-2">
+                    {isEditingStoreBranding ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          onClick={() =>
+                            handleCancel(
+                              setIsEditingStoreBranding,
+                              setOriginalStoreSettings,
+                              originalStoreSettings
+                            )
+                          }
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={saveStoreSettings}
+                          disabled={isSavingStoreSettings}
+                        >
+                          {isSavingStoreSettings ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="mr-2 h-4 w-4" />
+                              Save Changes
+                            </>
+                          )}
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        onClick={() =>
+                          handleEdit(
+                            setOriginalStoreSettings,
+                            originalStoreSettings,
+                            setIsEditingStoreBranding
+                          )
+                        }
+                      >
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
+                      </Button>
+                    )}
                   </CardFooter>
                 </Card>
 
@@ -1576,17 +2257,18 @@ export default function SellerSettingsPage() {
                         </Label>
                         <Input
                           id="facebookLink"
-                          value={storeSettings.socialLinks.facebook}
+                          value={originalStoreSettings.socialLinks.facebook}
                           onChange={(e) =>
-                            setStoreSettings({
-                              ...storeSettings,
+                            setOriginalStoreSettings({
+                              ...originalStoreSettings,
                               socialLinks: {
-                                ...storeSettings.socialLinks,
+                                ...originalStoreSettings.socialLinks,
                                 facebook: e.target.value,
                               },
                             })
                           }
                           placeholder="https://facebook.com/your-page"
+                          readOnly={!isEditingSocialLinks}
                         />
                       </div>
                       <div className="space-y-2">
@@ -1597,17 +2279,18 @@ export default function SellerSettingsPage() {
                         </Label>
                         <Input
                           id="instagramLink"
-                          value={storeSettings.socialLinks.instagram}
+                          value={originalStoreSettings.socialLinks.instagram}
                           onChange={(e) =>
-                            setStoreSettings({
-                              ...storeSettings,
+                            setOriginalStoreSettings({
+                              ...originalStoreSettings,
                               socialLinks: {
-                                ...storeSettings.socialLinks,
+                                ...originalStoreSettings.socialLinks,
                                 instagram: e.target.value,
                               },
                             })
                           }
                           placeholder="https://instagram.com/your-handle"
+                          readOnly={!isEditingSocialLinks}
                         />
                       </div>
                       <div className="space-y-2">
@@ -1618,17 +2301,18 @@ export default function SellerSettingsPage() {
                         </Label>
                         <Input
                           id="twitterLink"
-                          value={storeSettings.socialLinks.twitter}
+                          value={originalStoreSettings.socialLinks.twitter}
                           onChange={(e) =>
-                            setStoreSettings({
-                              ...storeSettings,
+                            setOriginalStoreSettings({
+                              ...originalStoreSettings,
                               socialLinks: {
-                                ...storeSettings.socialLinks,
+                                ...originalStoreSettings.socialLinks,
                                 twitter: e.target.value,
                               },
                             })
                           }
                           placeholder="https://twitter.com/your-handle"
+                          readOnly={!isEditingSocialLinks}
                         />
                       </div>
                       <div className="space-y-2">
@@ -1639,38 +2323,68 @@ export default function SellerSettingsPage() {
                         </Label>
                         <Input
                           id="websiteLink"
-                          value={storeSettings.socialLinks.website}
+                          value={originalStoreSettings.socialLinks.website}
                           onChange={(e) =>
-                            setStoreSettings({
-                              ...storeSettings,
+                            setOriginalStoreSettings({
+                              ...originalStoreSettings,
                               socialLinks: {
-                                ...storeSettings.socialLinks,
+                                ...originalStoreSettings.socialLinks,
                                 website: e.target.value,
                               },
                             })
                           }
                           placeholder="https://your-website.com"
+                          readOnly={!isEditingSocialLinks}
                         />
                       </div>
                     </div>
                   </CardContent>
-                  <CardFooter className="flex justify-end">
-                    <Button
-                      onClick={saveStoreSettings}
-                      disabled={isSavingStoreSettings}
-                    >
-                      {isSavingStoreSettings ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="mr-2 h-4 w-4" />
-                          Save Changes
-                        </>
-                      )}
-                    </Button>
+                  <CardFooter className="flex justify-end space-x-2">
+                    {isEditingSocialLinks ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          onClick={() =>
+                            handleCancel(
+                              setIsEditingSocialLinks,
+                              setOriginalStoreSettings,
+                              originalStoreSettings
+                            )
+                          }
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={saveStoreSettings}
+                          disabled={isSavingStoreSettings}
+                        >
+                          {isSavingStoreSettings ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="mr-2 h-4 w-4" />
+                              Save Changes
+                            </>
+                          )}
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        onClick={() =>
+                          handleEdit(
+                            setOriginalStoreSettings,
+                            originalStoreSettings,
+                            setIsEditingSocialLinks
+                          )
+                        }
+                      >
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
+                      </Button>
+                    )}
                   </CardFooter>
                 </Card>
 
@@ -1683,7 +2397,7 @@ export default function SellerSettingsPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {storeSettings.businessHours.map((dayHours, index) => (
+                      {originalStoreSettings.businessHours.map((dayHours, index) => (
                         <div
                           key={dayHours.day}
                           className="flex items-center space-x-4"
@@ -1696,17 +2410,18 @@ export default function SellerSettingsPage() {
                               checked={dayHours.open}
                               onCheckedChange={(checked) => {
                                 const newBusinessHours = [
-                                  ...storeSettings.businessHours,
+                                  ...originalStoreSettings.businessHours,
                                 ];
                                 newBusinessHours[index] = {
                                   ...dayHours,
                                   open: checked,
                                 };
-                                setStoreSettings({
-                                  ...storeSettings,
+                                setOriginalStoreSettings({
+                                  ...originalStoreSettings,
                                   businessHours: newBusinessHours,
                                 });
                               }}
+                              disabled={!isEditingBusinessHours}
                             />
                             <Label>{dayHours.open ? "Open" : "Closed"}</Label>
                           </div>
@@ -1725,18 +2440,19 @@ export default function SellerSettingsPage() {
                                   value={dayHours.openTime}
                                   onChange={(e) => {
                                     const newBusinessHours = [
-                                      ...storeSettings.businessHours,
+                                      ...originalStoreSettings.businessHours,
                                     ];
                                     newBusinessHours[index] = {
                                       ...dayHours,
                                       openTime: e.target.value,
                                     };
-                                    setStoreSettings({
-                                      ...storeSettings,
+                                    setOriginalStoreSettings({
+                                      ...originalStoreSettings,
                                       businessHours: newBusinessHours,
                                     });
                                   }}
                                   className="w-24"
+                                  readOnly={!isEditingBusinessHours}
                                 />
                               </div>
                               <span>to</span>
@@ -1753,18 +2469,19 @@ export default function SellerSettingsPage() {
                                   value={dayHours.closeTime}
                                   onChange={(e) => {
                                     const newBusinessHours = [
-                                      ...storeSettings.businessHours,
+                                      ...originalStoreSettings.businessHours,
                                     ];
                                     newBusinessHours[index] = {
                                       ...dayHours,
                                       closeTime: e.target.value,
                                     };
-                                    setStoreSettings({
-                                      ...storeSettings,
+                                    setOriginalStoreSettings({
+                                      ...originalStoreSettings,
                                       businessHours: newBusinessHours,
                                     });
                                   }}
                                   className="w-24"
+                                  readOnly={!isEditingBusinessHours}
                                 />
                               </div>
                             </>
@@ -1773,23 +2490,52 @@ export default function SellerSettingsPage() {
                       ))}
                     </div>
                   </CardContent>
-                  <CardFooter className="flex justify-end">
-                    <Button
-                      onClick={saveStoreSettings}
-                      disabled={isSavingStoreSettings}
-                    >
-                      {isSavingStoreSettings ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="mr-2 h-4 w-4" />
-                          Save Changes
-                        </>
-                      )}
-                    </Button>
+                  <CardFooter className="flex justify-end space-x-2">
+                    {isEditingBusinessHours ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          onClick={() =>
+                            handleCancel(
+                              setIsEditingBusinessHours,
+                              setOriginalStoreSettings,
+                              originalStoreSettings
+                            )
+                          }
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={saveStoreSettings}
+                          disabled={isSavingStoreSettings}
+                        >
+                          {isSavingStoreSettings ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="mr-2 h-4 w-4" />
+                              Save Changes
+                            </>
+                          )}
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        onClick={() =>
+                          handleEdit(
+                            setOriginalStoreSettings,
+                            originalStoreSettings,
+                            setIsEditingBusinessHours
+                          )
+                        }
+                      >
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
+                      </Button>
+                    )}
                   </CardFooter>
                 </Card>
 
@@ -1874,93 +2620,198 @@ export default function SellerSettingsPage() {
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="gstin">GSTIN Number</Label>
-                      <Input
-                        id="gstin"
-                        value={billingInfo.gstin}
-                        onChange={(e) =>
-                          setBillingInfo({
-                            ...billingInfo,
-                            gstin: e.target.value,
-                          })
-                        }
-                      />
+                      {isEditingBillingInfo ? (
+                        <>
+                          <Input
+                            id="gstin"
+                            value={originalBillingInfo.gstin}
+                            onChange={(e) =>
+                              setOriginalBillingInfo({
+                                ...originalBillingInfo,
+                                gstin: e.target.value.toUpperCase(),
+                              })
+                            }
+                          />
+                          {billingInfoErrors.gstin && (
+                            <p className="text-xs text-red-500">
+                              {billingInfoErrors.gstin}
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-sm py-2">{originalBillingInfo.gstin}</p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="businessName">Legal Business Name</Label>
-                      <Input
-                        id="businessName"
-                        value={billingInfo.businessName}
-                        onChange={(e) =>
-                          setBillingInfo({
-                            ...billingInfo,
-                            businessName: e.target.value,
-                          })
-                        }
-                      />
+                      {isEditingBillingInfo ? (
+                        <>
+                          <Input
+                            id="businessName"
+                            value={originalBillingInfo.businessName}
+                            onChange={(e) =>
+                              setOriginalBillingInfo({
+                                ...originalBillingInfo,
+                                businessName: e.target.value,
+                              })
+                            }
+                          />
+                          {billingInfoErrors.businessName && (
+                            <p className="text-xs text-red-500">
+                              {billingInfoErrors.businessName}
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-sm py-2">
+                          {originalBillingInfo.businessName}
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="panNumber">PAN Number</Label>
-                      <Input
-                        id="panNumber"
-                        value={billingInfo.panNumber}
-                        onChange={(e) =>
-                          setBillingInfo({
-                            ...billingInfo,
-                            panNumber: e.target.value,
-                          })
-                        }
-                      />
+                      {isEditingBillingInfo ? (
+                        <>
+                          <Input
+                            id="panNumber"
+                            value={originalBillingInfo.panNumber}
+                            onChange={(e) =>
+                              setOriginalBillingInfo({
+                                ...originalBillingInfo,
+                                panNumber: e.target.value.toUpperCase(),
+                              })
+                            }
+                          />
+                          {billingInfoErrors.panNumber && (
+                            <p className="text-xs text-red-500">
+                              {billingInfoErrors.panNumber}
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-sm py-2">{originalBillingInfo.panNumber}</p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label>Business Type</Label>
-                      <RadioGroup
-                        value={billingInfo.businessType}
-                        onValueChange={(value) =>
-                          setBillingInfo({
-                            ...billingInfo,
-                            businessType: value,
-                          })
-                        }
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="individual" id="individual" />
-                          <Label htmlFor="individual">
-                            Individual/Proprietorship
-                          </Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem
-                            value="partnership"
-                            id="partnership"
-                          />
-                          <Label htmlFor="partnership">Partnership</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="company" id="company" />
-                          <Label htmlFor="company">
-                            Private Limited/Limited Company
-                          </Label>
-                        </div>
-                      </RadioGroup>
+                      {isEditingBillingInfo ? (
+                        <RadioGroup
+                          value={originalBillingInfo.businessType}
+                          onValueChange={(value) =>
+                            setOriginalBillingInfo({
+                              ...originalBillingInfo,
+                              businessType: value,
+                            })
+                          }
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem
+                              value="individual"
+                              id="individual"
+                            />
+                            <Label htmlFor="individual">
+                              Individual/Proprietorship
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem
+                              value="partnership"
+                              id="partnership"
+                            />
+                            <Label htmlFor="partnership">Partnership</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="company" id="company" />
+                            <Label htmlFor="company">
+                              Private Limited/Limited Company
+                            </Label>
+                          </div>
+                        </RadioGroup>
+                      ) : (
+                        <p className="text-sm py-2">
+                          {originalBillingInfo.businessType}
+                        </p>
+                      )}
                     </div>
                   </CardContent>
-                  <CardFooter className="flex justify-end">
-                    <Button
-                      onClick={saveBillingInfo}
-                      disabled={isSavingBillingInfo}
-                    >
-                      {isSavingBillingInfo ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="mr-2 h-4 w-4" />
-                          Save Changes
-                        </>
-                      )}
-                    </Button>
+                  <CardFooter className="flex justify-end space-x-2">
+                    {isEditingBillingInfo ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          onClick={() =>
+                            handleCancel(
+                              setIsEditingBillingInfo,
+                              setOriginalBillingInfo,
+                              originalBillingInfo,
+                              setBillingInfoErrors,
+                              { gstin: "", businessName: "", panNumber: "" }
+                            )
+                          }
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={saveBillingInfo}
+                          disabled={isSavingBillingInfo}
+                        >
+                          {isSavingBillingInfo ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="mr-2 h-4 w-4" />
+                              Save Changes
+                            </>
+                          )}
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="destructive"
+                              className="text-xs md:text-sm"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                Are you sure?
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will clear your billing information. This
+                                action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={deleteBillingInfo}>
+                                Continue
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                        <Button
+                          onClick={() =>
+                            handleEdit(
+                              setOriginalBillingInfo,
+                              originalBillingInfo,
+                              setIsEditingBillingInfo
+                            )
+                          }
+                        >
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
+                        </Button>
+                      </>
+                    )}
                   </CardFooter>
                 </Card>
 
@@ -1974,83 +2825,205 @@ export default function SellerSettingsPage() {
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="accountName">Account Holder Name</Label>
-                      <Input
-                        id="accountName"
-                        value={bankInfo.accountName}
-                        onChange={(e) =>
-                          setBankInfo({
-                            ...bankInfo,
-                            accountName: e.target.value,
-                          })
-                        }
-                      />
+                      {isEditingBankInfo ? (
+                        <>
+                          <Input
+                            id="accountName"
+                            value={originalBankInfo.accountName}
+                            onChange={(e) =>
+                              setOriginalBankInfo({
+                                ...originalBankInfo,
+                                accountName: e.target.value,
+                              })
+                            }
+                          />
+                          {bankInfoErrors.accountName && (
+                            <p className="text-xs text-red-500">
+                              {bankInfoErrors.accountName}
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-sm py-2">{originalBankInfo.accountName}</p>
+                      )}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="accountNumber">Account Number</Label>
-                        <Input
-                          id="accountNumber"
-                          value={bankInfo.accountNumber}
-                          onChange={(e) =>
-                            setBankInfo({
-                              ...bankInfo,
-                              accountNumber: e.target.value,
-                            })
-                          }
-                        />
+                        {isEditingBankInfo ? (
+                          <>
+                            <Input
+                              id="accountNumber"
+                              value={originalBankInfo.accountNumber}
+                              onChange={(e) =>
+                                setOriginalBankInfo({
+                                  ...originalBankInfo,
+                                  accountNumber: e.target.value,
+                                })
+                              }
+                            />
+                            {bankInfoErrors.accountNumber && (
+                              <p className="text-xs text-red-500">
+                                {bankInfoErrors.accountNumber}
+                              </p>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-sm py-2">
+                            {originalBankInfo.accountNumber}
+                          </p>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="ifscCode">IFSC Code</Label>
-                        <Input
-                          id="ifscCode"
-                          value={bankInfo.ifscCode}
-                          onChange={(e) =>
-                            setBankInfo({
-                              ...bankInfo,
-                              ifscCode: e.target.value,
-                            })
-                          }
-                        />
+                        {isEditingBankInfo ? (
+                          <>
+                            <Input
+                              id="ifscCode"
+                              value={originalBankInfo.ifscCode}
+                              onChange={(e) =>
+                                setOriginalBankInfo({
+                                  ...originalBankInfo,
+                                  ifscCode: e.target.value.toUpperCase(),
+                                })
+                              }
+                            />
+                            {bankInfoErrors.ifscCode && (
+                              <p className="text-xs text-red-500">
+                                {bankInfoErrors.ifscCode}
+                              </p>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-sm py-2">{originalBankInfo.ifscCode}</p>
+                        )}
                       </div>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="bankName">Bank Name</Label>
-                      <Input
-                        id="bankName"
-                        value={bankInfo.bankName}
-                        onChange={(e) =>
-                          setBankInfo({ ...bankInfo, bankName: e.target.value })
-                        }
-                      />
+                      {isEditingBankInfo ? (
+                        <>
+                          <Input
+                            id="bankName"
+                            value={originalBankInfo.bankName}
+                            onChange={(e) =>
+                              setOriginalBankInfo({
+                                ...originalBankInfo,
+                                bankName: e.target.value,
+                              })
+                            }
+                          />
+                          {bankInfoErrors.bankName && (
+                            <p className="text-xs text-red-500">
+                              {bankInfoErrors.bankName}
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-sm py-2">{originalBankInfo.bankName}</p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="branchName">Branch Name</Label>
-                      <Input
-                        id="branchName"
-                        value={bankInfo.branchName}
-                        onChange={(e) =>
-                          setBankInfo({
-                            ...bankInfo,
-                            branchName: e.target.value,
-                          })
-                        }
-                      />
+                      {isEditingBankInfo ? (
+                        <Input
+                          id="branchName"
+                          value={originalBankInfo.branchName}
+                          onChange={(e) =>
+                            setOriginalBankInfo({
+                              ...originalBankInfo,
+                              branchName: e.target.value,
+                            })
+                          }
+                        />
+                      ) : (
+                        <p className="text-sm py-2">{originalBankInfo.branchName}</p>
+                      )}
                     </div>
                   </CardContent>
-                  <CardFooter className="flex justify-end">
-                    <Button onClick={saveBankInfo} disabled={isSavingBankInfo}>
-                      {isSavingBankInfo ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="mr-2 h-4 w-4" />
-                          Save Changes
-                        </>
-                      )}
-                    </Button>
+                  <CardFooter className="flex justify-end space-x-2">
+                    {isEditingBankInfo ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          onClick={() =>
+                            handleCancel(
+                              setIsEditingBankInfo,
+                              setOriginalBankInfo,
+                              originalBankInfo,
+                              setBankInfoErrors,
+                              {
+                                accountName: "",
+                                accountNumber: "",
+                                ifscCode: "",
+                                bankName: "",
+                              }
+                            )
+                          }
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={saveBankInfo}
+                          disabled={isSavingBankInfo}
+                        >
+                          {isSavingBankInfo ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="mr-2 h-4 w-4" />
+                              Save Changes
+                            </>
+                          )}
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="destructive"
+                              className="text-xs md:text-sm"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                Are you sure?
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will clear your bank information. This
+                                action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={deleteBankInfo}>
+                                Continue
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                        <Button
+                          onClick={() =>
+                            handleEdit(
+                              setOriginalBankInfo,
+                              originalBankInfo,
+                              setIsEditingBankInfo
+                            )
+                          }
+                        >
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
+                        </Button>
+                      </>
+                    )}
                   </CardFooter>
                 </Card>
               </TabsContent>
@@ -2120,7 +3093,6 @@ export default function SellerSettingsPage() {
                           onChange={(e) => {
                             // Only allow digits in the field
                             const value = e.target.value.replace(/[^0-9]/g, "");
-                            e.target.value = value;
                             setPickupAddress({
                               ...pickupAddress,
                               phone: value,
@@ -2237,49 +3209,37 @@ export default function SellerSettingsPage() {
                           onChange={async (e) => {
                             // Only allow digits in the field
                             const value = e.target.value.replace(/[^0-9]/g, "");
-                            e.target.value = value;
 
                             const pincode = value;
                             setPickupAddress({ ...pickupAddress, pincode });
-                            console.log("Pickup Pincode changed:", pincode);
+
+                            if (validatePincode(pincode)) {
+                              setPickupAddressErrors((prev) => ({
+                                ...prev,
+                                pincode: "",
+                              }));
+                            } else if (pincode.length === 6) {
+                              setPickupAddressErrors((prev) => ({
+                                ...prev,
+                                pincode: "Invalid pincode",
+                              }));
+                            }
 
                             // If pincode is 6 digits, try to auto-populate city and state
                             if (pincode.length === 6) {
-                              console.log(
-                                "Fetching data for pickup pincode:",
-                                pincode
-                              );
                               try {
                                 const response = await fetch(
                                   `/api/pincode/${pincode}`
                                 );
-                                console.log(
-                                  "Pickup Pincode API response:",
-                                  response.status
-                                );
                                 if (response.ok) {
                                   const data = await response.json();
-                                  console.log(
-                                    "Pickup Pincode data received:",
-                                    data
-                                  );
                                   if (data && data.state) {
-                                    console.log(
-                                      "Setting pickup address with pincode data:",
-                                      data.state,
-                                      data.district
-                                    );
                                     setPickupAddress((prev) => ({
                                       ...prev,
                                       pincode,
                                       city: data.district || prev.city,
                                       state: data.state || prev.state,
                                     }));
-                                    console.log(
-                                      "Pickup address state updated:",
-                                      pickupAddress.state,
-                                      pickupAddress.city
-                                    );
                                   }
                                 }
                               } catch (error) {
@@ -2302,12 +3262,6 @@ export default function SellerSettingsPage() {
                           value={pickupAddress.city}
                           readOnly
                           className="bg-gray-50 cursor-not-allowed"
-                          onChange={(e) =>
-                            setPickupAddress({
-                              ...pickupAddress,
-                              city: e.target.value,
-                            })
-                          }
                         />
                         <p className="text-xs text-muted-foreground">
                           Auto-populated from PIN code
@@ -2320,12 +3274,6 @@ export default function SellerSettingsPage() {
                           value={pickupAddress.state}
                           readOnly
                           className="bg-gray-50 cursor-not-allowed"
-                          onChange={(e) =>
-                            setPickupAddress({
-                              ...pickupAddress,
-                              state: e.target.value,
-                            })
-                          }
                         />
                         <p className="text-xs text-muted-foreground">
                           Auto-populated from PIN code
@@ -2333,23 +3281,98 @@ export default function SellerSettingsPage() {
                       </div>
                     </div>
                   </CardContent>
-                  <CardFooter className="flex justify-end">
-                    <Button
-                      onClick={savePickupAddress}
-                      disabled={isSavingPickupAddress}
-                    >
-                      {isSavingPickupAddress ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="mr-2 h-4 w-4" />
-                          Save Pickup Address
-                        </>
-                      )}
-                    </Button>
+                  <CardFooter className="flex justify-end space-x-2">
+                    {isEditingPickupAddress ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          onClick={() =>
+                            handleCancel(
+                              setIsEditingPickupAddress,
+                              setPickupAddress,
+                              originalPickupAddress,
+                              setPickupAddressErrors,
+                              {
+                                businessName: "",
+                                gstin: "",
+                                contactName: "",
+                                phone: "",
+                                line1: "",
+                                city: "",
+                                state: "",
+                                pincode: "",
+                                authorizationSignature: "",
+                              }
+                            )
+                          }
+                          className="text-xs md:text-sm"
+                        >
+                          <X className="mr-2 h-4 w-4" />
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={savePickupAddress}
+                          disabled={isSavingPickupAddress}
+                          className="text-xs md:text-sm"
+                        >
+                          {isSavingPickupAddress ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="mr-2 h-4 w-4" />
+                              Save Pickup Address
+                            </>
+                          )}
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="destructive"
+                              className="text-xs md:text-sm"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                Are you sure?
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will clear your pickup address. This
+                                action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={deletePickupAddress}>
+                                Continue
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                        <Button
+                          onClick={() =>
+                            handleEdit(
+                              setOriginalPickupAddress,
+                              pickupAddress,
+                              setIsEditingPickupAddress
+                            )
+                          }
+                          className="text-xs md:text-sm"
+                        >
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
+                        </Button>
+                      </>
+                    )}
                   </CardFooter>
                 </Card>
               </TabsContent>
