@@ -371,42 +371,54 @@ export default function TicketManagementPage() {
                           <p className="text-center text-muted-foreground py-4">
                             No messages yet
                           </p>
-                        ) : (
-                          messages.map((message: any, index: number) => (
-                            <div
-                              key={index}
-                              className={`flex gap-3 ${message.isFromSeller ? "justify-end" : ""}`}
-                            >
-                              {!message.isFromSeller && (
-                                <div className="bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center font-bold text-gray-600">
-                                  A
-                                </div>
-                              )}
+                        ) :
+                          messages.map((message: any, index: number) => {
+                            const isFromSeller = message.senderRole === 'seller';
+                            const isFromAdmin = message.senderRole === 'admin' || message.senderRole === 'co-admin';
+                            let label = '';
+                            if (isFromSeller) {
+                              label = `${message.senderName || 'Seller'} (seller)`;
+                            } else if (isFromAdmin) {
+                              label = `Support Agent (admin)`;
+                            } else {
+                              label = message.senderName || 'User';
+                            }
+                            return (
                               <div
-                                className={`max-w-[80%] ${message.isFromSeller ? "bg-primary/10 text-primary-foreground" : "bg-muted"} p-3 rounded-lg`}
+                                key={index}
+                                className={`flex gap-3 ${isFromSeller ? "justify-end" : "justify-start"}`}
                               >
-                                <div className="flex justify-between items-center mb-1">
-                                  <span className="font-medium">
-                                    {message.isFromSeller ? "User" : "Admin"}
-                                  </span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {new Date(
-                                      message.createdAt
-                                    ).toLocaleString()}
-                                  </span>
+                                {!isFromSeller && (
+                                  <div className="bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center font-bold text-gray-600">
+                                    {label.charAt(0)}
+                                  </div>
+                                )}
+                                <div
+                                  className={`max-w-[80%] ${isFromSeller ? "bg-primary/10 text-primary-foreground" : "bg-muted"} p-3 rounded-lg`}
+                                >
+                                  <div className="flex justify-between items-center mb-1">
+                                    <span className="font-medium">
+                                      {label}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {new Date(
+                                        message.createdAt
+                                      ).toLocaleString()}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm whitespace-pre-wrap">
+                                    {message.message}
+                                  </p>
                                 </div>
-                                <p className="text-sm whitespace-pre-wrap">
-                                  {message.message}
-                                </p>
+                                {isFromSeller && (
+                                  <div className="bg-blue-200 rounded-full w-8 h-8 flex items-center justify-center font-bold text-blue-600">
+                                    {label.charAt(0)}
+                                  </div>
+                                )}
                               </div>
-                              {message.isFromSeller && (
-                                <div className="bg-blue-200 rounded-full w-8 h-8 flex items-center justify-center font-bold text-blue-600">
-                                  U
-                                </div>
-                              )}
-                            </div>
-                          ))
-                        )}
+                            );
+                          })
+                        }
                       </div>
                     </div>
                     <div className="space-y-2">
