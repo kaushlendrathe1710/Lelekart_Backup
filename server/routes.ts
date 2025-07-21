@@ -8090,15 +8090,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/subcategories/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
-    // Allow admin or co-admin with canDeleteCategories permission
-    const isAdmin = req.user.role === "admin" && !req.user.isCoAdmin;
-    const isAuthorizedCoAdmin =
-      req.user.role === "admin" &&
-      req.user.isCoAdmin &&
-      req.user.permissions &&
-      req.user.permissions.canDeleteCategories;
-
-    if (!isAdmin && !isAuthorizedCoAdmin) {
+    if (req.user.role !== "admin") {
       return res.status(403).json({ error: "Not authorized" });
     }
 
@@ -8109,6 +8101,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!subcategory) {
         return res.status(404).json({ error: "Subcategory not found" });
       }
+
+      // Set subcategoryId = NULL for all products referencing this subcategory
+      await db.update(products).set({ subcategoryId: null }).where(eq(products.subcategoryId, id));
 
       await storage.deleteSubcategory(id);
       res.status(204).send();
