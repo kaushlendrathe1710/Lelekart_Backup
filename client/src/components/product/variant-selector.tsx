@@ -424,6 +424,33 @@ export function VariantSelector({
 
   // Find the matching variant when color and size are selected
   useEffect(() => {
+    // Auto-select first variant on initial load
+    if (
+      !selectedColor &&
+      !selectedSize &&
+      variants.length > 0 &&
+      availableColors.length > 0
+    ) {
+      const firstColor = availableColors[0];
+      setSelectedColor(firstColor);
+
+      // Find first available size for the first color
+      const firstSize = variants.find(
+        (v) =>
+          colorMatches(v.color, firstColor) &&
+          typeof v.stock === "number" &&
+          v.stock > 0
+      )?.size;
+
+      if (firstSize) {
+        const sizes = parseCommaSeparatedValues(firstSize);
+        if (sizes.length > 0) {
+          setSelectedSize(sizes[0]);
+        }
+      }
+      return; // Return early to prevent further execution in this render
+    }
+
     const hasColorVariants = availableColors.length > 0;
     const hasSizeVariants = availableSizes.length > 0;
 
@@ -451,62 +478,65 @@ export function VariantSelector({
     }
 
     // Update the current variant
-    if (!selectedColor || !variants || variants.length === 0) {
+    if (
+      (!selectedColor && hasColorVariants && selectedColor !== "Default") ||
+      !variants ||
+      variants.length === 0
+    ) {
       setCurrentVariant(null);
       onVariantChange(null);
+      onValidSelectionChange(false);
       return;
     }
 
-    // Find a variant that contains the selected color, size is optional
-    const matchedVariant = variants.find((v) => {
-      // Handle special case for "Default" color (when only size variants exist)
-      const colorMatch =
-        selectedColor === "Default" ||
-        colorMatches(v.color, selectedColor || "");
-
-      // Only check size match if a size is selected and size variants exist
-      const sizeMatch =
-        !hasSizeVariants ||
-        !selectedSize ||
-        (selectedSize ? sizeMatches(v.size, selectedSize) : true);
-
-      return (
-        colorMatch && sizeMatch && typeof v.stock === "number" && v.stock > 0
-      );
-    });
-
-    setCurrentVariant(matchedVariant || null);
-    onVariantChange(matchedVariant || null);
-
-    // Enhanced image update logic:
-    // 1. If a color is selected, return the color-specific images (these will be shown first)
-    // 2. If a specific variant is matched, also include its images
-    // 3. In all cases, the product details page will combine these with the main product images
+    // New matching logic:
+    // 1. Must match color if colors are available.
+    // 2. Must match size if sizes are available for that color.
+    let matchedVariant: ProductVariant | null = null;
 
     if (selectedColor) {
-      if (colorImages[selectedColor] && colorImages[selectedColor].length > 0) {
-        // Get images for the selected color and remove duplicates
-        const colorSpecificImages = Array.from(
-          new Set(colorImages[selectedColor])
-        );
+      const variantsWithColor = variants.filter(
+        (v) =>
+          colorMatches(v.color, selectedColor) &&
+          typeof v.stock === "number" &&
+          v.stock > 0
+      );
 
-        // Update the parent with these images - they'll be shown first, followed by default images
-        onVariantImagesChange([...mainProductImages, ...colorSpecificImages]);
+      if (hasSizeVariants) {
+        if (selectedSize) {
+          // If size is selected, find the exact match
+          matchedVariant =
+            variantsWithColor.find((v) => sizeMatches(v.size, selectedSize)) ||
+            null;
+        }
+        // If size is NOT selected, but sizes are available, selection is incomplete
+        // Do not set a variant in this case
+      } else {
+        // If there are no size options, the first variant with the color is the match
+        matchedVariant =
+          variantsWithColor.length > 0 ? variantsWithColor[0] : null;
       }
-      // If we have a specific variant selected but no color-specific images, use variant images
-      else if (matchedVariant && matchedVariant.images) {
-        // Parse images from the matched variant
-        const variantImages = parseVariantImages(matchedVariant);
+    }
 
-        // Update parent with these images - they'll be shown first, followed by default images
-        onVariantImagesChange([...mainProductImages, ...variantImages]);
-      }
-      // If no variant selected with images, pass an empty array
-      // The product details page will still show the main product images
-      else {
-        // No color/variant-specific images, will use main product images
+    setCurrentVariant(matchedVariant);
+    onVariantChange(matchedVariant);
+
+    // Update validity based on whether a variant was successfully matched
+    onValidSelectionChange(!!matchedVariant);
+
+    // If we have a matched variant, update images
+    if (matchedVariant) {
+      const variantImages = parseVariantImages(matchedVariant);
+      if (variantImages.length > 0) {
+        onVariantImagesChange(variantImages);
+      } else if (selectedColor && colorImages[selectedColor]) {
+        onVariantImagesChange(colorImages[selectedColor]);
+      } else {
         onVariantImagesChange([]);
       }
+    } else if (selectedColor && colorImages[selectedColor]) {
+      // If no specific variant, but color is selected, show color images
+      onVariantImagesChange(colorImages[selectedColor]);
     } else {
       onVariantImagesChange([]);
     }
