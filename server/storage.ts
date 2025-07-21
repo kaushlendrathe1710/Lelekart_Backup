@@ -6242,7 +6242,7 @@ export class DatabaseStorage implements IStorage {
     await db
       .update(reviews)
       .set({
-        helpfulCount: (row) => `${row.helpfulCount} + 1`,
+        helpfulCount: sql`${reviews.helpfulCount} + 1`,
       })
       .where(eq(reviews.id, reviewId));
 
@@ -6264,7 +6264,7 @@ export class DatabaseStorage implements IStorage {
     await db
       .update(reviews)
       .set({
-        helpfulCount: (row) => `GREATEST(${row.helpfulCount} - 1, 0)`,
+        helpfulCount: sql`greatest(${reviews.helpfulCount} - 1, 0)`,
       })
       .where(eq(reviews.id, reviewId));
   }
