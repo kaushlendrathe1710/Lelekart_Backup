@@ -3065,6 +3065,83 @@ export default function AddProductPage() {
   const onSubmit = async (data: z.infer<typeof productSchema>) => {
     try {
       setIsSubmitting(true);
+      // --- AUTO-SAVE CURRENTLY EDITING VARIANT IF NEEDED ---
+      if (selectedVariant && isAddingVariant) {
+        // Validate the current variant (reuse logic from handleSaveNewVariant)
+        if (!selectedVariant.sku || selectedVariant.sku.trim() === "") {
+          toast({
+            title: "Missing required field: SKU",
+            description: "Please enter a valid SKU for this variant",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+        if (
+          selectedVariant.price === undefined ||
+          selectedVariant.price === null ||
+          isNaN(Number(selectedVariant.price)) ||
+          Number(selectedVariant.price) <= 0
+        ) {
+          toast({
+            title: "Invalid price",
+            description: "Please enter a valid price greater than zero",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+        if (
+          selectedVariant.stock === undefined ||
+          selectedVariant.stock === null ||
+          isNaN(Number(selectedVariant.stock)) ||
+          Number(selectedVariant.stock) < 0
+        ) {
+          toast({
+            title: "Invalid stock quantity",
+            description: "Please enter a valid stock quantity (zero or greater)",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+        // Duplicate color check (case-insensitive, trimmed)
+        const allVariants = [...variants, ...draftVariants];
+        const colorKey = (selectedVariant.color || "").trim().toLowerCase();
+        if (colorKey) {
+          const duplicate = allVariants.some(
+            (v) => (v.color || "").trim().toLowerCase() === colorKey
+          );
+          if (duplicate) {
+            toast({
+              title: "Duplicate color",
+              description: `A variant with color '${selectedVariant.color}' already exists. Please choose a different color.`,
+              variant: "destructive",
+            });
+            setIsSubmitting(false);
+            return;
+          }
+        }
+        // Add to draftVariants
+        setDraftVariants((prevDraftVariants) => {
+          const variantExists = prevDraftVariants.some(
+            (v: ProductVariant) => v.id === selectedVariant.id
+          );
+          if (variantExists) {
+            return prevDraftVariants.map((v: ProductVariant) =>
+              v.id === selectedVariant.id ? selectedVariant : v
+            );
+          } else {
+            return [...prevDraftVariants, selectedVariant];
+          }
+        });
+        // Clear editing state
+        setSelectedVariant(null);
+        setIsAddingVariant(false);
+        setVariantImages([]);
+        // Wait a tick for state to update
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
       // ... existing validation code ...
 
       // Duplicate color check before submit (case-insensitive, trimmed)

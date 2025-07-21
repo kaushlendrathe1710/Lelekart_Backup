@@ -1833,9 +1833,13 @@ export default function ProductDetailsPage() {
                   <div className="mt-6">
                     <VariantSelector
                       variants={product.variants}
+                      baseProduct={{
+                        stock: product.stock,
+                        sku: product.sku,
+                        size: product.size,
+                      }}
                       onVariantChange={(variant) => {
                         setSelectedVariant(variant);
-                        // Update color and size based on the selected variant
                         if (variant) {
                           setSelectedColor(variant.color || null);
                           setSelectedSize(variant.size || null);

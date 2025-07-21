@@ -74,6 +74,11 @@ interface VariantSelectorProps {
   ) => void; // Callback for viewing all images of a variant
   includeStock?: boolean; // Whether to show stock information
   showImagePreviews?: boolean; // Whether to show image previews in the variant selector
+  baseProduct?: {
+    stock?: number;
+    sku?: string;
+    size?: string;
+  };
 }
 
 export function VariantSelector({
@@ -84,6 +89,7 @@ export function VariantSelector({
   onViewVariantImages = () => {}, // Default empty function for viewing variant images
   includeStock = true, // Default to showing stock information
   showImagePreviews = true, // Default to showing image previews
+  baseProduct,
 }: VariantSelectorProps) {
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
@@ -555,270 +561,343 @@ export function VariantSelector({
             onValueChange={(value) => setSelectedColor(value)}
             className="flex flex-wrap gap-3"
           >
-            {availableColors.map((color) => {
-              // Get all thumbnails for this color
-              const colorThumbnails = colorImages[color] || [];
-              const showMultipleImages =
-                showImagePreviews && colorThumbnails.length > 1;
+            {/* Base Product color option */}
+            <div key="base-product" className="flex flex-col items-center">
+              <RadioGroupItem
+                value="Base Product"
+                id="color-base-product"
+                className="peer sr-only"
+                disabled={false}
+              />
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex flex-col items-center gap-1 group">
+                      <div
+                        className={cn(
+                          "w-16 h-16 rounded-md border-2 cursor-pointer transition-all overflow-hidden relative bg-gray-50 flex items-center justify-center",
+                          selectedColor === "Base Product"
+                            ? "border-primary ring-2 ring-primary ring-opacity-30"
+                            : "border-gray-200 hover:border-gray-300 group-hover:shadow-md"
+                        )}
+                        onClick={() => {
+                          setSelectedColor("Base Product");
+                          setSelectedSize(null);
+                          setCurrentVariant(null);
+                          onVariantChange(null);
+                          onVariantImagesChange([]);
+                        }}
+                      >
+                        <Label
+                          htmlFor="color-base-product"
+                          className="w-full h-full cursor-pointer flex items-center justify-center"
+                        >
+                          <span className="text-xs text-center px-1 font-semibold">
+                            Base Product
+                          </span>
+                        </Label>
+                        {/* Selected checkmark badge */}
+                        {selectedColor === "Base Product" && (
+                          <div className="absolute top-0 right-0 bg-primary text-white rounded-bl-md p-0.5">
+                            <Check className="h-3 w-3" />
+                          </div>
+                        )}
+                      </div>
+                      {/* Color name below thumbnail */}
+                      <Label
+                        htmlFor="color-base-product"
+                        className={cn(
+                          "text-xs text-center cursor-pointer transition-colors font-semibold",
+                          selectedColor === "Base Product"
+                            ? "text-primary"
+                            : "text-gray-600 group-hover:text-gray-900"
+                        )}
+                      >
+                        Base Product
+                      </Label>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <div className="p-1 text-xs">View the base product</div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            {/* Render the rest of the color swatches as before */}
+            {(Array.isArray(availableColors) ? availableColors : []).map(
+              (color) => {
+                // Get all thumbnails for this color
+                const colorThumbnails = colorImages[color] || [];
+                const showMultipleImages =
+                  showImagePreviews && colorThumbnails.length > 1;
 
-              // Use the first image as the main thumbnail
-              const mainThumbnail =
-                colorThumbnails.length > 0 ? colorThumbnails[0] : null;
+                // Use the first image as the main thumbnail
+                const mainThumbnail =
+                  colorThumbnails.length > 0 ? colorThumbnails[0] : null;
 
-              // Get variant stock for this color
-              const colorStock = variants
-                .filter(
-                  (v) =>
-                    colorMatches(v.color, color) &&
-                    typeof v.stock === "number" &&
-                    v.stock > 0
-                )
-                .reduce((total, v) => total + v.stock, 0);
+                // Get variant stock for this color
+                const colorStock = variants
+                  .filter(
+                    (v) =>
+                      colorMatches(v.color, color) &&
+                      typeof v.stock === "number" &&
+                      v.stock > 0
+                  )
+                  .reduce((total, v) => total + v.stock, 0);
 
-              // Find a variant with this color to get its price for the tooltip
-              const variantWithColor = variants.find((v) =>
-                colorMatches(v.color, color)
-              );
-              const price = variantWithColor?.price;
-              const mrp = variantWithColor?.mrp;
+                // Find a variant with this color to get its price for the tooltip
+                const variantWithColor = variants.find((v) =>
+                  colorMatches(v.color, color)
+                );
+                const price = variantWithColor?.price;
+                const mrp = variantWithColor?.mrp;
 
-              const isOutOfStock = colorStock === 0;
+                const isOutOfStock = colorStock === 0;
 
-              // Show discount if available
-              const discount =
-                price && mrp && mrp > price
-                  ? Math.round((1 - price / mrp) * 100)
-                  : null;
+                // Show discount if available
+                const discount =
+                  price && mrp && mrp > price
+                    ? Math.round((1 - price / mrp) * 100)
+                    : null;
 
-              return (
-                <div key={color} className="flex flex-col items-center">
-                  <RadioGroupItem
-                    value={color}
-                    id={`color-${color}`}
-                    className="peer sr-only"
-                    disabled={isOutOfStock}
-                  />
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex flex-col items-center gap-1 group">
-                          {/* Color swatch or thumbnail with optional badge for multiple images */}
-                          <div
-                            className={cn(
-                              "w-16 h-16 rounded-md border-2 cursor-pointer transition-all overflow-hidden relative",
-                              selectedColor === color
-                                ? "border-primary ring-2 ring-primary ring-opacity-30"
-                                : isOutOfStock
-                                ? "border-gray-200 opacity-60 cursor-not-allowed"
-                                : "border-gray-200 hover:border-gray-300 group-hover:shadow-md"
-                            )}
-                            onClick={() => {
-                              if (
-                                !isOutOfStock &&
-                                showMultipleImages &&
-                                selectedColor === color &&
-                                onViewVariantImages
-                              ) {
-                                // If this color is already selected and has multiple images, show image gallery
-                                const variant = variants.find(
-                                  (v) =>
-                                    colorMatches(v.color, color) &&
-                                    (v.size
-                                      ? sizeMatches(v.size, selectedSize || "")
-                                      : true)
-                                );
-                                onViewVariantImages(colorThumbnails, {
-                                  color,
-                                  size: variant?.size || undefined,
-                                  price: variant?.price ?? undefined,
-                                  mrp: variant?.mrp ?? undefined,
-                                  stock: variant?.stock ?? undefined,
-                                });
-                              }
-                            }}
-                          >
-                            <Label
-                              htmlFor={`color-${color}`}
+                if (color === "Base Product") return null; // Avoid duplicate
+
+                return (
+                  <div key={color} className="flex flex-col items-center">
+                    <RadioGroupItem
+                      value={color}
+                      id={`color-${color}`}
+                      className="peer sr-only"
+                      disabled={isOutOfStock}
+                    />
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex flex-col items-center gap-1 group">
+                            {/* Color swatch or thumbnail with optional badge for multiple images */}
+                            <div
                               className={cn(
-                                "w-full h-full cursor-pointer",
-                                isOutOfStock && "cursor-not-allowed"
+                                "w-16 h-16 rounded-md border-2 cursor-pointer transition-all overflow-hidden relative",
+                                selectedColor === color
+                                  ? "border-primary ring-2 ring-primary ring-opacity-30"
+                                  : isOutOfStock
+                                    ? "border-gray-200 opacity-60 cursor-not-allowed"
+                                    : "border-gray-200 hover:border-gray-300 group-hover:shadow-md"
                               )}
+                              onClick={() => {
+                                if (
+                                  !isOutOfStock &&
+                                  showMultipleImages &&
+                                  selectedColor === color &&
+                                  onViewVariantImages
+                                ) {
+                                  // If this color is already selected and has multiple images, show image gallery
+                                  const variant = variants.find(
+                                    (v) =>
+                                      colorMatches(v.color, color) &&
+                                      (v.size
+                                        ? sizeMatches(
+                                            v.size,
+                                            selectedSize || ""
+                                          )
+                                        : true)
+                                  );
+                                  onViewVariantImages(colorThumbnails, {
+                                    color,
+                                    size: variant?.size || undefined,
+                                    price: variant?.price ?? undefined,
+                                    mrp: variant?.mrp ?? undefined,
+                                    stock: variant?.stock ?? undefined,
+                                  });
+                                }
+                              }}
                             >
-                              {mainThumbnail ? (
-                                // Show color thumbnail image if available
-                                <img
-                                  src={mainThumbnail}
-                                  alt={`${color} thumbnail`}
-                                  className={cn(
-                                    "w-full h-full object-cover transition-transform duration-200",
-                                    !isOutOfStock && "group-hover:scale-105"
-                                  )}
-                                  onError={(e) => {
-                                    // If image fails to load, show color name
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = "none";
-                                    target.parentElement!.classList.add(
-                                      "flex",
-                                      "items-center",
-                                      "justify-center",
-                                      "bg-gray-100"
-                                    );
-                                    const span = document.createElement("span");
-                                    span.textContent = color;
-                                    span.className = "text-xs text-center px-1";
-                                    target.parentElement!.appendChild(span);
-                                  }}
-                                />
-                              ) : (
-                                // Default color swatch if no image
-                                <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                                  <span className="text-xs text-center px-1">
-                                    {color}
-                                  </span>
-                                </div>
-                              )}
-
-                              {/* Selected checkmark badge */}
-                              {selectedColor === color && (
-                                <div className="absolute top-0 right-0 bg-primary text-white rounded-bl-md p-0.5">
-                                  <Check className="h-3 w-3" />
-                                </div>
-                              )}
-
-                              {/* Multiple images badge - show as clickable button when selected */}
-                              {showMultipleImages && (
-                                <div
-                                  className={cn(
-                                    "absolute bottom-0 right-0 text-white rounded-tl-md px-1 py-0.5 text-[10px]",
-                                    selectedColor === color
-                                      ? "bg-primary cursor-pointer hover:bg-primary/90"
-                                      : "bg-black bg-opacity-70"
-                                  )}
-                                  onClick={(e) => {
-                                    if (
-                                      selectedColor === color &&
-                                      onViewVariantImages
-                                    ) {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      // Show all images for this color
-                                      const variant = variants.find(
-                                        (v) =>
-                                          colorMatches(v.color, color) &&
-                                          (v.size
-                                            ? sizeMatches(
-                                                v.size,
-                                                selectedSize || ""
-                                              )
-                                            : true)
+                              <Label
+                                htmlFor={`color-${color}`}
+                                className={cn(
+                                  "w-full h-full cursor-pointer",
+                                  isOutOfStock && "cursor-not-allowed"
+                                )}
+                              >
+                                {mainThumbnail ? (
+                                  // Show color thumbnail image if available
+                                  <img
+                                    src={mainThumbnail}
+                                    alt={`${color} thumbnail`}
+                                    className={cn(
+                                      "w-full h-full object-cover transition-transform duration-200",
+                                      !isOutOfStock && "group-hover:scale-105"
+                                    )}
+                                    onError={(e) => {
+                                      // If image fails to load, show color name
+                                      const target =
+                                        e.target as HTMLImageElement;
+                                      target.style.display = "none";
+                                      target.parentElement!.classList.add(
+                                        "flex",
+                                        "items-center",
+                                        "justify-center",
+                                        "bg-gray-100"
                                       );
-                                      onViewVariantImages(colorThumbnails, {
-                                        color,
-                                        size: variant?.size || undefined,
-                                        price: variant?.price ?? undefined,
-                                        mrp: variant?.mrp ?? undefined,
-                                        stock: variant?.stock ?? undefined,
-                                      });
-                                    }
-                                  }}
-                                >
-                                  {selectedColor === color
-                                    ? "View all"
-                                    : `+${colorThumbnails.length - 1}`}
-                                </div>
-                              )}
-
-                              {/* Discount badge */}
-                              {!isOutOfStock &&
-                                discount !== null &&
-                                discount > 0 && (
-                                  <div className="absolute top-0 left-0 bg-green-600 text-white rounded-br-md px-1 py-0.5 text-[10px]">
-                                    {discount}% off
+                                      const span =
+                                        document.createElement("span");
+                                      span.textContent = color;
+                                      span.className =
+                                        "text-xs text-center px-1";
+                                      target.parentElement!.appendChild(span);
+                                    }}
+                                  />
+                                ) : (
+                                  // Default color swatch if no image
+                                  <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                                    <span className="text-xs text-center px-1">
+                                      {color}
+                                    </span>
                                   </div>
                                 )}
 
-                              {/* Out of stock overlay */}
-                              {isOutOfStock && (
-                                <div className="absolute inset-0 bg-white bg-opacity-60 flex items-center justify-center">
-                                  <span className="text-xs font-medium text-red-600 px-1 py-0.5 bg-white bg-opacity-90 rounded">
-                                    Out of stock
-                                  </span>
-                                </div>
+                                {/* Selected checkmark badge */}
+                                {selectedColor === color && (
+                                  <div className="absolute top-0 right-0 bg-primary text-white rounded-bl-md p-0.5">
+                                    <Check className="h-3 w-3" />
+                                  </div>
+                                )}
+
+                                {/* Multiple images badge - show as clickable button when selected */}
+                                {showMultipleImages && (
+                                  <div
+                                    className={cn(
+                                      "absolute bottom-0 right-0 text-white rounded-tl-md px-1 py-0.5 text-[10px]",
+                                      selectedColor === color
+                                        ? "bg-primary cursor-pointer hover:bg-primary/90"
+                                        : "bg-black bg-opacity-70"
+                                    )}
+                                    onClick={(e) => {
+                                      if (
+                                        selectedColor === color &&
+                                        onViewVariantImages
+                                      ) {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        // Show all images for this color
+                                        const variant = variants.find(
+                                          (v) =>
+                                            colorMatches(v.color, color) &&
+                                            (v.size
+                                              ? sizeMatches(
+                                                  v.size,
+                                                  selectedSize || ""
+                                                )
+                                              : true)
+                                        );
+                                        onViewVariantImages(colorThumbnails, {
+                                          color,
+                                          size: variant?.size || undefined,
+                                          price: variant?.price ?? undefined,
+                                          mrp: variant?.mrp ?? undefined,
+                                          stock: variant?.stock ?? undefined,
+                                        });
+                                      }
+                                    }}
+                                  >
+                                    {selectedColor === color
+                                      ? "View all"
+                                      : `+${colorThumbnails.length - 1}`}
+                                  </div>
+                                )}
+
+                                {/* Discount badge */}
+                                {!isOutOfStock &&
+                                  discount !== null &&
+                                  discount > 0 && (
+                                    <div className="absolute top-0 left-0 bg-green-600 text-white rounded-br-md px-1 py-0.5 text-[10px]">
+                                      {discount}% off
+                                    </div>
+                                  )}
+
+                                {/* Out of stock overlay */}
+                                {isOutOfStock && (
+                                  <div className="absolute inset-0 bg-white bg-opacity-60 flex items-center justify-center">
+                                    <span className="text-xs font-medium text-red-600 px-1 py-0.5 bg-white bg-opacity-90 rounded">
+                                      Out of stock
+                                    </span>
+                                  </div>
+                                )}
+                              </Label>
+                            </div>
+
+                            {/* Color name below thumbnail */}
+                            <Label
+                              htmlFor={`color-${color}`}
+                              className={cn(
+                                "text-xs text-center cursor-pointer transition-colors",
+                                selectedColor === color
+                                  ? "font-medium text-primary"
+                                  : isOutOfStock
+                                    ? "text-gray-400"
+                                    : "text-gray-600 group-hover:text-gray-900"
                               )}
+                            >
+                              {color}
                             </Label>
                           </div>
-
-                          {/* Color name below thumbnail */}
-                          <Label
-                            htmlFor={`color-${color}`}
-                            className={cn(
-                              "text-xs text-center cursor-pointer transition-colors",
-                              selectedColor === color
-                                ? "font-medium text-primary"
-                                : isOutOfStock
-                                ? "text-gray-400"
-                                : "text-gray-600 group-hover:text-gray-900"
-                            )}
-                          >
-                            {color}
-                          </Label>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <div className="p-1 text-xs space-y-1">
-                          {isOutOfStock ? (
-                            <p className="text-red-500">Out of stock</p>
-                          ) : (
-                            <>
-                              <p>
-                                {showMultipleImages
-                                  ? `${
-                                      colorThumbnails.length
-                                    } images available${
-                                      selectedColor === color
-                                        ? " - Click to view all"
-                                        : ""
-                                    }`
-                                  : `Select ${color}`}
-                              </p>
-
-                              {/* Show price in tooltip if available */}
-                              {price && (
-                                <div className="flex items-center">
-                                  <span className="font-medium">
-                                    ₹{price.toLocaleString()}
-                                  </span>
-                                  {mrp && mrp > price && (
-                                    <span className="ml-1 line-through text-gray-500 text-[10px]">
-                                      ₹{mrp.toLocaleString()}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-
-                              {/* Show stock in tooltip */}
-                              {typeof colorStock === "number" && (
-                                <p
-                                  className={cn(
-                                    colorStock <= 5 && colorStock > 0
-                                      ? "text-amber-600"
-                                      : "text-green-600"
-                                  )}
-                                >
-                                  {colorStock <= 5
-                                    ? `Only ${colorStock} left in stock`
-                                    : "In stock"}
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <div className="p-1 text-xs space-y-1">
+                            {isOutOfStock ? (
+                              <p className="text-red-500">Out of stock</p>
+                            ) : (
+                              <>
+                                <p>
+                                  {showMultipleImages
+                                    ? `${
+                                        colorThumbnails.length
+                                      } images available${
+                                        selectedColor === color
+                                          ? " - Click to view all"
+                                          : ""
+                                      }`
+                                    : `Select ${color}`}
                                 </p>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-              );
-            })}
+
+                                {/* Show price in tooltip if available */}
+                                {price && (
+                                  <div className="flex items-center">
+                                    <span className="font-medium">
+                                      ₹{price.toLocaleString()}
+                                    </span>
+                                    {mrp && mrp > price && (
+                                      <span className="ml-1 line-through text-gray-500 text-[10px]">
+                                        ₹{mrp.toLocaleString()}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Show stock in tooltip */}
+                                {typeof colorStock === "number" && (
+                                  <p
+                                    className={cn(
+                                      colorStock <= 5 && colorStock > 0
+                                        ? "text-amber-600"
+                                        : "text-green-600"
+                                    )}
+                                  >
+                                    {colorStock <= 5
+                                      ? `Only ${colorStock} left in stock`
+                                      : "In stock"}
+                                  </p>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                );
+              }
+            )}
           </RadioGroup>
         </div>
       )}
@@ -877,8 +956,8 @@ export function VariantSelector({
                                 selectedSize === size
                                   ? "bg-primary text-primary-foreground border-primary font-medium"
                                   : isSizeAvailable
-                                  ? "bg-background border-input hover:border-gray-400"
-                                  : "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed opacity-70"
+                                    ? "bg-background border-input hover:border-gray-400"
+                                    : "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed opacity-70"
                               )}
                             >
                               {size}
@@ -922,11 +1001,47 @@ export function VariantSelector({
       {/* Stock Information - only show if includeStock is true and we have a selected variant */}
       {includeStock && (
         <div className="mt-4 pt-3 border-t border-gray-200">
-          {currentVariant && typeof currentVariant.stock === "number" ? (
+          {selectedColor === "Base Product" && baseProduct ? (
+            <div className="flex items-center">
+              {baseProduct.stock > 0 ? (
+                <>
+                  <div
+                    className={cn(
+                      "flex items-center gap-2",
+                      baseProduct.stock <= 5
+                        ? "text-amber-600"
+                        : "text-green-600"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "w-3 h-3 rounded-full",
+                        baseProduct.stock <= 5 ? "bg-amber-500" : "bg-green-500"
+                      )}
+                    />
+                    <span className="font-medium">
+                      {baseProduct.stock <= 5
+                        ? `Only ${baseProduct.stock} left in stock`
+                        : "In stock"}
+                    </span>
+                  </div>
+                  {baseProduct.sku && (
+                    <div className="ml-auto text-xs text-gray-500">
+                      SKU: {baseProduct.sku}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="flex items-center gap-2 text-red-600">
+                  <div className="w-3 h-3 bg-red-500 rounded-full" />
+                  <span className="font-medium">Out of stock</span>
+                </div>
+              )}
+            </div>
+          ) : currentVariant && typeof currentVariant.stock === "number" ? (
             <div className="flex items-center">
               {currentVariant.stock > 0 ? (
                 <>
-                  {/* In Stock Indicator */}
                   <div
                     className={cn(
                       "flex items-center gap-2",
@@ -949,8 +1064,6 @@ export function VariantSelector({
                         : "In stock"}
                     </span>
                   </div>
-
-                  {/* Show SKU if available */}
                   {currentVariant.sku && (
                     <div className="ml-auto text-xs text-gray-500">
                       SKU: {currentVariant.sku}
@@ -973,13 +1086,19 @@ export function VariantSelector({
               Select options to check stock availability
             </div>
           )}
-
-          {/* If we have variants selected, show additional info */}
-          {currentVariant && currentVariant.stock > 0 && (
+          {/* Show 'Usually ships...' for base product or variant */}
+          {((selectedColor === "Base Product" && baseProduct?.stock > 0) ||
+            (currentVariant && currentVariant.stock > 0)) && (
             <div className="text-xs text-gray-500 mt-1">
               Usually ships within 1-2 business days
             </div>
           )}
+        </div>
+      )}
+      {/* Show size for base product */}
+      {selectedColor === "Base Product" && baseProduct?.size && (
+        <div className="mt-2 text-sm text-gray-700">
+          Size: {baseProduct.size}
         </div>
       )}
     </div>
