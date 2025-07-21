@@ -12,14 +12,19 @@ export async function getSellerAnalyticsHandler(req: Request, res: Response) {
 
     // 1. Get all orders for this seller
     const orders = await storage.getOrders(undefined, sellerId);
+    // Only include delivered orders for analytics
+    const deliveredOrders = orders.filter((o) => o.status === "delivered");
     // 2. Get all products for this seller
     const products = await storage.getProducts(undefined, sellerId);
     // 3. Get all returns for this seller
     const returns = await storage.getReturnsForSeller(sellerId);
 
     // --- Calculate metrics ---
-    const totalOrders = orders.length;
-    const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const totalOrders = deliveredOrders.length;
+    const totalRevenue = deliveredOrders.reduce(
+      (sum, o) => sum + (o.total || 0),
+      0
+    );
     const avgOrderValue = totalOrders ? totalRevenue / totalOrders : 0;
     const totalProducts = products.length;
     const totalReturns = returns.length;
@@ -67,7 +72,7 @@ export async function getSellerAnalyticsHandler(req: Request, res: Response) {
       dateMap[key] = { revenue: 0, orders: 0 };
     }
     // Robustly parse order dates and include all orders in the selected period
-    orders.forEach((order) => {
+    deliveredOrders.forEach((order) => {
       let orderDate: Date | null = null;
       if (order.date instanceof Date) {
         orderDate = order.date;
@@ -102,7 +107,7 @@ export async function getSellerAnalyticsHandler(req: Request, res: Response) {
 
     // --- Revenue by Category ---
     const categoryMap: Record<string, number> = {};
-    for (const order of orders) {
+    for (const order of deliveredOrders) {
       const items = await storage.getOrderItems(order.id, sellerId);
       for (const item of items) {
         const cat = item.product.category || "Other";
@@ -115,7 +120,7 @@ export async function getSellerAnalyticsHandler(req: Request, res: Response) {
 
     // --- Revenue by Payment Method ---
     const paymentMap: Record<string, number> = {};
-    for (const order of orders) {
+    for (const order of deliveredOrders) {
       const method = order.paymentMethod || "Other";
       paymentMap[method] = (paymentMap[method] || 0) + (order.total || 0);
     }
@@ -128,7 +133,7 @@ export async function getSellerAnalyticsHandler(req: Request, res: Response) {
       string,
       { name: string; sku: string; unitsSold: number; revenue: number }
     > = {};
-    for (const order of orders) {
+    for (const order of deliveredOrders) {
       const items = await storage.getOrderItems(order.id, sellerId);
       for (const item of items) {
         const key = item.product.id;
@@ -157,7 +162,7 @@ export async function getSellerAnalyticsHandler(req: Request, res: Response) {
       string,
       { visitors: number; conversions: number; revenue: number }
     > = {};
-    for (const order of orders) {
+    for (const order of deliveredOrders) {
       // Prefer UTM/referrer/source if present, else paymentMethod
       let source =
         (order as any).utm_source ||
@@ -186,7 +191,7 @@ export async function getSellerAnalyticsHandler(req: Request, res: Response) {
       string,
       { count: number; total: number; cities: Set<string>; states: Set<string> }
     > = {};
-    for (const order of orders) {
+    for (const order of deliveredOrders) {
       const userId = order.userId || "unknown";
       if (!customerOrderMap[userId]) {
         customerOrderMap[userId] = {
@@ -207,7 +212,7 @@ export async function getSellerAnalyticsHandler(req: Request, res: Response) {
           try {
             details = JSON.parse(details);
           } catch (e) {
-            details = {};
+            details = "";
           }
         }
         if (typeof details === "object" && details !== null) {
