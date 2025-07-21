@@ -882,7 +882,7 @@ export interface IStorage {
     id: number,
     ticketData: Partial<InsertSupportTicket>
   ): Promise<SupportTicket>;
-  getSupportMessages(ticketId: number): Promise<SupportMessage[]>;
+  getSupportMessages(ticketId: number): Promise<any[]>;
   createSupportMessage(
     messageData: InsertSupportMessage
   ): Promise<SupportMessage>;
@@ -8435,11 +8435,22 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getSupportMessages(ticketId: number): Promise<SupportMessage[]> {
+  async getSupportMessages(ticketId: number): Promise<any[]> {
     try {
+      // Join supportMessages with users to get sender name and role
       return await db
-        .select()
+        .select({
+          id: supportMessages.id,
+          ticketId: supportMessages.ticketId,
+          userId: supportMessages.userId,
+          message: supportMessages.message,
+          attachments: supportMessages.attachments,
+          createdAt: supportMessages.createdAt,
+          senderName: users.name,
+          senderRole: users.role,
+        })
         .from(supportMessages)
+        .leftJoin(users, eq(supportMessages.userId, users.id))
         .where(eq(supportMessages.ticketId, ticketId))
         .orderBy(supportMessages.createdAt);
     } catch (error) {

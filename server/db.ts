@@ -6,6 +6,8 @@ import dotenv from "dotenv";
 dotenv.config();
 neonConfig.webSocketConstructor = ws;
 
+// Debug log removed as environment variable is now working
+
 if (!process.env.DATABASE_URL) {
   throw new Error(
     "DATABASE_URL must be set. Did you forget to provision a database?"

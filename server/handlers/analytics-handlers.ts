@@ -13,7 +13,7 @@ export async function getSellerAnalyticsHandler(req: Request, res: Response) {
     // 1. Get all orders for this seller
     const orders = await storage.getOrders(undefined, sellerId);
     // Only include delivered orders for analytics
-    const deliveredOrders = orders.filter((o) => o.status === "delivered");
+    const deliveredOrders = orders.filter(o => o.status === "delivered");
     // 2. Get all products for this seller
     const products = await storage.getProducts(undefined, sellerId);
     // 3. Get all returns for this seller
@@ -21,10 +21,9 @@ export async function getSellerAnalyticsHandler(req: Request, res: Response) {
 
     // --- Calculate metrics ---
     const totalOrders = deliveredOrders.length;
-    const totalRevenue = deliveredOrders.reduce(
-      (sum, o) => sum + (o.total || 0),
-      0
-    );
+
+    const totalRevenue = deliveredOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+
     const avgOrderValue = totalOrders ? totalRevenue / totalOrders : 0;
     const totalProducts = products.length;
     const totalReturns = returns.length;
