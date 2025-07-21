@@ -74,11 +74,6 @@ interface VariantSelectorProps {
   ) => void; // Callback for viewing all images of a variant
   includeStock?: boolean; // Whether to show stock information
   showImagePreviews?: boolean; // Whether to show image previews in the variant selector
-  baseProduct?: {
-    stock?: number;
-    sku?: string;
-    size?: string;
-  };
 }
 
 export function VariantSelector({
@@ -89,7 +84,6 @@ export function VariantSelector({
   onViewVariantImages = () => {}, // Default empty function for viewing variant images
   includeStock = true, // Default to showing stock information
   showImagePreviews = true, // Default to showing image previews
-  baseProduct,
 }: VariantSelectorProps) {
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
@@ -369,7 +363,7 @@ export function VariantSelector({
       }
       // If images are already an array, use them directly
       else if (Array.isArray(variant.images)) {
-        const validImages = variant.images
+        const validImages = (variant.images as any[])
           .map((img: any) =>
             typeof img === "string" ? img : img?.url || img?.imageUrl || ""
           )
@@ -558,71 +552,13 @@ export function VariantSelector({
           {/* Enhanced Color Selector with Multiple Image Thumbnails */}
           <RadioGroup
             value={selectedColor || ""}
-            onValueChange={(value) => setSelectedColor(value)}
+            onValueChange={(value) => {
+              setSelectedColor(value);
+              // When color changes, we must reset the size
+              setSelectedSize(null);
+            }}
             className="flex flex-wrap gap-3"
           >
-            {/* Base Product color option */}
-            <div key="base-product" className="flex flex-col items-center">
-              <RadioGroupItem
-                value="Base Product"
-                id="color-base-product"
-                className="peer sr-only"
-                disabled={false}
-              />
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex flex-col items-center gap-1 group">
-                      <div
-                        className={cn(
-                          "w-16 h-16 rounded-md border-2 cursor-pointer transition-all overflow-hidden relative bg-gray-50 flex items-center justify-center",
-                          selectedColor === "Base Product"
-                            ? "border-primary ring-2 ring-primary ring-opacity-30"
-                            : "border-gray-200 hover:border-gray-300 group-hover:shadow-md"
-                        )}
-                        onClick={() => {
-                          setSelectedColor("Base Product");
-                          setSelectedSize(null);
-                          setCurrentVariant(null);
-                          onVariantChange(null);
-                          onVariantImagesChange([]);
-                        }}
-                      >
-                        <Label
-                          htmlFor="color-base-product"
-                          className="w-full h-full cursor-pointer flex items-center justify-center"
-                        >
-                          <span className="text-xs text-center px-1 font-semibold">
-                            Base Product
-                          </span>
-                        </Label>
-                        {/* Selected checkmark badge */}
-                        {selectedColor === "Base Product" && (
-                          <div className="absolute top-0 right-0 bg-primary text-white rounded-bl-md p-0.5">
-                            <Check className="h-3 w-3" />
-                          </div>
-                        )}
-                      </div>
-                      {/* Color name below thumbnail */}
-                      <Label
-                        htmlFor="color-base-product"
-                        className={cn(
-                          "text-xs text-center cursor-pointer transition-colors font-semibold",
-                          selectedColor === "Base Product"
-                            ? "text-primary"
-                            : "text-gray-600 group-hover:text-gray-900"
-                        )}
-                      >
-                        Base Product
-                      </Label>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <div className="p-1 text-xs">View the base product</div>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
             {/* Render the rest of the color swatches as before */}
             {(Array.isArray(availableColors) ? availableColors : []).map(
               (color) => {
@@ -659,8 +595,6 @@ export function VariantSelector({
                   price && mrp && mrp > price
                     ? Math.round((1 - price / mrp) * 100)
                     : null;
-
-                if (color === "Base Product") return null; // Avoid duplicate
 
                 return (
                   <div key={color} className="flex flex-col items-center">
@@ -1001,44 +935,7 @@ export function VariantSelector({
       {/* Stock Information - only show if includeStock is true and we have a selected variant */}
       {includeStock && (
         <div className="mt-4 pt-3 border-t border-gray-200">
-          {selectedColor === "Base Product" && baseProduct ? (
-            <div className="flex items-center">
-              {baseProduct.stock > 0 ? (
-                <>
-                  <div
-                    className={cn(
-                      "flex items-center gap-2",
-                      baseProduct.stock <= 5
-                        ? "text-amber-600"
-                        : "text-green-600"
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "w-3 h-3 rounded-full",
-                        baseProduct.stock <= 5 ? "bg-amber-500" : "bg-green-500"
-                      )}
-                    />
-                    <span className="font-medium">
-                      {baseProduct.stock <= 5
-                        ? `Only ${baseProduct.stock} left in stock`
-                        : "In stock"}
-                    </span>
-                  </div>
-                  {baseProduct.sku && (
-                    <div className="ml-auto text-xs text-gray-500">
-                      SKU: {baseProduct.sku}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="flex items-center gap-2 text-red-600">
-                  <div className="w-3 h-3 bg-red-500 rounded-full" />
-                  <span className="font-medium">Out of stock</span>
-                </div>
-              )}
-            </div>
-          ) : currentVariant && typeof currentVariant.stock === "number" ? (
+          {currentVariant && typeof currentVariant.stock === "number" ? (
             <div className="flex items-center">
               {currentVariant.stock > 0 ? (
                 <>
@@ -1087,18 +984,11 @@ export function VariantSelector({
             </div>
           )}
           {/* Show 'Usually ships...' for base product or variant */}
-          {((selectedColor === "Base Product" && baseProduct?.stock > 0) ||
-            (currentVariant && currentVariant.stock > 0)) && (
+          {currentVariant && currentVariant.stock > 0 && (
             <div className="text-xs text-gray-500 mt-1">
               Usually ships within 1-2 business days
             </div>
           )}
-        </div>
-      )}
-      {/* Show size for base product */}
-      {selectedColor === "Base Product" && baseProduct?.size && (
-        <div className="mt-2 text-sm text-gray-700">
-          Size: {baseProduct.size}
         </div>
       )}
     </div>
