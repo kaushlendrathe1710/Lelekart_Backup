@@ -2193,6 +2193,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get seller analytics if available (for stats)
       const analytics = await storage.getSellerAnalytics(sellerId);
 
+      // Get all orders for this seller
+      const orders = await storage.getOrders(undefined, sellerId);
+      // Only count delivered orders as completed
+      const deliveredOrders = orders.filter(o => o.status === 'delivered');
+      const completedOrders = deliveredOrders.length;
+
+      // Calculate average delivery time (in days)
+      let avgDeliveryTime = 'N/A';
+      if (deliveredOrders.length > 0) {
+        const totalDays = deliveredOrders.reduce((sum, order) => {
+          if (order.createdAt && order.deliveredAt) {
+            const created = new Date(order.createdAt);
+            const delivered = new Date(order.deliveredAt);
+            const diffDays = (delivered - created) / (1000 * 60 * 60 * 24);
+            return sum + diffDays;
+          }
+          return sum;
+        }, 0);
+        avgDeliveryTime = (totalDays / deliveredOrders.length).toFixed(1) + ' days';
+      }
+
+      // Get all returns for this seller
+      const returns = await storage.getReturnsForSeller(sellerId);
+      // Count completed returns for delivered orders
+      const completedReturnOrderIds = new Set(
+        returns.filter(r => r.status === 'completed').map(r => r.orderId)
+      );
+      let returnRate = 'N/A';
+      if (deliveredOrders.length > 0) {
+        const returnedCount = deliveredOrders.filter(o => completedReturnOrderIds.has(o.id)).length;
+        returnRate = ((returnedCount / deliveredOrders.length) * 100).toFixed(1) + '%';
+      }
+
       // Combine data for public profile
       const publicProfile = {
         id: seller.id,
@@ -2211,9 +2244,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         rating: 4.8, // Placeholder until we have actual ratings
         reviewCount: 120, // Placeholder until we have actual reviews
         totalProducts: products.length,
-        ordersCompleted: "500+", // This would come from actual analytics in a real implementation
-        avgDeliveryTime: "2-3 days", // This would come from actual analytics in a real implementation
-        returnRate: "<2%", // This would come from actual analytics in a real implementation
+        ordersCompleted: completedOrders, // Use real completed orders count
+        avgDeliveryTime, // Use real average delivery time
+        returnRate, // Use real return rate
         // Add more fields as needed
       };
 
