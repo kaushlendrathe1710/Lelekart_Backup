@@ -6503,6 +6503,28 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // Inventory Optimizations
+  async getInventoryOptimizations(
+    productId: number,
+    sellerId: number
+  ): Promise<InventoryOptimization[]> {
+    try {
+      return db
+        .select()
+        .from(inventoryOptimizations)
+        .where(
+          and(
+            eq(inventoryOptimizations.productId, productId),
+            eq(inventoryOptimizations.sellerId, sellerId)
+          )
+        )
+        .orderBy(desc(inventoryOptimizations.createdAt));
+    } catch (error) {
+      console.error("Error fetching inventory optimizations:", error);
+      return [];
+    }
+  }
+
   async getPriceOptimization(
     id: number
   ): Promise<PriceOptimization | undefined> {
