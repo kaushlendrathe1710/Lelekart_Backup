@@ -33,16 +33,12 @@ interface ReviewFormProps {
 }
 
 // Extend schema for client-side validation
-const reviewFormSchema = insertReviewSchema
-  .omit({
-    userId: true,
-    productId: true,
-    verifiedPurchase: true,
-    helpfulCount: true,
-  })
-  .extend({
-    images: z.array(z.string()).optional(),
-  });
+const reviewFormSchema = z.object({
+  rating: z.number().min(1).max(5),
+  title: z.string().max(100).optional(),
+  review: z.string().max(1000).optional(),
+  images: z.array(z.string()).optional(),
+});
 
 type ReviewFormValues = z.infer<typeof reviewFormSchema>;
 
@@ -98,9 +94,9 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) => {
   const form = useForm<ReviewFormValues>({
     resolver: zodResolver(reviewFormSchema),
     defaultValues: {
+      rating: 5,
       title: "",
       review: "",
-      rating: 5,
       images: [],
     },
   });
@@ -171,124 +167,132 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) => {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Write a Review</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="rating"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Rating</FormLabel>
-                  <FormControl>
-                    <StarRatingInput
-                      value={field.value}
-                      onChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Review Title</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Summarize your experience" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="review"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Your Review</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="What did you like or dislike about this product?"
-                      className="min-h-[120px]"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="space-y-2">
-              <FormLabel>Add Images (Optional)</FormLabel>
-              {/* File upload option */}
-              <FileUpload
-                onChange={(urls) => {
-                  // Accept both single and multiple
-                  if (Array.isArray(urls)) setUploadedImageUrls(urls);
-                  else setUploadedImageUrls(urls ? [urls] : []);
-                }}
-                value={
-                  uploadedImageUrls.length === 1
-                    ? uploadedImageUrls[0]
-                    : undefined
-                }
-                multiple
-                showMediaLibrary
-                label="Upload or select images"
-              />
-              {/* URL input option */}
-              <div className="flex gap-2 mt-2">
-                <Input
-                  placeholder="Enter image URL"
-                  value={newImageUrl}
-                  onChange={(e) => setNewImageUrl(e.target.value)}
-                  className="flex-1"
-                />
-                <Button type="button" onClick={addImageUrl} variant="outline">
-                  <Upload className="h-4 w-4 mr-1" />
-                  Add
-                </Button>
-              </div>
-              <FormDescription>
-                Add image URLs or upload images to include photos with your
-                review
-              </FormDescription>
-              {/* Preview all images (uploaded + URLs) */}
-              {allImageUrls.length > 0 && (
-                <div className="grid grid-cols-3 gap-2 mt-2">
-                  {allImageUrls.map((url, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={url}
-                        alt={`Review image ${index + 1}`}
-                        className="h-24 w-full object-cover rounded-md"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = "/images/placeholder.svg";
-                        }}
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Write a Review</CardTitle>
+          </CardHeader>
+          <CardContent className="max-h-[60vh] overflow-y-auto p-6">
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="rating"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Rating</FormLabel>
+                    <FormControl>
+                      <StarRatingInput
+                        value={field.value}
+                        onChange={field.onChange}
                       />
-                      <button
-                        type="button"
-                        onClick={() => removeImage(url)}
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Review Title</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Summarize your experience"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="review"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Your Review</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="What did you like or dislike about this product?"
+                        className="min-h-[120px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="space-y-2">
+                <FormLabel>Add Images (Optional)</FormLabel>
+                {/* File upload option */}
+                <FileUpload
+                  onChange={(urls) => {
+                    const urlArray = Array.isArray(urls)
+                      ? urls
+                      : urls
+                        ? [urls]
+                        : [];
+                    setUploadedImageUrls(urlArray);
+                  }}
+                  value={
+                    uploadedImageUrls.length > 0 ? uploadedImageUrls : undefined
+                  }
+                  multiple
+                  showMediaLibrary
+                  label="Upload or select images"
+                />
+                {/* URL input option */}
+                <div className="flex gap-2 mt-2">
+                  <Input
+                    placeholder="Enter image URL"
+                    value={newImageUrl}
+                    onChange={(e) => setNewImageUrl(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button type="button" onClick={addImageUrl} variant="outline">
+                    <Upload className="h-4 w-4 mr-1" />
+                    Add
+                  </Button>
+                </div>
+                <FormDescription>
+                  Add image URLs or upload images to include photos with your
+                  review
+                </FormDescription>
+                {/* Preview all images (uploaded + URLs) */}
+                {allImageUrls.length > 0 && (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 mt-2">
+                    {allImageUrls.map((url, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={url}
+                          alt={`Review image ${index + 1}`}
+                          className="h-24 w-full object-cover rounded-md"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = "/images/placeholder.svg";
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(url)}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          aria-label="Remove image"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter className="pt-6">
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
@@ -299,10 +303,10 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) => {
                 "Submit Review"
               )}
             </Button>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+          </CardFooter>
+        </Card>
+      </form>
+    </Form>
   );
 };
 
