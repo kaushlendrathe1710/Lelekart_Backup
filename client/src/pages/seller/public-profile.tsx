@@ -158,7 +158,11 @@ export default function PublicSellerProfilePage({
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbLink href="/products">All Products</BreadcrumbLink>
+              <BreadcrumbLink
+                href={`/seller-products-listing/${sellerId}?sellerName=${encodeURIComponent(sellerProfile.businessName)}`}
+              >
+                All Products
+              </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
@@ -444,7 +448,7 @@ export default function PublicSellerProfilePage({
                 <div className="text-center mt-4 md:mt-6">
                   <Button asChild className="text-xs md:text-sm">
                     <RouterLink
-                      href={`/products?sellerId=${sellerId}&sellerName=${encodeURIComponent(sellerProfile.businessName)}`}
+                      href={`/seller-products-listing/${sellerId}?sellerName=${encodeURIComponent(sellerProfile.businessName)}`}
                     >
                       View All Products
                       <ChevronRight className="h-3 w-3 md:h-4 md:w-4 ml-1" />
