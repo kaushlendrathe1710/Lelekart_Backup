@@ -206,7 +206,7 @@ export default function PublicSellerProfilePage({
                   <div className="flex items-center">
                     <ShoppingBag className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground mr-1" />
                     <span className="text-xs md:text-sm">
-                      {sellerProducts?.products?.length || 0} Products
+                      {sellerProducts?.pagination?.total || 0} Products
                     </span>
                   </div>
                   <div className="flex items-center">
