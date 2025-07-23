@@ -71,7 +71,7 @@ export function SimpleHeader() {
       });
       queryClient.setQueryData(["/api/user"], null);
       queryClient.setQueryData(["/api/cart"], []);
-      setLocation("/");
+      setLocation("/auth");
     } catch (error) {
       console.error("Logout failed:", error);
     }

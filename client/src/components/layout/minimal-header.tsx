@@ -24,7 +24,7 @@ export function Header() {
 
   const handleLogout = () => {
     // Simple redirect for now
-    setLocation("/");
+    setLocation("/auth");
   };
 
   const getDashboardLink = () => {
