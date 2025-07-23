@@ -107,7 +107,11 @@ export function SimpleHeader() {
                 />
               </div>
             </Link>
-            <div className="flex-grow max-w-xl">
+            <div className="flex-grow max-w-xl flex items-center">
+              {/* All Categories Dropdown (left of search bar) */}
+              <div className="mr-2 hidden md:block">
+                <AllCategoriesDropdown />
+              </div>
               <SimpleSearch className="z-20" />
             </div>
           </div>
@@ -322,5 +326,84 @@ export function SimpleHeader() {
         </div>
       )}
     </header>
+  );
+}
+
+function AllCategoriesDropdown() {
+  const { data: categories, isLoading: categoriesLoading } = useQuery({
+    queryKey: ["/api/categories"],
+  });
+  const { data: subcategories, isLoading: subcategoriesLoading } = useQuery({
+    queryKey: ["/api/subcategories/all"],
+  });
+  const [, setLocation] = useLocation();
+  if (categoriesLoading || subcategoriesLoading) {
+    return (
+      <button
+        className="px-4 py-2 bg-white text-gray-700 rounded-l-md border border-gray-200"
+        disabled
+      >
+        Loading...
+      </button>
+    );
+  }
+  if (!categories || categories.length === 0) {
+    return null;
+  }
+  const sortedCategories = [...categories].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
+  const getSubcategories = (categoryId) => {
+    if (!subcategories) return [];
+    return subcategories
+      .filter(
+        (sub) =>
+          sub.categoryId === categoryId &&
+          sub.active &&
+          (!sub.parentId || sub.parentId === 0)
+      )
+      .sort((a, b) => a.name.localeCompare(b.name));
+  };
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger className="px-4 py-2 bg-white text-gray-700 rounded-l-md border border-gray-200 font-semibold flex items-center">
+        All <ChevronDown className="ml-1 h-4 w-4" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="start"
+        className="w-64 max-h-96 overflow-y-auto bg-white rounded-xl shadow-2xl border border-gray-200 p-2 mt-2 z-50"
+      >
+        {sortedCategories.map((category) => {
+          const subcats = getSubcategories(category.id);
+          return (
+            <div key={category.id}>
+              <DropdownMenuItem
+                onClick={() => setLocation(`/category/${category.slug}`)}
+                className="font-bold text-gray-900 hover:bg-gray-100 cursor-pointer"
+              >
+                {category.name}
+              </DropdownMenuItem>
+              {subcats.length > 0 && (
+                <div className="pl-4">
+                  {subcats.map((sub) => (
+                    <DropdownMenuItem
+                      key={sub.id}
+                      onClick={() =>
+                        setLocation(
+                          `/category/${category.slug}?subcategory=${sub.slug}`
+                        )
+                      }
+                      className="text-gray-700 hover:bg-gray-100 cursor-pointer"
+                    >
+                      {sub.name}
+                    </DropdownMenuItem>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
