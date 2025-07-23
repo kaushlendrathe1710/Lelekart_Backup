@@ -46,6 +46,7 @@ export function Header() {
           description: "You have been successfully logged out",
           variant: "default",
         });
+        setLocation("/auth");
       },
     });
   };
