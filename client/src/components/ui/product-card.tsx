@@ -33,6 +33,9 @@ interface ProductCardProps {
   featured?: boolean;
   priority?: boolean; // For above-the-fold images
   showAddToCart?: boolean; // New prop to control Add to Cart button
+  variant?: 'default' | 'plain'; // Add variant prop
+  showWishlist?: boolean;
+  cardBg?: string;
 }
 
 export const ProductCard = memo(function ProductCard({
@@ -40,6 +43,9 @@ export const ProductCard = memo(function ProductCard({
   featured = false,
   priority = false,
   showAddToCart = true, // Default to true
+  variant = 'default', // Default to default
+  showWishlist = true,
+  cardBg,
 }: ProductCardProps) {
   const cartContext = useContext(CartContext); // Use context directly with optional chaining
   const queryClient = useQueryClient();
@@ -131,12 +137,19 @@ export const ProductCard = memo(function ProductCard({
         </div>
       )}
       {/* Add Wishlist button on top right of card */}
-      <WishlistButton productId={product.id} variant="card" />
+      {showWishlist !== false && (
+        <WishlistButton productId={product.id} variant="card" />
+      )}
 
       {/* Use normalized path that starts with a slash to prevent double slashes */}
       <Link href={`/product/${product.id}`} className="block">
         <Card
-          className="product-card h-full flex flex-col items-center p-3 transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1"
+          className={
+            variant === 'plain'
+              ? `product-card h-full flex flex-col items-center p-0 border-none shadow-none rounded-none bg-transparent`
+              : 'product-card h-full flex flex-col items-center p-3 transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1 bg-[#F8F5E4] border border-[#e0c9a6] rounded-2xl'
+          }
+          style={{}}
           onClick={() => {
             // Manually add to recently viewed products as backup
             try {
@@ -187,11 +200,18 @@ export const ProductCard = memo(function ProductCard({
             }
           }}
         >
-          <CardContent className="p-0 w-full flex flex-col items-center h-full">
-            <div className="w-full flex-shrink-0 h-40 flex items-center justify-center mb-3 bg-slate-50 rounded-md overflow-hidden">
+          <CardContent className="p-0 w-full flex flex-col items-center h-full bg-transparent">
+            <div
+              className={
+                variant === 'plain'
+                  ? `w-full flex-shrink-0 h-40 flex items-center justify-center mb-3 overflow-hidden bg-transparent`
+                  : 'w-full flex-shrink-0 h-40 flex items-center justify-center mb-3 bg-[#F8F5E4] rounded-2xl overflow-hidden'
+              }
+              style={{}}
+            >
               <ProductImage
                 product={product}
-                className="rounded-sm"
+                className={variant === 'plain' ? '' : 'rounded-xl'}
                 priority={shouldPrioritize}
                 sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 20vw"
               />
@@ -213,39 +233,18 @@ export const ProductCard = memo(function ProductCard({
                 )}
               </div>
               <div className="text-xs text-gray-500 mt-1 text-center line-clamp-1">
-                {stripHtmlTags(product.description).slice(0, 30)}...
+                {/* Removed description div for compact card */}
               </div>
             </div>
-            {showAddToCart &&
-              (isInCart ? (
-                <Button
-                  variant={featured ? "outline" : "ghost"}
-                  size="sm"
-                  className={`mt-2 w-full ${
-                    featured
-                      ? "border-primary text-primary hover:bg-primary hover:text-white"
-                      : "text-primary hover:bg-primary/10"
-                  }`}
-                  onClick={handleGoToCart}
-                >
-                  <ShoppingCart className="h-4 w-4 mr-2" />
-                  Go to Cart
-                </Button>
-              ) : (
-                <Button
-                  variant={featured ? "outline" : "ghost"}
-                  size="sm"
-                  className={`mt-2 w-full ${
-                    featured
-                      ? "border-primary text-primary hover:bg-primary hover:text-white"
-                      : "text-primary hover:bg-primary/10"
-                  }`}
-                  onClick={handleAddToCart}
-                >
-                  <ShoppingCart className="h-4 w-4 mr-2" />
-                  Add to Cart
-                </Button>
-              ))}
+            {showAddToCart && (
+              <Button
+                className="mt-2 w-full bg-gradient-to-r from-yellow-400 to-orange-400 text-black font-bold text-base px-4 py-2 rounded-full shadow-md hover:from-orange-400 hover:to-yellow-400 border-none flex items-center justify-center gap-2"
+                onClick={handleAddToCart}
+              >
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                Add to Cart
+              </Button>
+            )}
           </CardContent>
         </Card>
       </Link>

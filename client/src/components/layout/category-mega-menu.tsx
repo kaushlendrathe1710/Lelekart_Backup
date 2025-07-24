@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCategoryProducts } from "@/hooks/use-infinite-products";
 
 type Category = {
   id: number;
@@ -64,6 +65,40 @@ export function CategoryMegaMenu() {
     return subcategories.some(subcategory => subcategory.categoryId === categoryId && subcategory.active);
   };
   
+  // Fetch one product per category for images
+  const { data: categoryImagesData } = useQuery({
+    queryKey: ["category-menu-images"],
+    queryFn: async () => {
+      // Fetch all categories
+      const categoriesRes = await fetch("/api/categories");
+      const categories = await categoriesRes.json();
+      // For each category, fetch one product
+      const imageMap: Record<string, string> = {};
+      await Promise.all(
+        categories.map(async (cat: any) => {
+          const res = await fetch(`/api/products?category=${encodeURIComponent(cat.name)}&limit=1&approved=true&status=approved`);
+          const data = await res.json();
+          const product = data.products?.[0];
+          let imageUrl = "";
+          if (product?.imageUrl) imageUrl = product.imageUrl;
+          else if (product?.images) {
+            try {
+              const imgs = JSON.parse(product.images);
+              if (Array.isArray(imgs) && imgs[0]) imageUrl = imgs[0];
+            } catch {}
+          }
+          if (!imageUrl) imageUrl = "/attached_assets/image_1744428587586.png";
+          imageMap[cat.name] = imageUrl;
+        })
+      );
+      return imageMap;
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+  
+  // Add a loading state for category images
+  const imagesLoading = !categoryImagesData;
+
   // Loading state
   if (categoriesLoading || subcategoriesLoading) {
     return (
@@ -93,18 +128,31 @@ export function CategoryMegaMenu() {
   );
   
   return (
-    <div className="w-full bg-primary-foreground/20 border-b border-gray-200">
+    <div className="w-full bg-[#F8F5E4] border-b border-[#EADDCB]">
       <div className="container mx-auto">
         <div className="flex justify-center">
-          <div className="flex flex-wrap gap-2 py-2">
+          <div className="flex flex-nowrap gap-2 py-2 overflow-x-auto scrollbar-hide">
             {/* Categories with subcategories - shown as dropdowns */}
             {categoriesWithSubcategories.map(category => (
               <DropdownMenu key={category.id}>
-                <DropdownMenuTrigger className="px-4 py-2 text-base font-bold bg-white hover:bg-gray-50 hover:text-primary rounded-lg shadow-sm flex items-center transition-colors duration-150 border border-gray-200">
-                  {category.name}
-                  <ChevronDown className="ml-1 h-4 w-4 transition-transform duration-200" />
+                <DropdownMenuTrigger className="px-4 py-2 text-base font-bold bg-[#F8F5E4] text-black hover:bg-[#EADDCB] rounded-lg shadow-sm flex flex-col items-center transition-colors duration-150 border border-[#EADDCB] min-w-[120px]">
+                  {/* Category image above name with skeleton loader */}
+                  <div className="flex flex-col items-center mb-1">
+                    {imagesLoading ? (
+                      <Skeleton className="w-12 h-12 rounded-full mb-1" />
+                    ) : (
+                      <img
+                        src={categoryImagesData?.[category.name] || "/attached_assets/image_1744428587586.png"}
+                        alt={category.name}
+                        className="w-12 h-12 object-cover rounded-full border border-[#e0c9a6] shadow-sm mb-1 bg-white transition-opacity duration-300"
+                        style={{ opacity: imagesLoading ? 0.5 : 1 }}
+                      />
+                    )}
+                    <span>{category.name}</span>
+                  </div>
+                  <ChevronDown className="ml-1 h-4 w-4 transition-transform duration-200 text-black" />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="center" className="w-80 bg-white rounded-xl shadow-2xl border border-gray-200 p-2 mt-2">
+                <DropdownMenuContent align="start" className="bg-[#F8F5E4] text-black border border-[#EADDCB] rounded-xl shadow-2xl p-2 mt-2 z-50">
                   {getSubcategoriesForCategory(category.id).map(subcategory => {
                     const subcategory2List = getSubcategory2ForSubcategory(subcategory.id);
                     return (
@@ -191,9 +239,22 @@ export function CategoryMegaMenu() {
               <Link 
                 key={category.id} 
                 href={`/category/${category.slug}`}
-                className="px-4 py-2 text-base font-bold bg-white hover:bg-gray-50 hover:text-primary rounded-lg shadow-sm flex items-center border border-gray-200"
+                className="px-4 py-2 text-base font-bold bg-[#F8F5E4] text-black hover:bg-[#EADDCB] rounded-lg shadow-sm flex flex-col items-center border border-[#EADDCB] min-w-[120px]"
               >
-                {category.name}
+                {/* Category image above name with skeleton loader */}
+                <div className="flex flex-col items-center mb-1">
+                  {imagesLoading ? (
+                    <Skeleton className="w-12 h-12 rounded-full mb-1" />
+                  ) : (
+                    <img
+                      src={categoryImagesData?.[category.name] || "/attached_assets/image_1744428587586.png"}
+                      alt={category.name}
+                      className="w-12 h-12 object-cover rounded-full border border-[#e0c9a6] shadow-sm mb-1 bg-white transition-opacity duration-300"
+                      style={{ opacity: imagesLoading ? 0.5 : 1 }}
+                    />
+                  )}
+                  <span>{category.name}</span>
+                </div>
               </Link>
             ))}
           </div>

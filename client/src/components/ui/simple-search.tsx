@@ -80,10 +80,33 @@ export function SimpleSearch({ className, variant = 'default' }: SimpleSearchPro
     }
   };
 
+  // Utility to add search query to browser history
+  const addToBrowserHistory = (searchTerm: string) => {
+    if (!searchTerm.trim()) return;
+    try {
+      const key = 'lelekart_recent_searches';
+      let history = [];
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        history = JSON.parse(stored);
+      }
+      // Remove if already present
+      history = history.filter((item: string) => item.toLowerCase() !== searchTerm.trim().toLowerCase());
+      // Add to start
+      history.unshift(searchTerm.trim());
+      // Keep only latest 5
+      if (history.length > 5) history = history.slice(0, 5);
+      localStorage.setItem(key, JSON.stringify(history));
+    } catch (e) {
+      // Ignore errors
+    }
+  };
+
   // Handle form submission
   const handleSearch = async (e: FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
+      addToBrowserHistory(query.trim());
       console.log('Search for:', query);
       setShowSuggestions(false);
       
@@ -119,6 +142,7 @@ export function SimpleSearch({ className, variant = 'default' }: SimpleSearchPro
   // Handle voice search query
   const handleVoiceSearch = async (voiceQuery: string) => {
     if (!voiceQuery.trim()) return;
+    addToBrowserHistory(voiceQuery.trim());
     
     console.log('Processing voice search query:', voiceQuery);
     
@@ -191,98 +215,89 @@ export function SimpleSearch({ className, variant = 'default' }: SimpleSearchPro
   
   const searchButtonClasses = variant === 'admin'
     ? "ml-2 bg-[#2874f0] text-white hover:bg-[#2874f0]/90 font-medium rounded-md px-4 py-1.5"
-    : "ml-3 bg-white text-primary hover:bg-white/90 font-medium rounded-md";
+    : "ml-3 bg-[#2874f0] text-white hover:bg-[#2874f0]/90 font-medium rounded-md";
+
+  const handleSuggestionSelect = (suggestion: any) => {
+    console.log('Search suggestion selected:', suggestion);
+    
+    // Clear query after selection
+    setQuery('');
+    setShowSuggestions(false);
+    
+    // Use different paths based on variant
+    if (variant === 'admin') {
+      // Admin path navigation - use Wouter navigation
+      console.log(`Navigating to admin product: /admin/products/${suggestion.id}`);
+      navigate(`/admin/products/${suggestion.id}`);
+    } else {
+      // Customer path navigation - using Wouter navigation
+      console.log(`Navigating to product: /product/${suggestion.id}`);
+      navigate(`/product/${suggestion.id}`);
+    }
+  };
 
   return (
     <div className={cn("relative", className)}>
-      <form ref={formRef} onSubmit={handleSearch} className="relative w-full max-w-xl">
-        <div className={containerClasses}>
-          <Search className={iconClasses} />
-          <input
-            ref={searchInputRef}
-            type="text"
-            placeholder={variant === 'admin' ? "Search for products..." : "Search for products, brands and more..."}
-            className={inputClasses}
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              // Only show suggestions when query has at least 2 characters
-              if (e.target.value.trim().length >= 2) {
-                setShowSuggestions(true);
-              } else {
-                setShowSuggestions(false);
-              }
-            }}
-            onFocus={() => {
-              // Only show suggestions when query has at least 2 characters
-              if (query.trim().length >= 2) {
-                setShowSuggestions(true);
-              }
-            }}
-            disabled={isAiSearching}
-          />
-          {query && (
-            <button 
-              type="button"
-              className={clearButtonClasses}
-              onClick={clearSearch}
-              disabled={isAiSearching}
-            >
-              <X className="h-5 w-5" />
-            </button>
-          )}
-          
-          {/* Voice search button */}
-          <VoiceSearchDialog 
-            className={voiceButtonClasses}
-            buttonVariant="ghost"
-            buttonSize="icon"
-            buttonText=""
-            showIcon={true}
-            onSearch={handleVoiceSearch}
-          />
-          
-          <Button 
-            type="submit" 
-            className={searchButtonClasses}
-            size="sm"
+      <form
+        ref={formRef}
+        className={cn(
+          "relative flex items-center w-full",
+          className
+        )}
+        onSubmit={handleSearch}
+        autoComplete="off"
+      >
+        <input
+          ref={searchInputRef}
+          type="text"
+          className="w-full py-2 px-4 rounded-md bg-gradient-to-r from-[#f3f4f6] to-[#e5e7eb] text-black border border-[#b6c3a5] shadow focus:outline-none focus:ring-2 focus:ring-[#b6c3a5] placeholder-black/70"
+          placeholder="Search for products, brands and more"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => setShowSuggestions(true)}
+          disabled={isAiSearching}
+        />
+        {query && (
+          <button 
+            type="button"
+            className={clearButtonClasses}
+            onClick={clearSearch}
             disabled={isAiSearching}
           >
-            Search
-          </Button>
-        </div>
-        
-        {/* Search suggestions dropdown */}
-        {showSuggestions && query.trim().length >= 2 && (
-          <div className="absolute w-full mt-1 z-50">
-            <SearchSuggestions 
-              query={query} 
-              variant={variant}
-              onSelect={(suggestion) => {
-                console.log('Search suggestion selected:', suggestion);
-                
-                // Clear query after selection
-                setQuery('');
-                setShowSuggestions(false);
-                
-                // Use different paths based on variant
-                if (variant === 'admin') {
-                  // Admin path navigation - use Wouter navigation
-                  console.log(`Navigating to admin product: /admin/products/${suggestion.id}`);
-                  navigate(`/admin/products/${suggestion.id}`);
-                } else {
-                  // Customer path navigation - using Wouter navigation
-                  console.log(`Navigating to product: /product/${suggestion.id}`);
-                  navigate(`/product/${suggestion.id}`);
-                }
-              }}
-              onClose={() => setShowSuggestions(false)}
-            />
-          </div>
+            <X className="h-5 w-5 text-[#b6c3a5]" />
+          </button>
         )}
         
-        {/* Removed keyboard hint text */}
+        {/* Voice search button */}
+        <VoiceSearchDialog 
+          className="ml-2 bg-[#b6c3a5] hover:bg-[#a7bfa7] rounded-full p-2 shadow-md transition-colors"
+          buttonVariant="ghost"
+          buttonSize="icon"
+          buttonText=""
+          showIcon={true}
+          onSearch={handleVoiceSearch}
+        >
+          <Mic className="h-5 w-5 text-white" />
+        </VoiceSearchDialog>
+        
+        <Button 
+          type="submit" 
+          className={searchButtonClasses}
+          size="sm"
+          disabled={isAiSearching}
+        >
+          Search
+        </Button>
       </form>
+      
+      {/* Search suggestions dropdown */}
+      {showSuggestions && query && (
+        <div className="absolute left-0 right-0 mt-1 bg-gradient-to-r from-[#f3f4f6] to-[#e5e7eb] text-black border border-[#b6c3a5] rounded-md shadow-lg z-20">
+          <SearchSuggestions query={query} onSelect={handleSuggestionSelect} />
+        </div>
+      )}
+      
+      {/* Removed keyboard hint text */}
     </div>
   );
 }

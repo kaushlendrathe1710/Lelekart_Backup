@@ -93,7 +93,7 @@ export function SimpleHeader() {
   };
 
   return (
-    <header className="bg-orange-400 text-white fixed top-0 left-0 right-0 z-40">
+    <header className="bg-[#F8F5E4] text-black border-b border-[#EADDCB] fixed top-0 left-0 right-0 z-40 font-serif">
       {/* Desktop Header - with improved padding and spacing */}
       <div className="container mx-auto px-4 h-14 hidden md:flex md:items-center">
         <div className="flex items-center justify-between w-full py-2">
@@ -121,10 +121,10 @@ export function SimpleHeader() {
               <Link href="/">
                 <Button
                   variant="ghost"
-                  className="flex items-center py-1 px-2 text-white font-medium rounded-sm hover:bg-primary-foreground/10"
+                  className="flex items-center py-1 px-2 text-black font-medium rounded-sm hover:bg-primary-foreground/10"
                   style={{ boxShadow: "none", background: "transparent" }}
                 >
-                  <HomeIcon className="mr-2 h-4 w-4" />
+                  <HomeIcon className="mr-2 h-4 w-4 text-black" />
                   <span>Home</span>
                 </Button>
               </Link>
@@ -133,7 +133,7 @@ export function SimpleHeader() {
               // Show login button for non-authenticated users
               <Button
                 variant="ghost"
-                className="text-white hover:text-white hover:bg-primary-foreground/10 h-10"
+                className="text-black hover:text-black hover:bg-primary-foreground/10 h-10"
                 onClick={() => setLocation("/auth")}
               >
                 Login
@@ -144,14 +144,14 @@ export function SimpleHeader() {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="text-white flex items-center hover:bg-primary-foreground/10 h-10 px-4"
+                    className="text-black flex items-center hover:bg-primary-foreground/10 h-10 px-4"
                   >
-                    <User className="mr-2 h-4 w-4" />
+                    <User className="mr-2 h-4 w-4 text-black" />
                     <span>{user.name || user.username}</span>
-                    <ChevronDown className="ml-1 h-4 w-4" />
+                    <ChevronDown className="ml-1 h-4 w-4 text-black" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-60">
+                <DropdownMenuContent align="end" className="bg-[#F8F5E4] text-black border border-[#EADDCB]">
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
@@ -172,7 +172,7 @@ export function SimpleHeader() {
                     onClick={handleLogout}
                     className="cursor-pointer"
                   >
-                    <LogOut className="mr-2 h-4 w-4" /> Logout
+                    <LogOut className="mr-2 h-4 w-4 text-black" /> Logout
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -182,11 +182,11 @@ export function SimpleHeader() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-white hover:bg-primary-foreground/10 relative h-10 w-10 flex items-center justify-center"
+                className="text-black hover:bg-primary-foreground/10 relative h-10 w-10 flex items-center justify-center"
                 onClick={handleCartClick}
                 title="Shopping Cart"
               >
-                <ShoppingCart className="h-5 w-5" />
+                <ShoppingCart className="h-5 w-5 text-black" />
                 {cartItemCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-yellow-400 text-primary text-xs rounded-full h-5 w-5 flex items-center justify-center">
                     {cartItemCount}
@@ -204,7 +204,7 @@ export function SimpleHeader() {
           <div className="flex items-center">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="text-white hover:text-gray-200 mr-3 p-1"
+              className="text-black hover:text-gray-200 mr-3 p-1"
               title="Open menu"
             >
               <Menu size={24} />
@@ -223,10 +223,10 @@ export function SimpleHeader() {
               <Link href="/">
                 <Button
                   variant="ghost"
-                  className="flex items-center py-1 px-2 text-white font-medium rounded-sm hover:bg-primary-foreground/10"
+                  className="flex items-center py-1 px-2 text-black font-medium rounded-sm hover:bg-primary-foreground/10"
                   style={{ boxShadow: "none", background: "transparent" }}
                 >
-                  <HomeIcon className="mr-2 h-4 w-4" />
+                  <HomeIcon className="mr-2 h-4 w-4 text-black" />
                   <span>Home</span>
                 </Button>
               </Link>
@@ -236,10 +236,10 @@ export function SimpleHeader() {
           {(!user || user.role === "buyer") && (
             <button
               onClick={handleCartClick}
-              className="text-white hover:text-gray-200 relative p-1"
+              className="text-black hover:text-gray-200 relative p-1"
               title="Shopping Cart"
             >
-              <ShoppingCart className="h-5 w-5" />
+              <ShoppingCart className="h-5 w-5 text-black" />
               {cartItemCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-yellow-400 text-primary text-xs rounded-full h-5 w-5 flex items-center justify-center">
                   {cartItemCount}
@@ -263,7 +263,7 @@ export function SimpleHeader() {
               <h2 className="text-xl font-bold">Menu</h2>
               <button
                 onClick={() => setMobileMenuOpen(false)}
-                className="text-white hover:text-gray-200 p-1"
+                className="text-black hover:text-gray-200 p-1"
                 title="Close menu"
               >
                 <X size={24} />
@@ -366,12 +366,12 @@ function AllCategoriesDropdown() {
   };
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="px-4 py-2 bg-white text-gray-700 rounded-l-md border border-gray-200 font-semibold flex items-center">
-        All <ChevronDown className="ml-1 h-4 w-4" />
+      <DropdownMenuTrigger className="px-4 py-2 bg-[#F8F5E4] text-black rounded-l-md border border-[#EADDCB] font-semibold flex items-center">
+        All <ChevronDown className="ml-1 h-4 w-4 text-black" />
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
-        className="w-64 max-h-96 overflow-y-auto bg-white rounded-xl shadow-2xl border border-gray-200 p-2 mt-2 z-50"
+        className="bg-[#F8F5E4] text-black border border-[#EADDCB] rounded-xl shadow-2xl p-2 mt-2 z-50"
       >
         {sortedCategories.map((category) => {
           const subcats = getSubcategories(category.id);
