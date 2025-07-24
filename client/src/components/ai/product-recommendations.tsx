@@ -86,9 +86,9 @@ export const ProductRecommendationCard: React.FC<ProductRecommendationCardProps>
 
   return (
     <Link href={`/product/${product.id}`} onClick={handleProductClick}>
-      <Card className={cn("h-full cursor-pointer hover:shadow-md transition-shadow", className)}>
+      <Card className={cn("h-full cursor-pointer hover:shadow-md transition-shadow", className, "bg-[#EADDCB] border border-[#e0c9a6] rounded-xl")}>
         <CardContent className="p-3">
-          <div className="relative aspect-square w-full overflow-hidden rounded-md mb-2 flex items-center justify-center bg-slate-50">
+          <div className="relative aspect-square w-full overflow-hidden rounded-md mb-2 flex items-center justify-center bg-[#EADDCB]">
             <img
               src={getImageUrl()}
               alt={product.name}

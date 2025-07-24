@@ -968,290 +968,236 @@ export default function CheckoutPage() {
     finalOrderTotal
   );
   return (
-    <div className="container mx-auto px-2 sm:px-4 py-8">
-      <h1 className="text-2xl font-bold mb-8 text-center sm:text-left">
-        Checkout
-      </h1>
+    <div className="min-h-screen bg-[#EADDCB] font-serif">
+      <div className="container mx-auto px-2 sm:px-4 py-8">
+        <h1 className="text-2xl font-bold mb-8 text-center sm:text-left">
+          Checkout
+        </h1>
 
-      <div className="flex flex-col md:flex-row gap-8">
-        {/* Shipping Form */}
-        <div className="w-full md:w-2/3">
-          <div className="bg-white rounded-lg shadow-md p-2 sm:p-6">
-            <h2 className="text-lg font-semibold mb-6">Shipping Information</h2>
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Shipping Form */}
+          <div className="w-full md:w-2/3">
+            <div className="bg-[#F8F5E4] rounded-2xl shadow-md border border-[#e0c9a6] p-2 sm:p-6">
+              <h2 className="text-lg font-semibold mb-6">Shipping Information</h2>
 
-            {addresses.length > 0 && (
-              <div className="mb-6">
-                <h3 className="font-medium text-base mb-4">
-                  Select Delivery Address
-                </h3>
+              {addresses.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="font-medium text-base mb-4">
+                    Select Delivery Address
+                  </h3>
 
-                <div className="grid grid-cols-1 gap-4 mb-4">
-                  {addresses.map((address) => (
-                    <div
-                      key={address.id}
-                      className={`border rounded-lg p-4 cursor-pointer transition-colors ${
-                        selectedAddressId === address.id.toString()
-                          ? "border-primary bg-primary/5"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                      onClick={() => {
-                        console.log(`Clicked on address ID: ${address.id}`);
-                        setSelectedAddressId(address.id.toString());
+                  <div className="grid grid-cols-1 gap-4 mb-4">
+                    {addresses.map((address) => (
+                      <div
+                        key={address.id}
+                        className={`border rounded-lg p-4 cursor-pointer transition-colors ${
+                          selectedAddressId === address.id.toString()
+                            ? "border-primary bg-primary/5"
+                            : "border-gray-200 hover:border-gray-300"
+                        }`}
+                        onClick={() => {
+                          console.log(`Clicked on address ID: ${address.id}`);
+                          setSelectedAddressId(address.id.toString());
 
-                        // Get email value
-                        const emailValue = user?.email ?? user?.username ?? "";
+                          // Get email value
+                          const emailValue = user?.email ?? user?.username ?? "";
 
-                        try {
-                          // Clear all validation errors by resetting form with new values
-                          form.reset(
-                            {
-                              name: address.fullName,
-                              phone: address.phone,
-                              address: address.address,
-                              city: address.city,
-                              state: address.state,
-                              zipCode: address.pincode,
-                              email: emailValue,
-                              paymentMethod:
-                                form.getValues("paymentMethod") || "cod",
-                              notes: form.getValues("notes") || "",
-                            },
-                            {
-                              // This is crucial - ensures the form is considered valid after reset
-                              keepIsValid: true,
-                              keepDirty: false,
-                              keepTouched: false,
-                            }
-                          );
-
-                          // Set all fields as valid manually to ensure the form is valid
-                          Object.keys(form.getValues()).forEach((fieldName) => {
-                            form.clearErrors(fieldName as any);
-                          });
-
-                          // Force validation to succeed for selected addresses
-                          setTimeout(() => {
-                            // Set all fields as valid directly
-                            console.log(
-                              "Setting all fields as valid for address selection"
+                          try {
+                            // Clear all validation errors by resetting form with new values
+                            form.reset(
+                              {
+                                name: address.fullName,
+                                phone: address.phone,
+                                address: address.address,
+                                city: address.city,
+                                state: address.state,
+                                zipCode: address.pincode,
+                                email: emailValue,
+                                paymentMethod:
+                                  form.getValues("paymentMethod") || "cod",
+                                notes: form.getValues("notes") || "",
+                              },
+                              {
+                                // This is crucial - ensures the form is considered valid after reset
+                                keepIsValid: true,
+                                keepDirty: false,
+                                keepTouched: false,
+                              }
                             );
 
-                            // First clear all errors
-                            form.clearErrors();
-
-                            // Then manually mark all required fields as valid
-                            [
-                              "name",
-                              "phone",
-                              "address",
-                              "city",
-                              "state",
-                              "zipCode",
-                              "email",
-                              "paymentMethod",
-                            ].forEach((field) => {
-                              // This is necessary to ensure the field is properly validated
-                              form.trigger(field as any);
-
-                              // Double-check that no errors remain
-                              form.clearErrors(field as any);
+                            // Set all fields as valid manually to ensure the form is valid
+                            Object.keys(form.getValues()).forEach((fieldName) => {
+                              form.clearErrors(fieldName as any);
                             });
 
-                            console.log(
-                              "Form validation complete for address selection"
-                            );
-                          }, 100);
-                        } catch (error) {
-                          console.error("Error resetting form:", error);
-                        }
+                            // Force validation to succeed for selected addresses
+                            setTimeout(() => {
+                              // Set all fields as valid directly
+                              console.log(
+                                "Setting all fields as valid for address selection"
+                              );
 
-                        // Log for debugging
-                        console.log(
-                          "Address selected, form reset with values:",
-                          {
-                            name: address.fullName,
-                            email: emailValue,
-                            formState: form.formState,
+                              // First clear all errors
+                              form.clearErrors();
+
+                              // Then manually mark all required fields as valid
+                              [
+                                "name",
+                                "phone",
+                                "address",
+                                "city",
+                                "state",
+                                "zipCode",
+                                "email",
+                                "paymentMethod",
+                              ].forEach((field) => {
+                                // This is necessary to ensure the field is properly validated
+                                form.trigger(field as any);
+
+                                // Double-check that no errors remain
+                                form.clearErrors(field as any);
+                              });
+
+                              console.log(
+                                "Form validation complete for address selection"
+                              );
+                            }, 100);
+                          } catch (error) {
+                            console.error("Error resetting form:", error);
                           }
-                        );
-                      }}
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="flex items-center">
-                          <span className="font-semibold">
-                            {address.addressName}
-                          </span>
-                          {address.isDefault && (
-                            <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-                              Default
+
+                          // Log for debugging
+                          console.log(
+                            "Address selected, form reset with values:",
+                            {
+                              name: address.fullName,
+                              email: emailValue,
+                              formState: form.formState,
+                            }
+                          );
+                        }}
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex items-center">
+                            <span className="font-semibold">
+                              {address.addressName}
                             </span>
+                            {address.isDefault && (
+                              <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                                Default
+                              </span>
+                            )}
+                          </div>
+                          {selectedAddressId === address.id.toString() && (
+                            <div className="w-4 h-4 rounded-full bg-primary"></div>
                           )}
                         </div>
-                        {selectedAddressId === address.id.toString() && (
-                          <div className="w-4 h-4 rounded-full bg-primary"></div>
-                        )}
+                        <div className="text-sm text-gray-700 mb-1">
+                          <User className="inline-block h-3 w-3 mr-1" />
+                          {address.fullName}
+                        </div>
+                        <div className="text-sm text-gray-700 mb-1">
+                          <MapPin className="inline-block h-3 w-3 mr-1" />
+                          {address.address}, {address.city}, {address.state},{" "}
+                          {address.pincode}
+                        </div>
+                        <div className="text-sm text-gray-700">
+                          <Phone className="inline-block h-3 w-3 mr-1" />
+                          {address.phone}
+                        </div>
                       </div>
-                      <div className="text-sm text-gray-700 mb-1">
-                        <User className="inline-block h-3 w-3 mr-1" />
-                        {address.fullName}
-                      </div>
-                      <div className="text-sm text-gray-700 mb-1">
-                        <MapPin className="inline-block h-3 w-3 mr-1" />
-                        {address.address}, {address.city}, {address.state},{" "}
-                        {address.pincode}
-                      </div>
-                      <div className="text-sm text-gray-700">
-                        <Phone className="inline-block h-3 w-3 mr-1" />
-                        {address.phone}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
 
-                <div className="flex items-center mb-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowAddressForm(!showAddressForm)}
-                  >
-                    {showAddressForm ? "Hide Form" : "Enter New Address"}
-                  </Button>
-                  <span className="text-sm text-gray-500 ml-2">
-                    {showAddressForm
-                      ? "Fill in the form below"
-                      : "Or use a different address"}
-                  </span>
-                </div>
+                  <div className="flex items-center mb-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowAddressForm(!showAddressForm)}
+                    >
+                      {showAddressForm ? "Hide Form" : "Enter New Address"}
+                    </Button>
+                    <span className="text-sm text-gray-500 ml-2">
+                      {showAddressForm
+                        ? "Fill in the form below"
+                        : "Or use a different address"}
+                    </span>
+                  </div>
 
-                <div className={`${showAddressForm ? "block" : "hidden"}`}>
-                  <div className="border-t border-dashed my-4"></div>
-                  <h3 className="font-medium text-base mb-4">
-                    Or Enter New Address
-                  </h3>
-                </div>
-              </div>
-            )}
-
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-6"
-              >
-                {/* Address entry section - conditionally shown/hidden */}
-                <div
-                  style={{
-                    display:
-                      addresses.length > 0 && !showAddressForm
-                        ? "none"
-                        : "block",
-                  }}
-                >
-                  <div className="address-form-section mb-8">
+                  <div className={`${showAddressForm ? "block" : "hidden"}`}>
+                    <div className="border-t border-dashed my-4"></div>
                     <h3 className="font-medium text-base mb-4">
-                      Shipping Address
+                      Or Enter New Address
                     </h3>
+                  </div>
+                </div>
+              )}
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <Form {...form}>
+                <form
+                  onSubmit={form.handleSubmit(onSubmit)}
+                  className="space-y-6"
+                >
+                  {/* Address entry section - conditionally shown/hidden */}
+                  <div
+                    style={{
+                      display:
+                        addresses.length > 0 && !showAddressForm
+                          ? "none"
+                          : "block",
+                    }}
+                  >
+                    <div className="address-form-section mb-8">
+                      <h3 className="font-medium text-base mb-4">
+                        Shipping Address
+                      </h3>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                        <FormField
+                          control={form.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Full Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="John Doe" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="email"
+                                  placeholder="john@example.com"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
                       <FormField
                         control={form.control}
-                        name="name"
+                        name="phone"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Full Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="John Doe" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="email"
-                                placeholder="john@example.com"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="phone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Phone</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="1234567890"
-                              {...field}
-                              maxLength={10}
-                              onKeyPress={(e) => {
-                                // Allow only digits
-                                if (!/[0-9]/.test(e.key)) {
-                                  e.preventDefault();
-                                }
-                              }}
-                              onChange={(e) => {
-                                // Only allow digits in the field
-                                const value = e.target.value.replace(
-                                  /[^0-9]/g,
-                                  ""
-                                );
-                                e.target.value = value;
-                                field.onChange(value);
-                              }}
-                            />
-                          </FormControl>
-                          <FormDescription className="text-xs">
-                            Enter a 10-digit number without spaces or special
-                            characters
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="address"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Address</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="123 Main St, Apt 4B"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-                      <FormField
-                        control={form.control}
-                        name="zipCode"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>PIN Code</FormLabel>
+                            <FormLabel>Phone</FormLabel>
                             <FormControl>
                               <Input
-                                placeholder="123456"
+                                placeholder="1234567890"
                                 {...field}
-                                maxLength={6}
+                                maxLength={10}
                                 onKeyPress={(e) => {
                                   // Allow only digits
                                   if (!/[0-9]/.test(e.key)) {
@@ -1265,87 +1211,13 @@ export default function CheckoutPage() {
                                     ""
                                   );
                                   e.target.value = value;
-
                                   field.onChange(value);
-
-                                  // Auto-populate city and state when pincode has 6 digits
-                                  if (value && value.length === 6) {
-                                    console.log(
-                                      "Fetching data for checkout pincode:",
-                                      value
-                                    );
-                                    fetch(`/api/pincode/${value}`)
-                                      .then((response) => {
-                                        console.log(
-                                          "Checkout Pincode API response:",
-                                          response.status
-                                        );
-                                        if (!response.ok) {
-                                          throw new Error("PIN code not found");
-                                        }
-                                        return response.json();
-                                      })
-                                      .then((data) => {
-                                        console.log(
-                                          "Checkout Pincode data received:",
-                                          data
-                                        );
-                                        // Update the state and city fields
-                                        form.setValue(
-                                          "state" as any,
-                                          data.state || "",
-                                          { shouldValidate: true }
-                                        );
-                                        form.setValue(
-                                          "city" as any,
-                                          data.district || "",
-                                          { shouldValidate: true }
-                                        );
-                                        // Clear any existing PIN code error
-                                        form.clearErrors("zipCode" as any);
-                                      })
-                                      .catch((error) => {
-                                        console.error(
-                                          "Error fetching location data:",
-                                          error
-                                        );
-                                        // Show error for invalid PIN code
-                                        form.setError("zipCode" as any, {
-                                          type: "manual",
-                                          message:
-                                            "Invalid PIN code. Please enter a valid PIN code.",
-                                        });
-
-                                        // Clear city and state fields
-                                        form.setValue("state" as any, "", {
-                                          shouldValidate: true,
-                                        });
-                                        form.setValue("city" as any, "", {
-                                          shouldValidate: true,
-                                        });
-
-                                        // Show toast notification for invalid PIN
-                                        toast({
-                                          title: "Invalid PIN Code",
-                                          description:
-                                            "The PIN code you entered is not valid. Please check and try again.",
-                                          variant: "destructive",
-                                        });
-                                      });
-                                  } else if (value.length < 6) {
-                                    // Clear city and state when PIN is incomplete
-                                    form.setValue("state" as any, "", {
-                                      shouldValidate: false,
-                                    });
-                                    form.setValue("city" as any, "", {
-                                      shouldValidate: false,
-                                    });
-                                  }
                                 }}
                               />
                             </FormControl>
                             <FormDescription className="text-xs">
-                              Enter a 6-digit PIN code
+                              Enter a 10-digit number without spaces or special
+                              characters
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
@@ -1354,537 +1226,667 @@ export default function CheckoutPage() {
 
                       <FormField
                         control={form.control}
-                        name="city"
+                        name="address"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>City</FormLabel>
+                            <FormLabel>Address</FormLabel>
                             <FormControl>
-                              <Input
-                                placeholder="New York"
+                              <Textarea
+                                placeholder="123 Main St, Apt 4B"
                                 {...field}
-                                readOnly
-                                className="bg-gray-50 cursor-not-allowed"
                               />
                             </FormControl>
-                            <FormDescription className="text-xs">
-                              Auto-populated from PIN code
-                            </FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
 
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+                        <FormField
+                          control={form.control}
+                          name="zipCode"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>PIN Code</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="123456"
+                                  {...field}
+                                  maxLength={6}
+                                  onKeyPress={(e) => {
+                                    // Allow only digits
+                                    if (!/[0-9]/.test(e.key)) {
+                                      e.preventDefault();
+                                    }
+                                  }}
+                                  onChange={(e) => {
+                                    // Only allow digits in the field
+                                    const value = e.target.value.replace(
+                                      /[^0-9]/g,
+                                      ""
+                                    );
+                                    e.target.value = value;
+
+                                    field.onChange(value);
+
+                                    // Auto-populate city and state when pincode has 6 digits
+                                    if (value && value.length === 6) {
+                                      console.log(
+                                        "Fetching data for checkout pincode:",
+                                        value
+                                      );
+                                      fetch(`/api/pincode/${value}`)
+                                        .then((response) => {
+                                          console.log(
+                                            "Checkout Pincode API response:",
+                                            response.status
+                                          );
+                                          if (!response.ok) {
+                                            throw new Error("PIN code not found");
+                                          }
+                                          return response.json();
+                                        })
+                                        .then((data) => {
+                                          console.log(
+                                            "Checkout Pincode data received:",
+                                            data
+                                          );
+                                          // Update the state and city fields
+                                          form.setValue(
+                                            "state" as any,
+                                            data.state || "",
+                                            { shouldValidate: true }
+                                          );
+                                          form.setValue(
+                                            "city" as any,
+                                            data.district || "",
+                                            { shouldValidate: true }
+                                          );
+                                          // Clear any existing PIN code error
+                                          form.clearErrors("zipCode" as any);
+                                        })
+                                        .catch((error) => {
+                                          console.error(
+                                            "Error fetching location data:",
+                                            error
+                                          );
+                                          // Show error for invalid PIN code
+                                          form.setError("zipCode" as any, {
+                                            type: "manual",
+                                            message:
+                                              "Invalid PIN code. Please enter a valid PIN code.",
+                                          });
+
+                                          // Clear city and state fields
+                                          form.setValue("state" as any, "", {
+                                            shouldValidate: true,
+                                          });
+                                          form.setValue("city" as any, "", {
+                                            shouldValidate: true,
+                                          });
+
+                                          // Show toast notification for invalid PIN
+                                          toast({
+                                            title: "Invalid PIN Code",
+                                            description:
+                                              "The PIN code you entered is not valid. Please check and try again.",
+                                            variant: "destructive",
+                                          });
+                                        });
+                                    } else if (value.length < 6) {
+                                      // Clear city and state when PIN is incomplete
+                                      form.setValue("state" as any, "", {
+                                        shouldValidate: false,
+                                      });
+                                      form.setValue("city" as any, "", {
+                                        shouldValidate: false,
+                                      });
+                                    }
+                                  }}
+                                />
+                              </FormControl>
+                              <FormDescription className="text-xs">
+                                Enter a 6-digit PIN code
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="city"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>City</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="New York"
+                                  {...field}
+                                  readOnly
+                                  className="bg-gray-50 cursor-not-allowed"
+                                />
+                              </FormControl>
+                              <FormDescription className="text-xs">
+                                Auto-populated from PIN code
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="state"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>State</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="NY"
+                                  {...field}
+                                  readOnly
+                                  className="bg-gray-50 cursor-not-allowed"
+                                />
+                              </FormControl>
+                              <FormDescription className="text-xs">
+                                Auto-populated from PIN code
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
                       <FormField
                         control={form.control}
-                        name="state"
+                        name="notes"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>State</FormLabel>
+                            <FormLabel>Order Notes (Optional)</FormLabel>
                             <FormControl>
-                              <Input
-                                placeholder="NY"
+                              <Textarea
+                                placeholder="Special instructions for delivery"
                                 {...field}
-                                readOnly
-                                className="bg-gray-50 cursor-not-allowed"
                               />
                             </FormControl>
-                            <FormDescription className="text-xs">
-                              Auto-populated from PIN code
-                            </FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
                     </div>
+                  </div>
+
+                  {/* Hidden field for email when using saved address */}
+                  {addresses.length > 0 && !showAddressForm && (
+                    <div style={{ display: "none" }}>
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input type="email" {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
+
+                  {/* Payment section - always visible */}
+                  <div className="payment-section pt-4 border-t">
+                    <h3 className="font-medium text-base mb-4">Payment Method</h3>
 
                     <FormField
                       control={form.control}
-                      name="notes"
+                      name="paymentMethod"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Order Notes (Optional)</FormLabel>
+                        <FormItem className="space-y-3">
+                          <FormLabel>Select Payment Option</FormLabel>
                           <FormControl>
-                            <Textarea
-                              placeholder="Special instructions for delivery"
-                              {...field}
-                            />
+                            <RadioGroup
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                              className="flex flex-col space-y-3"
+                            >
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="cod" id="cod" />
+                                <Label htmlFor="cod">
+                                  Cash on Delivery (COD)
+                                </Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="razorpay" id="razorpay" />
+                                <Label htmlFor="razorpay">
+                                  Pay Online with Razorpay
+                                </Label>
+                              </div>
+                            </RadioGroup>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                  </div>
-                </div>
 
-                {/* Hidden field for email when using saved address */}
-                {addresses.length > 0 && !showAddressForm && (
-                  <div style={{ display: "none" }}>
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <Input type="email" {...field} />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                )}
-
-                {/* Payment section - always visible */}
-                <div className="payment-section pt-4 border-t">
-                  <h3 className="font-medium text-base mb-4">Payment Method</h3>
-
-                  <FormField
-                    control={form.control}
-                    name="paymentMethod"
-                    render={({ field }) => (
-                      <FormItem className="space-y-3">
-                        <FormLabel>Select Payment Option</FormLabel>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            className="flex flex-col space-y-3"
-                          >
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="cod" id="cod" />
-                              <Label htmlFor="cod">
-                                Cash on Delivery (COD)
-                              </Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="razorpay" id="razorpay" />
-                              <Label htmlFor="razorpay">
-                                Pay Online with Razorpay
-                              </Label>
-                            </div>
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {form.watch("paymentMethod") === "razorpay" ? (
-                    <div className="border-t pt-4 mt-4">
-                      <RazorpayPayment
-                        amount={finalOrderTotal * 100} // Convert to paise
-                        shippingDetails={{
-                          name: form.getValues("name") || "",
-                          address: form.getValues("address") || "",
-                          city: form.getValues("city") || "",
-                          state: form.getValues("state") || "",
-                          zipCode: form.getValues("zipCode") || "",
-                          phone: form.getValues("phone") || "",
-                        }}
-                        onSuccess={(orderId) => {
-                          // Redirect to order confirmation page
-                          setLocation(
-                            `/order-confirmation/${orderId}?success=true&total=${finalOrderTotal}`
-                          );
-                        }}
-                        onError={(error) => {
-                          toast({
-                            title: "Payment Failed",
-                            description:
-                              error ||
-                              "There was an error processing your payment. Please try again.",
-                            variant: "destructive",
-                          });
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <div className="pt-4 mt-4">
-                      <Button
-                        type="button"
-                        className="w-full bg-primary text-white"
-                        disabled={processingOrder}
-                        onClick={(e) => {
-                          e.preventDefault(); // Prevent default form submission
-
-                          console.log("Place Order button clicked");
-
-                          // Direct call to onSubmit for saved addresses
-                          if (
-                            addresses.length > 0 &&
-                            selectedAddressId &&
-                            !showAddressForm
-                          ) {
-                            console.log(
-                              "Place Order button: processing saved address",
-                              selectedAddressId
+                    {form.watch("paymentMethod") === "razorpay" ? (
+                      <div className="border-t pt-4 mt-4">
+                        <RazorpayPayment
+                          amount={finalOrderTotal * 100} // Convert to paise
+                          shippingDetails={{
+                            name: form.getValues("name") || "",
+                            address: form.getValues("address") || "",
+                            city: form.getValues("city") || "",
+                            state: form.getValues("state") || "",
+                            zipCode: form.getValues("zipCode") || "",
+                            phone: form.getValues("phone") || "",
+                          }}
+                          onSuccess={(orderId) => {
+                            // Redirect to order confirmation page
+                            setLocation(
+                              `/order-confirmation/${orderId}?success=true&total=${finalOrderTotal}`
                             );
+                          }}
+                          onError={(error) => {
+                            toast({
+                              title: "Payment Failed",
+                              description:
+                                error ||
+                                "There was an error processing your payment. Please try again.",
+                              variant: "destructive",
+                            });
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="pt-4 mt-4">
+                        <Button
+                          type="button"
+                          className="w-full bg-primary text-white"
+                          disabled={processingOrder}
+                          onClick={(e) => {
+                            e.preventDefault(); // Prevent default form submission
 
-                            // Find the selected address
-                            const selectedAddress = addresses.find(
-                              (a) => a.id.toString() === selectedAddressId
-                            );
+                            console.log("Place Order button clicked");
 
-                            if (selectedAddress) {
+                            // Direct call to onSubmit for saved addresses
+                            if (
+                              addresses.length > 0 &&
+                              selectedAddressId &&
+                              !showAddressForm
+                            ) {
                               console.log(
-                                "Selected address found:",
-                                selectedAddress
+                                "Place Order button: processing saved address",
+                                selectedAddressId
                               );
-                              // Create a direct submission object with values from the selected address
-                              const submissionValues = {
-                                name: selectedAddress.fullName,
-                                email: user?.email ?? user?.username ?? "",
-                                phone: selectedAddress.phone,
-                                address: selectedAddress.address,
-                                city: selectedAddress.city,
-                                state: selectedAddress.state,
-                                zipCode: selectedAddress.pincode,
-                                paymentMethod:
-                                  form.getValues("paymentMethod") || "cod",
-                                notes: form.getValues("notes") || "",
-                              };
 
-                              console.log(
-                                "Directly submitting with values:",
-                                submissionValues
+                              // Find the selected address
+                              const selectedAddress = addresses.find(
+                                (a) => a.id.toString() === selectedAddressId
                               );
-                              // Call onSubmit directly with the values
-                              onSubmit(submissionValues);
+
+                              if (selectedAddress) {
+                                console.log(
+                                  "Selected address found:",
+                                  selectedAddress
+                                );
+                                // Create a direct submission object with values from the selected address
+                                const submissionValues = {
+                                  name: selectedAddress.fullName,
+                                  email: user?.email ?? user?.username ?? "",
+                                  phone: selectedAddress.phone,
+                                  address: selectedAddress.address,
+                                  city: selectedAddress.city,
+                                  state: selectedAddress.state,
+                                  zipCode: selectedAddress.pincode,
+                                  paymentMethod:
+                                    form.getValues("paymentMethod") || "cod",
+                                  notes: form.getValues("notes") || "",
+                                };
+
+                                console.log(
+                                  "Directly submitting with values:",
+                                  submissionValues
+                                );
+                                // Call onSubmit directly with the values
+                                onSubmit(submissionValues);
+                              }
+                            } else {
+                              // For new address form, submit via form handler
+                              console.log(
+                                "Processing new address form submission"
+                              );
+                              form.handleSubmit(onSubmit)();
                             }
-                          } else {
-                            // For new address form, submit via form handler
-                            console.log(
-                              "Processing new address form submission"
-                            );
-                            form.handleSubmit(onSubmit)();
-                          }
-                        }}
-                      >
-                        {processingOrder ? "Processing..." : "Place Order"}
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </form>
-            </Form>
+                          }}
+                        >
+                          {processingOrder ? "Processing..." : "Place Order"}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </form>
+              </Form>
+            </div>
           </div>
-        </div>
 
-        {/* Order Summary */}
-        <div className="w-full md:w-1/3">
-          <div className="bg-white rounded-lg shadow-md p-2 sm:p-6 md:sticky md:top-4">
-            <h2 className="text-lg font-semibold mb-6 text-center sm:text-left">
-              Order Summary
-            </h2>
+          {/* Order Summary */}
+          <div className="w-full md:w-1/3">
+            <div className="bg-[#F8F5E4] rounded-2xl shadow-md border border-[#e0c9a6] p-2 sm:p-6 md:sticky md:top-4">
+              <h2 className="text-lg font-semibold mb-6 text-center sm:text-left">
+                Order Summary
+              </h2>
 
-            <div className="mb-4 flex flex-col md:flex-row md:items-center gap-2">
-              <Input
-                type="text"
-                placeholder="Enter coupon code"
-                value={couponCode}
-                onChange={(e) => setCouponCode(e.target.value)}
-                className="w-full md:w-64 bg-white"
-                disabled={!!appliedCoupon}
-              />
-              <Button
-                type="button"
-                onClick={handleApplyCoupon}
-                disabled={couponLoading || !!appliedCoupon}
-                className="w-full md:w-auto"
-              >
-                {appliedCoupon
-                  ? "Applied"
-                  : couponLoading
-                    ? "Applying..."
-                    : "Apply"}
-              </Button>
-            </div>
-            {couponError && (
-              <Alert variant="destructive" className="mb-2">
-                {couponError}
-              </Alert>
-            )}
-            {appliedCoupon && (
-              <Alert
-                variant="default"
-                className="mb-2 flex items-center justify-between"
-              >
-                <span>
-                  Coupon <b>{appliedCoupon.code}</b> applied!{" "}
-                  {appliedCoupon.discountPercentage}% off
-                </span>
-                <button
+              <div className="mb-4 flex flex-col md:flex-row md:items-center gap-2">
+                <Input
+                  type="text"
+                  placeholder="Enter coupon code"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value)}
+                  className="w-full md:w-64 bg-white"
+                  disabled={!!appliedCoupon}
+                />
+                <Button
                   type="button"
-                  className="ml-2 text-red-500 hover:text-red-700 font-bold text-lg"
-                  onClick={handleRemoveCoupon}
-                  aria-label="Remove coupon"
+                  onClick={handleApplyCoupon}
+                  disabled={couponLoading || !!appliedCoupon}
+                  className="w-full md:w-auto"
                 >
-                  ×
-                </button>
-              </Alert>
-            )}
-
-            <div className="space-y-4 mb-4">
-              {cartItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex justify-between items-center border-b pb-2"
-                >
-                  <div className="flex items-center">
-                    <div className="w-10 h-10 rounded-md overflow-hidden mr-2 bg-gray-100 flex items-center justify-center">
-                      <img
-                        src={item.product.imageUrl}
-                        alt={item.product.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          console.log(
-                            "Image load error for:",
-                            item.product.name
-                          );
-                          const target = e.target as HTMLImageElement;
-                          target.src =
-                            "https://via.placeholder.com/80?text=Product";
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">{item.product.name}</p>
-                      <p className="text-xs text-gray-500">
-                        Qty: {item.quantity}
-                      </p>
-                    </div>
-                  </div>
-                  <p className="font-medium">
-                    ₹{(item.product.price * item.quantity).toFixed(2)}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            {/* Calculate subtotal and delivery charges */}
-            <div className="flex justify-between mb-2">
-              <span className="text-gray-600">Subtotal</span>
-              <span className="font-medium">₹{subtotal.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between mb-2">
-              <span className="text-gray-600">Delivery Charges</span>
-              {deliveryCharges > 0 ? (
-                <span className="font-medium text-blue-600">
-                  ₹{deliveryCharges.toFixed(2)}
-                </span>
-              ) : (
-                <span className="font-medium text-green-600">Free</span>
+                  {appliedCoupon
+                    ? "Applied"
+                    : couponLoading
+                      ? "Applying..."
+                      : "Apply"}
+                </Button>
+              </div>
+              {couponError && (
+                <Alert variant="destructive" className="mb-2">
+                  {couponError}
+                </Alert>
               )}
-            </div>
+              {appliedCoupon && (
+                <Alert
+                  variant="default"
+                  className="mb-2 flex items-center justify-between"
+                >
+                  <span>
+                    Coupon <b>{appliedCoupon.code}</b> applied!{" "}
+                    {appliedCoupon.discountPercentage}% off
+                  </span>
+                  <button
+                    type="button"
+                    className="ml-2 text-red-500 hover:text-red-700 font-bold text-lg"
+                    onClick={handleRemoveCoupon}
+                    aria-label="Remove coupon"
+                  >
+                    ×
+                  </button>
+                </Alert>
+              )}
 
-            {/* Wallet integration */}
-            {!isWalletLoading && wallet && settings?.isActive && (
-              <div className="my-4 border rounded-md p-3 bg-gray-50">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="use-wallet"
-                      checked={useWalletCoins}
-                      onCheckedChange={(checked) =>
-                        setUseWalletCoins(checked === true)
-                      }
-                      disabled={!wallet.balance || wallet.balance <= 0}
-                    />
-                    <label
-                      htmlFor="use-wallet"
-                      className="text-sm font-medium flex items-center cursor-pointer"
-                    >
-                      <Coins className="h-4 w-4 mr-1 text-primary" />
-                      Use Wallet Balance ({wallet.balance} wallet rupees)
-                    </label>
+              <div className="space-y-4 mb-4">
+                {cartItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex justify-between items-center border-b pb-2"
+                  >
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 rounded-md overflow-hidden mr-2 bg-gray-100 flex items-center justify-center">
+                        <img
+                          src={item.product.imageUrl}
+                          alt={item.product.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            console.log(
+                              "Image load error for:",
+                              item.product.name
+                            );
+                            const target = e.target as HTMLImageElement;
+                            target.src =
+                              "https://via.placeholder.com/80?text=Product";
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{item.product.name}</p>
+                        <p className="text-xs text-gray-500">
+                          Qty: {item.quantity}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="font-medium">
+                      ₹{(item.product.price * item.quantity).toFixed(2)}
+                    </p>
                   </div>
-                  {maxWalletPoints > 0 && (
-                    <span className="text-xs text-green-600 font-medium">
-                      Up to ₹{maxWalletPoints} wallet rupees
-                    </span>
+                ))}
+              </div>
+
+              {/* Calculate subtotal and delivery charges */}
+              <div className="flex justify-between mb-2">
+                <span className="text-gray-600">Subtotal</span>
+                <span className="font-medium">₹{subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between mb-2">
+                <span className="text-gray-600">Delivery Charges</span>
+                {deliveryCharges > 0 ? (
+                  <span className="font-medium text-blue-600">
+                    ₹{deliveryCharges.toFixed(2)}
+                  </span>
+                ) : (
+                  <span className="font-medium text-green-600">Free</span>
+                )}
+              </div>
+
+              {/* Wallet integration */}
+              {!isWalletLoading && wallet && settings?.isActive && (
+                <div className="my-4 border rounded-md p-3 bg-gray-50">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="use-wallet"
+                        checked={useWalletCoins}
+                        onCheckedChange={(checked) =>
+                          setUseWalletCoins(checked === true)
+                        }
+                        disabled={!wallet.balance || wallet.balance <= 0}
+                      />
+                      <label
+                        htmlFor="use-wallet"
+                        className="text-sm font-medium flex items-center cursor-pointer"
+                      >
+                        <Coins className="h-4 w-4 mr-1 text-primary" />
+                        Use Wallet Balance ({wallet.balance} wallet rupees)
+                      </label>
+                    </div>
+                    {maxWalletPoints > 0 && (
+                      <span className="text-xs text-green-600 font-medium">
+                        Up to ₹{maxWalletPoints} wallet rupees
+                      </span>
+                    )}
+                  </div>
+
+                  {useWalletCoins && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <input
+                        type="number"
+                        min={0}
+                        max={maxWalletPoints}
+                        value={walletPointsInput}
+                        onChange={(e) => {
+                          const val = Math.max(
+                            0,
+                            Math.min(maxWalletPoints, Number(e.target.value))
+                          );
+                          setWalletPointsInput(val);
+                        }}
+                        className="border rounded px-2 py-1 w-24"
+                        placeholder={`Max ₹${maxWalletPoints}`}
+                      />
+                      <span className="text-xs text-gray-500">
+                        Enter wallet rupees to use
+                      </span>
+                    </div>
+                  )}
+                  {walletError && (
+                    <div className="text-xs text-red-500 mt-1">{walletError}</div>
+                  )}
+                  {wallet.balance <= 0 && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      No wallet rupees available in your wallet
+                    </div>
                   )}
                 </div>
+              )}
 
-                {useWalletCoins && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <input
-                      type="number"
-                      min={0}
-                      max={maxWalletPoints}
-                      value={walletPointsInput}
-                      onChange={(e) => {
-                        const val = Math.max(
-                          0,
-                          Math.min(maxWalletPoints, Number(e.target.value))
-                        );
-                        setWalletPointsInput(val);
-                      }}
-                      className="border rounded px-2 py-1 w-24"
-                      placeholder={`Max ₹${maxWalletPoints}`}
-                    />
-                    <span className="text-xs text-gray-500">
-                      Enter wallet rupees to use
-                    </span>
+              {/* Redeem Coins Section */}
+              <div className="mt-4">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Redeemed Coins Left:</span>
+                  <span className="text-yellow-600 font-bold">
+                    {wallet
+                      ? wallet.redeemedBalance -
+                        (useRedeemedCoins ? redeemAmount : 0)
+                      : 0}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <span>Max you can use for this order:</span>
+                  <span className="font-bold">{maxRedeemableFromRedeemed}</span>
+                </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    type="number"
+                    min={0}
+                    max={maxRedeemableFromRedeemed}
+                    value={redeemAmount}
+                    onChange={(e) => {
+                      const val = Math.max(
+                        0,
+                        Math.min(
+                          maxRedeemableFromRedeemed,
+                          Number(e.target.value)
+                        )
+                      );
+                      setRedeemAmount(val);
+                    }}
+                    className="border rounded px-2 py-1 w-24"
+                    placeholder={`Max ₹${maxRedeemableFromRedeemed}`}
+                  />
+                  <button
+                    type="button"
+                    className="bg-yellow-500 text-white px-3 py-1 rounded disabled:opacity-50"
+                    disabled={
+                      redeemAmount <= 0 ||
+                      redeemAmount > maxRedeemableFromRedeemed
+                    }
+                    onClick={() => setUseRedeemedCoins(true)}
+                  >
+                    Apply Redeem
+                  </button>
+                </div>
+                {redeemAmount > maxRedeemableFromRedeemed && (
+                  <div className="text-red-500 text-xs mt-1">
+                    You can only redeem up to ₹{maxRedeemableFromRedeemed} wallet
+                    rupees for this order.
                   </div>
                 )}
-                {walletError && (
-                  <div className="text-xs text-red-500 mt-1">{walletError}</div>
-                )}
-                {wallet.balance <= 0 && (
-                  <div className="text-xs text-gray-500 mt-1">
-                    No wallet rupees available in your wallet
-                  </div>
-                )}
               </div>
-            )}
 
-            {/* Redeem Coins Section */}
-            <div className="mt-4">
-              <div className="flex items-center gap-2">
-                <span className="font-medium">Redeemed Coins Left:</span>
-                <span className="text-yellow-600 font-bold">
-                  {wallet
-                    ? wallet.redeemedBalance -
-                      (useRedeemedCoins ? redeemAmount : 0)
-                    : 0}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 mt-2">
-                <span>Max you can use for this order:</span>
-                <span className="font-bold">{maxRedeemableFromRedeemed}</span>
-              </div>
-              <div className="flex items-center gap-2 mt-2">
-                <input
-                  type="number"
-                  min={0}
-                  max={maxRedeemableFromRedeemed}
-                  value={redeemAmount}
-                  onChange={(e) => {
-                    const val = Math.max(
-                      0,
-                      Math.min(
-                        maxRedeemableFromRedeemed,
-                        Number(e.target.value)
-                      )
-                    );
-                    setRedeemAmount(val);
-                  }}
-                  className="border rounded px-2 py-1 w-24"
-                  placeholder={`Max ₹${maxRedeemableFromRedeemed}`}
-                />
-                <button
-                  type="button"
-                  className="bg-yellow-500 text-white px-3 py-1 rounded disabled:opacity-50"
-                  disabled={
-                    redeemAmount <= 0 ||
-                    redeemAmount > maxRedeemableFromRedeemed
-                  }
-                  onClick={() => setUseRedeemedCoins(true)}
-                >
-                  Apply Redeem
-                </button>
-              </div>
-              {redeemAmount > maxRedeemableFromRedeemed && (
-                <div className="text-red-500 text-xs mt-1">
-                  You can only redeem up to ₹{maxRedeemableFromRedeemed} wallet
-                  rupees for this order.
+              {/* Show wallet discount only once, if applied */}
+              {useWalletCoins && walletDiscount > 0 && (
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-600">Wallet Discount</span>
+                  <span className="font-medium text-green-600">
+                    -₹{walletDiscount.toFixed(2)}
+                  </span>
                 </div>
               )}
-            </div>
-
-            {/* Show wallet discount only once, if applied */}
-            {useWalletCoins && walletDiscount > 0 && (
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-600">Wallet Discount</span>
-                <span className="font-medium text-green-600">
-                  -₹{walletDiscount.toFixed(2)}
-                </span>
-              </div>
-            )}
-            {/* Show redeem discount if applied */}
-            {useRedeemedCoins && redeemAmount > 0 && (
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-600">Redeem Discount</span>
-                <span className="font-medium text-yellow-600">
-                  -₹{redeemAmount.toFixed(2)}
-                </span>
-              </div>
-            )}
-            {/* Show coupon discount if applied */}
-            {appliedCoupon && (
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-600">Coupon Discount</span>
-                <span className="font-medium text-green-600">
-                  -₹{couponDiscountAmount}
-                </span>
-              </div>
-            )}
-            {/* Show original total with strikethrough and discounted total in green if any discount is applied */}
-            {walletDiscount > 0 ||
-            redeemAmount > 0 ||
-            couponDiscountAmount > 0 ? (
-              <div className="flex flex-col mb-6">
-                <div className="flex justify-between mb-1">
-                  <span className="text-lg font-semibold">Total</span>
-                  <span className="text-lg font-semibold line-through text-gray-400">
-                    ₹{(subtotal + deliveryCharges).toFixed(2)}
+              {/* Show redeem discount if applied */}
+              {useRedeemedCoins && redeemAmount > 0 && (
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-600">Redeem Discount</span>
+                  <span className="font-medium text-yellow-600">
+                    -₹{redeemAmount.toFixed(2)}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-lg font-semibold text-green-700">
-                    Discounted Total
+              )}
+              {/* Show coupon discount if applied */}
+              {appliedCoupon && (
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-600">Coupon Discount</span>
+                  <span className="font-medium text-green-600">
+                    -₹{couponDiscountAmount}
                   </span>
-                  <span className="text-lg font-semibold text-green-700">
+                </div>
+              )}
+              {/* Show original total with strikethrough and discounted total in green if any discount is applied */}
+              {walletDiscount > 0 ||
+              redeemAmount > 0 ||
+              couponDiscountAmount > 0 ? (
+                <div className="flex flex-col mb-6">
+                  <div className="flex justify-between mb-1">
+                    <span className="text-lg font-semibold">Total</span>
+                    <span className="text-lg font-semibold line-through text-gray-400">
+                      ₹{(subtotal + deliveryCharges).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-lg font-semibold text-green-700">
+                      Discounted Total
+                    </span>
+                    <span className="text-lg font-semibold text-green-700">
+                      ₹{finalOrderTotal.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex justify-between mb-6">
+                  <span className="text-lg font-semibold">Total</span>
+                  <span className="text-lg font-semibold">
                     ₹{finalOrderTotal.toFixed(2)}
                   </span>
                 </div>
-              </div>
-            ) : (
-              <div className="flex justify-between mb-6">
-                <span className="text-lg font-semibold">Total</span>
-                <span className="text-lg font-semibold">
-                  ₹{finalOrderTotal.toFixed(2)}
-                </span>
-              </div>
-            )}
+              )}
 
-            <div className="bg-gray-50 p-4 rounded-md">
-              <h3 className="font-medium text-sm mb-2">Payment Method</h3>
-              <p className="text-sm text-gray-600">
-                {form.watch("paymentMethod") === "razorpay"
-                  ? "Pay Online with Razorpay"
-                  : "Cash on Delivery (COD)"}
-              </p>
+              <div className="bg-gray-50 p-4 rounded-md">
+                <h3 className="font-medium text-sm mb-2">Payment Method</h3>
+                <p className="text-sm text-gray-600">
+                  {form.watch("paymentMethod") === "razorpay"
+                    ? "Pay Online with Razorpay"
+                    : "Cash on Delivery (COD)"}
+                </p>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Show voucher info if available */}
+        {voucher && (
+          <Alert variant="default">
+            <AlertTitle>Wallet Voucher Auto-Applied!</AlertTitle>
+            <AlertDescription>
+              Voucher Code: <b>{voucher.code}</b>
+              <br />
+              Discount: ₹{voucher.value}
+              <br />
+              <span>
+                Your wallet voucher has been auto-applied to this order.
+              </span>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Scroll to Top Button */}
+        {showScrollTop && (
+          <button
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            className="fixed bottom-8 right-8 z-50 bg-primary text-white rounded-full shadow-lg p-3 hover:bg-primary/90 transition-colors flex items-center justify-center"
+            aria-label="Scroll to top"
+          >
+            <ArrowUp className="h-6 w-6" />
+          </button>
+        )}
       </div>
-
-      {/* Show voucher info if available */}
-      {voucher && (
-        <Alert variant="default">
-          <AlertTitle>Wallet Voucher Auto-Applied!</AlertTitle>
-          <AlertDescription>
-            Voucher Code: <b>{voucher.code}</b>
-            <br />
-            Discount: ₹{voucher.value}
-            <br />
-            <span>
-              Your wallet voucher has been auto-applied to this order.
-            </span>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Scroll to Top Button */}
-      {showScrollTop && (
-        <button
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="fixed bottom-8 right-8 z-50 bg-primary text-white rounded-full shadow-lg p-3 hover:bg-primary/90 transition-colors flex items-center justify-center"
-          aria-label="Scroll to top"
-        >
-          <ArrowUp className="h-6 w-6" />
-        </button>
-      )}
     </div>
   );
 }
