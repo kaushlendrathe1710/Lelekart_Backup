@@ -47,6 +47,7 @@ interface CartContextType {
   ) => void;
   validateCart: () => Promise<boolean>;
   cleanupInvalidCartItems: () => Promise<boolean>;
+  removeCartItems: (itemIds: number[]) => void;
 }
 
 export const CartContext = createContext<CartContextType | undefined>(
@@ -609,6 +610,36 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Remove specific items from cart
+  const removeCartItems = async (itemIds: number[]) => {
+    if (user) {
+      // For logged-in users, remove each item by ID (could be optimized with a bulk API)
+      for (const id of itemIds) {
+        try {
+          await fetch(`/api/cart/${id}`, {
+            method: "DELETE",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+              "Cache-Control": "no-cache",
+            },
+          });
+        } catch (error) {
+          // Ignore errors for now, could add toast if needed
+        }
+      }
+      // Refresh cart data
+      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+    } else {
+      // For guests, filter out the items
+      setGuestCart((prevCart) => {
+        const newCart = prevCart.filter((item) => !itemIds.includes(item.id!));
+        localStorage.setItem(GUEST_CART_KEY, JSON.stringify(newCart));
+        return newCart;
+      });
+    }
+  };
+
   // Toggle cart sidebar visibility
   const toggleCart = () => {
     setIsOpen((prev) => !prev);
@@ -936,6 +967,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     buyNow,
     validateCart,
     cleanupInvalidCartItems,
+    removeCartItems, // add to context
   };
 
   return (

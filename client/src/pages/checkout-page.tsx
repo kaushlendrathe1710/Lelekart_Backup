@@ -132,13 +132,41 @@ export default function CheckoutPage() {
     isLoading: isWalletLoading,
     refetchWallet,
   } = useWallet();
-  const { cartItems, validateCart, clearCart, cleanupInvalidCartItems } =
-    useCart();
+  const {
+    cartItems,
+    validateCart,
+    clearCart,
+    cleanupInvalidCartItems,
+    removeCartItems,
+  } = useCart();
   const { refetchNotifications } = useNotifications();
 
   // State for direct checkout data from localStorage
   const [directCheckoutData, setDirectCheckoutData] = useState<any>(null);
   const [isDirectCheckout, setIsDirectCheckout] = useState(false);
+
+  // Selection state for cart items (from sessionStorage)
+  const [selectedCartItemIds, setSelectedCartItemIds] = useState<number[]>([]);
+
+  // On mount, read selected cart item IDs from sessionStorage
+  useEffect(() => {
+    const stored = sessionStorage.getItem("lelekart_selected_cart_items");
+    if (stored) {
+      try {
+        setSelectedCartItemIds(JSON.parse(stored));
+      } catch {
+        setSelectedCartItemIds([]);
+      }
+    } else {
+      // If nothing stored, default to all items
+      setSelectedCartItemIds(cartItems.map((item) => item.id));
+    }
+  }, [cartItems]);
+
+  // Filtered cart items for checkout
+  const selectedCartItems = cartItems.filter((item) =>
+    selectedCartItemIds.includes(item.id)
+  );
 
   // Initialize form with default values including email from user if available
   const form = useForm<CheckoutFormValues>({
@@ -163,12 +191,12 @@ export default function CheckoutPage() {
     value: number;
   } | null>(null);
 
-  // Calculate subtotal and delivery charges (put this at the top, NOT inside JSX)
-  const subtotal = cartItems.reduce((total, item) => {
+  // Use selectedCartItems for all calculations and rendering
+  const subtotal = selectedCartItems.reduce((total, item) => {
     const price = item.variant ? item.variant.price : item.product.price;
     return total + price * item.quantity;
   }, 0);
-  const deliveryCharges = cartItems.reduce((total, item) => {
+  const deliveryCharges = selectedCartItems.reduce((total, item) => {
     const charge = item.product.deliveryCharges ?? 0;
     return total + charge * item.quantity;
   }, 0);
@@ -348,7 +376,7 @@ export default function CheckoutPage() {
     // Check URL to see if we need to skip the empty cart check
     const fromBuyNow = window.location.search.includes("buynow=true");
 
-    if (!loading && cartItems.length === 0 && !fromBuyNow) {
+    if (!loading && selectedCartItems.length === 0 && !fromBuyNow) {
       console.log("Empty cart detected in checkout page, redirecting to cart");
       toast({
         title: "Empty Cart",
@@ -359,14 +387,14 @@ export default function CheckoutPage() {
       setLocation("/cart");
     } else if (!loading) {
       console.log(
-        `Checkout page loaded with ${cartItems.length} items in cart or from Buy Now flow (skip redirect: ${fromBuyNow})`
+        `Checkout page loaded with ${selectedCartItems.length} items in cart or from Buy Now flow (skip redirect: ${fromBuyNow})`
       );
     }
-  }, [loading, cartItems, setLocation, toast]);
+  }, [loading, selectedCartItems, setLocation, toast]);
 
   // Verify cart with server on page load
   useEffect(() => {
-    if (!loading && user && cartItems.length > 0) {
+    if (!loading && user && selectedCartItems.length > 0) {
       console.log("Verifying cart contents with server on checkout page load");
       // Adding a delay to ensure we're getting fresh data after any redirects
       const timer = setTimeout(async () => {
@@ -389,7 +417,7 @@ export default function CheckoutPage() {
           console.log("Server cart verification:", serverCart.length, "items");
 
           // If server shows empty cart but client has items, invalidate client cache
-          if (serverCart.length === 0 && cartItems.length > 0) {
+          if (serverCart.length === 0 && selectedCartItems.length > 0) {
             console.log(
               "MISMATCH: Server shows empty cart but client shows items"
             );
@@ -412,7 +440,14 @@ export default function CheckoutPage() {
 
       return () => clearTimeout(timer);
     }
-  }, [loading, user, cartItems.length, queryClient, setLocation, toast]);
+  }, [
+    loading,
+    user,
+    selectedCartItems.length,
+    queryClient,
+    setLocation,
+    toast,
+  ]);
 
   // Check if wallet can be applied to this order
   const checkWalletEligibility = () => {
@@ -448,7 +483,7 @@ export default function CheckoutPage() {
         .map((cat) => cat.trim().toLowerCase());
 
       // Check if at least one product is in applicable categories
-      const hasEligibleProduct = cartItems.some((item) =>
+      const hasEligibleProduct = selectedCartItems.some((item) =>
         applicableCategories.includes(item.product.category.toLowerCase())
       );
 
@@ -551,7 +586,7 @@ export default function CheckoutPage() {
 
   // Update wallet discount state only when checkbox is checked and wallet is eligible
   useEffect(() => {
-    if (cartItems.length === 0 || !wallet || !settings) return;
+    if (selectedCartItems.length === 0 || !wallet || !settings) return;
     if (useWalletCoins) {
       if (checkWalletEligibility()) {
         setWalletDiscount(maxWalletDiscount);
@@ -561,7 +596,7 @@ export default function CheckoutPage() {
     } else {
       setWalletDiscount(0);
     }
-  }, [useWalletCoins, wallet, settings, cartItems, subtotal]);
+  }, [useWalletCoins, wallet, settings, selectedCartItems, subtotal]);
 
   // Fetch active wallet voucher for user on mount
   useEffect(() => {
@@ -713,11 +748,10 @@ export default function CheckoutPage() {
         }
 
         // Check if cart is now empty after removing invalid items
-        if (cartItems.length === 0) {
+        if (selectedCartItems.length === 0) {
           toast({
-            title: "Empty Cart",
-            description:
-              "All items in your cart were invalid and have been removed. Please add new items before checkout.",
+            title: "No Items Selected",
+            description: "Please select at least one item to checkout.",
             variant: "destructive",
           });
           // Redirect to home page if cart is now empty
@@ -791,9 +825,7 @@ export default function CheckoutPage() {
         // Prepare order data
         const orderData: any = {
           userId: user.id,
-          // Use the final total after all discounts
           total: finalOrderTotal,
-          // status is removed from client request and will be set by server
           paymentMethod: values.paymentMethod,
           shippingDetails: JSON.stringify({
             name: values.name,
@@ -805,6 +837,13 @@ export default function CheckoutPage() {
             zipCode: values.zipCode,
             notes: values.notes,
           }),
+          items: selectedCartItems.map((item) => ({
+            id: item.id,
+            productId: item.product.id,
+            variantId: item.variant?.id,
+            quantity: item.quantity,
+            price: item.variant ? item.variant.price : item.product.price,
+          })),
         };
 
         // Add address ID if using saved address
@@ -858,13 +897,16 @@ export default function CheckoutPage() {
         // If a coupon was applied, increment its usage count
         if (appliedCoupon && appliedCoupon.id) {
           try {
-            await fetch(`/api/admin/affiliates/${appliedCoupon.id}/increment-usage`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
-            });
+            await fetch(
+              `/api/admin/affiliates/${appliedCoupon.id}/increment-usage`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+              }
+            );
           } catch (err) {
-            console.error('Failed to increment affiliate usage:', err);
+            console.error("Failed to increment affiliate usage:", err);
           }
         }
 
@@ -900,18 +942,12 @@ export default function CheckoutPage() {
           }
         }
 
-        // Use the clearCart function from the CartContext hook to clear the cart
-        try {
-          // Call the clearCart function directly from the hook
-          await clearCart();
-          console.log("Cart cleared successfully after order placement");
+        // Use the removeCartItems function to remove only ordered items
+        await removeCartItems(selectedCartItems.map((item) => item.id));
+        console.log("Ordered items removed from cart after order placement");
 
-          // Ensure the React Query cache is invalidated
-          queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
-        } catch (error) {
-          console.error("Error clearing cart:", error);
-          // Continue with order process even if cart clearing fails
-        }
+        // Ensure the React Query cache is invalidated
+        queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
 
         // Show success message
         toast({
@@ -919,6 +955,9 @@ export default function CheckoutPage() {
           description:
             "Your order has been placed successfully. Your cart has been cleared. Thank you for shopping with us!",
         });
+
+        // Clear selected cart items from sessionStorage
+        sessionStorage.removeItem("lelekart_selected_cart_items");
 
         // Place this after order is successfully placed and before redirect/clear cart
         refetchWallet && refetchWallet();
@@ -978,7 +1017,9 @@ export default function CheckoutPage() {
           {/* Shipping Form */}
           <div className="w-full md:w-2/3">
             <div className="bg-[#F8F5E4] rounded-2xl shadow-md border border-[#e0c9a6] p-2 sm:p-6">
-              <h2 className="text-lg font-semibold mb-6">Shipping Information</h2>
+              <h2 className="text-lg font-semibold mb-6">
+                Shipping Information
+              </h2>
 
               {addresses.length > 0 && (
                 <div className="mb-6">
@@ -1000,7 +1041,8 @@ export default function CheckoutPage() {
                           setSelectedAddressId(address.id.toString());
 
                           // Get email value
-                          const emailValue = user?.email ?? user?.username ?? "";
+                          const emailValue =
+                            user?.email ?? user?.username ?? "";
 
                           try {
                             // Clear all validation errors by resetting form with new values
@@ -1026,9 +1068,11 @@ export default function CheckoutPage() {
                             );
 
                             // Set all fields as valid manually to ensure the form is valid
-                            Object.keys(form.getValues()).forEach((fieldName) => {
-                              form.clearErrors(fieldName as any);
-                            });
+                            Object.keys(form.getValues()).forEach(
+                              (fieldName) => {
+                                form.clearErrors(fieldName as any);
+                              }
+                            );
 
                             // Force validation to succeed for selected addresses
                             setTimeout(() => {
@@ -1282,7 +1326,9 @@ export default function CheckoutPage() {
                                             response.status
                                           );
                                           if (!response.ok) {
-                                            throw new Error("PIN code not found");
+                                            throw new Error(
+                                              "PIN code not found"
+                                            );
                                           }
                                           return response.json();
                                         })
@@ -1436,7 +1482,9 @@ export default function CheckoutPage() {
 
                   {/* Payment section - always visible */}
                   <div className="payment-section pt-4 border-t">
-                    <h3 className="font-medium text-base mb-4">Payment Method</h3>
+                    <h3 className="font-medium text-base mb-4">
+                      Payment Method
+                    </h3>
 
                     <FormField
                       control={form.control}
@@ -1457,7 +1505,10 @@ export default function CheckoutPage() {
                                 </Label>
                               </div>
                               <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="razorpay" id="razorpay" />
+                                <RadioGroupItem
+                                  value="razorpay"
+                                  id="razorpay"
+                                />
                                 <Label htmlFor="razorpay">
                                   Pay Online with Razorpay
                                 </Label>
@@ -1625,7 +1676,7 @@ export default function CheckoutPage() {
               )}
 
               <div className="space-y-4 mb-4">
-                {cartItems.map((item) => (
+                {selectedCartItems.map((item) => (
                   <div
                     key={item.id}
                     className="flex justify-between items-center border-b pb-2"
@@ -1648,7 +1699,9 @@ export default function CheckoutPage() {
                         />
                       </div>
                       <div>
-                        <p className="text-sm font-medium">{item.product.name}</p>
+                        <p className="text-sm font-medium">
+                          {item.product.name}
+                        </p>
                         <p className="text-xs text-gray-500">
                           Qty: {item.quantity}
                         </p>
@@ -1728,7 +1781,9 @@ export default function CheckoutPage() {
                     </div>
                   )}
                   {walletError && (
-                    <div className="text-xs text-red-500 mt-1">{walletError}</div>
+                    <div className="text-xs text-red-500 mt-1">
+                      {walletError}
+                    </div>
                   )}
                   {wallet.balance <= 0 && (
                     <div className="text-xs text-gray-500 mt-1">
@@ -1786,8 +1841,8 @@ export default function CheckoutPage() {
                 </div>
                 {redeemAmount > maxRedeemableFromRedeemed && (
                   <div className="text-red-500 text-xs mt-1">
-                    You can only redeem up to ₹{maxRedeemableFromRedeemed} wallet
-                    rupees for this order.
+                    You can only redeem up to ₹{maxRedeemableFromRedeemed}{" "}
+                    wallet rupees for this order.
                   </div>
                 )}
               </div>

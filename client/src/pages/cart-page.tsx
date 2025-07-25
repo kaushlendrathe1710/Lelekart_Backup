@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { useContext } from "react";
+import { useContext, useState, useEffect } from "react";
 import { AuthContext } from "@/hooks/use-auth";
 import { User } from "@shared/schema";
 import { useCart } from "@/context/cart-context";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface CartItem {
   id: number;
@@ -52,6 +53,25 @@ export default function CartPage() {
     staleTime: 60000,
   });
   const isLoading = false;
+  const [selectedItems, setSelectedItems] = useState<number[]>(
+    cartItems.map((item) => item.id)
+  );
+
+  useEffect(() => {
+    // Sync selection with cart items (e.g., after add/remove)
+    setSelectedItems((prev) => {
+      const currentIds = cartItems.map((item) => item.id);
+      return prev
+        .filter((id) => currentIds.includes(id))
+        .concat(currentIds.filter((id) => !prev.includes(id)));
+    });
+  }, [cartItems]);
+
+  const handleSelectItem = (itemId: number, checked: boolean) => {
+    setSelectedItems((prev) =>
+      checked ? [...prev, itemId] : prev.filter((id) => id !== itemId)
+    );
+  };
 
   const proceedToCheckout = () => {
     // If user is not logged in, redirect to auth with return URL
@@ -59,12 +79,20 @@ export default function CartPage() {
       setLocation("/auth?returnUrl=/checkout", { replace: false });
       return;
     }
-    // Otherwise proceed to checkout
+    // Otherwise proceed to checkout with selected items only
+    // Store selected item IDs in sessionStorage for checkout page to use
+    sessionStorage.setItem(
+      "lelekart_selected_cart_items",
+      JSON.stringify(selectedItems)
+    );
     setLocation("/checkout", { replace: false });
   };
 
-  // Calculate totals - use deal price if isDealOfTheDay, else variant price if available
-  const subtotal = cartItems.reduce((total, item) => {
+  // Calculate totals using only selected items
+  const selectedCartItems = cartItems.filter((item) =>
+    selectedItems.includes(item.id)
+  );
+  const subtotal = selectedCartItems.reduce((total, item) => {
     let price;
     if (item.product.isDealOfTheDay) {
       price = item.product.price;
@@ -73,8 +101,7 @@ export default function CartPage() {
     }
     return total + price * item.quantity;
   }, 0);
-  // Calculate delivery charges for all items
-  const deliveryCharges = cartItems.reduce((total, item) => {
+  const deliveryCharges = selectedCartItems.reduce((total, item) => {
     const charge = item.product.deliveryCharges ?? 0;
     return total + charge * item.quantity;
   }, 0);
@@ -127,26 +154,35 @@ export default function CartPage() {
                       key={item.id}
                       className="py-6 flex flex-col sm:flex-row gap-4 sm:gap-0"
                     >
-                      <div className="flex-shrink-0 w-full sm:w-24 h-40 sm:h-24 border border-gray-200 rounded-md overflow-hidden mx-auto sm:mx-0">
-                        <img
-                          src={
-                            item.product.imageUrl ||
-                            "/images/categories/fashion.svg"
+                      <div className="flex items-center mb-2">
+                        <Checkbox
+                          checked={selectedItems.includes(item.id)}
+                          onCheckedChange={(checked) =>
+                            handleSelectItem(item.id, checked === true)
                           }
-                          alt={item.product.name}
-                          className="w-full h-full object-center object-cover"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.onerror = null;
-                            if (item.product.category) {
-                              const categoryLower =
-                                item.product.category.toLowerCase();
-                              target.src = `../images/${categoryLower}.svg`;
-                            } else {
-                              target.src = "../images/placeholder.svg";
-                            }
-                          }}
+                          className="mr-2"
                         />
+                        <div className="flex-shrink-0 w-full sm:w-24 h-40 sm:h-24 border border-gray-200 rounded-md overflow-hidden mx-auto sm:mx-0">
+                          <img
+                            src={
+                              item.product.imageUrl ||
+                              "/images/categories/fashion.svg"
+                            }
+                            alt={item.product.name}
+                            className="w-full h-full object-center object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.onerror = null;
+                              if (item.product.category) {
+                                const categoryLower =
+                                  item.product.category.toLowerCase();
+                                target.src = `../images/${categoryLower}.svg`;
+                              } else {
+                                target.src = "../images/placeholder.svg";
+                              }
+                            }}
+                          />
+                        </div>
                       </div>
 
                       <div className="sm:ml-4 flex-1 flex flex-col justify-between w-full">
