@@ -125,10 +125,10 @@ export default function StoriesPage() {
   };
 
   return (
-    <div className="bg-[#f1f3f6] min-h-screen py-4">
+    <div className="min-h-screen bg-[#F8F5E4] text-gray-800 py-4">
       <div className="container mx-auto px-4">
         {/* Main Content Area */}
-        <div className="bg-white shadow-sm rounded-md overflow-hidden mb-6">
+        <div className="bg-[#F8F5E4] shadow-sm rounded-md overflow-hidden mb-6">
           {/* Hero Banner */}
           <div className="bg-[#2874f0] text-white p-6 md:p-8 lg:p-16">
             <div className="max-w-4xl mx-auto">
@@ -179,7 +179,7 @@ export default function StoriesPage() {
                           .map((story) => (
                             <Card
                               key={story.id}
-                              className="overflow-hidden h-full border-[#efefef] hover:shadow-md transition-shadow"
+                              className="overflow-hidden h-full border-[#efefef] hover:shadow-md transition-shadow bg-transparent"
                             >
                               <div className="relative h-40 md:h-48 w-full bg-gray-100">
                                 <img
@@ -285,7 +285,7 @@ export default function StoriesPage() {
                             {successStories.map((story) => (
                               <Card
                                 key={story.id}
-                                className="overflow-hidden h-full border-[#efefef] hover:shadow-md transition-shadow"
+                                className="overflow-hidden h-full border-[#efefef] hover:shadow-md transition-shadow bg-transparent"
                               >
                                 <div className="relative h-32 md:h-40 w-full bg-gray-100">
                                   <img
@@ -357,7 +357,7 @@ export default function StoriesPage() {
                               .map((story) => (
                                 <Card
                                   key={story.id}
-                                  className="overflow-hidden h-full border-[#efefef] hover:shadow-md transition-shadow"
+                                  className="overflow-hidden h-full border-[#efefef] hover:shadow-md transition-shadow bg-transparent"
                                 >
                                   <div className="relative h-32 md:h-40 w-full bg-gray-100">
                                     <img
@@ -426,7 +426,7 @@ export default function StoriesPage() {
                               .map((story) => (
                                 <Card
                                   key={story.id}
-                                  className="overflow-hidden h-full border-[#efefef] hover:shadow-md transition-shadow"
+                                  className="overflow-hidden h-full border-[#efefef] hover:shadow-md transition-shadow bg-transparent"
                                 >
                                   <div className="relative h-32 md:h-40 w-full bg-gray-100">
                                     <img
@@ -495,7 +495,7 @@ export default function StoriesPage() {
                               .map((story) => (
                                 <Card
                                   key={story.id}
-                                  className="overflow-hidden h-full border-[#efefef] hover:shadow-md transition-shadow"
+                                  className="overflow-hidden h-full border-[#efefef] hover:shadow-md transition-shadow bg-transparent"
                                 >
                                   <div className="relative h-32 md:h-40 w-full bg-gray-100">
                                     <img
@@ -584,7 +584,7 @@ export default function StoriesPage() {
       {/* Submit Your Story Modal */}
       {showSubmitModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-4 md:p-6 relative">
+          <div className="bg-[#F8F5E4] rounded-lg shadow-lg w-full max-w-md p-4 md:p-6 relative">
             <button
               className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 text-xl"
               onClick={() => setShowSubmitModal(false)}

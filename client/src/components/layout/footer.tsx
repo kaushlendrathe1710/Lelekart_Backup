@@ -148,7 +148,7 @@ export function Footer() {
 
   if (isLoading) {
     return (
-      <footer className="bg-gray-900 text-white mt-8">
+      <footer className="bg-[#F8F5E4] text-gray-800 mt-8">
         <div className="container mx-auto px-4 py-8 flex justify-center items-center">
           <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
         </div>
@@ -168,13 +168,13 @@ export function Footer() {
   }
 
   return (
-    <footer className="bg-gray-900 text-white mt-8">
+    <footer className="bg-[#F8F5E4] text-gray-800 mt-8">
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* About Section */}
           {groupedContent.about && (
             <div>
-              <h3 className="text-gray-400 font-medium mb-4 uppercase text-sm">
+              <h3 className="text-gray-600 font-medium mb-4 uppercase text-sm">
                 About
               </h3>
               <ul className="space-y-2 text-sm">
@@ -200,7 +200,7 @@ export function Footer() {
           {/* Help Section */}
           {groupedContent.help && (
             <div>
-              <h3 className="text-gray-400 font-medium mb-4 uppercase text-sm">
+              <h3 className="text-gray-600 font-medium mb-4 uppercase text-sm">
                 Help
               </h3>
               <ul className="space-y-2 text-sm">
@@ -226,7 +226,7 @@ export function Footer() {
           {/* Consumer Policy Section */}
           {groupedContent.consumer_policy && (
             <div>
-              <h3 className="text-gray-400 font-medium mb-4 uppercase text-sm">
+              <h3 className="text-gray-600 font-medium mb-4 uppercase text-sm">
                 Consumer Policy
               </h3>
               <ul className="space-y-2 text-sm">
@@ -252,7 +252,7 @@ export function Footer() {
           {/* Social Section */}
           {groupedContent.social && (
             <div>
-              <h3 className="text-gray-400 font-medium mb-4 uppercase text-sm">
+              <h3 className="text-gray-600 font-medium mb-4 uppercase text-sm">
                 Social
               </h3>
               <ul className="space-y-2 text-sm">
@@ -283,10 +283,10 @@ export function Footer() {
               {/* Mail Us Section */}
               {groupedContent.mail_us && groupedContent.mail_us.length > 0 ? (
                 <div className="mt-6">
-                  <h3 className="text-gray-400 font-medium mb-2 uppercase text-sm">
+                  <h3 className="text-gray-600 font-medium mb-2 uppercase text-sm">
                     Mail Us:
                   </h3>
-                  <p className="text-xs leading-relaxed">
+                  <p className="text-xs leading-relaxed text-gray-700">
                     {groupedContent.mail_us.length === 1 &&
                     groupedContent.mail_us[0].content.includes("\n")
                       ? // Handle case where content has embedded newlines
@@ -319,10 +319,10 @@ export function Footer() {
                 </div>
               ) : (
                 <div className="mt-6">
-                  <h3 className="text-gray-400 font-medium mb-2 uppercase text-sm">
+                  <h3 className="text-gray-600 font-medium mb-2 uppercase text-sm">
                     Mail Us:
                   </h3>
-                  <p className="text-xs leading-relaxed">
+                  <p className="text-xs leading-relaxed text-gray-700">
                     Lelekart Internet Private Limited,
                     <br />
                     Buildings Alyssa, Begonia &<br />
@@ -341,7 +341,7 @@ export function Footer() {
             </div>
           )}
         </div>
-        <div className="border-t border-gray-700 mt-8 pt-8 text-center text-xs text-gray-400">
+        <div className="border-t border-gray-300 mt-8 pt-8 text-center text-xs text-gray-500">
           <p>
             &copy; {new Date().getFullYear()} Lelekart.com. All rights reserved.
           </p>
@@ -440,11 +440,11 @@ function DefaultFooter() {
   };
 
   return (
-    <footer className="bg-gray-900 text-white mt-8">
+    <footer className="bg-[#F8F5E4] text-gray-800 mt-8">
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <h3 className="text-gray-400 font-medium mb-4 uppercase text-sm">
+            <h3 className="text-gray-600 font-medium mb-4 uppercase text-sm">
               About
             </h3>
             <ul className="space-y-2 text-sm">
@@ -462,7 +462,7 @@ function DefaultFooter() {
             </ul>
           </div>
           <div>
-            <h3 className="text-gray-400 font-medium mb-4 uppercase text-sm">
+            <h3 className="text-gray-600 font-medium mb-4 uppercase text-sm">
               Help
             </h3>
             <ul className="space-y-2 text-sm">
@@ -480,7 +480,7 @@ function DefaultFooter() {
             </ul>
           </div>
           <div>
-            <h3 className="text-gray-400 font-medium mb-4 uppercase text-sm">
+            <h3 className="text-gray-600 font-medium mb-4 uppercase text-sm">
               Policy
             </h3>
             <ul className="space-y-2 text-sm">
@@ -498,7 +498,7 @@ function DefaultFooter() {
             </ul>
           </div>
           <div>
-            <h3 className="text-gray-400 font-medium mb-4 uppercase text-sm">
+            <h3 className="text-gray-600 font-medium mb-4 uppercase text-sm">
               Social
             </h3>
             <ul className="space-y-2 text-sm">
@@ -517,10 +517,10 @@ function DefaultFooter() {
               ))}
             </ul>
             <div className="mt-6">
-              <h3 className="text-gray-400 font-medium mb-2 uppercase text-sm">
+              <h3 className="text-gray-600 font-medium mb-2 uppercase text-sm">
                 Mail Us:
               </h3>
-              <p className="text-xs leading-relaxed">
+              <p className="text-xs leading-relaxed text-gray-700">
                 Lelekart Internet Private Limited,
                 <br />
                 Buildings Alyssa, Begonia &<br />
@@ -537,7 +537,7 @@ function DefaultFooter() {
             </div>
           </div>
         </div>
-        <div className="border-t border-gray-700 mt-8 pt-8 text-center text-xs text-gray-400">
+        <div className="border-t border-gray-300 mt-8 pt-8 text-center text-xs text-gray-500">
           <p>
             &copy; {new Date().getFullYear()} Lelekart.com. All rights reserved.
           </p>

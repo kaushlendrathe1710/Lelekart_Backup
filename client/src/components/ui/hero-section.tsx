@@ -279,6 +279,13 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
     navigate("/cart");
   };
 
+  // Helper to format price in INR with max 2 decimals
+  function formatINR(price: number | string) {
+    const num = typeof price === 'string' ? parseFloat(price) : price;
+    if (isNaN(num)) return price;
+    return num.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, minimumFractionDigits: 0 });
+  }
+
   return (
     <>
       {/* Main hero slider */}
@@ -386,10 +393,10 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
       {dealOfTheDay && (
         <div className="bg-[#EADDCB] py-8">
           <div className="container mx-auto px-4">
-            <div className="bg-[#F8F5E4] rounded-2xl shadow-2xl p-8 flex flex-col md:flex-row items-center border border-[#e0c9a6]">
+            <div className="bg-[#F8F5E4] rounded-2xl shadow-2xl p-8 flex flex-col md:flex-row items-center justify-center border border-[#e0c9a6]">
               {/* Left side - Deal info */}
-              <div className="md:w-2/3 w-full mb-8 md:mb-0 md:pr-12">
-                <div className="flex items-center mb-4">
+              <div className="md:w-2/3 w-full mb-8 md:mb-0 md:pr-12 text-center">
+                <div className="flex items-center mb-4 justify-center">
                   <span className="bg-yellow-400 text-black text-xs font-bold px-3 py-1 rounded mr-4 tracking-wide shadow-sm">DEAL OF THE DAY</span>
                   <div className="flex space-x-3">
                     <div className="text-center">
@@ -408,9 +415,9 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
                 </div>
                 <h3 className="text-lg md:text-xl font-semibold text-black mb-2 leading-snug">{dealOfTheDay.title}</h3>
                 <p className="text-gray-700 mb-4 text-sm md:text-base">{dealOfTheDay.subtitle}</p>
-                <div className="flex items-end mb-4 gap-3 flex-wrap">
-                  <span className="text-xl md:text-2xl font-bold text-black">₹{dealOfTheDay.discountPrice}</span>
-                  <span className="text-base md:text-lg line-through text-gray-400">₹{dealOfTheDay.originalPrice}</span>
+                <div className="flex items-end mb-4 gap-3 flex-wrap justify-center">
+                  <span className="text-xl md:text-2xl font-bold text-black">{formatINR(dealOfTheDay.discountPrice)}</span>
+                  <span className="text-base md:text-lg line-through text-gray-400">{formatINR(dealOfTheDay.originalPrice)}</span>
                   <span className="bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded shadow-sm">{dealOfTheDay.discountPercentage}% OFF</span>
                 </div>
                 <Button

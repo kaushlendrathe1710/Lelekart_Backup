@@ -55,10 +55,10 @@ const AboutPageSection = ({
 
 export default function AboutUsPage() {
   return (
-    <div className="bg-[#f1f3f6] min-h-screen py-4">
+    <div className="min-h-screen bg-[#F8F5E4] text-gray-800 py-4">
       <div className="container mx-auto px-4">
         {/* Main Content Area */}
-        <div className="bg-white shadow-sm rounded-md overflow-hidden mb-6">
+        <div className="bg-[#F8F5E4] shadow-sm rounded-md overflow-hidden mb-6">
           {/* Hero Banner */}
           <div className="bg-[#2874f0] text-white p-6 md:p-8 lg:p-16">
             <div className="max-w-4xl mx-auto">
@@ -124,7 +124,7 @@ export default function AboutUsPage() {
                   />
                 </div>
                 <div className="lg:w-1/3">
-                  <div className="bg-gray-100 rounded-lg p-4">
+                  <div className="bg-[#F8F5E4] rounded-lg p-4">
                     <AboutPageSection
                       titleFilter="At a Glance"
                       defaultContent={
@@ -214,7 +214,7 @@ export default function AboutUsPage() {
                   titleFilter="Core Values"
                   defaultContent={
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
-                      <Card className="border-[#efefef] hover:shadow-md transition-shadow">
+                      <Card className="border-[#efefef] hover:shadow-md transition-shadow bg-transparent">
                         <CardContent className="p-4 md:p-5">
                           <div className="bg-[#2874f0]/10 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full mb-3 md:mb-4">
                             <ShieldCheck
@@ -233,7 +233,7 @@ export default function AboutUsPage() {
                           </p>
                         </CardContent>
                       </Card>
-                      <Card className="border-[#efefef] hover:shadow-md transition-shadow">
+                      <Card className="border-[#efefef] hover:shadow-md transition-shadow bg-transparent">
                         <CardContent className="p-4 md:p-5">
                           <div className="bg-[#2874f0]/10 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full mb-3 md:mb-4">
                             <TrendingUp
@@ -252,7 +252,7 @@ export default function AboutUsPage() {
                           </p>
                         </CardContent>
                       </Card>
-                      <Card className="border-[#efefef] hover:shadow-md transition-shadow md:col-span-2 lg:col-span-1">
+                      <Card className="border-[#efefef] hover:shadow-md transition-shadow md:col-span-2 lg:col-span-1 bg-transparent">
                         <CardContent className="p-4 md:p-5">
                           <div className="bg-[#2874f0]/10 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full mb-3 md:mb-4">
                             <BadgeIndianRupee
@@ -358,7 +358,7 @@ export default function AboutUsPage() {
                         {/* Milestone 1 */}
                         <div className="relative flex flex-col lg:flex-row">
                           <div className="lg:w-1/2 lg:pr-8 lg:text-right mb-4 lg:mb-0">
-                            <div className="bg-white p-4 shadow-sm border border-gray-100 rounded-lg">
+                            <div className="bg-[#F8F5E4] p-4 shadow-sm border border-gray-100 rounded-lg">
                               <h3 className="font-semibold text-base md:text-lg mb-1">
                                 Founded in Bengaluru
                               </h3>
@@ -385,7 +385,7 @@ export default function AboutUsPage() {
                             <div className="w-6 h-6 rounded-full bg-[#2874f0] border-4 border-white"></div>
                           </div>
                           <div className="lg:w-1/2 lg:pl-8 mb-4 lg:mb-0">
-                            <div className="bg-white p-4 shadow-sm border border-gray-100 rounded-lg">
+                            <div className="bg-[#F8F5E4] p-4 shadow-sm border border-gray-100 rounded-lg">
                               <h3 className="font-semibold text-base md:text-lg mb-1">
                                 Expanded Product Categories
                               </h3>
@@ -404,7 +404,7 @@ export default function AboutUsPage() {
                         {/* Milestone 3 */}
                         <div className="relative flex flex-col lg:flex-row">
                           <div className="lg:w-1/2 lg:pr-8 lg:text-right mb-4 lg:mb-0">
-                            <div className="bg-white p-4 shadow-sm border border-gray-100 rounded-lg">
+                            <div className="bg-[#F8F5E4] p-4 shadow-sm border border-gray-100 rounded-lg">
                               <h3 className="font-semibold text-base md:text-lg mb-1">
                                 Nationwide Presence
                               </h3>
@@ -430,7 +430,7 @@ export default function AboutUsPage() {
                             <div className="w-6 h-6 rounded-full bg-[#2874f0] border-4 border-white"></div>
                           </div>
                           <div className="lg:w-1/2 lg:pl-8">
-                            <div className="bg-white p-4 shadow-sm border border-gray-100 rounded-lg">
+                            <div className="bg-[#F8F5E4] p-4 shadow-sm border border-gray-100 rounded-lg">
                               <h3 className="font-semibold text-base md:text-lg mb-1">
                                 Looking to the Future
                               </h3>
@@ -451,7 +451,7 @@ export default function AboutUsPage() {
               </div>
 
               {/* Join Us CTA */}
-              <div className="mt-8 md:mt-12 bg-[#f8f9fa] p-6 md:p-8 rounded-lg text-center">
+              <div className="mt-8 md:mt-12 bg-[#F8F5E4] p-6 md:p-8 rounded-lg text-center">
                 <AboutPageSection
                   titleFilter="Join Us CTA"
                   defaultContent={
@@ -473,7 +473,7 @@ export default function AboutUsPage() {
                         </a>
                         <a
                           href="/seller"
-                          className="bg-white text-[#2874f0] border border-[#2874f0] px-4 md:px-6 py-2 md:py-3 rounded-sm hover:bg-[#f5f9ff] transition-colors text-sm md:text-base"
+                          className="bg-[#F8F5E4] text-[#2874f0] border border-[#2874f0] px-4 md:px-6 py-2 md:py-3 rounded-sm hover:bg-[#f5f9ff] transition-colors text-sm md:text-base"
                         >
                           Become a Seller
                         </a>
@@ -487,7 +487,7 @@ export default function AboutUsPage() {
         </div>
 
         {/* FAQ Accordion */}
-        <div className="bg-white shadow-sm rounded-md overflow-hidden mb-6 p-4 md:p-6 lg:p-8">
+        <div className="bg-[#F8F5E4] shadow-sm rounded-md overflow-hidden mb-6 p-4 md:p-6 lg:p-8">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-[#2874f0]">
               Frequently Asked Questions

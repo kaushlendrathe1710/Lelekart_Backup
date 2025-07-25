@@ -12,6 +12,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
+import { Logo } from "./logo";
 
 export function PublicHeader() {
   const { toggleCart, cartItems } = useCart();
@@ -43,7 +44,7 @@ export function PublicHeader() {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-8">
             <Link href="/">
-              <div className="text-2xl font-bold">Lelekart</div>
+              <Logo />
             </Link>
 
             <div className="flex-grow max-w-xl flex items-center">
@@ -70,8 +71,7 @@ export function PublicHeader() {
               onClick={handleCartClick}
               title="View Cart"
             >
-              <ShoppingCart className="h-5 w-5 mr-1" />
-              <span>Cart</span>
+              <ShoppingCart className="h-10 w-10" /> <span className="text-2xl font-bold ml-2">Cart</span>
               {cartItemCount > 0 && (
                 <span className="ml-1 bg-white text-primary rounded-full h-5 w-5 flex items-center justify-center text-xs">
                   {cartItemCount}
@@ -93,7 +93,7 @@ export function PublicHeader() {
           </button>
 
           <Link href="/">
-            <div className="text-2xl font-bold">Lelekart</div>
+            <Logo />
           </Link>
 
           <div className="flex items-center space-x-3">
@@ -102,7 +102,7 @@ export function PublicHeader() {
               className="relative text-white hover:text-gray-200"
               title="View Cart"
             >
-              <ShoppingCart size={24} />
+              <ShoppingCart size={32} />
               {cartItemCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-white text-primary rounded-full h-5 w-5 flex items-center justify-center text-xs">
                   {cartItemCount}

@@ -28,6 +28,7 @@ import { useCart } from "@/context/cart-context";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { CategoryMegaMenu } from "@/components/layout/category-mega-menu";
+import { Logo } from "./logo";
 
 export function Header() {
   const { user, logoutMutation } = useAuth();
@@ -77,12 +78,8 @@ export function Header() {
         <div className="flex flex-col md:flex-row items-center py-4 justify-between">
           {/* Logo and Home Button */}
           <div className="flex items-center gap-2 flex-shrink-0 md:w-auto mb-2 md:mb-0">
-            <Link href="/" className="flex items-center">
-              <img
-                src="https://drive.google.com/thumbnail?id=1RNjADzUc3bRdEpavAv5lxcN1P9VLG-PC&sz=w1000"
-                alt="Lelekart Logo"
-                className="h-12 w-auto"
-              />
+            <Link href="/">
+              <Logo />
             </Link>
             <Link href="/">
               <Button
@@ -112,9 +109,9 @@ export function Header() {
               <Link href="/auth">
                 <Button
                   variant="secondary"
-                  className="flex items-center py-1 px-2 md:px-4 bg-white text-primary font-medium rounded-sm hover:bg-gray-100"
+                  className="flex items-center py-2 px-6 md:px-8 text-lg bg-white text-primary font-semibold rounded hover:bg-gray-100 shadow-md"
                 >
-                  <User className="mr-2 h-4 w-4" />
+                  <User className="mr-3 h-7 w-7" />
                   <span>Login</span>
                 </Button>
               </Link>
@@ -243,11 +240,11 @@ export function Header() {
 
             <Button
               variant="link"
-              className="text-white flex items-center hover:text-gray-200 relative"
+              className="text-white flex items-center hover:text-gray-200 relative px-6 py-2 text-lg font-semibold"
               onClick={handleCartClick}
             >
-              <ShoppingCart className="h-5 w-5" />
-              <span className="ml-1">Cart</span>
+              <ShoppingCart className="h-12 w-12 mr-2" />
+              <span className="text-2xl font-bold ml-2">Cart</span>
               {cartItemCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-yellow-400 text-primary text-xs rounded-full h-5 w-5 flex items-center justify-center">
                   {cartItemCount}
@@ -269,7 +266,7 @@ export function Header() {
               className="text-white"
               onClick={handleCartClick}
             >
-              <ShoppingCart className="h-6 w-6" />
+              <ShoppingCart className="h-10 w-10" />
               {cartItemCount > 0 && (
                 <span className="absolute top-1 right-1 bg-yellow-400 text-primary text-xs rounded-full h-4 w-4 flex items-center justify-center">
                   {cartItemCount}
@@ -296,11 +293,7 @@ export function Header() {
           <div className="md:hidden py-3 border-t border-primary-foreground/20">
             <div className="flex items-center mb-4 gap-2">
               <Link href="/" className="flex items-center">
-                <img
-                  src="https://drive.google.com/thumbnail?id=1RNjADzUc3bRdEpavAv5lxcN1P9VLG-PC&sz=w1000"
-                  alt="Lelekart Logo"
-                  className="h-10 w-auto"
-                />
+                <Logo />
               </Link>
               <Link href="/">
                 <Button

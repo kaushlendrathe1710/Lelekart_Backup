@@ -20,10 +20,10 @@ import {
 
 export default function PaymentsPage() {
   return (
-    <div className="bg-[#f1f3f6] min-h-screen py-4">
+    <div className="min-h-screen bg-[#F8F5E4] text-gray-800 py-4">
       <div className="container mx-auto px-4">
         {/* Main Content Area */}
-        <div className="bg-white shadow-sm rounded-md overflow-hidden mb-6">
+        <div className="bg-[#F8F5E4] shadow-sm rounded-md overflow-hidden mb-6">
           {/* Hero Banner */}
           <div className="bg-[#2874f0] text-white p-6 md:p-8 lg:p-16">
             <div className="max-w-4xl mx-auto">
@@ -64,7 +64,7 @@ export default function PaymentsPage() {
                   titleFilter="Payment Methods"
                   defaultContent={
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <Card className="border-[#efefef] hover:shadow-md transition-shadow">
+                      <Card className="border-[#efefef] bg-transparent hover:shadow-md transition-shadow">
                         <CardContent className="p-6">
                           <div className="flex items-center mb-4">
                             <div className="bg-blue-50 w-12 h-12 rounded-full flex items-center justify-center mr-4">
@@ -87,7 +87,7 @@ export default function PaymentsPage() {
                         </CardContent>
                       </Card>
 
-                      <Card className="border-[#efefef] hover:shadow-md transition-shadow">
+                      <Card className="border-[#efefef] bg-transparent hover:shadow-md transition-shadow">
                         <CardContent className="p-6">
                           <div className="flex items-center mb-4">
                             <div className="bg-blue-50 w-12 h-12 rounded-full flex items-center justify-center mr-4">
@@ -110,7 +110,7 @@ export default function PaymentsPage() {
                         </CardContent>
                       </Card>
 
-                      <Card className="border-[#efefef] hover:shadow-md transition-shadow">
+                      <Card className="border-[#efefef] bg-transparent hover:shadow-md transition-shadow">
                         <CardContent className="p-6">
                           <div className="flex items-center mb-4">
                             <div className="bg-blue-50 w-12 h-12 rounded-full flex items-center justify-center mr-4">
@@ -157,7 +157,7 @@ export default function PaymentsPage() {
                       </p>
 
                       <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <Card className="border-[#efefef]">
+                        <Card className="border-[#efefef] bg-transparent">
                           <CardContent className="p-6">
                             <h3 className="font-semibold text-lg mb-4">
                               Credit Card EMI
@@ -183,7 +183,7 @@ export default function PaymentsPage() {
                           </CardContent>
                         </Card>
 
-                        <Card className="border-[#efefef]">
+                        <Card className="border-[#efefef] bg-transparent">
                           <CardContent className="p-6">
                             <h3 className="font-semibold text-lg mb-4">
                               No Cost EMI
@@ -221,7 +221,7 @@ export default function PaymentsPage() {
                   section="payments_page"
                   titleFilter="Payment Security"
                   defaultContent={
-                    <Card className="border-[#efefef]">
+                    <Card className="border-[#efefef] bg-transparent">
                       <CardContent className="p-6">
                         <div className="flex items-start mb-6">
                           <ShieldCheck className="h-8 w-8 text-green-600 mr-4 flex-shrink-0" />
@@ -444,7 +444,7 @@ export default function PaymentsPage() {
                 />
               </div>
 
-              <div className="bg-gray-50 p-4 md:p-6 rounded-lg mt-8">
+              <div className="bg-[#F8F5E4] p-4 md:p-6 rounded-lg mt-8">
                 <StaticPageSection
                   section="payments_page"
                   titleFilter="Payments Footer"

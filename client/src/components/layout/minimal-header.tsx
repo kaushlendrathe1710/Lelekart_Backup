@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Search, Menu, X, ChevronDown, User } from "lucide-react";
+import { Search, Menu, X, ChevronDown, User, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -9,6 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Logo } from "./logo";
 
 export function Header() {
   const [user, setUser] = useState<any>(null);
@@ -38,12 +39,7 @@ export function Header() {
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center mb-2 md:mb-0">
-              <span className="text-2xl font-bold mr-1">Lelekart</span>
-              <span className="text-xs italic text-yellow-400 flex items-end">
-                <span>Explore</span>
-                <span className="ml-1 text-yellow-400">Plus</span>
-                <span className="text-yellow-400 ml-1">+</span>
-              </span>
+              <Logo />
             </Link>
           </div>
 
@@ -80,8 +76,8 @@ export function Header() {
                 href="/auth"
                 className="flex items-center py-1 px-4 bg-white text-primary font-medium rounded hover:bg-gray-100"
               >
-                <User className="mr-2 h-4 w-4" />
-                <span>Login</span>
+                <User className="h-10 w-10 mr-2" />
+                <span className="text-2xl font-bold ml-2">Login</span>
               </a>
             ) : (
               <DropdownMenu>
@@ -165,7 +161,7 @@ export function Header() {
             <ul className="space-y-3">
               <li>
                 <a href="/auth" className="flex items-center text-white py-1">
-                  <User className="mr-2 h-5 w-5" />
+                  <User className="h-5 w-5 mr-2" />
                   Login
                 </a>
               </li>

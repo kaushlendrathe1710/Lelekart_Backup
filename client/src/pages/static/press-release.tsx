@@ -77,7 +77,7 @@ export default function PressReleaseDetail() {
   if (!release) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#f1f3f6] p-8">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-lg w-full text-center">
+        <div className="bg-[#F8F5E4] rounded-lg shadow-lg p-8 max-w-lg w-full text-center">
           <h1 className="text-2xl font-bold text-red-600 mb-4">Press Release Not Found</h1>
           <p className="mb-6">Sorry, the press release you are looking for does not exist.</p>
           <button
@@ -92,8 +92,8 @@ export default function PressReleaseDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f1f3f6] py-8 px-4 flex flex-col items-center">
-      <div className="bg-white rounded-lg shadow-lg p-8 max-w-2xl w-full">
+    <div className="min-h-screen bg-[#F8F5E4] text-gray-800 py-8 px-4 flex flex-col items-center">
+      <div className="bg-[#F8F5E4] rounded-lg shadow-lg p-8 max-w-2xl w-full">
         <button
           className="mb-6 text-[#2874f0] hover:underline font-medium"
           onClick={() => navigate('/press')}

@@ -172,10 +172,10 @@ export default function PressPage() {
   };
 
   return (
-    <div className="bg-[#f1f3f6] min-h-screen py-4">
+    <div className="min-h-screen bg-[#F8F5E4] text-gray-800 py-4">
       <div className="container mx-auto px-4">
         {/* Main Content Area */}
-        <div className="bg-white shadow-sm rounded-md overflow-hidden mb-6">
+        <div className="bg-[#F8F5E4] shadow-sm rounded-md overflow-hidden mb-6">
           {/* Hero Banner */}
           <div className="bg-[#2874f0] text-white p-6 md:p-8 lg:p-16">
             <div className="max-w-4xl mx-auto">
@@ -209,7 +209,7 @@ export default function PressPage() {
 
               {/* Press Contacts */}
               <div className="mb-10">
-                <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 md:p-6 mb-8 md:mb-10">
+                <div className="bg-[#F8F5E4] border border-blue-100 rounded-lg p-4 md:p-6 mb-8 md:mb-10">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-0">
                     <div>
                       <h3 className="text-lg md:text-xl font-semibold text-blue-800 mb-2">
@@ -274,7 +274,7 @@ export default function PressPage() {
                         {pressReleases.slice(0, 3).map((release) => (
                           <Card
                             key={release.id}
-                            className="border-[#efefef] hover:shadow-md transition-shadow"
+                            className="border-[#efefef] hover:shadow-md transition-shadow bg-transparent"
                           >
                             <CardContent className="p-4 md:p-6">
                               <div className="flex items-center text-xs md:text-sm text-gray-500 mb-2">
@@ -383,7 +383,7 @@ export default function PressPage() {
                       titleFilter="Brand Logos"
                       defaultContent={
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                          <Card className="border-[#efefef] hover:shadow-md transition-shadow">
+                          <Card className="border-[#efefef] hover:shadow-md transition-shadow bg-transparent">
                             <CardContent className="p-6">
                               <div className="aspect-video bg-gray-100 flex items-center justify-center mb-4 rounded">
                                 <div className="text-2xl font-bold text-[#2874f0]">
@@ -433,7 +433,7 @@ export default function PressPage() {
                               </div>
                             </CardContent>
                           </Card>
-                          <Card className="border-[#efefef] hover:shadow-md transition-shadow">
+                          <Card className="border-[#efefef] hover:shadow-md transition-shadow bg-transparent">
                             <CardContent className="p-6">
                               <div className="aspect-video bg-gray-800 flex items-center justify-center mb-4 rounded">
                                 <div className="text-2xl font-bold text-white">
@@ -483,7 +483,7 @@ export default function PressPage() {
                               </div>
                             </CardContent>
                           </Card>
-                          <Card className="border-[#efefef] hover:shadow-md transition-shadow">
+                          <Card className="border-[#efefef] hover:shadow-md transition-shadow bg-transparent">
                             <CardContent className="p-6">
                               <div className="aspect-video bg-gray-100 flex items-center justify-center mb-4 rounded">
                                 <div className="text-2xl font-bold text-gray-800">
@@ -543,7 +543,7 @@ export default function PressPage() {
                       titleFilter="Product Images"
                       defaultContent={
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                          <Card className="border-[#efefef] hover:shadow-md transition-shadow">
+                          <Card className="border-[#efefef] hover:shadow-md transition-shadow bg-transparent">
                             <CardContent className="p-6">
                               <div className="aspect-video bg-gray-100 flex items-center justify-center mb-4 rounded">
                                 <FileText size={36} className="text-gray-400" />
@@ -565,7 +565,7 @@ export default function PressPage() {
                               </Button>
                             </CardContent>
                           </Card>
-                          <Card className="border-[#efefef] hover:shadow-md transition-shadow">
+                          <Card className="border-[#efefef] hover:shadow-md transition-shadow bg-transparent">
                             <CardContent className="p-6">
                               <div className="aspect-video bg-gray-100 flex items-center justify-center mb-4 rounded">
                                 <FileText size={36} className="text-gray-400" />
@@ -587,7 +587,7 @@ export default function PressPage() {
                               </Button>
                             </CardContent>
                           </Card>
-                          <Card className="border-[#efefef] hover:shadow-md transition-shadow">
+                          <Card className="border-[#efefef] hover:shadow-md transition-shadow bg-transparent">
                             <CardContent className="p-6">
                               <div className="aspect-video bg-gray-100 flex items-center justify-center mb-4 rounded">
                                 <FileText size={36} className="text-gray-400" />
@@ -619,7 +619,7 @@ export default function PressPage() {
                       titleFilter="Media Kits"
                       defaultContent={
                         <div className="space-y-4">
-                          <Card className="border-[#efefef] hover:shadow-md transition-shadow">
+                          <Card className="border-[#efefef] hover:shadow-md transition-shadow bg-transparent">
                             <CardContent className="p-6">
                               <div className="flex justify-between items-center">
                                 <div>
@@ -644,7 +644,7 @@ export default function PressPage() {
                               </div>
                             </CardContent>
                           </Card>
-                          <Card className="border-[#efefef] hover:shadow-md transition-shadow">
+                          <Card className="border-[#efefef] hover:shadow-md transition-shadow bg-transparent">
                             <CardContent className="p-6">
                               <div className="flex justify-between items-center">
                                 <div>
@@ -669,7 +669,7 @@ export default function PressPage() {
                               </div>
                             </CardContent>
                           </Card>
-                          <Card className="border-[#efefef] hover:shadow-md transition-shadow">
+                          <Card className="border-[#efefef] hover:shadow-md transition-shadow bg-transparent">
                             <CardContent className="p-6">
                               <div className="flex justify-between items-center">
                                 <div>
@@ -743,7 +743,7 @@ export default function PressPage() {
 
       {showContact && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg shadow-lg p-8 max-w-sm w-full text-center">
+          <div className="bg-[#F8F5E4] rounded-lg shadow-lg p-8 max-w-sm w-full text-center">
             <h2 className="text-xl font-bold mb-4">Press Contact</h2>
             <p className="mb-2">
               Email:{" "}
