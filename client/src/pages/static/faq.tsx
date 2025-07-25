@@ -39,10 +39,10 @@ export default function FaqPage() {
   }
 
   return (
-    <div className="bg-[#f1f3f6] min-h-screen py-4">
+    <div className="min-h-screen bg-[#F8F5E4] text-gray-800 py-4">
       <div className="container mx-auto px-4">
         {/* Main Content Area */}
-        <div className="bg-white shadow-sm rounded-md overflow-hidden mb-6">
+        <div className="bg-[#F8F5E4] shadow-sm rounded-md overflow-hidden mb-6">
           {/* Hero Banner */}
           <div className="bg-[#2874f0] text-white p-6 md:p-8 lg:p-16">
             <div className="max-w-4xl mx-auto">
@@ -700,7 +700,7 @@ export default function FaqPage() {
               </Tabs>
 
               {/* Contact Support Section */}
-              <div className="mt-8 md:mt-10 bg-gray-50 p-6 md:p-8 rounded-lg">
+              <div className="mt-8 md:mt-10 bg-[#F8F5E4] p-6 md:p-8 rounded-lg">
                 <div className="text-center">
                   <HelpCircle className="h-12 w-12 md:h-16 md:w-16 mx-auto text-[#2874f0] mb-4" />
                   <h3 className="text-lg md:text-xl font-semibold mb-2">

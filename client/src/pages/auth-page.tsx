@@ -371,11 +371,11 @@ export default function AuthPage() {
 
   return (
     <>
-      <main className="flex-grow py-8 bg-gray-50">
+      <main className="flex-grow py-8 bg-[#F8F5E4]">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-8 items-center max-w-6xl mx-auto">
             {/* OTP Auth Forms */}
-            <Card className="shadow-md">
+            <Card className="shadow-md bg-transparent">
               {/* Email Form - Step 1 */}
               {authState === 'email' && (
                 <>
@@ -635,7 +635,7 @@ export default function AuthPage() {
                 
                 <div className="space-y-4">
                   <div className="flex items-start">
-                    <div className="bg-white/20 p-2 rounded mr-3">
+                    <div className="bg-[#2874f0]/20 p-2 rounded mr-3">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
@@ -647,7 +647,7 @@ export default function AuthPage() {
                   </div>
                   
                   <div className="flex items-start">
-                    <div className="bg-white/20 p-2 rounded mr-3">
+                    <div className="bg-[#2874f0]/20 p-2 rounded mr-3">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
@@ -659,7 +659,7 @@ export default function AuthPage() {
                   </div>
                   
                   <div className="flex items-start">
-                    <div className="bg-white/20 p-2 rounded mr-3">
+                    <div className="bg-[#2874f0]/20 p-2 rounded mr-3">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />

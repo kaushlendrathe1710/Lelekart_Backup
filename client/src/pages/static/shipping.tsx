@@ -52,10 +52,10 @@ export default function ShippingPage() {
   };
 
   return (
-    <div className="bg-[#f1f3f6] min-h-screen py-4">
+    <div className="min-h-screen bg-[#F8F5E4] text-gray-800 py-4">
       <div className="container mx-auto px-4">
         {/* Main Content Area */}
-        <div className="bg-white shadow-sm rounded-md overflow-hidden mb-6">
+        <div className="bg-[#F8F5E4] shadow-sm rounded-md overflow-hidden mb-6">
           {/* Hero Banner */}
           <div className="bg-[#2874f0] text-white p-8 md:p-16">
             <div className="max-w-4xl mx-auto">
@@ -90,7 +90,7 @@ export default function ShippingPage() {
 
               {/* Pincode Checker */}
               <div className="mb-10">
-                <Card className="border-[#efefef]">
+                <Card className="border-[#efefef] bg-transparent">
                   <CardContent className="p-6">
                     <div className="flex flex-col md:flex-row items-center gap-4">
                       <div className="flex-grow">
@@ -154,7 +154,7 @@ export default function ShippingPage() {
                   titleFilter="Shipping Options"
                   defaultContent={
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <Card className="border-[#efefef] hover:shadow-md transition-shadow">
+                      <Card className="border-[#efefef] hover:shadow-md transition-shadow bg-transparent">
                         <CardContent className="p-6">
                           <div className="flex flex-col items-center text-center mb-4">
                             <div className="bg-[#2874f0]/10 w-16 h-16 flex items-center justify-center rounded-full mb-4">
@@ -183,7 +183,7 @@ export default function ShippingPage() {
                         </CardContent>
                       </Card>
 
-                      <Card className="border-[#efefef] hover:shadow-md transition-shadow">
+                      <Card className="border-[#efefef] hover:shadow-md transition-shadow bg-transparent">
                         <CardContent className="p-6">
                           <div className="flex flex-col items-center text-center mb-4">
                             <div className="bg-[#2874f0]/10 w-16 h-16 flex items-center justify-center rounded-full mb-4">
@@ -212,7 +212,7 @@ export default function ShippingPage() {
                         </CardContent>
                       </Card>
 
-                      <Card className="border-[#efefef] hover:shadow-md transition-shadow">
+                      <Card className="border-[#efefef] hover:shadow-md transition-shadow bg-transparent">
                         <CardContent className="p-6">
                           <div className="flex flex-col items-center text-center mb-4">
                             <div className="bg-[#2874f0]/10 w-16 h-16 flex items-center justify-center rounded-full mb-4">
@@ -275,7 +275,7 @@ export default function ShippingPage() {
                           </p>
 
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <Card className="border-[#efefef]">
+                            <Card className="border-[#efefef] bg-transparent">
                               <CardContent className="p-4">
                                 <h3 className="font-semibold mb-2">
                                   Metro Cities
@@ -297,7 +297,7 @@ export default function ShippingPage() {
                               </CardContent>
                             </Card>
 
-                            <Card className="border-[#efefef]">
+                            <Card className="border-[#efefef] bg-transparent">
                               <CardContent className="p-4">
                                 <h3 className="font-semibold mb-2">
                                   Tier 2 Cities
@@ -319,7 +319,7 @@ export default function ShippingPage() {
                               </CardContent>
                             </Card>
 
-                            <Card className="border-[#efefef]">
+                            <Card className="border-[#efefef] bg-transparent">
                               <CardContent className="p-4">
                                 <h3 className="font-semibold mb-2">
                                   Other Regions
@@ -365,7 +365,7 @@ export default function ShippingPage() {
                             international delivery.
                           </p>
 
-                          <Card className="border-[#efefef]">
+                          <Card className="border-[#efefef] bg-transparent">
                             <CardContent className="p-6">
                               <h3 className="font-semibold mb-4">
                                 International Shipping Partners
@@ -454,7 +454,7 @@ export default function ShippingPage() {
                     section="shipping_page"
                     titleFilter="Order Tracking"
                     defaultContent={
-                      <Card className="border-[#efefef] h-full">
+                      <Card className="border-[#efefef] h-full bg-transparent">
                         <CardContent className="p-6">
                           <div className="flex items-start mb-4">
                             <Package className="h-6 w-6 text-[#2874f0] mr-3 flex-shrink-0" />
@@ -504,7 +504,7 @@ export default function ShippingPage() {
                     section="shipping_page"
                     titleFilter="Shipping Policies"
                     defaultContent={
-                      <Card className="border-[#efefef] h-full">
+                      <Card className="border-[#efefef] h-full bg-transparent">
                         <CardContent className="p-6">
                           <div className="flex items-start mb-4">
                             <ShieldCheck className="h-6 w-6 text-[#2874f0] mr-3 flex-shrink-0" />
@@ -577,7 +577,7 @@ export default function ShippingPage() {
 
       {showPolicy && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg shadow-lg p-8 max-w-lg w-full text-center">
+          <div className="bg-[#F8F5E4] rounded-lg shadow-lg p-8 max-w-lg w-full text-center">
             <h2 className="text-xl font-bold mb-4">Full Shipping Policy</h2>
             <div className="text-left text-gray-700 max-h-96 overflow-y-auto mb-4">
               <p>1. Order processing typically takes 1-2 business days.</p>
@@ -595,7 +595,7 @@ export default function ShippingPage() {
 
       {showContact && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg shadow-lg p-8 max-w-sm w-full text-center">
+          <div className="bg-[#F8F5E4] rounded-lg shadow-lg p-8 max-w-sm w-full text-center">
             <h2 className="text-xl font-bold mb-4">Customer Service</h2>
             <p className="mb-2">Email: <a href="mailto:support@lelekart.com" className="text-blue-700 underline">support@lelekart.com</a></p>
             <p className="mb-4">Phone: <a href="tel:+911234567890" className="text-blue-700 underline">+91 12345 67890</a></p>

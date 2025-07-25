@@ -53,7 +53,7 @@ export default function PressArticleDetail() {
   if (!article) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#f1f3f6] p-8">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-lg w-full text-center">
+        <div className="bg-[#F8F5E4] rounded-lg shadow-lg p-8 max-w-lg w-full text-center">
           <h1 className="text-2xl font-bold text-red-600 mb-4">Article Not Found</h1>
           <p className="mb-6">Sorry, the article you are looking for does not exist.</p>
           <button
@@ -68,17 +68,17 @@ export default function PressArticleDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f1f3f6] py-8 px-4 flex flex-col items-center">
-      <div className="bg-white rounded-lg shadow-lg p-8 max-w-2xl w-full">
+    <div className="min-h-screen bg-[#F8F5E4] text-gray-800 py-8 px-4 flex flex-col items-center">
+      <div className="bg-[#F8F5E4] rounded-lg shadow-lg p-8 max-w-2xl w-full">
         <button
           className="mb-6 text-[#2874f0] hover:underline font-medium"
           onClick={() => navigate('/press')}
         >
           ← Back to Press
         </button>
-        <h1 className="text-3xl font-bold mb-2 text-gray-900">{article.title}</h1>
+        <h1 className="text-3xl font-bold mb-2 text-black">{article.title}</h1>
         <div className="text-sm text-gray-500 mb-4">{article.publication} • {article.date}</div>
-        <div className="prose prose-lg max-w-none mb-8 whitespace-pre-line text-gray-800">
+        <div className="prose prose-lg max-w-none mb-8 whitespace-pre-line text-black">
           {expanded ? article.content : article.content.slice(0, 300) + (article.content.length > 300 ? '...' : '')}
         </div>
         {article.content.length > 300 && (

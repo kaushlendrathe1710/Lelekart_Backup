@@ -112,7 +112,7 @@ export const ProductCard = memo(function ProductCard({
   const shouldPrioritize = priority || featured;
 
   // Calculate discount percentage only for featured deals with real discounts
-  const hasDiscount = featured && product.mrp && product.mrp > product.price;
+  const hasDiscount = product.mrp && product.mrp > product.price;
   const discountPercent =
     hasDiscount && product.mrp
       ? Math.round(((product.mrp - product.price) / product.mrp) * 100)
@@ -225,7 +225,7 @@ export const ProductCard = memo(function ProductCard({
                 {product.gstDetails
                   ? formatPrice(product.gstDetails.priceWithGst)
                   : formatPrice(product.price)}
-                {/* Show MRP strikethrough only for featured deals with real discounts */}
+                {/* Show MRP strikethrough for all products with real discounts */}
                 {hasDiscount && product.mrp && (
                   <span className="text-gray-400 text-xs line-through ml-2">
                     {formatPrice(product.mrp)}

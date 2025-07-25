@@ -51,9 +51,9 @@ export default function ReturnsPage() {
   };
 
   return (
-    <div className="bg-[#f1f3f6] min-h-screen py-4">
+    <div className="min-h-screen bg-[#F8F5E4] text-gray-800 py-4">
       <div className="container mx-auto px-4">
-        <div className="bg-white shadow-sm rounded-md overflow-hidden mb-6">
+        <div className="bg-[#F8F5E4] shadow-sm rounded-md overflow-hidden mb-6">
           {/* Hero Banner */}
           <div className="bg-[#2874f0] text-white p-6 md:p-8 lg:p-16">
             <div className="max-w-4xl mx-auto">
@@ -336,7 +336,7 @@ export default function ReturnsPage() {
               </div>
 
               {/* Contact Support */}
-              <div className="bg-gray-50 rounded-lg p-4 md:p-6 text-center mt-8 md:mt-10">
+              <div className="bg-[#F8F5E4] rounded-lg p-4 md:p-6 text-center mt-8 md:mt-10">
                 <h3 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">
                   Need Help With Returns or Cancellations?
                 </h3>
@@ -353,7 +353,7 @@ export default function ReturnsPage() {
               </div>
               {showContact && (
                 <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40 p-4">
-                  <div className="bg-white rounded-lg shadow-lg p-6 md:p-8 max-w-sm w-full text-center">
+                  <div className="bg-[#F8F5E4] rounded-lg shadow-lg p-6 md:p-8 max-w-sm w-full text-center">
                     <h2 className="text-lg md:text-xl font-bold mb-3 md:mb-4">
                       Customer Service
                     </h2>

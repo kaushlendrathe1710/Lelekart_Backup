@@ -169,9 +169,9 @@ export default function CareersPage() {
   };
 
   return (
-    <div className="bg-[#f1f3f6] min-h-screen py-4">
+    <div className="min-h-screen bg-[#F8F5E4] text-gray-800 py-4">
       <div className="container mx-auto px-4">
-        <div className="bg-white shadow-sm rounded-md overflow-hidden mb-6">
+        <div className="bg-[#F8F5E4] shadow-sm rounded-md overflow-hidden mb-6">
           {/* Hero Banner */}
           <div className="bg-[#2874f0] text-white p-6 md:p-8 lg:p-16">
             <div className="max-w-4xl mx-auto">

@@ -27,6 +27,7 @@ import { VoiceSearchDialog } from "@/components/search/voice-search-dialog";
 import { AISearchService } from "@/services/ai-search-service";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/context/cart-context";
+import { Logo } from "./logo";
 
 export function SimpleHeader() {
   const queryClient = useQueryClient();
@@ -99,13 +100,7 @@ export function SimpleHeader() {
         <div className="flex items-center justify-between w-full py-2">
           <div className="flex items-center space-x-4">
             <Link href="/">
-              <div className="flex items-center">
-                <img
-                  src="https://drive.google.com/thumbnail?id=1RNjADzUc3bRdEpavAv5lxcN1P9VLG-PC&sz=w1000"
-                  alt="Lelekart Logo"
-                  className="h-10 w-auto"
-                />
-              </div>
+              <Logo />
             </Link>
             <div className="flex-grow max-w-xl flex items-center">
               {/* All Categories Dropdown (left of search bar) */}
@@ -186,7 +181,7 @@ export function SimpleHeader() {
                 onClick={handleCartClick}
                 title="Shopping Cart"
               >
-                <ShoppingCart className="h-5 w-5 text-black" />
+                <ShoppingCart className="h-10 w-10 text-black" />
                 {cartItemCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-yellow-400 text-primary text-xs rounded-full h-5 w-5 flex items-center justify-center">
                     {cartItemCount}
@@ -211,13 +206,7 @@ export function SimpleHeader() {
             </button>
 
             <Link href="/">
-              <div className="flex items-center">
-                <img
-                  src="https://drive.google.com/thumbnail?id=1RNjADzUc3bRdEpavAv5lxcN1P9VLG-PC&sz=w1000"
-                  alt="Lelekart Logo"
-                  className="h-8 w-auto"
-                />
-              </div>
+              <Logo />
             </Link>
             {location !== "/" && (
               <Link href="/">
@@ -239,7 +228,7 @@ export function SimpleHeader() {
               className="text-black hover:text-gray-200 relative p-1"
               title="Shopping Cart"
             >
-              <ShoppingCart className="h-5 w-5 text-black" />
+              <ShoppingCart className="h-10 w-10 text-black" />
               {cartItemCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-yellow-400 text-primary text-xs rounded-full h-5 w-5 flex items-center justify-center">
                   {cartItemCount}
