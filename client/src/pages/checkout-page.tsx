@@ -91,7 +91,7 @@ const checkoutSchema = z.object({
 type CheckoutFormValues = z.infer<typeof checkoutSchema>;
 
 interface CartItem {
-  id: number;
+  id: number | string; // Allow both number and string for guest vs logged-in users
   quantity: number;
   userId: number;
   product: {
@@ -146,26 +146,28 @@ export default function CheckoutPage() {
   const [isDirectCheckout, setIsDirectCheckout] = useState(false);
 
   // Selection state for cart items (from sessionStorage)
-  const [selectedCartItemIds, setSelectedCartItemIds] = useState<number[]>([]);
+  const [selectedCartItemIds, setSelectedCartItemIds] = useState<
+    (number | string)[]
+  >([]);
 
   // On mount, read selected cart item IDs from sessionStorage
   useEffect(() => {
     const stored = sessionStorage.getItem("lelekart_selected_cart_items");
     if (stored) {
       try {
-        setSelectedCartItemIds(JSON.parse(stored));
+        setSelectedCartItemIds(JSON.parse(stored).map(String));
       } catch {
         setSelectedCartItemIds([]);
       }
     } else {
       // If nothing stored, default to all items
-      setSelectedCartItemIds(cartItems.map((item) => item.id));
+      setSelectedCartItemIds(cartItems.map((item) => String(item.id)));
     }
   }, [cartItems]);
 
   // Filtered cart items for checkout
   const selectedCartItems = cartItems.filter((item) =>
-    selectedCartItemIds.includes(item.id)
+    selectedCartItemIds.map(String).includes(String(item.id))
   );
 
   // Initialize form with default values including email from user if available
@@ -942,11 +944,12 @@ export default function CheckoutPage() {
           }
         }
 
-        // Use the removeCartItems function to remove only ordered items
-        await removeCartItems(selectedCartItems.map((item) => item.id));
-        console.log("Ordered items removed from cart after order placement");
+        // Server now handles removing only the ordered items from cart
+        console.log(
+          "Server will handle removing only the ordered items from cart"
+        );
 
-        // Ensure the React Query cache is invalidated
+        // Ensure the React Query cache is invalidated to get fresh cart data
         queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
 
         // Show success message
