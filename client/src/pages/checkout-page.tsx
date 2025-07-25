@@ -583,7 +583,6 @@ export default function CheckoutPage() {
     subtotal +
     deliveryCharges -
     (useWalletCoins && walletDiscount > 0 ? walletDiscount : 0) -
-    (useRedeemedCoins ? redeemAmount : 0) -
     (appliedCoupon ? couponDiscountAmount : 0);
 
   // Update wallet discount state only when checkbox is checked and wallet is eligible
@@ -644,70 +643,6 @@ export default function CheckoutPage() {
     subtotal,
     deliveryCharges,
   ]);
-
-  // 1. Add state for reward points input
-  const [rewardPointsInput, setRewardPointsInput] = useState(0);
-
-  // 2. Calculate max reward points user can use (min of 5% of order total and reward points balance)
-  const orderTotal = subtotal + deliveryCharges;
-  const maxRewardPoints =
-    user && user.rewardPoints !== undefined
-      ? Math.min(Math.floor(orderTotal * 0.05), user.rewardPoints)
-      : 0;
-
-  // 3. Update reward discount and total in real-time
-  const [rewardDiscount, setRewardDiscount] = useState(0);
-  useEffect(() => {
-    if (rewardPointsInput > 0 && maxRewardPoints > 0) {
-      const validPoints = Math.max(
-        0,
-        Math.min(rewardPointsInput, maxRewardPoints)
-      );
-      setRewardDiscount(validPoints); // 1 point = 1 rupee
-    } else {
-      setRewardDiscount(0);
-    }
-  }, [rewardPointsInput, maxRewardPoints]);
-
-  // 4. In the UI, show input box for reward points if user has reward points
-  {
-    user && user.rewardPoints > 0 && (
-      <div className="my-4 border rounded-md p-3 bg-blue-50">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium flex items-center cursor-pointer">
-              🎁 Use Reward Points ({user.rewardPoints} points)
-            </label>
-          </div>
-          {maxRewardPoints > 0 && (
-            <span className="text-xs text-blue-600 font-medium">
-              Up to {maxRewardPoints} points (5% of order total)
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2 mt-2">
-          <input
-            type="number"
-            min={0}
-            max={maxRewardPoints}
-            value={rewardPointsInput}
-            onChange={(e) => {
-              const val = Math.max(
-                0,
-                Math.min(maxRewardPoints, Number(e.target.value))
-              );
-              setRewardPointsInput(val);
-            }}
-            className="border rounded px-2 py-1 w-24"
-            placeholder={`Max ${maxRewardPoints}`}
-          />
-          <span className="text-xs text-gray-500">
-            Enter reward points to use
-          </span>
-        </div>
-      </div>
-    );
-  }
 
   // Handle form submission
   const onSubmit = async (values: CheckoutFormValues) => {
@@ -864,8 +799,8 @@ export default function CheckoutPage() {
           orderData.redeemCoinsUsed = redeemAmount; // 1 coin = 1 rupee
         }
         // Add reward discount information (always send, even if zero)
-        orderData.rewardDiscount = rewardPointsInput;
-        orderData.rewardPointsUsed = rewardPointsInput;
+        orderData.rewardDiscount = 0; // No reward points used
+        orderData.rewardPointsUsed = 0; // No reward points used
 
         // Add coupon info if applied
         if (appliedCoupon) {
@@ -1796,75 +1731,12 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              {/* Redeem Coins Section */}
-              <div className="mt-4">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">Redeemed Coins Left:</span>
-                  <span className="text-yellow-600 font-bold">
-                    {wallet
-                      ? wallet.redeemedBalance -
-                        (useRedeemedCoins ? redeemAmount : 0)
-                      : 0}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <span>Max you can use for this order:</span>
-                  <span className="font-bold">{maxRedeemableFromRedeemed}</span>
-                </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <input
-                    type="number"
-                    min={0}
-                    max={maxRedeemableFromRedeemed}
-                    value={redeemAmount}
-                    onChange={(e) => {
-                      const val = Math.max(
-                        0,
-                        Math.min(
-                          maxRedeemableFromRedeemed,
-                          Number(e.target.value)
-                        )
-                      );
-                      setRedeemAmount(val);
-                    }}
-                    className="border rounded px-2 py-1 w-24"
-                    placeholder={`Max ₹${maxRedeemableFromRedeemed}`}
-                  />
-                  <button
-                    type="button"
-                    className="bg-yellow-500 text-white px-3 py-1 rounded disabled:opacity-50"
-                    disabled={
-                      redeemAmount <= 0 ||
-                      redeemAmount > maxRedeemableFromRedeemed
-                    }
-                    onClick={() => setUseRedeemedCoins(true)}
-                  >
-                    Apply Redeem
-                  </button>
-                </div>
-                {redeemAmount > maxRedeemableFromRedeemed && (
-                  <div className="text-red-500 text-xs mt-1">
-                    You can only redeem up to ₹{maxRedeemableFromRedeemed}{" "}
-                    wallet rupees for this order.
-                  </div>
-                )}
-              </div>
-
               {/* Show wallet discount only once, if applied */}
               {useWalletCoins && walletDiscount > 0 && (
                 <div className="flex justify-between mb-2">
                   <span className="text-gray-600">Wallet Discount</span>
                   <span className="font-medium text-green-600">
                     -₹{walletDiscount.toFixed(2)}
-                  </span>
-                </div>
-              )}
-              {/* Show redeem discount if applied */}
-              {useRedeemedCoins && redeemAmount > 0 && (
-                <div className="flex justify-between mb-2">
-                  <span className="text-gray-600">Redeem Discount</span>
-                  <span className="font-medium text-yellow-600">
-                    -₹{redeemAmount.toFixed(2)}
                   </span>
                 </div>
               )}
@@ -1878,9 +1750,7 @@ export default function CheckoutPage() {
                 </div>
               )}
               {/* Show original total with strikethrough and discounted total in green if any discount is applied */}
-              {walletDiscount > 0 ||
-              redeemAmount > 0 ||
-              couponDiscountAmount > 0 ? (
+              {walletDiscount > 0 || couponDiscountAmount > 0 ? (
                 <div className="flex flex-col mb-6">
                   <div className="flex justify-between mb-1">
                     <span className="text-lg font-semibold">Total</span>

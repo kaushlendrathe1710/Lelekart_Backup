@@ -141,6 +141,7 @@ export default function RewardsPage() {
       queryClient.invalidateQueries({
         queryKey: [`/api/rewards/${userId}/transactions`],
       });
+      queryClient.invalidateQueries({ queryKey: ["/api/wallet"] }); // Invalidate wallet query
     },
     onError: (error: Error) => {
       setRedeemError(error.message);
@@ -558,7 +559,7 @@ export default function RewardsPage() {
                 <div className="text-sm text-muted-foreground">
                   Minimum Redemption:{" "}
                   <span className="font-semibold text-foreground">
-                    500 points 
+                    500 points
                   </span>
                 </div>
               </div>
