@@ -11,7 +11,7 @@ import { useCart } from "@/context/cart-context";
 import { Checkbox } from "@/components/ui/checkbox";
 
 interface CartItem {
-  id: number;
+  id: number | string; // Allow both number and string for guest vs logged-in users
   quantity: number;
   userId?: number; // Make userId optional since guest cart items won't have it
   product: {
@@ -53,23 +53,26 @@ export default function CartPage() {
     staleTime: 60000,
   });
   const isLoading = false;
-  const [selectedItems, setSelectedItems] = useState<number[]>(
-    cartItems.map((item) => item.id)
+  // For guest carts, store and compare selectedItems as strings
+  const [selectedItems, setSelectedItems] = useState<(number | string)[]>(
+    cartItems.map((item) => String(item.id))
   );
 
   useEffect(() => {
     // Sync selection with cart items (e.g., after add/remove)
     setSelectedItems((prev) => {
-      const currentIds = cartItems.map((item) => item.id);
+      const currentIds = cartItems.map((item) => String(item.id));
       return prev
-        .filter((id) => currentIds.includes(id))
+        .filter((id) => currentIds.includes(String(id)))
         .concat(currentIds.filter((id) => !prev.includes(id)));
     });
   }, [cartItems]);
 
-  const handleSelectItem = (itemId: number, checked: boolean) => {
+  const handleSelectItem = (itemId: number | string, checked: boolean) => {
     setSelectedItems((prev) =>
-      checked ? [...prev, itemId] : prev.filter((id) => id !== itemId)
+      checked
+        ? [...prev, String(itemId)]
+        : prev.filter((id) => String(id) !== String(itemId))
     );
   };
 
@@ -83,14 +86,14 @@ export default function CartPage() {
     // Store selected item IDs in sessionStorage for checkout page to use
     sessionStorage.setItem(
       "lelekart_selected_cart_items",
-      JSON.stringify(selectedItems)
+      JSON.stringify(selectedItems.map(String))
     );
     setLocation("/checkout", { replace: false });
   };
 
   // Calculate totals using only selected items
   const selectedCartItems = cartItems.filter((item) =>
-    selectedItems.includes(item.id)
+    selectedItems.map(String).includes(String(item.id))
   );
   const subtotal = selectedCartItems.reduce((total, item) => {
     let price;
@@ -156,7 +159,7 @@ export default function CartPage() {
                     >
                       <div className="flex items-center mb-2">
                         <Checkbox
-                          checked={selectedItems.includes(item.id)}
+                          checked={selectedItems.includes(String(item.id))}
                           onCheckedChange={(checked) =>
                             handleSelectItem(item.id, checked === true)
                           }

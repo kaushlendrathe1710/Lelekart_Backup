@@ -328,7 +328,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/subcategories/all", async (_req, res) => {
     try {
       const subcategories = await storage.getAllSubcategories();
-    
+
       res.json(subcategories);
     } catch (error) {
       console.error("Error fetching all subcategories:", error);
@@ -2196,11 +2196,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get all orders for this seller
       const orders = await storage.getOrders(undefined, sellerId);
       // Only count delivered orders as completed
-      const deliveredOrders = orders.filter(o => o.status === 'delivered');
+      const deliveredOrders = orders.filter((o) => o.status === "delivered");
       const completedOrders = deliveredOrders.length;
 
       // Calculate average delivery time (in days)
-      let avgDeliveryTime = 'N/A';
+      let avgDeliveryTime = "N/A";
       if (deliveredOrders.length > 0) {
         const totalDays = deliveredOrders.reduce((sum, order) => {
           if (order.createdAt && order.deliveredAt) {
@@ -2211,19 +2211,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           return sum;
         }, 0);
-        avgDeliveryTime = (totalDays / deliveredOrders.length).toFixed(1) + ' days';
+        avgDeliveryTime =
+          (totalDays / deliveredOrders.length).toFixed(1) + " days";
       }
 
       // Get all returns for this seller
       const returns = await storage.getReturnsForSeller(sellerId);
       // Count completed returns for delivered orders
       const completedReturnOrderIds = new Set(
-        returns.filter(r => r.status === 'completed').map(r => r.orderId)
+        returns.filter((r) => r.status === "completed").map((r) => r.orderId)
       );
-      let returnRate = 'N/A';
+      let returnRate = "N/A";
       if (deliveredOrders.length > 0) {
-        const returnedCount = deliveredOrders.filter(o => completedReturnOrderIds.has(o.id)).length;
-        returnRate = ((returnedCount / deliveredOrders.length) * 100).toFixed(1) + '%';
+        const returnedCount = deliveredOrders.filter((o) =>
+          completedReturnOrderIds.has(o.id)
+        ).length;
+        returnRate =
+          ((returnedCount / deliveredOrders.length) * 100).toFixed(1) + "%";
       }
 
       // Combine data for public profile
@@ -3606,9 +3610,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const { productData, variants } = req.body;
 
-        console.log("[PRODUCT CREATE] Creating product with data:", JSON.stringify(productData));
+        console.log(
+          "[PRODUCT CREATE] Creating product with data:",
+          JSON.stringify(productData)
+        );
         if (variants) {
-          console.log(`[PRODUCT CREATE] Variants received: count = ${variants.length}`);
+          console.log(
+            `[PRODUCT CREATE] Variants received: count = ${variants.length}`
+          );
           variants.forEach((v, i) => {
             console.log(`[PRODUCT CREATE] Variant[${i}]:`, JSON.stringify(v));
           });
@@ -3809,7 +3818,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         JSON.stringify(productData)
       );
       if (variants) {
-        console.log(`[PRODUCT DRAFT] Variants received: count = ${variants.length}`);
+        console.log(
+          `[PRODUCT DRAFT] Variants received: count = ${variants.length}`
+        );
         variants.forEach((v, i) => {
           console.log(`[PRODUCT DRAFT] Variant[${i}]:`, JSON.stringify(v));
         });
@@ -5129,6 +5140,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bulk delete cart items endpoint
+  app.post("/api/cart/bulk-delete", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const { itemIds } = req.body;
+
+      // Validate itemIds
+      if (!Array.isArray(itemIds) || itemIds.length === 0) {
+        return res
+          .status(400)
+          .json({ error: "itemIds must be a non-empty array" });
+      }
+
+      // Validate all IDs are numbers
+      const validIds = itemIds.filter(
+        (id) => typeof id === "number" && !isNaN(id)
+      );
+      if (validIds.length !== itemIds.length) {
+        return res
+          .status(400)
+          .json({ error: "All itemIds must be valid numbers" });
+      }
+
+      console.log(
+        `Bulk deleting cart items: ${validIds.join(", ")} for user ${req.user.id}`
+      );
+
+      // Remove each item if it belongs to the user
+      let removedCount = 0;
+      for (const id of validIds) {
+        try {
+          const cartItem = await storage.getCartItem(id);
+
+          if (cartItem && cartItem.userId === req.user.id) {
+            await storage.removeFromCart(id);
+            removedCount++;
+            console.log(`Removed cart item ${id}`);
+          } else {
+            console.log(
+              `Cart item ${id} not found or not owned by user ${req.user.id}`
+            );
+          }
+        } catch (error) {
+          console.error(`Error removing cart item ${id}:`, error);
+        }
+      }
+
+      console.log(
+        `Successfully removed ${removedCount} out of ${validIds.length} cart items`
+      );
+      res.json({
+        message: `Successfully removed ${removedCount} items from cart`,
+        removedCount,
+        requestedCount: validIds.length,
+      });
+    } catch (error) {
+      console.error("Error bulk deleting cart items:", error);
+      res.status(500).json({ error: "Failed to remove cart items" });
+    }
+  });
+
   // Razorpay payment routes
   app.get("/api/razorpay/key", (req, res) => {
     try {
@@ -5979,8 +6052,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Clear cart
-      await storage.clearCart(req.user.id);
+      // Clear cart - only remove items that were ordered
+      if (req.body.items && Array.isArray(req.body.items)) {
+        // If specific items were provided, only remove those
+        console.log(
+          "Removing specific cart items that were ordered:",
+          req.body.items.map((item) => item.id)
+        );
+        for (const item of req.body.items) {
+          if (item.id) {
+            try {
+              await storage.removeFromCart(item.id);
+              console.log(`Removed cart item ${item.id} after order placement`);
+            } catch (error) {
+              console.error(`Error removing cart item ${item.id}:`, error);
+            }
+          }
+        }
+      } else {
+        // Fallback: clear entire cart if no specific items provided
+        console.log("No specific items provided, clearing entire cart");
+        await storage.clearCart(req.user.id);
+      }
 
       // Send order confirmation emails asynchronously
       try {
@@ -7984,7 +8077,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("Fetching categories...");
       const categories = await storage.getCategories();
-    
+
       if (categories.length === 0) {
         console.log("No categories found, returning default categories");
         const defaultCategories = [
@@ -8136,7 +8229,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Set subcategoryId = NULL for all products referencing this subcategory
-      await db.update(products).set({ subcategoryId: null }).where(eq(products.subcategoryId, id));
+      await db
+        .update(products)
+        .set({ subcategoryId: null })
+        .where(eq(products.subcategoryId, id));
 
       await storage.deleteSubcategory(id);
       res.status(204).send();
