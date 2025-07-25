@@ -310,9 +310,6 @@ export default function RewardsPage() {
                 </div>
               </CardContent>
               <CardFooter className="flex justify-between">
-                <Button variant="outline" size="sm">
-                  Learn More
-                </Button>
                 <Button
                   onClick={handleRedeemPoints}
                   size="sm"
