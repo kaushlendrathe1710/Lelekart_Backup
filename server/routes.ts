@@ -11090,6 +11090,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     // If user is trying to redeem points for another user, check if they're admin
     if (
+      req.body.userId &&
       req.body.userId !== req.user.id &&
       req.user.role !== "admin" &&
       req.user.role !== "co-admin"
