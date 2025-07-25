@@ -269,7 +269,7 @@ export default function RewardsPage() {
                       {availablePoints}
                     </span>
                     <span className="text-sm text-muted-foreground mt-1">
-                      Worth ₹{(availablePoints * 0.25).toFixed(2)}
+                      Worth ₹{(availablePoints / 20).toFixed(2)}
                     </span>
                   </div>
 

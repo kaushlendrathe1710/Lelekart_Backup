@@ -5344,6 +5344,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create Razorpay order
       const order = await createRazorpayOrder(totalInPaise, receiptId, notes);
 
+      // Award reward points: 1 point for every 20rs in order value
+      try {
+        const pointsToAward = Math.floor(order.total / 20);
+        if (pointsToAward > 0) {
+          await storage.createRewardTransaction({
+            userId: req.user.id,
+            points: pointsToAward,
+            type: "purchase",
+            description: `${pointsToAward} points for order #${order.id} (1 per 20rs spent)` ,
+            orderId: order.id,
+            transactionDate: new Date(),
+            status: "active",
+          });
+          // Update user rewards balance
+          let userRewards = await storage.getUserRewards(req.user.id);
+          if (!userRewards) {
+            await storage.createUserRewards({
+              userId: req.user.id,
+              points: pointsToAward,
+              lifetimePoints: pointsToAward,
+              lastUpdated: new Date(),
+            });
+          } else {
+            await storage.updateUserRewards(req.user.id, {
+              points: userRewards.points + pointsToAward,
+              lifetimePoints: userRewards.lifetimePoints + pointsToAward,
+              lastUpdated: new Date(),
+            });
+          }
+          console.log(`Awarded ${pointsToAward} reward points to user ${req.user.id} for order #${order.id}`);
+        } else {
+          console.log(`No reward points awarded for order #${order.id} (order value < 20rs)`);
+        }
+      } catch (rewardPointsError) {
+        console.error(`Error awarding reward points for user ${req.user.id} and order #${order.id}:`, rewardPointsError);
+      }
+
       res.json({
         orderId: order.id,
         amount: order.amount,
@@ -6140,6 +6177,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch (err) {
           console.error("Error spending redeemed coins at checkout:", err);
         }
+      }
+
+      // Award reward points: 1 point for every 20rs in order value
+      try {
+        const pointsToAward = Math.floor(order.total / 20);
+        if (pointsToAward > 0) {
+          await storage.createRewardTransaction({
+            userId: req.user.id,
+            points: pointsToAward,
+            type: "purchase",
+            description: `${pointsToAward} points for order #${order.id} (1 per 20rs spent)` ,
+            orderId: order.id,
+            transactionDate: new Date(),
+            status: "active",
+          });
+          // Update user rewards balance
+          let userRewards = await storage.getUserRewards(req.user.id);
+          if (!userRewards) {
+            await storage.createUserRewards({
+              userId: req.user.id,
+              points: pointsToAward,
+              lifetimePoints: pointsToAward,
+              lastUpdated: new Date(),
+            });
+          } else {
+            await storage.updateUserRewards(req.user.id, {
+              points: userRewards.points + pointsToAward,
+              lifetimePoints: userRewards.lifetimePoints + pointsToAward,
+              lastUpdated: new Date(),
+            });
+          }
+          console.log(`Awarded ${pointsToAward} reward points to user ${req.user.id} for order #${order.id}`);
+        } else {
+          console.log(`No reward points awarded for order #${order.id} (order value < 20rs)`);
+        }
+      } catch (rewardPointsError) {
+        console.error(`Error awarding reward points for user ${req.user.id} and order #${order.id}:`, rewardPointsError);
       }
 
       res.status(201).json(order);
