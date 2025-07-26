@@ -9031,6 +9031,8 @@ export class DatabaseStorage implements IStorage {
     description?: string
   ): Promise<{ wallet: SelectWallet; discountAmount: number }> {
     try {
+      // Ensure amount is always an integer
+      amount = Math.floor(amount);
       // Get wallet and settings
       const wallet = await this.getUserWallet(userId);
       const settings = await this.getWalletSettings();
