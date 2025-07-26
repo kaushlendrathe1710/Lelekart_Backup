@@ -1585,7 +1585,7 @@ export default function CheckoutPage() {
                     <div className="flex items-center">
                       <div className="w-10 h-10 rounded-md overflow-hidden mr-2 bg-gray-100 flex items-center justify-center">
                         <img
-                          src={item.product.imageUrl}
+                          src={item.product.imageUrl || ""}
                           alt={item.product.name}
                           className="w-full h-full object-cover"
                           onError={(e) => {

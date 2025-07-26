@@ -519,7 +519,17 @@ export function VariantSelector({
     }
 
     setCurrentVariant(matchedVariant);
-    onVariantChange(matchedVariant);
+
+    // Create a modified variant with the selected size instead of the full size string
+    if (matchedVariant && selectedSize) {
+      const modifiedVariant = {
+        ...matchedVariant,
+        size: selectedSize, // Use the selected size instead of the full variant size string
+      };
+      onVariantChange(modifiedVariant);
+    } else {
+      onVariantChange(matchedVariant);
+    }
 
     // Update validity based on whether a variant was successfully matched
     onValidSelectionChange(!!matchedVariant);
