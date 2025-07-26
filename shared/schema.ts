@@ -1921,8 +1921,11 @@ export const rewardTransactions = pgTable("reward_transactions", {
   productId: integer("product_id").references(() => products.id, {
     onDelete: "set null",
   }),
+  reviewId: integer("review_id").references(() => reviews.id, {
+    onDelete: "set null",
+  }),
   points: integer("points").notNull(),
-  type: text("type").notNull(), // earn, redeem, expire, bonus, referral
+  type: text("type").notNull(), // earn, redeem, expire, bonus, referral, review
   description: text("description"),
   transactionDate: timestamp("transaction_date").defaultNow(),
   expiryDate: timestamp("expiry_date"),

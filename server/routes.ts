@@ -5352,7 +5352,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userId: req.user.id,
             points: pointsToAward,
             type: "purchase",
-            description: `${pointsToAward} points for order #${order.id} (1 per 20rs spent)` ,
+            description: `${pointsToAward} points for order #${order.id} (1 per 20rs spent)`,
             orderId: order.id,
             transactionDate: new Date(),
             status: "active",
@@ -5373,12 +5373,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
               lastUpdated: new Date(),
             });
           }
-          console.log(`Awarded ${pointsToAward} reward points to user ${req.user.id} for order #${order.id}`);
+          console.log(
+            `Awarded ${pointsToAward} reward points to user ${req.user.id} for order #${order.id}`
+          );
         } else {
-          console.log(`No reward points awarded for order #${order.id} (order value < 20rs)`);
+          console.log(
+            `No reward points awarded for order #${order.id} (order value < 20rs)`
+          );
         }
       } catch (rewardPointsError) {
-        console.error(`Error awarding reward points for user ${req.user.id} and order #${order.id}:`, rewardPointsError);
+        console.error(
+          `Error awarding reward points for user ${req.user.id} and order #${order.id}:`,
+          rewardPointsError
+        );
       }
 
       res.json({
@@ -6187,7 +6194,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userId: req.user.id,
             points: pointsToAward,
             type: "purchase",
-            description: `${pointsToAward} points for order #${order.id} (1 per 20rs spent)` ,
+            description: `${pointsToAward} points for order #${order.id} (1 per 20rs spent)`,
             orderId: order.id,
             transactionDate: new Date(),
             status: "active",
@@ -6208,12 +6215,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
               lastUpdated: new Date(),
             });
           }
-          console.log(`Awarded ${pointsToAward} reward points to user ${req.user.id} for order #${order.id}`);
+          console.log(
+            `Awarded ${pointsToAward} reward points to user ${req.user.id} for order #${order.id}`
+          );
         } else {
-          console.log(`No reward points awarded for order #${order.id} (order value < 20rs)`);
+          console.log(
+            `No reward points awarded for order #${order.id} (order value < 20rs)`
+          );
         }
       } catch (rewardPointsError) {
-        console.error(`Error awarding reward points for user ${req.user.id} and order #${order.id}:`, rewardPointsError);
+        console.error(
+          `Error awarding reward points for user ${req.user.id} and order #${order.id}:`,
+          rewardPointsError
+        );
       }
 
       res.status(201).json(order);
@@ -9133,6 +9147,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
             imageUrl,
           });
         }
+      }
+
+      // Award 50 reward points for writing a review
+      try {
+        const pointsToAward = 50;
+        await storage.createRewardTransaction({
+          userId: req.user.id,
+          points: pointsToAward,
+          type: "review",
+          description: `${pointsToAward} points for writing a review for ${product.name}`,
+          productId: productId,
+          reviewId: review.id,
+          transactionDate: new Date(),
+          status: "active",
+        });
+
+        // Update user rewards balance
+        let userRewards = await storage.getUserRewards(req.user.id);
+        if (!userRewards) {
+          await storage.createUserRewards({
+            userId: req.user.id,
+            points: pointsToAward,
+            lifetimePoints: pointsToAward,
+            lastUpdated: new Date(),
+          });
+        } else {
+          await storage.updateUserRewards(req.user.id, {
+            points: userRewards.points + pointsToAward,
+            lifetimePoints: userRewards.lifetimePoints + pointsToAward,
+            lastUpdated: new Date(),
+          });
+        }
+        console.log(
+          `Awarded ${pointsToAward} reward points to user ${req.user.id} for review #${review.id}`
+        );
+      } catch (rewardPointsError) {
+        console.error(
+          `Error awarding reward points for review by user ${req.user.id}:`,
+          rewardPointsError
+        );
+        // Don't fail the review creation if reward points fail
       }
 
       res.status(201).json(review);

@@ -425,7 +425,9 @@ export default function RewardsPage() {
                                         ? "Bonus Points"
                                         : transaction.type === "signup"
                                           ? "Welcome Bonus"
-                                          : transaction.type}
+                                          : transaction.type === "review"
+                                            ? "Review Reward"
+                                            : transaction.type}
                               </div>
                               {transaction.description && (
                                 <div className="text-xs text-muted-foreground">
