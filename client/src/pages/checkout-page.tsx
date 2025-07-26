@@ -214,6 +214,9 @@ export default function CheckoutPage() {
   const [redeemAmount, setRedeemAmount] = useState(0);
   const [useRedeemedCoins, setUseRedeemedCoins] = useState(false);
 
+  // Calculate 5% of order value for wallet usage
+  const walletDiscountAmount = Math.floor((subtotal + deliveryCharges) * 0.05);
+
   // Show scroll-to-top button only when scrolled down
   const [showScrollTop, setShowScrollTop] = useState(false);
   useEffect(() => {
@@ -475,6 +478,15 @@ export default function CheckoutPage() {
       return false;
     }
 
+    // Check if 5% of order value is at least 1 rupee
+    const fivePercentValue = Math.floor((subtotal + deliveryCharges) * 0.05);
+    if (fivePercentValue < 1) {
+      setWalletError(
+        "Order value too low to use wallet (minimum 5% discount would be less than ₹1)"
+      );
+      return false;
+    }
+
     // Check if all products are in applicable categories
     if (
       settings.applicableCategories &&
@@ -501,21 +513,17 @@ export default function CheckoutPage() {
     return true;
   };
 
-  // Calculate maximum allowed wallet discount and coins
+  // Calculate maximum allowed wallet discount (5% of order value, limited by wallet balance)
   const calculateMaxWalletDiscount = () => {
     if (!wallet || !settings || !settings.isActive || wallet.balance <= 0)
       return { maxDiscount: 0, maxCoins: 0 };
-    const conversionRate = 1; // 1 coin = 1 rupee
-    const maxCoinValue = wallet.balance * conversionRate;
-    // Use subtotal + deliveryCharges for max usage percentage
+
     const orderTotal = subtotal + deliveryCharges;
-    let maxPercentageDiscount = maxCoinValue;
-    if (settings.maxUsagePercentage && settings.maxUsagePercentage > 0) {
-      maxPercentageDiscount = orderTotal * (settings.maxUsagePercentage / 100);
-    }
-    const finalDiscount = Math.min(maxCoinValue, maxPercentageDiscount);
-    const maxCoins = Math.floor(finalDiscount / conversionRate);
-    return { maxDiscount: finalDiscount, maxCoins };
+    const fivePercentDiscount = Math.floor(orderTotal * 0.05); // 5% of order value
+    const maxDiscount = Math.min(fivePercentDiscount, wallet.balance);
+    const maxCoins = maxDiscount; // 1 coin = 1 rupee
+
+    return { maxDiscount, maxCoins };
   };
 
   // Calculate wallet discount
@@ -615,34 +623,16 @@ export default function CheckoutPage() {
     fetchVoucher();
   }, []);
 
-  // Remove max usage percentage logic and add input for wallet points
-  // 1. Add state for wallet points input
-  const [walletPointsInput, setWalletPointsInput] = useState(0);
-
-  // 2. Calculate max wallet points user can use (min of wallet.balance and subtotal+deliveryCharges)
-  const maxWalletPoints = wallet
-    ? Math.min(wallet.balance, subtotal + deliveryCharges)
-    : 0;
-
-  // 3. Update wallet discount and total in real-time
+  // Update wallet discount based on checkbox and 5% calculation
   useEffect(() => {
-    if (useWalletCoins && wallet && maxWalletPoints > 0) {
-      const validPoints = Math.max(
-        0,
-        Math.min(walletPointsInput, maxWalletPoints)
-      );
-      setWalletDiscount(validPoints); // 1 point = 1 rupee
+    if (useWalletCoins && wallet && wallet.balance > 0) {
+      // Use 5% of order value, but don't exceed wallet balance
+      const maxDiscount = Math.min(walletDiscountAmount, wallet.balance);
+      setWalletDiscount(maxDiscount);
     } else {
       setWalletDiscount(0);
     }
-  }, [
-    useWalletCoins,
-    walletPointsInput,
-    maxWalletPoints,
-    wallet,
-    subtotal,
-    deliveryCharges,
-  ]);
+  }, [useWalletCoins, wallet, walletDiscountAmount, subtotal, deliveryCharges]);
 
   // Handle form submission
   const onSubmit = async (values: CheckoutFormValues) => {
@@ -791,7 +781,7 @@ export default function CheckoutPage() {
         // Add wallet discount information if applicable
         if (useWalletCoins && walletDiscount > 0) {
           orderData.walletDiscount = walletDiscount;
-          orderData.walletCoinsUsed = walletDiscount; // 1 point = 1 rupee
+          orderData.walletCoinsUsed = walletDiscount; // 1 coin = 1 rupee
         }
         // Add redeem discount information if applicable
         if (useRedeemedCoins && redeemAmount > 0) {
@@ -850,34 +840,7 @@ export default function CheckoutPage() {
         // Refetch notifications so the buyer sees the order placed notification
         await refetchNotifications();
 
-        // If wallet coins were used, process the redemption
-        if (useWalletCoins && walletDiscount > 0 && wallet) {
-          const coinsUsed = Math.ceil(
-            walletDiscount / (settings?.conversionRate || 0.1)
-          );
-          try {
-            // Make API call to redeem coins
-            await fetch("/api/wallet/redeem", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              credentials: "include",
-              body: JSON.stringify({
-                amount: coinsUsed,
-                referenceType: "ORDER",
-                referenceId: String(order.id || ""),
-                description: String(`Used for order #${order.id}` || ""),
-              }),
-            });
-            console.log(
-              `Successfully redeemed ${coinsUsed} coins for order #${order.id}`
-            );
-          } catch (err) {
-            console.error("Error redeeming wallet coins:", err);
-            // We still proceed with the order even if coin redemption fails
-          }
-        }
+        // Wallet redemption is now handled automatically by the server during order creation
 
         // Server now handles removing only the ordered items from cart
         console.log(
@@ -1689,33 +1652,24 @@ export default function CheckoutPage() {
                         Use Wallet Balance ({wallet.balance} wallet rupees)
                       </label>
                     </div>
-                    {maxWalletPoints > 0 && (
+                    {walletDiscountAmount > 0 && (
                       <span className="text-xs text-green-600 font-medium">
-                        Up to ₹{maxWalletPoints} wallet rupees
+                        5% of order value: ₹{walletDiscountAmount}
                       </span>
                     )}
                   </div>
 
-                  {useWalletCoins && (
-                    <div className="flex items-center gap-2 mt-2">
-                      <input
-                        type="number"
-                        min={0}
-                        max={maxWalletPoints}
-                        value={walletPointsInput}
-                        onChange={(e) => {
-                          const val = Math.max(
-                            0,
-                            Math.min(maxWalletPoints, Number(e.target.value))
-                          );
-                          setWalletPointsInput(val);
-                        }}
-                        className="border rounded px-2 py-1 w-24"
-                        placeholder={`Max ₹${maxWalletPoints}`}
-                      />
-                      <span className="text-xs text-gray-500">
-                        Enter wallet rupees to use
-                      </span>
+                  {useWalletCoins && walletDiscount > 0 && (
+                    <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded">
+                      <div className="text-xs text-green-700">
+                        <strong>Applied:</strong> ₹{walletDiscount} will be
+                        deducted from your wallet
+                        {walletDiscount < walletDiscountAmount && (
+                          <span className="block text-orange-600">
+                            (Limited by your wallet balance)
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )}
                   {walletError && (
