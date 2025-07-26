@@ -169,6 +169,7 @@ export default function ProductViewPage() {
       if (selectedVariant && selectedVariant.id) {
         // Try to use context if available (now passing the selected variant)
         if (cartContext) {
+          // The selectedVariant should already have the correct selected size from VariantSelector
           cartContext.addToCart(product, quantity, selectedVariant);
         } else {
           // Fallback to direct API call with variant id
@@ -251,6 +252,7 @@ export default function ProductViewPage() {
 
         // Try to use context if available
         if (cartContext) {
+          // The selectedVariant should already have the correct selected size from VariantSelector
           cartContext.buyNow(productToUse, quantity, selectedVariant);
         } else {
           // Fallback to direct API approach with variant id
