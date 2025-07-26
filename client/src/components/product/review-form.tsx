@@ -139,7 +139,8 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) => {
 
       toast({
         title: "Review submitted",
-        description: "Thank you for your review!",
+        description:
+          "Thank you for your review! You earned 50 reward points for writing this review.",
       });
 
       // Reset form
