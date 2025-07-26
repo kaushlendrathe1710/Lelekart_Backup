@@ -5828,7 +5828,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let rewardPointsUsed = 0;
       if (req.body.redeemDiscount && req.body.redeemCoinsUsed) {
         redeemDiscount = Number(req.body.redeemDiscount) || 0;
-        redeemCoinsUsed = Number(req.body.redeemCoinsUsed) || 0;
+        redeemCoinsUsed = Math.floor(Number(req.body.redeemCoinsUsed) || 0);
         // Validate redeem usage if coins were provided
         if (redeemCoinsUsed > 0) {
           try {
@@ -5870,7 +5870,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         walletDiscount = Number(req.body.walletDiscount) || 0;
-        walletCoinsUsed = Number(req.body.walletCoinsUsed) || 0;
+        walletCoinsUsed = Math.floor(Number(req.body.walletCoinsUsed) || 0);
 
         // Validate wallet usage if coins were provided
         if (walletCoinsUsed > 0) {
@@ -5924,9 +5924,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Ensure all variables are numbers before arithmetic
       walletDiscount = Number(walletDiscount) || 0;
-      walletCoinsUsed = Number(walletCoinsUsed) || 0;
+      walletCoinsUsed = Math.floor(Number(walletCoinsUsed) || 0);
       redeemDiscount = Number(redeemDiscount) || 0;
-      redeemCoinsUsed = Number(redeemCoinsUsed) || 0;
+      redeemCoinsUsed = Math.floor(Number(redeemCoinsUsed) || 0);
       rewardDiscount = Number(rewardDiscount) || 0;
       rewardPointsUsed = Number(rewardPointsUsed) || 0;
       const couponDiscount = Number(req.body.couponDiscount) || 0;
