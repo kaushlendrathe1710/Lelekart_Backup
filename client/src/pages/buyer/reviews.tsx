@@ -3,16 +3,16 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { 
-  Star, 
-  Edit2, 
-  Trash2, 
-  ThumbsUp, 
-  Clock, 
+import {
+  Star,
+  Edit2,
+  Trash2,
+  ThumbsUp,
+  Clock,
   Loader2,
   ShoppingBag,
   Calendar,
-  CheckCircle2
+  CheckCircle2,
 } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
@@ -59,7 +59,7 @@ interface Review {
   orderId?: number;
   rating: number;
   title: string;
-  content: string;
+  review: string; // Changed from 'content' to 'review' to match database schema
   verified: boolean;
   createdAt: string;
   updatedAt: string;
@@ -82,40 +82,53 @@ export default function BuyerReviewsPage() {
 
   // Fetch user reviews
   const { data: reviews = [], isLoading } = useQuery<Review[]>({
-    queryKey: ['/api/user/reviews'],
+    queryKey: ["/api/user/reviews"],
     queryFn: async () => {
       try {
-        const res = await apiRequest('GET', '/api/user/reviews');
+        const res = await apiRequest("GET", "/api/user/reviews");
         return res.json();
       } catch (error) {
-        console.error('Error fetching reviews:', error);
+        console.error("Error fetching reviews:", error);
         return [];
       }
     },
   });
 
   // Filter reviews based on active tab
-  const pendingReviews = reviews.filter(review => !review.verified);
-  const verifiedReviews = reviews.filter(review => review.verified);
-  const displayedReviews = activeTab === 'pending' 
-    ? pendingReviews 
-    : activeTab === 'verified' 
-      ? verifiedReviews 
-      : reviews;
+  const pendingReviews = reviews.filter((review) => !review.verified);
+  const verifiedReviews = reviews.filter((review) => review.verified);
+  const displayedReviews =
+    activeTab === "pending"
+      ? pendingReviews
+      : activeTab === "verified"
+        ? verifiedReviews
+        : reviews;
 
   // Toggle helpful mutation
   const toggleHelpfulMutation = useMutation({
-    mutationFn: async ({ reviewId, isHelpful }: { reviewId: number; isHelpful: boolean }) => {
+    mutationFn: async ({
+      reviewId,
+      isHelpful,
+    }: {
+      reviewId: number;
+      isHelpful: boolean;
+    }) => {
       if (isHelpful) {
-        const res = await apiRequest('DELETE', `/api/reviews/${reviewId}/helpful`);
-        if (!res.ok) throw new Error('Failed to unmark review as helpful');
+        const res = await apiRequest(
+          "DELETE",
+          `/api/reviews/${reviewId}/helpful`
+        );
+        if (!res.ok) throw new Error("Failed to unmark review as helpful");
       } else {
-        const res = await apiRequest('POST', `/api/reviews/${reviewId}/helpful`);
-        if (!res.ok) throw new Error('Failed to mark review as helpful');
+        const res = await apiRequest(
+          "POST",
+          `/api/reviews/${reviewId}/helpful`
+        );
+        if (!res.ok) throw new Error("Failed to mark review as helpful");
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/user/reviews'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/reviews"] });
     },
     onError: (error: Error) => {
       toast({
@@ -128,19 +141,24 @@ export default function BuyerReviewsPage() {
 
   // Update review mutation
   const updateReviewMutation = useMutation({
-    mutationFn: async (reviewData: { id: number; title: string; content: string; rating: number }) => {
-      const res = await apiRequest('PUT', `/api/reviews/${reviewData.id}`, {
+    mutationFn: async (reviewData: {
+      id: number;
+      title: string;
+      content: string;
+      rating: number;
+    }) => {
+      const res = await apiRequest("PUT", `/api/reviews/${reviewData.id}`, {
         title: reviewData.title,
-        content: reviewData.content,
+        review: reviewData.content, // Changed from 'content' to 'review' to match backend
         rating: reviewData.rating,
       });
-      
-      if (!res.ok) throw new Error('Failed to update review');
+
+      if (!res.ok) throw new Error("Failed to update review");
       return res.json();
     },
     onSuccess: () => {
       setIsEditDialogOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['/api/user/reviews'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/reviews"] });
       toast({
         title: "Review Updated",
         description: "Your review has been updated successfully.",
@@ -158,12 +176,12 @@ export default function BuyerReviewsPage() {
   // Delete review mutation
   const deleteReviewMutation = useMutation({
     mutationFn: async (reviewId: number) => {
-      const res = await apiRequest('DELETE', `/api/reviews/${reviewId}`);
-      if (!res.ok) throw new Error('Failed to delete review');
+      const res = await apiRequest("DELETE", `/api/reviews/${reviewId}`);
+      if (!res.ok) throw new Error("Failed to delete review");
     },
     onSuccess: () => {
       setIsDeleteDialogOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['/api/user/reviews'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/reviews"] });
       toast({
         title: "Review Deleted",
         description: "Your review has been deleted successfully.",
@@ -182,7 +200,7 @@ export default function BuyerReviewsPage() {
   const openEditDialog = (review: Review) => {
     setSelectedReview(review);
     setEditedTitle(review.title);
-    setEditedContent(review.content);
+    setEditedContent(review.review);
     setEditedRating(review.rating);
     setIsEditDialogOpen(true);
   };
@@ -201,7 +219,9 @@ export default function BuyerReviewsPage() {
           <Star
             key={star}
             className={`h-4 w-4 ${
-              star <= rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'
+              star <= rating
+                ? "text-yellow-400 fill-yellow-400"
+                : "text-gray-300"
             }`}
           />
         ))}
@@ -218,7 +238,9 @@ export default function BuyerReviewsPage() {
           <Star
             key={star}
             className={`h-6 w-6 cursor-pointer ${
-              star <= editedRating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'
+              star <= editedRating
+                ? "text-yellow-400 fill-yellow-400"
+                : "text-gray-300"
             }`}
             onClick={() => setEditedRating(star)}
           />
@@ -237,7 +259,7 @@ export default function BuyerReviewsPage() {
     if (product.imageUrl) {
       return product.imageUrl;
     }
-    
+
     if (product.images) {
       try {
         const parsedImages = JSON.parse(product.images);
@@ -248,8 +270,8 @@ export default function BuyerReviewsPage() {
         console.error("Failed to parse product images:", e);
       }
     }
-    
-    return 'https://via.placeholder.com/100?text=Product';
+
+    return "https://via.placeholder.com/100?text=Product";
   };
 
   return (
@@ -258,11 +280,17 @@ export default function BuyerReviewsPage() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
           <div>
             <h1 className="text-2xl font-bold mb-1">My Reviews</h1>
-            <p className="text-muted-foreground">Manage reviews you've written for products</p>
+            <p className="text-muted-foreground">
+              Manage reviews you've written for products
+            </p>
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="space-y-4"
+        >
           <TabsList className="grid w-full grid-cols-3 max-w-md">
             <TabsTrigger value="all">
               All Reviews ({reviews.length})
@@ -274,15 +302,15 @@ export default function BuyerReviewsPage() {
               Pending ({pendingReviews.length})
             </TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="all" className="space-y-4">
             {renderReviewsList()}
           </TabsContent>
-          
+
           <TabsContent value="verified" className="space-y-4">
             {renderReviewsList(verifiedReviews)}
           </TabsContent>
-          
+
           <TabsContent value="pending" className="space-y-4">
             {renderReviewsList(pendingReviews)}
           </TabsContent>
@@ -333,12 +361,15 @@ export default function BuyerReviewsPage() {
                 Cancel
               </Button>
               <Button
-                onClick={() => selectedReview && updateReviewMutation.mutate({
-                  id: selectedReview.id,
-                  title: editedTitle,
-                  content: editedContent,
-                  rating: editedRating,
-                })}
+                onClick={() =>
+                  selectedReview &&
+                  updateReviewMutation.mutate({
+                    id: selectedReview.id,
+                    title: editedTitle,
+                    content: editedContent,
+                    rating: editedRating,
+                  })
+                }
                 disabled={updateReviewMutation.isPending}
               >
                 {updateReviewMutation.isPending ? (
@@ -360,7 +391,8 @@ export default function BuyerReviewsPage() {
             <DialogHeader>
               <DialogTitle>Delete Review</DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete your review for {selectedReview?.product.name}? This action cannot be undone.
+                Are you sure you want to delete your review for{" "}
+                {selectedReview?.product.name}? This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
@@ -372,7 +404,10 @@ export default function BuyerReviewsPage() {
               </Button>
               <Button
                 variant="destructive"
-                onClick={() => selectedReview && deleteReviewMutation.mutate(selectedReview.id)}
+                onClick={() =>
+                  selectedReview &&
+                  deleteReviewMutation.mutate(selectedReview.id)
+                }
                 disabled={deleteReviewMutation.isPending}
               >
                 {deleteReviewMutation.isPending ? (
@@ -408,17 +443,17 @@ export default function BuyerReviewsPage() {
             <ShoppingBag className="w-16 h-16 mx-auto text-muted-foreground" />
           </div>
           <h3 className="text-lg font-medium mb-2">
-            {activeTab === 'pending' 
-              ? "No pending reviews" 
-              : activeTab === 'verified' 
-                ? "No verified reviews yet" 
+            {activeTab === "pending"
+              ? "No pending reviews"
+              : activeTab === "verified"
+                ? "No verified reviews yet"
                 : "You haven't written any reviews yet"}
           </h3>
           <p className="text-muted-foreground mb-6">
-            {activeTab === 'pending' 
-              ? "All your reviews have been verified" 
-              : activeTab === 'verified' 
-                ? "Your reviews will appear here once verified" 
+            {activeTab === "pending"
+              ? "All your reviews have been verified"
+              : activeTab === "verified"
+                ? "Your reviews will appear here once verified"
                 : "Share your experiences with products you've purchased"}
           </p>
           <Button asChild>
@@ -442,7 +477,8 @@ export default function BuyerReviewsPage() {
                     className="h-full w-full object-cover"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
-                      target.src = 'https://via.placeholder.com/100?text=Product';
+                      target.src =
+                        "https://via.placeholder.com/100?text=Product";
                     }}
                   />
                 </div>
@@ -453,7 +489,10 @@ export default function BuyerReviewsPage() {
             <div className="md:w-5/6 space-y-4">
               {/* Top row with product name and review date */}
               <div className="flex flex-col md:flex-row justify-between">
-                <Link href={`/product/${review.product.id}`} className="hover:text-primary transition-colors">
+                <Link
+                  href={`/product/${review.product.id}`}
+                  className="hover:text-primary transition-colors"
+                >
                   <h3 className="font-medium text-lg">{review.product.name}</h3>
                 </Link>
                 <div className="flex items-center space-x-2 mt-2 md:mt-0">
@@ -483,21 +522,25 @@ export default function BuyerReviewsPage() {
               {/* Review Title and Content */}
               <div>
                 <h4 className="font-semibold text-base">{review.title}</h4>
-                <p className="text-muted-foreground mt-1">{review.content}</p>
+                <p className="text-muted-foreground mt-1">{review.review}</p>
               </div>
 
               {/* Review Images if any */}
               {review.images && review.images.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
                   {review.images.map((image) => (
-                    <div key={image.id} className="h-20 w-20 rounded-md overflow-hidden">
+                    <div
+                      key={image.id}
+                      className="h-20 w-20 rounded-md overflow-hidden"
+                    >
                       <img
                         src={image.imageUrl}
                         alt="Review"
                         className="h-full w-full object-cover"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
-                          target.src = 'https://via.placeholder.com/80?text=Image';
+                          target.src =
+                            "https://via.placeholder.com/80?text=Image";
                         }}
                       />
                     </div>
@@ -512,13 +555,18 @@ export default function BuyerReviewsPage() {
                     variant="ghost"
                     size="sm"
                     className="text-muted-foreground hover:text-foreground"
-                    onClick={() => review.isHelpful !== undefined && toggleHelpfulMutation.mutate({
-                      reviewId: review.id,
-                      isHelpful: review.isHelpful,
-                    })}
+                    onClick={() =>
+                      review.isHelpful !== undefined &&
+                      toggleHelpfulMutation.mutate({
+                        reviewId: review.id,
+                        isHelpful: review.isHelpful,
+                      })
+                    }
                     disabled={toggleHelpfulMutation.isPending}
                   >
-                    <ThumbsUp className={`h-4 w-4 mr-1 ${review.isHelpful ? 'fill-primary text-primary' : ''}`} />
+                    <ThumbsUp
+                      className={`h-4 w-4 mr-1 ${review.isHelpful ? "fill-primary text-primary" : ""}`}
+                    />
                     <span>{review.helpfulCount || 0} Helpful</span>
                   </Button>
                 </div>
