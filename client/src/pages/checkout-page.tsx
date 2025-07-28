@@ -1609,7 +1609,12 @@ export default function CheckoutPage() {
                       </div>
                     </div>
                     <p className="font-medium">
-                      ₹{(item.product.price * item.quantity).toFixed(2)}
+                      ₹
+                      {(
+                        (item.variant
+                          ? item.variant.price
+                          : item.product.price) * item.quantity
+                      ).toFixed(2)}
                     </p>
                   </div>
                 ))}
