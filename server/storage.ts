@@ -4531,13 +4531,13 @@ export class DatabaseStorage implements IStorage {
         .where(eq(orders.userId, userId));
     } else if (sellerId) {
       // This is more complex as we need to join with orderItems and products
+      // Use DISTINCT to avoid duplicates when an order has multiple items from the same seller
       const sellerOrders = await db
-        .select({ order: orders })
+        .selectDistinct({ order: orders })
         .from(orders)
         .innerJoin(orderItems, eq(orders.id, orderItems.orderId))
         .innerJoin(products, eq(orderItems.productId, products.id))
-        .where(eq(products.sellerId, sellerId))
-        .groupBy(orders.id);
+        .where(eq(products.sellerId, sellerId));
 
       orderResults = sellerOrders.map((item) => item.order);
     } else {
@@ -4793,7 +4793,26 @@ export class DatabaseStorage implements IStorage {
     orderId: number,
     sellerId?: number
   ): Promise<(OrderItem & { product: Product & { seller?: any } })[]> {
-    // Build the query
+    console.log(
+      `DEBUG: getOrderItems called with orderId: ${orderId}, sellerId: ${sellerId}`
+    );
+
+    // First, let's verify the orderId is valid
+    if (!orderId || isNaN(orderId)) {
+      console.log(`DEBUG: Invalid orderId: ${orderId}`);
+      return [];
+    }
+
+    // Let's also verify that the order exists
+    const orderExists = await db
+      .select({ id: orders.id })
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1);
+
+    console.log(`DEBUG: Order ${orderId} exists: ${orderExists.length > 0}`);
+
+    // Build the query with explicit orderId filtering
     let query = db
       .select({
         orderItem: orderItems,
@@ -4801,18 +4820,96 @@ export class DatabaseStorage implements IStorage {
         seller: users,
       })
       .from(orderItems)
-      .where(eq(orderItems.orderId, orderId))
       .innerJoin(products, eq(orderItems.productId, products.id))
-      .leftJoin(users, eq(products.sellerId, users.id));
+      .leftJoin(users, eq(products.sellerId, users.id))
+      .where(eq(orderItems.orderId, orderId));
 
-    // If sellerId is provided, filter order items for that seller only
+    // If sellerId is provided, add additional filtering
     if (sellerId !== undefined) {
       query = query.where(eq(products.sellerId, sellerId));
     }
 
-    const orderItemsWithProductsAndSellers = await query;
+    // Let's also verify the query structure
+    console.log(
+      `DEBUG: Query conditions: orderId=${orderId}, sellerId=${sellerId}`
+    );
 
-    return orderItemsWithProductsAndSellers.map((item) => ({
+    // Let's also try a simpler approach to ensure the filtering works
+    const simpleQuery = await db
+      .select({
+        orderItem: orderItems,
+        product: products,
+      })
+      .from(orderItems)
+      .innerJoin(products, eq(orderItems.productId, products.id))
+      .where(eq(orderItems.orderId, orderId));
+
+    console.log(
+      `DEBUG: Simple query returned ${simpleQuery.length} items for orderId ${orderId}`
+    );
+
+    // Let's also verify the query structure
+    console.log(
+      `DEBUG: Query conditions: orderId=${orderId}, sellerId=${sellerId}`
+    );
+
+    // Let's also log the SQL query for debugging
+    console.log(`DEBUG: Query structure:`, {
+      orderId,
+      sellerId,
+      hasWhereClause: true,
+    });
+
+    // Let's also run a simple test query to verify the orderId filtering
+    const testQuery = await db
+      .select({ count: orderItems.id })
+      .from(orderItems)
+      .where(eq(orderItems.orderId, orderId));
+
+    console.log(
+      `DEBUG: Test query found ${testQuery.length} order items for orderId ${orderId}`
+    );
+
+    // Let's also check if there are any duplicate order items
+    const allOrderItems = await db
+      .select({ id: orderItems.id, orderId: orderItems.orderId })
+      .from(orderItems);
+
+    const orderItemCounts = allOrderItems.reduce(
+      (acc, item) => {
+        acc[item.orderId] = (acc[item.orderId] || 0) + 1;
+        return acc;
+      },
+      {} as Record<number, number>
+    );
+
+    console.log(`DEBUG: Order item counts by orderId:`, orderItemCounts);
+
+    const orderItemsWithProductsAndSellers = await query;
+    console.log(
+      `DEBUG: Database query returned ${orderItemsWithProductsAndSellers.length} items for order ${orderId}`
+    );
+
+    // Log the first few items to see what we're getting
+    if (orderItemsWithProductsAndSellers.length > 0) {
+      console.log(`DEBUG: First item:`, {
+        orderItemId: orderItemsWithProductsAndSellers[0].orderItem.id,
+        orderId: orderItemsWithProductsAndSellers[0].orderItem.orderId,
+        productId: orderItemsWithProductsAndSellers[0].orderItem.productId,
+        productName: orderItemsWithProductsAndSellers[0].product.name,
+        sellerId: orderItemsWithProductsAndSellers[0].product.sellerId,
+      });
+    }
+
+    // Let's also check if there are any items with different orderIds
+    const orderIds = [
+      ...new Set(
+        orderItemsWithProductsAndSellers.map((item) => item.orderItem.orderId)
+      ),
+    ];
+    console.log(`DEBUG: Found orderIds in results:`, orderIds);
+
+    const result = orderItemsWithProductsAndSellers.map((item) => ({
       ...item.orderItem,
       product: {
         ...item.product,
@@ -4825,6 +4922,24 @@ export class DatabaseStorage implements IStorage {
           : undefined,
       },
     }));
+
+    console.log(`DEBUG: Returning ${result.length} items for order ${orderId}`);
+
+    // Let's also verify that all returned items belong to the correct order
+    const incorrectOrderItems = result.filter(
+      (item) => item.orderId !== orderId
+    );
+    if (incorrectOrderItems.length > 0) {
+      console.log(
+        `DEBUG: WARNING: Found ${incorrectOrderItems.length} items with incorrect orderId:`,
+        incorrectOrderItems.map((item) => ({
+          id: item.id,
+          orderId: item.orderId,
+        }))
+      );
+    }
+
+    return result;
   }
 
   async createOrderItem(insertOrderItem: any): Promise<OrderItem> {
