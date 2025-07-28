@@ -335,6 +335,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch subcategories" });
     }
   });
+
+  // Get subcategories with optional categoryId filter
+  app.get("/api/subcategories", async (req, res) => {
+    try {
+      const categoryId = req.query.categoryId
+        ? parseInt(req.query.categoryId as string)
+        : undefined;
+      const subcategories = await storage.getSubcategories({ categoryId });
+
+      res.json({ subcategories });
+    } catch (error) {
+      console.error("Error fetching subcategories:", error);
+      res.status(500).json({ error: "Failed to fetch subcategories" });
+    }
+  });
   // --- Subcategory CRUD routes ---
   app.post("/api/subcategories", async (req, res) => {
     try {
@@ -7481,8 +7496,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const sellerId = req.user.id;
       const category = req.query.category as string | undefined;
+      const subcategory = req.query.subcategory as string | undefined;
       const search = req.query.search as string | undefined;
-      const stockFilter = req.query.stock as string | undefined;
+      const stockFilter = req.query.stockFilter as string | undefined;
       const includeDrafts = req.query.includeDrafts !== "false"; // Include drafts by default unless explicitly disabled
 
       console.log(
@@ -7504,31 +7520,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Found ${totalCount} total products for seller ${sellerId}`);
       const totalPages = Math.ceil(totalCount / limit);
 
-      // Get the products with applied filters - explicitly include draft products
+      // Build the WHERE clause dynamically
+      let whereConditions = ["p.deleted = false", "p.seller_id = $1"];
+      let paramIndex = 2;
+
+      if (category) {
+        whereConditions.push(`LOWER(p.category) = LOWER($${paramIndex++})`);
+      }
+
+      if (subcategory) {
+        whereConditions.push(`LOWER(p.subcategory1) = LOWER($${paramIndex++})`);
+      }
+
+      if (search) {
+        whereConditions.push(`(
+          LOWER(p.name) LIKE LOWER($${paramIndex++}) OR 
+          LOWER(p.description) LIKE LOWER($${paramIndex++}) OR
+          LOWER(p.category) LIKE LOWER($${paramIndex++}) OR
+          LOWER(p.sku) LIKE LOWER($${paramIndex++})
+        )`);
+      }
+
       const query = `
         SELECT p.*, u.username as seller_username, u.name as seller_name
         FROM products p
         LEFT JOIN users u ON p.seller_id = u.id
-        WHERE p.deleted = false AND p.seller_id = $1
-        ${category ? "AND LOWER(p.category) = LOWER($2)" : ""}
-        ${
-          search
-            ? `AND (
-          LOWER(p.name) LIKE LOWER($${category ? 3 : 2}) OR 
-          LOWER(p.description) LIKE LOWER($${category ? 3 : 2}) OR
-          LOWER(p.category) LIKE LOWER($${category ? 3 : 2}) OR
-          LOWER(p.sku) LIKE LOWER($${category ? 3 : 2})
-        )`
-            : ""
-        }
-        ORDER BY p.id DESC LIMIT $${
-          search ? (category ? 4 : 3) : category ? 3 : 2
-        } OFFSET $${search ? (category ? 5 : 4) : category ? 4 : 3}
+        WHERE ${whereConditions.join(" AND ")}
+        ORDER BY p.id DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}
       `;
 
       const queryParams = [sellerId];
       if (category) queryParams.push(category);
-      if (search) queryParams.push(`%${search}%`);
+      if (subcategory) queryParams.push(subcategory);
+      if (search) {
+        queryParams.push(
+          `%${search}%`,
+          `%${search}%`,
+          `%${search}%`,
+          `%${search}%`
+        );
+      }
       queryParams.push(limit, offset);
 
       console.log(
@@ -7552,10 +7583,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Apply stock filtering if required
       if (stockFilter && stockFilter !== "all") {
         products = products.filter((product) => {
-          const stock = product.stockQuantity || 0;
+          const stock = product.stockQuantity || product.stock || 0;
 
           if (stockFilter === "in-stock") {
-            return stock > 10;
+            return stock > 0;
           } else if (stockFilter === "low-stock") {
             return stock > 0 && stock <= 10;
           } else if (stockFilter === "out-of-stock") {
