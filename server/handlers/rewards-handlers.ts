@@ -16,27 +16,29 @@ const rewardTransactionSchema = z.object({
 export async function processOrderReward(req: Request, res: Response) {
   try {
     // Validate request
-    const result = await z.object({
-      orderId: z.number(),
-      orderTotal: z.number(),
-    }).parseAsync(req.body);
-    
+    const result = await z
+      .object({
+        orderId: z.number(),
+        orderTotal: z.number(),
+      })
+      .parseAsync(req.body);
+
     const { orderId, orderTotal } = result;
     const userId = req.user!.id;
 
     // Get applicable rules for purchase
-    const purchaseRules = await storage.getActiveRewardRulesByType('purchase');
-    
+    const purchaseRules = await storage.getActiveRewardRulesByType("purchase");
+
     // Calculate points to award based on applicable rules
     let pointsToAward = 0;
-    let description = '';
-    
+    let description = "";
+
     for (const rule of purchaseRules) {
       // Skip rules with minimum order value if the order total doesn't meet it
       if (rule.minimumOrderValue && orderTotal < rule.minimumOrderValue) {
         continue;
       }
-      
+
       // Calculate points based on type of rule
       if (rule.percentageValue) {
         // Percentage of order value
@@ -48,20 +50,23 @@ export async function processOrderReward(req: Request, res: Response) {
         description = `${pointsToAward} points for order completion`;
       }
     }
-    
+
     if (pointsToAward <= 0) {
-      return res.json({ message: 'No points awarded for this order', pointsAwarded: 0 });
+      return res.json({
+        message: "No points awarded for this order",
+        pointsAwarded: 0,
+      });
     }
 
     // Create transaction record
     const transaction = await storage.createRewardTransaction({
       userId,
       points: pointsToAward,
-      type: 'purchase',
+      type: "purchase",
       description,
       orderId,
       transactionDate: new Date(),
-      status: 'active'
+      status: "active",
     });
 
     // Update user rewards balance
@@ -71,25 +76,25 @@ export async function processOrderReward(req: Request, res: Response) {
         userId,
         points: pointsToAward,
         lifetimePoints: pointsToAward,
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
       });
     } else {
       userRewards = await storage.updateUserRewards(userId, {
         points: userRewards.points + pointsToAward,
         lifetimePoints: userRewards.lifetimePoints + pointsToAward,
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
       });
     }
 
     return res.json({
-      message: 'Points awarded successfully',
+      message: "Points awarded successfully",
       pointsAwarded: pointsToAward,
       transaction,
-      rewards: userRewards
+      rewards: userRewards,
     });
   } catch (error) {
-    console.error('Error processing reward points for order:', error);
-    return res.status(500).json({ error: 'Failed to process reward points' });
+    console.error("Error processing reward points for order:", error);
+    return res.status(500).json({ error: "Failed to process reward points" });
   }
 }
 
@@ -98,23 +103,51 @@ export async function getUserRewards(req: Request, res: Response) {
   try {
     const userId = req.user!.id;
     const rewards = await storage.getUserRewards(userId);
-    
+
     if (!rewards) {
       // Create a new rewards record if one doesn't exist
       const newRewards = await storage.createUserRewards({
         userId,
         points: 0,
         lifetimePoints: 0,
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
       });
-      
-      return res.json(newRewards);
+
+      // Calculate redeemed points from transaction history
+      const transactions = await storage.getUserRewardTransactions(
+        userId,
+        1,
+        1000
+      );
+      const redeemedPoints = transactions.transactions
+        .filter((t) => t.type === "redeem" && t.points < 0)
+        .reduce((sum, t) => sum + Math.abs(t.points), 0);
+
+      return res.json({
+        ...newRewards,
+        availablePoints: newRewards.points,
+        redeemedPoints,
+      });
     }
-    
-    return res.json(rewards);
+
+    // Calculate redeemed points from transaction history
+    const transactions = await storage.getUserRewardTransactions(
+      userId,
+      1,
+      1000
+    );
+    const redeemedPoints = transactions.transactions
+      .filter((t) => t.type === "redeem" && t.points < 0)
+      .reduce((sum, t) => sum + Math.abs(t.points), 0);
+
+    return res.json({
+      ...rewards,
+      availablePoints: rewards.points,
+      redeemedPoints,
+    });
   } catch (error) {
-    console.error('Error fetching user rewards:', error);
-    return res.status(500).json({ error: 'Failed to fetch rewards data' });
+    console.error("Error fetching user rewards:", error);
+    return res.status(500).json({ error: "Failed to fetch rewards data" });
   }
 }
 
@@ -124,13 +157,13 @@ export async function getUserTransactions(req: Request, res: Response) {
     const userId = req.user!.id;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
-    
+
     const result = await storage.getUserRewardTransactions(userId, page, limit);
-    
+
     return res.json(result.transactions);
   } catch (error) {
-    console.error('Error fetching user reward transactions:', error);
-    return res.status(500).json({ error: 'Failed to fetch transactions' });
+    console.error("Error fetching user reward transactions:", error);
+    return res.status(500).json({ error: "Failed to fetch transactions" });
   }
 }
 
@@ -140,13 +173,18 @@ export async function getUserRewardTransactions(req: Request, res: Response) {
     const userId = parseInt(req.params.userId);
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
-    
+
     const result = await storage.getUserRewardTransactions(userId, page, limit);
-    
+
     return res.json(result);
   } catch (error) {
-    console.error(`Error fetching reward transactions for user ${req.params.userId}:`, error);
-    return res.status(500).json({ error: 'Failed to fetch reward transactions' });
+    console.error(
+      `Error fetching reward transactions for user ${req.params.userId}:`,
+      error
+    );
+    return res
+      .status(500)
+      .json({ error: "Failed to fetch reward transactions" });
   }
 }
 
@@ -156,8 +194,8 @@ export async function getRewardRules(req: Request, res: Response) {
     const rules = await storage.getRewardRules();
     return res.json(rules);
   } catch (error) {
-    console.error('Error fetching reward rules:', error);
-    return res.status(500).json({ error: 'Failed to fetch reward rules' });
+    console.error("Error fetching reward rules:", error);
+    return res.status(500).json({ error: "Failed to fetch reward rules" });
   }
 }
 
@@ -166,8 +204,8 @@ export async function createRewardRule(req: Request, res: Response) {
     const rule = await storage.createRewardRule(req.body);
     return res.status(201).json(rule);
   } catch (error) {
-    console.error('Error creating reward rule:', error);
-    return res.status(500).json({ error: 'Failed to create reward rule' });
+    console.error("Error creating reward rule:", error);
+    return res.status(500).json({ error: "Failed to create reward rule" });
   }
 }
 
@@ -177,8 +215,8 @@ export async function updateRewardRule(req: Request, res: Response) {
     const rule = await storage.updateRewardRule(id, req.body);
     return res.json(rule);
   } catch (error) {
-    console.error('Error updating reward rule:', error);
-    return res.status(500).json({ error: 'Failed to update reward rule' });
+    console.error("Error updating reward rule:", error);
+    return res.status(500).json({ error: "Failed to update reward rule" });
   }
 }
 
@@ -188,8 +226,8 @@ export async function deleteRewardRule(req: Request, res: Response) {
     await storage.deleteRewardRule(id);
     return res.status(204).end();
   } catch (error) {
-    console.error('Error deleting reward rule:', error);
-    return res.status(500).json({ error: 'Failed to delete reward rule' });
+    console.error("Error deleting reward rule:", error);
+    return res.status(500).json({ error: "Failed to delete reward rule" });
   }
 }
 
@@ -198,8 +236,8 @@ export async function getRewardStatistics(req: Request, res: Response) {
     const stats = await storage.getRewardStatistics();
     return res.json(stats);
   } catch (error) {
-    console.error('Error fetching reward statistics:', error);
-    return res.status(500).json({ error: 'Failed to fetch statistics' });
+    console.error("Error fetching reward statistics:", error);
+    return res.status(500).json({ error: "Failed to fetch statistics" });
   }
 }
 
@@ -207,7 +245,7 @@ export async function getRewardStatistics(req: Request, res: Response) {
 export async function addPointsToUser(req: Request, res: Response) {
   try {
     const { userId, points, type, description } = req.body;
-    
+
     // Create transaction
     const transaction = await storage.createRewardTransaction({
       userId,
@@ -215,9 +253,9 @@ export async function addPointsToUser(req: Request, res: Response) {
       type,
       description,
       transactionDate: new Date(),
-      status: 'active'
+      status: "active",
     });
-    
+
     // Update user rewards balance
     let userRewards = await storage.getUserRewards(userId);
     if (!userRewards) {
@@ -225,80 +263,109 @@ export async function addPointsToUser(req: Request, res: Response) {
         userId,
         points,
         lifetimePoints: points,
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
       });
     } else {
       userRewards = await storage.updateUserRewards(userId, {
         points: userRewards.points + points,
         lifetimePoints: userRewards.lifetimePoints + points,
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
       });
     }
-    
+
     return res.json({
-      message: 'Points added successfully',
+      message: "Points added successfully",
       transaction,
-      rewards: userRewards
+      rewards: userRewards,
     });
   } catch (error) {
-    console.error('Error adding points to user:', error);
-    return res.status(500).json({ error: 'Failed to add points' });
+    console.error("Error adding points to user:", error);
+    return res.status(500).json({ error: "Failed to add points" });
   }
 }
 
-// Redeem reward points for an order
+// Redeem reward points to wallet
 export async function redeemRewardPoints(req: Request, res: Response) {
   try {
     const userId = req.user!.id;
-    const { orderTotal, pointsToRedeem, orderId } = req.body;
+    const { pointsToRedeem } = req.body;
 
-    if (!orderTotal || !pointsToRedeem) {
-      return res.status(400).json({ error: 'orderTotal and pointsToRedeem are required' });
+    if (!pointsToRedeem) {
+      return res.status(400).json({ error: "pointsToRedeem is required" });
     }
 
     // Get user rewards
     const userRewards = await storage.getUserRewards(userId);
     if (!userRewards) {
-      return res.status(400).json({ error: 'No rewards account found for user' });
+      return res
+        .status(400)
+        .json({ error: "No rewards account found for user" });
     }
 
-    // Calculate max redeemable points (5% of order total, floored)
-    const maxRedeemable = Math.floor(Number(orderTotal) * 0.05);
-    if (pointsToRedeem > maxRedeemable) {
-      return res.status(400).json({ error: `Cannot redeem more than ${maxRedeemable} points for this order (5% of order total)` });
-    }
+    // Validate points
     if (pointsToRedeem > userRewards.points) {
-      return res.status(400).json({ error: 'Insufficient reward points' });
+      return res.status(400).json({ error: "Insufficient reward points" });
     }
     if (pointsToRedeem <= 0) {
-      return res.status(400).json({ error: 'Points to redeem must be greater than 0' });
+      return res
+        .status(400)
+        .json({ error: "Points to redeem must be greater than 0" });
     }
 
-    // Deduct points and create transaction
-    const transaction = await storage.createRewardTransaction({
-      userId,
-      points: -pointsToRedeem, // Negative for redemption
-      type: 'redeem',
-      description: `Redeemed ${pointsToRedeem} points for order #${orderId || ''}`,
-      orderId: orderId || null,
-      transactionDate: new Date(),
-      status: 'used',
-    });
+    // Minimum redemption amount (500 points = 25 coins)
+    const minimumRedemption = 500;
+    if (pointsToRedeem < minimumRedemption) {
+      return res
+        .status(400)
+        .json({ error: `Minimum redemption is ${minimumRedemption} points` });
+    }
 
-    // Update user rewards balance
-    const updatedRewards = await storage.updateUserRewards(userId, {
-      points: userRewards.points - pointsToRedeem,
-      lastUpdated: new Date(),
-    });
+    // Convert points to wallet coins (20 points = 1 coin)
+    const coinsToAdd = Math.floor(pointsToRedeem / 20);
 
-    return res.json({
-      message: 'Points redeemed successfully',
-      pointsRedeemed: pointsToRedeem,
-      transaction,
-      rewards: updatedRewards,
-    });
+    // Start transaction to ensure both operations succeed or fail together
+    try {
+      // Deduct points from rewards and create transaction
+      const rewardTransaction = await storage.createRewardTransaction({
+        userId,
+        points: -pointsToRedeem, // Negative for redemption
+        type: "redeem",
+        description: `Redeemed ${pointsToRedeem} points to wallet`,
+        transactionDate: new Date(),
+        status: "used",
+      });
+
+      // Update user rewards balance
+      const updatedRewards = await storage.updateUserRewards(userId, {
+        points: userRewards.points - pointsToRedeem,
+        lastUpdated: new Date(),
+      });
+
+      // Add coins to wallet
+      const updatedWallet = await storage.addCoinsToWallet(
+        userId,
+        coinsToAdd,
+        "REWARD_REDEMPTION",
+        rewardTransaction.id,
+        `Redeemed ${pointsToRedeem} reward points to wallet`
+      );
+
+      return res.json({
+        message: "Points redeemed successfully to wallet",
+        pointsRedeemed: pointsToRedeem,
+        coinsAdded: coinsToAdd,
+        rewardTransaction,
+        rewards: updatedRewards,
+        wallet: updatedWallet,
+      });
+    } catch (walletError) {
+      console.error("Error adding coins to wallet:", walletError);
+      return res.status(500).json({
+        error: "Failed to add coins to wallet. Please try again.",
+      });
+    }
   } catch (error) {
-    console.error('Error redeeming reward points:', error);
-    return res.status(500).json({ error: 'Failed to redeem reward points' });
+    console.error("Error redeeming reward points:", error);
+    return res.status(500).json({ error: "Failed to redeem reward points" });
   }
 }

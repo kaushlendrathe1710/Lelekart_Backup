@@ -955,7 +955,7 @@ export default function ProductDetailsPage() {
               isVariant: true,
               parentProductId: product.id,
               color: selectedVariant.color,
-              size: selectedVariant.size,
+              size: selectedSize, // Use the selected size instead of the full variant size string
             },
             quantity
           );
@@ -1033,8 +1033,17 @@ export default function ProductDetailsPage() {
         variant: "default",
       });
 
-      // Call add to cart through context
-      cartContext.addToCart(product, quantity, selectedVariant);
+      // Call add to cart through context with modified variant
+      if (selectedVariant) {
+        // Create a modified variant with the selected size instead of the full size string
+        const modifiedVariant = {
+          ...selectedVariant,
+          size: selectedSize, // Use the selected size instead of the full variant size string
+        };
+        cartContext.addToCart(product, quantity, modifiedVariant);
+      } else {
+        cartContext.addToCart(product, quantity);
+      }
 
       // Redirect to checkout after a short delay
       setTimeout(() => {
@@ -1690,9 +1699,7 @@ export default function ProductDetailsPage() {
 
                 {/* Quantity Selector - Redesigned to match the mockup */}
                 <div className="mt-6">
-                  <div className="text-gray-700 font-medium mb-2">
-                    Quantity
-                  </div>
+                  <div className="text-gray-700 font-medium mb-2">Quantity</div>
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="flex items-center">
                       <Button
@@ -1861,9 +1868,7 @@ export default function ProductDetailsPage() {
               {(!product?.variants || product.variants.length === 0) &&
                 colorOptions.length > 0 && (
                   <div className="mt-6">
-                    <div className="text-gray-700 font-medium mb-2">
-                      Color
-                    </div>
+                    <div className="text-gray-700 font-medium mb-2">Color</div>
                     <div className="flex flex-wrap gap-3">
                       {colorOptions.map((color, index) => (
                         <button
@@ -1927,9 +1932,7 @@ export default function ProductDetailsPage() {
                           {product.warranty && product.warranty > 0
                             ? product.warranty % 12 === 0
                               ? `${product.warranty / 12} ${
-                                  product.warranty / 12 === 1
-                                    ? "Year"
-                                    : "Years"
+                                  product.warranty / 12 === 1 ? "Year" : "Years"
                                 } Warranty`
                               : `${product.warranty} Months Warranty`
                             : "No Warranty"}

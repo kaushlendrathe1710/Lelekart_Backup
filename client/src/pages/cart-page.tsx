@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { useContext } from "react";
+import { useContext, useState, useEffect } from "react";
 import { AuthContext } from "@/hooks/use-auth";
 import { User } from "@shared/schema";
 import { useCart } from "@/context/cart-context";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface CartItem {
-  id: number;
+  id: number | string; // Allow both number and string for guest vs logged-in users
   quantity: number;
   userId?: number; // Make userId optional since guest cart items won't have it
   product: {
@@ -52,6 +53,28 @@ export default function CartPage() {
     staleTime: 60000,
   });
   const isLoading = false;
+  // For guest carts, store and compare selectedItems as strings
+  const [selectedItems, setSelectedItems] = useState<(number | string)[]>(
+    cartItems.map((item) => String(item.id))
+  );
+
+  useEffect(() => {
+    // Sync selection with cart items (e.g., after add/remove)
+    setSelectedItems((prev) => {
+      const currentIds = cartItems.map((item) => String(item.id));
+      return prev
+        .filter((id) => currentIds.includes(String(id)))
+        .concat(currentIds.filter((id) => !prev.includes(id)));
+    });
+  }, [cartItems]);
+
+  const handleSelectItem = (itemId: number | string, checked: boolean) => {
+    setSelectedItems((prev) =>
+      checked
+        ? [...prev, String(itemId)]
+        : prev.filter((id) => String(id) !== String(itemId))
+    );
+  };
 
   const proceedToCheckout = () => {
     // If user is not logged in, redirect to auth with return URL
@@ -59,12 +82,20 @@ export default function CartPage() {
       setLocation("/auth?returnUrl=/checkout", { replace: false });
       return;
     }
-    // Otherwise proceed to checkout
+    // Otherwise proceed to checkout with selected items only
+    // Store selected item IDs in sessionStorage for checkout page to use
+    sessionStorage.setItem(
+      "lelekart_selected_cart_items",
+      JSON.stringify(selectedItems.map(String))
+    );
     setLocation("/checkout", { replace: false });
   };
 
-  // Calculate totals - use deal price if isDealOfTheDay, else variant price if available
-  const subtotal = cartItems.reduce((total, item) => {
+  // Calculate totals using only selected items
+  const selectedCartItems = cartItems.filter((item) =>
+    selectedItems.map(String).includes(String(item.id))
+  );
+  const subtotal = selectedCartItems.reduce((total, item) => {
     let price;
     if (item.product.isDealOfTheDay) {
       price = item.product.price;
@@ -73,8 +104,7 @@ export default function CartPage() {
     }
     return total + price * item.quantity;
   }, 0);
-  // Calculate delivery charges for all items
-  const deliveryCharges = cartItems.reduce((total, item) => {
+  const deliveryCharges = selectedCartItems.reduce((total, item) => {
     const charge = item.product.deliveryCharges ?? 0;
     return total + charge * item.quantity;
   }, 0);
@@ -127,26 +157,53 @@ export default function CartPage() {
                       key={item.id}
                       className="py-6 flex flex-col sm:flex-row gap-4 sm:gap-0"
                     >
-                      <div className="flex-shrink-0 w-full sm:w-24 h-40 sm:h-24 border border-gray-200 rounded-md overflow-hidden mx-auto sm:mx-0">
-                        <img
-                          src={
-                            item.product.imageUrl ||
-                            "/images/categories/fashion.svg"
+                      <div className="flex items-center mb-2">
+                        <Checkbox
+                          checked={selectedItems.includes(String(item.id))}
+                          onCheckedChange={(checked) =>
+                            handleSelectItem(item.id, checked === true)
                           }
-                          alt={item.product.name}
-                          className="w-full h-full object-center object-cover"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.onerror = null;
-                            if (item.product.category) {
-                              const categoryLower =
-                                item.product.category.toLowerCase();
-                              target.src = `../images/${categoryLower}.svg`;
-                            } else {
-                              target.src = "../images/placeholder.svg";
-                            }
-                          }}
+                          className="mr-2"
                         />
+                        <div className="flex-shrink-0 w-full sm:w-24 h-40 sm:h-24 border border-gray-200 rounded-md overflow-hidden mx-auto sm:mx-0">
+                          <img
+                            src={
+                              item.variant?.images
+                                ? (() => {
+                                    try {
+                                      const imgs = JSON.parse(
+                                        item.variant.images
+                                      );
+                                      return (
+                                        imgs[0] ||
+                                        item.product.imageUrl ||
+                                        "/images/categories/fashion.svg"
+                                      );
+                                    } catch {
+                                      return (
+                                        item.product.imageUrl ||
+                                        "/images/categories/fashion.svg"
+                                      );
+                                    }
+                                  })()
+                                : item.product.imageUrl ||
+                                  "/images/categories/fashion.svg"
+                            }
+                            alt={item.product.name}
+                            className="w-full h-full object-center object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.onerror = null;
+                              if (item.product.category) {
+                                const categoryLower =
+                                  item.product.category.toLowerCase();
+                                target.src = `../images/${categoryLower}.svg`;
+                              } else {
+                                target.src = "../images/placeholder.svg";
+                              }
+                            }}
+                          />
+                        </div>
                       </div>
 
                       <div className="sm:ml-4 flex-1 flex flex-col justify-between w-full">
@@ -193,7 +250,10 @@ export default function CartPage() {
                               )}
                               {item.variant.size && (
                                 <span className="inline-block px-2 py-0.5 bg-gray-100 rounded-sm text-xs">
-                                  Size: {item.variant.size}
+                                  Size:{" "}
+                                  {item.variant.size.includes(",")
+                                    ? item.variant.size.split(",")[0]
+                                    : item.variant.size}
                                 </span>
                               )}
                             </div>

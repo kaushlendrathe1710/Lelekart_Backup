@@ -738,7 +738,21 @@ export default function OrderDetailsPage() {
                   <div className="flex flex-col sm:flex-row gap-4">
                     <div className="relative w-20 h-20 rounded bg-gray-100 flex-shrink-0 mx-auto sm:mx-0">
                       <img
-                        src={getProductImageUrl(item.product)}
+                        src={
+                          typeof item.variant === "object" &&
+                          item.variant.images
+                            ? (() => {
+                                try {
+                                  const imgs = JSON.parse(item.variant.images);
+                                  return (
+                                    imgs[0] || getProductImageUrl(item.product)
+                                  );
+                                } catch {
+                                  return getProductImageUrl(item.product);
+                                }
+                              })()
+                            : getProductImageUrl(item.product)
+                        }
                         alt={item.product.name}
                         className="h-full w-full object-cover"
                       />
@@ -794,7 +808,24 @@ export default function OrderDetailsPage() {
                     <div className="font-medium">
                       {item.product.name}
                       {item.variant && (
-                        <span className="text-gray-500"> ({item.variant})</span>
+                        <span className="text-gray-500">
+                          {" "}
+                          (
+                          {typeof item.variant === "object"
+                            ? [
+                                item.variant.color &&
+                                  `Color: ${item.variant.color}`,
+                                item.variant.size &&
+                                  `Size: ${item.variant.size}`,
+                                item.variant.sku && `SKU: ${item.variant.sku}`,
+                                item.variant.price &&
+                                  `Price: ₹${item.variant.price}`,
+                              ]
+                                .filter(Boolean)
+                                .join(", ")
+                            : item.variant}
+                          )
+                        </span>
                       )}
                     </div>
                     <div className="text-xs">Qty: {item.quantity}</div>
@@ -924,7 +955,22 @@ export default function OrderDetailsPage() {
                           {item.variant && (
                             <span className="text-gray-500">
                               {" "}
-                              ({item.variant})
+                              (
+                              {typeof item.variant === "object"
+                                ? [
+                                    item.variant.color &&
+                                      `Color: ${item.variant.color}`,
+                                    item.variant.size &&
+                                      `Size: ${item.variant.size}`,
+                                    item.variant.sku &&
+                                      `SKU: ${item.variant.sku}`,
+                                    item.variant.price &&
+                                      `Price: ₹${item.variant.price}`,
+                                  ]
+                                    .filter(Boolean)
+                                    .join(", ")
+                                : item.variant}
+                              )
                             </span>
                           )}
                         </td>

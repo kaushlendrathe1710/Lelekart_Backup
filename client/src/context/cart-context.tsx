@@ -23,7 +23,7 @@ import { fbq } from "../lib/metaPixel";
 interface CartItem {
   product: Product;
   quantity: number;
-  id?: number;
+  id?: number | string; // Allow both number and string for guest vs logged-in users
   userId?: number;
   variant?: ProductVariant;
 }
@@ -35,7 +35,7 @@ interface CartContextType {
     quantity?: number,
     variant?: ProductVariant
   ) => void;
-  removeFromCart: (itemId: number) => void;
+  removeFromCart: (itemId: number | string) => void;
   updateQuantity: (itemId: number, quantity: number) => void;
   clearCart: () => void;
   isOpen: boolean;
@@ -47,6 +47,7 @@ interface CartContextType {
   ) => void;
   validateCart: () => Promise<boolean>;
   cleanupInvalidCartItems: () => Promise<boolean>;
+  removeCartItems: (itemIds: (number | string)[]) => void;
 }
 
 export const CartContext = createContext<CartContextType | undefined>(
@@ -473,8 +474,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
             product,
             quantity,
             variant,
-            // Use a temporary unique ID for guest cart items (timestamp + random)
-            id: Date.now() + Math.random(),
+            // Use a string ID for guest cart items
+            id: `${Date.now()}_${Math.random()}`,
           };
           newCart = [...prevCart, newItem];
         }
@@ -491,9 +492,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   // Remove from cart function
-  const removeFromCart = (itemId: number) => {
+  const removeFromCart = (itemId: number | string) => {
     if (user) {
-      removeFromCartMutation.mutate(itemId, {
+      removeFromCartMutation.mutate(Number(itemId), {
         onSuccess: () => {
           toast({
             title: "Item removed",
@@ -511,7 +512,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } else {
       // Guest cart: itemId is the index
       setGuestCart((prevCart) => {
-        const newCart = prevCart.filter((_, index) => index !== itemId);
+        const newCart = prevCart.filter((_, index) => index !== Number(itemId));
         localStorage.setItem(GUEST_CART_KEY, JSON.stringify(newCart));
         return newCart;
       });
@@ -554,7 +555,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       // Guest cart: itemId is the index
       setGuestCart((prevCart) => {
         const newCart = prevCart.map((item, index) => {
-          if (index === itemId) {
+          if (index === Number(itemId)) {
             return { ...item, quantity: newQuantity };
           }
           return item;
@@ -605,6 +606,91 @@ export function CartProvider({ children }: { children: ReactNode }) {
       toast({
         title: "Cart cleared",
         description: "All items have been removed from your cart",
+      });
+    }
+  };
+
+  // Remove specific items from cart
+  const removeCartItems = async (itemIds: (number | string)[]) => {
+    console.log("=== removeCartItems DEBUG START ===");
+    console.log("removeCartItems called with:", itemIds);
+    console.log(
+      "Current cart items:",
+      cartItems.map((item) => ({ id: item.id, name: item.product.name }))
+    );
+    console.log("User authenticated:", !!user);
+
+    if (user) {
+      // For logged-in users, use the new bulk delete endpoint
+      try {
+        const numericIds = itemIds
+          .map((id) => Number(id))
+          .filter((id) => !isNaN(id));
+        console.log("Original itemIds:", itemIds);
+        console.log("Converted to numeric IDs:", numericIds);
+        console.log("Calling bulk delete API with IDs:", numericIds);
+
+        const response = await fetch("/api/cart/bulk-delete", {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "no-cache",
+          },
+          body: JSON.stringify({ itemIds: numericIds }),
+        });
+
+        console.log("Bulk delete response status:", response.status);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Bulk delete failed with response:", errorText);
+          throw new Error(`Failed to remove cart items: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log("Bulk delete result:", result);
+
+        // Refresh cart data to get updated state from server
+        console.log("Invalidating cart cache to refresh from server");
+        queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+
+        console.log("=== removeCartItems DEBUG END (SUCCESS) ===");
+      } catch (error) {
+        console.error("Error bulk deleting cart items:", error);
+        console.log("=== removeCartItems DEBUG END (ERROR) ===");
+        toast({
+          title: "Error removing items",
+          description: "Failed to remove some items from cart",
+          variant: "destructive",
+        });
+      }
+    } else {
+      // For guests, compare IDs as strings
+      console.log(
+        "Guest cart before removal:",
+        guestCart.map((item) => ({ id: item.id, name: item.product.name }))
+      );
+      setGuestCart((prevCart) => {
+        const itemIdsAsStrings = itemIds.map(String);
+        console.log("IDs to remove (as strings):", itemIdsAsStrings);
+
+        const newCart = prevCart.filter((item) => {
+          const itemIdAsString = String(item.id);
+          const shouldKeep = !itemIdsAsStrings.includes(itemIdAsString);
+          console.log(
+            `Item ${item.product.name} (id: ${itemIdAsString}) should keep: ${shouldKeep}`
+          );
+          return shouldKeep;
+        });
+
+        console.log(
+          "Guest cart after removal:",
+          newCart.map((item) => ({ id: item.id, name: item.product.name }))
+        );
+        localStorage.setItem(GUEST_CART_KEY, JSON.stringify(newCart));
+        console.log("=== removeCartItems DEBUG END (GUEST SUCCESS) ===");
+        return newCart;
       });
     }
   };
@@ -892,7 +978,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             if (invalidCartItem?.id) {
               try {
                 const deleteResponse = await fetch(
-                  `/api/cart/${invalidCartItem.id}`,
+                  `/api/cart/${Number(invalidCartItem.id)}`,
                   {
                     method: "DELETE",
                     credentials: "include",
@@ -936,6 +1022,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     buyNow,
     validateCart,
     cleanupInvalidCartItems,
+    removeCartItems, // add to context
   };
 
   return (
