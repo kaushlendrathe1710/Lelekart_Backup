@@ -1299,15 +1299,19 @@ export default function SellerSettingsPage() {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="email" className="text-sm">
-                          Email Address
+                          Email Address <span className="text-red-500">*</span>
                         </Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={originalPersonalInfo.email}
-                          readOnly
-                          className="text-sm bg-gray-100 cursor-not-allowed"
-                        />
+                        {isEditingPersonalInfo ? (
+                          <Input
+                            id="email"
+                            type="email"
+                            value={originalPersonalInfo.email}
+                            onChange={e => setOriginalPersonalInfo({ ...originalPersonalInfo, email: e.target.value })}
+                            className="text-sm"
+                          />
+                        ) : (
+                          <p className="text-sm py-2">{originalPersonalInfo.email}</p>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="phone" className="text-sm">
