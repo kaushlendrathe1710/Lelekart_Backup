@@ -2261,7 +2261,12 @@ export class DatabaseStorage implements IStorage {
       return await db
         .select()
         .from(userAddresses)
-        .where(and(eq(userAddresses.userId, userId), eq(userAddresses.deleted, false)));
+        .where(
+          and(
+            eq(userAddresses.userId, userId),
+            eq(userAddresses.deleted, false)
+          )
+        );
     } catch (error) {
       console.error("Error in getUserAddresses:", error);
       return [];
@@ -2425,7 +2430,12 @@ export class DatabaseStorage implements IStorage {
         const otherAddresses = await db
           .select()
           .from(userAddresses)
-          .where(and(eq(userAddresses.userId, existingAddress.userId), eq(userAddresses.deleted, false)))
+          .where(
+            and(
+              eq(userAddresses.userId, existingAddress.userId),
+              eq(userAddresses.deleted, false)
+            )
+          )
           .limit(1);
 
         if (otherAddresses.length > 0) {
@@ -6590,6 +6600,130 @@ export class DatabaseStorage implements IStorage {
       return updatedOptimization;
     } catch (error) {
       console.error("Error updating price optimization status:", error);
+      throw error;
+    }
+  }
+
+  async updateInventoryOptimizationStatus(
+    id: number,
+    status: string,
+    sellerId: number
+  ): Promise<InventoryOptimization> {
+    try {
+      // First, verify seller owns this optimization
+      const [existingOptimization] = await db
+        .select()
+        .from(inventoryOptimizations)
+        .where(
+          and(
+            eq(inventoryOptimizations.id, id),
+            eq(inventoryOptimizations.sellerId, sellerId)
+          )
+        );
+
+      if (!existingOptimization) {
+        throw new Error("Inventory optimization not found or not authorized");
+      }
+
+      // Update status
+      const [updatedOptimization] = await db
+        .update(inventoryOptimizations)
+        .set({
+          status,
+          appliedAt: status === "applied" ? new Date() : null,
+          updatedAt: new Date(),
+        })
+        .where(eq(inventoryOptimizations.id, id))
+        .returning();
+
+      return updatedOptimization;
+    } catch (error) {
+      console.error("Error updating inventory optimization status:", error);
+      throw error;
+    }
+  }
+
+  async applyPriceOptimization(id: number, sellerId: number): Promise<Product> {
+    try {
+      // First, verify and get the optimization
+      const [optimization] = await db
+        .select()
+        .from(priceOptimizations)
+        .where(
+          and(
+            eq(priceOptimizations.id, id),
+            eq(priceOptimizations.sellerId, sellerId)
+          )
+        );
+
+      if (!optimization) {
+        throw new Error("Price optimization not found or not authorized");
+      }
+
+      // Update the product price with the suggested price
+      const [updatedProduct] = await db
+        .update(products)
+        .set({ price: optimization.suggestedPrice })
+        .where(eq(products.id, optimization.productId))
+        .returning();
+
+      // Update optimization status to "applied"
+      await db
+        .update(priceOptimizations)
+        .set({
+          status: "applied",
+          appliedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(priceOptimizations.id, id));
+
+      return updatedProduct;
+    } catch (error) {
+      console.error("Error applying price optimization:", error);
+      throw error;
+    }
+  }
+
+  async applyInventoryOptimization(
+    id: number,
+    sellerId: number
+  ): Promise<Product> {
+    try {
+      // First, verify and get the optimization
+      const [optimization] = await db
+        .select()
+        .from(inventoryOptimizations)
+        .where(
+          and(
+            eq(inventoryOptimizations.id, id),
+            eq(inventoryOptimizations.sellerId, sellerId)
+          )
+        );
+
+      if (!optimization) {
+        throw new Error("Inventory optimization not found or not authorized");
+      }
+
+      // Update the product stock with the recommended stock level
+      const [updatedProduct] = await db
+        .update(products)
+        .set({ stock: optimization.recommendedStock })
+        .where(eq(products.id, optimization.productId))
+        .returning();
+
+      // Update optimization status to "applied"
+      await db
+        .update(inventoryOptimizations)
+        .set({
+          status: "applied",
+          appliedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(inventoryOptimizations.id, id));
+
+      return updatedProduct;
+    } catch (error) {
+      console.error("Error applying inventory optimization:", error);
       throw error;
     }
   }
