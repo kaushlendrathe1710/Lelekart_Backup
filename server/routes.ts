@@ -6288,14 +6288,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .json({ error: "Not authorized to view this order" });
       }
 
-      // Get filtered order items - apply database-level filtering for sellers
-      const sellerId = req.user.role === "seller" ? req.user.id : undefined;
-      const orderItems = await storage.getOrderItems(orderId, sellerId);
-
+      // Get order items - for sellers, show all items for this specific order but mark which ones belong to them
+      let orderItems;
       if (req.user.role === "seller") {
+        // Get all order items for this specific order
+        const allOrderItems = await storage.getOrderItems(orderId);
+        // Mark which items belong to this seller
+        orderItems = allOrderItems.map((item) => ({
+          ...item,
+          isSellerItem: item.product.sellerId === req.user.id,
+        }));
         console.log(
-          `Retrieved ${orderItems.length} order items for seller ${sellerId} from order #${orderId}`
+          `Retrieved ${orderItems.length} order items for seller ${req.user.id} from order #${orderId}, ${orderItems.filter((item) => item.isSellerItem).length} are seller's items`
         );
+      } else {
+        // For buyers and admins, show all items for this specific order
+        orderItems = await storage.getOrderItems(orderId);
       }
 
       res.json(orderItems);
@@ -6327,6 +6335,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const id = parseInt(req.params.id);
+      console.log(
+        `DEBUG: Order details requested for order ID: ${id}, raw param: ${req.params.id}`
+      );
       const order = await storage.getOrder(id);
 
       // Special case for order confirmation page - handle any missing order on confirmation page
@@ -6412,13 +6423,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Fetch order items to include with the response - filter at database level for sellers
-      const sellerId = req.user.role === "seller" ? req.user.id : undefined;
-      const orderItems = await storage.getOrderItems(id, sellerId);
-
+      // Fetch order items to include with the response
+      // For sellers, get all items for this specific order but mark which ones belong to them
+      let orderItems;
       if (req.user.role === "seller") {
+        // Get all order items for this specific order
+        const allOrderItems = await storage.getOrderItems(id);
         console.log(
-          `Filtered order items for seller ${sellerId}: showing ${orderItems.length} items`
+          `DEBUG: Retrieved ${allOrderItems.length} items for order #${id}`
+        );
+        console.log(
+          `DEBUG: Order items:`,
+          allOrderItems.map((item) => ({
+            id: item.id,
+            orderId: item.orderId,
+            productId: item.productId,
+            productName: item.product.name,
+            sellerId: item.product.sellerId,
+          }))
+        );
+
+        // Mark which items belong to this seller
+        orderItems = allOrderItems.map((item) => ({
+          ...item,
+          isSellerItem: item.product.sellerId === req.user.id,
+        }));
+        console.log(
+          `Showing ${orderItems.length} items for order #${id} for seller ${req.user.id}, ${orderItems.filter((item) => item.isSellerItem).length} are seller's items`
+        );
+      } else {
+        // For buyers and admins, show all items for this specific order
+        orderItems = await storage.getOrderItems(id);
+        console.log(
+          `DEBUG: Retrieved ${orderItems.length} items for order #${id} for ${req.user.role}`
         );
       }
 

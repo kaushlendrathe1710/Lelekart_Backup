@@ -83,6 +83,7 @@ interface OrderItem {
   quantity: number;
   price: number;
   product: Product;
+  isSellerItem?: boolean;
 }
 
 interface ShippingDetails {
@@ -670,7 +671,17 @@ export default function SellerOrdersPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-xl md:text-2xl font-bold">
-                    {orders.filter(order => ['marked_for_return','approve_return','process_return','reject_return','completed_return'].includes(order.status)).length}
+                    {
+                      orders.filter((order) =>
+                        [
+                          "marked_for_return",
+                          "approve_return",
+                          "process_return",
+                          "reject_return",
+                          "completed_return",
+                        ].includes(order.status)
+                      ).length
+                    }
                   </div>
                 </CardContent>
               </Card>
@@ -716,7 +727,19 @@ export default function SellerOrdersPage() {
                 Delivered ({statusCounts.delivered})
               </TabsTrigger>
               <TabsTrigger value="returns" className="text-xs md:text-sm">
-                Returns ({orders.filter(order => ['marked_for_return','approve_return','process_return','reject_return','completed_return'].includes(order.status)).length})
+                Returns (
+                {
+                  orders.filter((order) =>
+                    [
+                      "marked_for_return",
+                      "approve_return",
+                      "process_return",
+                      "reject_return",
+                      "completed_return",
+                    ].includes(order.status)
+                  ).length
+                }
+                )
               </TabsTrigger>
               <TabsTrigger value="cancelled" className="text-xs md:text-sm">
                 Cancelled ({statusCounts.cancelled})
@@ -760,7 +783,15 @@ export default function SellerOrdersPage() {
 
           <TabsContent value="returns">
             <OrderTable
-              orders={orders.filter(order => ['marked_for_return','approve_return','process_return','reject_return','completed_return'].includes(order.status))}
+              orders={orders.filter((order) =>
+                [
+                  "marked_for_return",
+                  "approve_return",
+                  "process_return",
+                  "reject_return",
+                  "completed_return",
+                ].includes(order.status)
+              )}
               isLoading={isLoading}
               viewOrderDetails={viewOrderDetails}
               getStatusBadge={getStatusBadge}
@@ -926,9 +957,22 @@ export default function SellerOrdersPage() {
                       </TableHeader>
                       <TableBody>
                         {selectedOrder.items?.map((item) => (
-                          <TableRow key={item.id}>
+                          <TableRow
+                            key={item.id}
+                            className={item.isSellerItem ? "bg-blue-50" : ""}
+                          >
                             <TableCell className="font-medium text-sm">
-                              {item.product.name}
+                              <div className="flex items-center gap-2">
+                                {item.product.name}
+                                {item.isSellerItem && (
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
+                                    Your Item
+                                  </Badge>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell className="text-right text-sm">
                               {item.quantity}
@@ -961,15 +1005,24 @@ export default function SellerOrdersPage() {
                     {selectedOrder.items?.map((item) => (
                       <div
                         key={item.id}
-                        className="border rounded-lg p-4 space-y-3"
+                        className={`border rounded-lg p-4 space-y-3 ${
+                          item.isSellerItem ? "bg-blue-50" : ""
+                        }`}
                       >
                         <div className="flex flex-col">
                           <span className="font-medium text-muted-foreground">
                             Product:
                           </span>
-                          <span className="mt-1 font-medium">
-                            {item.product.name}
-                          </span>
+                          <div className="mt-1 flex items-center gap-2">
+                            <span className="font-medium">
+                              {item.product.name}
+                            </span>
+                            {item.isSellerItem && (
+                              <Badge variant="secondary" className="text-xs">
+                                Your Item
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="flex flex-col">
@@ -1144,9 +1197,18 @@ function OrderTable({
                 </TableCell>
                 <TableCell>{getStatusBadge(order.status)}</TableCell>
                 <TableCell>
-                  {['marked_for_return','approve_return','process_return','reject_return','completed_return'].includes(order.status)
-                    ? order.status.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
-                    : '-'}
+                  {[
+                    "marked_for_return",
+                    "approve_return",
+                    "process_return",
+                    "reject_return",
+                    "completed_return",
+                  ].includes(order.status)
+                    ? order.status
+                        .split("_")
+                        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                        .join(" ")
+                    : "-"}
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
@@ -1321,11 +1383,27 @@ function OrderTable({
                         Shipping Label
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        disabled={!['marked_for_return','approve_return','process_return','reject_return','completed_return'].includes(order.status)}
+                        disabled={
+                          ![
+                            "marked_for_return",
+                            "approve_return",
+                            "process_return",
+                            "reject_return",
+                            "completed_return",
+                          ].includes(order.status)
+                        }
                         onClick={() => {
-                          if(['marked_for_return','approve_return','process_return','reject_return','completed_return'].includes(order.status)) {
+                          if (
+                            [
+                              "marked_for_return",
+                              "approve_return",
+                              "process_return",
+                              "reject_return",
+                              "completed_return",
+                            ].includes(order.status)
+                          ) {
                             // Navigate to returns page for this order
-                            window.open(`/seller/returns`, '_blank');
+                            window.open(`/seller/returns`, "_blank");
                           }
                         }}
                       >
@@ -1598,9 +1676,17 @@ function OrderTable({
                     size="sm"
                     className="w-full justify-start text-sm"
                     onClick={() => {
-                      if(['marked_for_return','approve_return','process_return','reject_return','completed_return'].includes(order.status)) {
+                      if (
+                        [
+                          "marked_for_return",
+                          "approve_return",
+                          "process_return",
+                          "reject_return",
+                          "completed_return",
+                        ].includes(order.status)
+                      ) {
                         // Navigate to returns page for this order
-                        window.open(`/seller/returns`, '_blank');
+                        window.open(`/seller/returns`, "_blank");
                       }
                     }}
                   >
