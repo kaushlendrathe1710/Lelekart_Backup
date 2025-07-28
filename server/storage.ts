@@ -6604,6 +6604,45 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async updateInventoryOptimizationStatus(
+    id: number,
+    status: string,
+    sellerId: number
+  ): Promise<InventoryOptimization> {
+    try {
+      // First, verify seller owns this optimization
+      const [existingOptimization] = await db
+        .select()
+        .from(inventoryOptimizations)
+        .where(
+          and(
+            eq(inventoryOptimizations.id, id),
+            eq(inventoryOptimizations.sellerId, sellerId)
+          )
+        );
+
+      if (!existingOptimization) {
+        throw new Error("Inventory optimization not found or not authorized");
+      }
+
+      // Update status
+      const [updatedOptimization] = await db
+        .update(inventoryOptimizations)
+        .set({
+          status,
+          appliedAt: status === "applied" ? new Date() : null,
+          updatedAt: new Date(),
+        })
+        .where(eq(inventoryOptimizations.id, id))
+        .returning();
+
+      return updatedOptimization;
+    } catch (error) {
+      console.error("Error updating inventory optimization status:", error);
+      throw error;
+    }
+  }
+
   async applyPriceOptimization(id: number, sellerId: number): Promise<Product> {
     try {
       // First, verify and get the optimization
