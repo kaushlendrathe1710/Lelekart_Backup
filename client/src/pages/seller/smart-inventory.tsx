@@ -27,6 +27,7 @@ import {
   BarChart2,
   Layers,
   Package,
+  ArrowUp,
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -51,6 +52,26 @@ export default function SmartInventory() {
   const { toast } = useToast();
   const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("demand-forecasting");
+  const [showScrollToTop, setShowScrollToTop] = useState(false);
+
+  // Scroll to top functionality
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop =
+        window.pageYOffset || document.documentElement.scrollTop;
+      setShowScrollToTop(scrollTop > 300);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
 
   // Get all seller products
   const { data: products, isLoading: isLoadingProducts } = useQuery({
@@ -406,6 +427,17 @@ export default function SmartInventory() {
           </div>
         </div>
       </div>
+      {/* Scroll to Top Button */}
+      {showScrollToTop && (
+        <Button
+          onClick={scrollToTop}
+          className="fixed bottom-4 right-4 md:bottom-6 md:right-6 p-3 rounded-full bg-primary text-white shadow-lg hover:bg-primary/90 transition-all duration-200 z-50 hover:scale-110"
+          aria-label="Scroll to top"
+          size="sm"
+        >
+          <ArrowUp className="h-5 w-5" />
+        </Button>
+      )}
     </SellerDashboardLayout>
   );
 }
