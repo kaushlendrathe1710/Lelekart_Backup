@@ -1359,15 +1359,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           }
 
+          // Determine MRP - if the price is different from product price, it might be a variant
+          // For now, we'll use the product's MRP as a fallback, but ideally we'd store variant MRP
+          let mrp = productInfo.mrp || price;
+          let discount = Math.max(0, mrp - price);
+
           processedItems.push({
             srNo: srNo++,
             description: productInfo.name,
             hsn: productInfo.hsn || "N/A",
             quantity: quantity,
-            mrp: productInfo.mrp
-              ? productInfo.mrp.toFixed(2)
-              : price.toFixed(2),
-            discount: (productInfo.mrp - price).toFixed(2),
+            mrp: mrp.toFixed(2),
+            discount: discount.toFixed(2),
             taxableValue: basePrice.toFixed(2),
             taxComponents: taxComponents,
             total: totalPrice.toFixed(2),
@@ -5505,10 +5508,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Calculate total
-      const total = cartItems.reduce(
-        (acc, item) => acc + item.product.price * item.quantity,
-        0
-      );
+      const total = cartItems.reduce((acc, item) => {
+        const price = item.variant ? item.variant.price : item.product.price;
+        return acc + price * item.quantity;
+      }, 0);
 
       // Create order in our system
       const orderData: any = {
@@ -5543,11 +5546,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create order items
       for (const item of cartItems) {
+        const price = item.variant ? item.variant.price : item.product.price;
         const orderItemData = {
           orderId: order.id,
           productId: item.product.id,
           quantity: item.quantity,
-          price: item.product.price,
+          price: price,
         };
 
         console.log("Creating order item:", orderItemData);
@@ -5813,10 +5817,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Calculate subtotal per seller
       const sellerSubtotals = Object.entries(itemsBySeller).map(
         ([sellerId, items]) => {
-          const subtotal = items.reduce(
-            (acc, item) => acc + item.product.price * item.quantity,
-            0
-          );
+          const subtotal = items.reduce((acc, item) => {
+            const price = item.variant
+              ? item.variant.price
+              : item.product.price;
+            return acc + price * item.quantity;
+          }, 0);
           return {
             sellerId: parseInt(sellerId),
             items,
@@ -6014,11 +6020,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create order items
       for (const item of cartItems) {
+        const price = item.variant ? item.variant.price : item.product.price;
         const orderItemData = {
           orderId: order.id,
           productId: item.product.id,
           quantity: item.quantity,
-          price: item.product.price,
+          price: price,
         };
 
         console.log("Creating order item:", orderItemData);
