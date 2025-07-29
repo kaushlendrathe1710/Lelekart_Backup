@@ -27,6 +27,7 @@ import {
   BarChart2,
   Layers,
   Package,
+  ArrowUp,
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -51,6 +52,26 @@ export default function SmartInventory() {
   const { toast } = useToast();
   const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("demand-forecasting");
+  const [showScrollToTop, setShowScrollToTop] = useState(false);
+
+  // Scroll to top functionality
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop =
+        window.pageYOffset || document.documentElement.scrollTop;
+      setShowScrollToTop(scrollTop > 300);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
 
   // Get all seller products
   const { data: products, isLoading: isLoadingProducts } = useQuery({
@@ -406,6 +427,17 @@ export default function SmartInventory() {
           </div>
         </div>
       </div>
+      {/* Scroll to Top Button */}
+      {showScrollToTop && (
+        <Button
+          onClick={scrollToTop}
+          className="fixed bottom-4 right-4 md:bottom-6 md:right-6 p-3 rounded-full bg-primary text-white shadow-lg hover:bg-primary/90 transition-all duration-200 z-50 hover:scale-110"
+          aria-label="Scroll to top"
+          size="sm"
+        >
+          <ArrowUp className="h-5 w-5" />
+        </Button>
+      )}
     </SellerDashboardLayout>
   );
 }
@@ -820,6 +852,21 @@ function DemandForecastingTab({ productId }: { productId: number }) {
 function PriceOptimizationTab({ productId }: { productId: number }) {
   const { toast } = useToast();
 
+  // Helper function to calculate expected revenue change
+  const calculateRevenueChange = (optimization: any, product: any) => {
+    const currentRevenue =
+      (product?.price || optimization.currentPrice) *
+      (optimization.projectedSales || 0);
+    const projectedRevenue = optimization.projectedRevenue || 0;
+    const revenueChange = projectedRevenue - currentRevenue;
+    const percentageChange =
+      currentRevenue > 0 ? (revenueChange / currentRevenue) * 100 : 0;
+    return {
+      percentageChange,
+      isPositive: percentageChange > 0,
+    };
+  };
+
   // Get price optimizations
   const { data: optimizations, isLoading } = useQuery({
     queryKey: ["/api/seller/price-optimizations", productId],
@@ -1015,10 +1062,37 @@ function PriceOptimizationTab({ productId }: { productId: number }) {
                           Expected Revenue Change
                         </div>
                         <div
-                          className={`text-2xl font-bold ${optimization.expectedRevenueIncrease > 0 ? "text-green-600" : "text-red-600"}`}
+                          className={`text-2xl font-bold ${(() => {
+                            // Check if we have valid data to calculate the percentage
+                            if (
+                              optimization.projectedRevenue === null ||
+                              optimization.projectedRevenue === undefined
+                            ) {
+                              return "text-muted-foreground";
+                            }
+                            const { isPositive } = calculateRevenueChange(
+                              optimization,
+                              product
+                            );
+                            return isPositive
+                              ? "text-green-600"
+                              : "text-red-600";
+                          })()}`}
                         >
-                          {optimization.expectedRevenueIncrease > 0 ? "+" : ""}
-                          {optimization.expectedRevenueIncrease}%
+                          {(() => {
+                            const { percentageChange } = calculateRevenueChange(
+                              optimization,
+                              product
+                            );
+                            // Check if we have valid data to calculate the percentage
+                            if (
+                              optimization.projectedRevenue === null ||
+                              optimization.projectedRevenue === undefined
+                            ) {
+                              return "Pending";
+                            }
+                            return `${percentageChange > 0 ? "+" : ""}${percentageChange.toFixed(1)}%`;
+                          })()}
                         </div>
                       </div>
                     </div>

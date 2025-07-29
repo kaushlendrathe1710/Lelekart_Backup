@@ -335,6 +335,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch subcategories" });
     }
   });
+
+  // Get subcategories with optional categoryId filter
+  app.get("/api/subcategories", async (req, res) => {
+    try {
+      const categoryId = req.query.categoryId
+        ? parseInt(req.query.categoryId as string)
+        : undefined;
+      const subcategories = await storage.getSubcategories({ categoryId });
+
+      res.json({ subcategories });
+    } catch (error) {
+      console.error("Error fetching subcategories:", error);
+      res.status(500).json({ error: "Failed to fetch subcategories" });
+    }
+  });
   // --- Subcategory CRUD routes ---
   app.post("/api/subcategories", async (req, res) => {
     try {
@@ -1344,15 +1359,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           }
 
+          // Determine MRP - if the price is different from product price, it might be a variant
+          // For now, we'll use the product's MRP as a fallback, but ideally we'd store variant MRP
+          let mrp = productInfo.mrp || price;
+          let discount = Math.max(0, mrp - price);
+
           processedItems.push({
             srNo: srNo++,
             description: productInfo.name,
             hsn: productInfo.hsn || "N/A",
             quantity: quantity,
-            mrp: productInfo.mrp
-              ? productInfo.mrp.toFixed(2)
-              : price.toFixed(2),
-            discount: (productInfo.mrp - price).toFixed(2),
+            mrp: mrp.toFixed(2),
+            discount: discount.toFixed(2),
             taxableValue: basePrice.toFixed(2),
             taxComponents: taxComponents,
             total: totalPrice.toFixed(2),
@@ -5490,10 +5508,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Calculate total
-      const total = cartItems.reduce(
-        (acc, item) => acc + item.product.price * item.quantity,
-        0
-      );
+      const total = cartItems.reduce((acc, item) => {
+        const price = item.variant ? item.variant.price : item.product.price;
+        return acc + price * item.quantity;
+      }, 0);
 
       // Create order in our system
       const orderData: any = {
@@ -5528,11 +5546,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create order items
       for (const item of cartItems) {
+        const price = item.variant ? item.variant.price : item.product.price;
         const orderItemData = {
           orderId: order.id,
           productId: item.product.id,
           quantity: item.quantity,
-          price: item.product.price,
+          price: price,
         };
 
         console.log("Creating order item:", orderItemData);
@@ -5798,10 +5817,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Calculate subtotal per seller
       const sellerSubtotals = Object.entries(itemsBySeller).map(
         ([sellerId, items]) => {
-          const subtotal = items.reduce(
-            (acc, item) => acc + item.product.price * item.quantity,
-            0
-          );
+          const subtotal = items.reduce((acc, item) => {
+            const price = item.variant
+              ? item.variant.price
+              : item.product.price;
+            return acc + price * item.quantity;
+          }, 0);
           return {
             sellerId: parseInt(sellerId),
             items,
@@ -5999,11 +6020,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create order items
       for (const item of cartItems) {
+        const price = item.variant ? item.variant.price : item.product.price;
         const orderItemData = {
           orderId: order.id,
           productId: item.product.id,
           quantity: item.quantity,
-          price: item.product.price,
+          price: price,
         };
 
         console.log("Creating order item:", orderItemData);
@@ -6266,14 +6288,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .json({ error: "Not authorized to view this order" });
       }
 
-      // Get filtered order items - apply database-level filtering for sellers
-      const sellerId = req.user.role === "seller" ? req.user.id : undefined;
-      const orderItems = await storage.getOrderItems(orderId, sellerId);
-
+      // Get order items - for sellers, show all items for this specific order but mark which ones belong to them
+      let orderItems;
       if (req.user.role === "seller") {
+        // Get all order items for this specific order
+        const allOrderItems = await storage.getOrderItems(orderId);
+        // Mark which items belong to this seller
+        orderItems = allOrderItems.map((item) => ({
+          ...item,
+          isSellerItem: item.product.sellerId === req.user.id,
+        }));
         console.log(
-          `Retrieved ${orderItems.length} order items for seller ${sellerId} from order #${orderId}`
+          `Retrieved ${orderItems.length} order items for seller ${req.user.id} from order #${orderId}, ${orderItems.filter((item) => item.isSellerItem).length} are seller's items`
         );
+      } else {
+        // For buyers and admins, show all items for this specific order
+        orderItems = await storage.getOrderItems(orderId);
       }
 
       res.json(orderItems);
@@ -6305,6 +6335,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const id = parseInt(req.params.id);
+      console.log(
+        `DEBUG: Order details requested for order ID: ${id}, raw param: ${req.params.id}`
+      );
       const order = await storage.getOrder(id);
 
       // Special case for order confirmation page - handle any missing order on confirmation page
@@ -6390,13 +6423,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Fetch order items to include with the response - filter at database level for sellers
-      const sellerId = req.user.role === "seller" ? req.user.id : undefined;
-      const orderItems = await storage.getOrderItems(id, sellerId);
-
+      // Fetch order items to include with the response
+      // For sellers, get all items for this specific order but mark which ones belong to them
+      let orderItems;
       if (req.user.role === "seller") {
+        // Get all order items for this specific order
+        const allOrderItems = await storage.getOrderItems(id);
         console.log(
-          `Filtered order items for seller ${sellerId}: showing ${orderItems.length} items`
+          `DEBUG: Retrieved ${allOrderItems.length} items for order #${id}`
+        );
+        console.log(
+          `DEBUG: Order items:`,
+          allOrderItems.map((item) => ({
+            id: item.id,
+            orderId: item.orderId,
+            productId: item.productId,
+            productName: item.product.name,
+            sellerId: item.product.sellerId,
+          }))
+        );
+
+        // Mark which items belong to this seller
+        orderItems = allOrderItems.map((item) => ({
+          ...item,
+          isSellerItem: item.product.sellerId === req.user.id,
+        }));
+        console.log(
+          `Showing ${orderItems.length} items for order #${id} for seller ${req.user.id}, ${orderItems.filter((item) => item.isSellerItem).length} are seller's items`
+        );
+      } else {
+        // For buyers and admins, show all items for this specific order
+        orderItems = await storage.getOrderItems(id);
+        console.log(
+          `DEBUG: Retrieved ${orderItems.length} items for order #${id} for ${req.user.role}`
         );
       }
 
@@ -7481,8 +7540,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const sellerId = req.user.id;
       const category = req.query.category as string | undefined;
+      const subcategory = req.query.subcategory as string | undefined;
       const search = req.query.search as string | undefined;
-      const stockFilter = req.query.stock as string | undefined;
+      const stockFilter = req.query.stockFilter as string | undefined;
       const includeDrafts = req.query.includeDrafts !== "false"; // Include drafts by default unless explicitly disabled
 
       console.log(
@@ -7504,31 +7564,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Found ${totalCount} total products for seller ${sellerId}`);
       const totalPages = Math.ceil(totalCount / limit);
 
-      // Get the products with applied filters - explicitly include draft products
+      // Build the WHERE clause dynamically
+      let whereConditions = ["p.deleted = false", "p.seller_id = $1"];
+      let paramIndex = 2;
+
+      if (category) {
+        whereConditions.push(`LOWER(p.category) = LOWER($${paramIndex++})`);
+      }
+
+      if (subcategory) {
+        whereConditions.push(`LOWER(p.subcategory1) = LOWER($${paramIndex++})`);
+      }
+
+      if (search) {
+        whereConditions.push(`(
+          LOWER(p.name) LIKE LOWER($${paramIndex++}) OR 
+          LOWER(p.description) LIKE LOWER($${paramIndex++}) OR
+          LOWER(p.category) LIKE LOWER($${paramIndex++}) OR
+          LOWER(p.sku) LIKE LOWER($${paramIndex++})
+        )`);
+      }
+
       const query = `
         SELECT p.*, u.username as seller_username, u.name as seller_name
         FROM products p
         LEFT JOIN users u ON p.seller_id = u.id
-        WHERE p.deleted = false AND p.seller_id = $1
-        ${category ? "AND LOWER(p.category) = LOWER($2)" : ""}
-        ${
-          search
-            ? `AND (
-          LOWER(p.name) LIKE LOWER($${category ? 3 : 2}) OR 
-          LOWER(p.description) LIKE LOWER($${category ? 3 : 2}) OR
-          LOWER(p.category) LIKE LOWER($${category ? 3 : 2}) OR
-          LOWER(p.sku) LIKE LOWER($${category ? 3 : 2})
-        )`
-            : ""
-        }
-        ORDER BY p.id DESC LIMIT $${
-          search ? (category ? 4 : 3) : category ? 3 : 2
-        } OFFSET $${search ? (category ? 5 : 4) : category ? 4 : 3}
+        WHERE ${whereConditions.join(" AND ")}
+        ORDER BY p.id DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}
       `;
 
       const queryParams = [sellerId];
       if (category) queryParams.push(category);
-      if (search) queryParams.push(`%${search}%`);
+      if (subcategory) queryParams.push(subcategory);
+      if (search) {
+        queryParams.push(
+          `%${search}%`,
+          `%${search}%`,
+          `%${search}%`,
+          `%${search}%`
+        );
+      }
       queryParams.push(limit, offset);
 
       console.log(
@@ -7552,10 +7627,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Apply stock filtering if required
       if (stockFilter && stockFilter !== "all") {
         products = products.filter((product) => {
-          const stock = product.stockQuantity || 0;
+          const stock = product.stockQuantity || product.stock || 0;
 
           if (stockFilter === "in-stock") {
-            return stock > 10;
+            return stock > 0;
           } else if (stockFilter === "low-stock") {
             return stock > 0 && stock <= 10;
           } else if (stockFilter === "out-of-stock") {
