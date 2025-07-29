@@ -441,11 +441,11 @@ export default function HomePage() {
       try {
         // Fetch top product for each search term
         const productPromises = browserHistory.map(async (term) => {
-          const res = await fetch(`/api/search?q=${encodeURIComponent(term)}`);
+          const res = await fetch(`/api/lelekart-search?q=${encodeURIComponent(term)}&limit=1`);
           if (!res.ok) return null;
           const data = await res.json();
-          // Assume data.products is an array of products
-          return data.products && data.products.length > 0 ? data.products[0] : null;
+          // Return the first product from the search results
+          return data && data.length > 0 ? data[0] : null;
         });
         const products = (await Promise.all(productPromises)).filter(Boolean);
         setRecentSearchProducts(products);
@@ -457,6 +457,24 @@ export default function HomePage() {
     }
     fetchRecentSearchProducts();
   }, [browserHistory]);
+
+  // Listen for storage changes to refresh recent searches
+  useEffect(() => {
+    const handleStorageChange = () => {
+      try {
+        const stored = localStorage.getItem('lelekart_recent_searches');
+        if (stored) {
+          const newHistory = JSON.parse(stored).slice(0, 5);
+          setBrowserHistory(newHistory);
+        }
+      } catch {
+        setBrowserHistory([]);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#EADDCB] font-serif">
@@ -537,7 +555,7 @@ export default function HomePage() {
             <div key={price} className="bg-[#F8F5E4] rounded-2xl p-4 border border-[#e0c9a6] shadow-md flex flex-col justify-between">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-medium">Under ₹{price}</h2>
-                <Link href={`/search?q=under+${price}`} className="text-primary hover:underline">View All</Link>
+                <Link href={`/under/${price}`} className="text-primary hover:underline">View All</Link>
               </div>
               <div className="grid grid-cols-2 gap-2 justify-center">
                 {getUnderPrice(products, price, 4).map((product) => (

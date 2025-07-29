@@ -387,464 +387,466 @@ export default function BuyerSettingsPage() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="w-full">
-        <h1 className="text-2xl font-bold mb-6">Account Settings</h1>
+    <div className="min-h-screen bg-[#F8F5E4]">
+      <DashboardLayout>
+        <div className="w-full">
+          <h1 className="text-2xl font-bold mb-6">Account Settings</h1>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="w-full bg-background p-0 flex justify-start gap-1 border-b">
-            <TabsTrigger 
-              value="profile" 
-              className="data-[state=active]:border-primary data-[state=active]:border-b-2 rounded-none py-2 px-4 bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              <UserIcon className="h-4 w-4 mr-2" />
-              Profile
-            </TabsTrigger>
-            <TabsTrigger 
-              value="security" 
-              className="data-[state=active]:border-primary data-[state=active]:border-b-2 rounded-none py-2 px-4 bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              <LockKeyhole className="h-4 w-4 mr-2" />
-              Security
-            </TabsTrigger>
-            <TabsTrigger 
-              value="notifications" 
-              className="data-[state=active]:border-primary data-[state=active]:border-b-2 rounded-none py-2 px-4 bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              <Bell className="h-4 w-4 mr-2" />
-              Notifications
-            </TabsTrigger>
-          </TabsList>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+            <TabsList className="w-full bg-background p-0 flex justify-start gap-1 border-b">
+              <TabsTrigger 
+                value="profile" 
+                className="data-[state=active]:border-primary data-[state=active]:border-b-2 rounded-none py-2 px-4 bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              >
+                <UserIcon className="h-4 w-4 mr-2" />
+                Profile
+              </TabsTrigger>
+              <TabsTrigger 
+                value="security" 
+                className="data-[state=active]:border-primary data-[state=active]:border-b-2 rounded-none py-2 px-4 bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              >
+                <LockKeyhole className="h-4 w-4 mr-2" />
+                Security
+              </TabsTrigger>
+              <TabsTrigger 
+                value="notifications" 
+                className="data-[state=active]:border-primary data-[state=active]:border-b-2 rounded-none py-2 px-4 bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              >
+                <Bell className="h-4 w-4 mr-2" />
+                Notifications
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Profile Tab */}
-          <TabsContent value="profile">
-            <Card>
-              <CardHeader>
-                <CardTitle>Profile Information</CardTitle>
-                <CardDescription>
-                  Update your personal information and contact details
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Form {...profileForm}>
-                  <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
-                    {/* Profile Image Upload */}
-                    <div className="flex flex-col items-center mb-6">
-                      <div className="relative group">
-                        <div className="w-24 h-24 rounded-full border-2 border-primary overflow-hidden bg-gray-100 flex items-center justify-center">
-                          {user?.profileImage ? (
-                            <img 
-                              src={user.profileImage} 
-                              alt="Profile" 
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.src = `https://ui-avatars.com/api/?name=${user.name || user.username}&background=random&color=fff`;
-                              }}
+            {/* Profile Tab */}
+            <TabsContent value="profile">
+              <Card className="border shadow-sm bg-[#F8F5E4]">
+                <CardHeader>
+                  <CardTitle>Profile Information</CardTitle>
+                  <CardDescription>
+                    Update your personal information and contact details
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Form {...profileForm}>
+                    <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
+                      {/* Profile Image Upload */}
+                      <div className="flex flex-col items-center mb-6">
+                        <div className="relative group">
+                          <div className="w-24 h-24 rounded-full border-2 border-primary overflow-hidden bg-gray-100 flex items-center justify-center">
+                            {user?.profileImage ? (
+                              <img 
+                                src={user.profileImage} 
+                                alt="Profile" 
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.src = `https://ui-avatars.com/api/?name=${user.name || user.username}&background=random&color=fff`;
+                                }}
+                              />
+                            ) : (
+                              <UserCircle className="w-20 h-20 text-gray-300" />
+                            )}
+                          </div>
+                          <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                            <input
+                              id="profileImage"
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleProfileImageUpload}
                             />
-                          ) : (
-                            <UserCircle className="w-20 h-20 text-gray-300" />
-                          )}
-                        </div>
-                        <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                          <input
-                            id="profileImage"
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleProfileImageUpload}
-                          />
-                          <label 
-                            htmlFor="profileImage" 
-                            className="cursor-pointer text-white text-xs font-medium py-1 px-2"
-                          >
-                            Change
-                          </label>
-                          {user?.profileImage && (
-                            <button 
-                              onClick={handleProfileImageDelete}
-                              className="cursor-pointer text-white text-xs font-medium py-1 px-2 ml-1"
-                              type="button"
+                            <label 
+                              htmlFor="profileImage" 
+                              className="cursor-pointer text-white text-xs font-medium py-1 px-2"
                             >
-                              Remove
-                            </button>
-                          )}
+                              Change
+                            </label>
+                            {user?.profileImage && (
+                              <button 
+                                onClick={handleProfileImageDelete}
+                                className="cursor-pointer text-white text-xs font-medium py-1 px-2 ml-1"
+                                type="button"
+                              >
+                                Remove
+                              </button>
+                            )}
+                          </div>
                         </div>
+                        <p className="text-sm text-muted-foreground mt-2">Click to upload or change profile picture</p>
+                        {imageUploadPending && <Loader2 className="mt-2 h-5 w-5 animate-spin text-primary" />}
+                        {imageUploadError && <p className="text-sm text-red-500 mt-1">{imageUploadError}</p>}
                       </div>
-                      <p className="text-sm text-muted-foreground mt-2">Click to upload or change profile picture</p>
-                      {imageUploadPending && <Loader2 className="mt-2 h-5 w-5 animate-spin text-primary" />}
-                      {imageUploadError && <p className="text-sm text-red-500 mt-1">{imageUploadError}</p>}
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={profileForm.control}
-                        name="username"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Full Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Enter your full name" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={profileForm.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl>
-                              <Input placeholder="your.email@example.com" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={profileForm.control}
-                        name="phone"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Phone Number</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Enter your phone number" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <FormField
-                      control={profileForm.control}
-                      name="address"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Address</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter your address" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <div className="flex justify-end">
-                      <Button type="submit" disabled={profileMutation.isPending}>
-                        {profileMutation.isPending ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Saving...
-                          </>
-                        ) : (
-                          "Save Changes"
-                        )}
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Security Tab */}
-          <TabsContent value="security">
-            <Card>
-              <CardHeader>
-                <CardTitle>Security Settings</CardTitle>
-                <CardDescription>
-                  Manage your account security preferences
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="rounded-lg border p-6 space-y-4">
-                  <div className="flex items-start gap-4">
-                    <InfoIcon className="h-6 w-6 text-primary shrink-0 mt-1" />
-                    <div>
-                      <h3 className="text-base font-semibold">Secure Email Authentication</h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Your account is secured with email OTP authentication. For account security,
-                        we send a one-time verification code to your email whenever you sign in.
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="pt-2 border-t">
-                    <h4 className="text-sm font-medium mb-2">Email Address for Authentication</h4>
-                    <div className="flex items-center gap-3">
-                      <p className="text-sm font-semibold">{user?.email}</p>
-                      <Button variant="outline" size="sm" onClick={() => setActiveTab("profile")}>
-                        Change Email
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="rounded-lg border p-6">
-                  <h3 className="text-base font-semibold mb-2">Account Protection Tips</h3>
-                  <ul className="space-y-2 text-sm">
-                    <li className="flex items-start gap-2">
-                      <div className="h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 mt-0.5">✓</div>
-                      <span>Keep your email account secure with a strong password</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <div className="h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 mt-0.5">✓</div>
-                      <span>Ensure you can always access your verification email</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <div className="h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 mt-0.5">✓</div>
-                      <span>Never share verification codes with anyone</span>
-                    </li>
-                  </ul>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Notifications Tab */}
-          <TabsContent value="notifications">
-            <Card>
-              <CardHeader>
-                <CardTitle>Notification Preferences</CardTitle>
-                <CardDescription>
-                  Manage your notification preferences and communication settings
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-base font-medium mb-2">Communication Preference</h3>
-                    <RadioGroup 
-                      value={communicationPreference} 
-                      onValueChange={setCommunicationPreference}
-                      className="flex flex-col space-y-2"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="email" id="email" />
-                        <Label htmlFor="email">Email</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="sms" id="sms" />
-                        <Label htmlFor="sms">SMS</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="both" id="both" />
-                        <Label htmlFor="both">Both Email and SMS</Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-
-                  <Form {...notificationForm}>
-                    <form onSubmit={notificationForm.handleSubmit(onNotificationSubmit)} className="space-y-4">
-                      <h3 className="text-base font-medium mb-2">Notification Categories</h3>
-
+                      
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField
-                          control={notificationForm.control}
-                          name="orderUpdates"
+                          control={profileForm.control}
+                          name="username"
                           render={({ field }) => (
-                            <FormItem className="flex items-center justify-between space-y-0 rounded-lg border p-4">
-                              <div className="space-y-0.5">
-                                <FormLabel className="text-sm font-medium">
-                                  Order Updates
-                                </FormLabel>
-                                <FormDescription className="text-xs">
-                                  Notifications about your orders and shipping
-                                </FormDescription>
-                              </div>
+                            <FormItem>
+                              <FormLabel>Full Name</FormLabel>
                               <FormControl>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                />
+                                <Input placeholder="Enter your full name" {...field} />
                               </FormControl>
+                              <FormMessage />
                             </FormItem>
                           )}
                         />
-                        
                         <FormField
-                          control={notificationForm.control}
-                          name="promotions"
+                          control={profileForm.control}
+                          name="email"
                           render={({ field }) => (
-                            <FormItem className="flex items-center justify-between space-y-0 rounded-lg border p-4">
-                              <div className="space-y-0.5">
-                                <FormLabel className="text-sm font-medium">
-                                  Promotions & Offers
-                                </FormLabel>
-                                <FormDescription className="text-xs">
-                                  Deals, discounts, and promotional offers
-                                </FormDescription>
-                              </div>
+                            <FormItem>
+                              <FormLabel>Email</FormLabel>
                               <FormControl>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                />
+                                <Input placeholder="your.email@example.com" {...field} />
                               </FormControl>
+                              <FormMessage />
                             </FormItem>
                           )}
                         />
-                        
                         <FormField
-                          control={notificationForm.control}
-                          name="priceAlerts"
+                          control={profileForm.control}
+                          name="phone"
                           render={({ field }) => (
-                            <FormItem className="flex items-center justify-between space-y-0 rounded-lg border p-4">
-                              <div className="space-y-0.5">
-                                <FormLabel className="text-sm font-medium">
-                                  Price Alerts
-                                </FormLabel>
-                                <FormDescription className="text-xs">
-                                  Notifications when prices drop on your wishlist items
-                                </FormDescription>
-                              </div>
+                            <FormItem>
+                              <FormLabel>Phone Number</FormLabel>
                               <FormControl>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                />
+                                <Input placeholder="Enter your phone number" {...field} />
                               </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={notificationForm.control}
-                          name="stockAlerts"
-                          render={({ field }) => (
-                            <FormItem className="flex items-center justify-between space-y-0 rounded-lg border p-4">
-                              <div className="space-y-0.5">
-                                <FormLabel className="text-sm font-medium">
-                                  Stock Alerts
-                                </FormLabel>
-                                <FormDescription className="text-xs">
-                                  Notifications when out-of-stock items become available
-                                </FormDescription>
-                              </div>
-                              <FormControl>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={notificationForm.control}
-                          name="accountUpdates"
-                          render={({ field }) => (
-                            <FormItem className="flex items-center justify-between space-y-0 rounded-lg border p-4">
-                              <div className="space-y-0.5">
-                                <FormLabel className="text-sm font-medium">
-                                  Account Updates
-                                </FormLabel>
-                                <FormDescription className="text-xs">
-                                  Important information about your account
-                                </FormDescription>
-                              </div>
-                              <FormControl>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={notificationForm.control}
-                          name="deliveryUpdates"
-                          render={({ field }) => (
-                            <FormItem className="flex items-center justify-between space-y-0 rounded-lg border p-4">
-                              <div className="space-y-0.5">
-                                <FormLabel className="text-sm font-medium">
-                                  Delivery Updates
-                                </FormLabel>
-                                <FormDescription className="text-xs">
-                                  Realtime updates about your deliveries
-                                </FormDescription>
-                              </div>
-                              <FormControl>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={notificationForm.control}
-                          name="recommendationAlerts"
-                          render={({ field }) => (
-                            <FormItem className="flex items-center justify-between space-y-0 rounded-lg border p-4">
-                              <div className="space-y-0.5">
-                                <FormLabel className="text-sm font-medium">
-                                  Personalized Recommendations
-                                </FormLabel>
-                                <FormDescription className="text-xs">
-                                  Personalized product recommendations based on your interests
-                                </FormDescription>
-                              </div>
-                              <FormControl>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={notificationForm.control}
-                          name="paymentReminders"
-                          render={({ field }) => (
-                            <FormItem className="flex items-center justify-between space-y-0 rounded-lg border p-4">
-                              <div className="space-y-0.5">
-                                <FormLabel className="text-sm font-medium">
-                                  Payment Reminders
-                                </FormLabel>
-                                <FormDescription className="text-xs">
-                                  Reminders about pending payments and dues
-                                </FormDescription>
-                              </div>
-                              <FormControl>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                />
-                              </FormControl>
+                              <FormMessage />
                             </FormItem>
                           )}
                         />
                       </div>
-
-                      <div className="flex justify-end pt-4">
-                        <Button type="submit" disabled={notificationMutation.isPending}>
-                          {notificationMutation.isPending ? (
+                      <FormField
+                        control={profileForm.control}
+                        name="address"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Address</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Enter your address" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="flex justify-end">
+                        <Button type="submit" disabled={profileMutation.isPending}>
+                          {profileMutation.isPending ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               Saving...
                             </>
                           ) : (
-                            "Save Preferences"
+                            "Save Changes"
                           )}
                         </Button>
                       </div>
                     </form>
                   </Form>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </DashboardLayout>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Security Tab */}
+            <TabsContent value="security">
+              <Card className="border shadow-sm bg-[#F8F5E4]">
+                <CardHeader>
+                  <CardTitle>Security Settings</CardTitle>
+                  <CardDescription>
+                    Manage your account security preferences
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="rounded-lg border p-6 space-y-4">
+                    <div className="flex items-start gap-4">
+                      <InfoIcon className="h-6 w-6 text-primary shrink-0 mt-1" />
+                      <div>
+                        <h3 className="text-base font-semibold">Secure Email Authentication</h3>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Your account is secured with email OTP authentication. For account security,
+                          we send a one-time verification code to your email whenever you sign in.
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="pt-2 border-t">
+                      <h4 className="text-sm font-medium mb-2">Email Address for Authentication</h4>
+                      <div className="flex items-center gap-3">
+                        <p className="text-sm font-semibold">{user?.email}</p>
+                        <Button variant="outline" size="sm" onClick={() => setActiveTab("profile")}>
+                          Change Email
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="rounded-lg border p-6">
+                    <h3 className="text-base font-semibold mb-2">Account Protection Tips</h3>
+                    <ul className="space-y-2 text-sm">
+                      <li className="flex items-start gap-2">
+                        <div className="h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 mt-0.5">✓</div>
+                        <span>Keep your email account secure with a strong password</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <div className="h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 mt-0.5">✓</div>
+                        <span>Ensure you can always access your verification email</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <div className="h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 mt-0.5">✓</div>
+                        <span>Never share verification codes with anyone</span>
+                      </li>
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Notifications Tab */}
+            <TabsContent value="notifications">
+              <Card className="border shadow-sm bg-[#F8F5E4]">
+                <CardHeader>
+                  <CardTitle>Notification Preferences</CardTitle>
+                  <CardDescription>
+                    Manage your notification preferences and communication settings
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-base font-medium mb-2">Communication Preference</h3>
+                      <RadioGroup 
+                        value={communicationPreference} 
+                        onValueChange={setCommunicationPreference}
+                        className="flex flex-col space-y-2"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="email" id="email" />
+                          <Label htmlFor="email">Email</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="sms" id="sms" />
+                          <Label htmlFor="sms">SMS</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="both" id="both" />
+                          <Label htmlFor="both">Both Email and SMS</Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+
+                    <Form {...notificationForm}>
+                      <form onSubmit={notificationForm.handleSubmit(onNotificationSubmit)} className="space-y-4">
+                        <h3 className="text-base font-medium mb-2">Notification Categories</h3>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormField
+                            control={notificationForm.control}
+                            name="orderUpdates"
+                            render={({ field }) => (
+                              <FormItem className="flex items-center justify-between space-y-0 rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                  <FormLabel className="text-sm font-medium">
+                                    Order Updates
+                                  </FormLabel>
+                                  <FormDescription className="text-xs">
+                                    Notifications about your orders and shipping
+                                  </FormDescription>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={notificationForm.control}
+                            name="promotions"
+                            render={({ field }) => (
+                              <FormItem className="flex items-center justify-between space-y-0 rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                  <FormLabel className="text-sm font-medium">
+                                    Promotions & Offers
+                                  </FormLabel>
+                                  <FormDescription className="text-xs">
+                                    Deals, discounts, and promotional offers
+                                  </FormDescription>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={notificationForm.control}
+                            name="priceAlerts"
+                            render={({ field }) => (
+                              <FormItem className="flex items-center justify-between space-y-0 rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                  <FormLabel className="text-sm font-medium">
+                                    Price Alerts
+                                  </FormLabel>
+                                  <FormDescription className="text-xs">
+                                    Notifications when prices drop on your wishlist items
+                                  </FormDescription>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={notificationForm.control}
+                            name="stockAlerts"
+                            render={({ field }) => (
+                              <FormItem className="flex items-center justify-between space-y-0 rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                  <FormLabel className="text-sm font-medium">
+                                    Stock Alerts
+                                  </FormLabel>
+                                  <FormDescription className="text-xs">
+                                    Notifications when out-of-stock items become available
+                                  </FormDescription>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={notificationForm.control}
+                            name="accountUpdates"
+                            render={({ field }) => (
+                              <FormItem className="flex items-center justify-between space-y-0 rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                  <FormLabel className="text-sm font-medium">
+                                    Account Updates
+                                  </FormLabel>
+                                  <FormDescription className="text-xs">
+                                    Important information about your account
+                                  </FormDescription>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={notificationForm.control}
+                            name="deliveryUpdates"
+                            render={({ field }) => (
+                              <FormItem className="flex items-center justify-between space-y-0 rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                  <FormLabel className="text-sm font-medium">
+                                    Delivery Updates
+                                  </FormLabel>
+                                  <FormDescription className="text-xs">
+                                    Realtime updates about your deliveries
+                                  </FormDescription>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={notificationForm.control}
+                            name="recommendationAlerts"
+                            render={({ field }) => (
+                              <FormItem className="flex items-center justify-between space-y-0 rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                  <FormLabel className="text-sm font-medium">
+                                    Personalized Recommendations
+                                  </FormLabel>
+                                  <FormDescription className="text-xs">
+                                    Personalized product recommendations based on your interests
+                                  </FormDescription>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={notificationForm.control}
+                            name="paymentReminders"
+                            render={({ field }) => (
+                              <FormItem className="flex items-center justify-between space-y-0 rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                  <FormLabel className="text-sm font-medium">
+                                    Payment Reminders
+                                  </FormLabel>
+                                  <FormDescription className="text-xs">
+                                    Reminders about pending payments and dues
+                                  </FormDescription>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="flex justify-end pt-4">
+                          <Button type="submit" disabled={notificationMutation.isPending}>
+                            {notificationMutation.isPending ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Saving...
+                              </>
+                            ) : (
+                              "Save Preferences"
+                            )}
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </DashboardLayout>
+    </div>
   );
 }

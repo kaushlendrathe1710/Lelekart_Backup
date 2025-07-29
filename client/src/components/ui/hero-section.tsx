@@ -283,7 +283,7 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
   function formatINR(price: number | string) {
     const num = typeof price === 'string' ? parseFloat(price) : price;
     if (isNaN(num)) return price;
-    return num.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, minimumFractionDigits: 0 });
+    return Math.round(num).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, minimumFractionDigits: 0 });
   }
 
   return (

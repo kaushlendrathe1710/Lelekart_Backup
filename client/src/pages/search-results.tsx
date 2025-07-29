@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useDebounce } from "@/hooks/use-debounce";
+import axiosClient from '@/lib/axiosClient';
 
 // Define the search result type with relevance scoring info
 interface SearchResult {
@@ -46,9 +47,63 @@ export default function SearchResultsPage() {
   
   // Parse the URL query parameters
   useEffect(() => {
-    // First try from window.location.search for direct navigation (form submission with href change)
     let params = new URLSearchParams(window.location.search);
     let query = params.get('q') || "";
+    let priceRangeParam = params.get('priceRange') || "";
+
+    // If only priceRange is present (no q), fetch all products and filter client-side
+    if (priceRangeParam && !query) {
+      setLoading(true);
+      axiosClient.get('/api/products')
+        .then(res => {
+          let allProducts = res.data || [];
+          let filtered = allProducts;
+          switch (priceRangeParam) {
+            case 'under199':
+              filtered = allProducts.filter(p => p.price < 199);
+              break;
+            case 'under299':
+              filtered = allProducts.filter(p => p.price < 299);
+              break;
+            case 'under399':
+              filtered = allProducts.filter(p => p.price < 399);
+              break;
+            case 'under499':
+              filtered = allProducts.filter(p => p.price < 499);
+              break;
+            case 'under599':
+              filtered = allProducts.filter(p => p.price < 599);
+              break;
+            case 'under699':
+              filtered = allProducts.filter(p => p.price < 699);
+              break;
+            case 'under799':
+              filtered = allProducts.filter(p => p.price < 799);
+              break;
+            case 'under899':
+              filtered = allProducts.filter(p => p.price < 899);
+              break;
+            case 'under999':
+              filtered = allProducts.filter(p => p.price < 999);
+              break;
+            case 'under1099':
+              filtered = allProducts.filter(p => p.price < 1099);
+              break;
+            default:
+              filtered = allProducts;
+          }
+          setProducts(filtered);
+          setLoading(false);
+        })
+        .catch(() => {
+          setProducts([]);
+          setLoading(false);
+        });
+      setSearchQuery("");
+      setSearchTerms([]);
+      setPriceRange(priceRangeParam);
+      return;
+    }
     
     // If the query param wasn't found in window.location.search, check the URL path for /search/q=query format
     if (!query) {
@@ -60,8 +115,14 @@ export default function SearchResultsPage() {
     }
     
     console.log("Search results page - query param:", query);
+    console.log("Search results page - price range param:", priceRangeParam);
     console.log("Full URL:", window.location.href);
     console.log("Location path:", window.location.pathname);
+    
+    // Set price range from URL parameter
+    if (priceRangeParam) {
+      setPriceRange(priceRangeParam);
+    }
     
     if (query) {
       setSearchQuery(query);
@@ -143,6 +204,25 @@ export default function SearchResultsPage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery && searchQuery.trim()) {
+      // Save to recent searches
+      try {
+        const key = 'lelekart_recent_searches';
+        let history = [];
+        const stored = localStorage.getItem(key);
+        if (stored) {
+          history = JSON.parse(stored);
+        }
+        // Remove if already present
+        history = history.filter((item: string) => item.toLowerCase() !== searchQuery.trim().toLowerCase());
+        // Add to start
+        history.unshift(searchQuery.trim());
+        // Keep only latest 5
+        if (history.length > 5) history = history.slice(0, 5);
+        localStorage.setItem(key, JSON.stringify(history));
+      } catch (e) {
+        // Ignore errors
+      }
+      
       setLocation(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
       // Keep the full search query as a single term for better matching
       setSearchTerms([searchQuery.trim().toLowerCase()]);
@@ -188,6 +268,33 @@ export default function SearchResultsPage() {
           break;
         case "over5000":
           filteredProducts = filteredProducts.filter(p => p.price > 5000);
+          break;
+        case "under199":
+          filteredProducts = filteredProducts.filter(p => p.price < 199);
+          break;
+        case "under299":
+          filteredProducts = filteredProducts.filter(p => p.price < 299);
+          break;
+        case "under399":
+          filteredProducts = filteredProducts.filter(p => p.price < 399);
+          break;
+        case "under499":
+          filteredProducts = filteredProducts.filter(p => p.price < 499);
+          break;
+        case "under599":
+          filteredProducts = filteredProducts.filter(p => p.price < 599);
+          break;
+        case "under699":
+          filteredProducts = filteredProducts.filter(p => p.price < 699);
+          break;
+        case "under799":
+          filteredProducts = filteredProducts.filter(p => p.price < 799);
+          break;
+        case "under899":
+          filteredProducts = filteredProducts.filter(p => p.price < 899);
+          break;
+        case "under999":
+          filteredProducts = filteredProducts.filter(p => p.price < 999);
           break;
       }
     }
