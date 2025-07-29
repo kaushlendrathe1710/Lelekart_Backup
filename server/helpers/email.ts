@@ -1,19 +1,23 @@
-import nodemailer from 'nodemailer';
-import cryptoRandomString from 'crypto-random-string';
-import { db } from '../db';
-import { userOtps } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import nodemailer from "nodemailer";
+import cryptoRandomString from "crypto-random-string";
+import { db } from "../db";
+import { userOtps } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import dotenv from "dotenv";
 dotenv.config();
 // Environment variables for email configuration
-const EMAIL_HOST = process.env.EMAIL_HOST || '';
-const EMAIL_PORT = process.env.EMAIL_PORT ? parseInt(process.env.EMAIL_PORT) : 587;
-const EMAIL_USER = process.env.EMAIL_USER || '';
-const EMAIL_PASS = process.env.EMAIL_PASS || '';
+const EMAIL_HOST = process.env.EMAIL_HOST || "";
+const EMAIL_PORT = process.env.EMAIL_PORT
+  ? parseInt(process.env.EMAIL_PORT)
+  : 587;
+const EMAIL_USER = process.env.EMAIL_USER || "";
+const EMAIL_PASS = process.env.EMAIL_PASS || "";
 const EMAIL_FROM = process.env.EMAIL_FROM || "verification@lelekart.com";
 
 // Log email configuration (without exposing password)
-console.log(`Email configuration: HOST=${EMAIL_HOST}, PORT=${EMAIL_PORT}, USER=${EMAIL_USER}, FROM=${EMAIL_FROM}`);
+console.log(
+  `Email configuration: HOST=${EMAIL_HOST}, PORT=${EMAIL_PORT}, USER=${EMAIL_USER}, FROM=${EMAIL_FROM}`
+);
 
 // Create a transporter
 export const transporter = nodemailer.createTransport({
@@ -27,12 +31,12 @@ export const transporter = nodemailer.createTransport({
 });
 
 // Verify SMTP connection
-(async function() {
+(async function () {
   try {
     const verify = await transporter.verify();
-    console.log('SMTP connection verified:', verify);
+    console.log("SMTP connection verified:", verify);
   } catch (error) {
-    console.error('SMTP connection error:', error);
+    console.error("SMTP connection error:", error);
   }
 })();
 
@@ -40,7 +44,7 @@ export const transporter = nodemailer.createTransport({
 export async function generateOTP(): Promise<string> {
   return cryptoRandomString({
     length: 6,
-    type: 'numeric',
+    type: "numeric",
   });
 }
 
@@ -66,12 +70,14 @@ export async function saveOTP(email: string, otp: string): Promise<void> {
       .where(eq(userOtps.email, email));
   } else {
     // Insert a new OTP record
-    await db.insert(userOtps).values([{
-      email,
-      otp,
-      expiresAt,
-      verified: false,
-    }]);
+    await db.insert(userOtps).values([
+      {
+        email,
+        otp,
+        expiresAt,
+        verified: false,
+      },
+    ]);
   }
 }
 
@@ -104,15 +110,39 @@ export async function verifyOTP(email: string, otp: string): Promise<boolean> {
   return true;
 }
 
+// Send email function
+export async function sendEmail(options: {
+  to: string;
+  subject: string;
+  html: string;
+  text?: string;
+}): Promise<void> {
+  try {
+    const mailOptions = {
+      from: EMAIL_FROM,
+      to: options.to,
+      subject: options.subject,
+      html: options.html,
+      text: options.text || options.html.replace(/<[^>]*>/g, ""), // Strip HTML tags for text version
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Email sent successfully:", info.messageId);
+  } catch (error) {
+    console.error("Error sending email:", error);
+    throw new Error("Failed to send email");
+  }
+}
+
 // Send OTP email
 export async function sendOTPEmail(email: string, otp: string): Promise<void> {
   try {
     console.log(`Attempting to send OTP email to ${email}`);
-    
+
     const info = await transporter.sendMail({
       from: EMAIL_FROM,
       to: email,
-      subject: 'Your Lelekart Login OTP',
+      subject: "Your Lelekart Login OTP",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
           <div style="text-align: center; margin-bottom: 20px;">
@@ -130,11 +160,13 @@ export async function sendOTPEmail(email: string, otp: string): Promise<void> {
         </div>
       `,
     });
-    
+
     console.log(`Email sent successfully: ${info.messageId}`);
   } catch (error) {
-    console.error('Error sending email:', error);
-    throw new Error(`Failed to send OTP email: ${error instanceof Error ? error.message : String(error)}`);
+    console.error("Error sending email:", error);
+    throw new Error(
+      `Failed to send OTP email: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 }
 

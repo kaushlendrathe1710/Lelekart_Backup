@@ -56,6 +56,7 @@ import {
 import QRCode from "qrcode";
 import { sendEmail, EMAIL_TEMPLATES } from "./services/email-service";
 import affiliateMarketingRoutes from "./routes/affiliate-marketing-routes";
+import becomeSellerRoutes from "./routes/become-seller-routes";
 
 // Helper function to apply product display settings
 function applyProductDisplaySettings(products: any[], settings: any) {
@@ -384,6 +385,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register return management routes
   app.use("/api/returns", returnRoutes);
+
+  // Register become seller routes
+  app.use("/api", becomeSellerRoutes);
 
   // --- FIX: Proxy /api/orders/:orderId/mark-for-return to returnRoutes ---
   app.post("/api/orders/:orderId/mark-for-return", (req, res, next) => {
@@ -7377,14 +7381,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       fieldSize: 10 * 1024 * 1024, // 10 MB for non-file fields
     },
     fileFilter: (req, file, cb) => {
-      // Accept images only
-      if (file.mimetype.startsWith("image/")) {
+      // Accept images and PDFs
+      if (
+        file.mimetype.startsWith("image/") ||
+        file.mimetype === "application/pdf"
+      ) {
         cb(null, true);
       } else {
         cb(null, false);
         return cb(
           new Error(
-            `Unsupported file type: ${file.mimetype}. Only images are allowed.`
+            `Unsupported file type: ${file.mimetype}. Only images and PDFs are allowed.`
           )
         );
       }

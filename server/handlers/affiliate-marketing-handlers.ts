@@ -5,6 +5,7 @@ import {
 } from "../../shared/schema";
 import { eq, ilike } from "drizzle-orm";
 import { Request, Response } from "express";
+import { orders } from "../../shared/schema";
 
 // discountPercentage is now required and handled by the schema
 
@@ -106,5 +107,47 @@ export async function incrementAffiliateUsage(req: Request, res: Response) {
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: "Failed to increment usage" });
+  }
+}
+
+// Handler: Get affiliate dashboard info for the logged-in user
+export async function getAffiliateDashboard(req: Request, res: Response) {
+  try {
+    if (!req.user || !req.user.email) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    // Find affiliate by email
+    const [affiliate] = await db
+      .select()
+      .from(affiliateMarketing)
+      .where(eq(affiliateMarketing.email, req.user.email));
+    if (!affiliate) {
+      return res.status(403).json({ error: "Not an affiliate" });
+    }
+    // Find all orders where couponCode matches affiliate code
+    const affiliateOrders = await db
+      .select({
+        id: orders.id,
+        date: orders.date,
+        userId: orders.userId,
+        status: orders.status,
+        total: orders.total,
+        couponCode: orders.couponCode,
+      })
+      .from(orders)
+      .where(eq(orders.couponCode, affiliate.code));
+    res.json({
+      affiliate: {
+        id: affiliate.id,
+        name: affiliate.name,
+        email: affiliate.email,
+        code: affiliate.code,
+        usageCount: affiliate.usageCount,
+        discountPercentage: affiliate.discountPercentage,
+      },
+      orders: affiliateOrders,
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch affiliate dashboard info" });
   }
 }

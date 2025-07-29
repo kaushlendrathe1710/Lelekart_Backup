@@ -5,6 +5,7 @@ import {
   updateAffiliate,
   deleteAffiliate,
   incrementAffiliateUsage,
+  getAffiliateDashboard,
 } from "../handlers/affiliate-marketing-handlers";
 
 const router = Router();
@@ -17,5 +18,6 @@ router.post(
   "/api/admin/affiliates/:id/increment-usage",
   incrementAffiliateUsage
 );
+router.get("/api/affiliate/dashboard", getAffiliateDashboard);
 
 export default router;

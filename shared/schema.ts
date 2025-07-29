@@ -2306,6 +2306,7 @@ export const affiliateMarketing = pgTable("affiliate_marketing", {
   name: text("name").notNull(),
   platform: text("platform").notNull(),
   code: text("code").notNull().unique(),
+  email: text("email").notNull(),
   usageCount: integer("usage_count").notNull().default(0),
   discountPercentage: integer("discount_percentage").notNull().default(0),
 });
@@ -2316,6 +2317,7 @@ export const insertAffiliateMarketingSchema = createInsertSchema(
   name: true,
   platform: true,
   code: true,
+  email: true,
   discountPercentage: true,
 });
 
