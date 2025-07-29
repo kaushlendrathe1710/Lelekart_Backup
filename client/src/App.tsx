@@ -44,6 +44,7 @@ import ShippingPage from "./pages/static/shipping";
 import ReturnsPage from "./pages/static/returns";
 import PrivacyPolicyPage from "./pages/static/privacy";
 import PaymentsPage from "./pages/static/payments";
+import BecomeASellerPage from "./pages/static/become-a-seller";
 import { Layout } from "./components/layout/layout";
 import { SimpleHeader } from "./components/layout/simple-header";
 import { Footer } from "./components/layout/footer";
@@ -576,6 +577,14 @@ function App() {
                         {() => (
                           <Layout>
                             <PaymentsPage />
+                          </Layout>
+                        )}
+                      </Route>
+
+                      <Route path="/become-a-seller">
+                        {() => (
+                          <Layout>
+                            <BecomeASellerPage />
                           </Layout>
                         )}
                       </Route>

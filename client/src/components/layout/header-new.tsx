@@ -233,7 +233,7 @@ export function Header() {
               {user?.role !== "buyer" && (
                 <li>
                   <Link
-                    href="/seller/dashboard"
+                    href="/become-a-seller"
                     className="flex items-center text-white py-1"
                   >
                     <Store className="mr-2 h-5 w-5" />
