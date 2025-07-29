@@ -13,9 +13,12 @@ import { useAuth } from '../../hooks/use-auth';
 interface SimpleSearchProps {
   className?: string;
   variant?: 'default' | 'admin';
+  inputClassName?: string;
+  buttonClassName?: string;
+  iconClassName?: string;
 }
 
-export function SimpleSearch({ className, variant = 'default' }: SimpleSearchProps = {}) {
+export function SimpleSearch({ className, variant = 'default', inputClassName = '', buttonClassName = '', iconClassName = '' }: SimpleSearchProps = {}) {
   const [query, setQuery] = useState('');
   const [isAiSearching, setIsAiSearching] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -215,7 +218,7 @@ export function SimpleSearch({ className, variant = 'default' }: SimpleSearchPro
   
   const searchButtonClasses = variant === 'admin'
     ? "ml-2 bg-[#2874f0] text-white hover:bg-[#2874f0]/90 font-medium rounded-md px-4 py-1.5"
-    : "ml-3 bg-[#2874f0] text-white hover:bg-[#2874f0]/90 font-medium rounded-md";
+    : "ml-2 bg-[#2874f0] text-white hover:bg-[#2874f0]/90 font-medium rounded-md px-3 py-1 text-sm";
 
   const handleSuggestionSelect = (suggestion: any) => {
     console.log('Search suggestion selected:', suggestion);
@@ -250,7 +253,7 @@ export function SimpleSearch({ className, variant = 'default' }: SimpleSearchPro
         <input
           ref={searchInputRef}
           type="text"
-          className="w-full py-2 px-4 rounded-md bg-gradient-to-r from-[#f3f4f6] to-[#e5e7eb] text-black border border-[#b6c3a5] shadow focus:outline-none focus:ring-2 focus:ring-[#b6c3a5] placeholder-black/70"
+          className={cn("w-full min-w-[320px] md:min-w-[400px] lg:min-w-[500px] py-2 px-4 rounded-md bg-gradient-to-r from-[#f3f4f6] to-[#e5e7eb] text-black border border-[#b6c3a5] shadow focus:outline-none focus:ring-2 focus:ring-[#b6c3a5] placeholder-black/70", inputClassName)}
           placeholder="Search for products, brands and more"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -260,29 +263,28 @@ export function SimpleSearch({ className, variant = 'default' }: SimpleSearchPro
         {query && (
           <button 
             type="button"
-            className={clearButtonClasses}
+            className={cn(clearButtonClasses, buttonClassName)}
             onClick={clearSearch}
             disabled={isAiSearching}
+            title="Clear search"
           >
-            <X className="h-5 w-5 text-[#b6c3a5]" />
+            <X className={cn("h-5 w-5 text-[#b6c3a5]", iconClassName)} />
           </button>
         )}
         
         {/* Voice search button */}
         <VoiceSearchDialog 
-          className="ml-2 bg-[#b6c3a5] hover:bg-[#a7bfa7] rounded-full p-2 shadow-md transition-colors"
+          className={cn("ml-2 bg-[#b6c3a5] hover:bg-[#a7bfa7] rounded-full p-2 shadow-md transition-colors", voiceButtonClasses)}
           buttonVariant="ghost"
           buttonSize="icon"
           buttonText=""
           showIcon={true}
           onSearch={handleVoiceSearch}
-        >
-          <Mic className="h-5 w-5 text-white" />
-        </VoiceSearchDialog>
+        />
         
         <Button 
           type="submit" 
-          className={searchButtonClasses}
+          className={cn(searchButtonClasses, buttonClassName)}
           size="sm"
           disabled={isAiSearching}
         >
@@ -293,7 +295,7 @@ export function SimpleSearch({ className, variant = 'default' }: SimpleSearchPro
       {/* Search suggestions dropdown */}
       {showSuggestions && query && (
         <div className="absolute left-0 right-0 mt-1 bg-gradient-to-r from-[#f3f4f6] to-[#e5e7eb] text-black border border-[#b6c3a5] rounded-md shadow-lg z-20">
-          <SearchSuggestions query={query} onSelect={handleSuggestionSelect} />
+          <SearchSuggestions query={query} onSelect={handleSuggestionSelect} onClose={() => setShowSuggestions(false)} />
         </div>
       )}
       

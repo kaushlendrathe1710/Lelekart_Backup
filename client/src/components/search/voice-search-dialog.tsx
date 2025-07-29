@@ -232,7 +232,7 @@ export function VoiceSearchDialog({
           className={className}
           aria-label="Search with voice"
         >
-          {showIcon && <Mic className="h-4 w-4" />}
+          {showIcon && <Mic className="h-4 w-4 text-black" />}
           {buttonText && <span className="ml-2">{buttonText}</span>}
         </Button>
       </DialogTrigger>
@@ -262,7 +262,7 @@ export function VoiceSearchDialog({
               {isListening ? (
                 <StopCircle className="h-12 w-12 text-red-500" />
               ) : (
-                <Mic className="h-12 w-12 text-gray-500" />
+                <Mic className="h-12 w-12 text-black" />
               )}
             </div>
 

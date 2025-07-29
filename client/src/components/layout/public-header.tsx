@@ -59,7 +59,7 @@ export function PublicHeader() {
           <div className="flex items-center space-x-4">
             <Button
               variant="ghost"
-              className="text-white hover:text-white hover:bg-primary-foreground/10"
+              className="text-white hover:text-white hover:bg-primary-foreground/10 px-8 py-4 text-2xl font-bold rounded-lg shadow-lg border-2 border-white"
               onClick={() => setLocation("/auth")}
             >
               Login
@@ -67,13 +67,13 @@ export function PublicHeader() {
 
             <Button
               variant="outline"
-              className="text-white border-white hover:bg-white hover:text-primary"
+              className="text-white border-white hover:bg-white hover:text-primary px-8 py-4 text-2xl font-bold rounded-lg shadow-lg border-4 border-white"
               onClick={handleCartClick}
               title="View Cart"
             >
-              <ShoppingCart className="h-10 w-10" /> <span className="text-2xl font-bold ml-2">Cart</span>
+              <ShoppingCart className="h-14 w-14" /> <span className="text-3xl font-extrabold ml-4">Cart</span>
               {cartItemCount > 0 && (
-                <span className="ml-1 bg-white text-primary rounded-full h-5 w-5 flex items-center justify-center text-xs">
+                <span className="ml-2 bg-white text-primary rounded-full h-7 w-7 flex items-center justify-center text-lg font-bold">
                   {cartItemCount}
                 </span>
               )}

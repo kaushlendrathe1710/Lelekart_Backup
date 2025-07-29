@@ -39,7 +39,22 @@ const allCategories = [
   "Beauty",
   "Toys",
   "Grocery",
+  "Health and Wellness",
 ] as const;
+
+// Category image mapping (add Health and Wellness)
+const categoryImageMap: Record<string, string> = {
+  Electronics: "/images/categories/electronics.svg",
+  Fashion: "/images/categories/fashion.svg",
+  Home: "/images/categories/home.svg",
+  Appliances: "/images/categories/appliances.svg",
+  Mobiles: "/images/categories/mobiles.svg",
+  Beauty: "/images/categories/beauty.svg",
+  Toys: "/images/categories/toys.svg",
+  Grocery: "/images/categories/grocery.svg",
+  "Health and Wellness":
+    "https://chunumunu.s3.ap-northeast-1.amazonaws.com/2025/02/Picsart_24-01-07_20-56-35-962-scaled.jpg",
+};
 
 interface ProductData {
   products: Product[];
@@ -581,13 +596,37 @@ export default function HomePage() {
       {!category && (
         <div className="container mx-auto px-4 py-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {allCategories.map((categoryName) => (
-              <div key={categoryName} className="bg-transparent rounded-2xl p-0 flex flex-col justify-between">
-                <div className="bg-[#F8F5E4] rounded-2xl p-4 border border-[#e0c9a6] shadow-md">
-                  <CategorySection category={categoryName} index={0} />
+            {/* Sort categories by product count and display as per requirements */}
+            {(() => {
+              // Get product counts for each category
+              const categoryCounts = allCategories.map((categoryName) => {
+                const count = products.filter(
+                  (p: Product) =>
+                    p.category?.toLowerCase() === categoryName.toLowerCase()
+                ).length;
+                return { name: categoryName, count };
+              });
+              // Filter out categories with 0 products
+              const nonEmpty = categoryCounts.filter((c) => c.count > 0);
+              // Sort: 4+ first, then 3, then 2 (at end), then 1 (at end)
+              const sorted = [
+                ...nonEmpty.filter((c) => c.count >= 4),
+                ...nonEmpty.filter((c) => c.count === 3),
+                ...nonEmpty.filter((c) => c.count === 2),
+                ...nonEmpty.filter((c) => c.count === 1),
+              ];
+              return sorted.map((catGroup, idx) => (
+                <div key={catGroup.name} className="bg-transparent rounded-2xl p-0 flex flex-col justify-between">
+                  <div className="bg-[#F8F5E4] rounded-2xl p-4 border border-[#e0c9a6] shadow-md">
+                    <CategorySection
+                      category={catGroup.name}
+                      index={idx}
+                      imageUrl={categoryImageMap[catGroup.name]}
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
+              ));
+            })()}
           </div>
         </div>
       )}
@@ -787,18 +826,32 @@ export default function HomePage() {
 function CategorySection({
   category,
   index,
+  imageUrl,
 }: {
   category: string;
   index: number;
+  imageUrl?: string;
 }) {
   const categoryQuery = category.toLowerCase() === 'fashion' ? 'Fashion' : category;
   const { data: categoryData, isLoading } = useCategoryProducts(categoryQuery, 4);
   const products = (categoryData?.products || []).slice(0, 4);
+  // Preload the category image if provided
+  useEffect(() => {
+    if (imageUrl) {
+      const img = new window.Image();
+      img.src = imageUrl;
+    }
+  }, [imageUrl]);
   if (products.length === 0) return null;
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-medium">Top {category}</h2>
+        <div className="flex items-center gap-2">
+          {imageUrl && (
+            <img src={imageUrl} alt={category} className="h-8 w-8 rounded-full object-cover" />
+          )}
+          <h2 className="text-xl font-medium">Top {category}</h2>
+        </div>
         <Link
           href={`/category/${category.toLowerCase()}`}
           className="text-primary hover:underline"

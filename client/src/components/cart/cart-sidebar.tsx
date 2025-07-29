@@ -233,7 +233,7 @@ export function CartSidebar() {
               <span>{formatPrice(total)}</span>
             </div>
             <Button 
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-sm font-medium"
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white py-6 text-2xl rounded-lg font-extrabold shadow-lg mt-4 mb-2 border-4 border-orange-300"
               onClick={handleCheckout}
               disabled={checkoutMutation.isPending}
             >

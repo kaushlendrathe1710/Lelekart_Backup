@@ -76,7 +76,13 @@ export function Footer() {
   // Group footer content by section
   const groupedContent = footerContents.reduce(
     (acc: Record<string, FooterContent[]>, item: FooterContent) => {
-      if (item.isActive) {
+      if (
+        item.isActive &&
+        item.section !== 'corporate_info' &&
+        item.section !== 'press' &&
+        item.title.toLowerCase() !== 'press' &&
+        item.title.toLowerCase() !== 'corporate information'
+      ) {
         if (!acc[item.section]) {
           acc[item.section] = [];
         }
@@ -360,8 +366,6 @@ function DefaultFooter() {
       { name: "About Us", url: "/about-us" },
       { name: "Careers", url: "/careers" },
       { name: "Lelekart Stories", url: "/stories" },
-      { name: "Press", url: "/press" },
-      { name: "Corporate Information", url: "/corporate" },
     ],
     help: [
       { name: "Payments", url: "/payments" },
@@ -448,7 +452,7 @@ function DefaultFooter() {
               About
             </h3>
             <ul className="space-y-2 text-sm">
-              {defaultLinks.about.map((link, index) => (
+              {defaultLinks.about.filter(link => link.name !== 'Press' && link.name !== 'Corporate Information').map((link, index) => (
                 <li key={index}>
                   <Link
                     href={formatPath(link.url)}

@@ -49,6 +49,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ImpersonationBanner } from "@/components/ui/impersonation-banner";
+import { Logo } from "@/components/layout/logo";
 
 interface SellerDashboardLayoutProps {
   children: ReactNode;
@@ -145,16 +146,12 @@ export function SellerDashboardLayout({
           <ImpersonationBanner />
 
           {/* Top Navigation Bar - fixed height of 56px (h-14) */}
-          <header className="fixed top-0 left-0 right-0 z-50 h-14 border-b bg-orange-400 px-4 shadow-md">
+          <header className="fixed top-0 left-0 right-0 z-50 h-14 border-b bg-[#F8F5E4] px-4 shadow-md">
             <div className="flex h-full items-center justify-between">
               <div className="flex items-center gap-4">
                 <SidebarTrigger className="text-white hover:bg-primary-foreground/10 hover:text-white" />
                 <Link href="/" className="flex items-center">
-                  <img
-                    src="https://drive.google.com/thumbnail?id=1RNjADzUc3bRdEpavAv5lxcN1P9VLG-PC&sz=w1000"
-                    alt="Lelekart Logo"
-                    className="h-10 w-auto"
-                  />
+                  <Logo />
                 </Link>
               </div>
               <div className="flex items-center gap-3">

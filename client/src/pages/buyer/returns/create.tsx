@@ -57,7 +57,7 @@ const returnRequestSchema = z.object({
   }).max(500, {
     message: "Description cannot be more than 500 characters"
   }),
-  mediaUrls: z.array(z.string()).optional(),
+  mediaUrls: z.array(z.string()).min(1, { message: 'Please upload at least one image.' }),
 });
 
 // Type for the form data
@@ -317,6 +317,17 @@ export default function CreateReturnRequest() {
     );
   }
 
+  // Fallback reasons if API returns nothing
+  const fallbackReasons = [
+    { id: 1, text: 'Wrong item received' },
+    { id: 2, text: 'Item damaged' },
+    { id: 3, text: 'Not as described' },
+    { id: 4, text: 'Other' },
+  ];
+  const filteredReturnReasons = Array.isArray(returnReasons) && returnReasons.length > 0
+    ? returnReasons.filter(r => r && r.id && r.text)
+    : fallbackReasons;
+
   return (
     <div className="container max-w-3xl mx-auto py-6 px-4">
       <Breadcrumb className="mb-6">
@@ -356,42 +367,6 @@ export default function CreateReturnRequest() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* Select Item from Order */}
-              <FormField
-                control={form.control}
-                name="orderItemId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Select Item</FormLabel>
-                    <Select
-                      onValueChange={(value) => {
-                        const item = returnableItems.find(item => item.id === parseInt(value));
-                        setSelectedOrderItem(item);
-                        field.onChange(parseInt(value));
-                      }}
-                      defaultValue={field.value.toString()}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select an item from your order" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {returnableItems.map((item) => (
-                          <SelectItem key={item.id} value={item.id.toString()}>
-                            {item.product.name} ({item.quantity} x ₹{item.price})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      Only delivered items within the return window are listed
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
               {/* Request Type */}
               <FormField
                 control={form.control}
@@ -447,123 +422,122 @@ export default function CreateReturnRequest() {
                 </Alert>
               )}
 
-              {/* Return Reason - only show if eligible */}
-              {eligibilityChecked && eligibility?.eligible && (
-                <FormField
-                  control={form.control}
-                  name="reasonId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Reason</FormLabel>
-                      <Select
-                        onValueChange={(value) => field.onChange(parseInt(value))}
-                        defaultValue={field.value === 0 ? undefined : field.value.toString()}
-                        disabled={isLoadingReasons}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={isLoadingReasons ? "Loading reasons..." : "Select a reason"} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {returnReasons && returnReasons.map((reason) => (
+              {/* Return Reason - always show */}
+              <FormField
+                control={form.control}
+                name="reasonId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Reason</FormLabel>
+                    <Select
+                      onValueChange={(value) => field.onChange(parseInt(value))}
+                      defaultValue={field.value === 0 ? undefined : field.value.toString()}
+                      disabled={isLoadingReasons || filteredReturnReasons.length === 0}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={isLoadingReasons ? "Loading reasons..." : filteredReturnReasons.length === 0 ? "No reasons available" : "Select a reason"} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {filteredReturnReasons.length === 0 ? (
+                          <SelectItem value="" disabled>No reasons available</SelectItem>
+                        ) : (
+                          filteredReturnReasons.map((reason) => (
                             <SelectItem key={reason.id} value={reason.id.toString()}>
                               {reason.text}
                             </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
-                        Please select the reason that best describes your issue
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Please select the reason that best describes your issue
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-              {/* Description */}
-              {eligibilityChecked && eligibility?.eligible && (
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Please describe your issue in detail" 
-                          className="resize-none min-h-32" 
-                          {...field} 
+              {/* Description - always show */}
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Please describe your issue in detail" 
+                        className="resize-none min-h-32" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Provide as much detail as possible about the issue with your order
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Image Upload - always show */}
+              <div className="space-y-3">
+                <FormLabel>Upload Images (Optional)</FormLabel>
+                <div className="border border-input rounded-md p-4">
+                  <div className="flex flex-wrap gap-4 mb-4">
+                    {uploadedImages.map((image, index) => (
+                      <div 
+                        key={index} 
+                        className="relative rounded-md overflow-hidden h-24 w-24 border"
+                      >
+                        <img 
+                          src={image} 
+                          alt={`Uploaded ${index + 1}`} 
+                          className="h-full w-full object-cover"
                         />
-                      </FormControl>
-                      <FormDescription>
-                        Provide as much detail as possible about the issue with your order
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              {/* Image Upload */}
-              {eligibilityChecked && eligibility?.eligible && (
-                <div className="space-y-3">
-                  <FormLabel>Upload Images (Optional)</FormLabel>
-                  <div className="border border-input rounded-md p-4">
-                    <div className="flex flex-wrap gap-4 mb-4">
-                      {uploadedImages.map((image, index) => (
-                        <div 
-                          key={index} 
-                          className="relative rounded-md overflow-hidden h-24 w-24 border"
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(index)}
+                          className="absolute top-1 right-1 bg-black bg-opacity-60 rounded-full p-1 text-white"
+                          title="Remove image"
                         >
-                          <img 
-                            src={image} 
-                            alt={`Uploaded ${index + 1}`} 
-                            className="h-full w-full object-cover"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveImage(index)}
-                            className="absolute top-1 right-1 bg-black bg-opacity-60 rounded-full p-1 text-white"
-                          >
-                            <XIcon className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ))}
+                          <XIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
 
-                      {uploadedImages.length < 5 && (
-                        <div className="h-24 w-24 flex flex-col items-center justify-center border border-dashed rounded-md p-2 text-gray-500">
-                          <label 
-                            htmlFor="image-upload" 
-                            className="flex flex-col items-center justify-center w-full h-full cursor-pointer"
-                          >
-                            {isUploading ? (
-                              <Loader2Icon className="h-6 w-6 animate-spin mb-1" />
-                            ) : (
-                              <UploadIcon className="h-6 w-6 mb-1" />
-                            )}
-                            <span className="text-xs text-center">
-                              {isUploading ? "Uploading..." : "Add Image"}
-                            </span>
-                            <input
-                              id="image-upload"
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={handleImageUpload}
-                              disabled={isUploading}
-                            />
-                          </label>
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      Upload up to 5 images showing the issue with your order. Supported formats: JPEG, PNG, WebP (max 5MB each)
-                    </p>
+                    {uploadedImages.length < 5 && (
+                      <div className="h-24 w-24 flex flex-col items-center justify-center border border-dashed rounded-md p-2 text-gray-500">
+                        <label 
+                          htmlFor="image-upload" 
+                          className="flex flex-col items-center justify-center w-full h-full cursor-pointer"
+                        >
+                          {isUploading ? (
+                            <Loader2Icon className="h-6 w-6 animate-spin mb-1" />
+                          ) : (
+                            <UploadIcon className="h-6 w-6 mb-1" />
+                          )}
+                          <span className="text-xs text-center">
+                            {isUploading ? "Uploading..." : "Add Image"}
+                          </span>
+                          <input
+                            id="image-upload"
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleImageUpload}
+                            disabled={isUploading}
+                          />
+                        </label>
+                      </div>
+                    )}
                   </div>
+                  <p className="text-xs text-gray-500">
+                    Upload up to 5 images showing the issue with your order. Supported formats: JPEG, PNG, WebP (max 5MB each)
+                  </p>
                 </div>
-              )}
+              </div>
 
               {/* Submit Button - only show if eligible */}
               {eligibilityChecked && eligibility?.eligible && (

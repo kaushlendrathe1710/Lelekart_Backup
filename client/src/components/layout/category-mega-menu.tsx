@@ -65,39 +65,40 @@ export function CategoryMegaMenu() {
     return subcategories.some(subcategory => subcategory.categoryId === categoryId && subcategory.active);
   };
   
-  // Fetch one product per category for images
-  const { data: categoryImagesData } = useQuery({
-    queryKey: ["category-menu-images"],
-    queryFn: async () => {
-      // Fetch all categories
-      const categoriesRes = await fetch("/api/categories");
-      const categories = await categoriesRes.json();
-      // For each category, fetch one product
-      const imageMap: Record<string, string> = {};
-      await Promise.all(
-        categories.map(async (cat: any) => {
-          const res = await fetch(`/api/products?category=${encodeURIComponent(cat.name)}&limit=1&approved=true&status=approved`);
-          const data = await res.json();
-          const product = data.products?.[0];
-          let imageUrl = "";
-          if (product?.imageUrl) imageUrl = product.imageUrl;
-          else if (product?.images) {
-            try {
-              const imgs = JSON.parse(product.images);
-              if (Array.isArray(imgs) && imgs[0]) imageUrl = imgs[0];
-            } catch {}
-          }
-          if (!imageUrl) imageUrl = "/attached_assets/image_1744428587586.png";
-          imageMap[cat.name] = imageUrl;
-        })
-      );
-      return imageMap;
-    },
-    staleTime: 10 * 60 * 1000,
-  });
-  
-  // Add a loading state for category images
-  const imagesLoading = !categoryImagesData;
+  // Add this mapping at the top, after imports
+  const CATEGORY_IMAGE_MAP: Record<string, string> = {
+    'Industrial & Scientific': 'https://www.amazon.in/Industrial-Scientific/b?ie=UTF8&node=5866078031',
+    'Fashion': 'https://www.myntra.com/fashion-jeans',
+    'Home': 'https://shriandsam.com/cdn/shop/articles/Picture11.jpg?v=1659353137&width=2048',
+    'Appliances': 'https://numalis.com/wp-content/uploads/2023/10/Maxx-Studio-Shutterstock.jpg',
+    'Grocery': 'https://hips.hearstapps.com/hmg-prod/images/healthy-groceries-bag-66eaef810acf6.jpg?crop=0.7501082719792118xw:1xh;center,top&resize=1200:*',
+    'Beauty': 'https://beautybybie.com/cdn/shop/files/anti_pigmentation_facial_kit.jpg?v=1749274359',
+    'Toys': 'https://images.indianexpress.com/2019/09/toys.jpg',
+    'Electronics': 'https://www.retailmba.com/wp-content/uploads/2023/11/wholesale-electronics.jpeg',
+    'Mobiles': 'https://www.top10mobileshop.com/images/top10mobiles.com/thumbnail/product/2024/08/795330468202408120724.jpg',
+  };
+
+  // Call useCategoryProducts for each special category
+  const { data: homeProducts } = useCategoryProducts('Home', 1);
+  const { data: industrialProducts } = useCategoryProducts('Industrial & Scientific', 1);
+  const { data: fashionProducts } = useCategoryProducts('Fashion', 1);
+  const { data: mobilesProducts } = useCategoryProducts('Mobiles', 10);
+
+  // Helper to get category image
+  function getCategoryImage(categoryName: string) {
+    switch (categoryName) {
+      case 'Home':
+        return homeProducts?.products?.[0]?.imageUrl || CATEGORY_IMAGE_MAP['Home'] || "/attached_assets/image_1744428587586.png";
+      case 'Industrial & Scientific':
+        return industrialProducts?.products?.[0]?.imageUrl || CATEGORY_IMAGE_MAP['Industrial & Scientific'] || "/attached_assets/image_1744428587586.png";
+      case 'Fashion':
+        return fashionProducts?.products?.[0]?.imageUrl || CATEGORY_IMAGE_MAP['Fashion'] || "/attached_assets/image_1744428587586.png";
+      case 'Mobiles':
+        return mobilesProducts?.products?.[0]?.imageUrl || CATEGORY_IMAGE_MAP['Mobiles'] || "/attached_assets/image_1744428587586.png";
+      default:
+        return CATEGORY_IMAGE_MAP[categoryName] || "/attached_assets/image_1744428587586.png";
+    }
+  }
 
   // Loading state
   if (categoriesLoading || subcategoriesLoading) {
@@ -117,13 +118,19 @@ export function CategoryMegaMenu() {
     return null;
   }
   
+  // Filter out Healthcare & Wellness and Health and Wellness from categories
+  const filteredCategories = categories.filter(category =>
+    category.name !== 'Healthcare & Wellness' &&
+    category.name !== 'Health and Wellness'
+  );
+
   // If there are categories without subcategories, they should be shown as direct links
-  const categoriesWithoutSubcategories = categories.filter(category => 
+  const categoriesWithoutSubcategories = filteredCategories.filter(category => 
     category.active && !hasSubcategories(category.id)
   );
-  
+
   // Categories with subcategories should be dropdown menus
-  const categoriesWithSubcategories = categories.filter(category => 
+  const categoriesWithSubcategories = filteredCategories.filter(category => 
     category.active && hasSubcategories(category.id)
   );
   
@@ -133,21 +140,21 @@ export function CategoryMegaMenu() {
         <div className="flex justify-center">
           <div className="flex flex-nowrap gap-2 py-2 overflow-x-auto scrollbar-hide">
             {/* Categories with subcategories - shown as dropdowns */}
-            {categoriesWithSubcategories.map(category => (
+            {categoriesWithSubcategories.map(category => {
+              let imageSrc = getCategoryImage(category.name);
+              console.log('Rendering category:', category.name);
+              return (
               <DropdownMenu key={category.id}>
                 <DropdownMenuTrigger className="px-4 py-2 text-base font-bold bg-[#F8F5E4] text-black hover:bg-[#EADDCB] rounded-lg shadow-sm flex flex-col items-center transition-colors duration-150 border border-[#EADDCB] min-w-[120px]">
                   {/* Category image above name with skeleton loader */}
                   <div className="flex flex-col items-center mb-1">
-                    {imagesLoading ? (
-                      <Skeleton className="w-12 h-12 rounded-full mb-1" />
-                    ) : (
-                      <img
-                        src={categoryImagesData?.[category.name] || "/attached_assets/image_1744428587586.png"}
-                        alt={category.name}
-                        className="w-12 h-12 object-cover rounded-full border border-[#e0c9a6] shadow-sm mb-1 bg-white transition-opacity duration-300"
-                        style={{ opacity: imagesLoading ? 0.5 : 1 }}
-                      />
-                    )}
+                    <img
+                      src={imageSrc}
+                      alt={category.name || 'Category'}
+                      className="w-32 h-20 object-contain border-2 border-[#e0c9a6] shadow-lg mb-2 bg-white transition-opacity duration-300 rounded-md"
+                      style={{ aspectRatio: '16/9', objectFit: 'contain', objectPosition: 'center', maxWidth: '100%', maxHeight: '100%', display: 'block' }}
+                      onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = '/attached_assets/image_1744428587586.png'; }}
+                    />
                     <span>{category.name}</span>
                   </div>
                   <ChevronDown className="ml-1 h-4 w-4 transition-transform duration-200 text-black" />
@@ -232,7 +239,8 @@ export function CategoryMegaMenu() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            ))}
+            );
+            })}
             
             {/* Categories without subcategories - shown as simple links */}
             {categoriesWithoutSubcategories.map(category => (
@@ -243,16 +251,13 @@ export function CategoryMegaMenu() {
               >
                 {/* Category image above name with skeleton loader */}
                 <div className="flex flex-col items-center mb-1">
-                  {imagesLoading ? (
-                    <Skeleton className="w-12 h-12 rounded-full mb-1" />
-                  ) : (
-                    <img
-                      src={categoryImagesData?.[category.name] || "/attached_assets/image_1744428587586.png"}
-                      alt={category.name}
-                      className="w-12 h-12 object-cover rounded-full border border-[#e0c9a6] shadow-sm mb-1 bg-white transition-opacity duration-300"
-                      style={{ opacity: imagesLoading ? 0.5 : 1 }}
-                    />
-                  )}
+                  <img
+                    src={CATEGORY_IMAGE_MAP[category.name] || "/attached_assets/image_1744428587586.png"}
+                    alt={category.name || 'Category'}
+                    className="w-32 h-20 object-cover border-2 border-[#e0c9a6] shadow-lg mb-2 bg-white transition-opacity duration-300 rounded-md"
+                    style={{ aspectRatio: '16/9', objectFit: 'cover' }}
+                    onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = '/attached_assets/image_1744428587586.png'; }}
+                  />
                   <span>{category.name}</span>
                 </div>
               </Link>

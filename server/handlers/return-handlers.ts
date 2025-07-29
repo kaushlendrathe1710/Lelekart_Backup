@@ -71,8 +71,8 @@ export async function createReturnRequest(
     // Create initial status history
     await storage.createReturnStatusHistory({
       returnRequestId: returnRequest.id,
-      status: "pending",
-      userId,
+      newStatus: "pending",
+      changedById: userId,
       notes: "Return request created",
     });
 
@@ -377,8 +377,8 @@ export async function cancelReturnRequest(
     // Add status history entry
     await storage.createReturnStatusHistory({
       returnRequestId,
-      status: "cancelled",
-      userId,
+      newStatus: "cancelled",
+      changedById: userId,
       notes: `Cancelled by ${user.role === "admin" ? "admin" : "buyer"}: ${reason}`,
     });
 
@@ -475,8 +475,8 @@ export async function updateReturnRequestStatus(
     // Add status history entry
     await storage.createReturnStatusHistory({
       returnRequestId,
-      status,
-      userId,
+      newStatus: status,
+      changedById: userId,
       notes: notes || `Status updated to ${status}`,
     });
 
@@ -827,8 +827,8 @@ export async function updateReturnTracking(
     // Add status history entry
     await storage.createReturnStatusHistory({
       returnRequestId,
-      status: "item_in_transit",
-      userId,
+      newStatus: "item_in_transit",
+      changedById: userId,
       notes: `Return shipment initiated with ${trackingInfo.courierName} (${trackingInfo.trackingNumber})`,
     });
 
@@ -925,8 +925,8 @@ export async function updateReplacementTracking(
     // Add status history entry
     await storage.createReturnStatusHistory({
       returnRequestId,
-      status: "replacement_in_transit",
-      userId,
+      newStatus: "replacement_in_transit",
+      changedById: userId,
       notes: `Replacement shipment initiated with ${trackingInfo.courierName} (${trackingInfo.trackingNumber})`,
     });
 
@@ -1026,8 +1026,8 @@ export async function markReturnReceived(
     // Add status history entry
     await storage.createReturnStatusHistory({
       returnRequestId,
-      status: "item_received",
-      userId,
+      newStatus: "item_received",
+      changedById: userId,
       notes: notes || `Item received in ${condition} condition`,
     });
 
@@ -1125,8 +1125,8 @@ export async function completeReturnRequest(
     // Add status history entry
     await storage.createReturnStatusHistory({
       returnRequestId,
-      status: "completed",
-      userId,
+      newStatus: "completed",
+      changedById: userId,
       notes: "Return process completed",
     });
 
