@@ -161,6 +161,7 @@ import AdminReturnDetails from "./pages/admin/returns/[id]";
 // Import the Track Order Page
 import TrackOrderPage from "./pages/track-order-page";
 import RecentlyViewedPage from "./pages/buyer/recently-viewed";
+import UnderPriceProductsPage from './pages/under-price-products';
 
 function App() {
   useEffect(() => {
@@ -1399,6 +1400,15 @@ function App() {
                         {(params) => (
                           <Layout>
                             <SellerProductsListingPage />
+                          </Layout>
+                        )}
+                      </Route>
+
+                      {/* Under Price Products Page */}
+                      <Route path="/under/:price">
+                        {(params) => (
+                          <Layout>
+                            <UnderPriceProductsPage />
                           </Layout>
                         )}
                       </Route>

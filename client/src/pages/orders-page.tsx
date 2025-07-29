@@ -20,6 +20,7 @@ import {
   ImageIcon,
   UploadIcon,
   XIcon,
+  Camera,
 } from "lucide-react";
 import {
   Dialog,
@@ -133,6 +134,16 @@ export default function OrdersPage() {
   const [returnImages, setReturnImages] = useState<File[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [returnReasons, setReturnReasons] = useState<any[]>([]);
+  const [showCamera, setShowCamera] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [cameraVideoRef, setCameraVideoRef] = useState<HTMLVideoElement | null>(null);
+
+  // Add this useEffect after the cameraVideoRef and cameraStream states
+  useEffect(() => {
+    if (cameraVideoRef && cameraStream) {
+      cameraVideoRef.srcObject = cameraStream;
+    }
+  }, [cameraVideoRef, cameraStream]);
 
   // Cancel order mutation
   const cancelOrderMutation = useMutation({
@@ -221,6 +232,15 @@ export default function OrdersPage() {
   useEffect(() => {
     fetchReturnReasons();
   }, []);
+
+  // Cleanup camera stream on unmount
+  useEffect(() => {
+    return () => {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [cameraStream]);
 
   const fetchReturnReasons = async () => {
     try {
@@ -433,6 +453,54 @@ export default function OrdersPage() {
     setReturnImages(prev => prev.filter((_, i) => i !== index));
   };
 
+  // Camera functions
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } // Use back camera if available
+      });
+      setCameraStream(stream);
+      setShowCamera(true);
+      if (cameraVideoRef) {
+        cameraVideoRef.srcObject = stream;
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      toast({
+        title: "Camera Error",
+        description: "Unable to access camera. Please check permissions.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const stopCamera = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
+    }
+    setShowCamera(false);
+  };
+
+  const capturePhoto = () => {
+    if (cameraVideoRef) {
+      const canvas = document.createElement('canvas');
+      canvas.width = cameraVideoRef.videoWidth;
+      canvas.height = cameraVideoRef.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(cameraVideoRef, 0, 0);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const file = new File([blob], `camera-photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
+            setReturnImages(prev => [...prev, file]);
+            stopCamera();
+          }
+        }, 'image/jpeg', 0.8);
+      }
+    }
+  };
+
   const renderContent = () => {
     if (loading) {
       return (
@@ -496,7 +564,7 @@ export default function OrdersPage() {
         </div>
 
         {filteredOrders.length === 0 ? (
-          <div className="bg-background rounded-lg shadow-sm p-8 text-center">
+          <div className="bg-[#F8F5E4] rounded-lg shadow-sm p-8 text-center">
             <ShoppingBag className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
             <h2 className="text-xl font-semibold mb-2">No Orders Found</h2>
             <p className="text-muted-foreground mb-4">
@@ -524,7 +592,16 @@ export default function OrdersPage() {
                       </Badge>
                     </div>
 
-                    <h3 className="font-medium">Order #{order.id}</h3>
+                    <div className="flex items-center gap-3 mb-2">
+                      {order.items && order.items[0]?.product?.image && (
+                        <img
+                          src={order.items[0].product.image}
+                          alt="Order Product"
+                          className="w-12 h-12 object-cover rounded"
+                        />
+                      )}
+                      <span className="font-bold text-lg">Order #{order.id}</span>
+                    </div>
                     <p className="text-sm text-muted-foreground">
                       Placed on {formatDate(order.date)}
                     </p>
@@ -782,13 +859,26 @@ export default function OrdersPage() {
               {/* Image Upload */}
               <div className="space-y-2">
                 <label className="block font-medium mb-1">Images *</label>
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="mb-2"
-                />
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="flex-1"
+                    aria-label="Upload images from device"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={startCamera}
+                    className="flex items-center gap-2"
+                    aria-label="Take photo with camera"
+                  >
+                    <Camera className="h-4 w-4" />
+                    Camera
+                  </Button>
+                </div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {returnImages.map((file, idx) => (
                     <div key={idx} style={{ position: 'relative', display: 'inline-block' }}>
@@ -855,6 +945,51 @@ export default function OrdersPage() {
               )}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Camera Modal */}
+      <Dialog open={showCamera} onOpenChange={setShowCamera}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Take Photo</DialogTitle>
+            <DialogDescription>
+              Take a photo of the item you want to return
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="relative bg-black rounded-lg overflow-hidden">
+              <video
+                ref={setCameraVideoRef}
+                autoPlay
+                playsInline
+                className="w-full h-64 object-cover"
+                onLoadedMetadata={() => {
+                  if (cameraVideoRef) {
+                    cameraVideoRef.play();
+                  }
+                }}
+              />
+            </div>
+            
+            <div className="flex justify-center gap-4">
+              <Button
+                variant="outline"
+                onClick={stopCamera}
+                className="flex items-center gap-2"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={capturePhoto}
+                className="flex items-center gap-2"
+              >
+                <Camera className="h-4 w-4" />
+                Capture Photo
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </DashboardLayout>

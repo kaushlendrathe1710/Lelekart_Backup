@@ -275,155 +275,157 @@ export default function BuyerReviewsPage() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="w-full">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold mb-1">My Reviews</h1>
-            <p className="text-muted-foreground">
-              Manage reviews you've written for products
-            </p>
-          </div>
-        </div>
-
-        <Tabs
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="space-y-4"
-        >
-          <TabsList className="grid w-full grid-cols-3 max-w-md">
-            <TabsTrigger value="all">
-              All Reviews ({reviews.length})
-            </TabsTrigger>
-            <TabsTrigger value="verified">
-              Verified ({verifiedReviews.length})
-            </TabsTrigger>
-            <TabsTrigger value="pending">
-              Pending ({pendingReviews.length})
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="all" className="space-y-4">
-            {renderReviewsList()}
-          </TabsContent>
-
-          <TabsContent value="verified" className="space-y-4">
-            {renderReviewsList(verifiedReviews)}
-          </TabsContent>
-
-          <TabsContent value="pending" className="space-y-4">
-            {renderReviewsList(pendingReviews)}
-          </TabsContent>
-        </Tabs>
-
-        {/* Edit Dialog */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Edit Your Review</DialogTitle>
-              <DialogDescription>
-                Make changes to your review for {selectedReview?.product.name}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4 py-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Rating</label>
-                {renderEditStars()}
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Title</label>
-                <input
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  value={editedTitle}
-                  onChange={(e) => setEditedTitle(e.target.value)}
-                  placeholder="Review Title"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Review</label>
-                <Textarea
-                  value={editedContent}
-                  onChange={(e) => setEditedContent(e.target.value)}
-                  placeholder="Share details of your experience with this product"
-                  className="min-h-[100px]"
-                />
-              </div>
+    <div className="min-h-screen bg-[#F8F5E4]">
+      <DashboardLayout>
+        <div className="w-full">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+            <div>
+              <h1 className="text-2xl font-bold mb-1">My Reviews</h1>
+              <p className="text-muted-foreground">
+                Manage reviews you've written for products
+              </p>
             </div>
+          </div>
 
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setIsEditDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={() =>
-                  selectedReview &&
-                  updateReviewMutation.mutate({
-                    id: selectedReview.id,
-                    title: editedTitle,
-                    content: editedContent,
-                    rating: editedRating,
-                  })
-                }
-                disabled={updateReviewMutation.isPending}
-              >
-                {updateReviewMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Changes"
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="space-y-4"
+          >
+            <TabsList className="grid w-full grid-cols-3 max-w-md">
+              <TabsTrigger value="all">
+                All Reviews ({reviews.length})
+              </TabsTrigger>
+              <TabsTrigger value="verified">
+                Verified ({verifiedReviews.length})
+              </TabsTrigger>
+              <TabsTrigger value="pending">
+                Pending ({pendingReviews.length})
+              </TabsTrigger>
+            </TabsList>
 
-        {/* Delete Confirmation Dialog */}
-        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Delete Review</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to delete your review for{" "}
-                {selectedReview?.product.name}? This action cannot be undone.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setIsDeleteDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() =>
-                  selectedReview &&
-                  deleteReviewMutation.mutate(selectedReview.id)
-                }
-                disabled={deleteReviewMutation.isPending}
-              >
-                {deleteReviewMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  "Delete Review"
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-    </DashboardLayout>
+            <TabsContent value="all" className="space-y-4">
+              {renderReviewsList()}
+            </TabsContent>
+
+            <TabsContent value="verified" className="space-y-4">
+              {renderReviewsList(verifiedReviews)}
+            </TabsContent>
+
+            <TabsContent value="pending" className="space-y-4">
+              {renderReviewsList(pendingReviews)}
+            </TabsContent>
+          </Tabs>
+
+          {/* Edit Dialog */}
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Edit Your Review</DialogTitle>
+                <DialogDescription>
+                  Make changes to your review for {selectedReview?.product.name}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 py-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Rating</label>
+                  {renderEditStars()}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Title</label>
+                  <input
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={editedTitle}
+                    onChange={(e) => setEditedTitle(e.target.value)}
+                    placeholder="Review Title"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Review</label>
+                  <Textarea
+                    value={editedContent}
+                    onChange={(e) => setEditedContent(e.target.value)}
+                    placeholder="Share details of your experience with this product"
+                    className="min-h-[100px]"
+                  />
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEditDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() =>
+                    selectedReview &&
+                    updateReviewMutation.mutate({
+                      id: selectedReview.id,
+                      title: editedTitle,
+                      content: editedContent,
+                      rating: editedRating,
+                    })
+                  }
+                  disabled={updateReviewMutation.isPending}
+                >
+                  {updateReviewMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Delete Confirmation Dialog */}
+          <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Delete Review</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to delete your review for{" "}
+                  {selectedReview?.product.name}? This action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsDeleteDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() =>
+                    selectedReview &&
+                    deleteReviewMutation.mutate(selectedReview.id)
+                  }
+                  disabled={deleteReviewMutation.isPending}
+                >
+                  {deleteReviewMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    "Delete Review"
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </DashboardLayout>
+    </div>
   );
 
   // Helper function to render the reviews list
@@ -464,7 +466,7 @@ export default function BuyerReviewsPage() {
     }
 
     return reviewsToShow.map((review) => (
-      <Card key={review.id} className="overflow-hidden mb-6">
+      <Card key={review.id} className="border shadow-sm bg-[#F8F5E4]">
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row gap-6">
             {/* Product Image */}

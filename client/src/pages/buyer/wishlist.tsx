@@ -107,99 +107,101 @@ export default function BuyerWishlistPage() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="w-full">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">My Wishlist</h1>
-        </div>
+    <div className="min-h-screen bg-[#F8F5E4]">
+      <DashboardLayout>
+        <div className="w-full">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-2xl font-bold">My Wishlist</h1>
+          </div>
 
-        {isLoadingWishlist ? (
-          <div className="flex items-center justify-center min-h-[200px]">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : wishlistItems.length === 0 ? (
-          <div className="text-center py-10 border rounded-lg">
-            <div className="mb-4">
-              <svg className="w-16 h-16 mx-auto text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-              </svg>
+          {isLoadingWishlist ? (
+            <div className="flex items-center justify-center min-h-[200px]">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-            <h3 className="text-lg font-medium mb-2">Your wishlist is empty</h3>
-            <p className="text-muted-foreground mb-6">Items added to your wishlist will be saved here</p>
-            <Button asChild>
-              <Link href="/">Continue Shopping</Link>
-            </Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {wishlistItems.map((item) => (
-              <Card key={item.product.id} className="overflow-hidden">
-                <div className="relative h-48 bg-slate-100">
-                  <Link href={`/product/${item.product.id}`}>
-                    {item.product.imageUrl ? (
-                      <img
-                        src={item.product.imageUrl}
-                        alt={item.product.name}
-                        className="h-full w-full object-contain object-center"
-                        onError={(e) => {
-                          // Set a fallback image if the product image fails to load
-                          (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x300?text=No+Image';
-                        }}
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-slate-200">
-                        <span className="text-sm text-slate-500">No image available</span>
-                      </div>
-                    )}
-                  </Link>
-                </div>
-                <CardContent className="p-4">
-                  <Link href={`/product/${item.product.id}`}>
-                    <h3 className="font-medium line-clamp-2 hover:text-primary transition-colors">{item.product.name}</h3>
-                  </Link>
-                  <div className="mt-2 flex items-center space-x-2">
-                    <span className="font-semibold">₹{item.product.salePrice || item.product.price}</span>
-                    {item.product.salePrice && (
-                      <>
-                        <span className="text-sm text-muted-foreground line-through">₹{item.product.price}</span>
-                        <span className="text-sm text-green-600">
-                          {Math.round(((item.product.price - item.product.salePrice) / item.product.price) * 100)}% off
-                        </span>
-                      </>
-                    )}
-                  </div>
-                  <div className="mt-4 flex space-x-2">
-                    <Button
-                      className="flex-1"
-                      onClick={() => handleAddToCart(item.product)}
-                      disabled={item.product.stock <= 0 || addToCartMutation.isPending}
-                    >
-                      {addToCartMutation.isPending ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : wishlistItems.length === 0 ? (
+            <div className="text-center py-10 border rounded-lg bg-[#F8F5E4]">
+              <div className="mb-4">
+                <svg className="w-16 h-16 mx-auto text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium mb-2">Your wishlist is empty</h3>
+              <p className="text-muted-foreground mb-6">Items added to your wishlist will be saved here</p>
+              <Button asChild>
+                <Link href="/">Continue Shopping</Link>
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {wishlistItems.map((item) => (
+                <Card key={item.product.id} className="border shadow-sm bg-[#F8F5E4]">
+                  <div className="relative h-48 bg-slate-100">
+                    <Link href={`/product/${item.product.id}`}>
+                      {item.product.imageUrl ? (
+                        <img
+                          src={item.product.imageUrl}
+                          alt={item.product.name}
+                          className="h-full w-full object-contain object-center"
+                          onError={(e) => {
+                            // Set a fallback image if the product image fails to load
+                            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x300?text=No+Image';
+                          }}
+                        />
                       ) : (
-                        <ShoppingCart className="mr-2 h-4 w-4" />
+                        <div className="flex h-full w-full items-center justify-center bg-slate-200">
+                          <span className="text-sm text-slate-500">No image available</span>
+                        </div>
                       )}
-                      {item.product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => removeFromWishlistMutation.mutate(item.product.id)}
-                      disabled={removeFromWishlistMutation.isPending}
-                    >
-                      {removeFromWishlistMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </Button>
+                    </Link>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </div>
-    </DashboardLayout>
+                  <CardContent className="p-4">
+                    <Link href={`/product/${item.product.id}`}>
+                      <h3 className="font-medium line-clamp-2 hover:text-primary transition-colors">{item.product.name}</h3>
+                    </Link>
+                    <div className="mt-2 flex items-center space-x-2">
+                      <span className="font-semibold">₹{item.product.salePrice || item.product.price}</span>
+                      {item.product.salePrice && (
+                        <>
+                          <span className="text-sm text-muted-foreground line-through">₹{item.product.price}</span>
+                          <span className="text-sm text-green-600">
+                            {Math.round(((item.product.price - item.product.salePrice) / item.product.price) * 100)}% off
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    <div className="mt-4 flex space-x-2">
+                      <Button
+                        className="flex-1"
+                        onClick={() => handleAddToCart(item.product)}
+                        disabled={item.product.stock <= 0 || addToCartMutation.isPending}
+                      >
+                        {addToCartMutation.isPending ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <ShoppingCart className="mr-2 h-4 w-4" />
+                        )}
+                        {item.product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => removeFromWishlistMutation.mutate(item.product.id)}
+                        disabled={removeFromWishlistMutation.isPending}
+                      >
+                        {removeFromWishlistMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      </DashboardLayout>
+    </div>
   );
 }

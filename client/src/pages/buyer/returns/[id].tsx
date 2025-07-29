@@ -435,610 +435,612 @@ export default function ReturnDetails() {
   } = returnRequest;
 
   return (
-    <div className="container max-w-4xl mx-auto py-6 px-4">
-      <Breadcrumb className="mb-6">
-        <BreadcrumbItem>
-          <BreadcrumbLink as={Link} to="/">Home</BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbItem>
-          <BreadcrumbLink as={Link} to="/returns">My Returns</BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbItem isCurrentPage>
-          <BreadcrumbLink>Return #{returnId}</BreadcrumbLink>
-        </BreadcrumbItem>
-      </Breadcrumb>
-      
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">Return Request #{returnId}</h1>
-            <Badge className={`${statusColors[status]} font-normal`}>
-              {formatStatus(status)}
-            </Badge>
-          </div>
-          <p className="text-gray-500 mt-1">
-            {requestType.charAt(0).toUpperCase() + requestType.slice(1)} Request for Order #{orderNumber}
-          </p>
-        </div>
-        <Button asChild variant="outline" className="mt-4 sm:mt-0">
-          <Link to="/returns">
-            <ChevronLeftIcon className="mr-2 h-4 w-4" /> Back to Returns
-          </Link>
-        </Button>
-      </div>
-      
-      {/* Status Progress */}
-      <Card className="mb-6">
-        <CardContent className="pt-6">
-          <div className="mb-2">
-            <div className="flex justify-between items-center mb-1">
-              <span className="text-sm font-medium">Return Progress</span>
-              <span className="text-sm text-gray-500">
-                {status === 'completed' ? 'Completed' : 'In Progress'}
-              </span>
+    <div className="min-h-screen bg-[#F8F5E4]">
+      <div className="container max-w-4xl mx-auto py-6 px-4">
+        <Breadcrumb className="mb-6">
+          <BreadcrumbItem>
+            <BreadcrumbLink as={Link} to="/">Home</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbItem>
+            <BreadcrumbLink as={Link} to="/returns">My Returns</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbItem isCurrentPage>
+            <BreadcrumbLink>Return #{returnId}</BreadcrumbLink>
+          </BreadcrumbItem>
+        </Breadcrumb>
+        
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight">Return Request #{returnId}</h1>
+              <Badge className={`${statusColors[status]} font-normal`}>
+                {formatStatus(status)}
+              </Badge>
             </div>
-            <Progress value={calculateProgress(status, requestType)} className="h-2" />
+            <p className="text-gray-500 mt-1">
+              {requestType.charAt(0).toUpperCase() + requestType.slice(1)} Request for Order #{orderNumber}
+            </p>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-            {getReturnSteps(requestType).map((step, index) => {
-              const isCompleted = statusHistory.some(history => history.status === step.status);
-              const isCurrent = status === step.status;
-              
-              return (
-                <div 
-                  key={index} 
-                  className={`flex items-center p-3 rounded-lg border ${
-                    isCurrent 
-                      ? 'border-primary bg-primary/5' 
-                      : isCompleted 
-                        ? 'border-green-200 bg-green-50' 
-                        : 'border-gray-200'
-                  }`}
-                >
-                  <div className={`rounded-full p-2 mr-3 ${
-                    isCurrent 
-                      ? 'bg-primary/10 text-primary' 
-                      : isCompleted 
-                        ? 'bg-green-100 text-green-700' 
-                        : 'bg-gray-100 text-gray-400'
-                  }`}>
-                    {isCurrent && statusIcons[step.status]}
-                    {isCompleted && !isCurrent && <CheckCircleIcon className="h-5 w-5" />}
-                    {!isCompleted && !isCurrent && <ClockIcon className="h-5 w-5" />}
-                  </div>
-                  <div>
-                    <p className={`text-sm font-medium ${
-                      isCurrent 
-                        ? 'text-primary' 
-                        : isCompleted 
-                          ? 'text-green-700' 
-                          : 'text-gray-500'
-                    }`}>
-                      {step.label}
-                    </p>
-                    {isCompleted && (
-                      <p className="text-xs text-gray-500">
-                        {format(
-                          new Date(
-                            statusHistory.find(h => h.status === step.status)?.createdAt || new Date()
-                          ), 
-                          'MMM d, h:mm a'
-                        )}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* Main Content */}
-        <div className="lg:col-span-2">
-          <Tabs defaultValue="details" value={activeTab} onValueChange={setActiveTab} className="mb-6">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="details">Details</TabsTrigger>
-              <TabsTrigger value="timeline">Timeline</TabsTrigger>
-              <TabsTrigger value="communication">
-                Communication
-                {messages && messages.length > 0 && (
-                  <Badge className="ml-2 bg-primary">{messages.length}</Badge>
-                )}
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-          
-          <TabsContent value="details" className="mt-0">
-            <Card>
-              <CardHeader>
-                <CardTitle>Return Details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Product Information */}
-                <div className="space-y-3">
-                  <h3 className="text-lg font-medium">Product Information</h3>
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <div className="w-24 h-24 rounded-md border overflow-hidden flex-shrink-0">
-                      <img 
-                        src={orderItem.product.image || "https://placehold.co/200x200?text=No+Image"} 
-                        alt={orderItem.product.name} 
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div>
-                      <h4 className="font-medium">{orderItem.product.name}</h4>
-                      <p className="text-sm text-gray-500">Quantity: {orderItem.quantity}</p>
-                      <p className="text-sm text-gray-500">Price: ₹{orderItem.price}</p>
-                      <Button asChild variant="link" className="p-0 h-auto text-primary hover:text-primary/80">
-                        <Link to={`/orders/${orderId}`}>
-                          View Order Details
-                        </Link>
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-                
-                <Separator />
-                
-                {/* Return Request Information */}
-                <div className="space-y-3">
-                  <h3 className="text-lg font-medium">Request Information</h3>
-                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
-                    <div>
-                      <dt className="text-sm text-gray-500">Request Type</dt>
-                      <dd className="font-medium">
-                        {requestType.charAt(0).toUpperCase() + requestType.slice(1)}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm text-gray-500">Request Date</dt>
-                      <dd className="font-medium">
-                        {format(new Date(createdAt), 'MMM d, yyyy, h:mm a')}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm text-gray-500">Reason</dt>
-                      <dd className="font-medium">{reasonText}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm text-gray-500">Status</dt>
-                      <dd>
-                        <Badge className={`${statusColors[status]} font-normal`}>
-                          {formatStatus(status)}
-                        </Badge>
-                      </dd>
-                    </div>
-                    {refundAmount && (
-                      <div>
-                        <dt className="text-sm text-gray-500">Refund Amount</dt>
-                        <dd className="font-medium">₹{refundAmount}</dd>
-                      </div>
-                    )}
-                    {refundMethod && (
-                      <div>
-                        <dt className="text-sm text-gray-500">Refund Method</dt>
-                        <dd className="font-medium">
-                          {refundMethod === 'original_method' 
-                            ? 'Original Payment Method' 
-                            : 'Wallet Credit'}
-                        </dd>
-                      </div>
-                    )}
-                  </dl>
-                </div>
-                
-                {/* Description */}
-                <div className="space-y-3">
-                  <h3 className="text-lg font-medium">Description</h3>
-                  <p className="text-gray-700">{description}</p>
-                </div>
-                
-                {/* Images */}
-                {mediaUrls && mediaUrls.length > 0 && (
-                  <div className="space-y-3">
-                    <h3 className="text-lg font-medium">Images</h3>
-                    <div className="flex flex-wrap gap-3">
-                      {mediaUrls.map((url, index) => (
-                        <div 
-                          key={index} 
-                          className="w-24 h-24 rounded-md border overflow-hidden cursor-pointer"
-                          onClick={() => setSelectedImage(url)}
-                        >
-                          <img 
-                            src={url} 
-                            alt={`Return image ${index + 1}`} 
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Shipping Information - Return */}
-                {returnTrackingNumber && (
-                  <div className="space-y-3">
-                    <h3 className="text-lg font-medium">Return Shipping Information</h3>
-                    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
-                      <div>
-                        <dt className="text-sm text-gray-500">Courier</dt>
-                        <dd className="font-medium">{returnCourierName}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-sm text-gray-500">Tracking Number</dt>
-                        <dd className="font-medium">
-                          {returnTrackingUrl ? (
-                            <a 
-                              href={returnTrackingUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-primary hover:underline"
-                            >
-                              {returnTrackingNumber}
-                            </a>
-                          ) : (
-                            returnTrackingNumber
-                          )}
-                        </dd>
-                      </div>
-                    </dl>
-                  </div>
-                )}
-                
-                {/* Shipping Information - Replacement */}
-                {replacementTrackingNumber && (
-                  <div className="space-y-3">
-                    <h3 className="text-lg font-medium">Replacement Shipping Information</h3>
-                    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
-                      <div>
-                        <dt className="text-sm text-gray-500">Courier</dt>
-                        <dd className="font-medium">{replacementCourierName}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-sm text-gray-500">Tracking Number</dt>
-                        <dd className="font-medium">
-                          {replacementTrackingUrl ? (
-                            <a 
-                              href={replacementTrackingUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-primary hover:underline"
-                            >
-                              {replacementTrackingNumber}
-                            </a>
-                          ) : (
-                            replacementTrackingNumber
-                          )}
-                        </dd>
-                      </div>
-                    </dl>
-                  </div>
-                )}
-              </CardContent>
-              <CardFooter className="flex justify-end flex-wrap gap-3 border-t pt-6">
-                {renderActionButton()}
-              </CardFooter>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="timeline" className="mt-0">
-            <Card>
-              <CardHeader>
-                <CardTitle>Status Timeline</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="relative pl-8 border-l-2 border-gray-200 space-y-8 py-2">
-                  {statusHistory.map((event, index) => (
-                    <div key={index} className="relative">
-                      <div className="absolute -left-[27px] rounded-full w-6 h-6 flex items-center justify-center border-2 border-white bg-primary text-white">
-                        {statusIcons[event.status] || <InfoIcon className="h-3 w-3" />}
-                      </div>
-                      <div className="mb-1">
-                        <span className="font-medium">{formatStatus(event.status)}</span>
-                        <span className="text-sm text-gray-500 ml-2">
-                          {format(new Date(event.createdAt), 'MMM d, yyyy, h:mm a')}
-                        </span>
-                      </div>
-                      <p className="text-gray-600 text-sm">{event.notes}</p>
-                    </div>
-                  ))}
-                </div>
-                
-                {statusHistory.length === 0 && (
-                  <div className="flex flex-col items-center justify-center py-6">
-                    <div className="rounded-full bg-gray-100 p-3 mb-4">
-                      <ClockIcon className="h-6 w-6 text-gray-400" />
-                    </div>
-                    <p className="text-gray-500">No status updates yet</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="communication" className="mt-0">
-            <Card>
-              <CardHeader>
-                <CardTitle>Communication</CardTitle>
-                <CardDescription>
-                  Messages between you and the seller about this return
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6 mb-6">
-                  {messages && messages.length > 0 ? (
-                    messages.map((message, index) => (
-                      <div 
-                        key={index} 
-                        className={`flex ${message.userId === user.id ? 'justify-end' : 'justify-start'}`}
-                      >
-                        <div 
-                          className={`max-w-[80%] rounded-lg p-4 ${
-                            message.userId === user.id 
-                              ? 'bg-primary text-primary-foreground rounded-tr-none' 
-                              : 'bg-gray-100 text-gray-800 rounded-tl-none'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className={`text-xs ${message.userId === user.id ? 'text-primary-foreground/80' : 'text-gray-500'}`}>
-                              {message.user?.name || message.user?.username || 'User'}
-                            </span>
-                            <span className={`text-xs ${message.userId === user.id ? 'text-primary-foreground/80' : 'text-gray-500'}`}>
-                              {format(new Date(message.createdAt), 'MMM d, h:mm a')}
-                            </span>
-                          </div>
-                          <p className="whitespace-pre-wrap">{message.message}</p>
-                          
-                          {/* Message Images */}
-                          {message.mediaUrls && message.mediaUrls.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mt-2">
-                              {message.mediaUrls.map((url, imgIndex) => (
-                                <div 
-                                  key={imgIndex} 
-                                  className="w-16 h-16 rounded-md border overflow-hidden cursor-pointer"
-                                  onClick={() => setSelectedImage(url)}
-                                >
-                                  <img 
-                                    src={url} 
-                                    alt={`Message image ${imgIndex + 1}`} 
-                                    className="w-full h-full object-cover"
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-6">
-                      <div className="rounded-full bg-gray-100 p-3 mb-4">
-                        <MessageSquareIcon className="h-6 w-6 text-gray-400" />
-                      </div>
-                      <p className="text-gray-500">No messages yet</p>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Message Input */}
-                {['completed', 'cancelled', 'rejected'].includes(status) ? (
-                  <Alert className="mb-4">
-                    <InfoIcon className="h-4 w-4" />
-                    <AlertTitle>Conversation Closed</AlertTitle>
-                    <AlertDescription>
-                      This return request is {status}, and no new messages can be sent.
-                    </AlertDescription>
-                  </Alert>
-                ) : (
-                  <Form {...messageForm}>
-                    <form onSubmit={messageForm.handleSubmit(onMessageSubmit)} className="space-y-4">
-                      <FormField
-                        control={messageForm.control}
-                        name="message"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Textarea 
-                                placeholder="Type your message here..." 
-                                className="resize-none min-h-[100px]" 
-                                {...field} 
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <div className="flex justify-end">
-                        <Button 
-                          type="submit" 
-                          disabled={addMessageMutation.isPending}
-                        >
-                          {addMessageMutation.isPending ? (
-                            <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <SendIcon className="mr-2 h-4 w-4" />
-                          )}
-                          Send Message
-                        </Button>
-                      </div>
-                    </form>
-                  </Form>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+          <Button asChild variant="outline" className="mt-4 sm:mt-0">
+            <Link to="/returns">
+              <ChevronLeftIcon className="mr-2 h-4 w-4" /> Back to Returns
+            </Link>
+          </Button>
         </div>
         
-        {/* Sidebar */}
-        <div>
-          {/* Help Card */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Need Help?</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-gray-600">
-                If you have any questions or need assistance with your return, please contact our support team.
-              </p>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                asChild
-              >
-                <Link to="/support">
-                  <MessageSquareIcon className="mr-2 h-4 w-4" />
-                  Contact Support
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-          
-          {/* Return Policy */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Return Policy</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <h4 className="font-medium">Return Window</h4>
-                <p className="text-sm text-gray-600">
-                  Returns are typically accepted within 30 days of delivery, subject to seller's policy.
-                </p>
+        {/* Status Progress */}
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <div className="mb-2">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-sm font-medium">Return Progress</span>
+                <span className="text-sm text-gray-500">
+                  {status === 'completed' ? 'Completed' : 'In Progress'}
+                </span>
               </div>
-              
-              <div className="space-y-2">
-                <h4 className="font-medium">Item Condition</h4>
-                <p className="text-sm text-gray-600">
-                  The item must be unused, unworn, and in original packaging with all tags attached.
-                </p>
-              </div>
-              
-              <div className="space-y-2">
-                <h4 className="font-medium">Refund Processing</h4>
-                <p className="text-sm text-gray-600">
-                  Refunds typically take 5-7 business days to be processed after the return is received.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-      
-      {/* Image Viewer Dialog */}
-      <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-        <DialogContent className="max-w-3xl p-0 overflow-hidden">
-          <div className="relative w-full max-h-[80vh] overflow-auto">
-            {selectedImage && (
-              <img 
-                src={selectedImage} 
-                alt="Return image" 
-                className="w-full h-auto"
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Cancel Request Dialog */}
-      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure you want to cancel this return request?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Cancelling this request will stop the return process. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="py-4">
-            <label className="text-sm font-medium mb-2 block">
-              Please provide a reason for cancellation:
-            </label>
-            <Textarea 
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-              placeholder="I no longer need to return this item"
-              className="w-full"
-            />
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleCancelReturn}
-              disabled={cancelReturnMutation.isPending}
-            >
-              {cancelReturnMutation.isPending && (
-                <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Confirm Cancellation
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      
-      {/* Add Tracking Dialog */}
-      <Dialog open={trackingDialogOpen} onOpenChange={setTrackingDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Add Return Shipping Details</DialogTitle>
-            <DialogDescription>
-              Please provide the tracking information for your return shipment.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...trackingForm}>
-            <form onSubmit={trackingForm.handleSubmit(onTrackingSubmit)} className="space-y-4">
-              <FormField
-                control={trackingForm.control}
-                name="courierName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Courier Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. BlueDart, DTDC, Delhivery" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={trackingForm.control}
-                name="trackingNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tracking Number</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter tracking number" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={trackingForm.control}
-                name="trackingUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tracking URL (Optional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="https://example.com/track/..." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <Button type="submit" disabled={updateTrackingMutation.isPending}>
-                  {updateTrackingMutation.isPending && (
-                    <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+              <Progress value={calculateProgress(status, requestType)} className="h-2" />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+              {getReturnSteps(requestType).map((step, index) => {
+                const isCompleted = statusHistory.some(history => history.status === step.status);
+                const isCurrent = status === step.status;
+                
+                return (
+                  <div 
+                    key={index} 
+                    className={`flex items-center p-3 rounded-lg border ${
+                      isCurrent 
+                        ? 'border-primary bg-primary/5' 
+                        : isCompleted 
+                          ? 'border-green-200 bg-green-50' 
+                          : 'border-gray-200'
+                    }`}
+                  >
+                    <div className={`rounded-full p-2 mr-3 ${
+                      isCurrent 
+                        ? 'bg-primary/10 text-primary' 
+                        : isCompleted 
+                          ? 'bg-green-100 text-green-700' 
+                          : 'bg-gray-100 text-gray-400'
+                    }`}>
+                      {isCurrent && statusIcons[step.status]}
+                      {isCompleted && !isCurrent && <CheckCircleIcon className="h-5 w-5" />}
+                      {!isCompleted && !isCurrent && <ClockIcon className="h-5 w-5" />}
+                    </div>
+                    <div>
+                      <p className={`text-sm font-medium ${
+                        isCurrent 
+                          ? 'text-primary' 
+                          : isCompleted 
+                            ? 'text-green-700' 
+                            : 'text-gray-500'
+                      }`}>
+                        {step.label}
+                      </p>
+                      {isCompleted && (
+                        <p className="text-xs text-gray-500">
+                          {format(
+                            new Date(
+                              statusHistory.find(h => h.status === step.status)?.createdAt || new Date()
+                            ), 
+                            'MMM d, h:mm a'
+                          )}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          {/* Main Content */}
+          <div className="lg:col-span-2">
+            <Tabs defaultValue="details" value={activeTab} onValueChange={setActiveTab} className="mb-6">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="details">Details</TabsTrigger>
+                <TabsTrigger value="timeline">Timeline</TabsTrigger>
+                <TabsTrigger value="communication">
+                  Communication
+                  {messages && messages.length > 0 && (
+                    <Badge className="ml-2 bg-primary">{messages.length}</Badge>
                   )}
-                  Save Tracking Details
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+            
+            <TabsContent value="details" className="mt-0">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Return Details</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Product Information */}
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-medium">Product Information</h3>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <div className="w-24 h-24 rounded-md border overflow-hidden flex-shrink-0">
+                        <img 
+                          src={orderItem.product.image || "https://placehold.co/200x200?text=No+Image"} 
+                          alt={orderItem.product.name} 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div>
+                        <h4 className="font-medium">{orderItem.product.name}</h4>
+                        <p className="text-sm text-gray-500">Quantity: {orderItem.quantity}</p>
+                        <p className="text-sm text-gray-500">Price: ₹{orderItem.price}</p>
+                        <Button asChild variant="link" className="p-0 h-auto text-primary hover:text-primary/80">
+                          <Link to={`/orders/${orderId}`}>
+                            View Order Details
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  {/* Return Request Information */}
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-medium">Request Information</h3>
+                    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
+                      <div>
+                        <dt className="text-sm text-gray-500">Request Type</dt>
+                        <dd className="font-medium">
+                          {requestType.charAt(0).toUpperCase() + requestType.slice(1)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm text-gray-500">Request Date</dt>
+                        <dd className="font-medium">
+                          {format(new Date(createdAt), 'MMM d, yyyy, h:mm a')}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm text-gray-500">Reason</dt>
+                        <dd className="font-medium">{reasonText}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm text-gray-500">Status</dt>
+                        <dd>
+                          <Badge className={`${statusColors[status]} font-normal`}>
+                            {formatStatus(status)}
+                          </Badge>
+                        </dd>
+                      </div>
+                      {refundAmount && (
+                        <div>
+                          <dt className="text-sm text-gray-500">Refund Amount</dt>
+                          <dd className="font-medium">₹{refundAmount}</dd>
+                        </div>
+                      )}
+                      {refundMethod && (
+                        <div>
+                          <dt className="text-sm text-gray-500">Refund Method</dt>
+                          <dd className="font-medium">
+                            {refundMethod === 'original_method' 
+                              ? 'Original Payment Method' 
+                              : 'Wallet Credit'}
+                          </dd>
+                        </div>
+                      )}
+                    </dl>
+                  </div>
+                  
+                  {/* Description */}
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-medium">Description</h3>
+                    <p className="text-gray-700">{description}</p>
+                  </div>
+                  
+                  {/* Images */}
+                  {mediaUrls && mediaUrls.length > 0 && (
+                    <div className="space-y-3">
+                      <h3 className="text-lg font-medium">Images</h3>
+                      <div className="flex flex-wrap gap-3">
+                        {mediaUrls.map((url, index) => (
+                          <div 
+                            key={index} 
+                            className="w-24 h-24 rounded-md border overflow-hidden cursor-pointer"
+                            onClick={() => setSelectedImage(url)}
+                          >
+                            <img 
+                              src={url} 
+                              alt={`Return image ${index + 1}`} 
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Shipping Information - Return */}
+                  {returnTrackingNumber && (
+                    <div className="space-y-3">
+                      <h3 className="text-lg font-medium">Return Shipping Information</h3>
+                      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
+                        <div>
+                          <dt className="text-sm text-gray-500">Courier</dt>
+                          <dd className="font-medium">{returnCourierName}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-sm text-gray-500">Tracking Number</dt>
+                          <dd className="font-medium">
+                            {returnTrackingUrl ? (
+                              <a 
+                                href={returnTrackingUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline"
+                              >
+                                {returnTrackingNumber}
+                              </a>
+                            ) : (
+                              returnTrackingNumber
+                            )}
+                          </dd>
+                        </div>
+                      </dl>
+                    </div>
+                  )}
+                  
+                  {/* Shipping Information - Replacement */}
+                  {replacementTrackingNumber && (
+                    <div className="space-y-3">
+                      <h3 className="text-lg font-medium">Replacement Shipping Information</h3>
+                      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
+                        <div>
+                          <dt className="text-sm text-gray-500">Courier</dt>
+                          <dd className="font-medium">{replacementCourierName}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-sm text-gray-500">Tracking Number</dt>
+                          <dd className="font-medium">
+                            {replacementTrackingUrl ? (
+                              <a 
+                                href={replacementTrackingUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline"
+                              >
+                                {replacementTrackingNumber}
+                              </a>
+                            ) : (
+                              replacementTrackingNumber
+                            )}
+                          </dd>
+                        </div>
+                      </dl>
+                    </div>
+                  )}
+                </CardContent>
+                <CardFooter className="flex justify-end flex-wrap gap-3 border-t pt-6">
+                  {renderActionButton()}
+                </CardFooter>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="timeline" className="mt-0">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Status Timeline</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="relative pl-8 border-l-2 border-gray-200 space-y-8 py-2">
+                    {statusHistory.map((event, index) => (
+                      <div key={index} className="relative">
+                        <div className="absolute -left-[27px] rounded-full w-6 h-6 flex items-center justify-center border-2 border-white bg-primary text-white">
+                          {statusIcons[event.status] || <InfoIcon className="h-3 w-3" />}
+                        </div>
+                        <div className="mb-1">
+                          <span className="font-medium">{formatStatus(event.status)}</span>
+                          <span className="text-sm text-gray-500 ml-2">
+                            {format(new Date(event.createdAt), 'MMM d, yyyy, h:mm a')}
+                          </span>
+                        </div>
+                        <p className="text-gray-600 text-sm">{event.notes}</p>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {statusHistory.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-6">
+                      <div className="rounded-full bg-gray-100 p-3 mb-4">
+                        <ClockIcon className="h-6 w-6 text-gray-400" />
+                      </div>
+                      <p className="text-gray-500">No status updates yet</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="communication" className="mt-0">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Communication</CardTitle>
+                  <CardDescription>
+                    Messages between you and the seller about this return
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6 mb-6">
+                    {messages && messages.length > 0 ? (
+                      messages.map((message, index) => (
+                        <div 
+                          key={index} 
+                          className={`flex ${message.userId === user.id ? 'justify-end' : 'justify-start'}`}
+                        >
+                          <div 
+                            className={`max-w-[80%] rounded-lg p-4 ${
+                              message.userId === user.id 
+                                ? 'bg-primary text-primary-foreground rounded-tr-none' 
+                                : 'bg-gray-100 text-gray-800 rounded-tl-none'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`text-xs ${message.userId === user.id ? 'text-primary-foreground/80' : 'text-gray-500'}`}>
+                                {message.user?.name || message.user?.username || 'User'}
+                              </span>
+                              <span className={`text-xs ${message.userId === user.id ? 'text-primary-foreground/80' : 'text-gray-500'}`}>
+                                {format(new Date(message.createdAt), 'MMM d, h:mm a')}
+                              </span>
+                            </div>
+                            <p className="whitespace-pre-wrap">{message.message}</p>
+                            
+                            {/* Message Images */}
+                            {message.mediaUrls && message.mediaUrls.length > 0 && (
+                              <div className="flex flex-wrap gap-2 mt-2">
+                                {message.mediaUrls.map((url, imgIndex) => (
+                                  <div 
+                                    key={imgIndex} 
+                                    className="w-16 h-16 rounded-md border overflow-hidden cursor-pointer"
+                                    onClick={() => setSelectedImage(url)}
+                                  >
+                                    <img 
+                                      src={url} 
+                                      alt={`Message image ${imgIndex + 1}`} 
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-6">
+                        <div className="rounded-full bg-gray-100 p-3 mb-4">
+                          <MessageSquareIcon className="h-6 w-6 text-gray-400" />
+                        </div>
+                        <p className="text-gray-500">No messages yet</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Message Input */}
+                  {['completed', 'cancelled', 'rejected'].includes(status) ? (
+                    <Alert className="mb-4">
+                      <InfoIcon className="h-4 w-4" />
+                      <AlertTitle>Conversation Closed</AlertTitle>
+                      <AlertDescription>
+                        This return request is {status}, and no new messages can be sent.
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <Form {...messageForm}>
+                      <form onSubmit={messageForm.handleSubmit(onMessageSubmit)} className="space-y-4">
+                        <FormField
+                          control={messageForm.control}
+                          name="message"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Textarea 
+                                  placeholder="Type your message here..." 
+                                  className="resize-none min-h-[100px]" 
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <div className="flex justify-end">
+                          <Button 
+                            type="submit" 
+                            disabled={addMessageMutation.isPending}
+                          >
+                            {addMessageMutation.isPending ? (
+                              <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <SendIcon className="mr-2 h-4 w-4" />
+                            )}
+                            Send Message
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </div>
+          
+          {/* Sidebar */}
+          <div>
+            {/* Help Card */}
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Need Help?</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  If you have any questions or need assistance with your return, please contact our support team.
+                </p>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  asChild
+                >
+                  <Link to="/support">
+                    <MessageSquareIcon className="mr-2 h-4 w-4" />
+                    Contact Support
+                  </Link>
                 </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+              </CardContent>
+            </Card>
+            
+            {/* Return Policy */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Return Policy</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium">Return Window</h4>
+                  <p className="text-sm text-gray-600">
+                    Returns are typically accepted within 30 days of delivery, subject to seller's policy.
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <h4 className="font-medium">Item Condition</h4>
+                  <p className="text-sm text-gray-600">
+                    The item must be unused, unworn, and in original packaging with all tags attached.
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <h4 className="font-medium">Refund Processing</h4>
+                  <p className="text-sm text-gray-600">
+                    Refunds typically take 5-7 business days to be processed after the return is received.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+        
+        {/* Image Viewer Dialog */}
+        <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+          <DialogContent className="max-w-3xl p-0 overflow-hidden">
+            <div className="relative w-full max-h-[80vh] overflow-auto">
+              {selectedImage && (
+                <img 
+                  src={selectedImage} 
+                  alt="Return image" 
+                  className="w-full h-auto"
+                />
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Cancel Request Dialog */}
+        <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure you want to cancel this return request?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Cancelling this request will stop the return process. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="py-4">
+              <label className="text-sm font-medium mb-2 block">
+                Please provide a reason for cancellation:
+              </label>
+              <Textarea 
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="I no longer need to return this item"
+                className="w-full"
+              />
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleCancelReturn}
+                disabled={cancelReturnMutation.isPending}
+              >
+                {cancelReturnMutation.isPending && (
+                  <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Confirm Cancellation
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        
+        {/* Add Tracking Dialog */}
+        <Dialog open={trackingDialogOpen} onOpenChange={setTrackingDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Add Return Shipping Details</DialogTitle>
+              <DialogDescription>
+                Please provide the tracking information for your return shipment.
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...trackingForm}>
+              <form onSubmit={trackingForm.handleSubmit(onTrackingSubmit)} className="space-y-4">
+                <FormField
+                  control={trackingForm.control}
+                  name="courierName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Courier Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. BlueDart, DTDC, Delhivery" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={trackingForm.control}
+                  name="trackingNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tracking Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter tracking number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={trackingForm.control}
+                  name="trackingUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tracking URL (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="https://example.com/track/..." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <DialogFooter>
+                  <Button type="submit" disabled={updateTrackingMutation.isPending}>
+                    {updateTrackingMutation.isPending && (
+                      <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Save Tracking Details
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 }

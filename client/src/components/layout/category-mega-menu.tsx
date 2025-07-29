@@ -83,6 +83,7 @@ export function CategoryMegaMenu() {
   const { data: industrialProducts } = useCategoryProducts('Industrial & Scientific', 1);
   const { data: fashionProducts } = useCategoryProducts('Fashion', 1);
   const { data: mobilesProducts } = useCategoryProducts('Mobiles', 10);
+  const { data: healthProducts } = useCategoryProducts('Health & Wellness', 1);
 
   // Helper to get category image
   function getCategoryImage(categoryName: string) {
@@ -95,6 +96,8 @@ export function CategoryMegaMenu() {
         return fashionProducts?.products?.[0]?.imageUrl || CATEGORY_IMAGE_MAP['Fashion'] || "/attached_assets/image_1744428587586.png";
       case 'Mobiles':
         return mobilesProducts?.products?.[0]?.imageUrl || CATEGORY_IMAGE_MAP['Mobiles'] || "/attached_assets/image_1744428587586.png";
+      case 'Health & Wellness':
+        return healthProducts?.products?.[0]?.imageUrl || CATEGORY_IMAGE_MAP['Health & Wellness'] || "/attached_assets/image_1744428587586.png";
       default:
         return CATEGORY_IMAGE_MAP[categoryName] || "/attached_assets/image_1744428587586.png";
     }
@@ -118,11 +121,8 @@ export function CategoryMegaMenu() {
     return null;
   }
   
-  // Filter out Healthcare & Wellness and Health and Wellness from categories
-  const filteredCategories = categories.filter(category =>
-    category.name !== 'Healthcare & Wellness' &&
-    category.name !== 'Health and Wellness'
-  );
+  // Remove the filter that hides Health & Wellness
+  const filteredCategories = categories;
 
   // If there are categories without subcategories, they should be shown as direct links
   const categoriesWithoutSubcategories = filteredCategories.filter(category => 

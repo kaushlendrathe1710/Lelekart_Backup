@@ -245,7 +245,7 @@ export default function WalletPage() {
 
         {/* Wallet Points and Redeem Coins Display */}
         <div className="flex flex-col sm:flex-row gap-4">
-          <Card className="flex-1 bg-white border border-gray-200">
+          <Card className="flex-1 bg-[#F8F5E4] border border-gray-200">
             <CardHeader>
               <CardTitle>Wallet Points</CardTitle>
               <CardDescription>

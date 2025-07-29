@@ -799,146 +799,148 @@ const AddressManagement: React.FC = () => {
   };
 
   return (
-    <DashboardLayout>
-      <div className="container max-w-7xl mx-auto py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Manage Addresses</h1>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="flex items-center">
+    <div className="min-h-screen bg-[#F8F5E4]">
+      <DashboardLayout>
+        <div className="container max-w-7xl mx-auto py-8">
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-3xl font-bold">Manage Addresses</h1>
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="flex items-center">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add New Address
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto w-full p-0">
+                <div className="p-4 sm:p-6">
+                  <DialogHeader>
+                    <DialogTitle>Add New Address</DialogTitle>
+                    <DialogDescription>
+                      Enter the details for your new address
+                    </DialogDescription>
+                  </DialogHeader>
+                  <AddressForm
+                    onSubmit={handleAddAddress}
+                    onCancel={() => setIsAddDialogOpen(false)}
+                  />
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <div className="bg-slate-50 p-4 rounded-lg mb-6">
+            <h2 className="text-lg font-semibold mb-2 flex items-center">
+              <FileCheck className="h-5 w-5 mr-2 text-blue-500" />
+              Address Types
+            </h2>
+            <p className="text-sm text-slate-600 mb-2">
+              We now support separate billing and shipping addresses to provide
+              more flexibility:
+            </p>
+            <ul className="list-disc list-inside text-sm text-slate-600 space-y-1 ml-4">
+              <li>
+                <span className="font-medium">Billing Only:</span> Used for
+                invoice and payment information
+              </li>
+              <li>
+                <span className="font-medium">Shipping Only:</span> Used for
+                delivery of your orders
+              </li>
+              <li>
+                <span className="font-medium">Both:</span> Can be used for both
+                billing and shipping purposes
+              </li>
+            </ul>
+          </div>
+
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="relative">
+                  <CardHeader>
+                    <Skeleton className="h-6 w-1/3 mb-2" />
+                    <Skeleton className="h-4 w-1/2 mb-1" />
+                    <Skeleton className="h-4 w-1/3" />
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-4 w-2/3" />
+                  </CardContent>
+                  <CardFooter>
+                    <Skeleton className="h-9 w-24 mr-2" />
+                    <Skeleton className="h-9 w-24" />
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          ) : addresses && addresses.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {addresses.map((address: UserAddress) => (
+                <AddressCard
+                  key={address.id}
+                  address={address}
+                  onEdit={handleEditClick}
+                  onDelete={handleDeleteClick}
+                  onSetDefault={handleSetDefaultClick}
+                  onSetDefaultBilling={handleSetDefaultBillingClick}
+                  onSetDefaultShipping={handleSetDefaultShippingClick}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-10">
+              <MapPin className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-xl font-medium mb-2">No addresses found</h3>
+              <p className="text-gray-500 mb-6">
+                You don't have any saved addresses yet. Add an address to make
+                checkout faster.
+              </p>
+              <Button
+                onClick={() => setIsAddDialogOpen(true)}
+                className="flex items-center mx-auto"
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Add New Address
               </Button>
-            </DialogTrigger>
+            </div>
+          )}
+
+          {/* Edit Address Dialog */}
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
             <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto w-full p-0">
               <div className="p-4 sm:p-6">
                 <DialogHeader>
-                  <DialogTitle>Add New Address</DialogTitle>
+                  <DialogTitle>Edit Address</DialogTitle>
                   <DialogDescription>
-                    Enter the details for your new address
+                    Update the details for your address
                   </DialogDescription>
                 </DialogHeader>
-                <AddressForm
-                  onSubmit={handleAddAddress}
-                  onCancel={() => setIsAddDialogOpen(false)}
-                />
+                {selectedAddress && (
+                  <AddressForm
+                    defaultValues={{
+                      addressName: selectedAddress.addressName,
+                      fullName: selectedAddress.fullName,
+                      address: selectedAddress.address,
+                      city: selectedAddress.city,
+                      state: selectedAddress.state,
+                      pincode: selectedAddress.pincode,
+                      phone: selectedAddress.phone,
+                      isDefault: selectedAddress.isDefault,
+                      addressType: selectedAddress.addressType || "both",
+                    }}
+                    onSubmit={handleUpdateAddress}
+                    onCancel={() => {
+                      setIsEditDialogOpen(false);
+                      setSelectedAddress(null);
+                    }}
+                  />
+                )}
               </div>
             </DialogContent>
           </Dialog>
         </div>
-
-        <div className="bg-slate-50 p-4 rounded-lg mb-6">
-          <h2 className="text-lg font-semibold mb-2 flex items-center">
-            <FileCheck className="h-5 w-5 mr-2 text-blue-500" />
-            Address Types
-          </h2>
-          <p className="text-sm text-slate-600 mb-2">
-            We now support separate billing and shipping addresses to provide
-            more flexibility:
-          </p>
-          <ul className="list-disc list-inside text-sm text-slate-600 space-y-1 ml-4">
-            <li>
-              <span className="font-medium">Billing Only:</span> Used for
-              invoice and payment information
-            </li>
-            <li>
-              <span className="font-medium">Shipping Only:</span> Used for
-              delivery of your orders
-            </li>
-            <li>
-              <span className="font-medium">Both:</span> Can be used for both
-              billing and shipping purposes
-            </li>
-          </ul>
-        </div>
-
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="relative">
-                <CardHeader>
-                  <Skeleton className="h-6 w-1/3 mb-2" />
-                  <Skeleton className="h-4 w-1/2 mb-1" />
-                  <Skeleton className="h-4 w-1/3" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-4 w-full mb-2" />
-                  <Skeleton className="h-4 w-2/3" />
-                </CardContent>
-                <CardFooter>
-                  <Skeleton className="h-9 w-24 mr-2" />
-                  <Skeleton className="h-9 w-24" />
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        ) : addresses && addresses.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {addresses.map((address: UserAddress) => (
-              <AddressCard
-                key={address.id}
-                address={address}
-                onEdit={handleEditClick}
-                onDelete={handleDeleteClick}
-                onSetDefault={handleSetDefaultClick}
-                onSetDefaultBilling={handleSetDefaultBillingClick}
-                onSetDefaultShipping={handleSetDefaultShippingClick}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-10">
-            <MapPin className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-            <h3 className="text-xl font-medium mb-2">No addresses found</h3>
-            <p className="text-gray-500 mb-6">
-              You don't have any saved addresses yet. Add an address to make
-              checkout faster.
-            </p>
-            <Button
-              onClick={() => setIsAddDialogOpen(true)}
-              className="flex items-center mx-auto"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add New Address
-            </Button>
-          </div>
-        )}
-
-        {/* Edit Address Dialog */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto w-full p-0">
-            <div className="p-4 sm:p-6">
-              <DialogHeader>
-                <DialogTitle>Edit Address</DialogTitle>
-                <DialogDescription>
-                  Update the details for your address
-                </DialogDescription>
-              </DialogHeader>
-              {selectedAddress && (
-                <AddressForm
-                  defaultValues={{
-                    addressName: selectedAddress.addressName,
-                    fullName: selectedAddress.fullName,
-                    address: selectedAddress.address,
-                    city: selectedAddress.city,
-                    state: selectedAddress.state,
-                    pincode: selectedAddress.pincode,
-                    phone: selectedAddress.phone,
-                    isDefault: selectedAddress.isDefault,
-                    addressType: selectedAddress.addressType || "both",
-                  }}
-                  onSubmit={handleUpdateAddress}
-                  onCancel={() => {
-                    setIsEditDialogOpen(false);
-                    setSelectedAddress(null);
-                  }}
-                />
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-    </DashboardLayout>
+      </DashboardLayout>
+    </div>
   );
 };
 

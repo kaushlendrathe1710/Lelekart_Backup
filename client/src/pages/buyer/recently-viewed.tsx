@@ -36,40 +36,42 @@ export default function RecentlyViewedPage() {
   }, []);
 
   return (
-    <div className="container mx-auto py-6 px-4">
-      <Button variant="outline" className="mb-4" onClick={() => setLocation("/buyer/dashboard")}>Back to Dashboard</Button>
-      <Card className="shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle>All Recently Viewed Products</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-8 text-center flex-col">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
-              <h3 className="text-sm font-medium">Loading recently viewed products...</h3>
-            </div>
-          ) : recentlyViewed.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
-              {recentlyViewed.map((product: any) => (
-                <div key={product.id} className="flex flex-col items-center border rounded-md p-2">
-                  <Link href={`/product/${product.id}`} className="block w-full">
-                    <img src={product.imageUrl || (product.images && JSON.parse(product.images)[0]) || 'https://via.placeholder.com/100?text=Product'} alt={product.name} className="w-20 h-20 object-cover rounded mb-2 mx-auto" />
-                    <div className="text-xs font-medium text-center line-clamp-2">{product.name}</div>
-                  </Link>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex items-center justify-center py-8 text-center flex-col">
-              <h3 className="text-sm font-medium">No recently viewed products</h3>
-              <p className="text-xs text-muted-foreground mt-1">Products you view will appear here</p>
-              <Button variant="link" size="sm" className="mt-2" asChild>
-                <Link href="/">Browse Products</Link>
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+    <div className="min-h-screen bg-[#F8F5E4]">
+      <div className="container mx-auto py-6 px-4">
+        <Button variant="outline" className="mb-4" onClick={() => setLocation("/buyer/dashboard")}>Back to Dashboard</Button>
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle>All Recently Viewed Products</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex items-center justify-center py-8 text-center flex-col">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
+                <h3 className="text-sm font-medium">Loading recently viewed products...</h3>
+              </div>
+            ) : recentlyViewed.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+                {recentlyViewed.map((product: any) => (
+                  <div key={product.id} className="flex flex-col items-center border rounded-md p-2">
+                    <Link href={`/product/${product.id}`} className="block w-full">
+                      <img src={product.imageUrl || (product.images && JSON.parse(product.images)[0]) || 'https://via.placeholder.com/100?text=Product'} alt={product.name} className="w-20 h-20 object-cover rounded mb-2 mx-auto" />
+                      <div className="text-xs font-medium text-center line-clamp-2">{product.name}</div>
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center py-8 text-center flex-col">
+                <h3 className="text-sm font-medium">No recently viewed products</h3>
+                <p className="text-xs text-muted-foreground mt-1">Products you view will appear here</p>
+                <Button variant="link" size="sm" className="mt-2" asChild>
+                  <Link href="/">Browse Products</Link>
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 } 

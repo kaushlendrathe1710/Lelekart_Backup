@@ -513,7 +513,7 @@ export default function OrderDetailsPage() {
         {/* All details as vertical cards on mobile */}
         <div className="flex flex-col gap-4 mb-6">
           {/* Order Status */}
-          <Card className="p-4 sm:p-6 w-full">
+          <Card className="p-4 sm:p-6 w-full bg-[#F8F5E4]">
             <h2 className="text-lg font-semibold mb-4 flex items-center">
               <ShoppingBag className="h-5 w-5 mr-2 text-muted-foreground" />
               Order Status
@@ -537,7 +537,7 @@ export default function OrderDetailsPage() {
           </Card>
 
           {/* Payment Info */}
-          <Card className="p-4 sm:p-6 w-full">
+          <Card className="p-4 sm:p-6 w-full bg-[#F8F5E4]">
             <h2 className="text-lg font-semibold mb-4 flex items-center">
               <CreditCard className="h-5 w-5 mr-2 text-muted-foreground" />
               Payment Information
@@ -629,7 +629,7 @@ export default function OrderDetailsPage() {
 
           {/* Tracking Info */}
           {order.trackingId && (
-            <Card className="p-4 sm:p-6 w-full">
+            <Card className="p-4 sm:p-6 w-full bg-[#F8F5E4]">
               <h2 className="text-lg font-semibold mb-4 flex items-center">
                 <Truck className="h-5 w-5 mr-2 text-muted-foreground" />
                 Tracking Information
@@ -663,7 +663,7 @@ export default function OrderDetailsPage() {
           )}
 
           {/* Shipping Info */}
-          <Card className="p-4 sm:p-6 w-full">
+          <Card className="p-4 sm:p-6 w-full bg-[#F8F5E4]">
             <h2 className="text-lg font-semibold mb-4 flex items-center">
               <MapPin className="h-5 w-5 mr-2 text-muted-foreground" />
               Shipping Information
@@ -699,7 +699,7 @@ export default function OrderDetailsPage() {
           </Card>
 
           {/* Billing Info */}
-          <Card className="p-4 sm:p-6 w-full">
+          <Card className="p-4 sm:p-6 w-full bg-[#F8F5E4]">
             <h2 className="text-lg font-semibold mb-4 flex items-center">
               <FileText className="h-5 w-5 mr-2 text-muted-foreground" />
               Billing Information
@@ -727,7 +727,7 @@ export default function OrderDetailsPage() {
           </Card>
 
           {/* Order Items */}
-          <Card className="p-4 sm:p-6 w-full">
+          <Card className="p-4 sm:p-6 w-full bg-[#F8F5E4]">
             <h2 className="text-lg font-semibold mb-4">Order Items</h2>
             <div className="space-y-4">
               {items.map((item) => (
@@ -790,7 +790,7 @@ export default function OrderDetailsPage() {
           </Card>
 
           {/* Tax Invoice - summary list on mobile, table on desktop */}
-          <Card className="p-4 sm:p-6 w-full">
+          <Card className="p-4 sm:p-6 w-full bg-[#F8F5E4]">
             <h2 className="text-lg font-semibold mb-4 flex items-center">
               <FileText className="h-5 w-5 mr-2 text-muted-foreground" />
               Tax Invoice Information
