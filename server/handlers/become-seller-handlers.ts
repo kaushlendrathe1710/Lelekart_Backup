@@ -103,7 +103,7 @@ export async function handleBecomeSeller(req: Request, res: Response) {
 
     // Send email to admin
     await sendEmail({
-      to: "kumarprasadaman1234@gmail.com",
+      to: "marketing.lelekart@gmail.com",
       subject: "New Seller Application - LeleKart",
       html: adminEmailContent,
     });
