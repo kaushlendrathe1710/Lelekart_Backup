@@ -139,9 +139,16 @@ router.get("/check-eligibility/:orderId/:orderItemId", async (req, res) => {
 // Get active return reasons
 router.get("/reasons", async (req, res) => {
   try {
-    const { requestType } = req.query;
-    const reasons = await storage.getActiveReturnReasons(requestType as string);
-    return res.json(reasons);
+    const { type } = req.query;
+    
+    let reasons;
+    if (type) {
+      reasons = await storage.getActiveReturnReasons(type as string);
+    } else {
+      reasons = await storage.getActiveReturnReasons();
+    }
+    
+    return res.json(reasons || []);
   } catch (error) {
     const err = error as Error;
     console.error("Error getting return reasons:", err.message || err);
@@ -165,7 +172,7 @@ router.post("/request", async (req, res) => {
       mediaUrls
     } = req.body;
     
-    if (!orderId || !orderItemId || !requestType || !reasonId) {
+    if (!orderId || !orderItemId || !requestType || !reasonId || !description) {
       return res.status(400).json({ error: "Missing required fields" });
     }
     
@@ -770,6 +777,30 @@ router.post('/admin/orders/:orderId/update-status', async (req, res) => {
     const err = error as Error;
     console.error('Error updating order status (admin):', err.message || err);
     return res.status(500).json({ error: err.message || 'Failed to update order status' });
+  }
+});
+
+// Upload images for return request
+router.post("/upload-images", async (req, res) => {
+  try {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    // This would typically handle file uploads
+    // For now, we'll return a mock response
+    // In a real implementation, you'd use multer or similar to handle file uploads
+    
+    return res.json({
+      urls: [
+        "https://example.com/return-image-1.jpg",
+        "https://example.com/return-image-2.jpg"
+      ]
+    });
+  } catch (error) {
+    const err = error as Error;
+    console.error("Error uploading images:", err.message || err);
+    return res.status(500).json({ error: err.message || "Failed to upload images" });
   }
 });
 

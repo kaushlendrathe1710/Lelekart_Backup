@@ -98,7 +98,7 @@ export function SimpleHeader() {
       {/* Desktop Header - with improved padding and spacing */}
       <div className="container mx-auto px-4 h-14 hidden md:flex md:items-center">
         <div className="flex items-center justify-between w-full py-2">
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-8">
             <Link href="/">
               <Logo />
             </Link>
@@ -107,10 +107,11 @@ export function SimpleHeader() {
               <div className="mr-2 hidden md:block">
                 <AllCategoriesDropdown />
               </div>
-              <SimpleSearch className="z-20" />
+              <SimpleSearch className="w-full flex-grow"
+                inputClassName="w-full pl-4 pr-4 py-2 text-base rounded-l-lg border-r-0 shadow-none" />
             </div>
           </div>
-          <div className="flex items-center space-x-5">
+          <div className="flex items-center space-x-4">
             {/* Hide Home button on home page */}
             {location !== "/" && (
               <Link href="/">
@@ -128,7 +129,7 @@ export function SimpleHeader() {
               // Show login button for non-authenticated users
               <Button
                 variant="ghost"
-                className="text-black hover:text-black hover:bg-primary-foreground/10 h-10"
+                className="text-black hover:text-black hover:bg-primary-foreground/10 px-4 py-2 text-base font-semibold rounded-md shadow border border-black"
                 onClick={() => setLocation("/auth")}
               >
                 Login
@@ -175,15 +176,14 @@ export function SimpleHeader() {
 
             {(!user || user.role === "buyer") && (
               <Button
-                variant="ghost"
-                size="icon"
-                className="text-black hover:bg-primary-foreground/10 relative h-10 w-10 flex items-center justify-center"
+                className="p-0 m-0 bg-transparent border-none shadow-none hover:bg-transparent focus:bg-transparent active:bg-transparent"
+                style={{ background: 'none', border: 'none', boxShadow: 'none' }}
                 onClick={handleCartClick}
-                title="Shopping Cart"
+                title="View Cart"
               >
-                <ShoppingCart className="h-10 w-10 text-black" />
+                <ShoppingCart className="h-20 w-20 md:h-32 md:w-32 lg:h-40 lg:w-40 text-black" style={{ background: 'none', border: 'none' }} />
                 {cartItemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-yellow-400 text-primary text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  <span className="ml-1 text-black text-4xl md:text-5xl lg:text-6xl font-bold" style={{ background: 'none', border: 'none' }}>
                     {cartItemCount}
                   </span>
                 )}
@@ -227,10 +227,11 @@ export function SimpleHeader() {
               onClick={handleCartClick}
               className="text-black hover:text-gray-200 relative p-1"
               title="Shopping Cart"
+              style={{ background: 'none', border: 'none' }}
             >
-              <ShoppingCart className="h-10 w-10 text-black" />
+              <ShoppingCart className="h-18 w-18 md:h-28 md:w-28 text-black" style={{ background: 'none', border: 'none' }} />
               {cartItemCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-yellow-400 text-primary text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                <span className="absolute -top-2 -right-2 text-black text-2xl md:text-3xl font-bold" style={{ background: 'none', border: 'none' }}>
                   {cartItemCount}
                 </span>
               )}

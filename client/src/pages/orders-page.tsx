@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Package2,
   Truck,
@@ -16,6 +17,9 @@ import {
   ArrowDownAZ,
   ArrowUpAZ,
   X,
+  ImageIcon,
+  UploadIcon,
+  XIcon,
 } from "lucide-react";
 import {
   Dialog,
@@ -24,6 +28,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -35,6 +40,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 // Types
 interface Order {
@@ -49,6 +56,16 @@ interface Order {
   rewardDiscount?: number;
   discount?: number;
   couponDiscount?: number;
+  items?: {
+    id: number;
+    product: {
+      id: number;
+      name: string;
+      image: string;
+    };
+    quantity: number;
+    price: number;
+  }[];
 }
 
 // Helper to format dates with time
@@ -107,6 +124,15 @@ export default function OrdersPage() {
   const [returningOrderId, setReturningOrderId] = useState<number | null>(null);
   const { toast } = useToast();
   const [cancelReason, setCancelReason] = useState("");
+  
+  // Return dialog state
+  const [returnDialogOpen, setReturnDialogOpen] = useState(false);
+  const [selectedOrderForReturn, setSelectedOrderForReturn] = useState<Order | null>(null);
+  const [returnReason, setReturnReason] = useState("");
+  const [returnDescription, setReturnDescription] = useState("");
+  const [returnImages, setReturnImages] = useState<File[]>([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [returnReasons, setReturnReasons] = useState<any[]>([]);
 
   // Cancel order mutation
   const cancelOrderMutation = useMutation({
@@ -192,6 +218,22 @@ export default function OrdersPage() {
     fetchOrders();
   }, [navigate]);
 
+  useEffect(() => {
+    fetchReturnReasons();
+  }, []);
+
+  const fetchReturnReasons = async () => {
+    try {
+      const response = await fetch('/api/returns/reasons?type=return');
+      if (response.ok) {
+        const reasons = await response.json();
+        setReturnReasons(reasons);
+      }
+    } catch (error) {
+      console.error('Error fetching return reasons:', error);
+    }
+  };
+
   // Sort orders by date
   const sortOrders = (ordersToSort: Order[]): Order[] => {
     return [...ordersToSort].sort((a, b) => {
@@ -230,30 +272,165 @@ export default function OrdersPage() {
     setFilteredOrders(result);
   }, [searchQuery, orders, sortDescending]);
 
-  const handleReturnOrder = async (orderId: number) => {
-    setReturningOrderId(orderId);
+  const handleReturnOrder = async (order: Order) => {
+    setSelectedOrderForReturn(order);
+    setReturnDialogOpen(true);
+  };
+
+  const submitReturnRequest = async () => {
+    if (!selectedOrderForReturn || !returnReason || !returnDescription.trim() || returnImages.length === 0) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setReturningOrderId(selectedOrderForReturn.id);
     try {
-      const response = await fetch(`/api/orders/${orderId}/mark-for-return`, {
+      // First, get the order details to get the actual order items
+      console.log('Fetching order details for order:', selectedOrderForReturn.id);
+      const orderDetailsResponse = await fetch(`/api/orders/${selectedOrderForReturn.id}`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (!orderDetailsResponse.ok) {
+        throw new Error('Failed to fetch order details');
+      }
+
+      const orderDetails = await orderDetailsResponse.json();
+      console.log('Order details:', orderDetails);
+
+      // Get the first order item ID
+      const orderItemId = orderDetails.items?.[0]?.id;
+      if (!orderItemId) {
+        throw new Error('No order items found for this order');
+      }
+
+      // Get the order item details to check its status
+      const orderItem = orderDetails.items?.[0];
+      console.log('Order item details:', orderItem);
+      console.log('Order item status:', orderItem?.status);
+      console.log('Order status:', orderDetails.status);
+
+      console.log('Using order item ID:', orderItemId);
+
+      // Upload images first
+      let imageUrls: string[] = [];
+      if (returnImages.length > 0) {
+        setUploadingImages(true);
+        const formData = new FormData();
+        returnImages.forEach((file) => {
+          formData.append('file', file);
+        });
+
+        console.log('Uploading images...');
+        const uploadResponse = await fetch('/api/upload-multiple', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+        });
+
+        if (uploadResponse.ok) {
+          const uploadResult = await uploadResponse.json();
+          imageUrls = uploadResult.urls || [];
+          console.log('Images uploaded successfully:', imageUrls);
+        } else {
+          console.error('Image upload failed:', uploadResponse.status, uploadResponse.statusText);
+          // Continue without images if upload fails
+        }
+      }
+
+      // Create return request
+      const returnData = {
+        orderId: selectedOrderForReturn.id,
+        orderItemId: orderItemId,
+        requestType: 'return',
+        reasonId: parseInt(returnReason),
+        description: returnDescription,
+        mediaUrls: imageUrls,
+      };
+
+      console.log('Submitting return request with data:', returnData);
+
+      const returnResponse = await fetch('/api/returns/request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(returnData),
+      });
+
+      console.log('Return request response status:', returnResponse.status);
+
+      if (!returnResponse.ok) {
+        const errorText = await returnResponse.text();
+        console.error('Return request failed:', errorText);
+        throw new Error(`Failed to create return request: ${returnResponse.status} ${returnResponse.statusText}`);
+      }
+
+      const returnResult = await returnResponse.json();
+      console.log('Return request created successfully:', returnResult);
+
+      // Mark order for return
+      console.log('Marking order for return...');
+      const markResponse = await fetch(`/api/orders/${selectedOrderForReturn.id}/mark-for-return`, {
         method: "POST",
         credentials: "include",
       });
-      if (!response.ok) {
-        throw new Error("Failed to mark order for return");
+      
+      if (!markResponse.ok) {
+        console.error('Failed to mark order for return:', markResponse.status, markResponse.statusText);
+        // Don't throw error here as the return request was already created
+      } else {
+        console.log('Order marked for return successfully');
       }
+
       toast({
-        title: "Return Initiated",
-        description: "Order marked for return. You can track it in My Returns.",
+        title: "Return Request Submitted",
+        description: "Your return request has been submitted successfully. You can track it in My Returns.",
       });
-      fetchOrders();
+      
+      setReturnDialogOpen(false);
+      setReturnReason("");
+      setReturnDescription("");
+      setReturnImages([]);
+      setSelectedOrderForReturn(null);
+      // refetch(); // Assuming refetch is available from queryClient or similar
     } catch (error) {
+      console.error('Error in submitReturnRequest:', error);
       toast({
         title: "Error",
-        description: "Failed to mark order for return. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to submit return request. Please try again.",
         variant: "destructive",
       });
     } finally {
       setReturningOrderId(null);
+      setUploadingImages(false);
     }
+  };
+
+  // Refactor image upload handler to ensure only valid images are added and previewed
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    const validFiles = files.filter(file =>
+      file.type.startsWith('image/') && file.size <= 5 * 1024 * 1024 // 5MB limit
+    );
+    if (validFiles.length !== files.length) {
+      toast({
+        title: "Invalid Files",
+        description: "Some files were not uploaded. Only images under 5MB are allowed.",
+        variant: "destructive",
+      });
+    }
+    setReturnImages(prev => [...prev, ...validFiles]);
+  };
+
+  const removeImage = (index: number) => {
+    setReturnImages(prev => prev.filter((_, i) => i !== index));
   };
 
   const renderContent = () => {
@@ -423,7 +600,7 @@ export default function OrdersPage() {
                           disabled={returningOrderId === order.id}
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleReturnOrder(order.id);
+                            handleReturnOrder(order);
                           }}
                         >
                           {returningOrderId === order.id ? (
@@ -453,6 +630,22 @@ export default function OrdersPage() {
       </div>
     );
   };
+
+  // Fallback reasons if API returns nothing
+  const fallbackReasons = [
+    { id: 1, text: 'Wrong item received' },
+    { id: 2, text: 'Item damaged' },
+    { id: 3, text: 'Not as described' },
+    { id: 4, text: 'Other' },
+  ];
+  const filteredReturnReasons =
+    Array.isArray(returnReasons) && returnReasons.length > 0
+      ? returnReasons.filter(r => r && r.id && r.text)
+      : fallbackReasons;
+
+  // Debug logs
+  console.log('filteredReturnReasons:', filteredReturnReasons);
+  console.log('returnImages:', returnImages);
 
   return (
     <DashboardLayout>
@@ -537,6 +730,128 @@ export default function OrdersPage() {
                 </>
               ) : (
                 "Cancel Order"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Return Request Dialog */}
+      <Dialog open={returnDialogOpen} onOpenChange={setReturnDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Request Return</DialogTitle>
+            <DialogDescription>
+              Please provide details about your return request for Order #{selectedOrderForReturn?.id}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedOrderForReturn && (
+            <div className="space-y-4">
+              {/* Return Reason */}
+              <div className="space-y-2">
+                <label htmlFor="return-reason" className="block font-medium mb-1">Return Reason *</label>
+                <select
+                  id="return-reason"
+                  value={returnReason}
+                  onChange={e => setReturnReason(e.target.value)}
+                  required
+                  className="block w-full border rounded px-3 py-2"
+                >
+                  <option value="">Select a reason for return</option>
+                  {fallbackReasons.map((reason) => (
+                    <option key={reason.id} value={reason.id.toString()}>
+                      {reason.text}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {/* Description */}
+              <div className="space-y-2">
+                <label htmlFor="return-description" className="block font-medium mb-1">Description *</label>
+                <textarea
+                  id="return-description"
+                  placeholder="Please provide detailed description of the issue..."
+                  value={returnDescription}
+                  onChange={e => setReturnDescription(e.target.value)}
+                  rows={4}
+                  required
+                  className="block w-full border rounded px-3 py-2"
+                />
+              </div>
+              {/* Image Upload */}
+              <div className="space-y-2">
+                <label className="block font-medium mb-1">Images *</label>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="mb-2"
+                />
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {returnImages.map((file, idx) => (
+                    <div key={idx} style={{ position: 'relative', display: 'inline-block' }}>
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt=""
+                        style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 4, border: '1px solid #eee' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(idx)}
+                        style={{
+                          position: 'absolute',
+                          top: 2,
+                          right: 2,
+                          background: 'rgba(0,0,0,0.6)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '50%',
+                          width: 22,
+                          height: 22,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          fontSize: 14,
+                          zIndex: 2,
+                        }}
+                        title="Remove image"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setReturnDialogOpen(false)}
+              disabled={returningOrderId === selectedOrderForReturn?.id}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={submitReturnRequest}
+              disabled={
+                returningOrderId === selectedOrderForReturn?.id ||
+                !returnReason ||
+                !returnDescription.trim() ||
+                returnImages.length === 0
+              }
+            >
+              {returningOrderId === selectedOrderForReturn?.id ? (
+                <>
+                  <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                  Submitting...
+                </>
+              ) : (
+                'Submit Return Request'
               )}
             </Button>
           </DialogFooter>

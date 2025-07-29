@@ -65,6 +65,7 @@ import {
 import { SimpleSearch } from "@/components/ui/simple-search";
 import { useToast } from "@/hooks/use-toast";
 import { useNotifications } from "@/contexts/notification-context";
+import { Logo } from "@/components/layout/logo";
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -293,10 +294,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     <SidebarProvider defaultOpen={true}>
       <div className="flex min-h-screen flex-col bg-gray-50">
         {/* Top Navigation - Header (Fixed) */}
-        <header className="fixed top-0 left-0 right-0 z-50 bg-[#2874f0] text-white shadow-md h-16">
+        <header className="fixed top-0 left-0 right-0 z-50 bg-[#F8F5E4] text-white shadow-md h-16">
           <div className="container mx-auto flex h-full items-center justify-between px-4">
             <div className="flex items-center space-x-4">
-              <SidebarTrigger className="text-white hover:bg-[#2874f0]/90" />
+              <SidebarTrigger className="text-white hover:bg-orange-400/90" />
               {/* Logo - using Link instead of window.location for client-side routing to maintain session */}
               <Link href="/">
                 <Button
@@ -304,7 +305,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                   className="p-0 hover:bg-transparent focus:bg-transparent"
                 >
                   <div className="flex items-center space-x-2 text-xl font-bold">
-                    <div className="text-xl font-bold text-white">Lelekart</div>
+                    <Logo />
                   </div>
                 </Button>
               </Link>

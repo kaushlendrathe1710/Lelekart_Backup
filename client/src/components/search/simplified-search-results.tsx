@@ -75,15 +75,15 @@ export function SimplifiedSearchResults({
       <div className="relative flex-1">
         <Input
           type="text"
-          className="w-full pl-10 pr-4 rounded-l-md border-r-0"
+          className="w-full pl-14 pr-6 py-5 text-xl rounded-l-lg border-r-0 shadow-lg"
           placeholder="Search products..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           autoFocus
         />
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+        <Search className="absolute left-5 top-1/2 transform -translate-y-1/2 h-7 w-7 text-gray-500" />
       </div>
-      <Button type="submit" className="rounded-l-none">Search</Button>
+      <Button type="submit" className="rounded-l-none px-10 py-5 text-xl font-bold shadow-lg">Search</Button>
     </form>
   );
 }

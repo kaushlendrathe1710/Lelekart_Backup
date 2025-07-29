@@ -50,6 +50,8 @@ import {
   Truck,
   AlertCircle,
   XCircle,
+  RefreshCcw,
+  ImageIcon,
 } from "lucide-react";
 import {
   Select,
@@ -145,6 +147,8 @@ export default function AdminOrders() {
     start: string | null;
     end: string | null;
   }>({ start: null, end: null });
+  const [returnInfo, setReturnInfo] = useState<any>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const invoiceRef = useRef<HTMLDivElement>(null);
   const shippingLabelRef = useRef<HTMLDivElement>(null);
 
@@ -195,6 +199,27 @@ export default function AdminOrders() {
       if (!res.ok) throw new Error("Failed to fetch order details");
       const orderData = await res.json();
       setViewOrder(orderData);
+
+      // If order has return status, fetch return information
+      if (orderData.status === 'marked_for_return' || 
+          orderData.status === 'approve_return' || 
+          orderData.status === 'reject_return' || 
+          orderData.status === 'process_return' || 
+          orderData.status === 'completed_return') {
+        try {
+          const returnRes = await fetch(`/api/returns?orderId=${orderId}`, {
+            credentials: 'include'
+          });
+          if (returnRes.ok) {
+            const returnData = await returnRes.json();
+            if (returnData.length > 0) {
+              setReturnInfo(returnData[0]);
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching return info:', error);
+        }
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -317,6 +342,36 @@ export default function AdminOrders() {
         return (
           <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
             <XCircle className="h-3 w-3 mr-1" /> Cancelled
+          </Badge>
+        );
+      case "marked_for_return":
+        return (
+          <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100">
+            <RefreshCcw className="h-3 w-3 mr-1" /> Marked for Return
+          </Badge>
+        );
+      case "approve_return":
+        return (
+          <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+            <CheckCircle2 className="h-3 w-3 mr-1" /> Return Approved
+          </Badge>
+        );
+      case "reject_return":
+        return (
+          <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
+            <XCircle className="h-3 w-3 mr-1" /> Return Rejected
+          </Badge>
+        );
+      case "process_return":
+        return (
+          <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">
+            <Truck className="h-3 w-3 mr-1" /> Processing Return
+          </Badge>
+        );
+      case "completed_return":
+        return (
+          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+            <CheckCircle2 className="h-3 w-3 mr-1" /> Return Completed
           </Badge>
         );
       default:
@@ -905,205 +960,220 @@ export default function AdminOrders() {
         )}
 
         {/* Order Details Dialog */}
-        <Dialog open={!!viewOrder} onOpenChange={() => setViewOrder(null)}>
+        <Dialog open={!!viewOrder} onOpenChange={() => {
+          setViewOrder(null);
+          setReturnInfo(null);
+          setSelectedImage(null);
+        }}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Order Details #{viewOrder?.id}</DialogTitle>
+              <DialogTitle>Order Details</DialogTitle>
               <DialogDescription>
-                Order placed on{" "}
-                {viewOrder?.date && format(new Date(viewOrder.date), "PPP")}
+                Order #{viewOrder?.id} - {viewOrder?.date}
               </DialogDescription>
             </DialogHeader>
 
             {viewOrder && (
               <div className="space-y-6">
-                {/* Order Summary */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Order Summary</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Order Status */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold">Order Status</h3>
+                    <div className="mt-2">{getStatusBadge(viewOrder.status)}</div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold">₹{viewOrder.total}</p>
+                    <p className="text-sm text-gray-500">
+                      {formatPaymentMethod(viewOrder.paymentMethod)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Return Information */}
+                {returnInfo && (
+                  <div className="border rounded-lg p-4 bg-orange-50">
+                    <h3 className="text-lg font-semibold text-orange-800 mb-3 flex items-center">
+                      <RefreshCcw className="h-5 w-5 mr-2" />
+                      Return Request Information
+                    </h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <h4 className="font-medium mb-2">
-                          Customer Information
-                        </h4>
-                        {isAdminShippingDetails(viewOrder.shippingDetails) ? (
-                          <div className="space-y-1 text-sm">
-                            <p>
-                              <strong>Name:</strong>{" "}
-                              {viewOrder.shippingDetails.name}
-                            </p>
-                            <p>
-                              <strong>Email:</strong>{" "}
-                              {viewOrder.shippingDetails.email}
-                            </p>
-                            <p>
-                              <strong>Phone:</strong>{" "}
-                              {viewOrder.shippingDetails.phone}
-                            </p>
-                            <p>
-                              <strong>Address:</strong>{" "}
-                              {viewOrder.shippingDetails.address}
-                            </p>
-                            <p>
-                              <strong>City:</strong>{" "}
-                              {viewOrder.shippingDetails.city}
-                            </p>
-                            <p>
-                              <strong>State:</strong>{" "}
-                              {viewOrder.shippingDetails.state}
-                            </p>
-                            <p>
-                              <strong>ZIP:</strong>{" "}
-                              {viewOrder.shippingDetails.zipCode}
-                            </p>
+                        <h4 className="font-medium text-gray-900 mb-2">Return Details</h4>
+                        <div className="space-y-2 text-sm">
+                          <div>
+                            <span className="font-medium">Reason:</span> {returnInfo.reasonText}
                           </div>
-                        ) : (
-                          <p className="text-muted-foreground">
-                            Shipping details not available
-                          </p>
-                        )}
-                      </div>
-                      <div>
-                        <h4 className="font-medium mb-2">Order Information</h4>
-                        <div className="space-y-1 text-sm">
-                          <p>
-                            <strong>Order ID:</strong> #{viewOrder.id}
-                          </p>
-                          <p>
-                            <strong>Date:</strong>{" "}
-                            {format(new Date(viewOrder.date), "PPP")}
-                          </p>
-                          <p>
-                            <strong>Status:</strong>{" "}
-                            {getStatusBadge(viewOrder.status)}
-                          </p>
-                          <p>
-                            <strong>Payment Method:</strong>{" "}
-                            {formatPaymentMethod(viewOrder.paymentMethod)}
-                          </p>
-                          <p>
-                            <strong>Subtotal:</strong> ₹
-                            {viewOrder.subtotal?.toLocaleString() || "0"}
-                          </p>
-                          <p>
-                            <strong>Shipping:</strong> ₹
-                            {viewOrder.shippingCharges?.toLocaleString() || "0"}
-                          </p>
-                          <p>
-                            <strong>Discount:</strong> ₹
-                            {viewOrder.discount?.toLocaleString() || "0"}
-                          </p>
-                          <p>
-                            <strong>Total:</strong> ₹
-                            {viewOrder.total?.toLocaleString() || "0"}
-                          </p>
+                          <div>
+                            <span className="font-medium">Description:</span>
+                            <p className="text-gray-600 mt-1">{returnInfo.description}</p>
+                          </div>
+                          <div>
+                            <span className="font-medium">Request Type:</span> {returnInfo.requestType}
+                          </div>
+                          <div>
+                            <span className="font-medium">Submitted:</span> {new Date(returnInfo.createdAt).toLocaleDateString()}
+                          </div>
                         </div>
                       </div>
+                      
+                      {/* Return Images */}
+                      {returnInfo.mediaUrls && returnInfo.mediaUrls.length > 0 && (
+                        <div>
+                          <h4 className="font-medium text-gray-900 mb-2">Return Images</h4>
+                          <div className="grid grid-cols-2 gap-2">
+                            {returnInfo.mediaUrls.map((url: string, index: number) => (
+                              <div 
+                                key={index} 
+                                className="relative cursor-pointer"
+                                onClick={() => setSelectedImage(url)}
+                              >
+                                <img
+                                  src={url}
+                                  alt={`Return image ${index + 1}`}
+                                  className="w-full h-24 object-cover rounded border"
+                                />
+                                <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-all rounded flex items-center justify-center">
+                                  <ImageIcon className="h-6 w-6 text-white opacity-0 hover:opacity-100" />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                )}
+
+                {/* Customer Information */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Customer Information</h3>
+                  {isAdminShippingDetails(viewOrder.shippingDetails) ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Name</p>
+                        <p className="font-medium">{viewOrder.shippingDetails.name}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Email</p>
+                        <p className="font-medium">{viewOrder.shippingDetails.email}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Phone</p>
+                        <p className="font-medium">{viewOrder.shippingDetails.phone}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Address</p>
+                        <p className="font-medium">
+                          {viewOrder.shippingDetails.address}, {viewOrder.shippingDetails.city}, {viewOrder.shippingDetails.state} {viewOrder.shippingDetails.zipCode}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500">Shipping details not available</p>
+                  )}
+                </div>
 
                 {/* Order Items */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Order Items</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {viewOrder.items?.map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex items-center gap-4 p-4 border rounded-lg"
-                        >
-                          <div className="w-16 h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
-                            <img
-                              src={
-                                item.product.imageUrl ||
-                                item.product.image_url ||
-                                "https://placehold.co/200x200/gray/white?text=No+Image"
-                              }
-                              alt={item.product.name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.src =
-                                  "https://placehold.co/200x200/gray/white?text=No+Image";
-                              }}
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium truncate">
-                              {item.product.name}
-                            </h4>
-                            <p className="text-sm text-muted-foreground">
-                              Quantity: {item.quantity} × ₹
-                              {item.price?.toLocaleString() || "0"}
-                            </p>
-                            {item.variant && (
-                              <p className="text-sm text-muted-foreground">
-                                Variant: {item.variant}
-                              </p>
-                            )}
-                          </div>
-                          <div className="text-right">
-                            <div className="font-medium">
-                              ₹
-                              {(
-                                item.quantity * (item.price || 0)
-                              ).toLocaleString()}
-                            </div>
-                          </div>
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Order Items</h3>
+                  <div className="space-y-3">
+                    {viewOrder.items?.map((item) => (
+                      <div key={item.id} className="flex items-center space-x-4 p-3 border rounded-lg">
+                        <img
+                          src={item.product.image || "https://placehold.co/100x100?text=No+Image"}
+                          alt={item.product.name}
+                          className="w-16 h-16 object-cover rounded"
+                        />
+                        <div className="flex-1">
+                          <h4 className="font-medium">{item.product.name}</h4>
+                          <p className="text-sm text-gray-500">
+                            Quantity: {item.quantity} × ₹{item.price}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            Seller: {item.product.sellerName || 'Unknown'}
+                          </p>
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                        <div className="text-right">
+                          <p className="font-medium">₹{item.quantity * item.price}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
                 {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-2">
+                <div className="flex flex-wrap gap-2 pt-4 border-t">
                   <Button
+                    variant="outline"
                     onClick={() => {
                       if (invoiceRef.current) {
                         printInvoice();
                       }
                     }}
-                    className="flex-1 sm:flex-none"
                   >
-                    <Printer className="mr-2 h-4 w-4" />
+                    <FileText className="mr-2 h-4 w-4" />
                     Print Invoice
                   </Button>
                   <Button
+                    variant="outline"
                     onClick={() => {
                       if (shippingLabelRef.current) {
                         printShippingLabel();
                       }
                     }}
-                    variant="outline"
-                    className="flex-1 sm:flex-none"
                   >
                     <Truck className="mr-2 h-4 w-4" />
                     Print Shipping Label
                   </Button>
-                  <Button
-                    onClick={() => downloadInvoice()}
-                    variant="outline"
-                    className="flex-1 sm:flex-none"
-                  >
-                    <FileText className="mr-2 h-4 w-4" />
-                    Download Invoice
-                  </Button>
-                  <Button
-                    onClick={() => downloadTaxInvoice()}
-                    variant="outline"
-                    className="flex-1 sm:flex-none"
-                  >
-                    <FileText className="mr-2 h-4 w-4" />
-                    Download Tax Invoice
-                  </Button>
+                  
+                  {/* Return Action Buttons */}
+                  {returnInfo && (
+                    <>
+                      <Button
+                        variant="default"
+                        onClick={() => updateOrderStatus(viewOrder.id, "approve_return")}
+                        disabled={updateStatusMutation.isPending}
+                      >
+                        <CheckCircle2 className="mr-2 h-4 w-4" />
+                        Approve Return
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={() => updateOrderStatus(viewOrder.id, "reject_return")}
+                        disabled={updateStatusMutation.isPending}
+                      >
+                        <XCircle className="mr-2 h-4 w-4" />
+                        Reject Return
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => updateOrderStatus(viewOrder.id, "process_return")}
+                        disabled={updateStatusMutation.isPending}
+                      >
+                        <Truck className="mr-2 h-4 w-4" />
+                        Process Return
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Image Viewer Dialog */}
+        <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+          <DialogContent className="max-w-3xl p-0 overflow-hidden">
+            <div className="relative w-full max-h-[80vh] overflow-auto">
+              {selectedImage && (
+                <img 
+                  src={selectedImage} 
+                  alt="Return image" 
+                  className="w-full h-auto"
+                />
+              )}
+            </div>
           </DialogContent>
         </Dialog>
 

@@ -46,20 +46,20 @@ export function SimplifiedSearch({ className = '' }: SimplifiedSearchProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className={`relative flex ${className}`}>
-      <div className="relative flex-1">
+    <form onSubmit={handleSubmit} className={`relative flex w-full flex-grow max-w-5xl ${className}`}>
+      <div className="relative w-full flex-grow">
         <Input
           type="text"
           placeholder="Search for products, brands and more"
-          className="w-full pr-10 pl-4 rounded-l-md border-r-0"
+          className="w-full pr-32 pl-10 py-6 text-2xl rounded-l-lg border-r-0 shadow-lg"
           onChange={(e) => debouncedSetQuery(e.target.value)}
           defaultValue={query}
         />
         <Button 
           type="submit" 
-          className="absolute right-0 rounded-l-none"
+          className="absolute right-0 rounded-l-none px-12 py-6 text-2xl font-bold shadow-lg"
         >
-          <Search className="h-4 w-4" />
+          <Search className="h-7 w-7" />
         </Button>
       </div>
     </form>

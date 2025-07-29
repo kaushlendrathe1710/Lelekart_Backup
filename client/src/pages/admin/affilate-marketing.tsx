@@ -90,6 +90,7 @@ export default function AffiliateMarketingPage() {
     platform: "",
     code: "",
     discountPercentage: "",
+    email: "",
   });
   const [formPlatformType, setFormPlatformType] = useState(PLATFORM_OPTIONS[0]);
   // Edit form state
@@ -99,6 +100,7 @@ export default function AffiliateMarketingPage() {
     platform: "",
     code: "",
     discountPercentage: "",
+    email: "",
   });
   const [editPlatformType, setEditPlatformType] = useState(PLATFORM_OPTIONS[0]);
   const [showForm, setShowForm] = useState(false);
@@ -112,6 +114,8 @@ export default function AffiliateMarketingPage() {
   const [platformError, setPlatformError] = useState("");
   const [discountError, setDiscountError] = useState("");
   const [editDiscountError, setEditDiscountError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [editEmailError, setEditEmailError] = useState("");
 
   // Add form handlers
   const handleChange = (
@@ -178,6 +182,12 @@ export default function AffiliateMarketingPage() {
     } else {
       setCodeError("");
     }
+    if (!form.email.trim()) {
+      setEmailError("Email is required.");
+      valid = false;
+    } else {
+      setEmailError("");
+    }
     // Uniqueness check (case-insensitive)
     if (
       data &&
@@ -208,7 +218,7 @@ export default function AffiliateMarketingPage() {
       ...form,
       discountPercentage: Number(form.discountPercentage),
     });
-    setForm({ name: "", platform: "", code: "", discountPercentage: "" });
+    setForm({ name: "", platform: "", code: "", discountPercentage: "", email: "" });
     setFormPlatformType(PLATFORM_OPTIONS[0]);
     setShowForm(false);
   };
@@ -232,6 +242,7 @@ export default function AffiliateMarketingPage() {
       platform: row.platform,
       code: row.code,
       discountPercentage: row.discountPercentage,
+      email: row.email || "",
     });
     if (PLATFORM_OPTIONS.includes(row.platform)) {
       setEditPlatformType(row.platform);
@@ -253,6 +264,12 @@ export default function AffiliateMarketingPage() {
       return;
     }
     setEditCodeError("");
+    if (!editForm.email.trim()) {
+      setEditEmailError("Email is required.");
+      return;
+    } else {
+      setEditEmailError("");
+    }
     if (
       editForm.discountPercentage === "" ||
       isNaN(Number(editForm.discountPercentage))
@@ -317,6 +334,7 @@ export default function AffiliateMarketingPage() {
             />
           </div>
 
+          {/* Add New Affiliate Form */}
           {showForm && (
             <Card className="mb-8 shadow-lg border border-blue-100 bg-blue-50">
               <CardHeader>
@@ -406,6 +424,22 @@ export default function AffiliateMarketingPage() {
                   </div>
                   <div className="flex flex-col w-full md:w-auto">
                     <Input
+                      name="email"
+                      type="email"
+                      placeholder="Email"
+                      value={form.email}
+                      onChange={handleChange}
+                      required
+                      className="bg-white"
+                    />
+                    {emailError && (
+                      <span className="text-red-500 text-xs mt-1">
+                        {emailError}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-col w-full md:w-auto">
+                    <Input
                       name="discountPercentage"
                       type="number"
                       min={0}
@@ -443,6 +477,7 @@ export default function AffiliateMarketingPage() {
                 <TableHeader className="bg-gray-50">
                   <TableRow>
                     <TableHead className="py-3 px-4 text-left">Name</TableHead>
+                    <TableHead className="py-3 px-4 text-left">Email</TableHead>
                     <TableHead className="py-3 px-4 text-left">
                       Platform
                     </TableHead>
@@ -501,6 +536,21 @@ export default function AffiliateMarketingPage() {
                                   onChange={handleEditChange}
                                   className="bg-white"
                                 />
+                              </TableCell>
+                              <TableCell className="py-2 px-4">
+                                <Input
+                                  name="email"
+                                  type="email"
+                                  value={editForm.email}
+                                  onChange={handleEditChange}
+                                  className="bg-white"
+                                  required
+                                />
+                                {editEmailError && (
+                                  <span className="text-red-500 text-xs mt-1">
+                                    {editEmailError}
+                                  </span>
+                                )}
                               </TableCell>
                               <TableCell className="py-2 px-4">
                                 <select
@@ -632,6 +682,9 @@ export default function AffiliateMarketingPage() {
                             <>
                               <TableCell className="py-2 px-4 font-medium text-gray-800">
                                 {row.name}
+                              </TableCell>
+                              <TableCell className="py-2 px-4 text-gray-700">
+                                {row.email}
                               </TableCell>
                               <TableCell className="py-2 px-4 text-gray-700">
                                 {row.platform}
