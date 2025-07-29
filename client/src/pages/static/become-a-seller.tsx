@@ -98,8 +98,18 @@ const becomeSellerSchema = z.object({
   companyRegistrationNumber: z.string().optional(),
 
   // Tax Information
-  gstNumber: z.string().refine(validateGST, "Please enter a valid GST number"),
-  panNumber: z.string().refine(validatePAN, "Please enter a valid PAN number"),
+  gstNumber: z
+    .string()
+    .optional()
+    .refine((val) => !val || validateGST(val), {
+      message: "Please enter a valid GST number",
+    }),
+  panNumber: z
+    .string()
+    .optional()
+    .refine((val) => !val || validatePAN(val), {
+      message: "Please enter a valid PAN number",
+    }),
 
   // Bank Account Information
   bankName: z.string().min(2, "Bank name is required"),
@@ -793,7 +803,7 @@ export default function BecomeASellerPage() {
                     <CardContent className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <Label htmlFor="gstNumber">GST Number *</Label>
+                          <Label htmlFor="gstNumber">GST Number</Label>
                           <Input
                             id="gstNumber"
                             placeholder="22AAAAA0000A1Z5"
@@ -806,11 +816,12 @@ export default function BecomeASellerPage() {
                             </p>
                           )}
                           <p className="text-gray-500 text-xs mt-1">
-                            15-character GST number (e.g., 22AAAAA0000A1Z5)
+                            15-character GST number (e.g., 22AAAAA0000A1Z5).
+                            Optional.
                           </p>
                         </div>
                         <div>
-                          <Label htmlFor="panNumber">PAN Number *</Label>
+                          <Label htmlFor="panNumber">PAN Number</Label>
                           <div className="relative">
                             <Input
                               id="panNumber"
@@ -834,7 +845,8 @@ export default function BecomeASellerPage() {
                             </p>
                           )}
                           <p className="text-gray-500 text-xs mt-1">
-                            10-character PAN number (e.g., ABCDE1234F)
+                            10-character PAN number (e.g., ABCDE1234F).
+                            Optional.
                           </p>
                         </div>
                       </div>

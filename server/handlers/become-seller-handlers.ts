@@ -11,8 +11,8 @@ interface BecomeSellerRequest {
   businessPincode: string;
   businessType: string;
   companyRegistrationNumber?: string;
-  gstNumber: string;
-  panNumber: string;
+  gstNumber?: string; // Made optional
+  panNumber?: string; // Made optional
   bankName: string;
   bankState: string;
   bankCity: string;
@@ -31,13 +31,7 @@ export async function handleBecomeSeller(req: Request, res: Response) {
     const data: BecomeSellerRequest = req.body;
 
     // Validate required fields
-    if (
-      !data.email ||
-      !data.phone ||
-      !data.businessName ||
-      !data.gstNumber ||
-      !data.panNumber
-    ) {
+    if (!data.email || !data.phone || !data.businessName) {
       return res.status(400).json({
         success: false,
         message: "Missing required fields",
@@ -68,8 +62,8 @@ export async function handleBecomeSeller(req: Request, res: Response) {
       
       <h3>Tax Information:</h3>
       <ul>
-        <li><strong>GST Number:</strong> ${data.gstNumber}</li>
-        <li><strong>PAN Number:</strong> ${data.panNumber}</li>
+        <li><strong>GST Number:</strong> ${data.gstNumber || "Not provided"}</li>
+        <li><strong>PAN Number:</strong> ${data.panNumber || "Not provided"}</li>
       </ul>
       <p><em>Note: GST and PAN numbers will be verified through government databases during the review process. IFSC codes are validated using Razorpay's official IFSC database.</em></p>
       
