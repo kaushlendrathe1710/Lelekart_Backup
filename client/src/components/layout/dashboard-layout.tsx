@@ -45,6 +45,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Logo } from "@/components/layout/logo";
+import { useState, useEffect } from "react";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -121,6 +122,34 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   // Always define all hooks (React rules of hooks)
   const queryClient = useQueryClient();
+
+  // Affiliate sidebar state
+  const [affiliateLoading, setAffiliateLoading] = useState(true);
+  const [isAffiliate, setIsAffiliate] = useState(false);
+
+  useEffect(() => {
+    if (!user?.email) return;
+    setAffiliateLoading(true);
+    fetch("/api/affiliate/dashboard", { credentials: "include" })
+      .then(async (res) => {
+        if (res.status === 403) {
+          setIsAffiliate(false);
+          setAffiliateLoading(false);
+          return;
+        }
+        if (!res.ok) {
+          setIsAffiliate(false);
+          setAffiliateLoading(false);
+          return;
+        }
+        setIsAffiliate(true);
+        setAffiliateLoading(false);
+      })
+      .catch(() => {
+        setIsAffiliate(false);
+        setAffiliateLoading(false);
+      });
+  }, [user?.email]);
 
   // If no user, just render children or a minimal fallback (do not redirect)
   if (!user) {
@@ -389,7 +418,21 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     <SidebarSeparator />
                   </>
                 )}
-
+                {/* Affiliate Dashboard link for affiliates */}
+                {isAffiliate && (
+                  <SidebarMenuItem>
+                    <Button
+                      variant="ghost"
+                      asChild
+                      className={`w-full justify-start ${isActive("/buyer/dashboard") ? "bg-primary/10 text-primary" : ""}`}
+                    >
+                      <Link href="/buyer/dashboard">
+                        <Star className="mr-2 h-4 w-4 text-yellow-500" />
+                        <span>Affiliate Dashboard</span>
+                      </Link>
+                    </Button>
+                  </SidebarMenuItem>
+                )}
                 {/* Common menu items for all users */}
                 <SidebarMenuItem>
                   <Button
