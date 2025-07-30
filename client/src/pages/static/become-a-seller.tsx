@@ -404,10 +404,9 @@ export default function BecomeASellerPage() {
         `Uploading file: ${file.name}, size: ${file.size}, type: ${file.type}`
       );
 
-      const response = await fetch("/api/upload", {
+      const response = await fetch("/api/upload/public", {
         method: "POST",
         body: formData,
-        credentials: "include",
       });
 
       if (response.ok) {
@@ -1239,6 +1238,7 @@ export default function BecomeASellerPage() {
                             id="governmentIdPhoto"
                             accept="image/*,.pdf"
                             className="hidden"
+                            aria-label="Upload government ID document"
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) {

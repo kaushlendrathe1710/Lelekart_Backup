@@ -7461,6 +7461,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
 
+  // Public upload endpoint for become-a-seller form (no authentication required)
+  app.post(
+    "/api/upload/public",
+    (req, res, next) => {
+      // Custom error handler to catch multer errors
+      imageUpload.single("file")(req, res, function (err) {
+        if (err instanceof multer.MulterError) {
+          // A Multer error occurred when uploading
+          console.error("Multer error:", err);
+          if (err.code === "LIMIT_FILE_SIZE") {
+            return res.status(400).json({
+              error: `File too large. Maximum file size is 5MB.`,
+            });
+          }
+          return res.status(400).json({
+            error: `Upload error: ${err.message}`,
+          });
+        } else if (err) {
+          // An unknown error occurred
+          console.error("Upload error:", err);
+          return res.status(400).json({
+            error: err.message || "File upload failed",
+          });
+        }
+        // Everything went fine, proceed
+        next();
+      });
+    },
+    async (req, res) => {
+      try {
+        if (!req.file) {
+          return res.status(400).json({ error: "No file uploaded" });
+        }
+
+        // Additional validation for public uploads
+        const maxSize = 5 * 1024 * 1024; // 5MB limit for public uploads
+        if (req.file.size > maxSize) {
+          return res.status(400).json({
+            error:
+              "File too large. Maximum file size is 5MB for public uploads.",
+          });
+        }
+
+        // Validate file type for public uploads (only images and PDFs)
+        const allowedTypes = [
+          "image/jpeg",
+          "image/jpg",
+          "image/png",
+          "image/webp",
+          "application/pdf",
+        ];
+        if (!allowedTypes.includes(req.file.mimetype)) {
+          return res.status(400).json({
+            error:
+              "Invalid file type. Only JPG, PNG, and PDF files are allowed.",
+          });
+        }
+
+        console.log(
+          `Processing public upload: ${req.file.originalname}, size: ${req.file.size}, mimetype: ${req.file.mimetype}`
+        );
+
+        const fileBuffer = req.file.buffer;
+        const fileName = req.file.originalname;
+        const fileType = req.file.mimetype;
+
+        // Using the common uploadFile function from s3.ts helper
+        const fileUrl = await uploadFile(fileBuffer, fileName, fileType);
+        console.log(`Public file uploaded successfully to S3: ${fileUrl}`);
+
+        res.json({ url: fileUrl });
+      } catch (error) {
+        console.error("Public file upload error:", error);
+        res.status(500).json({
+          error:
+            error instanceof Error
+              ? error.message
+              : "Failed to upload file to storage",
+        });
+      }
+    }
+  );
+
   // Multiple files upload endpoint
   app.post(
     "/api/upload-multiple",
