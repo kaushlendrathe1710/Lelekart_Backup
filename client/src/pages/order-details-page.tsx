@@ -66,8 +66,20 @@ interface OrderItem {
   quantity: number;
   price: number;
   product: Product;
-  variant?: string;
+  variant?: ProductVariant;
   variantId?: number;
+}
+
+interface ProductVariant {
+  id: number;
+  productId: number;
+  sku: string;
+  color: string;
+  size: string;
+  price: number;
+  mrp?: number;
+  stock: number;
+  images?: string;
 }
 
 interface ShippingDetails {
@@ -224,13 +236,10 @@ export default function OrderDetailsPage() {
       const orderData = await response.json();
       setOrder(orderData);
 
-      // Fetch order items
-      if (orderData) {
-        const itemsResponse = await fetch(`/api/orders/${orderId}/items`);
-        if (itemsResponse.ok) {
-          const itemsData = await itemsResponse.json();
-          setItems(itemsData);
-        }
+      // Use items from the order response instead of making a separate API call
+      if (orderData && orderData.items) {
+        setItems(orderData.items);
+        console.log("Order items with variants:", orderData.items);
       }
     } catch (error) {
       console.error("Error fetching order details:", error);
@@ -739,8 +748,7 @@ export default function OrderDetailsPage() {
                     <div className="relative w-20 h-20 rounded bg-gray-100 flex-shrink-0 mx-auto sm:mx-0">
                       <img
                         src={
-                          typeof item.variant === "object" &&
-                          item.variant.images
+                          item.variant?.images
                             ? (() => {
                                 try {
                                   const imgs = JSON.parse(item.variant.images);
@@ -762,8 +770,38 @@ export default function OrderDetailsPage() {
                         {item.product.name}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        SKU: {item.product?.sku ?? "-"}
+                        SKU: {(item.variant?.sku || item.product?.sku) ?? "-"}
                       </span>
+                      {/* Display variant information if available */}
+                      {item.variant && (
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {item.variant.color && (
+                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                              Color: {item.variant.color}
+                            </span>
+                          )}
+                          {item.variant.size && (
+                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                              Size:{" "}
+                              {(() => {
+                                // Handle size display - if it's a range, show a more user-friendly message
+                                const sizeValue = item.variant.size;
+                                if (sizeValue && sizeValue.includes(",")) {
+                                  // This is a size range - we should show the selected size
+                                  // For now, show the first size as a fallback
+                                  // TODO: Store selected size in order items for better accuracy
+                                  const sizes = sizeValue
+                                    .split(",")
+                                    .map((s) => s.trim());
+                                  return sizes[0];
+                                }
+                                return sizeValue;
+                              })()}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
                       <div className="flex flex-col gap-1 text-sm mt-1">
                         <span>Qty: {item.quantity}</span>
                         <span>Price: ₹{item.price.toFixed(2)}</span>
@@ -956,20 +994,28 @@ export default function OrderDetailsPage() {
                             <span className="text-gray-500">
                               {" "}
                               (
-                              {typeof item.variant === "object"
-                                ? [
-                                    item.variant.color &&
-                                      `Color: ${item.variant.color}`,
-                                    item.variant.size &&
-                                      `Size: ${item.variant.size}`,
-                                    item.variant.sku &&
-                                      `SKU: ${item.variant.sku}`,
-                                    item.variant.price &&
-                                      `Price: ₹${item.variant.price}`,
-                                  ]
-                                    .filter(Boolean)
-                                    .join(", ")
-                                : item.variant}
+                              {[
+                                item.variant.color &&
+                                  `Color: ${item.variant.color}`,
+                                item.variant.size &&
+                                  `Size: ${(() => {
+                                    // Handle size display - if it's a range, show a more user-friendly message
+                                    const sizeValue = item.variant.size;
+                                    if (sizeValue && sizeValue.includes(",")) {
+                                      // This is a size range - we should show the selected size
+                                      // For now, show the first size as a fallback
+                                      // TODO: Store selected size in order items for better accuracy
+                                      const sizes = sizeValue
+                                        .split(",")
+                                        .map((s) => s.trim());
+                                      return sizes[0];
+                                    }
+                                    return sizeValue;
+                                  })()}`,
+                                item.variant.sku && `SKU: ${item.variant.sku}`,
+                              ]
+                                .filter(Boolean)
+                                .join(", ")}
                               )
                             </span>
                           )}

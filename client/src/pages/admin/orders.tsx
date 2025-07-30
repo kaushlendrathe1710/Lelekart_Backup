@@ -93,9 +93,21 @@ type OrderItemWithProduct = {
   quantity: number;
   price: number;
   product: AdminProduct;
-  variant?: string;
+  variant?: ProductVariant;
   variantId?: number;
 };
+
+interface ProductVariant {
+  id: number;
+  productId: number;
+  sku: string;
+  color: string;
+  size: string;
+  price: number;
+  mrp?: number;
+  stock: number;
+  images?: string;
+}
 
 // Define shipping details type
 interface ShippingDetails {
@@ -201,14 +213,16 @@ export default function AdminOrders() {
       setViewOrder(orderData);
 
       // If order has return status, fetch return information
-      if (orderData.status === 'marked_for_return' || 
-          orderData.status === 'approve_return' || 
-          orderData.status === 'reject_return' || 
-          orderData.status === 'process_return' || 
-          orderData.status === 'completed_return') {
+      if (
+        orderData.status === "marked_for_return" ||
+        orderData.status === "approve_return" ||
+        orderData.status === "reject_return" ||
+        orderData.status === "process_return" ||
+        orderData.status === "completed_return"
+      ) {
         try {
           const returnRes = await fetch(`/api/returns?orderId=${orderId}`, {
-            credentials: 'include'
+            credentials: "include",
           });
           if (returnRes.ok) {
             const returnData = await returnRes.json();
@@ -217,7 +231,7 @@ export default function AdminOrders() {
             }
           }
         } catch (error) {
-          console.error('Error fetching return info:', error);
+          console.error("Error fetching return info:", error);
         }
       }
     } catch (error) {
@@ -960,11 +974,14 @@ export default function AdminOrders() {
         )}
 
         {/* Order Details Dialog */}
-        <Dialog open={!!viewOrder} onOpenChange={() => {
-          setViewOrder(null);
-          setReturnInfo(null);
-          setSelectedImage(null);
-        }}>
+        <Dialog
+          open={!!viewOrder}
+          onOpenChange={() => {
+            setViewOrder(null);
+            setReturnInfo(null);
+            setSelectedImage(null);
+          }}
+        >
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Order Details</DialogTitle>
@@ -979,7 +996,9 @@ export default function AdminOrders() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-semibold">Order Status</h3>
-                    <div className="mt-2">{getStatusBadge(viewOrder.status)}</div>
+                    <div className="mt-2">
+                      {getStatusBadge(viewOrder.status)}
+                    </div>
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-bold">₹{viewOrder.total}</p>
@@ -996,81 +1015,108 @@ export default function AdminOrders() {
                       <RefreshCcw className="h-5 w-5 mr-2" />
                       Return Request Information
                     </h3>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <h4 className="font-medium text-gray-900 mb-2">Return Details</h4>
+                        <h4 className="font-medium text-gray-900 mb-2">
+                          Return Details
+                        </h4>
                         <div className="space-y-2 text-sm">
                           <div>
-                            <span className="font-medium">Reason:</span> {returnInfo.reasonText}
+                            <span className="font-medium">Reason:</span>{" "}
+                            {returnInfo.reasonText}
                           </div>
                           <div>
                             <span className="font-medium">Description:</span>
-                            <p className="text-gray-600 mt-1">{returnInfo.description}</p>
+                            <p className="text-gray-600 mt-1">
+                              {returnInfo.description}
+                            </p>
                           </div>
                           <div>
-                            <span className="font-medium">Request Type:</span> {returnInfo.requestType}
+                            <span className="font-medium">Request Type:</span>{" "}
+                            {returnInfo.requestType}
                           </div>
                           <div>
-                            <span className="font-medium">Submitted:</span> {new Date(returnInfo.createdAt).toLocaleDateString()}
+                            <span className="font-medium">Submitted:</span>{" "}
+                            {new Date(
+                              returnInfo.createdAt
+                            ).toLocaleDateString()}
                           </div>
                         </div>
                       </div>
-                      
+
                       {/* Return Images */}
-                      {returnInfo.mediaUrls && returnInfo.mediaUrls.length > 0 && (
-                        <div>
-                          <h4 className="font-medium text-gray-900 mb-2">Return Images</h4>
-                          <div className="grid grid-cols-2 gap-2">
-                            {returnInfo.mediaUrls.map((url: string, index: number) => (
-                              <div 
-                                key={index} 
-                                className="relative cursor-pointer"
-                                onClick={() => setSelectedImage(url)}
-                              >
-                                <img
-                                  src={url}
-                                  alt={`Return image ${index + 1}`}
-                                  className="w-full h-24 object-cover rounded border"
-                                />
-                                <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-all rounded flex items-center justify-center">
-                                  <ImageIcon className="h-6 w-6 text-white opacity-0 hover:opacity-100" />
-                                </div>
-                              </div>
-                            ))}
+                      {returnInfo.mediaUrls &&
+                        returnInfo.mediaUrls.length > 0 && (
+                          <div>
+                            <h4 className="font-medium text-gray-900 mb-2">
+                              Return Images
+                            </h4>
+                            <div className="grid grid-cols-2 gap-2">
+                              {returnInfo.mediaUrls.map(
+                                (url: string, index: number) => (
+                                  <div
+                                    key={index}
+                                    className="relative cursor-pointer"
+                                    onClick={() => setSelectedImage(url)}
+                                  >
+                                    <img
+                                      src={url}
+                                      alt={`Return image ${index + 1}`}
+                                      className="w-full h-24 object-cover rounded border"
+                                    />
+                                    <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-all rounded flex items-center justify-center">
+                                      <ImageIcon className="h-6 w-6 text-white opacity-0 hover:opacity-100" />
+                                    </div>
+                                  </div>
+                                )
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
                     </div>
                   </div>
                 )}
 
                 {/* Customer Information */}
                 <div>
-                  <h3 className="text-lg font-semibold mb-3">Customer Information</h3>
+                  <h3 className="text-lg font-semibold mb-3">
+                    Customer Information
+                  </h3>
                   {isAdminShippingDetails(viewOrder.shippingDetails) ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <p className="text-sm text-gray-500">Name</p>
-                        <p className="font-medium">{viewOrder.shippingDetails.name}</p>
+                        <p className="font-medium">
+                          {viewOrder.shippingDetails.name}
+                        </p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Email</p>
-                        <p className="font-medium">{viewOrder.shippingDetails.email}</p>
+                        <p className="font-medium">
+                          {viewOrder.shippingDetails.email}
+                        </p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Phone</p>
-                        <p className="font-medium">{viewOrder.shippingDetails.phone}</p>
+                        <p className="font-medium">
+                          {viewOrder.shippingDetails.phone}
+                        </p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Address</p>
                         <p className="font-medium">
-                          {viewOrder.shippingDetails.address}, {viewOrder.shippingDetails.city}, {viewOrder.shippingDetails.state} {viewOrder.shippingDetails.zipCode}
+                          {viewOrder.shippingDetails.address},{" "}
+                          {viewOrder.shippingDetails.city},{" "}
+                          {viewOrder.shippingDetails.state}{" "}
+                          {viewOrder.shippingDetails.zipCode}
                         </p>
                       </div>
                     </div>
                   ) : (
-                    <p className="text-gray-500">Shipping details not available</p>
+                    <p className="text-gray-500">
+                      Shipping details not available
+                    </p>
                   )}
                 </div>
 
@@ -1079,9 +1125,15 @@ export default function AdminOrders() {
                   <h3 className="text-lg font-semibold mb-3">Order Items</h3>
                   <div className="space-y-3">
                     {viewOrder.items?.map((item) => (
-                      <div key={item.id} className="flex items-center space-x-4 p-3 border rounded-lg">
+                      <div
+                        key={item.id}
+                        className="flex items-center space-x-4 p-3 border rounded-lg"
+                      >
                         <img
-                          src={item.product.image || "https://placehold.co/100x100?text=No+Image"}
+                          src={
+                            item.product.image ||
+                            "https://placehold.co/100x100?text=No+Image"
+                          }
                           alt={item.product.name}
                           className="w-16 h-16 object-cover rounded"
                         />
@@ -1091,11 +1143,47 @@ export default function AdminOrders() {
                             Quantity: {item.quantity} × ₹{item.price}
                           </p>
                           <p className="text-sm text-gray-500">
-                            Seller: {item.product.sellerName || 'Unknown'}
+                            Seller: {item.product.sellerName || "Unknown"}
                           </p>
+                          {/* Display variant information if available */}
+                          {item.variant && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {item.variant.color && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                  Color: {item.variant.color}
+                                </span>
+                              )}
+                              {item.variant.size && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                  Size:{" "}
+                                  {(() => {
+                                    // Handle size display - if it's a range, show a more user-friendly message
+                                    const sizeValue = item.variant.size;
+                                    if (sizeValue && sizeValue.includes(",")) {
+                                      // This is a size range - we should show the selected size
+                                      // For now, show the first size as a fallback
+                                      // TODO: Store selected size in order items for better accuracy
+                                      const sizes = sizeValue
+                                        .split(",")
+                                        .map((s) => s.trim());
+                                      return sizes[0];
+                                    }
+                                    return sizeValue;
+                                  })()}
+                                </span>
+                              )}
+                              {item.variant.sku && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                  SKU: {item.variant.sku}
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                         <div className="text-right">
-                          <p className="font-medium">₹{item.quantity * item.price}</p>
+                          <p className="font-medium">
+                            ₹{item.quantity * item.price}
+                          </p>
                         </div>
                       </div>
                     ))}
@@ -1126,13 +1214,15 @@ export default function AdminOrders() {
                     <Truck className="mr-2 h-4 w-4" />
                     Print Shipping Label
                   </Button>
-                  
+
                   {/* Return Action Buttons */}
                   {returnInfo && (
                     <>
                       <Button
                         variant="default"
-                        onClick={() => updateOrderStatus(viewOrder.id, "approve_return")}
+                        onClick={() =>
+                          updateOrderStatus(viewOrder.id, "approve_return")
+                        }
                         disabled={updateStatusMutation.isPending}
                       >
                         <CheckCircle2 className="mr-2 h-4 w-4" />
@@ -1140,7 +1230,9 @@ export default function AdminOrders() {
                       </Button>
                       <Button
                         variant="destructive"
-                        onClick={() => updateOrderStatus(viewOrder.id, "reject_return")}
+                        onClick={() =>
+                          updateOrderStatus(viewOrder.id, "reject_return")
+                        }
                         disabled={updateStatusMutation.isPending}
                       >
                         <XCircle className="mr-2 h-4 w-4" />
@@ -1148,7 +1240,9 @@ export default function AdminOrders() {
                       </Button>
                       <Button
                         variant="outline"
-                        onClick={() => updateOrderStatus(viewOrder.id, "process_return")}
+                        onClick={() =>
+                          updateOrderStatus(viewOrder.id, "process_return")
+                        }
                         disabled={updateStatusMutation.isPending}
                       >
                         <Truck className="mr-2 h-4 w-4" />
@@ -1163,13 +1257,16 @@ export default function AdminOrders() {
         </Dialog>
 
         {/* Image Viewer Dialog */}
-        <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+        <Dialog
+          open={!!selectedImage}
+          onOpenChange={() => setSelectedImage(null)}
+        >
           <DialogContent className="max-w-3xl p-0 overflow-hidden">
             <div className="relative w-full max-h-[80vh] overflow-auto">
               {selectedImage && (
-                <img 
-                  src={selectedImage} 
-                  alt="Return image" 
+                <img
+                  src={selectedImage}
+                  alt="Return image"
                   className="w-full h-auto"
                 />
               )}

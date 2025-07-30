@@ -4792,7 +4792,12 @@ export class DatabaseStorage implements IStorage {
   async getOrderItems(
     orderId: number,
     sellerId?: number
-  ): Promise<(OrderItem & { product: Product & { seller?: any } })[]> {
+  ): Promise<
+    (OrderItem & {
+      product: Product & { seller?: any };
+      variant?: ProductVariant;
+    })[]
+  > {
     console.log(
       `DEBUG: getOrderItems called with orderId: ${orderId}, sellerId: ${sellerId}`
     );
@@ -4909,21 +4914,65 @@ export class DatabaseStorage implements IStorage {
     ];
     console.log(`DEBUG: Found orderIds in results:`, orderIds);
 
-    const result = orderItemsWithProductsAndSellers.map((item) => ({
-      ...item.orderItem,
-      product: {
-        ...item.product,
-        seller: item.seller
-          ? {
-              id: item.seller.id,
-              name: item.seller.name,
-              username: item.seller.username,
+    // Fetch variant information for order items that have variantId
+    const result = await Promise.all(
+      orderItemsWithProductsAndSellers.map(async (item) => {
+        let variant = undefined;
+
+        // If order item has a variantId, fetch the variant details
+        if (item.orderItem.variantId) {
+          try {
+            const [variantData] = await db
+              .select()
+              .from(productVariants)
+              .where(eq(productVariants.id, item.orderItem.variantId));
+
+            if (variantData) {
+              variant = variantData;
             }
-          : undefined,
-      },
-    }));
+          } catch (variantError) {
+            console.error(
+              `Error fetching variant ${item.orderItem.variantId}:`,
+              variantError
+            );
+          }
+        }
+
+        return {
+          ...item.orderItem,
+          product: {
+            ...item.product,
+            seller: item.seller
+              ? {
+                  id: item.seller.id,
+                  name: item.seller.name,
+                  username: item.seller.username,
+                }
+              : undefined,
+          },
+          variant,
+        };
+      })
+    );
 
     console.log(`DEBUG: Returning ${result.length} items for order ${orderId}`);
+
+    // Debug variant information
+    result.forEach((item, index) => {
+      console.log(`DEBUG: Item ${index + 1}:`, {
+        id: item.id,
+        productName: item.product.name,
+        variantId: item.variantId,
+        variant: item.variant
+          ? {
+              id: item.variant.id,
+              color: item.variant.color,
+              size: item.variant.size,
+              sku: item.variant.sku,
+            }
+          : null,
+      });
+    });
 
     // Let's also verify that all returned items belong to the correct order
     const incorrectOrderItems = result.filter(
@@ -4954,6 +5003,7 @@ export class DatabaseStorage implements IStorage {
           productId: insertOrderItem.productId,
           quantity: insertOrderItem.quantity,
           price: insertOrderItem.price,
+          variantId: insertOrderItem.variantId || null,
         },
       ])
       .returning();

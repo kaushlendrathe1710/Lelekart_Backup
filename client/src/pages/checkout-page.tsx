@@ -112,6 +112,17 @@ interface CartItem {
     stock: number;
     deliveryCharges?: number;
   };
+  variant?: {
+    id: number;
+    productId: number;
+    sku: string;
+    price: number;
+    mrp?: number;
+    stock: number;
+    color: string;
+    size: string;
+    images?: string;
+  };
 }
 
 export default function CheckoutPage() {
@@ -1585,7 +1596,28 @@ export default function CheckoutPage() {
                     <div className="flex items-center">
                       <div className="w-10 h-10 rounded-md overflow-hidden mr-2 bg-gray-100 flex items-center justify-center">
                         <img
-                          src={item.product.imageUrl || ""}
+                          src={
+                            item.variant?.images
+                              ? (() => {
+                                  try {
+                                    const imgs = JSON.parse(
+                                      item.variant.images
+                                    );
+                                    return (
+                                      imgs[0] ||
+                                      item.product.imageUrl ||
+                                      "https://via.placeholder.com/80?text=Product"
+                                    );
+                                  } catch {
+                                    return (
+                                      item.product.imageUrl ||
+                                      "https://via.placeholder.com/80?text=Product"
+                                    );
+                                  }
+                                })()
+                              : item.product.imageUrl ||
+                                "https://via.placeholder.com/80?text=Product"
+                          }
                           alt={item.product.name}
                           className="w-full h-full object-cover"
                           onError={(e) => {
@@ -1603,6 +1635,33 @@ export default function CheckoutPage() {
                         <p className="text-sm font-medium">
                           {item.product.name}
                         </p>
+                        {item.variant && (
+                          <p className="text-xs text-gray-500">
+                            {item.variant.color && (
+                              <span className="inline-block px-1 py-0.5 bg-blue-100 text-blue-800 rounded text-xs mr-1">
+                                {item.variant.color}
+                              </span>
+                            )}
+                            {item.variant.size && (
+                              <span className="inline-block px-1 py-0.5 bg-green-100 text-green-800 rounded text-xs">
+                                Size: {(() => {
+                                  // Handle size display - if it's a range, show a more user-friendly message
+                                  const sizeValue = item.variant.size;
+                                  if (sizeValue && sizeValue.includes(",")) {
+                                    // This is a size range - we should show the selected size
+                                    // For now, show the first size as a fallback
+                                    // TODO: Store selected size in order items for better accuracy
+                                    const sizes = sizeValue
+                                      .split(",")
+                                      .map((s) => s.trim());
+                                    return sizes[0];
+                                  }
+                                  return sizeValue;
+                                })()}
+                              </span>
+                            )}
+                          </p>
+                        )}
                         <p className="text-xs text-gray-500">
                           Qty: {item.quantity}
                         </p>
