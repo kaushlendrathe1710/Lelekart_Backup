@@ -167,6 +167,7 @@ export default function BecomeASellerPage() {
   const [bankPincodeData, setBankPincodeData] = useState<any>(null);
   const [uploadedFileUrl, setUploadedFileUrl] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
+  const [selectedFileName, setSelectedFileName] = useState<string>("");
 
   const {
     register,
@@ -180,6 +181,7 @@ export default function BecomeASellerPage() {
     defaultValues: {
       businessType: "individual",
       governmentIdType: "aadhaar",
+      governmentIdPhoto: "",
       agreeToTerms: false,
       agreeToPrivacyPolicy: false,
     },
@@ -365,10 +367,42 @@ export default function BecomeASellerPage() {
 
   // File upload function using existing upload endpoint
   const handleFileUpload = async (file: File) => {
+    // Validate file size (5MB limit)
+    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+    if (file.size > maxSize) {
+      toast({
+        title: "File too large",
+        description: "Please select a file smaller than 5MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/webp",
+      "application/pdf",
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select a JPG, PNG, or PDF file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsUploading(true);
     try {
       const formData = new FormData();
       formData.append("file", file);
+
+      console.log(
+        `Uploading file: ${file.name}, size: ${file.size}, type: ${file.type}`
+      );
 
       const response = await fetch("/api/upload", {
         method: "POST",
@@ -378,6 +412,7 @@ export default function BecomeASellerPage() {
 
       if (response.ok) {
         const result = await response.json();
+        console.log("Upload successful:", result);
         setUploadedFileUrl(result.url);
         setValue("governmentIdPhoto", result.url);
         toast({
@@ -386,6 +421,7 @@ export default function BecomeASellerPage() {
         });
       } else {
         const errorText = await response.text();
+        console.error("Upload failed:", errorText);
         toast({
           title: "Upload failed",
           description: `Failed to upload file: ${errorText}`,
@@ -396,7 +432,8 @@ export default function BecomeASellerPage() {
       console.error("File upload error:", error);
       toast({
         title: "Upload failed",
-        description: "An error occurred while uploading the file.",
+        description:
+          "An error occurred while uploading the file. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -433,8 +470,12 @@ export default function BecomeASellerPage() {
         setValue("accountNumber", "");
         setValue("ifscCode", "");
         setValue("governmentIdNumber", "");
+        setValue("governmentIdPhoto", "");
         setValue("agreeToTerms", false);
         setValue("agreeToPrivacyPolicy", false);
+        // Reset file upload state
+        setUploadedFileUrl("");
+        setSelectedFileName("");
       } else {
         const errorData = await response.json();
         toast({
@@ -1111,28 +1152,74 @@ export default function BecomeASellerPage() {
                         <Label htmlFor="governmentIdPhoto">
                           Photo of Government ID *
                         </Label>
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                        <div
+                          className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors cursor-pointer"
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            e.currentTarget.classList.add(
+                              "border-blue-400",
+                              "bg-blue-50"
+                            );
+                          }}
+                          onDragLeave={(e) => {
+                            e.preventDefault();
+                            e.currentTarget.classList.remove(
+                              "border-blue-400",
+                              "bg-blue-50"
+                            );
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            e.currentTarget.classList.remove(
+                              "border-blue-400",
+                              "bg-blue-50"
+                            );
+                            const files = e.dataTransfer.files;
+                            if (files.length > 0) {
+                              setSelectedFileName(files[0].name);
+                              handleFileUpload(files[0]);
+                            }
+                          }}
+                          onClick={() =>
+                            document
+                              .getElementById("governmentIdPhoto")
+                              ?.click()
+                          }
+                        >
                           {isUploading ? (
                             <div className="flex flex-col items-center">
                               <Loader2 className="mx-auto h-12 w-12 text-blue-500 animate-spin" />
                               <p className="text-sm text-gray-600 mt-4">
-                                Uploading file...
+                                Uploading {selectedFileName}...
                               </p>
                             </div>
                           ) : uploadedFileUrl ? (
                             <div className="flex flex-col items-center">
                               <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
                               <p className="text-sm text-green-600 mt-4">
-                                File uploaded successfully!
+                                {selectedFileName} uploaded successfully!
                               </p>
-                              <a
-                                href={uploadedFileUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-500 text-xs mt-2 hover:underline"
-                              >
-                                View uploaded file
-                              </a>
+                              <div className="flex gap-2 mt-2">
+                                <a
+                                  href={uploadedFileUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-500 text-xs hover:underline"
+                                >
+                                  View uploaded file
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setUploadedFileUrl("");
+                                    setValue("governmentIdPhoto", "");
+                                    setSelectedFileName("");
+                                  }}
+                                  className="text-red-500 text-xs hover:underline"
+                                >
+                                  Remove file
+                                </button>
+                              </div>
                             </div>
                           ) : (
                             <>
@@ -1155,8 +1242,11 @@ export default function BecomeASellerPage() {
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) {
+                                setSelectedFileName(file.name);
                                 handleFileUpload(file);
                               }
+                              // Reset the input value to allow selecting the same file again
+                              e.target.value = "";
                             }}
                             disabled={isUploading}
                           />
@@ -1171,7 +1261,17 @@ export default function BecomeASellerPage() {
                             }
                             disabled={isUploading}
                           >
-                            {isUploading ? "Uploading..." : "Choose File"}
+                            {isUploading ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Uploading...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="mr-2 h-4 w-4" />
+                                Choose File
+                              </>
+                            )}
                           </Button>
                         </div>
                         {errors.governmentIdPhoto && (
@@ -1179,6 +1279,12 @@ export default function BecomeASellerPage() {
                             {errors.governmentIdPhoto.message}
                           </p>
                         )}
+                        <p className="text-gray-500 text-xs mt-2">
+                          Upload a clear photo or scan of your government ID
+                          (Aadhaar, Passport, Driving License, or Voter ID).
+                          Supported formats: JPG, PNG, PDF. Maximum file size:
+                          5MB.
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
