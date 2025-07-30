@@ -233,6 +233,108 @@ export default function BuyerDashboardPage() {
                       )}
                     </div>
                   </div>
+      </DashboardLayout>
+    );
+  }
+  if (!isLoading && affiliateData) {
+    const { affiliate, orders, totalEarnings } = affiliateData;
+    return (
+      <DashboardLayout>
+        <div className="max-w-3xl mx-auto mt-8">
+          <h1 className="text-2xl font-bold mb-2">Affiliate Dashboard</h1>
+          <p className="mb-4 text-muted-foreground">
+            Welcome, {affiliate.name}! Here you can track your affiliate code
+            usage.
+          </p>
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Your Affiliate Code</CardTitle>
+              <CardDescription>
+                Share this code to earn rewards!
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <div>
+                  <span className="font-semibold">Code:</span>{" "}
+                  <span className="text-lg font-mono bg-gray-100 px-2 py-1 rounded">
+                    {affiliate.code}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-semibold">Discount:</span>{" "}
+                  {affiliate.discountPercentage}%
+                </div>
+                <div>
+                  <span className="font-semibold">Total Uses:</span>{" "}
+                  {affiliate.usageCount}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Total Earnings</CardTitle>
+              <CardDescription>
+                Your total earnings from affiliate code usage
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-green-600">
+                  ₹{totalEarnings.toLocaleString("en-IN")}
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  1% commission on each order
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Orders Using Your Code</CardTitle>
+              <CardDescription>
+                See which orders have used your affiliate code and your
+                earnings.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {orders.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">
+                  No orders have used your code yet.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Order ID</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>User ID</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Order Total</TableHead>
+                        <TableHead>Your Earnings</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {orders.map((order: any) => (
+                        <TableRow key={order.id}>
+                          <TableCell>{order.id}</TableCell>
+                          <TableCell>
+                            {new Date(order.date).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>{order.userId}</TableCell>
+                          <TableCell>{order.status}</TableCell>
+                          <TableCell>
+                            ₹{order.total.toLocaleString("en-IN")}
+                          </TableCell>
+                          <TableCell className="font-semibold text-green-600">
+                            ₹{order.earnings.toLocaleString("en-IN")}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               </CardContent>
               <CardFooter className="border-t pt-3 pb-1 px-6">
