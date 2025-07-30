@@ -5556,6 +5556,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           productId: item.product.id,
           quantity: item.quantity,
           price: price,
+          variantId: item.variant?.id || null,
         };
 
         console.log("Creating order item:", orderItemData);
@@ -6030,6 +6031,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           productId: item.product.id,
           quantity: item.quantity,
           price: price,
+          variantId: item.variant?.id || null,
         };
 
         console.log("Creating order item:", orderItemData);

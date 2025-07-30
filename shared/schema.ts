@@ -315,6 +315,7 @@ export const orderItems = pgTable("order_items", {
     .references(() => products.id),
   quantity: integer("quantity").notNull(),
   price: integer("price").notNull(),
+  variantId: integer("variant_id").references(() => productVariants.id), // Add variant reference
   sellerOrderId: integer("seller_order_id").references(() => sellerOrders.id),
 });
 
@@ -323,6 +324,7 @@ export const insertOrderItemSchema = createInsertSchema(orderItems).pick({
   productId: true,
   quantity: true,
   price: true,
+  variantId: true, // Include variantId in insert schema
   sellerOrderId: true,
 });
 
