@@ -136,6 +136,19 @@ export async function getAffiliateDashboard(req: Request, res: Response) {
       })
       .from(orders)
       .where(eq(orders.couponCode, affiliate.code));
+
+    // Calculate earnings for each order (1% of order total)
+    const ordersWithEarnings = affiliateOrders.map((order) => ({
+      ...order,
+      earnings: Math.round(order.total * 0.01), // 1% of order total
+    }));
+
+    // Calculate total earnings
+    const totalEarnings = ordersWithEarnings.reduce(
+      (sum, order) => sum + order.earnings,
+      0
+    );
+
     res.json({
       affiliate: {
         id: affiliate.id,
@@ -145,7 +158,8 @@ export async function getAffiliateDashboard(req: Request, res: Response) {
         usageCount: affiliate.usageCount,
         discountPercentage: affiliate.discountPercentage,
       },
-      orders: affiliateOrders,
+      orders: ordersWithEarnings,
+      totalEarnings: totalEarnings,
     });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch affiliate dashboard info" });
