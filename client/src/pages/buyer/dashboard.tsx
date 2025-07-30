@@ -276,7 +276,7 @@ export default function BuyerDashboardPage() {
     );
   }
   if (!isLoading && affiliateData) {
-    const { affiliate, orders } = affiliateData;
+    const { affiliate, orders, totalEarnings } = affiliateData;
     return (
       <DashboardLayout>
         <div className="max-w-3xl mx-auto mt-8">
@@ -311,11 +311,30 @@ export default function BuyerDashboardPage() {
               </div>
             </CardContent>
           </Card>
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Total Earnings</CardTitle>
+              <CardDescription>
+                Your total earnings from affiliate code usage
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-green-600">
+                  ₹{totalEarnings.toLocaleString("en-IN")}
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  1% commission on each order
+                </p>
+              </div>
+            </CardContent>
+          </Card>
           <Card>
             <CardHeader>
               <CardTitle>Orders Using Your Code</CardTitle>
               <CardDescription>
-                See which orders have used your affiliate code.
+                See which orders have used your affiliate code and your
+                earnings.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -332,7 +351,8 @@ export default function BuyerDashboardPage() {
                         <TableHead>Date</TableHead>
                         <TableHead>User ID</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Total</TableHead>
+                        <TableHead>Order Total</TableHead>
+                        <TableHead>Your Earnings</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -344,7 +364,12 @@ export default function BuyerDashboardPage() {
                           </TableCell>
                           <TableCell>{order.userId}</TableCell>
                           <TableCell>{order.status}</TableCell>
-                          <TableCell>₹{order.total}</TableCell>
+                          <TableCell>
+                            ₹{order.total.toLocaleString("en-IN")}
+                          </TableCell>
+                          <TableCell className="font-semibold text-green-600">
+                            ₹{order.earnings.toLocaleString("en-IN")}
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
