@@ -190,7 +190,7 @@ export default function GiftCardsPage() {
           </div>
           
           <Tabs defaultValue="my-cards" onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 md:w-auto md:inline-flex">
+            <TabsList className="grid w-full grid-cols-2 md:w-auto md:inline-flex bg-[#F8F5E4]">
               <TabsTrigger value="my-cards">My Gift Cards</TabsTrigger>
               <TabsTrigger value="how-it-works">How It Works</TabsTrigger>
             </TabsList>
@@ -203,21 +203,21 @@ export default function GiftCardsPage() {
                     <CardDescription>Gift cards associated with your account</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Table>
+                    <Table className="bg-[#F8F5E4]">
                       <TableHeader>
-                        <TableRow>
-                          <TableHead>Gift Card Code</TableHead>
-                          <TableHead>Initial Value</TableHead>
-                          <TableHead>Current Balance</TableHead>
-                          <TableHead>Expiry Date</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
+                        <TableRow className="bg-[#F8F5E4] hover:bg-[#EADDCB]">
+                          <TableHead className="bg-[#F8F5E4]">Gift Card Code</TableHead>
+                          <TableHead className="bg-[#F8F5E4]">Initial Value</TableHead>
+                          <TableHead className="bg-[#F8F5E4]">Current Balance</TableHead>
+                          <TableHead className="bg-[#F8F5E4]">Expiry Date</TableHead>
+                          <TableHead className="bg-[#F8F5E4]">Status</TableHead>
+                          <TableHead className="text-right bg-[#F8F5E4]">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {giftCards.map((card: GiftCard) => (
-                          <TableRow key={card.id}>
-                            <TableCell>
+                          <TableRow key={card.id} className="bg-[#F8F5E4] hover:bg-[#EADDCB]">
+                            <TableCell className="bg-[#F8F5E4]">
                               <div className="flex items-center">
                                 <span className="font-mono">{card.code}</span>
                                 <Button 
@@ -230,15 +230,15 @@ export default function GiftCardsPage() {
                                 </Button>
                               </div>
                             </TableCell>
-                            <TableCell>₹{card.initialValue}</TableCell>
-                            <TableCell>₹{card.currentBalance}</TableCell>
-                            <TableCell>
+                            <TableCell className="bg-[#F8F5E4]">₹{card.initialValue}</TableCell>
+                            <TableCell className="bg-[#F8F5E4]">₹{card.currentBalance}</TableCell>
+                            <TableCell className="bg-[#F8F5E4]">
                               {card.expiryDate ? 
                                 format(new Date(card.expiryDate), 'dd MMM yyyy') : 
                                 'No expiry'
                               }
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="bg-[#F8F5E4]">
                               <Badge 
                                 variant={card.status === 'active' ? 'outline' : 'secondary'}
                                 className={card.status === 'active' ? 'bg-green-50 text-green-700' : ''}
@@ -248,7 +248,7 @@ export default function GiftCardsPage() {
                                  card.status === 'used' ? 'Used' : card.status}
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="text-right bg-[#F8F5E4]">
                               <Button variant="ghost" size="sm">
                                 Details
                               </Button>
@@ -291,7 +291,7 @@ export default function GiftCardsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid gap-6 md:grid-cols-3">
-                    <div className="border rounded-lg p-4 text-center">
+                    <div className="border rounded-lg p-4 text-center bg-[#F8F5E4]">
                       <div className="bg-primary/10 rounded-full p-3 mx-auto w-fit mb-3">
                         <Gift className="h-5 w-5 text-primary" />
                       </div>
@@ -301,7 +301,7 @@ export default function GiftCardsPage() {
                       </p>
                     </div>
                     
-                    <div className="border rounded-lg p-4 text-center">
+                    <div className="border rounded-lg p-4 text-center bg-[#F8F5E4]">
                       <div className="bg-primary/10 rounded-full p-3 mx-auto w-fit mb-3">
                         <CopyCheck className="h-5 w-5 text-primary" />
                       </div>
@@ -311,7 +311,7 @@ export default function GiftCardsPage() {
                       </p>
                     </div>
                     
-                    <div className="border rounded-lg p-4 text-center">
+                    <div className="border rounded-lg p-4 text-center bg-[#F8F5E4]">
                       <div className="bg-primary/10 rounded-full p-3 mx-auto w-fit mb-3">
                         <ShoppingCart className="h-5 w-5 text-primary" />
                       </div>

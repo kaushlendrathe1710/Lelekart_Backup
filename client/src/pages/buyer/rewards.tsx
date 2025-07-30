@@ -395,25 +395,25 @@ export default function RewardsPage() {
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                     </div>
                   ) : transactions && transactions.length > 0 ? (
-                    <Table>
+                    <Table className="bg-[#F8F5E4]">
                       <TableHeader>
-                        <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Activity</TableHead>
-                          <TableHead>Points</TableHead>
-                          <TableHead className="text-right">Status</TableHead>
+                        <TableRow className="bg-[#F8F5E4] hover:bg-[#EADDCB]">
+                          <TableHead className="bg-[#F8F5E4]">Date</TableHead>
+                          <TableHead className="bg-[#F8F5E4]">Activity</TableHead>
+                          <TableHead className="bg-[#F8F5E4]">Points</TableHead>
+                          <TableHead className="text-right bg-[#F8F5E4]">Status</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {transactions.map((transaction: RewardTransaction) => (
-                          <TableRow key={transaction.id}>
-                            <TableCell className="font-medium">
+                          <TableRow key={transaction.id} className="bg-[#F8F5E4] hover:bg-[#EADDCB]">
+                            <TableCell className="font-medium bg-[#F8F5E4]">
                               {format(
                                 new Date(transaction.transactionDate),
                                 "dd MMM yyyy"
                               )}
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="bg-[#F8F5E4]">
                               <div className="space-y-1">
                                 <div className="font-medium text-sm">
                                   {transaction.type === "purchase"
@@ -438,17 +438,17 @@ export default function RewardsPage() {
                               </div>
                             </TableCell>
                             <TableCell
-                              className={
+                              className={`${
                                 transaction.points > 0
                                   ? "text-green-600 font-medium"
                                   : "text-red-600 font-medium"
-                              }
+                              } bg-[#F8F5E4]`}
                             >
                               {transaction.points > 0
                                 ? `+${transaction.points}`
                                 : transaction.points}
                             </TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="text-right bg-[#F8F5E4]">
                               <Badge
                                 variant={
                                   transaction.status === "active"

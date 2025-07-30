@@ -228,8 +228,9 @@ export default function OrderDetailsPage() {
       if (orderData) {
         const itemsResponse = await fetch(`/api/orders/${orderId}/items`);
         if (itemsResponse.ok) {
-          const itemsData = await itemsResponse.json();
-          setItems(itemsData);
+                  const itemsData = await itemsResponse.json();
+        console.log('Order items data:', itemsData);
+        setItems(itemsData);
         }
       }
     } catch (error) {
@@ -736,7 +737,7 @@ export default function OrderDetailsPage() {
                   className="border border-gray-200 rounded-lg p-4 flex flex-col gap-2"
                 >
                   <div className="flex flex-col sm:flex-row gap-4">
-                    <div className="relative w-20 h-20 rounded bg-gray-100 flex-shrink-0 mx-auto sm:mx-0">
+                    <div className="relative w-20 h-20 rounded bg-[#EADDCB] flex-shrink-0 mx-auto sm:mx-0 overflow-hidden">
                       <img
                         src={
                           typeof item.variant === "object" &&
@@ -755,6 +756,14 @@ export default function OrderDetailsPage() {
                         }
                         alt={item.product.name}
                         className="h-full w-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          console.log('Image failed to load:', target.src);
+                          target.src = "https://placehold.co/100x100?text=No+Image";
+                        }}
+                        onLoad={() => {
+                          console.log('Image loaded successfully for product:', item.product.name);
+                        }}
                       />
                     </div>
                     <div className="flex-1 flex flex-col gap-1">
@@ -1158,7 +1167,7 @@ export default function OrderDetailsPage() {
   };
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto py-8 bg-[#F8F5E4] min-h-screen">
       <DashboardLayout>{renderContent()}</DashboardLayout>
       <InvoiceDialog
         open={invoiceDialogOpen}

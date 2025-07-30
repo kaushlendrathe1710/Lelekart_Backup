@@ -240,7 +240,7 @@ export default function WalletPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 bg-[#F8F5E4] min-h-screen">
         <h1 className="text-3xl font-bold tracking-tight">My Wallet</h1>
 
         {/* Wallet Points and Redeem Coins Display */}
@@ -275,7 +275,7 @@ export default function WalletPage() {
         )}
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <Card>
+          <Card className="bg-[#F8F5E4]">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 Available Balance
@@ -312,13 +312,13 @@ export default function WalletPage() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Wallet Overview</CardTitle>
-                <CardDescription>
-                  Your wallet activity and coin statistics
-                </CardDescription>
-              </CardHeader>
+                      <Card className="bg-[#F8F5E4]">
+            <CardHeader>
+              <CardTitle>Wallet Overview</CardTitle>
+              <CardDescription>
+                Your wallet activity and coin statistics
+              </CardDescription>
+            </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
@@ -339,35 +339,35 @@ export default function WalletPage() {
                   />
                 </div>
 
-                <div className="rounded-md border">
+                <div className="rounded-md border bg-[#F8F5E4]">
                   <Table>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead>Description</TableHead>
-                        <TableHead>Value</TableHead>
+                      <TableRow className="bg-[#F8F5E4] hover:bg-[#EADDCB]">
+                        <TableHead className="bg-[#F8F5E4]">Description</TableHead>
+                        <TableHead className="bg-[#F8F5E4]">Value</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      <TableRow>
-                        <TableCell>Conversion Rate</TableCell>
-                        <TableCell>1 wallet rupee = ₹1</TableCell>
+                      <TableRow className="bg-[#F8F5E4] hover:bg-[#EADDCB]">
+                        <TableCell className="bg-[#F8F5E4]">Conversion Rate</TableCell>
+                        <TableCell className="bg-[#F8F5E4]">1 wallet rupee = ₹1</TableCell>
                       </TableRow>
-                      <TableRow>
-                        <TableCell>Coin Expiry</TableCell>
-                        <TableCell>
+                      <TableRow className="bg-[#F8F5E4] hover:bg-[#EADDCB]">
+                        <TableCell className="bg-[#F8F5E4]">Coin Expiry</TableCell>
+                        <TableCell className="bg-[#F8F5E4]">
                           {settings?.expiryDays || 0} days after earning
                         </TableCell>
                       </TableRow>
-                      <TableRow>
-                        <TableCell>First Purchase Bonus</TableCell>
-                        <TableCell>3000 coins</TableCell>
+                      <TableRow className="bg-[#F8F5E4] hover:bg-[#EADDCB]">
+                        <TableCell className="bg-[#F8F5E4]">First Purchase Bonus</TableCell>
+                        <TableCell className="bg-[#F8F5E4]">3000 coins</TableCell>
                       </TableRow>
                       {settings &&
                         typeof settings.maxUsagePercentage === "number" &&
                         settings.maxUsagePercentage > 0 && (
-                          <TableRow>
-                            <TableCell>Maximum Usage</TableCell>
-                            <TableCell>
+                          <TableRow className="bg-[#F8F5E4] hover:bg-[#EADDCB]">
+                            <TableCell className="bg-[#F8F5E4]">Maximum Usage</TableCell>
+                            <TableCell className="bg-[#F8F5E4]">
                               {settings.maxUsagePercentage}% of order value
                             </TableCell>
                           </TableRow>
@@ -375,9 +375,9 @@ export default function WalletPage() {
                       {settings &&
                         typeof settings.minCartValue !== "undefined" &&
                         (settings.minCartValue ?? 0) > 0 && (
-                          <TableRow>
-                            <TableCell>Minimum Order Value</TableCell>
-                            <TableCell>{settings?.minCartValue ?? 0}</TableCell>
+                          <TableRow className="bg-[#F8F5E4] hover:bg-[#EADDCB]">
+                            <TableCell className="bg-[#F8F5E4]">Minimum Order Value</TableCell>
+                            <TableCell className="bg-[#F8F5E4]">{settings?.minCartValue ?? 0}</TableCell>
                           </TableRow>
                         )}
                     </TableBody>
@@ -395,7 +395,7 @@ export default function WalletPage() {
           </TabsContent>
 
           <TabsContent value="transactions" className="space-y-4">
-            <Card>
+            <Card className="bg-[#F8F5E4]">
               <CardHeader>
                 <CardTitle>Transaction History</CardTitle>
                 <CardDescription>
@@ -408,21 +408,21 @@ export default function WalletPage() {
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
                 ) : (
-                  <div className="rounded-md border">
-                    <Table>
+                  <div className="rounded-md border bg-[#F8F5E4]">
+                    <Table className="bg-[#F8F5E4]">
                       <TableHeader>
-                        <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Amount</TableHead>
-                          <TableHead>Description</TableHead>
-                          <TableHead>Date</TableHead>
+                        <TableRow className="bg-[#F8F5E4] hover:bg-[#EADDCB]">
+                          <TableHead className="bg-[#F8F5E4]">Date</TableHead>
+                          <TableHead className="bg-[#F8F5E4]">Amount</TableHead>
+                          <TableHead className="bg-[#F8F5E4]">Description</TableHead>
+                          <TableHead className="bg-[#F8F5E4]">Date</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {!Array.isArray(transactions) ||
                         transactions.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={4} className="text-center py-6">
+                          <TableRow className="bg-[#F8F5E4]">
+                            <TableCell colSpan={4} className="text-center py-6 bg-[#F8F5E4]">
                               No transactions found
                             </TableCell>
                           </TableRow>
@@ -439,22 +439,22 @@ export default function WalletPage() {
                               typeStyle = "text-orange-600 font-medium";
 
                             return (
-                              <TableRow key={transaction.id}>
-                                <TableCell>
+                              <TableRow key={transaction.id} className="bg-[#F8F5E4] hover:bg-[#EADDCB]">
+                                <TableCell className="bg-[#F8F5E4]">
                                   {formatDate(transaction.createdAt)}
                                 </TableCell>
-                                <TableCell className={typeStyle}>
+                                <TableCell className={`${typeStyle} bg-[#F8F5E4]`}>
                                   {transaction.type
                                     ? transaction.type.charAt(0).toUpperCase() +
                                       transaction.type.slice(1)
                                     : "Unknown"}
                                 </TableCell>
-                                <TableCell className={typeStyle}>
+                                <TableCell className={`${typeStyle} bg-[#F8F5E4]`}>
                                   {transaction.type === "debit" ? "-" : ""}
                                   {transaction.amount}
                                 </TableCell>
-                                <TableCell>{transaction.description}</TableCell>
-                                <TableCell>
+                                <TableCell className="bg-[#F8F5E4]">{transaction.description}</TableCell>
+                                <TableCell className="bg-[#F8F5E4]">
                                   {transaction.expiresAt
                                     ? formatDate(transaction.expiresAt)
                                     : "N/A"}

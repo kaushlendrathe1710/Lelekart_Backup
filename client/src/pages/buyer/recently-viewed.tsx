@@ -39,7 +39,7 @@ export default function RecentlyViewedPage() {
     <div className="min-h-screen bg-[#F8F5E4]">
       <div className="container mx-auto py-6 px-4">
         <Button variant="outline" className="mb-4" onClick={() => setLocation("/buyer/dashboard")}>Back to Dashboard</Button>
-        <Card className="shadow-sm">
+        <Card className="shadow-sm bg-[#F8F5E4]">
           <CardHeader className="pb-3">
             <CardTitle>All Recently Viewed Products</CardTitle>
           </CardHeader>
