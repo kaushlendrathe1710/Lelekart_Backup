@@ -1086,15 +1086,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
             sellerItems.map(async (item) => {
               try {
                 const product = await storage.getProduct(item.productId);
+                let productName = product
+                  ? product.name
+                  : "Product no longer available";
+
+                // Add variant information to product name if available
+                if (item.variant) {
+                  const variantInfo = [];
+                  if (item.variant.color && item.variant.color.trim()) {
+                    variantInfo.push(`Color: ${item.variant.color}`);
+                  }
+                  if (item.variant.size && item.variant.size.trim()) {
+                    // Handle size display - if it's a range, show a more user-friendly message
+                    const sizeValue = item.variant.size;
+                    if (sizeValue && sizeValue.includes(",")) {
+                      // This is a size range - show the first size as a fallback
+                      const sizes = sizeValue.split(",").map((s) => s.trim());
+                      variantInfo.push(`Size: ${sizes[0]}`);
+                    } else {
+                      variantInfo.push(`Size: ${sizeValue}`);
+                    }
+                  }
+                  if (variantInfo.length > 0) {
+                    productName += ` (${variantInfo.join(", ")})`;
+                  }
+                }
+
                 return {
                   ...item,
-                  product: product || {
-                    id: item.productId,
-                    name: "Product no longer available",
-                    description:
-                      "This product has been removed from the catalog",
-                    price: item.price,
-                    gstRate: 0,
+                  product: {
+                    ...(product || {
+                      id: item.productId,
+                      description:
+                        "This product has been removed from the catalog",
+                      price: item.price,
+                      gstRate: 0,
+                    }),
+                    name: productName,
                   },
                 };
               } catch (err) {
@@ -1368,9 +1396,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
           let mrp = productInfo.mrp || price;
           let discount = Math.max(0, mrp - price);
 
+          // Build description with variant information if available
+          let description = productInfo.name;
+          if (item.variant) {
+            const variantInfo = [];
+            if (item.variant.color && item.variant.color.trim()) {
+              variantInfo.push(`Color: ${item.variant.color}`);
+            }
+            if (item.variant.size && item.variant.size.trim()) {
+              // Handle size display - if it's a range, show a more user-friendly message
+              const sizeValue = item.variant.size;
+              if (sizeValue && sizeValue.includes(",")) {
+                // This is a size range - show the first size as a fallback
+                const sizes = sizeValue.split(",").map((s) => s.trim());
+                variantInfo.push(`Size: ${sizes[0]}`);
+              } else {
+                variantInfo.push(`Size: ${sizeValue}`);
+              }
+            }
+            if (variantInfo.length > 0) {
+              description += ` (${variantInfo.join(", ")})`;
+            }
+          }
+
           processedItems.push({
             srNo: srNo++,
-            description: productInfo.name,
+            description: description,
             hsn: productInfo.hsn || "N/A",
             quantity: quantity,
             mrp: mrp.toFixed(2),
