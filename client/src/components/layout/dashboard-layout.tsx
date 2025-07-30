@@ -189,12 +189,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <SidebarProvider defaultOpen={true}>
-      <div className="flex min-h-screen flex-col bg-gray-50">
+      <div className="flex min-h-screen flex-col bg-[#F8F5E4]">
         {/* Top Navigation Bar - fixed height of 56px (h-14) */}
         <header className="fixed top-0 left-0 right-0 z-50 h-14 border-b bg-[#F8F5E4] px-4 shadow-md">
           <div className="flex h-full items-center justify-between">
             <div className="flex items-center gap-4">
-              <SidebarTrigger className="text-white hover:bg-primary-foreground/10 hover:text-white" />
+                              <SidebarTrigger className="text-black hover:bg-[#EADDCB] hover:text-black" />
               <Link href="/" className="flex items-center">
                 <Logo />
               </Link>
@@ -203,7 +203,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-white hover:bg-primary-foreground/10"
+                className="text-black hover:bg-[#EADDCB]"
                 asChild
               >
                 <Link href="/">
@@ -214,7 +214,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-white hover:bg-primary-foreground/10"
+                className="text-black hover:bg-[#EADDCB]"
               >
                 <Bell className="h-5 w-5" />
                 <span className="sr-only">Notifications</span>
@@ -222,7 +222,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-white hover:bg-primary-foreground/10 relative"
+                className="text-black hover:bg-[#EADDCB] relative"
                 asChild
               >
                 <Link href="/cart">
@@ -289,7 +289,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="h-14"></div>
 
         <div className="flex flex-1">
-          <Sidebar className="border-r shadow-sm bg-white">
+          <Sidebar className="border-r shadow-sm bg-[#F8F5E4]">
             <SidebarHeader className="border-b">
               <div className="flex items-center gap-2 px-3 py-3">
                 <Avatar className="h-10 w-10 border border-gray-200">
@@ -634,7 +634,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </div>
             </SidebarFooter>
           </Sidebar>
-          <SidebarInset className="w-full p-4 md:p-6">{children}</SidebarInset>
+          <SidebarInset className="w-full p-4 md:p-6 bg-[#F8F5E4]">{children}</SidebarInset>
         </div>
       </div>
     </SidebarProvider>

@@ -336,7 +336,7 @@ export default function BuyerReviewsPage() {
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Title</label>
                   <input
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    className="w-full rounded-md border border-input bg-[#F8F5E4] px-3 py-2 text-sm"
                     value={editedTitle}
                     onChange={(e) => setEditedTitle(e.target.value)}
                     placeholder="Review Title"

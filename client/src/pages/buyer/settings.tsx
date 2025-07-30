@@ -393,7 +393,7 @@ export default function BuyerSettingsPage() {
           <h1 className="text-2xl font-bold mb-6">Account Settings</h1>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <TabsList className="w-full bg-background p-0 flex justify-start gap-1 border-b">
+            <TabsList className="w-full bg-[#F8F5E4] p-0 flex justify-start gap-1 border-b">
               <TabsTrigger 
                 value="profile" 
                 className="data-[state=active]:border-primary data-[state=active]:border-b-2 rounded-none py-2 px-4 bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none"

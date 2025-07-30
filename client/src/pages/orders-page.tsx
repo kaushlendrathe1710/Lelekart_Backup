@@ -63,6 +63,8 @@ interface Order {
       id: number;
       name: string;
       image: string;
+      imageUrl?: string;
+      images?: string;
     };
     quantity: number;
     price: number;
@@ -95,6 +97,42 @@ function getStatusColor(status: string) {
     default:
       return "bg-gray-100 text-gray-800";
   }
+}
+
+// Helper to get product image URL
+function getProductImageUrl(product: any): string {
+  console.log('Getting image URL for product:', product);
+  
+  // First try product.image
+  if (product?.image) {
+    console.log('Using product.image:', product.image);
+    return product.image;
+  }
+
+  // Then try product.imageUrl
+  if (product?.imageUrl) {
+    console.log('Using product.imageUrl:', product.imageUrl);
+    return product.imageUrl;
+  }
+
+  // Finally try to get first image from product.images JSON
+  if (product?.images) {
+    try {
+      const imagesArray = JSON.parse(product.images);
+      if (Array.isArray(imagesArray) && imagesArray.length > 0) {
+        console.log('Using product.images[0]:', imagesArray[0]);
+        return imagesArray[0];
+      }
+    } catch {
+      // If JSON parsing fails, try using it directly
+      console.log('Using product.images directly:', product.images);
+      return product.images;
+    }
+  }
+
+  console.log('No image found, using placeholder');
+  // Return a default image if nothing found
+  return "https://placehold.co/100x100?text=No+Image";
 }
 
 // Helper to get status icon
@@ -202,9 +240,34 @@ export default function OrdersPage() {
         throw new Error("Failed to fetch orders");
       }
 
-      const data = await response.json();
-      setOrders(data);
-      setFilteredOrders(data);
+      const ordersData = await response.json();
+      console.log('Orders data:', ordersData); // Debug log
+
+      // Fetch items for each order
+      const ordersWithItems = await Promise.all(
+        ordersData.map(async (order: any) => {
+          try {
+            const itemsResponse = await fetch(`/api/orders/${order.id}/items`, {
+              credentials: "include",
+            });
+            if (itemsResponse.ok) {
+              const itemsData = await itemsResponse.json();
+              console.log(`Items for order ${order.id}:`, itemsData);
+              return { ...order, items: itemsData };
+            } else {
+              console.log(`Failed to fetch items for order ${order.id}`);
+              return { ...order, items: [] };
+            }
+          } catch (error) {
+            console.error(`Error fetching items for order ${order.id}:`, error);
+            return { ...order, items: [] };
+          }
+        })
+      );
+
+      console.log('Orders with items:', ordersWithItems);
+      setOrders(ordersWithItems);
+      setFilteredOrders(ordersWithItems);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching orders:", error);
@@ -511,7 +574,7 @@ export default function OrdersPage() {
     }
 
     return (
-      <div>
+      <div className="bg-[#F8F5E4] min-h-screen">
         <div className="mb-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
             <div>
@@ -526,7 +589,7 @@ export default function OrdersPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="flex items-center justify-center gap-2 h-10"
+                className="flex items-center justify-center gap-2 h-10 bg-[#F8F5E4]"
                 onClick={() => setSortDescending(!sortDescending)}
                 aria-label={
                   sortDescending
@@ -552,7 +615,7 @@ export default function OrdersPage() {
                 <Input
                   type="text"
                   placeholder="Search by order ID or status"
-                  className="pl-10 w-full"
+                  className="pl-10 w-full bg-[#F8F5E4]"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   aria-label="Search orders"
@@ -572,39 +635,74 @@ export default function OrdersPage() {
                 ? "No orders match your search criteria."
                 : "You haven't placed any orders yet."}
             </p>
-            <Button onClick={() => navigate("/")}>Start Shopping</Button>
+            <Button onClick={() => navigate("/")} className="bg-[#F8F5E4]">Start Shopping</Button>
           </div>
         ) : (
           <div className="space-y-4">
             {filteredOrders.map((order) => (
               <Card
                 key={order.id}
-                className="p-6 hover:shadow-md transition-shadow cursor-pointer"
+                className="p-6 hover:shadow-md transition-shadow cursor-pointer bg-[#F8F5E4]"
                 onClick={() => navigate(`/order/${order.id}`)}
               >
                 <div className="flex flex-col md:flex-row justify-between">
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-2">
                       <StatusIcon status={order.status} />
-                      <Badge className={getStatusColor(order.status)}>
+                      <Badge className={`${getStatusColor(order.status)} bg-[#F8F5E4]`}>
                         {order.status.charAt(0).toUpperCase() +
                           order.status.slice(1)}
                       </Badge>
                     </div>
 
-                    <div className="flex items-center gap-3 mb-2">
-                      {order.items && order.items[0]?.product?.image && (
-                        <img
-                          src={order.items[0].product.image}
-                          alt="Order Product"
-                          className="w-12 h-12 object-cover rounded"
-                        />
-                      )}
-                      <span className="font-bold text-lg">Order #{order.id}</span>
-                    </div>
+                    <h3 className="font-medium">Order #{order.id}</h3>
                     <p className="text-sm text-muted-foreground">
                       Placed on {formatDate(order.date)}
                     </p>
+
+                                        {/* Product Images */}
+                    {order.items && order.items.length > 0 ? (
+                      <>
+                        {console.log('Order items for order', order.id, ':', order.items)}
+                        <div className="flex items-center space-x-2 mt-3">
+                          <span className="text-sm text-muted-foreground">Products:</span>
+                          <div className="flex space-x-2">
+                            {order.items.slice(0, 3).map((item, index) => (
+                              <div key={index} className="relative">
+                                <img
+                                  src={getProductImageUrl(item.product)}
+                                  alt={item.product?.name || 'Product'}
+                                  className="w-12 h-12 object-cover rounded border bg-[#EADDCB]"
+                                  onError={(e) => {
+                                    console.log('Image failed to load for product:', item.product?.name, 'URL:', e.currentTarget.src);
+                                    e.currentTarget.src = 'https://placehold.co/100x100?text=No+Image';
+                                  }}
+                                  onLoad={() => {
+                                    console.log('Image loaded successfully for product:', item.product?.name);
+                                  }}
+                                />
+                                {/* Debug overlay to show if image container is rendered */}
+                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
+                                  {index + 1}
+                                </div>
+                              </div>
+                            ))}
+                            {order.items.length > 3 && (
+                              <div className="w-12 h-12 bg-[#EADDCB] rounded border flex items-center justify-center text-xs text-gray-500">
+                                +{order.items.length - 3}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex items-center space-x-2 mt-3">
+                        <span className="text-sm text-muted-foreground">Products:</span>
+                        <div className="w-12 h-12 bg-[#EADDCB] rounded border flex items-center justify-center text-xs text-gray-500">
+                          <Package2 className="h-6 w-6" />
+                        </div>
+                      </div>
+                    )}
 
                     <div className="mt-3">
                       <p className="text-sm text-muted-foreground">
@@ -657,7 +755,7 @@ export default function OrdersPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="flex items-center text-red-500 border-red-200 hover:bg-red-50"
+                          className="flex items-center text-red-500 border-red-200 hover:bg-red-50 bg-[#F8F5E4]"
                           onClick={(e) => {
                             e.stopPropagation();
                             setOrderToCancel(order);
@@ -673,7 +771,7 @@ export default function OrdersPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="flex items-center text-blue-500 border-blue-200 hover:bg-blue-50"
+                          className="flex items-center text-blue-500 border-blue-200 hover:bg-blue-50 bg-[#F8F5E4]"
                           disabled={returningOrderId === order.id}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -689,7 +787,7 @@ export default function OrdersPage() {
 
                       <Button
                         variant="ghost"
-                        className="flex items-center"
+                        className="flex items-center bg-[#F8F5E4]"
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate(`/order/${order.id}`);
@@ -754,7 +852,7 @@ export default function OrdersPage() {
               <span className="text-red-500">*</span>
             </label>
             <Select value={cancelReason} onValueChange={setCancelReason}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full bg-[#F8F5E4]">
                 <SelectValue placeholder="Choose a reason" />
               </SelectTrigger>
               <SelectContent>
@@ -780,6 +878,7 @@ export default function OrdersPage() {
             <Button
               type="button"
               variant="outline"
+              className="bg-[#F8F5E4]"
               onClick={() => {
                 setShowCancelDialog(false);
                 setOrderToCancel(null);
@@ -833,7 +932,7 @@ export default function OrdersPage() {
                   value={returnReason}
                   onChange={e => setReturnReason(e.target.value)}
                   required
-                  className="block w-full border rounded px-3 py-2"
+                  className="block w-full border rounded px-3 py-2 bg-[#F8F5E4]"
                 >
                   <option value="">Select a reason for return</option>
                   {fallbackReasons.map((reason) => (
@@ -853,7 +952,7 @@ export default function OrdersPage() {
                   onChange={e => setReturnDescription(e.target.value)}
                   rows={4}
                   required
-                  className="block w-full border rounded px-3 py-2"
+                  className="block w-full border rounded px-3 py-2 bg-[#F8F5E4]"
                 />
               </div>
               {/* Image Upload */}
@@ -872,7 +971,7 @@ export default function OrdersPage() {
                     type="button"
                     variant="outline"
                     onClick={startCamera}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 bg-[#F8F5E4]"
                     aria-label="Take photo with camera"
                   >
                     <Camera className="h-4 w-4" />
@@ -921,6 +1020,7 @@ export default function OrdersPage() {
           <DialogFooter>
             <Button
               variant="outline"
+              className="bg-[#F8F5E4]"
               onClick={() => setReturnDialogOpen(false)}
               disabled={returningOrderId === selectedOrderForReturn?.id}
             >
@@ -977,13 +1077,13 @@ export default function OrdersPage() {
               <Button
                 variant="outline"
                 onClick={stopCamera}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 bg-[#F8F5E4]"
               >
                 Cancel
               </Button>
               <Button
                 onClick={capturePhoto}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 bg-[#F8F5E4]"
               >
                 <Camera className="h-4 w-4" />
                 Capture Photo
