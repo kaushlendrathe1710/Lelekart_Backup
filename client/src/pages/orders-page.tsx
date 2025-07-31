@@ -206,17 +206,39 @@ export default function OrdersPage() {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Immediately update the local state for better UX
+      if (data.order) {
+        setOrders((prevOrders) =>
+          prevOrders.map((order) =>
+            order.id === data.order.id
+              ? { ...order, status: "cancelled", ...data.order }
+              : order
+          )
+        );
+        setFilteredOrders((prevOrders) =>
+          prevOrders.map((order) =>
+            order.id === data.order.id
+              ? { ...order, status: "cancelled", ...data.order }
+              : order
+          )
+        );
+      }
+
       toast({
         title: "Order Cancelled",
         description: "Your order has been successfully cancelled.",
       });
-      // Refetch orders
-      fetchOrders();
+
       // Close dialog
       setShowCancelDialog(false);
       setOrderToCancel(null);
       setCancelReason("");
+
+      // Refetch orders in background to ensure data consistency
+      setTimeout(() => {
+        fetchOrders();
+      }, 1000);
     },
     onError: (error: Error) => {
       toast({
