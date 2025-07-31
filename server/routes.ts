@@ -5389,13 +5389,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Cart is empty" });
       }
 
+      // Get the discounted amount from request body if provided
+      const { discountedAmount } = req.body;
+
       // Calculate total in lowest currency unit (paise for INR)
-      const totalInPaise = Math.round(
+      // Use discounted amount if provided, otherwise calculate from cart items
+      const originalTotal = Math.round(
         cartItems.reduce(
           (acc, item) => acc + item.product.price * item.quantity,
           0
         ) * 100
       );
+
+      const totalInPaise = discountedAmount
+        ? Math.round(discountedAmount * 100) // Convert rupees to paise
+        : originalTotal;
+
+      // Log the amounts for debugging
+      console.log("Razorpay order creation:", {
+        originalTotal: originalTotal / 100,
+        discountedAmount,
+        finalAmount: totalInPaise / 100,
+        cartItemsCount: cartItems.length,
+      });
 
       // Create a unique receipt ID
       const receiptId = `receipt_${Date.now()}_${req.user.id}`;
@@ -5490,6 +5506,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         shippingDetails,
         addressId,
         walletDetails,
+        discountedAmount,
       } = req.body;
 
       if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
@@ -5562,11 +5579,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Calculate total
-      const total = cartItems.reduce((acc, item) => {
+      // Calculate total - use discounted amount if provided, otherwise calculate from cart items
+      const originalTotal = cartItems.reduce((acc, item) => {
         const price = item.variant ? item.variant.price : item.product.price;
         return acc + price * item.quantity;
       }, 0);
+
+      const total = discountedAmount || originalTotal;
+
+      // Log the amounts for debugging
+      console.log("Payment verification:", {
+        originalTotal,
+        discountedAmount,
+        finalTotal: total,
+        cartItemsCount: cartItems.length,
+      });
 
       // Create order in our system
       const orderData: any = {
