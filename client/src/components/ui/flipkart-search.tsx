@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
-import { Search, X, TrendingUp, History } from 'lucide-react';
-import { useOnClickOutside } from '@/hooks/use-on-click-outside';
-import { useDebounce } from '@/hooks/use-debounce';
+import { useState, useRef, useEffect } from "react";
+import { Search, X, TrendingUp, History } from "lucide-react";
+import { useOnClickOutside } from "@/hooks/use-on-click-outside";
+import { useDebounce } from "@/hooks/use-debounce";
 
 interface SearchSuggestion {
   id: number;
@@ -16,17 +16,17 @@ interface FlipkartSearchProps {
 }
 
 export function FlipkartSearch({ className = "" }: FlipkartSearchProps) {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const debouncedQuery = useDebounce(query, 300);
-  
+
   // Local storage key for recent searches
-  const RECENT_SEARCHES_KEY = 'lelekart_recent_searches';
-  
+  const RECENT_SEARCHES_KEY = "lelekart_recent_searches";
+
   // Get recent searches from local storage
   const getRecentSearches = (): string[] => {
     try {
@@ -35,24 +35,31 @@ export function FlipkartSearch({ className = "" }: FlipkartSearchProps) {
         return JSON.parse(stored);
       }
     } catch (error) {
-      console.error('Error retrieving recent searches:', error);
+      console.error("Error retrieving recent searches:", error);
     }
     return [];
   };
-  
+
   // Save a search term to recent searches
   const saveToRecentSearches = (searchTerm: string) => {
     try {
       const recentSearches = getRecentSearches();
       // Remove if already exists and add to the beginning
       const updated = [
-        searchTerm, 
-        ...recentSearches.filter(term => term !== searchTerm)
+        searchTerm,
+        ...recentSearches.filter((term) => term !== searchTerm),
       ].slice(0, 5); // Keep only the most recent 5 searches
-      
+
       localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
+
+      // Dispatch custom event to notify other components about localStorage change
+      window.dispatchEvent(
+        new CustomEvent("localStorageChange", {
+          detail: { key: RECENT_SEARCHES_KEY, value: updated },
+        })
+      );
     } catch (error) {
-      console.error('Error saving recent search:', error);
+      console.error("Error saving recent search:", error);
     }
   };
 
@@ -73,47 +80,50 @@ export function FlipkartSearch({ className = "" }: FlipkartSearchProps) {
       try {
         const url = `/api/lelekart-search?q=${encodeURIComponent(debouncedQuery)}&limit=6`;
         console.log(`Fetching search suggestions from: ${url}`);
-        
+
         const response = await fetch(url);
-        
+
         if (!response.ok) {
-          throw new Error('Failed to fetch search suggestions');
+          throw new Error("Failed to fetch search suggestions");
         }
-        
+
         const data = await response.json();
         console.log(`Found ${data.length} search suggestions`);
-        
+
         // Process the suggestions to ensure proper image handling
         const processedSuggestions = data.map((item: any) => {
           let imageUrl = null;
-          
+
           // Handle different image formats from the API
           if (item.imageUrl) {
             imageUrl = item.imageUrl;
           } else if (item.images) {
             try {
               // Try to parse the images if it's a JSON string
-              const imagesArray = typeof item.images === 'string' ? JSON.parse(item.images) : item.images;
+              const imagesArray =
+                typeof item.images === "string"
+                  ? JSON.parse(item.images)
+                  : item.images;
               if (Array.isArray(imagesArray) && imagesArray.length > 0) {
                 imageUrl = imagesArray[0];
               }
             } catch (err) {
-              console.error('Error parsing product images:', err);
+              console.error("Error parsing product images:", err);
             }
           }
-          
+
           return {
             id: item.id,
             name: item.name,
             image: imageUrl,
             price: item.price || 0,
-            category: item.category || 'Uncategorized'
+            category: item.category || "Uncategorized",
           };
         });
-        
+
         setSuggestions(processedSuggestions);
       } catch (error) {
-        console.error('Error fetching search suggestions:', error);
+        console.error("Error fetching search suggestions:", error);
         setSuggestions([]);
       } finally {
         setIsLoading(false);
@@ -126,28 +136,28 @@ export function FlipkartSearch({ className = "" }: FlipkartSearchProps) {
   // Handle form submission
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (query.trim()) {
-      console.log('Search for:', query);
+      console.log("Search for:", query);
       setShowSuggestions(false);
-      
+
       // Save to recent searches
       saveToRecentSearches(query.trim());
-      
+
       // Navigate to search results page
       // Use 'replace' to ensure the URL is properly encoded and handled
       window.location.replace(`/search?q=${encodeURIComponent(query.trim())}`);
     }
   };
-  
+
   // Handle clicking on a recent search
   const handleRecentSearchClick = (searchTerm: string) => {
     setQuery(searchTerm);
     setShowSuggestions(false);
-    
+
     // Save to recent searches to bring it to the top
     saveToRecentSearches(searchTerm);
-    
+
     // Navigate to search results page
     // Use 'replace' instead of 'href' to ensure the URL is properly encoded and handled
     window.location.replace(`/search?q=${encodeURIComponent(searchTerm)}`);
@@ -155,28 +165,28 @@ export function FlipkartSearch({ className = "" }: FlipkartSearchProps) {
 
   // Format price as Indian Rupees
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
     }).format(price);
   };
 
   const clearSearch = () => {
-    setQuery('');
+    setQuery("");
     setSuggestions([]);
     setShowSuggestions(false);
     inputRef.current?.focus();
   };
-  
+
   // Trending searches - these would typically come from an API
   // but for now we'll hardcode some example trending searches
   const trendingSearches = [
-    'Smartphones',
-    'Laptops',
-    'Headphones',
-    'Smart Watches',
-    'Cameras'
+    "Smartphones",
+    "Laptops",
+    "Headphones",
+    "Smart Watches",
+    "Cameras",
   ];
 
   return (
@@ -231,7 +241,7 @@ export function FlipkartSearch({ className = "" }: FlipkartSearchProps) {
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
             </div>
           )}
-          
+
           {/* Product suggestions */}
           {!isLoading && suggestions.length > 0 && (
             <div>
@@ -246,10 +256,12 @@ export function FlipkartSearch({ className = "" }: FlipkartSearchProps) {
                       className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center"
                       onClick={() => {
                         setShowSuggestions(false);
-                        setQuery('');
-                        
+                        setQuery("");
+
                         // Always navigate to the public product details page
-                        console.log(`Navigating to product: /product/${suggestion.id}`);
+                        console.log(
+                          `Navigating to product: /product/${suggestion.id}`
+                        );
                         window.location.href = `/product/${suggestion.id}`;
                       }}
                     >
@@ -260,17 +272,24 @@ export function FlipkartSearch({ className = "" }: FlipkartSearchProps) {
                             alt={suggestion.name}
                             className="h-full w-full object-contain"
                             onError={(e) => {
-                              (e.target as HTMLImageElement).src = "/images/placeholder.svg";
+                              (e.target as HTMLImageElement).src =
+                                "/images/placeholder.svg";
                             }}
                           />
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{suggestion.name}</p>
-                        <p className="text-xs text-gray-500">in {suggestion.category}</p>
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {suggestion.name}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          in {suggestion.category}
+                        </p>
                       </div>
                       <div className="ml-3">
-                        <p className="text-sm font-medium text-primary">{formatPrice(suggestion.price)}</p>
+                        <p className="text-sm font-medium text-primary">
+                          {formatPrice(suggestion.price)}
+                        </p>
                       </div>
                     </button>
                   </li>
@@ -282,7 +301,9 @@ export function FlipkartSearch({ className = "" }: FlipkartSearchProps) {
                   onClick={(e) => {
                     e.preventDefault();
                     // Use window.location.replace for consistent navigation
-                    window.location.replace(`/search?q=${encodeURIComponent(query.trim())}`);
+                    window.location.replace(
+                      `/search?q=${encodeURIComponent(query.trim())}`
+                    );
                   }}
                 >
                   View all results for "{query}"
@@ -290,30 +311,32 @@ export function FlipkartSearch({ className = "" }: FlipkartSearchProps) {
               </div>
             </div>
           )}
-          
+
           {/* Recent searches - shown when no query or short query */}
-          {!isLoading && suggestions.length === 0 && getRecentSearches().length > 0 && (
-            <div>
-              <div className="px-4 py-2 text-xs font-medium text-gray-500 bg-gray-50 border-b border-gray-200 flex items-center">
-                <History className="h-3 w-3 mr-1" /> RECENT SEARCHES
+          {!isLoading &&
+            suggestions.length === 0 &&
+            getRecentSearches().length > 0 && (
+              <div>
+                <div className="px-4 py-2 text-xs font-medium text-gray-500 bg-gray-50 border-b border-gray-200 flex items-center">
+                  <History className="h-3 w-3 mr-1" /> RECENT SEARCHES
+                </div>
+                <ul className="py-1">
+                  {getRecentSearches().map((term, index) => (
+                    <li key={`recent-${index}`}>
+                      <button
+                        type="button"
+                        className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center"
+                        onClick={() => handleRecentSearchClick(term)}
+                      >
+                        <Search className="h-4 w-4 mr-2 text-gray-400" />
+                        <span className="text-sm text-gray-700">{term}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <ul className="py-1">
-                {getRecentSearches().map((term, index) => (
-                  <li key={`recent-${index}`}>
-                    <button
-                      type="button"
-                      className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center"
-                      onClick={() => handleRecentSearchClick(term)}
-                    >
-                      <Search className="h-4 w-4 mr-2 text-gray-400" />
-                      <span className="text-sm text-gray-700">{term}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          
+            )}
+
           {/* Trending searches - shown when no query or short query and no recent searches */}
           {!isLoading && suggestions.length === 0 && (
             <div>
@@ -329,7 +352,9 @@ export function FlipkartSearch({ className = "" }: FlipkartSearchProps) {
                       onClick={() => {
                         setQuery(term);
                         // Use window.location.replace for consistent navigation
-                        window.location.replace(`/search?q=${encodeURIComponent(term.trim())}`);
+                        window.location.replace(
+                          `/search?q=${encodeURIComponent(term.trim())}`
+                        );
                       }}
                     >
                       <TrendingUp className="h-4 w-4 mr-2 text-gray-400" />
