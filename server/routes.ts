@@ -2874,6 +2874,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const search = req.query.search as string | undefined;
       const subcategory = req.query.subcategory as string | undefined;
       const interleaved = req.query.interleaved === "true";
+      const maxPrice = req.query.maxPrice
+        ? Number(req.query.maxPrice)
+        : undefined;
 
       // Check user role to determine if we should show unapproved products
       const userRole = req.isAuthenticated() ? req.user.role : "buyer";
@@ -2926,6 +2929,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         limit,
         search,
         subcategory,
+        maxPrice,
         userRole: req.isAuthenticated() ? req.user.role : "buyer",
       });
 
@@ -3065,7 +3069,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         search,
         isDraft,
         subcategory,
-        rejected
+        rejected,
+        maxPrice
       );
       const totalPages = Math.ceil(totalCount / limit);
 
@@ -3091,7 +3096,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         search,
         isDraft, // Pass isDraft parameter
         subcategory, // Pass subcategory parameter
-        rejected // Pass rejected parameter (now can be true/false/undefined)
+        rejected, // Pass rejected parameter (now can be true/false/undefined)
+        maxPrice // Pass maxPrice parameter for price filtering
       );
       console.log(
         `Found ${products?.length || 0} products (page ${page}/${totalPages})`
