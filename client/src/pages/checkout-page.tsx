@@ -1447,7 +1447,7 @@ export default function CheckoutPage() {
                           onSuccess={(orderId) => {
                             // Redirect to order confirmation page
                             setLocation(
-                              `/order-confirmation/${orderId}?success=true&total=${finalOrderTotal}`
+                              `/order-confirmation/${orderId}?success=true&total=${finalOrderTotal}&paymentMethod=razorpay`
                             );
                           }}
                           onError={(error) => {
@@ -1644,7 +1644,8 @@ export default function CheckoutPage() {
                             )}
                             {item.variant.size && (
                               <span className="inline-block px-1 py-0.5 bg-green-100 text-green-800 rounded text-xs">
-                                Size: {(() => {
+                                Size:{" "}
+                                {(() => {
                                   // Handle size display - if it's a range, show a more user-friendly message
                                   const sizeValue = item.variant.size;
                                   if (sizeValue && sizeValue.includes(",")) {
