@@ -18,6 +18,15 @@ router.post(
   "/api/admin/affiliates/:id/increment-usage",
   incrementAffiliateUsage
 );
-router.get("/api/affiliate/dashboard", getAffiliateDashboard);
+
+// Add authentication check for affiliate dashboard
+router.get(
+  "/api/affiliate/dashboard",
+  (req, res, next) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    next();
+  },
+  getAffiliateDashboard
+);
 
 export default router;
