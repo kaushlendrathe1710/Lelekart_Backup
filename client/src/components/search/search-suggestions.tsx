@@ -143,10 +143,8 @@ export function SearchSuggestions({
                   e.preventDefault();
                   e.stopPropagation();
                   console.log("Suggestion clicked:", suggestion);
-                  // Add a small delay to ensure event handling is complete
-                  setTimeout(() => {
-                    onSelect(suggestion);
-                  }, 10);
+                  // Call onSelect immediately to prevent any interference
+                  onSelect(suggestion);
                 }}
               >
                 {suggestion.image && (
