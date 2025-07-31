@@ -194,6 +194,7 @@ export default function OrderConfirmationPage() {
     const urlParams = new URLSearchParams(window.location.search);
     const successParam = urlParams.get("success");
     const totalParam = urlParams.get("total");
+    const paymentMethodParam = urlParams.get("paymentMethod");
 
     if (successParam === "true" && totalParam) {
       // We have success parameters - we can create a minimal success state
@@ -202,7 +203,7 @@ export default function OrderConfirmationPage() {
         status: "confirmed",
         total: parseFloat(totalParam),
         date: new Date().toISOString(),
-        paymentMethod: "cod",
+        paymentMethod: paymentMethodParam || "cod", // Use payment method from URL or default to cod
       };
       setOrderDetails(orderSuccess);
       setLoading(false);
@@ -339,7 +340,9 @@ export default function OrderConfirmationPage() {
               <p className="font-medium">
                 {orderDetails.paymentMethod === "cod"
                   ? "Cash on Delivery"
-                  : orderDetails.paymentMethod}
+                  : orderDetails.paymentMethod === "razorpay"
+                    ? "Razorpay"
+                    : orderDetails.paymentMethod}
               </p>
             </div>
             <div>
@@ -527,7 +530,9 @@ export default function OrderConfirmationPage() {
                   <span className="font-medium capitalize">
                     {orderDetails.paymentMethod === "cod"
                       ? "Cash on Delivery"
-                      : orderDetails.paymentMethod}
+                      : orderDetails.paymentMethod === "razorpay"
+                        ? "Razorpay"
+                        : orderDetails.paymentMethod}
                   </span>
                 </div>
               </div>

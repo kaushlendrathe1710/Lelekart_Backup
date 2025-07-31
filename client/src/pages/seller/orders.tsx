@@ -265,6 +265,8 @@ export default function SellerOrdersPage() {
     switch (method) {
       case "cod":
         return "Cash on Delivery";
+      case "razorpay":
+        return "Razorpay";
       case "card":
         return "Credit/Debit Card";
       case "upi":

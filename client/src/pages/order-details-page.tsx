@@ -562,7 +562,13 @@ export default function OrderDetailsPage() {
             <div>
               <p>
                 <span className="font-medium">Method: </span>
-                <span>{order.paymentMethod}</span>
+                <span>
+                  {order.paymentMethod === "cod"
+                    ? "Cash on Delivery"
+                    : order.paymentMethod === "razorpay"
+                      ? "Razorpay"
+                      : order.paymentMethod}
+                </span>
               </p>
               <p className="mt-1">
                 <span className="font-medium">Status: </span>
