@@ -114,6 +114,13 @@ export function SimpleSearch({
       // Keep only latest 5
       if (history.length > 5) history = history.slice(0, 5);
       localStorage.setItem(key, JSON.stringify(history));
+
+      // Dispatch custom event to notify other components about localStorage change
+      window.dispatchEvent(
+        new CustomEvent("localStorageChange", {
+          detail: { key: key, value: history },
+        })
+      );
     } catch (e) {
       // Ignore errors
     }
