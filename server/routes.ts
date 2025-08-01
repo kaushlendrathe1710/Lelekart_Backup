@@ -6648,7 +6648,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Send immediate real-time notification to buyer
       try {
-        const { sendNotificationToUser } = await import("../websocket");
+        const { sendNotificationToUser } = await import("./websocket");
         await sendNotificationToUser(order.userId, {
           type: "ORDER_STATUS",
           title: "Order Cancelled",
@@ -6814,7 +6814,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Send immediate real-time notification to buyer for status changes
       try {
-        const { sendNotificationToUser } = await import("../websocket");
+        const { sendNotificationToUser } = await import("./websocket");
         await sendNotificationToUser(order.userId, {
           type: "ORDER_STATUS",
           title: `Order #${id} ${status.charAt(0).toUpperCase() + status.slice(1)}`,
