@@ -485,9 +485,7 @@ export default function ShippingPage() {
                                   Lelekart mobile app notifications
                                 </li>
                               </ul>
-                              <div className="mt-4">
-                                <Button onClick={() => navigate('/orders')}>Track Order</Button>
-                              </div>
+
                             </div>
                           </div>
                         </CardContent>

@@ -309,6 +309,64 @@ export default function OrdersPage() {
     },
   });
 
+
+  // Function to fetch orders
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/orders?includeItems=true", {
+        credentials: "include",
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch orders");
+      }
+
+      const ordersData = await response.json();
+      console.log("Orders data:", ordersData); // Debug log
+
+      // Fetch items for each order
+      const ordersWithItems = await Promise.all(
+        ordersData.map(async (order: any) => {
+          try {
+            const itemsResponse = await fetch(`/api/orders/${order.id}/items`, {
+              credentials: "include",
+            });
+            if (itemsResponse.ok) {
+              const itemsData = await itemsResponse.json();
+              console.log(`Items for order ${order.id}:`, itemsData);
+              return { ...order, items: itemsData };
+            } else {
+              console.log(`Failed to fetch items for order ${order.id}`);
+              return { ...order, items: [] };
+            }
+          } catch (error) {
+            console.error(`Error fetching items for order ${order.id}:`, error);
+            return { ...order, items: [] };
+          }
+        })
+      );
+
+      console.log('Orders with items:', ordersWithItems);
+      setOrders(ordersWithItems);
+      setFilteredOrders(ordersWithItems);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch orders. Please try again.",
+        variant: "destructive",
+      });
+      setLoading(false);
+    }
+  };
+
+
   useEffect(() => {
     // Check if user is logged in
     if (!user) {

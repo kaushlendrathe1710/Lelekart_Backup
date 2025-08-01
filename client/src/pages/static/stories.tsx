@@ -12,7 +12,7 @@ const successStories = [
     title: "From Local Artisan to National Brand",
     category: "Seller Success",
     image:
-      "https://static-assets-web.flixcart.com/fk-sp-static/images/industry_landing_images/fashion-img.png",
+      "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=300&fit=crop",
     date: "April 5, 2023",
     author: "Team Lelekart",
     excerpt:
@@ -26,7 +26,7 @@ const successStories = [
     title: "Building the Future of E-commerce Logistics",
     category: "Innovation",
     image:
-      "https://static-assets-web.flixcart.com/fk-sp-static/images/industry_landing_images/grocery-img.png",
+      "https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=400&h=300&fit=crop",
     date: "March 12, 2023",
     author: "Tech Team",
     excerpt:
@@ -40,7 +40,7 @@ const successStories = [
     title: "Empowering Women Entrepreneurs",
     category: "Seller Success",
     image:
-      "https://static-assets-web.flixcart.com/fk-sp-static/images/industry_landing_images/beauty-img.png",
+      "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=300&fit=crop",
     date: "February 28, 2023",
     author: "Seller Relations",
     excerpt:
@@ -54,7 +54,7 @@ const successStories = [
     title: "AI-Powered Shopping Recommendations",
     category: "Innovation",
     image:
-      "https://static-assets-web.flixcart.com/fk-sp-static/images/industry_landing_images/mobile-img.png",
+      "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=400&h=300&fit=crop",
     date: "January 17, 2023",
     author: "AI Team",
     excerpt:
@@ -68,7 +68,7 @@ const successStories = [
     title: "Bringing the Internet to Rural India",
     category: "Social Impact",
     image:
-      "https://static-assets-web.flixcart.com/fk-sp-static/images/industry_landing_images/home-img.png",
+      "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=300&fit=crop",
     date: "December 15, 2022",
     author: "CSR Team",
     excerpt:
@@ -82,7 +82,7 @@ const successStories = [
     title: "Sustainable Packaging Revolution",
     category: "Social Impact",
     image:
-      "https://static-assets-web.flixcart.com/fk-sp-static/images/industry_landing_images/electronics-img.png",
+      "https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=400&h=300&fit=crop",
     date: "November 6, 2022",
     author: "Sustainability Team",
     excerpt:

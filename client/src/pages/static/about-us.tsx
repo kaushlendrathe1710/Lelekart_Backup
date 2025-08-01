@@ -285,12 +285,8 @@ export default function AboutUsPage() {
                   defaultContent={
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                       <div className="text-center">
-                        <div className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-gray-100 mx-auto mb-3 md:mb-4 overflow-hidden">
-                          <img
-                            src="https://rukminim1.flixcart.com/image/300/300/cms-rpd-images/74efeabc23cd4f2486d7c04264454cef_187ac5ccc94_image.jpeg?q=90"
-                            alt="CEO"
-                            className="w-full h-full object-cover"
-                          />
+                        <div className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-blue-100 mx-auto mb-3 md:mb-4 flex items-center justify-center">
+                          <span className="text-blue-600 font-bold text-lg md:text-xl">RS</span>
                         </div>
                         <h3 className="font-semibold text-sm md:text-base">
                           Rahul Sharma
@@ -298,12 +294,8 @@ export default function AboutUsPage() {
                         <p className="text-xs md:text-sm text-gray-600">CEO</p>
                       </div>
                       <div className="text-center">
-                        <div className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-gray-100 mx-auto mb-3 md:mb-4 overflow-hidden">
-                          <img
-                            src="https://rukminim1.flixcart.com/image/300/300/cms-rpd-images/74efeabc23cd4f2486d7c04264454cef_187ac5ccc94_image.jpeg?q=90"
-                            alt="CTO"
-                            className="w-full h-full object-cover"
-                          />
+                        <div className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-green-100 mx-auto mb-3 md:mb-4 flex items-center justify-center">
+                          <span className="text-green-600 font-bold text-lg md:text-xl">PP</span>
                         </div>
                         <h3 className="font-semibold text-sm md:text-base">
                           Priya Patel
@@ -311,12 +303,8 @@ export default function AboutUsPage() {
                         <p className="text-xs md:text-sm text-gray-600">CTO</p>
                       </div>
                       <div className="text-center">
-                        <div className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-gray-100 mx-auto mb-3 md:mb-4 overflow-hidden">
-                          <img
-                            src="https://rukminim1.flixcart.com/image/300/300/cms-rpd-images/74efeabc23cd4f2486d7c04264454cef_187ac5ccc94_image.jpeg?q=90"
-                            alt="COO"
-                            className="w-full h-full object-cover"
-                          />
+                        <div className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-purple-100 mx-auto mb-3 md:mb-4 flex items-center justify-center">
+                          <span className="text-purple-600 font-bold text-lg md:text-xl">AK</span>
                         </div>
                         <h3 className="font-semibold text-sm md:text-base">
                           Amit Kumar
@@ -324,12 +312,8 @@ export default function AboutUsPage() {
                         <p className="text-xs md:text-sm text-gray-600">COO</p>
                       </div>
                       <div className="text-center">
-                        <div className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-gray-100 mx-auto mb-3 md:mb-4 overflow-hidden">
-                          <img
-                            src="https://rukminim1.flixcart.com/image/300/300/cms-rpd-images/74efeabc23cd4f2486d7c04264454cef_187ac5ccc94_image.jpeg?q=90"
-                            alt="CFO"
-                            className="w-full h-full object-cover"
-                          />
+                        <div className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-orange-100 mx-auto mb-3 md:mb-4 flex items-center justify-center">
+                          <span className="text-orange-600 font-bold text-lg md:text-xl">DA</span>
                         </div>
                         <h3 className="font-semibold text-sm md:text-base">
                           Deepa Agarwal
