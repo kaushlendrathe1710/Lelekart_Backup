@@ -107,8 +107,10 @@ export function SimpleHeader() {
               <div className="mr-2 hidden md:block">
                 <AllCategoriesDropdown />
               </div>
-              <SimpleSearch className="w-full flex-grow"
-                inputClassName="w-full pl-4 pr-4 py-2 text-base rounded-l-lg border-r-0 shadow-none" />
+              <SimpleSearch
+                className="w-full flex-grow"
+                inputClassName="w-full pl-4 pr-4 py-2 text-base rounded-l-lg border-r-0 shadow-none"
+              />
             </div>
           </div>
           <div className="flex items-center space-x-4">
@@ -147,7 +149,10 @@ export function SimpleHeader() {
                     <ChevronDown className="ml-1 h-4 w-4 text-black" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-[#F8F5E4] text-black border border-[#EADDCB]">
+                <DropdownMenuContent
+                  align="end"
+                  className="bg-[#F8F5E4] text-black border border-[#EADDCB]"
+                >
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
@@ -176,15 +181,15 @@ export function SimpleHeader() {
 
             {(!user || user.role === "buyer") && (
               <Button
-                className="p-0 m-0 bg-transparent border-none shadow-none hover:bg-transparent focus:bg-transparent active:bg-transparent"
-                style={{ background: 'none', border: 'none', boxShadow: 'none' }}
+                variant="ghost"
+                className="relative text-black hover:text-black hover:bg-primary-foreground/10 px-3 py-2 rounded-md transition-colors"
                 onClick={handleCartClick}
-                title="View Cart"
+                title={`View Cart (${cartItemCount} items)`}
               >
-                <ShoppingCart className="h-20 w-20 md:h-32 md:w-32 lg:h-40 lg:w-40 text-black" style={{ background: 'none', border: 'none' }} />
+                <ShoppingCart className="h-6 w-6" />
                 {cartItemCount > 0 && (
-                  <span className="ml-1 text-black text-4xl md:text-5xl lg:text-6xl font-bold" style={{ background: 'none', border: 'none' }}>
-                    {cartItemCount}
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
+                    {cartItemCount > 99 ? "99+" : cartItemCount}
                   </span>
                 )}
               </Button>
@@ -225,14 +230,13 @@ export function SimpleHeader() {
           {(!user || user.role === "buyer") && (
             <button
               onClick={handleCartClick}
-              className="text-black hover:text-gray-200 relative p-1"
-              title="Shopping Cart"
-              style={{ background: 'none', border: 'none' }}
+              className="text-black hover:text-gray-200 relative p-2 rounded-md hover:bg-primary-foreground/10 transition-colors"
+              title={`Shopping Cart (${cartItemCount} items)`}
             >
-              <ShoppingCart className="h-18 w-18 md:h-28 md:w-28 text-black" style={{ background: 'none', border: 'none' }} />
+              <ShoppingCart className="h-6 w-6" />
               {cartItemCount > 0 && (
-                <span className="absolute -top-2 -right-2 text-black text-2xl md:text-3xl font-bold" style={{ background: 'none', border: 'none' }}>
-                  {cartItemCount}
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center min-w-[16px]">
+                  {cartItemCount > 99 ? "99+" : cartItemCount}
                 </span>
               )}
             </button>
