@@ -12,9 +12,9 @@ async function populateMailUsContent() {
     const checkResult = await pool.query(
       "SELECT COUNT(*) FROM footer_content WHERE section = 'mail_us'"
     );
-    
+
     const contentCount = parseInt(checkResult.rows[0].count);
-    
+
     if (contentCount > 0) {
       console.log('Mail Us section already has content. Exiting.');
       return;
