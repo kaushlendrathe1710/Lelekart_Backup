@@ -4973,6 +4973,7 @@ export class DatabaseStorage implements IStorage {
     (OrderItem & {
       product: Product & { seller?: any };
       variant?: ProductVariant;
+      returnRequested?: boolean;
     })[]
   > {
     console.log(
@@ -5091,7 +5092,7 @@ export class DatabaseStorage implements IStorage {
     ];
     console.log(`DEBUG: Found orderIds in results:`, orderIds);
 
-    // Fetch variant information for order items that have variantId
+    // Fetch variant information and return request status for order items
     const result = await Promise.all(
       orderItemsWithProductsAndSellers.map(async (item) => {
         let variant = undefined;
@@ -5115,6 +5116,20 @@ export class DatabaseStorage implements IStorage {
           }
         }
 
+        // Check if this order item has any return requests
+        let returnRequested = false;
+        try {
+          const returnRequests = await this.getReturnRequestsForOrderItem(
+            item.orderItem.id
+          );
+          returnRequested = returnRequests.length > 0;
+        } catch (returnError) {
+          console.error(
+            `Error checking return requests for order item ${item.orderItem.id}:`,
+            returnError
+          );
+        }
+
         return {
           ...item.orderItem,
           product: {
@@ -5128,6 +5143,7 @@ export class DatabaseStorage implements IStorage {
               : undefined,
           },
           variant,
+          returnRequested,
         };
       })
     );

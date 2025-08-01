@@ -33,7 +33,8 @@ import {
 } from "@/components/ui/dialog";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 import {
   Select,
   SelectContent,
@@ -68,6 +69,7 @@ interface Order {
     };
     quantity: number;
     price: number;
+    returnRequested?: boolean;
   }[];
 }
 
@@ -83,6 +85,16 @@ function formatDate(dateString: string) {
   return new Date(dateString).toLocaleString("en-IN", options);
 }
 
+// Helper to format status display text
+function formatStatusText(status: string) {
+  switch (status.toLowerCase()) {
+    case "marked_for_return":
+      return "Marked for Return";
+    default:
+      return status.charAt(0).toUpperCase() + status.slice(1);
+  }
+}
+
 // Helper to get status badge color
 function getStatusColor(status: string) {
   switch (status.toLowerCase()) {
@@ -94,6 +106,8 @@ function getStatusColor(status: string) {
       return "bg-yellow-100 text-yellow-800";
     case "cancelled":
       return "bg-red-100 text-red-800";
+    case "marked_for_return":
+      return "bg-orange-100 text-orange-800";
     default:
       return "bg-gray-100 text-gray-800";
   }
@@ -146,6 +160,8 @@ function StatusIcon({ status }: { status: string }) {
       return <Package2 className="h-5 w-5 text-yellow-600" />;
     case "cancelled":
       return <Clock className="h-5 w-5 text-red-600" />;
+    case "marked_for_return":
+      return <ClipboardCheck className="h-5 w-5 text-orange-600" />;
     default:
       return <Clock className="h-5 w-5 text-gray-600" />;
   }
@@ -153,9 +169,8 @@ function StatusIcon({ status }: { status: string }) {
 
 export default function OrdersPage() {
   const [, navigate] = useLocation();
-  const [orders, setOrders] = useState<Order[]>([]);
+  const { user } = useAuth();
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortDescending, setSortDescending] = useState(true); // Default to newest first
   const [orderToCancel, setOrderToCancel] = useState<Order | null>(null);
@@ -163,6 +178,58 @@ export default function OrdersPage() {
   const [returningOrderId, setReturningOrderId] = useState<number | null>(null);
   const { toast } = useToast();
   const [cancelReason, setCancelReason] = useState("");
+
+  // Fetch orders using React Query
+  const {
+    data: orders = [],
+    isLoading: loading,
+    error: ordersError,
+    refetch: refetchOrders,
+  } = useQuery<Order[]>({
+    queryKey: ["/api/orders"],
+    queryFn: async () => {
+      const response = await fetch("/api/orders", {
+        credentials: "include",
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch orders");
+      }
+
+      const ordersData = await response.json();
+      console.log("Orders data:", ordersData); // Debug log
+
+      // Fetch items for each order
+      const ordersWithItems = await Promise.all(
+        ordersData.map(async (order: any) => {
+          try {
+            const itemsResponse = await fetch(`/api/orders/${order.id}/items`, {
+              credentials: "include",
+            });
+            if (itemsResponse.ok) {
+              const itemsData = await itemsResponse.json();
+              console.log(`Items for order ${order.id}:`, itemsData);
+              return { ...order, items: itemsData };
+            } else {
+              console.log(`Failed to fetch items for order ${order.id}`);
+              return { ...order, items: [] };
+            }
+          } catch (error) {
+            console.error(`Error fetching items for order ${order.id}:`, error);
+            return { ...order, items: [] };
+          }
+        })
+      );
+
+      console.log("Orders with items:", ordersWithItems);
+      return ordersWithItems;
+    },
+    enabled: !!user,
+  });
 
   // Return dialog state
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
@@ -172,7 +239,6 @@ export default function OrdersPage() {
   const [returnDescription, setReturnDescription] = useState("");
   const [returnImages, setReturnImages] = useState<File[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
-  const [returnReasons, setReturnReasons] = useState<any[]>([]);
   const [showCamera, setShowCamera] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [cameraVideoRef, setCameraVideoRef] = useState<HTMLVideoElement | null>(
@@ -209,13 +275,6 @@ export default function OrdersPage() {
     onSuccess: (data) => {
       // Immediately update the local state for better UX
       if (data.order) {
-        setOrders((prevOrders) =>
-          prevOrders.map((order) =>
-            order.id === data.order.id
-              ? { ...order, status: "cancelled", ...data.order }
-              : order
-          )
-        );
         setFilteredOrders((prevOrders) =>
           prevOrders.map((order) =>
             order.id === data.order.id
@@ -235,10 +294,11 @@ export default function OrdersPage() {
       setOrderToCancel(null);
       setCancelReason("");
 
-      // Refetch orders in background to ensure data consistency
-      setTimeout(() => {
-        fetchOrders();
-      }, 1000);
+      // Invalidate and refetch orders to ensure data consistency
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/orders", { limit: 3 }],
+      });
     },
     onError: (error: Error) => {
       toast({
@@ -248,6 +308,7 @@ export default function OrdersPage() {
       });
     },
   });
+
 
   // Function to fetch orders
   const fetchOrders = async () => {
@@ -305,21 +366,32 @@ export default function OrdersPage() {
     }
   };
 
+
   useEffect(() => {
     // Check if user is logged in
-    const cachedUser = queryClient.getQueryData<any>(["/api/user"]);
-    if (!cachedUser) {
+    if (!user) {
       navigate("/auth");
       return;
     }
+  }, [user, navigate]);
 
-    // Fetch orders on component mount
-    fetchOrders();
-  }, [navigate]);
-
+  // Update filtered orders when orders data changes
   useEffect(() => {
-    fetchReturnReasons();
-  }, []);
+    if (orders) {
+      setFilteredOrders(orders);
+    }
+  }, [orders]);
+
+  // Handle orders error
+  useEffect(() => {
+    if (ordersError) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch orders. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [ordersError, toast]);
 
   // Cleanup camera stream on unmount
   useEffect(() => {
@@ -330,17 +402,19 @@ export default function OrdersPage() {
     };
   }, [cameraStream]);
 
-  const fetchReturnReasons = async () => {
-    try {
+  // Fetch return reasons using React Query
+  const { data: returnReasons = [] } = useQuery({
+    queryKey: ["/api/returns/reasons", "return"],
+    queryFn: async () => {
       const response = await fetch("/api/returns/reasons?type=return");
       if (response.ok) {
         const reasons = await response.json();
-        setReturnReasons(reasons);
+        return reasons;
       }
-    } catch (error) {
-      console.error("Error fetching return reasons:", error);
-    }
-  };
+      return [];
+    },
+    enabled: !!user,
+  });
 
   // Sort orders by date
   const sortOrders = (ordersToSort: Order[]): Order[] => {
@@ -532,7 +606,13 @@ export default function OrdersPage() {
       setReturnDescription("");
       setReturnImages([]);
       setSelectedOrderForReturn(null);
-      // refetch(); // Assuming refetch is available from queryClient or similar
+
+      // Invalidate and refetch orders to show updated status
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/orders", { limit: 3 }],
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/returns/buyer"] });
     } catch (error) {
       console.error("Error in submitReturnRequest:", error);
       toast({
@@ -714,8 +794,7 @@ export default function OrdersPage() {
                       <Badge
                         className={`${getStatusColor(order.status)} bg-[#F8F5E4]`}
                       >
-                        {order.status.charAt(0).toUpperCase() +
-                          order.status.slice(1)}
+                        {formatStatusText(order.status)}
                       </Badge>
                     </div>
 
@@ -851,22 +930,41 @@ export default function OrdersPage() {
                         </Button>
                       )}
 
-                      {order.status === "delivered" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex items-center text-blue-500 border-blue-200 hover:bg-blue-50 bg-[#F8F5E4]"
-                          disabled={returningOrderId === order.id}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleReturnOrder(order);
-                          }}
-                        >
-                          {returningOrderId === order.id ? (
-                            <span className="animate-spin mr-2">⟳</span>
-                          ) : null}
-                          Return
-                        </Button>
+                      {(order.status === "delivered" ||
+                        order.status === "marked_for_return") && (
+                        <>
+                          {/* Check if any items in the order have return requests or if order is marked for return */}
+                          {order.status === "marked_for_return" ||
+                          (order.items &&
+                            order.items.some(
+                              (item) => item.returnRequested
+                            )) ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center text-gray-500 border-gray-200 bg-[#F8F5E4] cursor-not-allowed"
+                              disabled={true}
+                            >
+                              Return Requested
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center text-blue-500 border-blue-200 hover:bg-blue-50 bg-[#F8F5E4]"
+                              disabled={returningOrderId === order.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleReturnOrder(order);
+                              }}
+                            >
+                              {returningOrderId === order.id ? (
+                                <span className="animate-spin mr-2">⟳</span>
+                              ) : null}
+                              Return
+                            </Button>
+                          )}
+                        </>
                       )}
 
                       <Button

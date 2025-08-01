@@ -83,6 +83,11 @@ interface AdminProduct {
   images?: string;
   specifications?: string;
   gstDetails?: GstDetails;
+  seller?: {
+    id: number;
+    name: string;
+    username: string;
+  };
 }
 
 // Define type for order items with product info
@@ -1143,7 +1148,10 @@ export default function AdminOrders() {
                             Quantity: {item.quantity} × ₹{item.price}
                           </p>
                           <p className="text-sm text-gray-500">
-                            Seller: {item.product.sellerName || "Unknown"}
+                            Seller:{" "}
+                            {item.product.seller?.name ||
+                              item.product.seller?.username ||
+                              "Unknown"}
                           </p>
                           {/* Display variant information if available */}
                           {item.variant && (
