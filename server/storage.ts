@@ -5486,7 +5486,7 @@ export class DatabaseStorage implements IStorage {
 
     // Define allowed status transitions for security
     const allowedTransitions: Record<string, string[]> = {
-      pending: ["processing", "confirmed", "cancelled"],
+      pending: ["processing", "confirmed", "cancelled", "delivered"],
       processing: ["confirmed", "shipped", "cancelled"],
       confirmed: ["shipped", "cancelled"],
       shipped: ["delivered", "returned"],
