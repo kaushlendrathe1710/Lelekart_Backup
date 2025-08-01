@@ -661,11 +661,11 @@ export default function SellerOrdersPage() {
       if (!selectedOrder) return;
 
       toast({
-        title: "Preparing Shipping Label",
-        description: "Your shipping label is being generated...",
+        title: "Generating Shipping Label",
+        description: "Please wait while we prepare your shipping label...",
       });
 
-      // Create a blob from the fetch response and open it in a new window
+      // Create a blob from the fetch response and download it directly
       const response = await fetch(
         `/api/orders/${selectedOrder.id}/shipping-label`,
         {
@@ -681,18 +681,29 @@ export default function SellerOrdersPage() {
       // Get the PDF blob and create an object URL
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      window.open(url, "_blank");
+
+      // Create a temporary link and trigger download
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+      a.download = `shipping-label-order-${selectedOrder.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+
+      // Clean up
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
 
       toast({
-        title: "Shipping Label Generated",
+        title: "Shipping Label Downloaded!",
         description:
-          "Your shipping label has been opened in a new tab. You can save it from there.",
+          "Your shipping label has been downloaded successfully. Check your downloads folder.",
       });
     } catch (error) {
       console.error("Error downloading shipping label:", error);
       toast({
-        title: "Generation Failed",
-        description: "Failed to generate the shipping label. Please try again.",
+        title: "Download Failed",
+        description: "Failed to download the shipping label. Please try again.",
         variant: "destructive",
       });
     }
@@ -979,7 +990,7 @@ export default function SellerOrdersPage() {
                     onClick={downloadShippingLabel}
                   >
                     <Printer className="h-4 w-4" />
-                    Shipping Label
+                    Download Shipping Label
                   </Button>
                   <Button
                     variant="outline"
@@ -990,6 +1001,10 @@ export default function SellerOrdersPage() {
                     <Edit className="h-4 w-4" />
                     Update Status
                   </Button>
+                </div>
+                <div className="text-xs text-muted-foreground mt-2">
+                  💡 The shipping label will be downloaded directly to your
+                  device. Check your downloads folder.
                 </div>
               </div>
 
@@ -1566,9 +1581,9 @@ function OrderTable({
                           const handleDownloadShippingLabel = async () => {
                             try {
                               toast({
-                                title: "Preparing Shipping Label",
+                                title: "Generating Shipping Label",
                                 description:
-                                  "Your shipping label is being generated...",
+                                  "Please wait while we prepare your shipping label...",
                               });
 
                               const response = await fetch(
@@ -1587,12 +1602,23 @@ function OrderTable({
 
                               const blob = await response.blob();
                               const url = window.URL.createObjectURL(blob);
-                              window.open(url, "_blank");
+
+                              // Create a temporary link and trigger download
+                              const a = document.createElement("a");
+                              a.style.display = "none";
+                              a.href = url;
+                              a.download = `shipping-label-order-${order.id}.pdf`;
+                              document.body.appendChild(a);
+                              a.click();
+
+                              // Clean up
+                              window.URL.revokeObjectURL(url);
+                              document.body.removeChild(a);
 
                               toast({
-                                title: "Shipping Label Generated",
+                                title: "Shipping Label Downloaded!",
                                 description:
-                                  "Your shipping label has been opened in a new tab. You can save it from there.",
+                                  "Your shipping label has been downloaded successfully. Check your downloads folder.",
                               });
                             } catch (error) {
                               console.error(
@@ -1611,7 +1637,7 @@ function OrderTable({
                         }}
                       >
                         <Printer className="h-4 w-4 mr-2" />
-                        Shipping Label
+                        Download Shipping Label
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => openStatusDialog(order)}>
                         <Edit className="h-4 w-4 mr-2" />
@@ -1877,9 +1903,9 @@ function OrderTable({
                       const handleDownloadShippingLabel = async () => {
                         try {
                           toast({
-                            title: "Preparing Shipping Label",
+                            title: "Generating Shipping Label",
                             description:
-                              "Your shipping label is being generated...",
+                              "Please wait while we prepare your shipping label...",
                           });
 
                           const response = await fetch(
@@ -1898,12 +1924,23 @@ function OrderTable({
 
                           const blob = await response.blob();
                           const url = window.URL.createObjectURL(blob);
-                          window.open(url, "_blank");
+
+                          // Create a temporary link and trigger download
+                          const a = document.createElement("a");
+                          a.style.display = "none";
+                          a.href = url;
+                          a.download = `shipping-label-order-${order.id}.pdf`;
+                          document.body.appendChild(a);
+                          a.click();
+
+                          // Clean up
+                          window.URL.revokeObjectURL(url);
+                          document.body.removeChild(a);
 
                           toast({
-                            title: "Shipping Label Generated",
+                            title: "Shipping Label Downloaded!",
                             description:
-                              "Your shipping label has been opened in a new tab. You can save it from there.",
+                              "Your shipping label has been downloaded successfully. Check your downloads folder.",
                           });
                         } catch (error) {
                           console.error(
