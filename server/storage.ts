@@ -487,7 +487,8 @@ export interface IStorage {
     search?: string,
     hideDrafts?: boolean,
     subcategory?: string,
-    hideRejected?: boolean
+    hideRejected?: boolean,
+    maxPrice?: number
   ): Promise<number>;
   getProductsPaginated(
     category?: string,
@@ -498,7 +499,8 @@ export interface IStorage {
     search?: string,
     hideDrafts?: boolean,
     subcategory?: string,
-    hideRejected?: boolean
+    hideRejected?: boolean,
+    maxPrice?: number
   ): Promise<Product[]>;
   getAllProducts(filters?: {
     sellerId?: number;
@@ -2707,7 +2709,8 @@ export class DatabaseStorage implements IStorage {
     search?: string,
     hideDrafts?: boolean,
     subcategory?: string,
-    hideRejected?: boolean
+    hideRejected?: boolean,
+    maxPrice?: number
   ): Promise<number> {
     try {
       // Use SQL query for counting with filters
@@ -2766,6 +2769,12 @@ export class DatabaseStorage implements IStorage {
         params.push(`%${search}%`);
       }
 
+      // Add price filter
+      if (maxPrice !== undefined && maxPrice > 0) {
+        query += ` AND price <= $${params.length + 1}`;
+        params.push(maxPrice);
+      }
+
       // Execute the query
       const { rows } = await pool.query(query, params);
       return parseInt(rows[0].count || "0");
@@ -2784,7 +2793,8 @@ export class DatabaseStorage implements IStorage {
     search?: string,
     hideDrafts?: boolean,
     subcategory?: string,
-    hideRejected?: boolean
+    hideRejected?: boolean,
+    maxPrice?: number
   ): Promise<Product[]> {
     try {
       // Use SQL query for pagination with filters and join with users table to get seller names
@@ -2864,6 +2874,12 @@ export class DatabaseStorage implements IStorage {
           LOWER(p.sku) LIKE LOWER($${params.length + 1})
         )`;
         params.push(`%${search}%`);
+      }
+
+      // Add price filter
+      if (maxPrice !== undefined && maxPrice > 0) {
+        query += ` AND p.price <= $${params.length + 1}`;
+        params.push(maxPrice);
       }
 
       // Add pagination

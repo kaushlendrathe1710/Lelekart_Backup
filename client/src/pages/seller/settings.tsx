@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FileUpload } from "@/components/ui/file-upload";
+import { ViewField } from "@/components/ui/view-field";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1292,9 +1293,7 @@ export default function SellerSettingsPage() {
                             )}
                           </>
                         ) : (
-                          <p className="text-sm py-2">
-                            {originalPersonalInfo.name}
-                          </p>
+                          <ViewField value={originalPersonalInfo.name} />
                         )}
                       </div>
                       <div className="space-y-2">
@@ -1306,11 +1305,16 @@ export default function SellerSettingsPage() {
                             id="email"
                             type="email"
                             value={originalPersonalInfo.email}
-                            onChange={e => setOriginalPersonalInfo({ ...originalPersonalInfo, email: e.target.value })}
+                            onChange={(e) =>
+                              setOriginalPersonalInfo({
+                                ...originalPersonalInfo,
+                                email: e.target.value,
+                              })
+                            }
                             className="text-sm"
                           />
                         ) : (
-                          <p className="text-sm py-2">{originalPersonalInfo.email}</p>
+                          <ViewField value={originalPersonalInfo.email} />
                         )}
                       </div>
                       <div className="space-y-2">
@@ -1353,9 +1357,7 @@ export default function SellerSettingsPage() {
                             </p>
                           </>
                         ) : (
-                          <p className="text-sm py-2">
-                            {originalPersonalInfo.phone}
-                          </p>
+                          <ViewField value={originalPersonalInfo.phone} />
                         )}
                       </div>
                       <div className="space-y-2">
@@ -1398,9 +1400,9 @@ export default function SellerSettingsPage() {
                             </p>
                           </>
                         ) : (
-                          <p className="text-sm py-2">
-                            {originalPersonalInfo.alternatePhone}
-                          </p>
+                          <ViewField
+                            value={originalPersonalInfo.alternatePhone}
+                          />
                         )}
                       </div>
                     </div>
@@ -1522,7 +1524,7 @@ export default function SellerSettingsPage() {
                           )}
                         </>
                       ) : (
-                        <p className="text-sm py-2">{originalAddress.line1}</p>
+                        <ViewField value={originalAddress.line1} />
                       )}
                     </div>
                     <div className="space-y-2">
@@ -1542,7 +1544,7 @@ export default function SellerSettingsPage() {
                           className="text-sm"
                         />
                       ) : (
-                        <p className="text-sm py-2">{originalAddress.line2}</p>
+                        <ViewField value={originalAddress.line2} />
                       )}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1622,9 +1624,7 @@ export default function SellerSettingsPage() {
                             )}
                           </>
                         ) : (
-                          <p className="text-sm py-2">
-                            {originalAddress.pincode}
-                          </p>
+                          <ViewField value={originalAddress.pincode} />
                         )}
                       </div>
                       <div className="space-y-2">
@@ -1644,7 +1644,7 @@ export default function SellerSettingsPage() {
                             className="text-sm"
                           />
                         ) : (
-                          <p className="text-sm py-2">{originalAddress.city}</p>
+                          <ViewField value={originalAddress.city} />
                         )}
                       </div>
                       <div className="space-y-2">
@@ -1664,9 +1664,7 @@ export default function SellerSettingsPage() {
                             className="text-sm"
                           />
                         ) : (
-                          <p className="text-sm py-2">
-                            {originalAddress.state}
-                          </p>
+                          <ViewField value={originalAddress.state} />
                         )}
                       </div>
                     </div>
@@ -2099,77 +2097,102 @@ export default function SellerSettingsPage() {
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="storeName">Store Name</Label>
-                      <Input
-                        id="storeName"
-                        value={originalStoreSettings.name}
-                        onChange={(e) =>
-                          setOriginalStoreSettings({
-                            ...originalStoreSettings,
-                            name: e.target.value,
-                          })
-                        }
-                        placeholder="Your Store Name"
-                      />
+                      {isEditingStoreInfo ? (
+                        <Input
+                          id="storeName"
+                          value={originalStoreSettings.name}
+                          onChange={(e) =>
+                            setOriginalStoreSettings({
+                              ...originalStoreSettings,
+                              name: e.target.value,
+                            })
+                          }
+                          placeholder="Your Store Name"
+                        />
+                      ) : (
+                        <ViewField value={originalStoreSettings.name} />
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="storeDescription">
                         Store Description
                       </Label>
-                      <Textarea
-                        id="storeDescription"
-                        rows={4}
-                        value={originalStoreSettings.description}
-                        onChange={(e) =>
-                          setOriginalStoreSettings({
-                            ...originalStoreSettings,
-                            description: e.target.value,
-                          })
-                        }
-                        placeholder="Describe your store and what you sell..."
-                      />
+                      {isEditingStoreInfo ? (
+                        <Textarea
+                          id="storeDescription"
+                          rows={4}
+                          value={originalStoreSettings.description}
+                          onChange={(e) =>
+                            setOriginalStoreSettings({
+                              ...originalStoreSettings,
+                              description: e.target.value,
+                            })
+                          }
+                          placeholder="Describe your store and what you sell..."
+                        />
+                      ) : (
+                        <ViewField value={originalStoreSettings.description} />
+                      )}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="contactEmail">Contact Email</Label>
-                        <Input
-                          id="contactEmail"
-                          type="email"
-                          value={originalStoreSettings.contactEmail}
-                          onChange={(e) =>
-                            setOriginalStoreSettings({
-                              ...originalStoreSettings,
-                              contactEmail: e.target.value,
-                            })
-                          }
-                          placeholder="store@example.com"
-                        />
+                        {isEditingStoreInfo ? (
+                          <Input
+                            id="contactEmail"
+                            type="email"
+                            value={originalStoreSettings.contactEmail}
+                            onChange={(e) =>
+                              setOriginalStoreSettings({
+                                ...originalStoreSettings,
+                                contactEmail: e.target.value,
+                              })
+                            }
+                            placeholder="store@example.com"
+                          />
+                        ) : (
+                          <ViewField
+                            value={originalStoreSettings.contactEmail}
+                          />
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="contactPhone">Contact Phone</Label>
-                        <Input
-                          id="contactPhone"
-                          value={originalStoreSettings.contactPhone}
-                          maxLength={10}
-                          onKeyPress={(e) => {
-                            // Allow only digits
-                            if (!/[0-9]/.test(e.key)) {
-                              e.preventDefault();
-                            }
-                          }}
-                          onChange={(e) => {
-                            // Only allow digits in the field
-                            const value = e.target.value.replace(/[^0-9]/g, "");
-                            setOriginalStoreSettings({
-                              ...originalStoreSettings,
-                              contactPhone: value,
-                            });
-                          }}
-                          placeholder="9876543210"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Enter a 10-digit number without spaces or special
-                          characters
-                        </p>
+                        {isEditingStoreInfo ? (
+                          <>
+                            <Input
+                              id="contactPhone"
+                              value={originalStoreSettings.contactPhone}
+                              maxLength={10}
+                              onKeyPress={(e) => {
+                                // Allow only digits
+                                if (!/[0-9]/.test(e.key)) {
+                                  e.preventDefault();
+                                }
+                              }}
+                              onChange={(e) => {
+                                // Only allow digits in the field
+                                const value = e.target.value.replace(
+                                  /[^0-9]/g,
+                                  ""
+                                );
+                                setOriginalStoreSettings({
+                                  ...originalStoreSettings,
+                                  contactPhone: value,
+                                });
+                              }}
+                              placeholder="9876543210"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Enter a 10-digit number without spaces or special
+                              characters
+                            </p>
+                          </>
+                        ) : (
+                          <ViewField
+                            value={originalStoreSettings.contactPhone}
+                          />
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -2234,37 +2257,40 @@ export default function SellerSettingsPage() {
                       <div className="space-y-2">
                         <Label htmlFor="storeLogo">Store Logo</Label>
                         <div className="space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <Input
-                              id="storeLogo"
-                              value={originalStoreSettings.logo}
-                              onChange={(e) =>
-                                setOriginalStoreSettings({
-                                  ...originalStoreSettings,
-                                  logo: e.target.value,
-                                })
-                              }
-                              placeholder="https://example.com/logo.png"
-                              className="flex-1"
-                              readOnly={!isEditingStoreBranding}
-                            />
-                            <span className="text-sm text-muted-foreground">
-                              or
-                            </span>
-                            <FileUpload
-                              onChange={(url: string) =>
-                                setOriginalStoreSettings({
-                                  ...originalStoreSettings,
-                                  logo: url,
-                                })
-                              }
-                              value={originalStoreSettings.logo}
-                              label="Upload Logo"
-                              accept="image/*"
-                              maxSizeMB={2}
-                              id="logo-upload"
-                            />
-                          </div>
+                          {isEditingStoreBranding ? (
+                            <div className="flex items-center space-x-2">
+                              <Input
+                                id="storeLogo"
+                                value={originalStoreSettings.logo}
+                                onChange={(e) =>
+                                  setOriginalStoreSettings({
+                                    ...originalStoreSettings,
+                                    logo: e.target.value,
+                                  })
+                                }
+                                placeholder="https://example.com/logo.png"
+                                className="flex-1"
+                              />
+                              <span className="text-sm text-muted-foreground">
+                                or
+                              </span>
+                              <FileUpload
+                                onChange={(url: string) =>
+                                  setOriginalStoreSettings({
+                                    ...originalStoreSettings,
+                                    logo: url,
+                                  })
+                                }
+                                value={originalStoreSettings.logo}
+                                label="Upload Logo"
+                                accept="image/*"
+                                maxSizeMB={2}
+                                id="logo-upload"
+                              />
+                            </div>
+                          ) : (
+                            <ViewField value={originalStoreSettings.logo} />
+                          )}
                           <div className="text-xs text-muted-foreground">
                             Recommended size: 200x200px. Max file size: 2MB.
                             Supported formats: JPG, PNG, SVG.
@@ -2287,37 +2313,40 @@ export default function SellerSettingsPage() {
                       <div className="space-y-2">
                         <Label htmlFor="storeBanner">Store Banner</Label>
                         <div className="space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <Input
-                              id="storeBanner"
-                              value={originalStoreSettings.banner}
-                              onChange={(e) =>
-                                setOriginalStoreSettings({
-                                  ...originalStoreSettings,
-                                  banner: e.target.value,
-                                })
-                              }
-                              placeholder="https://example.com/banner.jpg"
-                              className="flex-1"
-                              readOnly={!isEditingStoreBranding}
-                            />
-                            <span className="text-sm text-muted-foreground">
-                              or
-                            </span>
-                            <FileUpload
-                              onChange={(url: string) =>
-                                setOriginalStoreSettings({
-                                  ...originalStoreSettings,
-                                  banner: url,
-                                })
-                              }
-                              value={originalStoreSettings.banner}
-                              label="Upload Banner"
-                              accept="image/*"
-                              maxSizeMB={5}
-                              id="banner-upload"
-                            />
-                          </div>
+                          {isEditingStoreBranding ? (
+                            <div className="flex items-center space-x-2">
+                              <Input
+                                id="storeBanner"
+                                value={originalStoreSettings.banner}
+                                onChange={(e) =>
+                                  setOriginalStoreSettings({
+                                    ...originalStoreSettings,
+                                    banner: e.target.value,
+                                  })
+                                }
+                                placeholder="https://example.com/banner.jpg"
+                                className="flex-1"
+                              />
+                              <span className="text-sm text-muted-foreground">
+                                or
+                              </span>
+                              <FileUpload
+                                onChange={(url: string) =>
+                                  setOriginalStoreSettings({
+                                    ...originalStoreSettings,
+                                    banner: url,
+                                  })
+                                }
+                                value={originalStoreSettings.banner}
+                                label="Upload Banner"
+                                accept="image/*"
+                                maxSizeMB={5}
+                                id="banner-upload"
+                              />
+                            </div>
+                          ) : (
+                            <ViewField value={originalStoreSettings.banner} />
+                          )}
                           <div className="text-xs text-muted-foreground">
                             Recommended size: 1200x300px. Max file size: 5MB.
                             Supported formats: JPG, PNG.
@@ -2403,21 +2432,26 @@ export default function SellerSettingsPage() {
                             <span className="mr-2">Facebook</span>
                           </div>
                         </Label>
-                        <Input
-                          id="facebookLink"
-                          value={originalStoreSettings.socialLinks.facebook}
-                          onChange={(e) =>
-                            setOriginalStoreSettings({
-                              ...originalStoreSettings,
-                              socialLinks: {
-                                ...originalStoreSettings.socialLinks,
-                                facebook: e.target.value,
-                              },
-                            })
-                          }
-                          placeholder="https://facebook.com/your-page"
-                          readOnly={!isEditingSocialLinks}
-                        />
+                        {isEditingSocialLinks ? (
+                          <Input
+                            id="facebookLink"
+                            value={originalStoreSettings.socialLinks.facebook}
+                            onChange={(e) =>
+                              setOriginalStoreSettings({
+                                ...originalStoreSettings,
+                                socialLinks: {
+                                  ...originalStoreSettings.socialLinks,
+                                  facebook: e.target.value,
+                                },
+                              })
+                            }
+                            placeholder="https://facebook.com/your-page"
+                          />
+                        ) : (
+                          <ViewField
+                            value={originalStoreSettings.socialLinks.facebook}
+                          />
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="instagramLink">
@@ -2425,21 +2459,26 @@ export default function SellerSettingsPage() {
                             <span className="mr-2">Instagram</span>
                           </div>
                         </Label>
-                        <Input
-                          id="instagramLink"
-                          value={originalStoreSettings.socialLinks.instagram}
-                          onChange={(e) =>
-                            setOriginalStoreSettings({
-                              ...originalStoreSettings,
-                              socialLinks: {
-                                ...originalStoreSettings.socialLinks,
-                                instagram: e.target.value,
-                              },
-                            })
-                          }
-                          placeholder="https://instagram.com/your-handle"
-                          readOnly={!isEditingSocialLinks}
-                        />
+                        {isEditingSocialLinks ? (
+                          <Input
+                            id="instagramLink"
+                            value={originalStoreSettings.socialLinks.instagram}
+                            onChange={(e) =>
+                              setOriginalStoreSettings({
+                                ...originalStoreSettings,
+                                socialLinks: {
+                                  ...originalStoreSettings.socialLinks,
+                                  instagram: e.target.value,
+                                },
+                              })
+                            }
+                            placeholder="https://instagram.com/your-handle"
+                          />
+                        ) : (
+                          <ViewField
+                            value={originalStoreSettings.socialLinks.instagram}
+                          />
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="twitterLink">
@@ -2447,21 +2486,26 @@ export default function SellerSettingsPage() {
                             <span className="mr-2">Twitter</span>
                           </div>
                         </Label>
-                        <Input
-                          id="twitterLink"
-                          value={originalStoreSettings.socialLinks.twitter}
-                          onChange={(e) =>
-                            setOriginalStoreSettings({
-                              ...originalStoreSettings,
-                              socialLinks: {
-                                ...originalStoreSettings.socialLinks,
-                                twitter: e.target.value,
-                              },
-                            })
-                          }
-                          placeholder="https://twitter.com/your-handle"
-                          readOnly={!isEditingSocialLinks}
-                        />
+                        {isEditingSocialLinks ? (
+                          <Input
+                            id="twitterLink"
+                            value={originalStoreSettings.socialLinks.twitter}
+                            onChange={(e) =>
+                              setOriginalStoreSettings({
+                                ...originalStoreSettings,
+                                socialLinks: {
+                                  ...originalStoreSettings.socialLinks,
+                                  twitter: e.target.value,
+                                },
+                              })
+                            }
+                            placeholder="https://twitter.com/your-handle"
+                          />
+                        ) : (
+                          <ViewField
+                            value={originalStoreSettings.socialLinks.twitter}
+                          />
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="websiteLink">
@@ -2469,21 +2513,26 @@ export default function SellerSettingsPage() {
                             <span className="mr-2">Website</span>
                           </div>
                         </Label>
-                        <Input
-                          id="websiteLink"
-                          value={originalStoreSettings.socialLinks.website}
-                          onChange={(e) =>
-                            setOriginalStoreSettings({
-                              ...originalStoreSettings,
-                              socialLinks: {
-                                ...originalStoreSettings.socialLinks,
-                                website: e.target.value,
-                              },
-                            })
-                          }
-                          placeholder="https://your-website.com"
-                          readOnly={!isEditingSocialLinks}
-                        />
+                        {isEditingSocialLinks ? (
+                          <Input
+                            id="websiteLink"
+                            value={originalStoreSettings.socialLinks.website}
+                            onChange={(e) =>
+                              setOriginalStoreSettings({
+                                ...originalStoreSettings,
+                                socialLinks: {
+                                  ...originalStoreSettings.socialLinks,
+                                  website: e.target.value,
+                                },
+                              })
+                            }
+                            placeholder="https://your-website.com"
+                          />
+                        ) : (
+                          <ViewField
+                            value={originalStoreSettings.socialLinks.website}
+                          />
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -2791,9 +2840,7 @@ export default function SellerSettingsPage() {
                           )}
                         </>
                       ) : (
-                        <p className="text-sm py-2">
-                          {originalBillingInfo.gstin}
-                        </p>
+                        <ViewField value={originalBillingInfo.gstin} />
                       )}
                     </div>
                     <div className="space-y-2">
@@ -2820,9 +2867,7 @@ export default function SellerSettingsPage() {
                           )}
                         </>
                       ) : (
-                        <p className="text-sm py-2">
-                          {originalBillingInfo.businessName}
-                        </p>
+                        <ViewField value={originalBillingInfo.businessName} />
                       )}
                     </div>
                     <div className="space-y-2">
@@ -2848,9 +2893,7 @@ export default function SellerSettingsPage() {
                           )}
                         </>
                       ) : (
-                        <p className="text-sm py-2">
-                          {originalBillingInfo.panNumber}
-                        </p>
+                        <ViewField value={originalBillingInfo.panNumber} />
                       )}
                     </div>
                     <div className="space-y-2">
@@ -2889,9 +2932,7 @@ export default function SellerSettingsPage() {
                           </div>
                         </RadioGroup>
                       ) : (
-                        <p className="text-sm py-2">
-                          {originalBillingInfo.businessType}
-                        </p>
+                        <ViewField value={originalBillingInfo.businessType} />
                       )}
                     </div>
                   </CardContent>
@@ -3006,9 +3047,7 @@ export default function SellerSettingsPage() {
                           )}
                         </>
                       ) : (
-                        <p className="text-sm py-2">
-                          {originalBankInfo.accountName}
-                        </p>
+                        <ViewField value={originalBankInfo.accountName} />
                       )}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -3035,9 +3074,7 @@ export default function SellerSettingsPage() {
                             )}
                           </>
                         ) : (
-                          <p className="text-sm py-2">
-                            {originalBankInfo.accountNumber}
-                          </p>
+                          <ViewField value={originalBankInfo.accountNumber} />
                         )}
                       </div>
                       <div className="space-y-2">
@@ -3063,9 +3100,7 @@ export default function SellerSettingsPage() {
                             )}
                           </>
                         ) : (
-                          <p className="text-sm py-2">
-                            {originalBankInfo.ifscCode}
-                          </p>
+                          <ViewField value={originalBankInfo.ifscCode} />
                         )}
                       </div>
                     </div>
@@ -3092,9 +3127,7 @@ export default function SellerSettingsPage() {
                           )}
                         </>
                       ) : (
-                        <p className="text-sm py-2">
-                          {originalBankInfo.bankName}
-                        </p>
+                        <ViewField value={originalBankInfo.bankName} />
                       )}
                     </div>
                     <div className="space-y-2">
@@ -3111,9 +3144,7 @@ export default function SellerSettingsPage() {
                           }
                         />
                       ) : (
-                        <p className="text-sm py-2">
-                          {originalBankInfo.branchName}
-                        </p>
+                        <ViewField value={originalBankInfo.branchName} />
                       )}
                     </div>
                   </CardContent>

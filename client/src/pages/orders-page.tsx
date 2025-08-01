@@ -101,17 +101,17 @@ function getStatusColor(status: string) {
 
 // Helper to get product image URL
 function getProductImageUrl(product: any): string {
-  console.log('Getting image URL for product:', product);
-  
+  console.log("Getting image URL for product:", product);
+
   // First try product.image
   if (product?.image) {
-    console.log('Using product.image:', product.image);
+    console.log("Using product.image:", product.image);
     return product.image;
   }
 
   // Then try product.imageUrl
   if (product?.imageUrl) {
-    console.log('Using product.imageUrl:', product.imageUrl);
+    console.log("Using product.imageUrl:", product.imageUrl);
     return product.imageUrl;
   }
 
@@ -120,17 +120,17 @@ function getProductImageUrl(product: any): string {
     try {
       const imagesArray = JSON.parse(product.images);
       if (Array.isArray(imagesArray) && imagesArray.length > 0) {
-        console.log('Using product.images[0]:', imagesArray[0]);
+        console.log("Using product.images[0]:", imagesArray[0]);
         return imagesArray[0];
       }
     } catch {
       // If JSON parsing fails, try using it directly
-      console.log('Using product.images directly:', product.images);
+      console.log("Using product.images directly:", product.images);
       return product.images;
     }
   }
 
-  console.log('No image found, using placeholder');
+  console.log("No image found, using placeholder");
   // Return a default image if nothing found
   return "https://placehold.co/100x100?text=No+Image";
 }
@@ -163,10 +163,11 @@ export default function OrdersPage() {
   const [returningOrderId, setReturningOrderId] = useState<number | null>(null);
   const { toast } = useToast();
   const [cancelReason, setCancelReason] = useState("");
-  
+
   // Return dialog state
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
-  const [selectedOrderForReturn, setSelectedOrderForReturn] = useState<Order | null>(null);
+  const [selectedOrderForReturn, setSelectedOrderForReturn] =
+    useState<Order | null>(null);
   const [returnReason, setReturnReason] = useState("");
   const [returnDescription, setReturnDescription] = useState("");
   const [returnImages, setReturnImages] = useState<File[]>([]);
@@ -174,7 +175,9 @@ export default function OrdersPage() {
   const [returnReasons, setReturnReasons] = useState<any[]>([]);
   const [showCamera, setShowCamera] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
-  const [cameraVideoRef, setCameraVideoRef] = useState<HTMLVideoElement | null>(null);
+  const [cameraVideoRef, setCameraVideoRef] = useState<HTMLVideoElement | null>(
+    null
+  );
 
   // Add this useEffect after the cameraVideoRef and cameraStream states
   useEffect(() => {
@@ -203,17 +206,39 @@ export default function OrdersPage() {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Immediately update the local state for better UX
+      if (data.order) {
+        setOrders((prevOrders) =>
+          prevOrders.map((order) =>
+            order.id === data.order.id
+              ? { ...order, status: "cancelled", ...data.order }
+              : order
+          )
+        );
+        setFilteredOrders((prevOrders) =>
+          prevOrders.map((order) =>
+            order.id === data.order.id
+              ? { ...order, status: "cancelled", ...data.order }
+              : order
+          )
+        );
+      }
+
       toast({
         title: "Order Cancelled",
         description: "Your order has been successfully cancelled.",
       });
-      // Refetch orders
-      fetchOrders();
+
       // Close dialog
       setShowCancelDialog(false);
       setOrderToCancel(null);
       setCancelReason("");
+
+      // Refetch orders in background to ensure data consistency
+      setTimeout(() => {
+        fetchOrders();
+      }, 1000);
     },
     onError: (error: Error) => {
       toast({
@@ -241,11 +266,33 @@ export default function OrdersPage() {
       }
 
       const ordersData = await response.json();
-      console.log('Orders data:', ordersData); // Debug log
+      console.log("Orders data:", ordersData); // Debug log
 
-      // Orders now come with items included from the backend
-      setOrders(ordersData);
-      setFilteredOrders(ordersData);
+      // Fetch items for each order
+      const ordersWithItems = await Promise.all(
+        ordersData.map(async (order: any) => {
+          try {
+            const itemsResponse = await fetch(`/api/orders/${order.id}/items`, {
+              credentials: "include",
+            });
+            if (itemsResponse.ok) {
+              const itemsData = await itemsResponse.json();
+              console.log(`Items for order ${order.id}:`, itemsData);
+              return { ...order, items: itemsData };
+            } else {
+              console.log(`Failed to fetch items for order ${order.id}`);
+              return { ...order, items: [] };
+            }
+          } catch (error) {
+            console.error(`Error fetching items for order ${order.id}:`, error);
+            return { ...order, items: [] };
+          }
+        })
+      );
+
+      console.log('Orders with items:', ordersWithItems);
+      setOrders(ordersWithItems);
+      setFilteredOrders(ordersWithItems);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching orders:", error);
@@ -278,20 +325,20 @@ export default function OrdersPage() {
   useEffect(() => {
     return () => {
       if (cameraStream) {
-        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream.getTracks().forEach((track) => track.stop());
       }
     };
   }, [cameraStream]);
 
   const fetchReturnReasons = async () => {
     try {
-      const response = await fetch('/api/returns/reasons?type=return');
+      const response = await fetch("/api/returns/reasons?type=return");
       if (response.ok) {
         const reasons = await response.json();
         setReturnReasons(reasons);
       }
     } catch (error) {
-      console.error('Error fetching return reasons:', error);
+      console.error("Error fetching return reasons:", error);
     }
   };
 
@@ -339,7 +386,12 @@ export default function OrdersPage() {
   };
 
   const submitReturnRequest = async () => {
-    if (!selectedOrderForReturn || !returnReason || !returnDescription.trim() || returnImages.length === 0) {
+    if (
+      !selectedOrderForReturn ||
+      !returnReason ||
+      !returnDescription.trim() ||
+      returnImages.length === 0
+    ) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields.",
@@ -351,32 +403,38 @@ export default function OrdersPage() {
     setReturningOrderId(selectedOrderForReturn.id);
     try {
       // First, get the order details to get the actual order items
-      console.log('Fetching order details for order:', selectedOrderForReturn.id);
-      const orderDetailsResponse = await fetch(`/api/orders/${selectedOrderForReturn.id}`, {
-        method: 'GET',
-        credentials: 'include',
-      });
+      console.log(
+        "Fetching order details for order:",
+        selectedOrderForReturn.id
+      );
+      const orderDetailsResponse = await fetch(
+        `/api/orders/${selectedOrderForReturn.id}`,
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      );
 
       if (!orderDetailsResponse.ok) {
-        throw new Error('Failed to fetch order details');
+        throw new Error("Failed to fetch order details");
       }
 
       const orderDetails = await orderDetailsResponse.json();
-      console.log('Order details:', orderDetails);
+      console.log("Order details:", orderDetails);
 
       // Get the first order item ID
       const orderItemId = orderDetails.items?.[0]?.id;
       if (!orderItemId) {
-        throw new Error('No order items found for this order');
+        throw new Error("No order items found for this order");
       }
 
       // Get the order item details to check its status
       const orderItem = orderDetails.items?.[0];
-      console.log('Order item details:', orderItem);
-      console.log('Order item status:', orderItem?.status);
-      console.log('Order status:', orderDetails.status);
+      console.log("Order item details:", orderItem);
+      console.log("Order item status:", orderItem?.status);
+      console.log("Order status:", orderDetails.status);
 
-      console.log('Using order item ID:', orderItemId);
+      console.log("Using order item ID:", orderItemId);
 
       // Upload images first
       let imageUrls: string[] = [];
@@ -384,22 +442,26 @@ export default function OrdersPage() {
         setUploadingImages(true);
         const formData = new FormData();
         returnImages.forEach((file) => {
-          formData.append('file', file);
+          formData.append("file", file);
         });
 
-        console.log('Uploading images...');
-        const uploadResponse = await fetch('/api/upload-multiple', {
-          method: 'POST',
+        console.log("Uploading images...");
+        const uploadResponse = await fetch("/api/upload-multiple", {
+          method: "POST",
           body: formData,
-          credentials: 'include',
+          credentials: "include",
         });
 
         if (uploadResponse.ok) {
           const uploadResult = await uploadResponse.json();
           imageUrls = uploadResult.urls || [];
-          console.log('Images uploaded successfully:', imageUrls);
+          console.log("Images uploaded successfully:", imageUrls);
         } else {
-          console.error('Image upload failed:', uploadResponse.status, uploadResponse.statusText);
+          console.error(
+            "Image upload failed:",
+            uploadResponse.status,
+            uploadResponse.statusText
+          );
           // Continue without images if upload fails
         }
       }
@@ -408,53 +470,63 @@ export default function OrdersPage() {
       const returnData = {
         orderId: selectedOrderForReturn.id,
         orderItemId: orderItemId,
-        requestType: 'return',
+        requestType: "return",
         reasonId: parseInt(returnReason),
         description: returnDescription,
         mediaUrls: imageUrls,
       };
 
-      console.log('Submitting return request with data:', returnData);
+      console.log("Submitting return request with data:", returnData);
 
-      const returnResponse = await fetch('/api/returns/request', {
-        method: 'POST',
+      const returnResponse = await fetch("/api/returns/request", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        credentials: 'include',
+        credentials: "include",
         body: JSON.stringify(returnData),
       });
 
-      console.log('Return request response status:', returnResponse.status);
+      console.log("Return request response status:", returnResponse.status);
 
       if (!returnResponse.ok) {
         const errorText = await returnResponse.text();
-        console.error('Return request failed:', errorText);
-        throw new Error(`Failed to create return request: ${returnResponse.status} ${returnResponse.statusText}`);
+        console.error("Return request failed:", errorText);
+        throw new Error(
+          `Failed to create return request: ${returnResponse.status} ${returnResponse.statusText}`
+        );
       }
 
       const returnResult = await returnResponse.json();
-      console.log('Return request created successfully:', returnResult);
+      console.log("Return request created successfully:", returnResult);
 
       // Mark order for return
-      console.log('Marking order for return...');
-      const markResponse = await fetch(`/api/orders/${selectedOrderForReturn.id}/mark-for-return`, {
-        method: "POST",
-        credentials: "include",
-      });
-      
+      console.log("Marking order for return...");
+      const markResponse = await fetch(
+        `/api/orders/${selectedOrderForReturn.id}/mark-for-return`,
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );
+
       if (!markResponse.ok) {
-        console.error('Failed to mark order for return:', markResponse.status, markResponse.statusText);
+        console.error(
+          "Failed to mark order for return:",
+          markResponse.status,
+          markResponse.statusText
+        );
         // Don't throw error here as the return request was already created
       } else {
-        console.log('Order marked for return successfully');
+        console.log("Order marked for return successfully");
       }
 
       toast({
         title: "Return Request Submitted",
-        description: "Your return request has been submitted successfully. You can track it in My Returns.",
+        description:
+          "Your return request has been submitted successfully. You can track it in My Returns.",
       });
-      
+
       setReturnDialogOpen(false);
       setReturnReason("");
       setReturnDescription("");
@@ -462,10 +534,13 @@ export default function OrdersPage() {
       setSelectedOrderForReturn(null);
       // refetch(); // Assuming refetch is available from queryClient or similar
     } catch (error) {
-      console.error('Error in submitReturnRequest:', error);
+      console.error("Error in submitReturnRequest:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to submit return request. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to submit return request. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -477,28 +552,29 @@ export default function OrdersPage() {
   // Refactor image upload handler to ensure only valid images are added and previewed
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    const validFiles = files.filter(file =>
-      file.type.startsWith('image/') && file.size <= 5 * 1024 * 1024 // 5MB limit
+    const validFiles = files.filter(
+      (file) => file.type.startsWith("image/") && file.size <= 5 * 1024 * 1024 // 5MB limit
     );
     if (validFiles.length !== files.length) {
       toast({
         title: "Invalid Files",
-        description: "Some files were not uploaded. Only images under 5MB are allowed.",
+        description:
+          "Some files were not uploaded. Only images under 5MB are allowed.",
         variant: "destructive",
       });
     }
-    setReturnImages(prev => [...prev, ...validFiles]);
+    setReturnImages((prev) => [...prev, ...validFiles]);
   };
 
   const removeImage = (index: number) => {
-    setReturnImages(prev => prev.filter((_, i) => i !== index));
+    setReturnImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   // Camera functions
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } // Use back camera if available
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" }, // Use back camera if available
       });
       setCameraStream(stream);
       setShowCamera(true);
@@ -506,7 +582,7 @@ export default function OrdersPage() {
         cameraVideoRef.srcObject = stream;
       }
     } catch (error) {
-      console.error('Error accessing camera:', error);
+      console.error("Error accessing camera:", error);
       toast({
         title: "Camera Error",
         description: "Unable to access camera. Please check permissions.",
@@ -517,7 +593,7 @@ export default function OrdersPage() {
 
   const stopCamera = () => {
     if (cameraStream) {
-      cameraStream.getTracks().forEach(track => track.stop());
+      cameraStream.getTracks().forEach((track) => track.stop());
       setCameraStream(null);
     }
     setShowCamera(false);
@@ -525,19 +601,25 @@ export default function OrdersPage() {
 
   const capturePhoto = () => {
     if (cameraVideoRef) {
-      const canvas = document.createElement('canvas');
+      const canvas = document.createElement("canvas");
       canvas.width = cameraVideoRef.videoWidth;
       canvas.height = cameraVideoRef.videoHeight;
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext("2d");
       if (ctx) {
         ctx.drawImage(cameraVideoRef, 0, 0);
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const file = new File([blob], `camera-photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
-            setReturnImages(prev => [...prev, file]);
-            stopCamera();
-          }
-        }, 'image/jpeg', 0.8);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const file = new File([blob], `camera-photo-${Date.now()}.jpg`, {
+                type: "image/jpeg",
+              });
+              setReturnImages((prev) => [...prev, file]);
+              stopCamera();
+            }
+          },
+          "image/jpeg",
+          0.8
+        );
       }
     }
   };
@@ -613,7 +695,9 @@ export default function OrdersPage() {
                 ? "No orders match your search criteria."
                 : "You haven't placed any orders yet."}
             </p>
-            <Button onClick={() => navigate("/")} className="bg-[#F8F5E4]">Start Shopping</Button>
+            <Button onClick={() => navigate("/")} className="bg-[#F8F5E4]">
+              Start Shopping
+            </Button>
           </div>
         ) : (
           <div className="space-y-4">
@@ -627,7 +711,9 @@ export default function OrdersPage() {
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-2">
                       <StatusIcon status={order.status} />
-                      <Badge className={`${getStatusColor(order.status)} bg-[#F8F5E4]`}>
+                      <Badge
+                        className={`${getStatusColor(order.status)} bg-[#F8F5E4]`}
+                      >
                         {order.status.charAt(0).toUpperCase() +
                           order.status.slice(1)}
                       </Badge>
@@ -638,25 +724,41 @@ export default function OrdersPage() {
                       Placed on {formatDate(order.date)}
                     </p>
 
-                                        {/* Product Images */}
+                    {/* Product Images */}
                     {order.items && order.items.length > 0 ? (
                       <>
-                        {console.log('Order items for order', order.id, ':', order.items)}
+                        {console.log(
+                          "Order items for order",
+                          order.id,
+                          ":",
+                          order.items
+                        )}
                         <div className="flex items-center space-x-2 mt-3">
-                          <span className="text-sm text-muted-foreground">Products:</span>
+                          <span className="text-sm text-muted-foreground">
+                            Products:
+                          </span>
                           <div className="flex space-x-2">
                             {order.items.slice(0, 3).map((item, index) => (
                               <div key={index} className="relative">
                                 <img
                                   src={getProductImageUrl(item.product)}
-                                  alt={item.product?.name || 'Product'}
+                                  alt={item.product?.name || "Product"}
                                   className="w-12 h-12 object-cover rounded border bg-[#EADDCB]"
                                   onError={(e) => {
-                                    console.log('Image failed to load for product:', item.product?.name, 'URL:', e.currentTarget.src);
-                                    e.currentTarget.src = 'https://placehold.co/100x100?text=No+Image';
+                                    console.log(
+                                      "Image failed to load for product:",
+                                      item.product?.name,
+                                      "URL:",
+                                      e.currentTarget.src
+                                    );
+                                    e.currentTarget.src =
+                                      "https://placehold.co/100x100?text=No+Image";
                                   }}
                                   onLoad={() => {
-                                    console.log('Image loaded successfully for product:', item.product?.name);
+                                    console.log(
+                                      "Image loaded successfully for product:",
+                                      item.product?.name
+                                    );
                                   }}
                                 />
                                 {/* Debug overlay to show if image container is rendered */}
@@ -675,7 +777,9 @@ export default function OrdersPage() {
                       </>
                     ) : (
                       <div className="flex items-center space-x-2 mt-3">
-                        <span className="text-sm text-muted-foreground">Products:</span>
+                        <span className="text-sm text-muted-foreground">
+                          Products:
+                        </span>
                         <div className="w-12 h-12 bg-[#EADDCB] rounded border flex items-center justify-center text-xs text-gray-500">
                           <Package2 className="h-6 w-6" />
                         </div>
@@ -687,7 +791,9 @@ export default function OrdersPage() {
                         <span className="font-medium">Payment Method:</span>{" "}
                         {order.paymentMethod === "cod"
                           ? "Cash on Delivery"
-                          : order.paymentMethod}
+                          : order.paymentMethod === "razorpay"
+                            ? "Razorpay"
+                            : order.paymentMethod}
                       </p>
                     </div>
                   </div>
@@ -786,19 +892,19 @@ export default function OrdersPage() {
 
   // Fallback reasons if API returns nothing
   const fallbackReasons = [
-    { id: 1, text: 'Wrong item received' },
-    { id: 2, text: 'Item damaged' },
-    { id: 3, text: 'Not as described' },
-    { id: 4, text: 'Other' },
+    { id: 1, text: "Wrong item received" },
+    { id: 2, text: "Item damaged" },
+    { id: 3, text: "Not as described" },
+    { id: 4, text: "Other" },
   ];
   const filteredReturnReasons =
     Array.isArray(returnReasons) && returnReasons.length > 0
-      ? returnReasons.filter(r => r && r.id && r.text)
+      ? returnReasons.filter((r) => r && r.id && r.text)
       : fallbackReasons;
 
   // Debug logs
-  console.log('filteredReturnReasons:', filteredReturnReasons);
-  console.log('returnImages:', returnImages);
+  console.log("filteredReturnReasons:", filteredReturnReasons);
+  console.log("returnImages:", returnImages);
 
   return (
     <DashboardLayout>
@@ -896,19 +1002,25 @@ export default function OrdersPage() {
           <DialogHeader>
             <DialogTitle>Request Return</DialogTitle>
             <DialogDescription>
-              Please provide details about your return request for Order #{selectedOrderForReturn?.id}
+              Please provide details about your return request for Order #
+              {selectedOrderForReturn?.id}
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedOrderForReturn && (
             <div className="space-y-4">
               {/* Return Reason */}
               <div className="space-y-2">
-                <label htmlFor="return-reason" className="block font-medium mb-1">Return Reason *</label>
+                <label
+                  htmlFor="return-reason"
+                  className="block font-medium mb-1"
+                >
+                  Return Reason *
+                </label>
                 <select
                   id="return-reason"
                   value={returnReason}
-                  onChange={e => setReturnReason(e.target.value)}
+                  onChange={(e) => setReturnReason(e.target.value)}
                   required
                   className="block w-full border rounded px-3 py-2 bg-[#F8F5E4]"
                 >
@@ -922,12 +1034,17 @@ export default function OrdersPage() {
               </div>
               {/* Description */}
               <div className="space-y-2">
-                <label htmlFor="return-description" className="block font-medium mb-1">Description *</label>
+                <label
+                  htmlFor="return-description"
+                  className="block font-medium mb-1"
+                >
+                  Description *
+                </label>
                 <textarea
                   id="return-description"
                   placeholder="Please provide detailed description of the issue..."
                   value={returnDescription}
-                  onChange={e => setReturnDescription(e.target.value)}
+                  onChange={(e) => setReturnDescription(e.target.value)}
                   rows={4}
                   required
                   className="block w-full border rounded px-3 py-2 bg-[#F8F5E4]"
@@ -956,31 +1073,40 @@ export default function OrdersPage() {
                     Camera
                   </Button>
                 </div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {returnImages.map((file, idx) => (
-                    <div key={idx} style={{ position: 'relative', display: 'inline-block' }}>
+                    <div
+                      key={idx}
+                      style={{ position: "relative", display: "inline-block" }}
+                    >
                       <img
                         src={URL.createObjectURL(file)}
                         alt=""
-                        style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 4, border: '1px solid #eee' }}
+                        style={{
+                          width: 80,
+                          height: 80,
+                          objectFit: "cover",
+                          borderRadius: 4,
+                          border: "1px solid #eee",
+                        }}
                       />
                       <button
                         type="button"
                         onClick={() => removeImage(idx)}
                         style={{
-                          position: 'absolute',
+                          position: "absolute",
                           top: 2,
                           right: 2,
-                          background: 'rgba(0,0,0,0.6)',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '50%',
+                          background: "rgba(0,0,0,0.6)",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "50%",
                           width: 22,
                           height: 22,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer',
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          cursor: "pointer",
                           fontSize: 14,
                           zIndex: 2,
                         }}
@@ -1019,7 +1145,7 @@ export default function OrdersPage() {
                   Submitting...
                 </>
               ) : (
-                'Submit Return Request'
+                "Submit Return Request"
               )}
             </Button>
           </DialogFooter>
@@ -1035,7 +1161,7 @@ export default function OrdersPage() {
               Take a photo of the item you want to return
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div className="relative bg-black rounded-lg overflow-hidden">
               <video
@@ -1050,7 +1176,7 @@ export default function OrdersPage() {
                 }}
               />
             </div>
-            
+
             <div className="flex justify-center gap-4">
               <Button
                 variant="outline"

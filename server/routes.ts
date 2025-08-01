@@ -2874,6 +2874,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const search = req.query.search as string | undefined;
       const subcategory = req.query.subcategory as string | undefined;
       const interleaved = req.query.interleaved === "true";
+      const maxPrice = req.query.maxPrice
+        ? Number(req.query.maxPrice)
+        : undefined;
 
       // Check user role to determine if we should show unapproved products
       const userRole = req.isAuthenticated() ? req.user.role : "buyer";
@@ -2926,6 +2929,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         limit,
         search,
         subcategory,
+        maxPrice,
         userRole: req.isAuthenticated() ? req.user.role : "buyer",
       });
 
@@ -3065,7 +3069,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         search,
         isDraft,
         subcategory,
-        rejected
+        rejected,
+        maxPrice
       );
       const totalPages = Math.ceil(totalCount / limit);
 
@@ -3091,7 +3096,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         search,
         isDraft, // Pass isDraft parameter
         subcategory, // Pass subcategory parameter
-        rejected // Pass rejected parameter (now can be true/false/undefined)
+        rejected, // Pass rejected parameter (now can be true/false/undefined)
+        maxPrice // Pass maxPrice parameter for price filtering
       );
       console.log(
         `Found ${products?.length || 0} products (page ${page}/${totalPages})`
@@ -5389,13 +5395,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Cart is empty" });
       }
 
+      // Get the discounted amount from request body if provided
+      const { discountedAmount } = req.body;
+
       // Calculate total in lowest currency unit (paise for INR)
-      const totalInPaise = Math.round(
+      // Use discounted amount if provided, otherwise calculate from cart items
+      const originalTotal = Math.round(
         cartItems.reduce(
           (acc, item) => acc + item.product.price * item.quantity,
           0
         ) * 100
       );
+
+      const totalInPaise = discountedAmount
+        ? Math.round(discountedAmount * 100) // Convert rupees to paise
+        : originalTotal;
+
+      // Log the amounts for debugging
+      console.log("Razorpay order creation:", {
+        originalTotal: originalTotal / 100,
+        discountedAmount,
+        finalAmount: totalInPaise / 100,
+        cartItemsCount: cartItems.length,
+      });
 
       // Create a unique receipt ID
       const receiptId = `receipt_${Date.now()}_${req.user.id}`;
@@ -5490,6 +5512,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         shippingDetails,
         addressId,
         walletDetails,
+        discountedAmount,
       } = req.body;
 
       if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
@@ -5562,11 +5585,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Calculate total
-      const total = cartItems.reduce((acc, item) => {
+      // Calculate total - use discounted amount if provided, otherwise calculate from cart items
+      const originalTotal = cartItems.reduce((acc, item) => {
         const price = item.variant ? item.variant.price : item.product.price;
         return acc + price * item.quantity;
       }, 0);
+
+      const total = discountedAmount || originalTotal;
+
+      // Log the amounts for debugging
+      console.log("Payment verification:", {
+        originalTotal,
+        discountedAmount,
+        finalTotal: total,
+        cartItemsCount: cartItems.length,
+      });
 
       // Create order in our system
       const orderData: any = {
@@ -6613,32 +6646,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Send cancellation email notifications
+      // Send immediate real-time notification to buyer
       try {
-        console.log(`Sending cancellation emails for order ${orderId}`);
-        emailService.sendOrderCancelledEmails(orderId).catch((emailError) => {
-          console.error(`Error sending cancellation emails: ${emailError}`);
-        });
-      } catch (emailError) {
-        console.error(`Error initiating cancellation emails: ${emailError}`);
-        // Don't fail the cancellation if email sending fails
-      }
-
-      // Create a notification for the buyer
-      try {
-        await storage.createNotification({
-          userId: order.userId,
+        const { sendNotificationToUser } = await import("../websocket");
+        await sendNotificationToUser(order.userId, {
+          type: "ORDER_STATUS",
           title: "Order Cancelled",
-          message: `Your order #${orderId} has been cancelled. Any payment will be refunded according to the payment method used.`,
-          type: "order_update",
-          link: `/order/${orderId}`,
+          message: `Your order #${orderId} has been cancelled successfully.`,
+          read: false,
+          link: `/orders/${orderId}`,
+          metadata: JSON.stringify({ orderId, status: "cancelled" }),
         });
       } catch (notificationError) {
         console.error(
-          "Error creating cancellation notification:",
+          "Error sending real-time notification:",
           notificationError
         );
       }
+
+      // Send cancellation email notifications asynchronously (non-blocking)
+      setImmediate(async () => {
+        try {
+          console.log(`Sending cancellation emails for order ${orderId}`);
+          await emailService.sendOrderCancelledEmails(orderId);
+        } catch (emailError) {
+          console.error(`Error sending cancellation emails: ${emailError}`);
+        }
+      });
+
+      // Create a permanent notification for the buyer asynchronously (non-blocking)
+      setImmediate(async () => {
+        try {
+          await storage.createNotification({
+            userId: order.userId,
+            title: "Order Cancelled",
+            message: `Your order #${orderId} has been cancelled. Any payment will be refunded according to the payment method used.`,
+            type: "order_update",
+            link: `/order/${orderId}`,
+          });
+        } catch (notificationError) {
+          console.error(
+            "Error creating cancellation notification:",
+            notificationError
+          );
+        }
+      });
 
       res.json({
         message: "Order cancelled successfully",
@@ -6760,30 +6812,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedOrder = await handleOrderStatusChange(id, status);
       console.log(`Updated main order #${id} status to ${status}`);
 
-      // Send appropriate email notifications based on the new status
+      // Send immediate real-time notification to buyer for status changes
       try {
-        console.log(
-          `Sending email notifications for order ${id} status update to: ${status}`
-        );
-        if (status === "shipped") {
-          // Send shipping notifications asynchronously
-          emailService.sendOrderShippedEmails(id).catch((emailError) => {
-            console.error(`Error sending shipped order emails: ${emailError}`);
-          });
-        } else if (status === "cancelled") {
-          // Send cancellation notifications asynchronously
-          emailService.sendOrderCancelledEmails(id).catch((emailError) => {
-            console.error(
-              `Error sending cancelled order emails: ${emailError}`
-            );
-          });
-        }
-      } catch (emailError) {
+        const { sendNotificationToUser } = await import("../websocket");
+        await sendNotificationToUser(order.userId, {
+          type: "ORDER_STATUS",
+          title: `Order #${id} ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+          message: `Your order #${id} status has been updated to ${status}.`,
+          read: false,
+          link: `/orders/${id}`,
+          metadata: JSON.stringify({ orderId: id, status }),
+        });
+      } catch (notificationError) {
         console.error(
-          `Error initiating order status update emails: ${emailError}`
+          "Error sending real-time notification:",
+          notificationError
         );
-        // Don't fail the order status update if email sending fails
       }
+
+      // Send appropriate email notifications asynchronously (non-blocking)
+      setImmediate(async () => {
+        try {
+          console.log(
+            `Sending email notifications for order ${id} status update to: ${status}`
+          );
+          if (status === "shipped") {
+            await emailService.sendOrderShippedEmails(id);
+          } else if (status === "cancelled") {
+            await emailService.sendOrderCancelledEmails(id);
+          }
+        } catch (emailError) {
+          console.error(
+            `Error sending order status update emails: ${emailError}`
+          );
+        }
+      });
 
       res.json(updatedOrder);
     } catch (error) {
