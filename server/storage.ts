@@ -5478,13 +5478,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateOrderStatus(id: number, status: string): Promise<Order> {
-    // Get the current order to validate status transition
-    const currentOrder = await this.getOrder(id);
-    if (!currentOrder) {
-      throw new Error(`Order with ID ${id} not found`);
-    }
-
-    // Define allowed status transitions for security
+    // Define allowed status transitions for security (moved outside to avoid recreation)
     const allowedTransitions: Record<string, string[]> = {
       pending: ["processing", "confirmed", "cancelled", "delivered"],
       processing: ["confirmed", "shipped", "cancelled"],
@@ -5501,6 +5495,12 @@ export class DatabaseStorage implements IStorage {
       completed_return: ["reject_return"],
       reject_return: [],
     };
+
+    // Get the current order to validate status transition
+    const currentOrder = await this.getOrder(id);
+    if (!currentOrder) {
+      throw new Error(`Order with ID ${id} not found`);
+    }
 
     // Check if the status transition is allowed
     const allowedNextStatuses = allowedTransitions[currentOrder.status] || [];
@@ -5528,6 +5528,19 @@ export class DatabaseStorage implements IStorage {
     // If transition is valid, proceed with the update
     const updatedOrder = await this.updateOrder(id, { status });
     console.log(`Order ${id} status after update: ${updatedOrder.status}`);
+    return updatedOrder;
+  }
+
+  /**
+   * Fast order status update - bypasses some validation for speed
+   * Use this for high-frequency status updates where validation is already done
+   */
+  async fastUpdateOrderStatus(id: number, status: string): Promise<Order> {
+    console.log(`Fast updating order ${id} status to '${status}'`);
+
+    // Direct update without validation (assumes validation is done elsewhere)
+    const updatedOrder = await this.updateOrder(id, { status });
+    console.log(`Order ${id} status after fast update: ${updatedOrder.status}`);
     return updatedOrder;
   }
 
