@@ -68,14 +68,14 @@ export function CategoryMegaMenu() {
   // Add this mapping at the top, after imports
   const CATEGORY_IMAGE_MAP: Record<string, string> = {
     'Industrial & Scientific': 'https://www.amazon.in/Industrial-Scientific/b?ie=UTF8&node=5866078031',
-    'Fashion': 'https://www.myntra.com/fashion-jeans',
+    'Fashion': '/images/FASHION.jpg',
     'Home': 'https://shriandsam.com/cdn/shop/articles/Picture11.jpg?v=1659353137&width=2048',
     'Appliances': 'https://numalis.com/wp-content/uploads/2023/10/Maxx-Studio-Shutterstock.jpg',
     'Grocery': 'https://hips.hearstapps.com/hmg-prod/images/healthy-groceries-bag-66eaef810acf6.jpg?crop=0.7501082719792118xw:1xh;center,top&resize=1200:*',
     'Beauty': 'https://beautybybie.com/cdn/shop/files/anti_pigmentation_facial_kit.jpg?v=1749274359',
-    'Toys': 'https://images.indianexpress.com/2019/09/toys.jpg',
-    'Electronics': 'https://www.retailmba.com/wp-content/uploads/2023/11/wholesale-electronics.jpeg',
-    'Mobiles': 'https://www.top10mobileshop.com/images/top10mobiles.com/thumbnail/product/2024/08/795330468202408120724.jpg',
+    'Toys': '/images/TOYS.jpg',
+    'Electronics': '/images/ELECTRONICS.jpg',
+    'Mobiles': '/images/MOBILES.jpg',
   };
 
   // Call useCategoryProducts for each special category
