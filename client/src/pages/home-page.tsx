@@ -289,6 +289,52 @@ export default function HomePage() {
     }
   }, [category, categoryData, infiniteProducts, infinitePagination]);
 
+  // Debug logging for products data
+  useEffect(() => {
+    if (products.length > 0) {
+      const productsWithMrp = products.filter((p) => p.mrp && p.mrp > p.price);
+      const discountRanges = {
+        "0-20%": productsWithMrp.filter((p) => {
+          const discount = Math.round(((p.mrp! - p.price) / p.mrp!) * 100);
+          return discount > 0 && discount <= 20;
+        }).length,
+        "20-40%": productsWithMrp.filter((p) => {
+          const discount = Math.round(((p.mrp! - p.price) / p.mrp!) * 100);
+          return discount > 20 && discount <= 40;
+        }).length,
+        "40-60%": productsWithMrp.filter((p) => {
+          const discount = Math.round(((p.mrp! - p.price) / p.mrp!) * 100);
+          return discount > 40 && discount <= 60;
+        }).length,
+        "60-80%": productsWithMrp.filter((p) => {
+          const discount = Math.round(((p.mrp! - p.price) / p.mrp!) * 100);
+          return discount > 60 && discount <= 80;
+        }).length,
+        "80%+": productsWithMrp.filter((p) => {
+          const discount = Math.round(((p.mrp! - p.price) / p.mrp!) * 100);
+          return discount > 80;
+        }).length,
+      };
+
+      console.log("Homepage Products Debug:", {
+        totalProducts: products.length,
+        productsWithDiscount: productsWithMrp.length,
+        discountRanges,
+        sampleProducts: products.slice(0, 3).map((p) => ({
+          id: p.id,
+          name: p.name,
+          mrp: p.mrp,
+          price: p.price,
+          hasDiscount: p.mrp && p.mrp > p.price,
+          discountPercent:
+            p.mrp && p.mrp > p.price
+              ? Math.round(((p.mrp - p.price) / p.mrp) * 100)
+              : 0,
+        })),
+      });
+    }
+  }, [products]);
+
   const isLoading = category ? isLoadingCategory : isLoadingInfinite;
 
   // Get featured products (first 5 products for priority loading)
@@ -447,13 +493,33 @@ export default function HomePage() {
     max: number,
     count: number
   ) {
-    return products
-      .filter((p) => p.mrp && p.mrp > p.price) // has discount
-      .map((p) => ({
-        ...p,
-        discount: Math.round(((p.mrp! - p.price) / p.mrp!) * 100),
-      }))
-      .filter((p) => p.discount > min && p.discount <= max)
+    // Debug logging to understand the issue
+    const productsWithDiscount = products.filter(
+      (p) => p.mrp && p.mrp > p.price
+    );
+    const productsWithDiscountCalculated = productsWithDiscount.map((p) => ({
+      ...p,
+      discount: Math.round(((p.mrp! - p.price) / p.mrp!) * 100),
+    }));
+    const productsInRange = productsWithDiscountCalculated.filter(
+      (p) => p.discount >= min && p.discount <= max
+    );
+
+    console.log(`getMaxDiscountProductsInRange(${min}-${max}%):`, {
+      totalProducts: products.length,
+      productsWithDiscount: productsWithDiscount.length,
+      productsInRange: productsInRange.length,
+      range: `${min}-${max}%`,
+      sampleProducts: productsInRange.slice(0, 3).map((p) => ({
+        id: p.id,
+        name: p.name,
+        mrp: p.mrp,
+        price: p.price,
+        discount: p.discount,
+      })),
+    });
+
+    return productsInRange
       .sort((a, b) => b.discount - a.discount)
       .slice(0, count);
   }

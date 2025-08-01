@@ -9113,6 +9113,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log("SEARCH API: Searching products with query:", query);
+
+      // For discount range queries, ensure we use the same filtering as the home page
+      const cleanedQuery = query.trim().toLowerCase();
+      const discountRangeMatch = cleanedQuery.match(
+        /(\d+)\s*-\s*(\d+)(?:\s*%|\s+percent)\s+off/
+      );
+
+      if (discountRangeMatch) {
+        // Use the same filtering logic as the home page for discount range queries
+        const minDiscountPercent = parseInt(discountRangeMatch[1]);
+        const maxDiscountPercent = parseInt(discountRangeMatch[2]);
+
+        console.log(
+          `SEARCH API: Detected discount range query: ${minDiscountPercent}-${maxDiscountPercent}% off`
+        );
+
+        // Use the same filtering as home page (approved=true, not draft, not rejected)
+        const discountRangeQuery = `
+          SELECT p.*,
+            CASE 
+              WHEN p.mrp IS NOT NULL AND p.mrp > p.price THEN 
+                ROUND(((p.mrp - p.price) / p.mrp) * 100)
+              ELSE 0
+            END AS discount_percentage
+          FROM products p
+          WHERE p.deleted = false 
+            AND p.approved = true 
+            AND (p.is_draft IS NULL OR p.is_draft = false)
+            AND p.mrp IS NOT NULL 
+            AND p.mrp > p.price
+            AND ROUND(((p.mrp - p.price) / p.mrp) * 100) >= $1
+            AND ROUND(((p.mrp - p.price) / p.mrp) * 100) <= $2
+          ORDER BY discount_percentage DESC, p.id DESC
+          LIMIT $3
+        `;
+
+        const { rows } = await pool.query(discountRangeQuery, [
+          minDiscountPercent,
+          maxDiscountPercent,
+          limit,
+        ]);
+
+        console.log(
+          `SEARCH API: Found ${rows.length} products with discount between ${minDiscountPercent}-${maxDiscountPercent}%`
+        );
+
+        // Set the content type explicitly to application/json
+        res.setHeader("Content-Type", "application/json");
+        return res.json(rows);
+      }
+
+      // For other queries, use the existing searchProducts function
       const results = await storage.searchProducts(query, limit, userRole);
       console.log(`SEARCH API: Found ${results.length} results for "${query}"`);
 
