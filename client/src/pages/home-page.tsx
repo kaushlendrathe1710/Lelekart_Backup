@@ -698,6 +698,43 @@ export default function HomePage() {
               </div>
             </div>
           ))}
+
+          {/* Additional discount range sections */}
+          {[
+            { min: 20, max: 40, title: "20-40% Off" },
+            { min: 40, max: 60, title: "40-60% Off" },
+            { min: 60, max: 80, title: "60-80% Off" },
+          ].map(({ min, max, title }) => (
+            <div
+              key={`${min}-${max}`}
+              className="bg-[#F8F5E4] rounded-2xl p-4 border border-[#e0c9a6] shadow-md flex flex-col justify-between"
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-medium">{title}</h2>
+                <Link
+                  href={`/search?q=${min}-${max}+percent+off`}
+                  className="text-primary hover:underline"
+                >
+                  View All
+                </Link>
+              </div>
+              <div className="grid grid-cols-2 gap-2 justify-center">
+                {getMaxDiscountProductsInRange(products, min, max, 4).map(
+                  (product) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      featured={true}
+                      showAddToCart={false}
+                      variant="plain"
+                      showWishlist={false}
+                      cardBg="#EADDCB"
+                    />
+                  )
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
       {/* --- Recently Viewed Products --- */}

@@ -3600,6 +3600,167 @@ export class DatabaseStorage implements IStorage {
         return [];
       }
 
+      // Check if this is a discount percentage query
+      const discountMatch = cleanedQuery
+        .toLowerCase()
+        .match(/upto\s+(\d+)\s+percent\s+off/);
+      if (discountMatch) {
+        const maxDiscountPercent = parseInt(discountMatch[1]);
+        console.log(
+          `Detected discount percentage query: up to ${maxDiscountPercent}% off`
+        );
+
+        // Query for products with discount up to the specified percentage
+        const discountQuery = `
+          SELECT p.*,
+            CASE 
+              WHEN p.mrp IS NOT NULL AND p.mrp > p.price THEN 
+                ROUND(((p.mrp - p.price) / p.mrp) * 100)
+              ELSE 0
+            END AS discount_percentage
+          FROM products p
+          WHERE p.deleted = false 
+            AND p.approved = true 
+            AND (p.is_draft IS NULL OR p.is_draft = false)
+            AND p.mrp IS NOT NULL 
+            AND p.mrp > p.price
+            AND ROUND(((p.mrp - p.price) / p.mrp) * 100) <= $1
+          ORDER BY discount_percentage DESC, p.id DESC
+          LIMIT $2
+        `;
+
+        const { rows } = await pool.query(discountQuery, [
+          maxDiscountPercent,
+          limit,
+        ]);
+        console.log(
+          `Found ${rows.length} products with discount up to ${maxDiscountPercent}%`
+        );
+        return rows;
+      }
+
+      // Also check for variations like "up to 20% off", "up to 20 percent off", etc.
+      const discountMatchVariations = cleanedQuery
+        .toLowerCase()
+        .match(/(?:up\s+to|upto)\s+(\d+)(?:\s*%|\s+percent)\s+off/);
+      if (discountMatchVariations) {
+        const maxDiscountPercent = parseInt(discountMatchVariations[1]);
+        console.log(
+          `Detected discount percentage query variation: up to ${maxDiscountPercent}% off`
+        );
+
+        // Query for products with discount up to the specified percentage
+        const discountQuery = `
+          SELECT p.*,
+            CASE 
+              WHEN p.mrp IS NOT NULL AND p.mrp > p.price THEN 
+                ROUND(((p.mrp - p.price) / p.mrp) * 100)
+              ELSE 0
+            END AS discount_percentage
+          FROM products p
+          WHERE p.deleted = false 
+            AND p.approved = true 
+            AND (p.is_draft IS NULL OR p.is_draft = false)
+            AND p.mrp IS NOT NULL 
+            AND p.mrp > p.price
+            AND ROUND(((p.mrp - p.price) / p.mrp) * 100) <= $1
+          ORDER BY discount_percentage DESC, p.id DESC
+          LIMIT $2
+        `;
+
+        const { rows } = await pool.query(discountQuery, [
+          maxDiscountPercent,
+          limit,
+        ]);
+        console.log(
+          `Found ${rows.length} products with discount up to ${maxDiscountPercent}%`
+        );
+        return rows;
+      }
+
+      // Check for discount range queries like "20-40% off", "40-60% off", etc.
+      const discountRangeMatch = cleanedQuery
+        .toLowerCase()
+        .match(/(\d+)\s*-\s*(\d+)(?:\s*%|\s+percent)\s+off/);
+      if (discountRangeMatch) {
+        const minDiscountPercent = parseInt(discountRangeMatch[1]);
+        const maxDiscountPercent = parseInt(discountRangeMatch[2]);
+        console.log(
+          `Detected discount range query: ${minDiscountPercent}-${maxDiscountPercent}% off`
+        );
+
+        // Query for products with discount in the specified range
+        const discountRangeQuery = `
+          SELECT p.*,
+            CASE 
+              WHEN p.mrp IS NOT NULL AND p.mrp > p.price THEN 
+                ROUND(((p.mrp - p.price) / p.mrp) * 100)
+              ELSE 0
+            END AS discount_percentage
+          FROM products p
+          WHERE p.deleted = false 
+            AND p.approved = true 
+            AND (p.is_draft IS NULL OR p.is_draft = false)
+            AND p.mrp IS NOT NULL 
+            AND p.mrp > p.price
+            AND ROUND(((p.mrp - p.price) / p.mrp) * 100) >= $1
+            AND ROUND(((p.mrp - p.price) / p.mrp) * 100) <= $2
+          ORDER BY discount_percentage DESC, p.id DESC
+          LIMIT $3
+        `;
+
+        const { rows } = await pool.query(discountRangeQuery, [
+          minDiscountPercent,
+          maxDiscountPercent,
+          limit,
+        ]);
+        console.log(
+          `Found ${rows.length} products with discount between ${minDiscountPercent}-${maxDiscountPercent}%`
+        );
+        return rows;
+      }
+
+      // Check for minimum discount queries like "20% off or more", "at least 20% off", etc.
+      const minDiscountMatch = cleanedQuery
+        .toLowerCase()
+        .match(
+          /(?:at\s+least|minimum|more\s+than)\s+(\d+)(?:\s*%|\s+percent)\s+off/
+        );
+      if (minDiscountMatch) {
+        const minDiscountPercent = parseInt(minDiscountMatch[1]);
+        console.log(
+          `Detected minimum discount query: at least ${minDiscountPercent}% off`
+        );
+
+        // Query for products with discount at least the specified percentage
+        const minDiscountQuery = `
+          SELECT p.*,
+            CASE 
+              WHEN p.mrp IS NOT NULL AND p.mrp > p.price THEN 
+                ROUND(((p.mrp - p.price) / p.mrp) * 100)
+              ELSE 0
+            END AS discount_percentage
+          FROM products p
+          WHERE p.deleted = false 
+            AND p.approved = true 
+            AND (p.is_draft IS NULL OR p.is_draft = false)
+            AND p.mrp IS NOT NULL 
+            AND p.mrp > p.price
+            AND ROUND(((p.mrp - p.price) / p.mrp) * 100) >= $1
+          ORDER BY discount_percentage DESC, p.id DESC
+          LIMIT $2
+        `;
+
+        const { rows } = await pool.query(minDiscountQuery, [
+          minDiscountPercent,
+          limit,
+        ]);
+        console.log(
+          `Found ${rows.length} products with discount at least ${minDiscountPercent}%`
+        );
+        return rows;
+      }
+
       // Create a tsquery compatible string with prefix matching
       const searchTerms = cleanedQuery
         .split(/\s+/)
