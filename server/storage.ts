@@ -2750,12 +2750,27 @@ export class DatabaseStorage implements IStorage {
 
       // Add subcategory filter
       if (subcategory) {
-        // Join with subcategories table to filter by subcategory slug
-        query += ` AND products.subcategory_id IN (
-          SELECT sc.id FROM subcategories sc 
-          WHERE LOWER(sc.slug) = LOWER($${params.length + 1})
-        )`;
-        params.push(subcategory);
+        // First, try to find the subcategory by slug to get the name
+        try {
+          const subcategoryQuery = `SELECT name FROM subcategories WHERE LOWER(slug) = LOWER($1)`;
+          const { rows } = await pool.query(subcategoryQuery, [subcategory]);
+
+          if (rows.length > 0) {
+            const subcategoryName = rows[0].name;
+            // Filter by subcategory1 field using the name (case-insensitive)
+            query += ` AND LOWER(subcategory1) = LOWER($${params.length + 1})`;
+            params.push(subcategoryName);
+          } else {
+            // If no subcategory found by slug, try filtering by the slug directly
+            query += ` AND (LOWER(subcategory1) = LOWER($${params.length + 1}) OR LOWER(subcategory1) = LOWER($${params.length + 2}))`;
+            params.push(subcategory, subcategory.replace(/-/g, " "));
+          }
+        } catch (error) {
+          console.error("Error looking up subcategory by slug:", error);
+          // Fallback to direct filtering
+          query += ` AND LOWER(subcategory1) = LOWER($${params.length + 1})`;
+          params.push(subcategory);
+        }
       }
 
       // Add search filter
@@ -2803,7 +2818,7 @@ export class DatabaseStorage implements IStorage {
         SELECT 
           p.id, p.name, p.description, p.specifications, p.sku, p.mrp, p.purchase_price as "purchasePrice", 
           p.price, p.category, p.category_id as "categoryId", p.subcategory_id as "subcategoryId", 
-          p.color, p.size, p.image_url as "imageUrl", p.images, p.seller_id as "sellerId", 
+          p.subcategory1, p.subcategory2, p.color, p.size, p.image_url as "imageUrl", p.images, p.seller_id as "sellerId", 
           p.stock, p.gst_rate as "gstRate", p.approved, p.rejected, p.deleted, p.is_draft as "isDraft", 
           p.created_at as "createdAt", p.length, p.width, p.height, p.weight,
           u.username as seller_username, u.name as seller_name
@@ -2848,21 +2863,48 @@ export class DatabaseStorage implements IStorage {
       // Add subcategory filter
       if (subcategory) {
         console.log(`Filtering by subcategory slug: ${subcategory}`);
-        // Join with subcategories table to filter by subcategory slug
-        query += ` AND p.subcategory_id IN (
-          SELECT sc.id FROM subcategories sc 
-          WHERE LOWER(sc.slug) = LOWER($${params.length + 1})
-        )`;
-        params.push(subcategory);
 
-        // Debug: Let's log the matching subcategories
-        const debugQuery = `SELECT id, name, slug FROM subcategories WHERE LOWER(slug) = LOWER($1)`;
+        // First, try to find the subcategory by slug to get the name
         try {
-          const { rows } = await pool.query(debugQuery, [subcategory]);
-          console.log(`Found matching subcategories:`, rows);
+          const subcategoryQuery = `SELECT name FROM subcategories WHERE LOWER(slug) = LOWER($1)`;
+          const { rows } = await pool.query(subcategoryQuery, [subcategory]);
+
+          if (rows.length > 0) {
+            const subcategoryName = rows[0].name;
+            console.log(
+              `Found subcategory name: ${subcategoryName} for slug: ${subcategory}`
+            );
+
+            // Filter by subcategory1 field using the name (case-insensitive)
+            query += ` AND LOWER(p.subcategory1) = LOWER($${params.length + 1})`;
+            params.push(subcategoryName);
+
+            console.log(
+              `Filtering products where subcategory1 = '${subcategoryName}'`
+            );
+          } else {
+            // If no subcategory found by slug, try filtering by the slug directly
+            // This handles cases where subcategory1 might contain the slug
+            console.log(
+              `No subcategory found for slug: ${subcategory}, trying direct match`
+            );
+            query += ` AND (LOWER(p.subcategory1) = LOWER($${params.length + 1}) OR LOWER(p.subcategory1) = LOWER($${params.length + 2}))`;
+            params.push(subcategory, subcategory.replace(/-/g, " "));
+            console.log(
+              `Filtering products where subcategory1 matches '${subcategory}' or '${subcategory.replace(/-/g, " ")}'`
+            );
+          }
         } catch (error) {
-          console.error("Error in subcategory debug query:", error);
+          console.error("Error looking up subcategory by slug:", error);
+          // Fallback to direct filtering
+          query += ` AND LOWER(p.subcategory1) = LOWER($${params.length + 1})`;
+          params.push(subcategory);
+          console.log(
+            `Fallback: Filtering products where subcategory1 = '${subcategory}'`
+          );
         }
+
+        console.log(`Added subcategory filter for: ${subcategory}`);
       }
 
       // Add search filter
@@ -2898,6 +2940,14 @@ export class DatabaseStorage implements IStorage {
       // Execute the query
       const { rows } = await pool.query(query, params);
       console.log(`Found ${rows.length} products (paginated)`);
+
+      // Debug: Log the actual SQL query and parameters for troubleshooting
+      if (subcategory) {
+        console.log(`Debug - SQL Query: ${query}`);
+        console.log(`Debug - Parameters:`, params);
+        console.log(`Debug - Products found: ${rows.length}`);
+      }
+
       return rows;
     } catch (error) {
       console.error("Error in getProductsPaginated:", error);
