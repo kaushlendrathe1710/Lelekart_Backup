@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Layout } from "@/components/layout/layout";
 import { ProductCard } from "@/components/ui/product-card";
-import { FashionProductCardFixed } from "@/components/ui/fashion-product-card-fixed";
+// Removed FashionProductCardFixed import - using ProductCard for all categories
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Filter, SlidersHorizontal } from "lucide-react";
 import {
@@ -538,17 +538,9 @@ export default function CategoryPage() {
       ) : filteredProducts.length > 0 ? (
         <>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-            {filteredProducts.map((product: Product) =>
-              categoryName.toLowerCase() === "fashion" ? (
-                <FashionProductCardFixed
-                  key={product.id}
-                  product={product}
-                  className="h-full"
-                />
-              ) : (
-                <ProductCard key={product.id} product={product} />
-              )
-            )}
+            {filteredProducts.map((product: Product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
           </div>
 
           {/* Pagination component */}
