@@ -44,6 +44,7 @@ import ShippingPage from "./pages/static/shipping";
 import ReturnsPage from "./pages/static/returns";
 import PrivacyPolicyPage from "./pages/static/privacy";
 import PaymentsPage from "./pages/static/payments";
+import BecomeASellerPage from "./pages/static/become-a-seller";
 import { Layout } from "./components/layout/layout";
 import { SimpleHeader } from "./components/layout/simple-header";
 import { Footer } from "./components/layout/footer";
@@ -161,7 +162,7 @@ import AdminReturnDetails from "./pages/admin/returns/[id]";
 // Import the Track Order Page
 import TrackOrderPage from "./pages/track-order-page";
 import RecentlyViewedPage from "./pages/buyer/recently-viewed";
-import UnderPriceProductsPage from './pages/under-price-products';
+import UnderPriceProductsPage from "./pages/under-price-products";
 
 function App() {
   useEffect(() => {
@@ -577,6 +578,14 @@ function App() {
                         {() => (
                           <Layout>
                             <PaymentsPage />
+                          </Layout>
+                        )}
+                      </Route>
+
+                      <Route path="/become-a-seller">
+                        {() => (
+                          <Layout>
+                            <BecomeASellerPage />
                           </Layout>
                         )}
                       </Route>
