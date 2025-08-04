@@ -11306,6 +11306,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await returnsHandlers.updateReturnStatusHandler(req, res);
   });
 
+  // Return action routes
+  app.post("/api/seller/returns/:id/accept", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" || !req.user.approved)
+      return res.status(403).json({ error: "Not authorized" });
+
+    await returnsHandlers.acceptReturnHandler(req, res);
+  });
+
+  app.post("/api/seller/returns/:id/reject", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" || !req.user.approved)
+      return res.status(403).json({ error: "Not authorized" });
+
+    await returnsHandlers.rejectReturnHandler(req, res);
+  });
+
+  app.post("/api/seller/returns/:id/process", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" || !req.user.approved)
+      return res.status(403).json({ error: "Not authorized" });
+
+    await returnsHandlers.processReturnHandler(req, res);
+  });
+
   // Analytics Routes
   app.get("/api/seller/analytics", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

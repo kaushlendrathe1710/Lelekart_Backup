@@ -1,17 +1,23 @@
-import { useState } from 'react';
-import { Link } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
-import { 
-  Table, 
-  TableHeader, 
-  TableRow, 
-  TableHead, 
-  TableBody, 
-  TableCell 
-} from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { 
+import { useState } from "react";
+import { Link } from "wouter";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/components/ui/table";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
   Loader2Icon,
   Package,
   ClockIcon,
@@ -19,12 +25,34 @@ import {
   CheckCircleIcon,
   TruckIcon,
   CheckIcon,
-  XCircleIcon
-} from 'lucide-react';
-import { format } from 'date-fns';
-import { useAuth } from '@/hooks/use-auth';
-import { SellerDashboardLayout } from '@/components/layout/seller-dashboard-layout';
-import { StatCard } from '@/components/dashboard/stat-card';
+  XCircleIcon,
+  XIcon,
+  RefreshCcwIcon,
+  UserIcon,
+  MailIcon,
+  PhoneIcon,
+  MapPinIcon,
+  CalendarIcon,
+  TagIcon,
+  FileTextIcon,
+} from "lucide-react";
+import { format } from "date-fns";
+import { useAuth } from "@/hooks/use-auth";
+import { SellerDashboardLayout } from "@/components/layout/seller-dashboard-layout";
+import { StatCard } from "@/components/dashboard/stat-card";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 // Order interface
 interface Order {
@@ -36,15 +64,22 @@ interface Order {
   customer: string;
   items: any[];
   sellerId?: number;
+  buyerName?: string;
+  buyerEmail?: string;
+  buyerPhone?: string;
+  shippingAddress?: any;
+  returnReason?: string;
+  returnDescription?: string;
+  returnRequestDate?: string;
 }
 
 // Format payment method
 const formatPaymentMethod = (method: string) => {
   switch (method) {
-    case 'cod':
-      return 'Cash on Delivery';
-    case 'online':
-      return 'Online Payment';
+    case "cod":
+      return "Cash on Delivery";
+    case "online":
+      return "Online Payment";
     default:
       return method.charAt(0).toUpperCase() + method.slice(1);
   }
@@ -52,42 +87,58 @@ const formatPaymentMethod = (method: string) => {
 
 // Format status for display
 const formatStatus = (status: string) => {
-  return status.split('_').map(word => 
-    word.charAt(0).toUpperCase() + word.slice(1)
-  ).join(' ');
+  return status
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 };
 
 export default function SellerReturnManagement() {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // State for action dialogs
+  const [actionDialogOpen, setActionDialogOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [actionType, setActionType] = useState<string>("");
+  const [actionNote, setActionNote] = useState("");
+
+  // State for details dialog
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [selectedOrderForDetails, setSelectedOrderForDetails] =
+    useState<Order | null>(null);
 
   // Fetch all orders for this seller
   const {
     data: orders,
     isLoading,
-    error
+    error,
   } = useQuery<Order[]>({
-    queryKey: ['/api/orders', user?.id],
+    queryKey: ["/api/orders", user?.id],
     queryFn: async () => {
-      const res = await fetch('/api/orders', { credentials: 'include' });
+      const res = await fetch("/api/orders", { credentials: "include" });
       if (!res.ok) return [];
       const data = await res.json();
       // The backend already returns only orders relevant to this seller
       return data || [];
     },
-    enabled: !!user && user.role === 'seller',
+    enabled: !!user && user.role === "seller",
   });
 
   // Only show orders with these return statuses
   const allowedStatuses = [
-    'marked_for_return',
-    'approve_return',
-    'process_return',
-    'reject_return',
-    'completed_return',
+    "marked_for_return",
+    "approve_return",
+    "process_return",
+    "reject_return",
+    "completed_return",
   ];
 
   // Filter orders by return statuses
-  const filteredOrders = (orders || []).filter(order => allowedStatuses.includes(order.status));
+  const filteredOrders = (orders || []).filter((order) =>
+    allowedStatuses.includes(order.status)
+  );
 
   // Get status counts for stats
   const getStatusCounts = () => {
@@ -109,28 +160,131 @@ export default function SellerReturnManagement() {
   const statusCounts = getStatusCounts();
   const totalCount = filteredOrders.length;
 
-  if (!user || user.role !== 'seller') {
+  if (!user || user.role !== "seller") {
     return (
       <div className="flex flex-col items-center justify-center h-96">
-        <p className="text-lg text-gray-600 mb-4">Access denied. Seller privileges required.</p>
+        <p className="text-lg text-gray-600 mb-4">
+          Access denied. Seller privileges required.
+        </p>
       </div>
     );
   }
 
+  // Mutation for handling return actions
+  const handleReturnAction = useMutation({
+    mutationFn: async ({
+      orderId,
+      action,
+      note,
+    }: {
+      orderId: number;
+      action: string;
+      note?: string;
+    }) => {
+      const response = await fetch(`/api/seller/returns/${orderId}/${action}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ note }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to process return action");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders", user?.id] });
+      setActionDialogOpen(false);
+      setSelectedOrder(null);
+      setActionType("");
+      setActionNote("");
+      toast({
+        title: "Success",
+        description: "Return action processed successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to process return action",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleActionClick = (order: Order, action: string) => {
+    setSelectedOrder(order);
+    setActionType(action);
+    setActionDialogOpen(true);
+  };
+
+  const handleActionSubmit = () => {
+    if (!selectedOrder) return;
+
+    handleReturnAction.mutate({
+      orderId: selectedOrder.id,
+      action: actionType,
+      note: actionNote,
+    });
+  };
+
+  const handleViewDetails = (order: Order) => {
+    setSelectedOrderForDetails(order);
+    setDetailsDialogOpen(true);
+  };
+
+  const getAvailableActions = (status: string) => {
+    if (status === "marked_for_return") {
+      return [
+        {
+          label: "Accept",
+          action: "accept",
+          icon: <CheckIcon className="mr-2 h-4 w-4" />,
+          variant: "default" as const,
+        },
+        {
+          label: "Reject",
+          action: "reject",
+          icon: <XIcon className="mr-2 h-4 w-4" />,
+          variant: "destructive" as const,
+        },
+      ];
+    }
+
+    if (status === "approve_return") {
+      return [
+        {
+          label: "Process Return",
+          action: "process",
+          icon: <RefreshCcwIcon className="mr-2 h-4 w-4" />,
+          variant: "default" as const,
+        },
+      ];
+    }
+
+    return [];
+  };
+
   return (
     <SellerDashboardLayout>
       <div className="p-6">
-        <h1 className="text-2xl font-bold tracking-tight mb-6">Return Management</h1>
+        <h1 className="text-2xl font-bold tracking-tight mb-6">
+          Return Management
+        </h1>
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-            <StatCard
+          <StatCard
             title="Marked for Return"
             value={statusCounts.marked_for_return.toString()}
             icon={<AlertTriangleIcon className="h-4 w-4" />}
             description="Orders marked for return"
-            />
-            <StatCard
-              title="Approved Returns"
+          />
+          <StatCard
+            title="Approved Returns"
             value={statusCounts.approve_return.toString()}
             icon={<CheckCircleIcon className="h-4 w-4" />}
             description="Returns approved"
@@ -140,14 +294,14 @@ export default function SellerReturnManagement() {
             value={statusCounts.process_return.toString()}
             icon={<TruckIcon className="h-4 w-4" />}
             description="Returns in process"
-            />
-            <StatCard
-              title="Completed Returns"
+          />
+          <StatCard
+            title="Completed Returns"
             value={statusCounts.completed_return.toString()}
             icon={<CheckIcon className="h-4 w-4" />}
             description="Returns completed"
-            />
-            <StatCard
+          />
+          <StatCard
             title="Rejected Returns"
             value={statusCounts.reject_return.toString()}
             icon={<XCircleIcon className="h-4 w-4" />}
@@ -159,7 +313,7 @@ export default function SellerReturnManagement() {
           <CardHeader>
             <CardTitle>Orders with Return Status</CardTitle>
             <CardDescription>
-              {totalCount} {totalCount === 1 ? 'order' : 'orders'} found
+              {totalCount} {totalCount === 1 ? "order" : "orders"} found
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -178,35 +332,69 @@ export default function SellerReturnManagement() {
                       <TableHead>Total</TableHead>
                       <TableHead>Payment</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredOrders.map((order: Order) => (
-                      <TableRow key={order.id}>
-                        <TableCell className="font-medium">#{order.id}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center">
-                            <ClockIcon className="mr-2 h-4 w-4 text-gray-500" />
-                            {format(new Date(order.date), 'MMM d, yyyy')}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center">
-                            <Package className="mr-2 h-4 w-4 text-gray-500" />
-                            {order.items?.length || 0} item{(order.items?.length || 0) === 1 ? '' : 's'}
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          ₹{order.total.toFixed(2)}
-                        </TableCell>
-                        <TableCell>
-                          {formatPaymentMethod(order.paymentMethod)}
-                        </TableCell>
-                        <TableCell>
-                          {formatStatus(order.status)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {filteredOrders.map((order: Order) => {
+                      const availableActions = getAvailableActions(
+                        order.status
+                      );
+                      return (
+                        <TableRow key={order.id}>
+                          <TableCell className="font-medium">
+                            #{order.id}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center">
+                              <ClockIcon className="mr-2 h-4 w-4 text-gray-500" />
+                              {format(new Date(order.date), "MMM d, yyyy")}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center">
+                              <Package className="mr-2 h-4 w-4 text-gray-500" />
+                              {order.items?.length || 0} item
+                              {(order.items?.length || 0) === 1 ? "" : "s"}
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            ₹{order.total.toFixed(2)}
+                          </TableCell>
+                          <TableCell>
+                            {formatPaymentMethod(order.paymentMethod)}
+                          </TableCell>
+                          <TableCell>{formatStatus(order.status)}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              {availableActions.map(
+                                ({ label, action, icon, variant }) => (
+                                  <Button
+                                    key={action}
+                                    variant={variant}
+                                    size="sm"
+                                    onClick={() =>
+                                      handleActionClick(order, action)
+                                    }
+                                    disabled={handleReturnAction.isPending}
+                                  >
+                                    {icon}
+                                    {label}
+                                  </Button>
+                                )
+                              )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleViewDetails(order)}
+                              >
+                                View Details
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
@@ -218,6 +406,328 @@ export default function SellerReturnManagement() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Action Dialog */}
+      <Dialog open={actionDialogOpen} onOpenChange={setActionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {actionType === "accept" && "Accept Return Request"}
+              {actionType === "reject" && "Reject Return Request"}
+              {actionType === "process" && "Process Return"}
+            </DialogTitle>
+            <DialogDescription>
+              {actionType === "accept" &&
+                "Accept this return request and proceed with the return process."}
+              {actionType === "reject" &&
+                "Reject this return request with a reason."}
+              {actionType === "process" &&
+                "Process this return and initiate refund/replacement."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="action-note">
+                {actionType === "reject"
+                  ? "Reason for Rejection"
+                  : "Notes (Optional)"}
+              </Label>
+              <Textarea
+                id="action-note"
+                placeholder={
+                  actionType === "reject"
+                    ? "Please provide a reason for rejecting this return"
+                    : "Add any additional notes"
+                }
+                className="resize-none min-h-[100px] mt-2"
+                value={actionNote}
+                onChange={(e) => setActionNote(e.target.value)}
+              />
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setActionDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleActionSubmit}
+                disabled={
+                  (actionType === "reject" && !actionNote) ||
+                  handleReturnAction.isPending
+                }
+              >
+                {handleReturnAction.isPending && (
+                  <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Confirm
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Details Dialog */}
+      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileTextIcon className="h-5 w-5" />
+              Return Details - Order #{selectedOrderForDetails?.id}
+            </DialogTitle>
+            <DialogDescription>
+              Comprehensive information about this return request
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedOrderForDetails && (
+            <div className="space-y-6">
+              {/* Order Summary */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Order Summary</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <CalendarIcon className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm text-gray-600">
+                          Order Date:
+                        </span>
+                        <span className="font-medium">
+                          {format(
+                            new Date(selectedOrderForDetails.date),
+                            "PPP"
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <TagIcon className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm text-gray-600">
+                          Order Total:
+                        </span>
+                        <span className="font-medium">
+                          ₹{selectedOrderForDetails.total.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Package className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm text-gray-600">Items:</span>
+                        <span className="font-medium">
+                          {selectedOrderForDetails.items?.length || 0} item
+                          {(selectedOrderForDetails.items?.length || 0) === 1
+                            ? ""
+                            : "s"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <CheckCircleIcon className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm text-gray-600">
+                          Payment Method:
+                        </span>
+                        <span className="font-medium">
+                          {formatPaymentMethod(
+                            selectedOrderForDetails.paymentMethod
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <AlertTriangleIcon className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm text-gray-600">
+                          Return Status:
+                        </span>
+                        <Badge variant="outline">
+                          {formatStatus(selectedOrderForDetails.status)}
+                        </Badge>
+                      </div>
+                      {selectedOrderForDetails.returnRequestDate && (
+                        <div className="flex items-center gap-2">
+                          <ClockIcon className="h-4 w-4 text-gray-500" />
+                          <span className="text-sm text-gray-600">
+                            Return Requested:
+                          </span>
+                          <span className="font-medium">
+                            {format(
+                              new Date(
+                                selectedOrderForDetails.returnRequestDate
+                              ),
+                              "PPP"
+                            )}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Customer Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">
+                    Customer Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <UserIcon className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm text-gray-600">Name:</span>
+                        <span className="font-medium">
+                          {selectedOrderForDetails.buyerName ||
+                            selectedOrderForDetails.customer ||
+                            "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MailIcon className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm text-gray-600">Email:</span>
+                        <span className="font-medium">
+                          {selectedOrderForDetails.buyerEmail || "N/A"}
+                        </span>
+                      </div>
+                      {selectedOrderForDetails.buyerPhone && (
+                        <div className="flex items-center gap-2">
+                          <PhoneIcon className="h-4 w-4 text-gray-500" />
+                          <span className="text-sm text-gray-600">Phone:</span>
+                          <span className="font-medium">
+                            {selectedOrderForDetails.buyerPhone}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    {selectedOrderForDetails.shippingAddress && (
+                      <div className="space-y-2">
+                        <div className="flex items-start gap-2">
+                          <MapPinIcon className="h-4 w-4 text-gray-500 mt-0.5" />
+                          <div>
+                            <span className="text-sm text-gray-600">
+                              Shipping Address:
+                            </span>
+                            <div className="font-medium text-sm">
+                              {selectedOrderForDetails.shippingAddress.street}
+                              <br />
+                              {
+                                selectedOrderForDetails.shippingAddress.city
+                              }, {selectedOrderForDetails.shippingAddress.state}
+                              <br />
+                              {selectedOrderForDetails.shippingAddress.pincode}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Return Information */}
+              {(selectedOrderForDetails.returnReason ||
+                selectedOrderForDetails.returnDescription) && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">
+                      Return Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {selectedOrderForDetails.returnReason && (
+                        <div>
+                          <Label className="text-sm text-gray-600">
+                            Return Reason:
+                          </Label>
+                          <p className="font-medium mt-1">
+                            {selectedOrderForDetails.returnReason}
+                          </p>
+                        </div>
+                      )}
+                      {selectedOrderForDetails.returnDescription && (
+                        <div>
+                          <Label className="text-sm text-gray-600">
+                            Description:
+                          </Label>
+                          <p className="text-sm mt-1 bg-gray-50 p-3 rounded-md">
+                            {selectedOrderForDetails.returnDescription}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Order Items */}
+              {selectedOrderForDetails.items &&
+                selectedOrderForDetails.items.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Order Items</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {selectedOrderForDetails.items.map(
+                          (item: any, index: number) => (
+                            <div
+                              key={index}
+                              className="flex items-center gap-4 p-3 border rounded-lg"
+                            >
+                              {item.image && (
+                                <img
+                                  src={item.image}
+                                  alt={item.name}
+                                  className="w-16 h-16 object-cover rounded-md"
+                                />
+                              )}
+                              <div className="flex-1">
+                                <h4 className="font-medium">{item.name}</h4>
+                                <p className="text-sm text-gray-600">
+                                  Quantity: {item.quantity} | Price: ₹
+                                  {item.price}
+                                </p>
+                                {item.variant && (
+                                  <p className="text-sm text-gray-500">
+                                    Variant: {item.variant}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="text-right">
+                                <p className="font-medium">
+                                  ₹{(item.price * item.quantity).toFixed(2)}
+                                </p>
+                              </div>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDetailsDialogOpen(false)}
+            >
+              Close
+            </Button>
+            <Button asChild>
+              <Link to={`/seller/returns/${selectedOrderForDetails?.id}`}>
+                View Full Details
+              </Link>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SellerDashboardLayout>
   );
 }
