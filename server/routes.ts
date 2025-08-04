@@ -2877,6 +2877,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const maxPrice = req.query.maxPrice
         ? Number(req.query.maxPrice)
         : undefined;
+      const minDiscount = req.query.minDiscount
+        ? Number(req.query.minDiscount)
+        : undefined;
+      const maxDiscount = req.query.maxDiscount
+        ? Number(req.query.maxDiscount)
+        : undefined;
 
       // Check user role to determine if we should show unapproved products
       const userRole = req.isAuthenticated() ? req.user.role : "buyer";
@@ -2930,6 +2936,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         search,
         subcategory,
         maxPrice,
+        minDiscount,
+        maxDiscount,
         userRole: req.isAuthenticated() ? req.user.role : "buyer",
       });
 
@@ -3070,7 +3078,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isDraft,
         subcategory,
         rejected,
-        maxPrice
+        maxPrice,
+        minDiscount,
+        maxDiscount
       );
       const totalPages = Math.ceil(totalCount / limit);
 
@@ -3097,7 +3107,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isDraft, // Pass isDraft parameter
         subcategory, // Pass subcategory parameter
         rejected, // Pass rejected parameter (now can be true/false/undefined)
-        maxPrice // Pass maxPrice parameter for price filtering
+        maxPrice, // Pass maxPrice parameter for price filtering
+        minDiscount, // Pass minDiscount parameter for discount filtering
+        maxDiscount // Pass maxDiscount parameter for discount filtering
       );
       console.log(
         `Found ${products?.length || 0} products (page ${page}/${totalPages})`

@@ -15,6 +15,9 @@ import { InfiniteScroll } from "@/components/ui/infinite-scroll";
 import {
   useInfiniteProducts,
   useCategoryProducts,
+  useProductsUnderPrice,
+  useProductsWithDiscountRange,
+  useProductsUpToDiscount,
 } from "@/hooks/use-infinite-products";
 import { usePerformanceMonitor } from "@/hooks/use-performance-monitor";
 import {
@@ -269,6 +272,28 @@ export default function HomePage() {
   // Use traditional pagination for category-specific products
   const { data: categoryData, isLoading: isLoadingCategory } =
     useCategoryProducts(category || "", itemsPerPage);
+
+  // Dedicated hooks for homepage sections
+  const { data: under199Data, isLoading: isLoadingUnder199 } =
+    useProductsUnderPrice(199, 8);
+  const { data: under399Data, isLoading: isLoadingUnder399 } =
+    useProductsUnderPrice(399, 8);
+  const { data: under599Data, isLoading: isLoadingUnder599 } =
+    useProductsUnderPrice(599, 8);
+
+  const { data: upTo20Data, isLoading: isLoadingUpTo20 } =
+    useProductsUpToDiscount(20, 8);
+  const { data: upTo40Data, isLoading: isLoadingUpTo40 } =
+    useProductsUpToDiscount(40, 8);
+  const { data: upTo60Data, isLoading: isLoadingUpTo60 } =
+    useProductsUpToDiscount(60, 8);
+
+  const { data: discount20to40Data, isLoading: isLoading20to40 } =
+    useProductsWithDiscountRange(20, 40, 8);
+  const { data: discount40to60Data, isLoading: isLoading40to60 } =
+    useProductsWithDiscountRange(40, 60, 8);
+  const { data: discount60to80Data, isLoading: isLoading60to80 } =
+    useProductsWithDiscountRange(60, 80, 8);
 
   // Extract products and pagination from the appropriate data source
   const { products, pagination } = useMemo(() => {
@@ -701,7 +726,11 @@ export default function HomePage() {
       {/* --- Under Price Sections (with visible box) --- */}
       <div className="container mx-auto px-4 py-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[199, 399, 599].map((price) => (
+          {[
+            { price: 199, data: under199Data, isLoading: isLoadingUnder199 },
+            { price: 399, data: under399Data, isLoading: isLoadingUnder399 },
+            { price: 599, data: under599Data, isLoading: isLoadingUnder599 },
+          ].map(({ price, data, isLoading }) => (
             <div
               key={price}
               className="bg-[#F8F5E4] rounded-2xl p-4 border border-[#e0c9a6] shadow-md flex flex-col justify-between"
@@ -716,15 +745,25 @@ export default function HomePage() {
                 </Link>
               </div>
               <div className="grid grid-cols-2 gap-2 justify-center">
-                {getUnderPrice(products, price, 4).map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    showAddToCart={false}
-                    variant="plain"
-                    showWishlist={false}
-                  />
-                ))}
+                {isLoading
+                  ? [...Array(4)].map((_, i) => (
+                      <div key={i} className="flex flex-col items-center">
+                        <Skeleton className="h-32 w-28 mb-2" />
+                        <Skeleton className="h-4 w-24 mb-2" />
+                        <Skeleton className="h-3 w-16" />
+                      </div>
+                    ))
+                  : (data?.products || [])
+                      .slice(0, 4)
+                      .map((product) => (
+                        <ProductCard
+                          key={product.id}
+                          product={product}
+                          showAddToCart={false}
+                          variant="plain"
+                          showWishlist={false}
+                        />
+                      ))}
               </div>
             </div>
           ))}
@@ -733,7 +772,11 @@ export default function HomePage() {
       {/* --- Discount % Off Sections (third row, with visible box) --- */}
       <div className="container mx-auto px-4 py-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[20, 40, 60].map((percent) => (
+          {[
+            { percent: 20, data: upTo20Data, isLoading: isLoadingUpTo20 },
+            { percent: 40, data: upTo40Data, isLoading: isLoadingUpTo40 },
+            { percent: 60, data: upTo60Data, isLoading: isLoadingUpTo60 },
+          ].map(({ percent, data, isLoading }) => (
             <div
               key={percent}
               className="bg-[#F8F5E4] rounded-2xl p-4 border border-[#e0c9a6] shadow-md flex flex-col justify-between"
@@ -748,29 +791,55 @@ export default function HomePage() {
                 </Link>
               </div>
               <div className="grid grid-cols-2 gap-2 justify-center">
-                {getDiscountPercentProducts(products, percent, 4).map(
-                  (product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      featured={true}
-                      showAddToCart={false}
-                      variant="plain"
-                      showWishlist={false}
-                      cardBg="#EADDCB"
-                    />
-                  )
-                )}
+                {isLoading
+                  ? [...Array(4)].map((_, i) => (
+                      <div key={i} className="flex flex-col items-center">
+                        <Skeleton className="h-32 w-28 mb-2" />
+                        <Skeleton className="h-4 w-24 mb-2" />
+                        <Skeleton className="h-3 w-16" />
+                      </div>
+                    ))
+                  : (data?.products || [])
+                      .slice(0, 4)
+                      .map((product) => (
+                        <ProductCard
+                          key={product.id}
+                          product={product}
+                          featured={true}
+                          showAddToCart={false}
+                          variant="plain"
+                          showWishlist={false}
+                          cardBg="#EADDCB"
+                        />
+                      ))}
               </div>
             </div>
           ))}
 
           {/* Additional discount range sections */}
           {[
-            { min: 20, max: 40, title: "20-40% Off" },
-            { min: 40, max: 60, title: "40-60% Off" },
-            { min: 60, max: 80, title: "60-80% Off" },
-          ].map(({ min, max, title }) => (
+            {
+              min: 20,
+              max: 40,
+              title: "20-40% Off",
+              data: discount20to40Data,
+              isLoading: isLoading20to40,
+            },
+            {
+              min: 40,
+              max: 60,
+              title: "40-60% Off",
+              data: discount40to60Data,
+              isLoading: isLoading40to60,
+            },
+            {
+              min: 60,
+              max: 80,
+              title: "60-80% Off",
+              data: discount60to80Data,
+              isLoading: isLoading60to80,
+            },
+          ].map(({ min, max, title, data, isLoading }) => (
             <div
               key={`${min}-${max}`}
               className="bg-[#F8F5E4] rounded-2xl p-4 border border-[#e0c9a6] shadow-md flex flex-col justify-between"
@@ -785,19 +854,27 @@ export default function HomePage() {
                 </Link>
               </div>
               <div className="grid grid-cols-2 gap-2 justify-center">
-                {getMaxDiscountProductsInRange(products, min, max, 4).map(
-                  (product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      featured={true}
-                      showAddToCart={false}
-                      variant="plain"
-                      showWishlist={false}
-                      cardBg="#EADDCB"
-                    />
-                  )
-                )}
+                {isLoading
+                  ? [...Array(4)].map((_, i) => (
+                      <div key={i} className="flex flex-col items-center">
+                        <Skeleton className="h-32 w-28 mb-2" />
+                        <Skeleton className="h-4 w-24 mb-2" />
+                        <Skeleton className="h-3 w-16" />
+                      </div>
+                    ))
+                  : (data?.products || [])
+                      .slice(0, 4)
+                      .map((product) => (
+                        <ProductCard
+                          key={product.id}
+                          product={product}
+                          featured={true}
+                          showAddToCart={false}
+                          variant="plain"
+                          showWishlist={false}
+                          cardBg="#EADDCB"
+                        />
+                      ))}
               </div>
             </div>
           ))}

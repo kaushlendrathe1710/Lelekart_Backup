@@ -488,7 +488,9 @@ export interface IStorage {
     hideDrafts?: boolean,
     subcategory?: string,
     hideRejected?: boolean,
-    maxPrice?: number
+    maxPrice?: number,
+    minDiscount?: number,
+    maxDiscount?: number
   ): Promise<number>;
   getProductsPaginated(
     category?: string,
@@ -500,7 +502,9 @@ export interface IStorage {
     hideDrafts?: boolean,
     subcategory?: string,
     hideRejected?: boolean,
-    maxPrice?: number
+    maxPrice?: number,
+    minDiscount?: number,
+    maxDiscount?: number
   ): Promise<Product[]>;
   getAllProducts(filters?: {
     sellerId?: number;
@@ -2710,7 +2714,9 @@ export class DatabaseStorage implements IStorage {
     hideDrafts?: boolean,
     subcategory?: string,
     hideRejected?: boolean,
-    maxPrice?: number
+    maxPrice?: number,
+    minDiscount?: number,
+    maxDiscount?: number
   ): Promise<number> {
     try {
       // Use SQL query for counting with filters
@@ -2790,6 +2796,21 @@ export class DatabaseStorage implements IStorage {
         params.push(maxPrice);
       }
 
+      // Add discount range filter
+      if (minDiscount !== undefined || maxDiscount !== undefined) {
+        query += ` AND mrp IS NOT NULL AND mrp > price`;
+
+        if (minDiscount !== undefined) {
+          query += ` AND ((mrp - price) / mrp * 100) >= $${params.length + 1}`;
+          params.push(minDiscount);
+        }
+
+        if (maxDiscount !== undefined) {
+          query += ` AND ((mrp - price) / mrp * 100) <= $${params.length + 1}`;
+          params.push(maxDiscount);
+        }
+      }
+
       // Execute the query
       const { rows } = await pool.query(query, params);
       return parseInt(rows[0].count || "0");
@@ -2809,7 +2830,9 @@ export class DatabaseStorage implements IStorage {
     hideDrafts?: boolean,
     subcategory?: string,
     hideRejected?: boolean,
-    maxPrice?: number
+    maxPrice?: number,
+    minDiscount?: number,
+    maxDiscount?: number
   ): Promise<Product[]> {
     try {
       // Use SQL query for pagination with filters and join with users table to get seller names
@@ -2922,6 +2945,21 @@ export class DatabaseStorage implements IStorage {
       if (maxPrice !== undefined && maxPrice > 0) {
         query += ` AND p.price <= $${params.length + 1}`;
         params.push(maxPrice);
+      }
+
+      // Add discount range filter
+      if (minDiscount !== undefined || maxDiscount !== undefined) {
+        query += ` AND p.mrp IS NOT NULL AND p.mrp > p.price`;
+
+        if (minDiscount !== undefined) {
+          query += ` AND ((p.mrp - p.price) / p.mrp * 100) >= $${params.length + 1}`;
+          params.push(minDiscount);
+        }
+
+        if (maxDiscount !== undefined) {
+          query += ` AND ((p.mrp - p.price) / p.mrp * 100) <= $${params.length + 1}`;
+          params.push(maxDiscount);
+        }
       }
 
       // Add pagination
