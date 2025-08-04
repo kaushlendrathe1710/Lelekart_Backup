@@ -202,3 +202,136 @@ export function useCategoryProducts(category: string, limit: number = 12) {
     retryDelay: 1000,
   });
 }
+
+// Hook for products under specific price
+export function useProductsUnderPrice(price: number, limit: number = 8) {
+  return useQuery({
+    queryKey: ["products-under-price", price, limit],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: "1",
+        limit: limit.toString(),
+        approved: "true",
+        status: "approved",
+        maxPrice: price.toString(),
+      });
+
+      // Add cache buster
+      const cacheBuster = Math.floor(Date.now() / (10 * 60 * 1000)); // 10 minute cache
+      params.append("_cb", cacheBuster.toString());
+
+      const response = await fetch(`/api/products?${params.toString()}`, {
+        headers: {
+          "Cache-Control": "max-age=600", // 10 minutes cache
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch products under ₹${price}`);
+      }
+
+      return response.json() as Promise<ProductData>;
+    },
+    enabled: true,
+    staleTime: 15 * 60 * 1000, // 15 minutes cache
+    gcTime: 30 * 60 * 1000, // 30 minutes cache
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    retry: 2,
+    retryDelay: 1000,
+  });
+}
+
+// Hook for products with specific discount range
+export function useProductsWithDiscountRange(
+  minDiscount: number,
+  maxDiscount: number,
+  limit: number = 8
+) {
+  return useQuery({
+    queryKey: ["products-discount-range", minDiscount, maxDiscount, limit],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: "1",
+        limit: limit.toString(),
+        approved: "true",
+        status: "approved",
+        minDiscount: minDiscount.toString(),
+        maxDiscount: maxDiscount.toString(),
+      });
+
+      // Add cache buster
+      const cacheBuster = Math.floor(Date.now() / (10 * 60 * 1000)); // 10 minute cache
+      params.append("_cb", cacheBuster.toString());
+
+      const response = await fetch(`/api/products?${params.toString()}`, {
+        headers: {
+          "Cache-Control": "max-age=600", // 10 minutes cache
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch products with ${minDiscount}-${maxDiscount}% discount`
+        );
+      }
+
+      return response.json() as Promise<ProductData>;
+    },
+    enabled: true,
+    staleTime: 15 * 60 * 1000, // 15 minutes cache
+    gcTime: 30 * 60 * 1000, // 30 minutes cache
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    retry: 2,
+    retryDelay: 1000,
+  });
+}
+
+// Hook for products with up to specific discount percentage
+export function useProductsUpToDiscount(
+  maxDiscount: number,
+  limit: number = 8
+) {
+  return useQuery({
+    queryKey: ["products-upto-discount", maxDiscount, limit],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: "1",
+        limit: limit.toString(),
+        approved: "true",
+        status: "approved",
+        minDiscount: "0",
+        maxDiscount: maxDiscount.toString(),
+      });
+
+      // Add cache buster
+      const cacheBuster = Math.floor(Date.now() / (10 * 60 * 1000)); // 10 minute cache
+      params.append("_cb", cacheBuster.toString());
+
+      const response = await fetch(`/api/products?${params.toString()}`, {
+        headers: {
+          "Cache-Control": "max-age=600", // 10 minutes cache
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch products up to ${maxDiscount}% discount`
+        );
+      }
+
+      return response.json() as Promise<ProductData>;
+    },
+    enabled: true,
+    staleTime: 15 * 60 * 1000, // 15 minutes cache
+    gcTime: 30 * 60 * 1000, // 30 minutes cache
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    retry: 2,
+    retryDelay: 1000,
+  });
+}
