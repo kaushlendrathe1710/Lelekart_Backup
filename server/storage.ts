@@ -3667,6 +3667,11 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  /**
+   * Search products with improved relevance scoring
+   * This function now prioritizes exact matches and reduces unrelated results
+   * by using word boundary matching and removing broad partial matches
+   */
   async searchProducts(
     query: string,
     limit: number = 10,
@@ -3849,105 +3854,79 @@ export class DatabaseStorage implements IStorage {
         return rows;
       }
 
-      // Create a tsquery compatible string with prefix matching
-      const searchTerms = cleanedQuery
-        .split(/\s+/)
-        .filter((term) => term.length > 0);
-
-      if (searchTerms.length === 0) {
+      // Check if we have a valid query
+      if (!cleanedQuery || cleanedQuery.trim().length === 0) {
         console.log("No valid search terms, returning empty results");
         return [];
       }
 
-      // Create the tsquery string with exact matching and prefix matching for better results
-      // For a multi-word query like "test product", we want to ensure:
-      // 1. The exact phrase "test product" gets priority
-      // 2. Words like "test" and "product" are also matched individually
-
-      // For single words, use prefix matching
-      let tsQueryString;
-      if (searchTerms.length === 1) {
-        // Single term - use prefix matching
-        tsQueryString = `${searchTerms[0]}:*`;
-      } else {
-        // Multiple terms - create a combination of exact phrase and individual terms
-        const exactPhrase = searchTerms.join(" & "); // AND operator for exact phrase match
-        const individualTerms = searchTerms
-          .map((term) => `${term}:*`)
-          .join(" | "); // OR operator for individual terms
-        tsQueryString = `(${exactPhrase}) | (${individualTerms})`; // Combine both approaches
-      }
-
-      console.log("TS Query string:", tsQueryString);
-
       // Add approval filter for all users using this search function
       const approvalFilter = ` AND p.approved = true AND (p.is_draft IS NULL OR p.is_draft = false)`;
 
-      // Simplified query that doesn't rely on column aliases in ORDER BY
+      // Ultra-strict query that only returns highly relevant results
       const finalQuery = `
         WITH ranked_products AS (
           SELECT 
             p.*,
-            ts_rank(
-              setweight(to_tsvector('english', coalesce(p.name, '')), 'A') ||
-              setweight(to_tsvector('english', coalesce(p.category, '')), 'B') ||
-              setweight(to_tsvector('english', coalesce(p.description, '')), 'C'),
-              to_tsquery('english', $1)
-            ) AS search_rank,
             CASE 
               -- Exact word match with word boundaries (highest priority)
-              WHEN p.name ~* ('^' || $4 || '$') THEN 10.0 -- Exact word match in name
-              WHEN p.name ~* ('\\y' || $4 || '\\y') THEN 8.0 -- Word boundary match in name
-              WHEN p.category ~* ('\\y' || $4 || '\\y') THEN 6.0 -- Word boundary match in category
-              -- Generic ILIKE matches (lower priority)
-              WHEN p.name ILIKE $2 THEN 3.0
-              WHEN p.category ILIKE $2 THEN 2.0
-              WHEN p.name ILIKE $3 THEN 1.5
-              WHEN p.description ILIKE $3 THEN 1.0
+              WHEN p.name ~* ('^' || $2 || '$') THEN 10.0 -- Exact word match in name
+              WHEN p.name ~* ('\\y' || $2 || '\\y') THEN 8.0 -- Word boundary match in name
+              WHEN p.category ~* ('\\y' || $2 || '\\y') THEN 6.0 -- Word boundary match in category
+              -- Only exact word matches (no partial matches)
+              WHEN p.name ILIKE $1 THEN 3.0
+              WHEN p.category ILIKE $1 THEN 2.0
               ELSE 0
             END AS exact_match_rank
           FROM products p
-          WHERE 
+                      WHERE 
             p.deleted = false AND (
-              (
-                to_tsvector('english', coalesce(p.name, '')) ||
-                to_tsvector('english', coalesce(p.category, '')) ||
-                to_tsvector('english', coalesce(p.description, ''))
-              ) @@ to_tsquery('english', $1)
-              OR p.name ILIKE $3
-              OR p.category ILIKE $2
-              OR p.description ILIKE $3
+              -- ONLY exact word boundary matches (most relevant)
+              p.name ~* ('\\y' || $2 || '\\y') OR
+              p.category ~* ('\\y' || $2 || '\\y') OR
+              -- OR exact word matches in name/category only
+              p.name ILIKE $1 OR
+              p.category ILIKE $1
             )
             ${approvalFilter}
         )
         SELECT * FROM ranked_products
-        ORDER BY (search_rank + exact_match_rank) DESC, id DESC
-        LIMIT $5
+        ORDER BY exact_match_rank DESC, id DESC
+        LIMIT $3
       `;
 
-      // Parameters for the search query - Use word boundaries for exact matches
+      // Parameters for the ultra-strict search query
       const params = [
-        tsQueryString, // $1 - TS query for full-text search
-        `% ${query} %`, // $2 - Exact word match - note the spaces around the query
-        `%${query}%`, // $3 - Partial match for fallback scenario
-        query, // $4 - Cleaned search term for regex word boundary matching
-        limit, // $5 - Result limit
+        `% ${query} %`, // $1 - Exact word match - note the spaces around the query
+        query, // $2 - Cleaned search term for regex word boundary matching
+        limit, // $3 - Result limit
       ];
 
       // Log the exact search parameters to help debug
       console.log(
-        "SEARCH DEBUG - EXACT MATCHING: Using the following parameters:"
+        "SEARCH DEBUG - ULTRA-STRICT RELEVANCE: Using the following parameters:"
       );
       console.log("- Original query:", query);
-      console.log("- TS Query:", tsQueryString);
+      console.log("- Exact word boundary pattern:", `\\y${query}\\y`);
       console.log("- Exact match pattern:", `% ${query} %`);
-      console.log("- Partial match pattern:", `%${query}%`);
+      console.log(
+        "- Search strategy: ONLY word boundaries + exact matches (no description search)"
+      );
 
-      console.log("Executing advanced search query with params:", params);
+      console.log(
+        "Executing ultra-strict relevance search query with params:",
+        params
+      );
 
-      // Execute the query
+      // Execute the query with ultra-strict relevance scoring
+      // This search now ONLY returns:
+      // 1. Exact word boundary matches in name/category (highest relevance)
+      // 2. Exact word matches in name/category (lower relevance)
+      // 3. NO description search (prevents all unrelated results)
       const { rows } = await pool.query(finalQuery, params);
-      console.log(`Found ${rows.length} products in advanced search`);
+      console.log(
+        `Found ${rows.length} products with ultra-strict relevance search`
+      );
 
       return rows;
     } catch (error) {
