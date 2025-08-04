@@ -26,7 +26,12 @@ import {
   MapPin,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { indianStates, getCitiesByState } from "@/lib/indian-states-cities";
+import {
+  indianStates,
+  getCitiesByState,
+  getSortedStates,
+  searchCitiesByState,
+} from "@/lib/indian-states-cities-complete";
 
 // Validation schemas
 const phoneRegex = /^[6-9]\d{9}$/;
@@ -162,6 +167,8 @@ export default function BecomeASellerPage() {
     useState<"idle" | "validating" | "valid" | "invalid">("idle");
   const [selectedBusinessState, setSelectedBusinessState] = useState("");
   const [selectedBankState, setSelectedBankState] = useState("");
+  const [businessCitySearch, setBusinessCitySearch] = useState("");
+  const [bankCitySearch, setBankCitySearch] = useState("");
   const [ifscBankData, setIfscBankData] = useState<any>(null);
   const [businessPincodeData, setBusinessPincodeData] = useState<any>(null);
   const [bankPincodeData, setBankPincodeData] = useState<any>(null);
@@ -723,6 +730,7 @@ export default function BecomeASellerPage() {
                               setValue("businessState", value);
                               setValue("businessCity", "");
                               setSelectedBusinessState(value);
+                              setBusinessCitySearch("");
                             }}
                           >
                             <SelectTrigger
@@ -733,7 +741,7 @@ export default function BecomeASellerPage() {
                               <SelectValue placeholder="Select state" />
                             </SelectTrigger>
                             <SelectContent>
-                              {indianStates.map((state) => (
+                              {getSortedStates().map((state) => (
                                 <SelectItem key={state.code} value={state.name}>
                                   {state.name}
                                 </SelectItem>
@@ -762,19 +770,39 @@ export default function BecomeASellerPage() {
                               <SelectValue placeholder="Select city" />
                             </SelectTrigger>
                             <SelectContent>
-                              {selectedBusinessState &&
-                                getCitiesByState(selectedBusinessState).map(
-                                  (city) => (
+                              {selectedBusinessState && (
+                                <>
+                                  <div className="p-2">
+                                    <Input
+                                      placeholder="Search cities..."
+                                      value={businessCitySearch}
+                                      onChange={(e) =>
+                                        setBusinessCitySearch(e.target.value)
+                                      }
+                                      className="mb-2"
+                                    />
+                                  </div>
+                                  {searchCitiesByState(
+                                    selectedBusinessState,
+                                    businessCitySearch
+                                  ).map((city) => (
                                     <SelectItem key={city} value={city}>
                                       {city}
                                     </SelectItem>
-                                  )
-                                )}
+                                  ))}
+                                </>
+                              )}
                             </SelectContent>
                           </Select>
                           {errors.businessCity && (
                             <p className="text-red-500 text-sm mt-1">
                               {errors.businessCity.message}
+                            </p>
+                          )}
+                          {selectedBusinessState && (
+                            <p className="text-gray-500 text-xs mt-1">
+                              {getCitiesByState(selectedBusinessState).length}{" "}
+                              cities available
                             </p>
                           )}
                         </div>
@@ -827,6 +855,16 @@ export default function BecomeASellerPage() {
                           {...register("companyRegistrationNumber")}
                         />
                       </div>
+                      <Alert className="mb-4">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          <strong>Important for Official Documents:</strong> The
+                          city/district you select must match exactly with your
+                          bank account records, GST registration, and other
+                          official documents. Use the search function to find
+                          your exact city name.
+                        </AlertDescription>
+                      </Alert>
                     </CardContent>
                   </Card>
 
@@ -962,6 +1000,7 @@ export default function BecomeASellerPage() {
                               setValue("bankState", value);
                               setValue("bankCity", "");
                               setSelectedBankState(value);
+                              setBankCitySearch("");
                             }}
                           >
                             <SelectTrigger
@@ -972,7 +1011,7 @@ export default function BecomeASellerPage() {
                               <SelectValue placeholder="Select state" />
                             </SelectTrigger>
                             <SelectContent>
-                              {indianStates.map((state) => (
+                              {getSortedStates().map((state) => (
                                 <SelectItem key={state.code} value={state.name}>
                                   {state.name}
                                 </SelectItem>
@@ -1001,19 +1040,39 @@ export default function BecomeASellerPage() {
                               <SelectValue placeholder="Select city" />
                             </SelectTrigger>
                             <SelectContent>
-                              {selectedBankState &&
-                                getCitiesByState(selectedBankState).map(
-                                  (city) => (
+                              {selectedBankState && (
+                                <>
+                                  <div className="p-2">
+                                    <Input
+                                      placeholder="Search cities..."
+                                      value={bankCitySearch}
+                                      onChange={(e) =>
+                                        setBankCitySearch(e.target.value)
+                                      }
+                                      className="mb-2"
+                                    />
+                                  </div>
+                                  {searchCitiesByState(
+                                    selectedBankState,
+                                    bankCitySearch
+                                  ).map((city) => (
                                     <SelectItem key={city} value={city}>
                                       {city}
                                     </SelectItem>
-                                  )
-                                )}
+                                  ))}
+                                </>
+                              )}
                             </SelectContent>
                           </Select>
                           {errors.bankCity && (
                             <p className="text-red-500 text-sm mt-1">
                               {errors.bankCity.message}
+                            </p>
+                          )}
+                          {selectedBankState && (
+                            <p className="text-gray-500 text-xs mt-1">
+                              {getCitiesByState(selectedBankState).length}{" "}
+                              cities available
                             </p>
                           )}
                         </div>
@@ -1080,6 +1139,15 @@ export default function BecomeASellerPage() {
                           characters)
                         </p>
                       </div>
+                      <Alert className="mb-4">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          <strong>Bank Account Verification:</strong> The
+                          city/district must match exactly with your bank branch
+                          location for successful verification. Use the search
+                          function to find your exact city name.
+                        </AlertDescription>
+                      </Alert>
                     </CardContent>
                   </Card>
 
