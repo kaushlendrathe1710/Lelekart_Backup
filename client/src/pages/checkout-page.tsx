@@ -387,24 +387,68 @@ export default function CheckoutPage() {
 
   // No need for fetchCartItems function as we're now using cartItems from CartContext
 
+  // Clear Buy Now flow flag when component unmounts
+  useEffect(() => {
+    return () => {
+      // Clear the Buy Now flow flag when leaving the checkout page
+      sessionStorage.removeItem("lelekart_buynow_flow");
+      console.log("Cleared Buy Now flow flag - leaving checkout page");
+    };
+  }, []);
+
+  // Clear Buy Now flow flag when cart items are successfully loaded
+  useEffect(() => {
+    if (!loading && selectedCartItems.length > 0) {
+      // Clear the Buy Now flow flag since we have items
+      sessionStorage.removeItem("lelekart_buynow_flow");
+      console.log("Cleared Buy Now flow flag - cart has items");
+    }
+  }, [loading, selectedCartItems.length]);
+
   // Check if cart is empty and redirect if needed
   useEffect(() => {
     // Check URL to see if we need to skip the empty cart check
     const fromBuyNow = window.location.search.includes("buynow=true");
 
-    if (!loading && selectedCartItems.length === 0 && !fromBuyNow) {
-      console.log("Empty cart detected in checkout page, redirecting to cart");
-      toast({
-        title: "Empty Cart",
-        description:
-          "Your cart is empty. Please add items before proceeding to checkout.",
-        variant: "destructive",
-      });
-      setLocation("/cart");
-    } else if (!loading) {
-      console.log(
-        `Checkout page loaded with ${selectedCartItems.length} items in cart or from Buy Now flow (skip redirect: ${fromBuyNow})`
-      );
+    // Also check if we're in a Buy Now flow by looking for recent cart activity
+    const hasRecentCartActivity =
+      sessionStorage.getItem("lelekart_buynow_flow") === "true";
+
+    // Add a small delay to allow for cart data to load after Buy Now
+    const checkCartWithDelay = () => {
+      if (
+        !loading &&
+        selectedCartItems.length === 0 &&
+        !fromBuyNow &&
+        !hasRecentCartActivity
+      ) {
+        console.log(
+          "Empty cart detected in checkout page, redirecting to cart"
+        );
+        toast({
+          title: "Empty Cart",
+          description:
+            "Your cart is empty. Please add items before proceeding to checkout.",
+          variant: "destructive",
+        });
+        setLocation("/cart");
+      } else if (!loading) {
+        console.log(
+          `Checkout page loaded with ${selectedCartItems.length} items in cart or from Buy Now flow (skip redirect: ${fromBuyNow || hasRecentCartActivity})`
+        );
+
+        // Clear the Buy Now flow flag if we have items
+        if (selectedCartItems.length > 0) {
+          sessionStorage.removeItem("lelekart_buynow_flow");
+        }
+      }
+    };
+
+    // Add a delay for Buy Now flows to allow cart data to load
+    if (fromBuyNow || hasRecentCartActivity) {
+      setTimeout(checkCartWithDelay, 1000); // 1 second delay for Buy Now flows
+    } else {
+      checkCartWithDelay();
     }
   }, [loading, selectedCartItems, setLocation, toast]);
 
@@ -1447,7 +1491,7 @@ export default function CheckoutPage() {
                           onSuccess={(orderId) => {
                             // Redirect to order confirmation page
                             setLocation(
-                              `/order-confirmation/${orderId}?success=true&total=${finalOrderTotal}`
+                              `/order-confirmation/${orderId}?success=true&total=${finalOrderTotal}&paymentMethod=razorpay`
                             );
                           }}
                           onError={(error) => {
@@ -1644,7 +1688,8 @@ export default function CheckoutPage() {
                             )}
                             {item.variant.size && (
                               <span className="inline-block px-1 py-0.5 bg-green-100 text-green-800 rounded text-xs">
-                                Size: {(() => {
+                                Size:{" "}
+                                {(() => {
                                   // Handle size display - if it's a range, show a more user-friendly message
                                   const sizeValue = item.variant.size;
                                   if (sizeValue && sizeValue.includes(",")) {

@@ -1,6 +1,6 @@
 /**
  * Order Status Handler
- * 
+ *
  * This file contains functions to update order statuses and handle related business logic.
  */
 
@@ -14,103 +14,178 @@ import { sendNotificationToUser } from "../websocket";
  * @param status The new status to set
  * @returns The updated order
  */
-export async function handleOrderStatusChange(
-  orderId: number,
-  status: string
-) {
+export async function handleOrderStatusChange(orderId: number, status: string) {
   try {
-    console.log(`Handling order status change for order #${orderId} to ${status}`);
-    
+    console.log(
+      `Handling order status change for order #${orderId} to ${status}`
+    );
+
     // Get current order
     const order = await storage.getOrder(orderId);
     if (!order) {
       throw new Error(`Order #${orderId} not found`);
     }
-    
+
     // If status is already the target status, just return the order
     if (order.status === status) {
       console.log(`Order #${orderId} is already in ${status} status`);
       return order;
     }
-    
-    // Process wallet refunds for cancellations
-    if (status === 'cancelled' && order.walletCoinsUsed && order.walletCoinsUsed > 0) {
-      console.log(`Processing wallet refund for order #${orderId}, coins used: ${order.walletCoinsUsed}`);
-      
-      try {
-        // Refund coins to wallet
-        const wallet = await storage.getWalletByUserId(order.userId);
-        
-        if (wallet) {
-          const updatedWallet = await storage.adjustWallet(
-            order.userId, 
-            order.walletCoinsUsed, 
-            'refund',
-            `Refund for cancelled order #${orderId}`
-          );
-          
-          console.log(`Refunded ${order.walletCoinsUsed} coins to wallet ID #${wallet.id}, new balance: ${updatedWallet.balance}`);
-        } else {
-          console.log(`No wallet found for user ID #${order.userId}, skipping wallet refund`);
-        }
-      } catch (walletError) {
-        console.error(`Error processing wallet refund for order #${orderId}:`, walletError);
-        // Continue with order cancellation even if wallet refund fails
-      }
-    }
-    
-    // Update the order status
-    console.log(`Current order status: ${order.status}, Next status: ${status}`);
+
+    // Update the order status first (fast path)
+    console.log(
+      `Current order status: ${order.status}, Next status: ${status}`
+    );
     let updatedOrder;
     try {
-      updatedOrder = await storage.updateOrderStatus(orderId, status);
+      // Use fast update for common status transitions to improve performance
+      const commonFastTransitions = [
+        "delivered",
+        "shipped",
+        "processing",
+        "confirmed",
+      ];
+      if (commonFastTransitions.includes(status)) {
+        updatedOrder = await storage.fastUpdateOrderStatus(orderId, status);
+      } else {
+        updatedOrder = await storage.updateOrderStatus(orderId, status);
+      }
     } catch (err) {
-      console.error('Error updating order status:', err);
-      throw new Error('Order status update failed: ' + (err && err.message ? err.message : err));
+      console.error("Error updating order status:", err);
+      throw new Error(
+        "Order status update failed: " +
+          (err && err.message ? err.message : err)
+      );
     }
     console.log(`Updated order #${orderId} status to ${status}`);
-    
-    // After notifying buyer and seller, notify all admins
+
+    // Process wallet refunds for cancellations (async - don't block the response)
+    if (
+      status === "cancelled" &&
+      order.walletCoinsUsed &&
+      order.walletCoinsUsed > 0
+    ) {
+      console.log(
+        `Processing wallet refund for order #${orderId}, coins used: ${order.walletCoinsUsed}`
+      );
+
+      // Process wallet refund asynchronously
+      processWalletRefund(orderId, order.userId, order.walletCoinsUsed).catch(
+        (walletError) => {
+          console.error(
+            `Error processing wallet refund for order #${orderId}:`,
+            walletError
+          );
+        }
+      );
+    }
+
+    // Send notifications asynchronously (don't block the response)
+    sendNotificationsAsync(orderId, status, order.userId).catch((error) => {
+      console.error(
+        `Error sending notifications for order #${orderId}:`,
+        error
+      );
+    });
+
+    // Custom logic for return-related statuses (approve_return, reject_return, process_return, completed_return)
+    if (
+      [
+        "approve_return",
+        "reject_return",
+        "process_return",
+        "completed_return",
+      ].includes(status)
+    ) {
+      // TODO: Add any custom business logic for these statuses if needed
+    }
+
+    return updatedOrder;
+  } catch (error) {
+    console.error(
+      `Error handling order status change for order #${orderId}:`,
+      error
+    );
+    throw error;
+  }
+}
+
+/**
+ * Process wallet refund asynchronously
+ */
+async function processWalletRefund(
+  orderId: number,
+  userId: number,
+  coinsUsed: number
+) {
+  try {
+    // Refund coins to wallet
+    const wallet = await storage.getWalletByUserId(userId);
+
+    if (wallet) {
+      const updatedWallet = await storage.adjustWallet(
+        userId,
+        coinsUsed,
+        "refund",
+        `Refund for cancelled order #${orderId}`
+      );
+
+      console.log(
+        `Refunded ${coinsUsed} coins to wallet ID #${wallet.id}, new balance: ${updatedWallet.balance}`
+      );
+    } else {
+      console.log(
+        `No wallet found for user ID #${userId}, skipping wallet refund`
+      );
+    }
+  } catch (walletError) {
+    console.error(
+      `Error processing wallet refund for order #${orderId}:`,
+      walletError
+    );
+    throw walletError;
+  }
+}
+
+/**
+ * Send notifications asynchronously
+ */
+async function sendNotificationsAsync(
+  orderId: number,
+  status: string,
+  userId: number
+) {
+  try {
+    // Get admin users and send notifications in parallel
     const adminUsers = await storage.getAllAdminUsers(false); // false = exclude co-admins
-    for (const admin of adminUsers) {
-      await storage.createNotification({
+
+    // Create notification promises for all admins
+    const adminNotificationPromises = adminUsers.map(async (admin) => {
+      const notificationData = {
         userId: admin.id,
         type: "ORDER_STATUS",
         title: `Order #${orderId} ${status.charAt(0).toUpperCase() + status.slice(1)}`,
         message: `Order #${orderId} status updated to ${status}.`,
         read: false,
         link: `/admin/orders/${orderId}`,
-        metadata: JSON.stringify({ orderId, status })
-      });
-      await sendNotificationToUser(admin.id, {
-        type: "ORDER_STATUS",
-        title: `Order #${orderId} ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-        message: `Order #${orderId} status updated to ${status}.`,
-        read: false,
-        link: `/admin/orders/${orderId}`,
-        metadata: JSON.stringify({ orderId, status })
-      });
-    }
-    
-    // Custom logic for return-related statuses (approve_return, reject_return, process_return, completed_return)
-    if (["approve_return", "reject_return", "process_return", "completed_return"].includes(status)) {
-      // TODO: Add any custom business logic for these statuses if needed
-    }
-    
-    // Always create a permanent notification for the buyer
-    await storage.createNotification({
-      userId: order.userId,
-      type: "ORDER_STATUS",
-      title: `Order #${orderId} ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-      message: `Your order #${orderId} status updated to ${status}.`,
-      read: false,
-      link: `/orders/${orderId}`,
-      metadata: JSON.stringify({ orderId, status })
+        metadata: JSON.stringify({ orderId, status }),
+      };
+
+      // Send both database notification and websocket notification in parallel
+      return Promise.all([
+        storage.createNotification(notificationData),
+        sendNotificationToUser(admin.id, notificationData),
+      ]);
     });
-    
-    return updatedOrder;
+
+    // Wait for all admin notifications to complete
+    await Promise.all(adminNotificationPromises);
+
+    console.log(
+      `Sent notifications to ${adminUsers.length} admin users for order #${orderId}`
+    );
   } catch (error) {
-    console.error(`Error handling order status change for order #${orderId}:`, error);
+    console.error(`Error sending notifications for order #${orderId}:`, error);
     throw error;
   }
 }
@@ -126,41 +201,47 @@ export async function updateOrderStatus(
   try {
     // Get the order item
     const orderItems = await storage.getOrderItems(orderId);
-    const orderItem = orderItems.find(item => item.id === orderItemId);
-    
+    const orderItem = orderItems.find((item) => item.id === orderItemId);
+
     if (!orderItem) {
       throw new Error("Order item not found");
     }
-    
+
     // Update the order item status
     await storage.updateOrderItem(orderItemId, { status });
-    
+
     // Get the order
     const order = await storage.getOrder(orderId);
-    
+
     if (!order) {
       throw new Error("Order not found");
     }
-    
+
     // Get the seller order
     const sellerOrders = await storage.getSellerOrders(orderId);
-    const sellerOrder = sellerOrders.find(so => so.id === orderItem.sellerOrderId);
-    
+    const sellerOrder = sellerOrders.find(
+      (so) => so.id === orderItem.sellerOrderId
+    );
+
     if (!sellerOrder) {
       throw new Error("Seller order not found");
     }
-    
+
     // Check if all items in the seller order have the same status
-    const sellerOrderItems = orderItems.filter(item => item.sellerOrderId === sellerOrder.id);
-    const allItemsHaveSameStatus = sellerOrderItems.every(item => item.status === status);
-    
+    const sellerOrderItems = orderItems.filter(
+      (item) => item.sellerOrderId === sellerOrder.id
+    );
+    const allItemsHaveSameStatus = sellerOrderItems.every(
+      (item) => item.status === status
+    );
+
     // If all items have the same status, update the seller order status
     if (allItemsHaveSameStatus) {
       await storage.updateSellerOrderStatus(sellerOrder.id, status);
-      
+
       // Notify the seller
       const seller = await storage.getUser(sellerOrder.sellerId);
-      
+
       if (seller && seller.email) {
         await sendEmail({
           to: seller.email,
@@ -170,8 +251,8 @@ export async function updateOrderStatus(
             orderId,
             sellerOrderId: sellerOrder.id,
             status,
-            sellerName: seller.username
-          }
+            sellerName: seller.username,
+          },
         });
       }
       // Permanent in-app notification for seller
@@ -185,7 +266,11 @@ export async function updateOrderStatus(
           message: notifMsg,
           read: false,
           link: `/seller/orders/${sellerOrder.id}`,
-          metadata: JSON.stringify({ orderId, sellerOrderId: sellerOrder.id, status })
+          metadata: JSON.stringify({
+            orderId,
+            sellerOrderId: sellerOrder.id,
+            status,
+          }),
         });
         await sendNotificationToUser(seller.id, {
           type: "seller_order",
@@ -193,21 +278,27 @@ export async function updateOrderStatus(
           message: notifMsg,
           read: false,
           link: `/seller/orders/${sellerOrder.id}`,
-          metadata: JSON.stringify({ orderId, sellerOrderId: sellerOrder.id, status })
+          metadata: JSON.stringify({
+            orderId,
+            sellerOrderId: sellerOrder.id,
+            status,
+          }),
         });
       }
     }
-    
+
     // Check if all seller orders have the same status
-    const allSellerOrdersHaveSameStatus = sellerOrders.every(so => so.status === status);
-    
+    const allSellerOrdersHaveSameStatus = sellerOrders.every(
+      (so) => so.status === status
+    );
+
     // If all seller orders have the same status, update the main order status
     if (allSellerOrdersHaveSameStatus) {
       await storage.updateOrder(orderId, { status });
-      
+
       // Notify the buyer
       const buyer = await storage.getUser(order.userId);
-      
+
       if (buyer && buyer.email) {
         await sendEmail({
           to: buyer.email,
@@ -216,8 +307,8 @@ export async function updateOrderStatus(
           data: {
             orderId,
             status,
-            buyerName: buyer.username
-          }
+            buyerName: buyer.username,
+          },
         });
       }
       // Send notification to buyer
@@ -228,18 +319,9 @@ export async function updateOrderStatus(
           message: `Your order #${orderId} has been ${status}.`,
           read: false,
           link: `/orders/${orderId}`,
-          metadata: JSON.stringify({ orderId, status })
+          metadata: JSON.stringify({ orderId, status }),
         });
-        // Always create a permanent notification for the buyer
-        await storage.createNotification({
-          userId: buyer.id,
-          type: "ORDER_STATUS",
-          title: `Order #${orderId} ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-          message: `Your order #${orderId} has been ${status}.`,
-          read: false,
-          link: `/orders/${orderId}`,
-          metadata: JSON.stringify({ orderId, status })
-        });
+        // Note: Permanent notification is handled by the calling route to avoid duplicates
       }
     }
   } catch (error) {

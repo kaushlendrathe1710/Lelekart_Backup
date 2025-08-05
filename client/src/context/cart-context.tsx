@@ -706,6 +706,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     quantity = 1,
     variant?: ProductVariant
   ) => {
+    // Set Buy Now flow flag to prevent empty cart errors
+    sessionStorage.setItem("lelekart_buynow_flow", "true");
+
     // Handle buy now flow for direct purchase
     console.log("buyNow called in cart context with:", {
       productId: product.id,
@@ -767,34 +770,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
 
     // Validate that the product ID is valid
-    if (
-      !product ||
-      !product.id ||
-      typeof product.id !== "number" ||
-      isNaN(product.id)
-    ) {
+    if (!product.id) {
       toast({
         title: "Invalid Product",
-        description: "The selected product cannot be purchased.",
+        description: "Product information is invalid. Please try again.",
         variant: "destructive",
       });
-      return;
-    }
-
-    // Check if product has variants but none are selected
-    if (
-      (product.hasVariants ||
-        (product.variants && product.variants.length > 0)) &&
-      !variant
-    ) {
-      toast({
-        title: "Selection Required",
-        description:
-          "Please select product options before proceeding to checkout",
-        variant: "default",
-      });
-
-      // Don't proceed - user needs to select variant first
       return;
     }
 
@@ -842,6 +823,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }, 500); // Increased delay to ensure server processing completes
     } catch (error) {
       console.error("Buy Now error:", error);
+      // Clear the Buy Now flow flag on error
+      sessionStorage.removeItem("lelekart_buynow_flow");
       toast({
         title: "Purchase Failed",
         description:

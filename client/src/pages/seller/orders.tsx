@@ -43,6 +43,13 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertCircle,
   Download,
   Eye,
@@ -60,6 +67,7 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Edit,
 } from "lucide-react";
 import { format } from "date-fns";
 import { InvoiceDialog } from "@/components/order/invoice-dialog";
@@ -119,7 +127,9 @@ export default function SellerOrdersPage() {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
-  // Status dialog state removed - only admins can update order status
+  const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
+  const [newStatus, setNewStatus] = useState<string>("");
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const invoiceRef = useRef<HTMLDivElement>(null);
   const shippingLabelRef = useRef<HTMLDivElement>(null);
 
@@ -153,7 +163,42 @@ export default function SellerOrdersPage() {
     },
   });
 
-  // Status update mutation removed - only admins can update order status
+  // Status update mutation
+  const updateOrderStatusMutation = useMutation({
+    mutationFn: async ({
+      orderId,
+      status,
+    }: {
+      orderId: number;
+      status: string;
+    }) => {
+      const response = await apiRequest(
+        "PUT",
+        `/api/orders/${orderId}/status`,
+        {
+          status,
+        }
+      );
+      return response.json();
+    },
+    onSuccess: (data, variables) => {
+      toast({
+        title: "Status Updated",
+        description: `Order #${variables.orderId} status has been updated to ${variables.status}.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      setIsStatusDialogOpen(false);
+      setNewStatus("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update Failed",
+        description:
+          error.message || "Failed to update order status. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   // Get customer name from shipping details
   const getCustomerName = (order: Order) => {
@@ -255,6 +300,42 @@ export default function SellerOrdersPage() {
             <XCircle className="h-3 w-3" /> Cancelled
           </Badge>
         );
+      case "approve_return":
+        return (
+          <Badge
+            variant="outline"
+            className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1"
+          >
+            <CheckCircle2 className="h-3 w-3" /> Return Approved
+          </Badge>
+        );
+      case "reject_return":
+        return (
+          <Badge
+            variant="outline"
+            className="bg-red-50 text-red-700 border-red-200 flex items-center gap-1"
+          >
+            <XCircle className="h-3 w-3" /> Return Rejected
+          </Badge>
+        );
+      case "process_return":
+        return (
+          <Badge
+            variant="outline"
+            className="bg-orange-50 text-orange-700 border-orange-200 flex items-center gap-1"
+          >
+            <Package className="h-3 w-3" /> Processing Return
+          </Badge>
+        );
+      case "completed_return":
+        return (
+          <Badge
+            variant="outline"
+            className="bg-purple-50 text-purple-700 border-purple-200 flex items-center gap-1"
+          >
+            <CheckCircle2 className="h-3 w-3" /> Return Completed
+          </Badge>
+        );
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -265,6 +346,8 @@ export default function SellerOrdersPage() {
     switch (method) {
       case "cod":
         return "Cash on Delivery";
+      case "razorpay":
+        return "Razorpay";
       case "card":
         return "Credit/Debit Card";
       case "upi":
@@ -309,7 +392,60 @@ export default function SellerOrdersPage() {
     }
   };
 
-  // Status update functions removed - only admins can update order status
+  // Status update functions
+  const openStatusDialog = (order: OrderWithItems) => {
+    setSelectedOrder(order);
+    setNewStatus(order.status);
+    setIsStatusDialogOpen(true);
+  };
+
+  const handleStatusUpdate = async () => {
+    if (!selectedOrder || !newStatus) return;
+
+    setIsUpdatingStatus(true);
+    try {
+      await updateOrderStatusMutation.mutateAsync({
+        orderId: selectedOrder.id,
+        status: newStatus,
+      });
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  // Get available status options based on current status
+  const getAvailableStatuses = (currentStatus: string) => {
+    const statusFlow = {
+      pending: ["processing", "cancelled", "shipped", "delivered"],
+      processing: ["processing", "cancelled", "shipped", "delivered"],
+      shipped: ["processing", "cancelled", "shipped", "delivered"],
+      delivered: ["approve_return", "reject_return"],
+      cancelled: [],
+      approve_return: ["process_return"],
+      reject_return: [],
+      process_return: ["completed_return"],
+      completed_return: [],
+    };
+
+    return statusFlow[currentStatus as keyof typeof statusFlow] || [];
+  };
+
+  const formatStatusForDisplay = (status: string) => {
+    const statusMap: { [key: string]: string } = {
+      pending: "Pending",
+      processing: "Processing",
+      shipped: "Shipped",
+      delivered: "Delivered",
+      cancelled: "Cancelled",
+      approve_return: "Approve Return",
+      reject_return: "Reject Return",
+      process_return: "Process Return",
+      completed_return: "Return Completed",
+    };
+    return (
+      statusMap[status] || status.charAt(0).toUpperCase() + status.slice(1)
+    );
+  };
 
   // Print invoice
   const printInvoice = () => {
@@ -525,11 +661,11 @@ export default function SellerOrdersPage() {
       if (!selectedOrder) return;
 
       toast({
-        title: "Preparing Shipping Label",
-        description: "Your shipping label is being generated...",
+        title: "Generating Shipping Label",
+        description: "Please wait while we prepare your shipping label...",
       });
 
-      // Create a blob from the fetch response and open it in a new window
+      // Create a blob from the fetch response and download it directly
       const response = await fetch(
         `/api/orders/${selectedOrder.id}/shipping-label`,
         {
@@ -545,18 +681,29 @@ export default function SellerOrdersPage() {
       // Get the PDF blob and create an object URL
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      window.open(url, "_blank");
+
+      // Create a temporary link and trigger download
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+      a.download = `shipping-label-order-${selectedOrder.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+
+      // Clean up
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
 
       toast({
-        title: "Shipping Label Generated",
+        title: "Shipping Label Downloaded!",
         description:
-          "Your shipping label has been opened in a new tab. You can save it from there.",
+          "Your shipping label has been downloaded successfully. Check your downloads folder.",
       });
     } catch (error) {
       console.error("Error downloading shipping label:", error);
       toast({
-        title: "Generation Failed",
-        description: "Failed to generate the shipping label. Please try again.",
+        title: "Download Failed",
+        description: "Failed to download the shipping label. Please try again.",
         variant: "destructive",
       });
     }
@@ -752,6 +899,7 @@ export default function SellerOrdersPage() {
               orders={filteredOrders}
               isLoading={isLoading}
               viewOrderDetails={viewOrderDetails}
+              openStatusDialog={openStatusDialog}
               getStatusBadge={getStatusBadge}
               formatDate={formatDate}
               formatPaymentMethod={formatPaymentMethod}
@@ -769,6 +917,7 @@ export default function SellerOrdersPage() {
                   orders={filteredOrders}
                   isLoading={isLoading}
                   viewOrderDetails={viewOrderDetails}
+                  openStatusDialog={openStatusDialog}
                   getStatusBadge={getStatusBadge}
                   formatDate={formatDate}
                   formatPaymentMethod={formatPaymentMethod}
@@ -794,6 +943,7 @@ export default function SellerOrdersPage() {
               )}
               isLoading={isLoading}
               viewOrderDetails={viewOrderDetails}
+              openStatusDialog={openStatusDialog}
               getStatusBadge={getStatusBadge}
               formatDate={formatDate}
               formatPaymentMethod={formatPaymentMethod}
@@ -840,8 +990,21 @@ export default function SellerOrdersPage() {
                     onClick={downloadShippingLabel}
                   >
                     <Printer className="h-4 w-4" />
-                    Shipping Label
+                    Download Shipping Label
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center justify-center gap-1 text-sm"
+                    onClick={() => openStatusDialog(selectedOrder)}
+                  >
+                    <Edit className="h-4 w-4" />
+                    Update Status
+                  </Button>
+                </div>
+                <div className="text-xs text-muted-foreground mt-2">
+                  💡 The shipping label will be downloaded directly to your
+                  device. Check your downloads folder.
                 </div>
               </div>
 
@@ -1107,6 +1270,83 @@ export default function SellerOrdersPage() {
           orderId={selectedOrder.id}
         />
       )}
+
+      {/* Status Update Dialog */}
+      {selectedOrder && (
+        <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Update Order Status</DialogTitle>
+              <DialogDescription>
+                Update the status for Order #{selectedOrder.id}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Current Status</label>
+                <div className="flex items-center gap-2">
+                  {getStatusBadge(selectedOrder.status)}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">New Status</label>
+                <Select value={newStatus} onValueChange={setNewStatus}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select new status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getAvailableStatuses(selectedOrder.status).map(
+                      (status) => (
+                        <SelectItem key={status} value={status}>
+                          {formatStatusForDisplay(status)}
+                        </SelectItem>
+                      )
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {newStatus && newStatus !== selectedOrder.status && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                  <p className="text-sm text-blue-800">
+                    This will update the order status from{" "}
+                    <span className="font-medium">
+                      {formatStatusForDisplay(selectedOrder.status)}
+                    </span>{" "}
+                    to{" "}
+                    <span className="font-medium">
+                      {formatStatusForDisplay(newStatus)}
+                    </span>
+                    .
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsStatusDialogOpen(false)}
+                disabled={isUpdatingStatus}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleStatusUpdate}
+                disabled={
+                  !newStatus ||
+                  newStatus === selectedOrder.status ||
+                  isUpdatingStatus
+                }
+              >
+                {isUpdatingStatus ? "Updating..." : "Update Status"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </SellerDashboardLayout>
   );
 }
@@ -1116,6 +1356,7 @@ function OrderTable({
   orders,
   isLoading,
   viewOrderDetails,
+  openStatusDialog,
   getStatusBadge,
   formatDate,
   formatPaymentMethod,
@@ -1127,6 +1368,7 @@ function OrderTable({
   orders: OrderWithItems[];
   isLoading: boolean;
   viewOrderDetails: (orderId: number) => void;
+  openStatusDialog: (order: OrderWithItems) => void;
   getStatusBadge: (status: string) => React.ReactNode;
   formatDate: (dateString: string) => string;
   formatPaymentMethod: (method: string) => string;
@@ -1225,6 +1467,10 @@ function OrderTable({
                       >
                         <Eye className="h-4 w-4 mr-2" />
                         View Details
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => openStatusDialog(order)}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Update Status
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={async () => {
@@ -1335,9 +1581,9 @@ function OrderTable({
                           const handleDownloadShippingLabel = async () => {
                             try {
                               toast({
-                                title: "Preparing Shipping Label",
+                                title: "Generating Shipping Label",
                                 description:
-                                  "Your shipping label is being generated...",
+                                  "Please wait while we prepare your shipping label...",
                               });
 
                               const response = await fetch(
@@ -1356,12 +1602,23 @@ function OrderTable({
 
                               const blob = await response.blob();
                               const url = window.URL.createObjectURL(blob);
-                              window.open(url, "_blank");
+
+                              // Create a temporary link and trigger download
+                              const a = document.createElement("a");
+                              a.style.display = "none";
+                              a.href = url;
+                              a.download = `shipping-label-order-${order.id}.pdf`;
+                              document.body.appendChild(a);
+                              a.click();
+
+                              // Clean up
+                              window.URL.revokeObjectURL(url);
+                              document.body.removeChild(a);
 
                               toast({
-                                title: "Shipping Label Generated",
+                                title: "Shipping Label Downloaded!",
                                 description:
-                                  "Your shipping label has been opened in a new tab. You can save it from there.",
+                                  "Your shipping label has been downloaded successfully. Check your downloads folder.",
                               });
                             } catch (error) {
                               console.error(
@@ -1380,7 +1637,11 @@ function OrderTable({
                         }}
                       >
                         <Printer className="h-4 w-4 mr-2" />
-                        Shipping Label
+                        Download Shipping Label
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => openStatusDialog(order)}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Update Status
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         disabled={
@@ -1484,6 +1745,15 @@ function OrderTable({
                   variant="outline"
                   size="sm"
                   className="w-full text-sm"
+                  onClick={() => openStatusDialog(order)}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Update Status
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-sm"
                   onClick={() =>
                     setExpandedOrderId(
                       expandedOrderId === order.id ? null : order.id
@@ -1510,6 +1780,15 @@ function OrderTable({
                   <div className="text-sm font-medium text-muted-foreground mb-2">
                     Additional Actions:
                   </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start text-sm"
+                    onClick={() => openStatusDialog(order)}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Update Status
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
@@ -1624,9 +1903,9 @@ function OrderTable({
                       const handleDownloadShippingLabel = async () => {
                         try {
                           toast({
-                            title: "Preparing Shipping Label",
+                            title: "Generating Shipping Label",
                             description:
-                              "Your shipping label is being generated...",
+                              "Please wait while we prepare your shipping label...",
                           });
 
                           const response = await fetch(
@@ -1645,12 +1924,23 @@ function OrderTable({
 
                           const blob = await response.blob();
                           const url = window.URL.createObjectURL(blob);
-                          window.open(url, "_blank");
+
+                          // Create a temporary link and trigger download
+                          const a = document.createElement("a");
+                          a.style.display = "none";
+                          a.href = url;
+                          a.download = `shipping-label-order-${order.id}.pdf`;
+                          document.body.appendChild(a);
+                          a.click();
+
+                          // Clean up
+                          window.URL.revokeObjectURL(url);
+                          document.body.removeChild(a);
 
                           toast({
-                            title: "Shipping Label Generated",
+                            title: "Shipping Label Downloaded!",
                             description:
-                              "Your shipping label has been opened in a new tab. You can save it from there.",
+                              "Your shipping label has been downloaded successfully. Check your downloads folder.",
                           });
                         } catch (error) {
                           console.error(
@@ -1670,6 +1960,15 @@ function OrderTable({
                   >
                     <Printer className="h-4 w-4 mr-2" />
                     Download Shipping Label
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start text-sm"
+                    onClick={() => openStatusDialog(order)}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Update Status
                   </Button>
                   <Button
                     variant="outline"

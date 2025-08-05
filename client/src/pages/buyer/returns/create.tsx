@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import { Link, useLocation, useParams } from 'wouter';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { useState, useEffect } from "react";
+import { Link, useLocation, useParams } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Form,
   FormControl,
@@ -12,18 +12,25 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   ChevronLeftIcon,
   Loader2Icon,
@@ -32,32 +39,41 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   AlertCircleIcon,
-  UploadIcon
-} from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from '@/components/ui/breadcrumb';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/use-auth';
-import { format } from 'date-fns';
-import { queryClient, apiRequest } from '@/lib/queryClient';
+  UploadIcon,
+} from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+} from "@/components/ui/breadcrumb";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
+import { format } from "date-fns";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 
 // Schema for return request form validation
 const returnRequestSchema = z.object({
   orderItemId: z.number({
     required_error: "Please select an item from your order",
   }),
-  requestType: z.enum(['return', 'refund', 'replacement'], {
+  requestType: z.enum(["return", "refund", "replacement"], {
     required_error: "Please select a request type",
   }),
   reasonId: z.number({
     required_error: "Please select a reason for your request",
   }),
-  description: z.string().min(10, {
-    message: "Description must be at least 10 characters",
-  }).max(500, {
-    message: "Description cannot be more than 500 characters"
-  }),
-  mediaUrls: z.array(z.string()).min(1, { message: 'Please upload at least one image.' }),
+  description: z
+    .string()
+    .min(10, {
+      message: "Description must be at least 10 characters",
+    })
+    .max(500, {
+      message: "Description cannot be more than 500 characters",
+    }),
+  mediaUrls: z
+    .array(z.string())
+    .min(1, { message: "Please upload at least one image." }),
 });
 
 // Type for the form data
@@ -68,18 +84,24 @@ export default function CreateReturnRequest() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const { orderId } = useParams<{ orderId: string }>();
-  
+
   // State for image uploads
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [eligibilityChecked, setEligibilityChecked] = useState<boolean>(false);
   const [selectedOrderItem, setSelectedOrderItem] = useState<any>(null);
-  
+
+  // New state for preventing duplicate submissions
+  const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+  const [submittedReturnId, setSubmittedReturnId] = useState<number | null>(
+    null
+  );
+
   // Fetch order details
-  const { 
+  const {
     data: order,
     isLoading: isLoadingOrder,
-    error: orderError
+    error: orderError,
   } = useQuery({
     queryKey: [`/api/orders/${orderId}`],
     enabled: !!orderId && !!user,
@@ -87,11 +109,8 @@ export default function CreateReturnRequest() {
 
   // Fetch return reasons based on selected request type
   const [requestType, setRequestType] = useState<string | null>(null);
-  const {
-    data: returnReasons,
-    isLoading: isLoadingReasons
-  } = useQuery({
-    queryKey: ['/api/return-reasons', requestType],
+  const { data: returnReasons, isLoading: isLoadingReasons } = useQuery({
+    queryKey: ["/api/return-reasons", requestType],
     enabled: !!requestType,
   });
 
@@ -100,21 +119,25 @@ export default function CreateReturnRequest() {
     data: eligibility,
     isLoading: isCheckingEligibility,
     error: eligibilityError,
-    refetch: recheckEligibility
+    refetch: recheckEligibility,
   } = useQuery({
-    queryKey: ['/api/orders/return-eligibility', selectedOrderItem?.id, requestType],
+    queryKey: [
+      "/api/orders/return-eligibility",
+      selectedOrderItem?.id,
+      requestType,
+    ],
     enabled: !!selectedOrderItem && !!requestType && !eligibilityChecked,
     onSuccess: (data) => {
       setEligibilityChecked(true);
-      
+
       if (!data.eligible) {
         toast({
           title: "Item not eligible for return",
           description: data.message,
-          variant: "destructive"
+          variant: "destructive",
         });
       }
-    }
+    },
   });
 
   // Form setup with validation
@@ -124,7 +147,7 @@ export default function CreateReturnRequest() {
       orderItemId: 0,
       requestType: undefined,
       reasonId: 0,
-      description: '',
+      description: "",
       mediaUrls: [],
     },
   });
@@ -132,21 +155,35 @@ export default function CreateReturnRequest() {
   // Create return request mutation
   const createReturnMutation = useMutation({
     mutationFn: async (values: ReturnFormValues) => {
-      const res = await apiRequest('POST', '/api/returns', values);
+      const res = await apiRequest("POST", "/api/returns", values);
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.message || 'Failed to create return request');
+        throw new Error(error.message || "Failed to create return request");
       }
       return res.json();
     },
     onSuccess: (data) => {
+      // Immediately set submitted state to prevent duplicate submissions
+      setIsSubmitted(true);
+      setSubmittedReturnId(data.id);
+
       toast({
-        title: "Return Request Created",
-        description: `Your return request has been submitted successfully.`,
+        title: "Return Request Submitted Successfully",
+        description: `Your return request has been marked for return. Request ID: #${data.id}`,
       });
-      
-      // Redirect to the return details page
-      setLocation(`/returns/${data.id}`);
+
+      // Invalidate relevant queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/returns/buyer"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/orders/${orderId}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/orders", { limit: 3 }],
+      });
+
+      // Redirect to the return details page after a short delay
+      setTimeout(() => {
+        setLocation(`/returns/${data.id}`);
+      }, 2000);
     },
     onError: (error: Error) => {
       toast({
@@ -159,31 +196,49 @@ export default function CreateReturnRequest() {
 
   // Handle form submission
   const onSubmit = (values: ReturnFormValues) => {
-    // Add uploaded images to the form values
-    values.mediaUrls = uploadedImages;
-    createReturnMutation.mutate(values);
+    // Prevent duplicate submissions
+    if (isSubmitted || createReturnMutation.isPending) {
+      return;
+    }
+
+    // Add uploaded images and orderId to the form values
+    const submissionData = {
+      ...values,
+      orderId: parseInt(orderId!),
+      mediaUrls: uploadedImages,
+    };
+
+    createReturnMutation.mutate(submissionData);
   };
 
   // Handle image upload
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     if (!event.target.files || event.target.files.length === 0) return;
-    
+
     setIsUploading(true);
-    
+
     try {
       const file = event.target.files[0];
       const formData = new FormData();
-      formData.append('file', file);
-      
-      const res = await apiRequest('POST', '/api/upload/images', formData, {}, false);
-      
+      formData.append("file", file);
+
+      const res = await apiRequest(
+        "POST",
+        "/api/upload/images",
+        formData,
+        {},
+        false
+      );
+
       if (!res.ok) {
-        throw new Error('Failed to upload image');
+        throw new Error("Failed to upload image");
       }
-      
+
       const data = await res.json();
       setUploadedImages([...uploadedImages, data.url]);
-      
+
       toast({
         title: "Image uploaded",
         description: "Image has been uploaded successfully",
@@ -197,7 +252,7 @@ export default function CreateReturnRequest() {
     } finally {
       setIsUploading(false);
       // Reset the input
-      event.target.value = '';
+      event.target.value = "";
     }
   };
 
@@ -211,23 +266,36 @@ export default function CreateReturnRequest() {
   // Reset eligibility check when request type or order item changes
   useEffect(() => {
     if (requestType) {
-      form.setValue('requestType', requestType as any);
+      form.setValue("requestType", requestType as any);
       setEligibilityChecked(false);
     }
   }, [requestType, form]);
 
   useEffect(() => {
     if (selectedOrderItem) {
-      form.setValue('orderItemId', selectedOrderItem.id);
+      form.setValue("orderItemId", selectedOrderItem.id);
       setEligibilityChecked(false);
+
+      // Check if a return request already exists for this order item
+      if (selectedOrderItem.returnRequested) {
+        setIsSubmitted(true);
+        toast({
+          title: "Return Request Already Exists",
+          description:
+            "A return request has already been submitted for this item.",
+          variant: "destructive",
+        });
+      }
     }
-  }, [selectedOrderItem, form]);
+  }, [selectedOrderItem, form, toast]);
 
   // Redirect to login if not authenticated
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center h-96">
-        <p className="text-lg text-gray-600 mb-4">Please login to create a return request</p>
+        <p className="text-lg text-gray-600 mb-4">
+          Please login to create a return request
+        </p>
         <Button asChild>
           <Link to="/auth">Login</Link>
         </Button>
@@ -263,10 +331,12 @@ export default function CreateReturnRequest() {
   }
 
   // Check if there are returnable items in the order
-  const returnableItems = order.orderItems.filter(item => 
-    item.status === 'delivered' && 
-    !item.returnRequested &&
-    new Date(item.deliveredAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Less than 30 days old
+  const returnableItems = order.orderItems.filter(
+    (item) =>
+      item.status === "delivered" &&
+      !item.returnRequested &&
+      new Date(item.deliveredAt) >
+        new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Less than 30 days old
   );
 
   if (returnableItems.length === 0) {
@@ -274,19 +344,25 @@ export default function CreateReturnRequest() {
       <div className="container max-w-3xl mx-auto py-6 px-4">
         <Breadcrumb className="mb-6">
           <BreadcrumbItem>
-            <BreadcrumbLink as={Link} to="/">Home</BreadcrumbLink>
+            <BreadcrumbLink as={Link} to="/">
+              Home
+            </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbItem>
-            <BreadcrumbLink as={Link} to="/orders">My Orders</BreadcrumbLink>
+            <BreadcrumbLink as={Link} to="/orders">
+              My Orders
+            </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbItem>
-            <BreadcrumbLink as={Link} to={`/orders/${orderId}`}>Order #{order.orderNumber}</BreadcrumbLink>
+            <BreadcrumbLink as={Link} to={`/orders/${orderId}`}>
+              Order #{order.orderNumber}
+            </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbItem isCurrentPage>
             <BreadcrumbLink>Create Return</BreadcrumbLink>
           </BreadcrumbItem>
         </Breadcrumb>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>No Eligible Items</CardTitle>
@@ -308,7 +384,8 @@ export default function CreateReturnRequest() {
           <CardFooter className="flex justify-end">
             <Button asChild variant="outline">
               <Link to={`/orders/${orderId}`}>
-                <ChevronLeftIcon className="mr-2 h-4 w-4" /> Back to Order Details
+                <ChevronLeftIcon className="mr-2 h-4 w-4" /> Back to Order
+                Details
               </Link>
             </Button>
           </CardFooter>
@@ -319,37 +396,49 @@ export default function CreateReturnRequest() {
 
   // Fallback reasons if API returns nothing
   const fallbackReasons = [
-    { id: 1, text: 'Wrong item received' },
-    { id: 2, text: 'Item damaged' },
-    { id: 3, text: 'Not as described' },
-    { id: 4, text: 'Other' },
+    { id: 1, text: "Wrong item received" },
+    { id: 2, text: "Item damaged" },
+    { id: 3, text: "Not as described" },
+    { id: 4, text: "Other" },
   ];
-  const filteredReturnReasons = Array.isArray(returnReasons) && returnReasons.length > 0
-    ? returnReasons.filter(r => r && r.id && r.text)
-    : fallbackReasons;
+  const filteredReturnReasons =
+    Array.isArray(returnReasons) && returnReasons.length > 0
+      ? returnReasons.filter((r) => r && r.id && r.text)
+      : fallbackReasons;
 
   return (
     <div className="min-h-screen bg-[#F8F5E4]">
       <div className="container max-w-3xl mx-auto py-6 px-4">
         <Breadcrumb className="mb-6">
           <BreadcrumbItem>
-            <BreadcrumbLink as={Link} to="/">Home</BreadcrumbLink>
+            <BreadcrumbLink as={Link} to="/">
+              Home
+            </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbItem>
-            <BreadcrumbLink as={Link} to="/orders">My Orders</BreadcrumbLink>
+            <BreadcrumbLink as={Link} to="/orders">
+              My Orders
+            </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbItem>
-            <BreadcrumbLink as={Link} to={`/orders/${orderId}`}>Order #{order.orderNumber}</BreadcrumbLink>
+            <BreadcrumbLink as={Link} to={`/orders/${orderId}`}>
+              Order #{order.orderNumber}
+            </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbItem isCurrentPage>
             <BreadcrumbLink>Create Return</BreadcrumbLink>
           </BreadcrumbItem>
         </Breadcrumb>
-        
+
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight mb-1">Return Request</h1>
-            <p className="text-gray-500">Order #{order.orderNumber} | Placed on {format(new Date(order.createdAt), 'MMMM d, yyyy')}</p>
+            <h1 className="text-2xl font-bold tracking-tight mb-1">
+              Return Request
+            </h1>
+            <p className="text-gray-500">
+              Order #{order.orderNumber} | Placed on{" "}
+              {format(new Date(order.createdAt), "MMMM d, yyyy")}
+            </p>
           </div>
           <Button asChild variant="outline" className="mt-4 sm:mt-0">
             <Link to={`/orders/${orderId}`}>
@@ -357,7 +446,7 @@ export default function CreateReturnRequest() {
             </Link>
           </Button>
         </div>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Create Return Request</CardTitle>
@@ -367,193 +456,390 @@ export default function CreateReturnRequest() {
           </CardHeader>
           <CardContent>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                {/* Request Type */}
-                <FormField
-                  control={form.control}
-                  name="requestType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Request Type</FormLabel>
-                      <Select
-                        onValueChange={(value) => {
-                          setRequestType(value);
-                          field.onChange(value);
-                        }}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select what you want to do" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="return">Return (Get Refund)</SelectItem>
-                          <SelectItem value="replacement">Replacement (Get Same Item)</SelectItem>
-                          <SelectItem value="refund">Refund Only (Keep Item)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
-                        Choose whether you want a refund, replacement, or both
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Eligibility Check Result */}
-                {eligibilityChecked && eligibility && (
-                  <Alert variant={eligibility.eligible ? "default" : "destructive"}>
-                    {eligibility.eligible ? (
-                      <CheckCircleIcon className="h-4 w-4" />
-                    ) : (
-                      <XCircleIcon className="h-4 w-4" />
-                    )}
-                    <AlertTitle>
-                      {eligibility.eligible ? "Item Eligible" : "Item Not Eligible"}
-                    </AlertTitle>
-                    <AlertDescription>
-                      {eligibility.message}
-                      {eligibility.remainingDays && eligibility.eligible && (
-                        <span className="block mt-1">
-                          You have {eligibility.remainingDays} days left to return this item.
-                        </span>
-                      )}
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {/* Return Reason - always show */}
-                <FormField
-                  control={form.control}
-                  name="reasonId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Reason</FormLabel>
-                      <Select
-                        onValueChange={(value) => field.onChange(parseInt(value))}
-                        defaultValue={field.value === 0 ? undefined : field.value.toString()}
-                        disabled={isLoadingReasons || filteredReturnReasons.length === 0}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={isLoadingReasons ? "Loading reasons..." : filteredReturnReasons.length === 0 ? "No reasons available" : "Select a reason"} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {filteredReturnReasons.length === 0 ? (
-                            <SelectItem value="" disabled>No reasons available</SelectItem>
-                          ) : (
-                            filteredReturnReasons.map((reason) => (
-                              <SelectItem key={reason.id} value={reason.id.toString()}>
-                                {reason.text}
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
-                        Please select the reason that best describes your issue
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Description - always show */}
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Please describe your issue in detail" 
-                          className="resize-none min-h-32" 
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Provide as much detail as possible about the issue with your order
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Image Upload - always show */}
-                <div className="space-y-3">
-                  <FormLabel>Upload Images (Optional)</FormLabel>
-                  <div className="border border-input rounded-md p-4">
-                    <div className="flex flex-wrap gap-4 mb-4">
-                      {uploadedImages.map((image, index) => (
-                        <div 
-                          key={index} 
-                          className="relative rounded-md overflow-hidden h-24 w-24 border"
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-6"
+              >
+                {/* Disable form when submitted */}
+                <fieldset disabled={isSubmitted} className="space-y-6">
+                  {/* Order Item Selection */}
+                  <FormField
+                    control={form.control}
+                    name="orderItemId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Select Item to Return</FormLabel>
+                        <Select
+                          onValueChange={(value) => {
+                            const selectedItem = returnableItems.find(
+                              (item) => item.id === parseInt(value)
+                            );
+                            setSelectedOrderItem(selectedItem);
+                            field.onChange(parseInt(value));
+                          }}
+                          defaultValue={
+                            field.value === 0
+                              ? undefined
+                              : field.value.toString()
+                          }
                         >
-                          <img 
-                            src={image} 
-                            alt={`Uploaded ${index + 1}`} 
-                            className="h-full w-full object-cover"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveImage(index)}
-                            className="absolute top-1 right-1 bg-black bg-opacity-60 rounded-full p-1 text-white"
-                            title="Remove image"
-                          >
-                            <XIcon className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ))}
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select an item from your order" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {returnableItems.map((item) => (
+                              <SelectItem
+                                key={item.id}
+                                value={item.id.toString()}
+                              >
+                                {item.product.name} - Qty: {item.quantity}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Choose the specific item you want to return from this
+                          order
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                      {uploadedImages.length < 5 && (
-                        <div className="h-24 w-24 flex flex-col items-center justify-center border border-dashed rounded-md p-2 text-gray-500">
-                          <label 
-                            htmlFor="image-upload" 
-                            className="flex flex-col items-center justify-center w-full h-full cursor-pointer"
-                          >
-                            {isUploading ? (
-                              <Loader2Icon className="h-6 w-6 animate-spin mb-1" />
-                            ) : (
-                              <UploadIcon className="h-6 w-6 mb-1" />
-                            )}
-                            <span className="text-xs text-center">
-                              {isUploading ? "Uploading..." : "Add Image"}
-                            </span>
-                            <input
-                              id="image-upload"
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={handleImageUpload}
-                              disabled={isUploading}
-                            />
-                          </label>
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      Upload up to 5 images showing the issue with your order. Supported formats: JPEG, PNG, WebP (max 5MB each)
-                    </p>
-                  </div>
-                </div>
+                  {/* Request Type */}
+                  <FormField
+                    control={form.control}
+                    name="requestType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Request Type</FormLabel>
+                        <Select
+                          onValueChange={(value) => {
+                            setRequestType(value);
+                            field.onChange(value);
+                          }}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select what you want to do" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="return">
+                              Return (Get Refund)
+                            </SelectItem>
+                            <SelectItem value="replacement">
+                              Replacement (Get Same Item)
+                            </SelectItem>
+                            <SelectItem value="refund">
+                              Refund Only (Keep Item)
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Choose whether you want a refund, replacement, or both
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                {/* Submit Button - only show if eligible */}
-                {eligibilityChecked && eligibility?.eligible && (
-                  <div className="flex justify-end">
-                    <Button 
-                      type="submit" 
-                      disabled={createReturnMutation.isPending || isUploading}
+                  {/* Eligibility Check Result */}
+                  {eligibilityChecked && eligibility && (
+                    <Alert
+                      variant={eligibility.eligible ? "default" : "destructive"}
                     >
-                      {createReturnMutation.isPending && (
-                        <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                      {eligibility.eligible ? (
+                        <CheckCircleIcon className="h-4 w-4" />
+                      ) : (
+                        <XCircleIcon className="h-4 w-4" />
                       )}
-                      Submit Return Request
-                    </Button>
+                      <AlertTitle>
+                        {eligibility.eligible
+                          ? "Item Eligible"
+                          : "Item Not Eligible"}
+                      </AlertTitle>
+                      <AlertDescription>
+                        {eligibility.message}
+                        {eligibility.remainingDays && eligibility.eligible && (
+                          <span className="block mt-1">
+                            You have {eligibility.remainingDays} days left to
+                            return this item.
+                          </span>
+                        )}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {/* Return Reason - always show */}
+                  <FormField
+                    control={form.control}
+                    name="reasonId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Reason</FormLabel>
+                        <Select
+                          onValueChange={(value) =>
+                            field.onChange(parseInt(value))
+                          }
+                          defaultValue={
+                            field.value === 0
+                              ? undefined
+                              : field.value.toString()
+                          }
+                          disabled={
+                            isLoadingReasons ||
+                            filteredReturnReasons.length === 0
+                          }
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue
+                                placeholder={
+                                  isLoadingReasons
+                                    ? "Loading reasons..."
+                                    : filteredReturnReasons.length === 0
+                                      ? "No reasons available"
+                                      : "Select a reason"
+                                }
+                              />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {filteredReturnReasons.length === 0 ? (
+                              <SelectItem value="" disabled>
+                                No reasons available
+                              </SelectItem>
+                            ) : (
+                              filteredReturnReasons.map((reason) => (
+                                <SelectItem
+                                  key={reason.id}
+                                  value={reason.id.toString()}
+                                >
+                                  {reason.text}
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Please select the reason that best describes your
+                          issue
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Description - always show */}
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Please describe your issue in detail"
+                            className="resize-none min-h-32"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Provide as much detail as possible about the issue
+                          with your order
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Image Upload - always show */}
+                  <div className="space-y-3">
+                    <FormLabel>Upload Images (Optional)</FormLabel>
+                    <div className="border border-input rounded-md p-4">
+                      <div className="flex flex-wrap gap-4 mb-4">
+                        {uploadedImages.map((image, index) => (
+                          <div
+                            key={index}
+                            className="relative rounded-md overflow-hidden h-24 w-24 border"
+                          >
+                            <img
+                              src={image}
+                              alt={`Uploaded ${index + 1}`}
+                              className="h-full w-full object-cover"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveImage(index)}
+                              className="absolute top-1 right-1 bg-black bg-opacity-60 rounded-full p-1 text-white"
+                              title="Remove image"
+                            >
+                              <XIcon className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
+
+                        {uploadedImages.length < 5 && (
+                          <div className="h-24 w-24 flex flex-col items-center justify-center border border-dashed rounded-md p-2 text-gray-500">
+                            <label
+                              htmlFor="image-upload"
+                              className="flex flex-col items-center justify-center w-full h-full cursor-pointer"
+                            >
+                              {isUploading ? (
+                                <Loader2Icon className="h-6 w-6 animate-spin mb-1" />
+                              ) : (
+                                <UploadIcon className="h-6 w-6 mb-1" />
+                              )}
+                              <span className="text-xs text-center">
+                                {isUploading ? "Uploading..." : "Add Image"}
+                              </span>
+                              <input
+                                id="image-upload"
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={handleImageUpload}
+                                disabled={isUploading}
+                              />
+                            </label>
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Upload up to 5 images showing the issue with your order.
+                        Supported formats: JPEG, PNG, WebP (max 5MB each)
+                      </p>
+                    </div>
                   </div>
-                )}
+
+                  {/* Success State - Show when return request is submitted */}
+                  {isSubmitted && submittedReturnId && (
+                    <Alert className="mb-6">
+                      <CheckCircleIcon className="h-4 w-4" />
+                      <AlertTitle>
+                        Return Request Submitted Successfully!
+                      </AlertTitle>
+                      <AlertDescription>
+                        Your return request has been marked for return. Request
+                        ID: #{submittedReturnId}
+                        <br />
+                        <span className="text-sm text-gray-600">
+                          You will be redirected to the return details page
+                          shortly...
+                        </span>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {/* Submit Button - only show if eligible and not submitted */}
+                  {eligibilityChecked &&
+                    eligibility?.eligible &&
+                    !isSubmitted &&
+                    selectedOrderItem &&
+                    requestType &&
+                    uploadedImages.length > 0 &&
+                    form.watch("description").length >= 10 &&
+                    form.watch("reasonId") > 0 && (
+                      <div className="flex justify-end">
+                        <Button
+                          type="submit"
+                          disabled={
+                            createReturnMutation.isPending || isUploading
+                          }
+                          className="min-w-[200px]"
+                        >
+                          {createReturnMutation.isPending ? (
+                            <>
+                              <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                              Submitting...
+                            </>
+                          ) : (
+                            "Submit Return Request"
+                          )}
+                        </Button>
+                      </div>
+                    )}
+
+                  {/* Guidance message when form is not complete */}
+                  {eligibilityChecked &&
+                    eligibility?.eligible &&
+                    !isSubmitted &&
+                    (!selectedOrderItem || !requestType) && (
+                      <div className="flex justify-end">
+                        <p className="text-sm text-gray-500 italic">
+                          Please select an item and request type to continue
+                        </p>
+                      </div>
+                    )}
+
+                  {/* Guidance message when images are required */}
+                  {eligibilityChecked &&
+                    eligibility?.eligible &&
+                    !isSubmitted &&
+                    selectedOrderItem &&
+                    requestType &&
+                    uploadedImages.length === 0 && (
+                      <div className="flex justify-end">
+                        <p className="text-sm text-gray-500 italic">
+                          Please upload at least one image to submit your return
+                          request
+                        </p>
+                      </div>
+                    )}
+
+                  {/* All requirements met message */}
+                  {eligibilityChecked &&
+                    eligibility?.eligible &&
+                    !isSubmitted &&
+                    selectedOrderItem &&
+                    requestType &&
+                    uploadedImages.length > 0 &&
+                    form.watch("description").length >= 10 &&
+                    form.watch("reasonId") > 0 && (
+                      <div className="flex justify-end">
+                        <p className="text-sm text-green-600 italic">
+                          ✓ All requirements met - Ready to submit
+                        </p>
+                      </div>
+                    )}
+
+                  {/* Description requirement message */}
+                  {eligibilityChecked &&
+                    eligibility?.eligible &&
+                    !isSubmitted &&
+                    selectedOrderItem &&
+                    requestType &&
+                    uploadedImages.length > 0 &&
+                    form.watch("description").length < 10 &&
+                    form.watch("reasonId") > 0 && (
+                      <div className="flex justify-end">
+                        <p className="text-sm text-gray-500 italic">
+                          Please provide a description (at least 10 characters)
+                          to submit your return request
+                        </p>
+                      </div>
+                    )}
+
+                  {/* Reason requirement message */}
+                  {eligibilityChecked &&
+                    eligibility?.eligible &&
+                    !isSubmitted &&
+                    selectedOrderItem &&
+                    requestType &&
+                    uploadedImages.length > 0 &&
+                    form.watch("description").length >= 10 &&
+                    form.watch("reasonId") === 0 && (
+                      <div className="flex justify-end">
+                        <p className="text-sm text-gray-500 italic">
+                          Please select a reason to submit your return request
+                        </p>
+                      </div>
+                    )}
+                </fieldset>
               </form>
             </Form>
           </CardContent>

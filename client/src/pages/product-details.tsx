@@ -1024,31 +1024,22 @@ export default function ProductDetailsPage() {
       return;
     }
 
-    // Use traditional add to cart, then redirect approach
+    // Use the proper buyNow function from cart context
     if (cartContext) {
-      // Show loading toast
-      toast({
-        title: "Processing",
-        description: "Adding item to your cart...",
-        variant: "default",
-      });
+      // Set Buy Now flow flag to prevent empty cart errors
+      sessionStorage.setItem("lelekart_buynow_flow", "true");
 
-      // Call add to cart through context with modified variant
+      // Call buyNow through context with modified variant
       if (selectedVariant) {
         // Create a modified variant with the selected size instead of the full size string
         const modifiedVariant = {
           ...selectedVariant,
           size: selectedSize, // Use the selected size instead of the full variant size string
         };
-        cartContext.addToCart(product, quantity, modifiedVariant);
+        cartContext.buyNow(product, quantity, modifiedVariant);
       } else {
-        cartContext.addToCart(product, quantity);
+        cartContext.buyNow(product, quantity);
       }
-
-      // Redirect to checkout after a short delay
-      setTimeout(() => {
-        window.location.href = "/checkout";
-      }, 800);
     } else {
       toast({
         title: "Error",

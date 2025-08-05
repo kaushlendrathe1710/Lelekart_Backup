@@ -428,16 +428,14 @@ export default function SmartInventory() {
         </div>
       </div>
       {/* Scroll to Top Button */}
-      {showScrollToTop && (
-        <Button
-          onClick={scrollToTop}
-          className="fixed bottom-4 right-4 md:bottom-6 md:right-6 p-3 rounded-full bg-primary text-white shadow-lg hover:bg-primary/90 transition-all duration-200 z-50 hover:scale-110"
-          aria-label="Scroll to top"
-          size="sm"
-        >
-          <ArrowUp className="h-5 w-5" />
-        </Button>
-      )}
+      <Button
+        onClick={scrollToTop}
+        className="fixed bottom-20 right-4 md:bottom-24 md:right-6 p-4 rounded-full bg-primary text-white shadow-lg hover:bg-primary/90 transition-all duration-200 z-50 hover:scale-110"
+        aria-label="Scroll to top"
+        size="lg"
+      >
+        <ArrowUp className="h-8 w-8" />
+      </Button>
     </SellerDashboardLayout>
   );
 }

@@ -15,6 +15,9 @@ import { InfiniteScroll } from "@/components/ui/infinite-scroll";
 import {
   useInfiniteProducts,
   useCategoryProducts,
+  useProductsUnderPrice,
+  useProductsWithDiscountRange,
+  useProductsUpToDiscount,
 } from "@/hooks/use-infinite-products";
 import { usePerformanceMonitor } from "@/hooks/use-performance-monitor";
 import {
@@ -99,20 +102,26 @@ export default function HomePage() {
     async function fetchRecentlyViewed() {
       setLoadingRecentlyViewed(true);
       try {
-        const ids = JSON.parse(localStorage.getItem('recently_viewed_products') || '[]').slice(0, 5);
+        const ids = JSON.parse(
+          localStorage.getItem("recently_viewed_products") || "[]"
+        ).slice(0, 5);
         if (!Array.isArray(ids) || ids.length === 0) {
           setRecentlyViewed([]);
           setLoadingRecentlyViewed(false);
           return;
         }
         // Fetch all products in parallel for speed
-        const productPromises = ids.map(id => 
-          fetch(`/api/products/${id}`).then(res => res.ok ? res.json() : null)
+        const productPromises = ids.map((id) =>
+          fetch(`/api/products/${id}`).then((res) =>
+            res.ok ? res.json() : null
+          )
         );
-        const allProducts = (await Promise.all(productPromises)).filter(Boolean);
+        const allProducts = (await Promise.all(productPromises)).filter(
+          Boolean
+        );
         // Keep the order as in localStorage
         const ordered = ids
-          .map((id) => allProducts.find(p => p.id === id))
+          .map((id) => allProducts.find((p) => p.id === id))
           .filter((p) => p !== undefined && p !== null);
         setRecentlyViewed(ordered);
       } catch (e) {
@@ -128,13 +137,50 @@ export default function HomePage() {
   const [browserHistory, setBrowserHistory] = useState<string[]>([]);
   useEffect(() => {
     try {
-      const stored = localStorage.getItem('lelekart_recent_searches');
+      const stored = localStorage.getItem("lelekart_recent_searches");
       if (stored) {
         setBrowserHistory(JSON.parse(stored).slice(0, 5));
       }
     } catch {
       setBrowserHistory([]);
     }
+  }, []);
+
+  // Listen for storage changes to refresh recent searches
+  useEffect(() => {
+    const handleStorageChange = () => {
+      try {
+        const stored = localStorage.getItem("lelekart_recent_searches");
+        if (stored) {
+          const newHistory = JSON.parse(stored).slice(0, 5);
+          setBrowserHistory(newHistory);
+        }
+      } catch {
+        setBrowserHistory([]);
+      }
+    };
+
+    // Listen for storage events from other tabs/windows
+    window.addEventListener("storage", handleStorageChange);
+
+    // Custom event listener for same-window localStorage changes
+    const handleCustomStorageChange = (e: CustomEvent) => {
+      if (e.detail?.key === "lelekart_recent_searches") {
+        handleStorageChange();
+      }
+    };
+    window.addEventListener(
+      "localStorageChange",
+      handleCustomStorageChange as EventListener
+    );
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener(
+        "localStorageChange",
+        handleCustomStorageChange as EventListener
+      );
+    };
   }, []);
 
   // Performance monitoring
@@ -227,6 +273,28 @@ export default function HomePage() {
   const { data: categoryData, isLoading: isLoadingCategory } =
     useCategoryProducts(category || "", itemsPerPage);
 
+  // Dedicated hooks for homepage sections
+  const { data: under199Data, isLoading: isLoadingUnder199 } =
+    useProductsUnderPrice(199, 8);
+  const { data: under399Data, isLoading: isLoadingUnder399 } =
+    useProductsUnderPrice(399, 8);
+  const { data: under599Data, isLoading: isLoadingUnder599 } =
+    useProductsUnderPrice(599, 8);
+
+  const { data: upTo20Data, isLoading: isLoadingUpTo20 } =
+    useProductsUpToDiscount(20, 8);
+  const { data: upTo40Data, isLoading: isLoadingUpTo40 } =
+    useProductsUpToDiscount(40, 8);
+  const { data: upTo60Data, isLoading: isLoadingUpTo60 } =
+    useProductsUpToDiscount(60, 8);
+
+  const { data: discount20to40Data, isLoading: isLoading20to40 } =
+    useProductsWithDiscountRange(20, 40, 8);
+  const { data: discount40to60Data, isLoading: isLoading40to60 } =
+    useProductsWithDiscountRange(40, 60, 8);
+  const { data: discount60to80Data, isLoading: isLoading60to80 } =
+    useProductsWithDiscountRange(60, 80, 8);
+
   // Extract products and pagination from the appropriate data source
   const { products, pagination } = useMemo(() => {
     if (category) {
@@ -245,6 +313,52 @@ export default function HomePage() {
       };
     }
   }, [category, categoryData, infiniteProducts, infinitePagination]);
+
+  // Debug logging for products data
+  useEffect(() => {
+    if (products.length > 0) {
+      const productsWithMrp = products.filter((p) => p.mrp && p.mrp > p.price);
+      const discountRanges = {
+        "0-20%": productsWithMrp.filter((p) => {
+          const discount = Math.round(((p.mrp! - p.price) / p.mrp!) * 100);
+          return discount > 0 && discount <= 20;
+        }).length,
+        "20-40%": productsWithMrp.filter((p) => {
+          const discount = Math.round(((p.mrp! - p.price) / p.mrp!) * 100);
+          return discount > 20 && discount <= 40;
+        }).length,
+        "40-60%": productsWithMrp.filter((p) => {
+          const discount = Math.round(((p.mrp! - p.price) / p.mrp!) * 100);
+          return discount > 40 && discount <= 60;
+        }).length,
+        "60-80%": productsWithMrp.filter((p) => {
+          const discount = Math.round(((p.mrp! - p.price) / p.mrp!) * 100);
+          return discount > 60 && discount <= 80;
+        }).length,
+        "80%+": productsWithMrp.filter((p) => {
+          const discount = Math.round(((p.mrp! - p.price) / p.mrp!) * 100);
+          return discount > 80;
+        }).length,
+      };
+
+      console.log("Homepage Products Debug:", {
+        totalProducts: products.length,
+        productsWithDiscount: productsWithMrp.length,
+        discountRanges,
+        sampleProducts: products.slice(0, 3).map((p) => ({
+          id: p.id,
+          name: p.name,
+          mrp: p.mrp,
+          price: p.price,
+          hasDiscount: p.mrp && p.mrp > p.price,
+          discountPercent:
+            p.mrp && p.mrp > p.price
+              ? Math.round(((p.mrp - p.price) / p.mrp) * 100)
+              : 0,
+        })),
+      });
+    }
+  }, [products]);
 
   const isLoading = category ? isLoadingCategory : isLoadingInfinite;
 
@@ -362,9 +476,18 @@ export default function HomePage() {
   }, []);
 
   // --- Helper functions for new homepage sections ---
-  function getDiscountedProducts(products: Product[], percent: number, count: number) {
+  function getDiscountedProducts(
+    products: Product[],
+    percent: number,
+    count: number
+  ) {
     return products
-      .filter(p => p.mrp && p.mrp > p.price && Math.round(((p.mrp - p.price) / p.mrp) * 100) >= percent)
+      .filter(
+        (p) =>
+          p.mrp &&
+          p.mrp > p.price &&
+          Math.round(((p.mrp - p.price) / p.mrp) * 100) >= percent
+      )
       .sort((a, b) => {
         // Sort by discount percentage descending
         const aDisc = Math.round(((a.mrp! - a.price) / a.mrp!) * 100);
@@ -375,61 +498,98 @@ export default function HomePage() {
   }
   function getLowestDiscountFashion(products: Product[], count: number) {
     return products
-      .filter(p => p.category?.toLowerCase() === 'fashion')
+      .filter((p) => p.category?.toLowerCase() === "fashion")
       .sort((a, b) => {
-        const aDisc = a.mrp && a.mrp > a.price ? ((a.mrp - a.price) / a.mrp) * 100 : 0;
-        const bDisc = b.mrp && b.mrp > b.price ? ((b.mrp - b.price) / b.mrp) * 100 : 0;
+        const aDisc =
+          a.mrp && a.mrp > a.price ? ((a.mrp - a.price) / a.mrp) * 100 : 0;
+        const bDisc =
+          b.mrp && b.mrp > b.price ? ((b.mrp - b.price) / b.mrp) * 100 : 0;
         return aDisc - bDisc;
       })
       .slice(0, count);
   }
   function getUnderPrice(products: Product[], price: number, count: number) {
-    return products.filter(p => p.price <= price).slice(0, count);
+    return products.filter((p) => p.price <= price).slice(0, count);
   }
   // --- Helper for max discount product in a range ---
-  function getMaxDiscountProductsInRange(products: Product[], min: number, max: number, count: number) {
-    return products
-      .filter(p => p.mrp && p.mrp > p.price) // has discount
-      .map(p => ({
-        ...p,
-        discount: Math.round(((p.mrp! - p.price) / p.mrp!) * 100)
-      }))
-      .filter(p => p.discount > min && p.discount <= max)
+  function getMaxDiscountProductsInRange(
+    products: Product[],
+    min: number,
+    max: number,
+    count: number
+  ) {
+    // Debug logging to understand the issue
+    const productsWithDiscount = products.filter(
+      (p) => p.mrp && p.mrp > p.price
+    );
+    const productsWithDiscountCalculated = productsWithDiscount.map((p) => ({
+      ...p,
+      discount: Math.round(((p.mrp! - p.price) / p.mrp!) * 100),
+    }));
+    const productsInRange = productsWithDiscountCalculated.filter(
+      (p) => p.discount >= min && p.discount <= max
+    );
+
+    console.log(`getMaxDiscountProductsInRange(${min}-${max}%):`, {
+      totalProducts: products.length,
+      productsWithDiscount: productsWithDiscount.length,
+      productsInRange: productsInRange.length,
+      range: `${min}-${max}%`,
+      sampleProducts: productsInRange.slice(0, 3).map((p) => ({
+        id: p.id,
+        name: p.name,
+        mrp: p.mrp,
+        price: p.price,
+        discount: p.discount,
+      })),
+    });
+
+    return productsInRange
       .sort((a, b) => b.discount - a.discount)
       .slice(0, count);
   }
-  function getDiscountPercentProducts(products: Product[], percent: number, count: number) {
+  function getDiscountPercentProducts(
+    products: Product[],
+    percent: number,
+    count: number
+  ) {
     if (percent === 20) {
       // Up to 20% off
       return products
-        .filter(p => p.mrp && p.mrp > p.price && Math.round(((p.mrp - p.price) / p.mrp) * 100) <= 20)
+        .filter(
+          (p) =>
+            p.mrp &&
+            p.mrp > p.price &&
+            Math.round(((p.mrp - p.price) / p.mrp) * 100) <= 20
+        )
         .slice(0, count);
     } else if (percent === 40) {
       // More than 20% and up to 40%
       return products
-        .filter(p => p.mrp && p.mrp > p.price) // has discount
-        .map(p => ({
+        .filter((p) => p.mrp && p.mrp > p.price) // has discount
+        .map((p) => ({
           ...p,
-          discount: Math.round(((p.mrp! - p.price) / p.mrp!) * 100)
+          discount: Math.round(((p.mrp! - p.price) / p.mrp!) * 100),
         }))
-        .filter(p => p.discount > 20 && p.discount <= 40)
+        .filter((p) => p.discount > 20 && p.discount <= 40)
         .slice(0, count);
     } else if (percent === 60) {
       // More than 40% and up to 60%
       return products
-        .filter(p => p.mrp && p.mrp > p.price) // has discount
-        .map(p => ({
+        .filter((p) => p.mrp && p.mrp > p.price) // has discount
+        .map((p) => ({
           ...p,
-          discount: Math.round(((p.mrp! - p.price) / p.mrp!) * 100)
+          discount: Math.round(((p.mrp! - p.price) / p.mrp!) * 100),
         }))
-        .filter(p => p.discount > 40 && p.discount <= 60)
+        .filter((p) => p.discount > 40 && p.discount <= 60)
         .slice(0, count);
     }
     return [];
   }
 
   const [recentSearchProducts, setRecentSearchProducts] = useState<any[]>([]);
-  const [loadingRecentSearchProducts, setLoadingRecentSearchProducts] = useState(false);
+  const [loadingRecentSearchProducts, setLoadingRecentSearchProducts] =
+    useState(false);
 
   useEffect(() => {
     async function fetchRecentSearchProducts() {
@@ -441,7 +601,9 @@ export default function HomePage() {
       try {
         // Fetch top product for each search term
         const productPromises = browserHistory.map(async (term) => {
-          const res = await fetch(`/api/lelekart-search?q=${encodeURIComponent(term)}&limit=1`);
+          const res = await fetch(
+            `/api/lelekart-search?q=${encodeURIComponent(term)}&limit=1`
+          );
           if (!res.ok) return null;
           const data = await res.json();
           // Return the first product from the search results
@@ -457,24 +619,6 @@ export default function HomePage() {
     }
     fetchRecentSearchProducts();
   }, [browserHistory]);
-
-  // Listen for storage changes to refresh recent searches
-  useEffect(() => {
-    const handleStorageChange = () => {
-      try {
-        const stored = localStorage.getItem('lelekart_recent_searches');
-        if (stored) {
-          const newHistory = JSON.parse(stored).slice(0, 5);
-          setBrowserHistory(newHistory);
-        }
-      } catch {
-        setBrowserHistory([]);
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
 
   return (
     <div className="min-h-screen bg-[#EADDCB] font-serif">
@@ -499,7 +643,10 @@ export default function HomePage() {
             <Loader2 className="w-10 h-10 text-[#B6C3A5] animate-spin" />
           </div>
         ) : heroProducts && heroProducts.length > 0 ? (
-          <HeroSection sliderImages={heroProducts} dealOfTheDay={dealOfTheDay} />
+          <HeroSection
+            sliderImages={heroProducts}
+            dealOfTheDay={dealOfTheDay}
+          />
         ) : (
           <div className="h-64 bg-gradient-to-r from-[#F8F5E4] to-[#EADDCB] flex flex-col items-center justify-center text-[#B6C3A5]">
             <div className="mb-4">No banners found in Banner Management</div>
@@ -514,27 +661,49 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Featured Deals */}
           <div className="bg-[#F8F5E4] rounded-2xl p-4 border border-[#e0c9a6] shadow-md flex flex-col justify-between">
-            <h2 className="text-xl font-semibold mb-4 text-black">Featured Deals</h2>
+            <h2 className="text-xl font-semibold mb-4 text-black">
+              Featured Deals
+            </h2>
             <div className="grid grid-cols-2 gap-2 justify-center">
               {featuredProducts.slice(0, 4).map((product, index) => (
-                <ProductCard key={product.id} product={product} featured={true} priority={index < 2} variant="plain" showAddToCart={false} showWishlist={false} />
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  featured={true}
+                  priority={index < 2}
+                  variant="plain"
+                  showAddToCart={false}
+                  showWishlist={false}
+                />
               ))}
             </div>
             <div className="flex justify-end mt-2">
-              <Link href="/products" className="text-primary hover:underline">View All</Link>
+              <Link href="/products" className="text-primary hover:underline">
+                View All
+              </Link>
             </div>
           </div>
           {/* Best Seller */}
           <div className="bg-[#F8F5E4] rounded-2xl p-4 border border-[#e0c9a6] shadow-md flex flex-col justify-between">
-            <h2 className="text-xl font-semibold mb-4 text-black">Best Seller</h2>
+            <h2 className="text-xl font-semibold mb-4 text-black">
+              Best Seller
+            </h2>
             <div className="grid grid-cols-2 gap-2 justify-center">
               {[
                 ...getMaxDiscountProductsInRange(products, 40, 60, 2),
                 ...getMaxDiscountProductsInRange(products, 20, 40, 1),
                 ...getMaxDiscountProductsInRange(products, 0, 20, 1),
-              ].slice(0, 4).map((product) => (
-                <ProductCard key={product.id} product={product} showAddToCart={false} variant="plain" showWishlist={false} />
-              ))}
+              ]
+                .slice(0, 4)
+                .map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    showAddToCart={false}
+                    variant="plain"
+                    showWishlist={false}
+                  />
+                ))}
             </div>
           </div>
           {/* Trending */}
@@ -542,7 +711,13 @@ export default function HomePage() {
             <h2 className="text-xl font-semibold mb-4 text-black">Trending</h2>
             <div className="grid grid-cols-2 gap-2 justify-center">
               {getLowestDiscountFashion(products, 4).map((product) => (
-                <ProductCard key={product.id} product={product} showAddToCart={false} variant="plain" showWishlist={false} />
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  showAddToCart={false}
+                  variant="plain"
+                  showWishlist={false}
+                />
               ))}
             </div>
           </div>
@@ -551,16 +726,44 @@ export default function HomePage() {
       {/* --- Under Price Sections (with visible box) --- */}
       <div className="container mx-auto px-4 py-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[199, 399, 599].map((price) => (
-            <div key={price} className="bg-[#F8F5E4] rounded-2xl p-4 border border-[#e0c9a6] shadow-md flex flex-col justify-between">
+          {[
+            { price: 199, data: under199Data, isLoading: isLoadingUnder199 },
+            { price: 399, data: under399Data, isLoading: isLoadingUnder399 },
+            { price: 599, data: under599Data, isLoading: isLoadingUnder599 },
+          ].map(({ price, data, isLoading }) => (
+            <div
+              key={price}
+              className="bg-[#F8F5E4] rounded-2xl p-4 border border-[#e0c9a6] shadow-md flex flex-col justify-between"
+            >
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-medium">Under ₹{price}</h2>
-                <Link href={`/under/${price}`} className="text-primary hover:underline">View All</Link>
+                <Link
+                  href={`/under/${price}`}
+                  className="text-primary hover:underline"
+                >
+                  View All
+                </Link>
               </div>
               <div className="grid grid-cols-2 gap-2 justify-center">
-                {getUnderPrice(products, price, 4).map((product) => (
-                  <ProductCard key={product.id} product={product} showAddToCart={false} variant="plain" showWishlist={false} />
-                ))}
+                {isLoading
+                  ? [...Array(4)].map((_, i) => (
+                      <div key={i} className="flex flex-col items-center">
+                        <Skeleton className="h-32 w-28 mb-2" />
+                        <Skeleton className="h-4 w-24 mb-2" />
+                        <Skeleton className="h-3 w-16" />
+                      </div>
+                    ))
+                  : (data?.products || [])
+                      .slice(0, 4)
+                      .map((product) => (
+                        <ProductCard
+                          key={product.id}
+                          product={product}
+                          showAddToCart={false}
+                          variant="plain"
+                          showWishlist={false}
+                        />
+                      ))}
               </div>
             </div>
           ))}
@@ -569,16 +772,109 @@ export default function HomePage() {
       {/* --- Discount % Off Sections (third row, with visible box) --- */}
       <div className="container mx-auto px-4 py-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[20, 40, 60].map((percent) => (
-            <div key={percent} className="bg-[#F8F5E4] rounded-2xl p-4 border border-[#e0c9a6] shadow-md flex flex-col justify-between">
+          {[
+            { percent: 20, data: upTo20Data, isLoading: isLoadingUpTo20 },
+            { percent: 40, data: upTo40Data, isLoading: isLoadingUpTo40 },
+            { percent: 60, data: upTo60Data, isLoading: isLoadingUpTo60 },
+          ].map(({ percent, data, isLoading }) => (
+            <div
+              key={percent}
+              className="bg-[#F8F5E4] rounded-2xl p-4 border border-[#e0c9a6] shadow-md flex flex-col justify-between"
+            >
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-medium">Up to {percent}% Off</h2>
-                <Link href={`/search?q=upto+${percent}+percent+off`} className="text-primary hover:underline">View All</Link>
+                <Link
+                  href={`/search?q=upto+${percent}+percent+off`}
+                  className="text-primary hover:underline"
+                >
+                  View All
+                </Link>
               </div>
               <div className="grid grid-cols-2 gap-2 justify-center">
-                {getDiscountPercentProducts(products, percent, 4).map((product) => (
-                  <ProductCard key={product.id} product={product} featured={true} showAddToCart={false} variant="plain" showWishlist={false} cardBg="#EADDCB" />
-                ))}
+                {isLoading
+                  ? [...Array(4)].map((_, i) => (
+                      <div key={i} className="flex flex-col items-center">
+                        <Skeleton className="h-32 w-28 mb-2" />
+                        <Skeleton className="h-4 w-24 mb-2" />
+                        <Skeleton className="h-3 w-16" />
+                      </div>
+                    ))
+                  : (data?.products || [])
+                      .slice(0, 4)
+                      .map((product) => (
+                        <ProductCard
+                          key={product.id}
+                          product={product}
+                          featured={true}
+                          showAddToCart={false}
+                          variant="plain"
+                          showWishlist={false}
+                          cardBg="#EADDCB"
+                        />
+                      ))}
+              </div>
+            </div>
+          ))}
+
+          {/* Additional discount range sections */}
+          {[
+            {
+              min: 20,
+              max: 40,
+              title: "20-40% Off",
+              data: discount20to40Data,
+              isLoading: isLoading20to40,
+            },
+            {
+              min: 40,
+              max: 60,
+              title: "40-60% Off",
+              data: discount40to60Data,
+              isLoading: isLoading40to60,
+            },
+            {
+              min: 60,
+              max: 80,
+              title: "60-80% Off",
+              data: discount60to80Data,
+              isLoading: isLoading60to80,
+            },
+          ].map(({ min, max, title, data, isLoading }) => (
+            <div
+              key={`${min}-${max}`}
+              className="bg-[#F8F5E4] rounded-2xl p-4 border border-[#e0c9a6] shadow-md flex flex-col justify-between"
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-medium">{title}</h2>
+                <Link
+                  href={`/search?q=${min}-${max}+percent+off`}
+                  className="text-primary hover:underline"
+                >
+                  View All
+                </Link>
+              </div>
+              <div className="grid grid-cols-2 gap-2 justify-center">
+                {isLoading
+                  ? [...Array(4)].map((_, i) => (
+                      <div key={i} className="flex flex-col items-center">
+                        <Skeleton className="h-32 w-28 mb-2" />
+                        <Skeleton className="h-4 w-24 mb-2" />
+                        <Skeleton className="h-3 w-16" />
+                      </div>
+                    ))
+                  : (data?.products || [])
+                      .slice(0, 4)
+                      .map((product) => (
+                        <ProductCard
+                          key={product.id}
+                          product={product}
+                          featured={true}
+                          showAddToCart={false}
+                          variant="plain"
+                          showWishlist={false}
+                          cardBg="#EADDCB"
+                        />
+                      ))}
               </div>
             </div>
           ))}
@@ -587,16 +883,25 @@ export default function HomePage() {
       {/* --- Recently Viewed Products --- */}
       <div className="container mx-auto px-4 pb-6">
         <div className="bg-[#EADDCB] p-4 rounded shadow-none">
-          <h2 className="text-lg font-semibold mb-4 text-black">Recently Viewed Products</h2>
+          <h2 className="text-lg font-semibold mb-4 text-black">
+            Recently Viewed Products
+          </h2>
           {loadingRecentlyViewed ? (
             <div className="flex items-center justify-center py-8 text-center flex-col">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
-              <h3 className="text-sm font-medium">Loading recently viewed products...</h3>
+              <h3 className="text-sm font-medium">
+                Loading recently viewed products...
+              </h3>
             </div>
           ) : recentlyViewed.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-2">
               {recentlyViewed.map((product: any) => (
-                <ProductCard key={product.id} product={product} featured={false} showAddToCart={true} />
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  featured={false}
+                  showAddToCart={true}
+                />
               ))}
             </div>
           ) : (
@@ -604,8 +909,12 @@ export default function HomePage() {
               <div className="bg-gray-100 rounded-full p-3 mb-3">
                 <Package className="h-6 w-6 text-muted-foreground" />
               </div>
-              <h3 className="text-sm font-medium">No recently viewed products</h3>
-              <p className="text-xs text-muted-foreground mt-1 mb-4">Products you view will appear here</p>
+              <h3 className="text-sm font-medium">
+                No recently viewed products
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1 mb-4">
+                Products you view will appear here
+              </p>
             </div>
           )}
         </div>
@@ -634,7 +943,10 @@ export default function HomePage() {
                 ...nonEmpty.filter((c) => c.count === 1),
               ];
               return sorted.map((catGroup, idx) => (
-                <div key={catGroup.name} className="bg-transparent rounded-2xl p-0 flex flex-col justify-between">
+                <div
+                  key={catGroup.name}
+                  className="bg-transparent rounded-2xl p-0 flex flex-col justify-between"
+                >
                   <div className="bg-[#F8F5E4] rounded-2xl p-4 border border-[#e0c9a6] shadow-md">
                     <CategorySection
                       category={catGroup.name}
@@ -710,27 +1022,52 @@ export default function HomePage() {
                 )}
 
                 {/* Browser History Section - below View More button, only if there are any */}
-                {(
+                {browserHistory.length > 0 && (
                   <div className="bg-[#F8F5E4] rounded-2xl p-4 border border-[#e0c9a6] shadow-md mt-6 mb-2">
-                    <h2 className="text-lg font-semibold mb-4 text-black">Your Recent Searches</h2>
+                    <h2 className="text-lg font-semibold mb-4 text-black">
+                      Your Recent Searches
+                    </h2>
                     {loadingRecentSearchProducts ? (
                       <div className="flex items-center justify-center py-8 text-center flex-col">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
-                        <h3 className="text-sm font-medium">Loading recent searches...</h3>
+                        <h3 className="text-sm font-medium">
+                          Loading recent searches...
+                        </h3>
                       </div>
                     ) : recentSearchProducts.length > 0 ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-2">
                         {recentSearchProducts.map((product, idx) => (
-                          <ProductCard key={product.id || idx} product={product} featured={false} showAddToCart={true} />
+                          <ProductCard
+                            key={product.id || idx}
+                            product={product}
+                            featured={false}
+                            showAddToCart={true}
+                          />
                         ))}
                       </div>
                     ) : (
                       <div className="flex items-center justify-center py-8 text-center flex-col">
                         <div className="bg-gray-100 rounded-full p-3 mb-3">
-                          <svg className="h-6 w-6 text-muted-foreground" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" /></svg>
+                          <svg
+                            className="h-6 w-6 text-muted-foreground"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"
+                            />
+                          </svg>
                         </div>
-                        <h3 className="text-sm font-medium">No products found for your recent searches</h3>
-                        <p className="text-xs text-muted-foreground mt-1 mb-4">Your recent search products will appear here</p>
+                        <h3 className="text-sm font-medium">
+                          No products found for your recent searches
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-1 mb-4">
+                          Your recent search products will appear here
+                        </p>
                       </div>
                     )}
                   </div>
@@ -850,8 +1187,12 @@ function CategorySection({
   index: number;
   imageUrl?: string;
 }) {
-  const categoryQuery = category.toLowerCase() === 'fashion' ? 'Fashion' : category;
-  const { data: categoryData, isLoading } = useCategoryProducts(categoryQuery, 4);
+  const categoryQuery =
+    category.toLowerCase() === "fashion" ? "Fashion" : category;
+  const { data: categoryData, isLoading } = useCategoryProducts(
+    categoryQuery,
+    4
+  );
   const products = (categoryData?.products || []).slice(0, 4);
   // Preload the category image if provided
   useEffect(() => {
@@ -866,7 +1207,11 @@ function CategorySection({
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-2">
           {imageUrl && (
-            <img src={imageUrl} alt={category} className="h-8 w-8 rounded-full object-cover" />
+            <img
+              src={imageUrl}
+              alt={category}
+              className="h-8 w-8 rounded-full object-cover"
+            />
           )}
           <h2 className="text-xl font-medium">Top {category}</h2>
         </div>

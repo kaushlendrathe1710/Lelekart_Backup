@@ -169,12 +169,13 @@ export function Header() {
               variant="link"
               className="text-white flex items-center hover:text-gray-200 relative"
               onClick={toggleCart}
+              title={`View Cart (${cartItemCount} items)`}
             >
               <ShoppingCart className="h-5 w-5" />
               <span className="ml-1">Cart</span>
               {cartItemCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-yellow-400 text-primary text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {cartItemCount}
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
+                  {cartItemCount > 99 ? '99+' : cartItemCount}
                 </span>
               )}
             </Button>
@@ -187,11 +188,12 @@ export function Header() {
               size="icon"
               className="text-white"
               onClick={toggleCart}
+              title={`View Cart (${cartItemCount} items)`}
             >
               <ShoppingCart className="h-6 w-6" />
               {cartItemCount > 0 && (
-                <span className="absolute top-1 right-1 bg-yellow-400 text-primary text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                  {cartItemCount}
+                <span className="absolute top-1 right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center min-w-[16px]">
+                  {cartItemCount > 99 ? '99+' : cartItemCount}
                 </span>
               )}
             </Button>

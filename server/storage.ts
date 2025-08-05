@@ -487,7 +487,10 @@ export interface IStorage {
     search?: string,
     hideDrafts?: boolean,
     subcategory?: string,
-    hideRejected?: boolean
+    hideRejected?: boolean,
+    maxPrice?: number,
+    minDiscount?: number,
+    maxDiscount?: number
   ): Promise<number>;
   getProductsPaginated(
     category?: string,
@@ -498,7 +501,10 @@ export interface IStorage {
     search?: string,
     hideDrafts?: boolean,
     subcategory?: string,
-    hideRejected?: boolean
+    hideRejected?: boolean,
+    maxPrice?: number,
+    minDiscount?: number,
+    maxDiscount?: number
   ): Promise<Product[]>;
   getAllProducts(filters?: {
     sellerId?: number;
@@ -2707,7 +2713,10 @@ export class DatabaseStorage implements IStorage {
     search?: string,
     hideDrafts?: boolean,
     subcategory?: string,
-    hideRejected?: boolean
+    hideRejected?: boolean,
+    maxPrice?: number,
+    minDiscount?: number,
+    maxDiscount?: number
   ): Promise<number> {
     try {
       // Use SQL query for counting with filters
@@ -2747,12 +2756,27 @@ export class DatabaseStorage implements IStorage {
 
       // Add subcategory filter
       if (subcategory) {
-        // Join with subcategories table to filter by subcategory slug
-        query += ` AND products.subcategory_id IN (
-          SELECT sc.id FROM subcategories sc 
-          WHERE LOWER(sc.slug) = LOWER($${params.length + 1})
-        )`;
-        params.push(subcategory);
+        // First, try to find the subcategory by slug to get the name
+        try {
+          const subcategoryQuery = `SELECT name FROM subcategories WHERE LOWER(slug) = LOWER($1)`;
+          const { rows } = await pool.query(subcategoryQuery, [subcategory]);
+
+          if (rows.length > 0) {
+            const subcategoryName = rows[0].name;
+            // Filter by subcategory1 field using the name (case-insensitive)
+            query += ` AND LOWER(subcategory1) = LOWER($${params.length + 1})`;
+            params.push(subcategoryName);
+          } else {
+            // If no subcategory found by slug, try filtering by the slug directly
+            query += ` AND (LOWER(subcategory1) = LOWER($${params.length + 1}) OR LOWER(subcategory1) = LOWER($${params.length + 2}))`;
+            params.push(subcategory, subcategory.replace(/-/g, " "));
+          }
+        } catch (error) {
+          console.error("Error looking up subcategory by slug:", error);
+          // Fallback to direct filtering
+          query += ` AND LOWER(subcategory1) = LOWER($${params.length + 1})`;
+          params.push(subcategory);
+        }
       }
 
       // Add search filter
@@ -2764,6 +2788,27 @@ export class DatabaseStorage implements IStorage {
           LOWER(sku) LIKE LOWER($${params.length + 1})
         )`;
         params.push(`%${search}%`);
+      }
+
+      // Add price filter
+      if (maxPrice !== undefined && maxPrice > 0) {
+        query += ` AND price <= $${params.length + 1}`;
+        params.push(maxPrice);
+      }
+
+      // Add discount range filter
+      if (minDiscount !== undefined || maxDiscount !== undefined) {
+        query += ` AND mrp IS NOT NULL AND mrp > price`;
+
+        if (minDiscount !== undefined) {
+          query += ` AND ((mrp - price) / mrp * 100) >= $${params.length + 1}`;
+          params.push(minDiscount);
+        }
+
+        if (maxDiscount !== undefined) {
+          query += ` AND ((mrp - price) / mrp * 100) <= $${params.length + 1}`;
+          params.push(maxDiscount);
+        }
       }
 
       // Execute the query
@@ -2784,7 +2829,10 @@ export class DatabaseStorage implements IStorage {
     search?: string,
     hideDrafts?: boolean,
     subcategory?: string,
-    hideRejected?: boolean
+    hideRejected?: boolean,
+    maxPrice?: number,
+    minDiscount?: number,
+    maxDiscount?: number
   ): Promise<Product[]> {
     try {
       // Use SQL query for pagination with filters and join with users table to get seller names
@@ -2793,7 +2841,7 @@ export class DatabaseStorage implements IStorage {
         SELECT 
           p.id, p.name, p.description, p.specifications, p.sku, p.mrp, p.purchase_price as "purchasePrice", 
           p.price, p.category, p.category_id as "categoryId", p.subcategory_id as "subcategoryId", 
-          p.color, p.size, p.image_url as "imageUrl", p.images, p.seller_id as "sellerId", 
+          p.subcategory1, p.subcategory2, p.color, p.size, p.image_url as "imageUrl", p.images, p.seller_id as "sellerId", 
           p.stock, p.gst_rate as "gstRate", p.approved, p.rejected, p.deleted, p.is_draft as "isDraft", 
           p.created_at as "createdAt", p.length, p.width, p.height, p.weight,
           u.username as seller_username, u.name as seller_name
@@ -2838,21 +2886,48 @@ export class DatabaseStorage implements IStorage {
       // Add subcategory filter
       if (subcategory) {
         console.log(`Filtering by subcategory slug: ${subcategory}`);
-        // Join with subcategories table to filter by subcategory slug
-        query += ` AND p.subcategory_id IN (
-          SELECT sc.id FROM subcategories sc 
-          WHERE LOWER(sc.slug) = LOWER($${params.length + 1})
-        )`;
-        params.push(subcategory);
 
-        // Debug: Let's log the matching subcategories
-        const debugQuery = `SELECT id, name, slug FROM subcategories WHERE LOWER(slug) = LOWER($1)`;
+        // First, try to find the subcategory by slug to get the name
         try {
-          const { rows } = await pool.query(debugQuery, [subcategory]);
-          console.log(`Found matching subcategories:`, rows);
+          const subcategoryQuery = `SELECT name FROM subcategories WHERE LOWER(slug) = LOWER($1)`;
+          const { rows } = await pool.query(subcategoryQuery, [subcategory]);
+
+          if (rows.length > 0) {
+            const subcategoryName = rows[0].name;
+            console.log(
+              `Found subcategory name: ${subcategoryName} for slug: ${subcategory}`
+            );
+
+            // Filter by subcategory1 field using the name (case-insensitive)
+            query += ` AND LOWER(p.subcategory1) = LOWER($${params.length + 1})`;
+            params.push(subcategoryName);
+
+            console.log(
+              `Filtering products where subcategory1 = '${subcategoryName}'`
+            );
+          } else {
+            // If no subcategory found by slug, try filtering by the slug directly
+            // This handles cases where subcategory1 might contain the slug
+            console.log(
+              `No subcategory found for slug: ${subcategory}, trying direct match`
+            );
+            query += ` AND (LOWER(p.subcategory1) = LOWER($${params.length + 1}) OR LOWER(p.subcategory1) = LOWER($${params.length + 2}))`;
+            params.push(subcategory, subcategory.replace(/-/g, " "));
+            console.log(
+              `Filtering products where subcategory1 matches '${subcategory}' or '${subcategory.replace(/-/g, " ")}'`
+            );
+          }
         } catch (error) {
-          console.error("Error in subcategory debug query:", error);
+          console.error("Error looking up subcategory by slug:", error);
+          // Fallback to direct filtering
+          query += ` AND LOWER(p.subcategory1) = LOWER($${params.length + 1})`;
+          params.push(subcategory);
+          console.log(
+            `Fallback: Filtering products where subcategory1 = '${subcategory}'`
+          );
         }
+
+        console.log(`Added subcategory filter for: ${subcategory}`);
       }
 
       // Add search filter
@@ -2864,6 +2939,27 @@ export class DatabaseStorage implements IStorage {
           LOWER(p.sku) LIKE LOWER($${params.length + 1})
         )`;
         params.push(`%${search}%`);
+      }
+
+      // Add price filter
+      if (maxPrice !== undefined && maxPrice > 0) {
+        query += ` AND p.price <= $${params.length + 1}`;
+        params.push(maxPrice);
+      }
+
+      // Add discount range filter
+      if (minDiscount !== undefined || maxDiscount !== undefined) {
+        query += ` AND p.mrp IS NOT NULL AND p.mrp > p.price`;
+
+        if (minDiscount !== undefined) {
+          query += ` AND ((p.mrp - p.price) / p.mrp * 100) >= $${params.length + 1}`;
+          params.push(minDiscount);
+        }
+
+        if (maxDiscount !== undefined) {
+          query += ` AND ((p.mrp - p.price) / p.mrp * 100) <= $${params.length + 1}`;
+          params.push(maxDiscount);
+        }
       }
 
       // Add pagination
@@ -2882,6 +2978,14 @@ export class DatabaseStorage implements IStorage {
       // Execute the query
       const { rows } = await pool.query(query, params);
       console.log(`Found ${rows.length} products (paginated)`);
+
+      // Debug: Log the actual SQL query and parameters for troubleshooting
+      if (subcategory) {
+        console.log(`Debug - SQL Query: ${query}`);
+        console.log(`Debug - Parameters:`, params);
+        console.log(`Debug - Products found: ${rows.length}`);
+      }
+
       return rows;
     } catch (error) {
       console.error("Error in getProductsPaginated:", error);
@@ -3563,6 +3667,11 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  /**
+   * Search products with improved relevance scoring
+   * This function now prioritizes exact matches and reduces unrelated results
+   * by using word boundary matching and removing broad partial matches
+   */
   async searchProducts(
     query: string,
     limit: number = 10,
@@ -3584,105 +3693,240 @@ export class DatabaseStorage implements IStorage {
         return [];
       }
 
-      // Create a tsquery compatible string with prefix matching
-      const searchTerms = cleanedQuery
-        .split(/\s+/)
-        .filter((term) => term.length > 0);
+      // Check if this is a discount percentage query
+      const discountMatch = cleanedQuery
+        .toLowerCase()
+        .match(/upto\s+(\d+)\s+percent\s+off/);
+      if (discountMatch) {
+        const maxDiscountPercent = parseInt(discountMatch[1]);
+        console.log(
+          `Detected discount percentage query: up to ${maxDiscountPercent}% off`
+        );
 
-      if (searchTerms.length === 0) {
+        // Query for products with discount up to the specified percentage
+        const discountQuery = `
+          SELECT p.*,
+            CASE 
+              WHEN p.mrp IS NOT NULL AND p.mrp > p.price THEN 
+                ROUND(((p.mrp - p.price) / p.mrp) * 100)
+              ELSE 0
+            END AS discount_percentage
+          FROM products p
+          WHERE p.deleted = false 
+            AND p.approved = true 
+            AND (p.is_draft IS NULL OR p.is_draft = false)
+            AND p.mrp IS NOT NULL 
+            AND p.mrp > p.price
+            AND ROUND(((p.mrp - p.price) / p.mrp) * 100) <= $1
+          ORDER BY discount_percentage DESC, p.id DESC
+          LIMIT $2
+        `;
+
+        const { rows } = await pool.query(discountQuery, [
+          maxDiscountPercent,
+          limit,
+        ]);
+        console.log(
+          `Found ${rows.length} products with discount up to ${maxDiscountPercent}%`
+        );
+        return rows;
+      }
+
+      // Also check for variations like "up to 20% off", "up to 20 percent off", etc.
+      const discountMatchVariations = cleanedQuery
+        .toLowerCase()
+        .match(/(?:up\s+to|upto)\s+(\d+)(?:\s*%|\s+percent)\s+off/);
+      if (discountMatchVariations) {
+        const maxDiscountPercent = parseInt(discountMatchVariations[1]);
+        console.log(
+          `Detected discount percentage query variation: up to ${maxDiscountPercent}% off`
+        );
+
+        // Query for products with discount up to the specified percentage
+        const discountQuery = `
+          SELECT p.*,
+            CASE 
+              WHEN p.mrp IS NOT NULL AND p.mrp > p.price THEN 
+                ROUND(((p.mrp - p.price) / p.mrp) * 100)
+              ELSE 0
+            END AS discount_percentage
+          FROM products p
+          WHERE p.deleted = false 
+            AND p.approved = true 
+            AND (p.is_draft IS NULL OR p.is_draft = false)
+            AND p.mrp IS NOT NULL 
+            AND p.mrp > p.price
+            AND ROUND(((p.mrp - p.price) / p.mrp) * 100) <= $1
+          ORDER BY discount_percentage DESC, p.id DESC
+          LIMIT $2
+        `;
+
+        const { rows } = await pool.query(discountQuery, [
+          maxDiscountPercent,
+          limit,
+        ]);
+        console.log(
+          `Found ${rows.length} products with discount up to ${maxDiscountPercent}%`
+        );
+        return rows;
+      }
+
+      // Check for discount range queries like "20-40% off", "40-60% off", etc.
+      const discountRangeMatch = cleanedQuery
+        .toLowerCase()
+        .match(/(\d+)\s*-\s*(\d+)(?:\s*%|\s+percent)\s+off/);
+      if (discountRangeMatch) {
+        const minDiscountPercent = parseInt(discountRangeMatch[1]);
+        const maxDiscountPercent = parseInt(discountRangeMatch[2]);
+        console.log(
+          `Detected discount range query: ${minDiscountPercent}-${maxDiscountPercent}% off`
+        );
+
+        // Query for products with discount in the specified range
+        const discountRangeQuery = `
+          SELECT p.*,
+            CASE 
+              WHEN p.mrp IS NOT NULL AND p.mrp > p.price THEN 
+                ROUND(((p.mrp - p.price) / p.mrp) * 100)
+              ELSE 0
+            END AS discount_percentage
+          FROM products p
+          WHERE p.deleted = false 
+            AND p.approved = true 
+            AND (p.is_draft IS NULL OR p.is_draft = false)
+            AND p.mrp IS NOT NULL 
+            AND p.mrp > p.price
+            AND ROUND(((p.mrp - p.price) / p.mrp) * 100) >= $1
+            AND ROUND(((p.mrp - p.price) / p.mrp) * 100) <= $2
+          ORDER BY discount_percentage DESC, p.id DESC
+          LIMIT $3
+        `;
+
+        const { rows } = await pool.query(discountRangeQuery, [
+          minDiscountPercent,
+          maxDiscountPercent,
+          limit,
+        ]);
+        console.log(
+          `Found ${rows.length} products with discount between ${minDiscountPercent}-${maxDiscountPercent}%`
+        );
+        return rows;
+      }
+
+      // Check for minimum discount queries like "20% off or more", "at least 20% off", etc.
+      const minDiscountMatch = cleanedQuery
+        .toLowerCase()
+        .match(
+          /(?:at\s+least|minimum|more\s+than)\s+(\d+)(?:\s*%|\s+percent)\s+off/
+        );
+      if (minDiscountMatch) {
+        const minDiscountPercent = parseInt(minDiscountMatch[1]);
+        console.log(
+          `Detected minimum discount query: at least ${minDiscountPercent}% off`
+        );
+
+        // Query for products with discount at least the specified percentage
+        const minDiscountQuery = `
+          SELECT p.*,
+            CASE 
+              WHEN p.mrp IS NOT NULL AND p.mrp > p.price THEN 
+                ROUND(((p.mrp - p.price) / p.mrp) * 100)
+              ELSE 0
+            END AS discount_percentage
+          FROM products p
+          WHERE p.deleted = false 
+            AND p.approved = true 
+            AND (p.is_draft IS NULL OR p.is_draft = false)
+            AND p.mrp IS NOT NULL 
+            AND p.mrp > p.price
+            AND ROUND(((p.mrp - p.price) / p.mrp) * 100) >= $1
+          ORDER BY discount_percentage DESC, p.id DESC
+          LIMIT $2
+        `;
+
+        const { rows } = await pool.query(minDiscountQuery, [
+          minDiscountPercent,
+          limit,
+        ]);
+        console.log(
+          `Found ${rows.length} products with discount at least ${minDiscountPercent}%`
+        );
+        return rows;
+      }
+
+      // Check if we have a valid query
+      if (!cleanedQuery || cleanedQuery.trim().length === 0) {
         console.log("No valid search terms, returning empty results");
         return [];
       }
 
-      // Create the tsquery string with exact matching and prefix matching for better results
-      // For a multi-word query like "test product", we want to ensure:
-      // 1. The exact phrase "test product" gets priority
-      // 2. Words like "test" and "product" are also matched individually
-
-      // For single words, use prefix matching
-      let tsQueryString;
-      if (searchTerms.length === 1) {
-        // Single term - use prefix matching
-        tsQueryString = `${searchTerms[0]}:*`;
-      } else {
-        // Multiple terms - create a combination of exact phrase and individual terms
-        const exactPhrase = searchTerms.join(" & "); // AND operator for exact phrase match
-        const individualTerms = searchTerms
-          .map((term) => `${term}:*`)
-          .join(" | "); // OR operator for individual terms
-        tsQueryString = `(${exactPhrase}) | (${individualTerms})`; // Combine both approaches
-      }
-
-      console.log("TS Query string:", tsQueryString);
-
       // Add approval filter for all users using this search function
       const approvalFilter = ` AND p.approved = true AND (p.is_draft IS NULL OR p.is_draft = false)`;
 
-      // Simplified query that doesn't rely on column aliases in ORDER BY
+      // Ultra-strict query that only returns highly relevant results
       const finalQuery = `
         WITH ranked_products AS (
           SELECT 
             p.*,
-            ts_rank(
-              setweight(to_tsvector('english', coalesce(p.name, '')), 'A') ||
-              setweight(to_tsvector('english', coalesce(p.category, '')), 'B') ||
-              setweight(to_tsvector('english', coalesce(p.description, '')), 'C'),
-              to_tsquery('english', $1)
-            ) AS search_rank,
             CASE 
               -- Exact word match with word boundaries (highest priority)
-              WHEN p.name ~* ('^' || $4 || '$') THEN 10.0 -- Exact word match in name
-              WHEN p.name ~* ('\\y' || $4 || '\\y') THEN 8.0 -- Word boundary match in name
-              WHEN p.category ~* ('\\y' || $4 || '\\y') THEN 6.0 -- Word boundary match in category
-              -- Generic ILIKE matches (lower priority)
-              WHEN p.name ILIKE $2 THEN 3.0
-              WHEN p.category ILIKE $2 THEN 2.0
-              WHEN p.name ILIKE $3 THEN 1.5
-              WHEN p.description ILIKE $3 THEN 1.0
+              WHEN p.name ~* ('^' || $2 || '$') THEN 10.0 -- Exact word match in name
+              WHEN p.name ~* ('\\y' || $2 || '\\y') THEN 8.0 -- Word boundary match in name
+              WHEN p.category ~* ('\\y' || $2 || '\\y') THEN 6.0 -- Word boundary match in category
+              -- Only exact word matches (no partial matches)
+              WHEN p.name ILIKE $1 THEN 3.0
+              WHEN p.category ILIKE $1 THEN 2.0
               ELSE 0
             END AS exact_match_rank
           FROM products p
-          WHERE 
+                      WHERE 
             p.deleted = false AND (
-              (
-                to_tsvector('english', coalesce(p.name, '')) ||
-                to_tsvector('english', coalesce(p.category, '')) ||
-                to_tsvector('english', coalesce(p.description, ''))
-              ) @@ to_tsquery('english', $1)
-              OR p.name ILIKE $3
-              OR p.category ILIKE $2
-              OR p.description ILIKE $3
+              -- ONLY exact word boundary matches (most relevant)
+              p.name ~* ('\\y' || $2 || '\\y') OR
+              p.category ~* ('\\y' || $2 || '\\y') OR
+              -- OR exact word matches in name/category only
+              p.name ILIKE $1 OR
+              p.category ILIKE $1
             )
             ${approvalFilter}
         )
         SELECT * FROM ranked_products
-        ORDER BY (search_rank + exact_match_rank) DESC, id DESC
-        LIMIT $5
+        ORDER BY exact_match_rank DESC, id DESC
+        LIMIT $3
       `;
 
-      // Parameters for the search query - Use word boundaries for exact matches
+      // Parameters for the ultra-strict search query
       const params = [
-        tsQueryString, // $1 - TS query for full-text search
-        `% ${query} %`, // $2 - Exact word match - note the spaces around the query
-        `%${query}%`, // $3 - Partial match for fallback scenario
-        query, // $4 - Cleaned search term for regex word boundary matching
-        limit, // $5 - Result limit
+        `% ${query} %`, // $1 - Exact word match - note the spaces around the query
+        query, // $2 - Cleaned search term for regex word boundary matching
+        limit, // $3 - Result limit
       ];
 
       // Log the exact search parameters to help debug
       console.log(
-        "SEARCH DEBUG - EXACT MATCHING: Using the following parameters:"
+        "SEARCH DEBUG - ULTRA-STRICT RELEVANCE: Using the following parameters:"
       );
       console.log("- Original query:", query);
-      console.log("- TS Query:", tsQueryString);
+      console.log("- Exact word boundary pattern:", `\\y${query}\\y`);
       console.log("- Exact match pattern:", `% ${query} %`);
-      console.log("- Partial match pattern:", `%${query}%`);
+      console.log(
+        "- Search strategy: ONLY word boundaries + exact matches (no description search)"
+      );
 
-      console.log("Executing advanced search query with params:", params);
+      console.log(
+        "Executing ultra-strict relevance search query with params:",
+        params
+      );
 
-      // Execute the query
+      // Execute the query with ultra-strict relevance scoring
+      // This search now ONLY returns:
+      // 1. Exact word boundary matches in name/category (highest relevance)
+      // 2. Exact word matches in name/category (lower relevance)
+      // 3. NO description search (prevents all unrelated results)
       const { rows } = await pool.query(finalQuery, params);
-      console.log(`Found ${rows.length} products in advanced search`);
+      console.log(
+        `Found ${rows.length} products with ultra-strict relevance search`
+      );
 
       return rows;
     } catch (error) {
@@ -4796,6 +5040,7 @@ export class DatabaseStorage implements IStorage {
     (OrderItem & {
       product: Product & { seller?: any };
       variant?: ProductVariant;
+      returnRequested?: boolean;
     })[]
   > {
     console.log(
@@ -4914,7 +5159,7 @@ export class DatabaseStorage implements IStorage {
     ];
     console.log(`DEBUG: Found orderIds in results:`, orderIds);
 
-    // Fetch variant information for order items that have variantId
+    // Fetch variant information and return request status for order items
     const result = await Promise.all(
       orderItemsWithProductsAndSellers.map(async (item) => {
         let variant = undefined;
@@ -4938,6 +5183,20 @@ export class DatabaseStorage implements IStorage {
           }
         }
 
+        // Check if this order item has any return requests
+        let returnRequested = false;
+        try {
+          const returnRequests = await this.getReturnRequestsForOrderItem(
+            item.orderItem.id
+          );
+          returnRequested = returnRequests.length > 0;
+        } catch (returnError) {
+          console.error(
+            `Error checking return requests for order item ${item.orderItem.id}:`,
+            returnError
+          );
+        }
+
         return {
           ...item.orderItem,
           product: {
@@ -4951,6 +5210,7 @@ export class DatabaseStorage implements IStorage {
               : undefined,
           },
           variant,
+          returnRequested,
         };
       })
     );
@@ -5301,15 +5561,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateOrderStatus(id: number, status: string): Promise<Order> {
-    // Get the current order to validate status transition
-    const currentOrder = await this.getOrder(id);
-    if (!currentOrder) {
-      throw new Error(`Order with ID ${id} not found`);
-    }
-
-    // Define allowed status transitions for security
+    // Define allowed status transitions for security (moved outside to avoid recreation)
     const allowedTransitions: Record<string, string[]> = {
-      pending: ["processing", "confirmed", "cancelled"],
+      pending: ["processing", "confirmed", "cancelled", "delivered"],
       processing: ["confirmed", "shipped", "cancelled"],
       confirmed: ["shipped", "cancelled"],
       shipped: ["delivered", "returned"],
@@ -5324,6 +5578,12 @@ export class DatabaseStorage implements IStorage {
       completed_return: ["reject_return"],
       reject_return: [],
     };
+
+    // Get the current order to validate status transition
+    const currentOrder = await this.getOrder(id);
+    if (!currentOrder) {
+      throw new Error(`Order with ID ${id} not found`);
+    }
 
     // Check if the status transition is allowed
     const allowedNextStatuses = allowedTransitions[currentOrder.status] || [];
@@ -5351,6 +5611,19 @@ export class DatabaseStorage implements IStorage {
     // If transition is valid, proceed with the update
     const updatedOrder = await this.updateOrder(id, { status });
     console.log(`Order ${id} status after update: ${updatedOrder.status}`);
+    return updatedOrder;
+  }
+
+  /**
+   * Fast order status update - bypasses some validation for speed
+   * Use this for high-frequency status updates where validation is already done
+   */
+  async fastUpdateOrderStatus(id: number, status: string): Promise<Order> {
+    console.log(`Fast updating order ${id} status to '${status}'`);
+
+    // Direct update without validation (assumes validation is done elsewhere)
+    const updatedOrder = await this.updateOrder(id, { status });
+    console.log(`Order ${id} status after fast update: ${updatedOrder.status}`);
     return updatedOrder;
   }
 

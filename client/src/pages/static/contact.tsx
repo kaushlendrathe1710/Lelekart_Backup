@@ -87,14 +87,14 @@ export default function ContactUsPage() {
                         Toll-Free (India)
                       </p>
                       <p className="text-base md:text-lg text-blue-600 font-medium">
-                        1800 202 9898
+                        +91 9650503696
                       </p>
                       <StaticPageSection
                         section="contact_page"
                         titleFilter="Phone Numbers"
                         defaultContent={
                           <p className="text-xs md:text-sm text-gray-500 mt-2">
-                            Mon-Sat (9 AM to 9 PM)
+                            24/7 Available
                           </p>
                         }
                       />
@@ -115,7 +115,7 @@ export default function ContactUsPage() {
                         For any queries
                       </p>
                       <p className="text-base md:text-lg text-blue-600 font-medium">
-                        support@lelekart.com
+                        marketing.lelekart@gmail.com
                       </p>
                       <StaticPageSection
                         section="contact_page"
@@ -140,10 +140,10 @@ export default function ContactUsPage() {
                         Business Hours
                       </h3>
                       <p className="text-sm md:text-base text-gray-600 mb-1">
-                        Monday - Saturday
+                        Available 24/7
                       </p>
                       <p className="text-base md:text-lg text-blue-600 font-medium">
-                        9:00 AM - 9:00 PM
+                        Round the Clock
                       </p>
                       <StaticPageSection
                         section="contact_page"
@@ -174,6 +174,8 @@ export default function ContactUsPage() {
                             titleFilter="Corporate Address"
                             defaultContent={
                               <p className="text-sm md:text-base text-gray-600">
+                                Lelekart Internet Private Limited,
+                                <br />
                                 Building no 2072, Chandigarh Royale City
                                 <br />
                                 Bollywood Gully
@@ -190,31 +192,7 @@ export default function ContactUsPage() {
                           />
                         </div>
 
-                        <h3 className="text-lg md:text-xl font-semibold mt-4 md:mt-6">
-                          Registered Office
-                        </h3>
-                        <div className="flex items-start">
-                          <MapPin className="h-4 w-4 md:h-5 md:w-5 text-blue-600 mr-2 mt-1 flex-shrink-0" />
-                          <StaticPageSection
-                            section="contact_page"
-                            titleFilter="Registered Office"
-                            defaultContent={
-                              <p className="text-sm md:text-base text-gray-600">
-                                Lelekart Internet Private Limited,
-                                <br />
-                                Vaishnavi Summit, Ground Floor,
-                                <br />
-                                7th Main, 80 Feet Road, 3rd Block,
-                                <br />
-                                Koramangala,
-                                <br />
-                                Bengaluru, 560034,
-                                <br />
-                                Karnataka, India
-                              </p>
-                            }
-                          />
-                        </div>
+
                       </div>
                     </CardContent>
                   </Card>
@@ -353,7 +331,7 @@ export default function ContactUsPage() {
                       <span className="font-medium">
                         Customer Service Hours:
                       </span>{" "}
-                      Monday to Saturday, 9:00 AM to 9:00 PM IST
+                      24/7 Available
                     </p>
                   </div>
                 }

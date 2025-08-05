@@ -83,6 +83,11 @@ interface AdminProduct {
   images?: string;
   specifications?: string;
   gstDetails?: GstDetails;
+  seller?: {
+    id: number;
+    name: string;
+    username: string;
+  };
 }
 
 // Define type for order items with product info
@@ -605,26 +610,54 @@ export default function AdminOrders() {
   };
 
   // Download shipping label as PDF
-  const downloadShippingLabel = () => {
+  const downloadShippingLabel = async () => {
     if (!viewOrder) return;
 
     try {
-      // Open the PDF in a new tab
-      window.open(
+      toast({
+        title: "Generating Shipping Label",
+        description: "Please wait while we prepare your shipping label...",
+      });
+
+      // Fetch the shipping label
+      const response = await fetch(
         `/api/orders/${viewOrder.id}/shipping-label?format=pdf`,
-        "_blank"
+        {
+          method: "GET",
+          credentials: "include",
+        }
       );
 
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${response.statusText}`);
+      }
+
+      // Get the PDF blob and create an object URL
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      // Create a temporary link and trigger download
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+      a.download = `shipping-label-order-${viewOrder.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+
+      // Clean up
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
       toast({
-        title: "Shipping Label Generated",
+        title: "Shipping Label Downloaded!",
         description:
-          "Your shipping label has been opened in a new tab. You can save it from there.",
+          "Your shipping label has been downloaded successfully. Check your downloads folder.",
       });
     } catch (error) {
       console.error("Error downloading shipping label:", error);
       toast({
         title: "Download Failed",
-        description: "Failed to generate the shipping label. Please try again.",
+        description: "Failed to download the shipping label. Please try again.",
         variant: "destructive",
       });
     }
@@ -1143,7 +1176,10 @@ export default function AdminOrders() {
                             Quantity: {item.quantity} × ₹{item.price}
                           </p>
                           <p className="text-sm text-gray-500">
-                            Seller: {item.product.sellerName || "Unknown"}
+                            Seller:{" "}
+                            {item.product.seller?.name ||
+                              item.product.seller?.username ||
+                              "Unknown"}
                           </p>
                           {/* Display variant information if available */}
                           {item.variant && (

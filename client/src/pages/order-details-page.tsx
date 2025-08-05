@@ -239,10 +239,11 @@ export default function OrderDetailsPage() {
       if (orderData) {
         const itemsResponse = await fetch(`/api/orders/${orderId}/items`);
         if (itemsResponse.ok) {
-                  const itemsData = await itemsResponse.json();
-        console.log('Order items data:', itemsData);
-        setItems(itemsData);
+          const itemsData = await itemsResponse.json();
+          console.log("Order items data:", itemsData);
+          setItems(itemsData);
         }
+      }
       // Use items from the order response instead of making a separate API call
       if (orderData && orderData.items) {
         setItems(orderData.items);
@@ -561,7 +562,13 @@ export default function OrderDetailsPage() {
             <div>
               <p>
                 <span className="font-medium">Method: </span>
-                <span>{order.paymentMethod}</span>
+                <span>
+                  {order.paymentMethod === "cod"
+                    ? "Cash on Delivery"
+                    : order.paymentMethod === "razorpay"
+                      ? "Razorpay"
+                      : order.paymentMethod}
+                </span>
               </p>
               <p className="mt-1">
                 <span className="font-medium">Status: </span>
@@ -772,11 +779,15 @@ export default function OrderDetailsPage() {
                         className="h-full w-full object-cover"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
-                          console.log('Image failed to load:', target.src);
-                          target.src = "https://placehold.co/100x100?text=No+Image";
+                          console.log("Image failed to load:", target.src);
+                          target.src =
+                            "https://placehold.co/100x100?text=No+Image";
                         }}
                         onLoad={() => {
-                          console.log('Image loaded successfully for product:', item.product.name);
+                          console.log(
+                            "Image loaded successfully for product:",
+                            item.product.name
+                          );
                         }}
                       />
                     </div>

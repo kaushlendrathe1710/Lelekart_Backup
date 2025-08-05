@@ -2874,6 +2874,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const search = req.query.search as string | undefined;
       const subcategory = req.query.subcategory as string | undefined;
       const interleaved = req.query.interleaved === "true";
+      const maxPrice = req.query.maxPrice
+        ? Number(req.query.maxPrice)
+        : undefined;
+      const minDiscount = req.query.minDiscount
+        ? Number(req.query.minDiscount)
+        : undefined;
+      const maxDiscount = req.query.maxDiscount
+        ? Number(req.query.maxDiscount)
+        : undefined;
 
       // Check user role to determine if we should show unapproved products
       const userRole = req.isAuthenticated() ? req.user.role : "buyer";
@@ -2926,6 +2935,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         limit,
         search,
         subcategory,
+        maxPrice,
+        minDiscount,
+        maxDiscount,
         userRole: req.isAuthenticated() ? req.user.role : "buyer",
       });
 
@@ -3065,7 +3077,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         search,
         isDraft,
         subcategory,
-        rejected
+        rejected,
+        maxPrice,
+        minDiscount,
+        maxDiscount
       );
       const totalPages = Math.ceil(totalCount / limit);
 
@@ -3091,7 +3106,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         search,
         isDraft, // Pass isDraft parameter
         subcategory, // Pass subcategory parameter
-        rejected // Pass rejected parameter (now can be true/false/undefined)
+        rejected, // Pass rejected parameter (now can be true/false/undefined)
+        maxPrice, // Pass maxPrice parameter for price filtering
+        minDiscount, // Pass minDiscount parameter for discount filtering
+        maxDiscount // Pass maxDiscount parameter for discount filtering
       );
       console.log(
         `Found ${products?.length || 0} products (page ${page}/${totalPages})`
@@ -5389,13 +5407,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Cart is empty" });
       }
 
+      // Get the discounted amount from request body if provided
+      const { discountedAmount } = req.body;
+
       // Calculate total in lowest currency unit (paise for INR)
-      const totalInPaise = Math.round(
+      // Use discounted amount if provided, otherwise calculate from cart items
+      const originalTotal = Math.round(
         cartItems.reduce(
           (acc, item) => acc + item.product.price * item.quantity,
           0
         ) * 100
       );
+
+      const totalInPaise = discountedAmount
+        ? Math.round(discountedAmount * 100) // Convert rupees to paise
+        : originalTotal;
+
+      // Log the amounts for debugging
+      console.log("Razorpay order creation:", {
+        originalTotal: originalTotal / 100,
+        discountedAmount,
+        finalAmount: totalInPaise / 100,
+        cartItemsCount: cartItems.length,
+      });
 
       // Create a unique receipt ID
       const receiptId = `receipt_${Date.now()}_${req.user.id}`;
@@ -5490,6 +5524,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         shippingDetails,
         addressId,
         walletDetails,
+        discountedAmount,
       } = req.body;
 
       if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
@@ -5562,11 +5597,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Calculate total
-      const total = cartItems.reduce((acc, item) => {
+      // Calculate total - use discounted amount if provided, otherwise calculate from cart items
+      const originalTotal = cartItems.reduce((acc, item) => {
         const price = item.variant ? item.variant.price : item.product.price;
         return acc + price * item.quantity;
       }, 0);
+
+      const total = discountedAmount || originalTotal;
+
+      // Log the amounts for debugging
+      console.log("Payment verification:", {
+        originalTotal,
+        discountedAmount,
+        finalTotal: total,
+        cartItemsCount: cartItems.length,
+      });
 
       // Create order in our system
       const orderData: any = {
@@ -6613,32 +6658,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Send cancellation email notifications
+      // Send immediate real-time notification to buyer
       try {
-        console.log(`Sending cancellation emails for order ${orderId}`);
-        emailService.sendOrderCancelledEmails(orderId).catch((emailError) => {
-          console.error(`Error sending cancellation emails: ${emailError}`);
-        });
-      } catch (emailError) {
-        console.error(`Error initiating cancellation emails: ${emailError}`);
-        // Don't fail the cancellation if email sending fails
-      }
-
-      // Create a notification for the buyer
-      try {
-        await storage.createNotification({
-          userId: order.userId,
+        const { sendNotificationToUser } = await import("./websocket");
+        await sendNotificationToUser(order.userId, {
+          type: "ORDER_STATUS",
           title: "Order Cancelled",
-          message: `Your order #${orderId} has been cancelled. Any payment will be refunded according to the payment method used.`,
-          type: "order_update",
-          link: `/order/${orderId}`,
+          message: `Your order #${orderId} has been cancelled successfully.`,
+          read: false,
+          link: `/orders/${orderId}`,
+          metadata: JSON.stringify({ orderId, status: "cancelled" }),
         });
       } catch (notificationError) {
         console.error(
-          "Error creating cancellation notification:",
+          "Error sending real-time notification:",
           notificationError
         );
       }
+
+      // Send cancellation email notifications asynchronously (non-blocking)
+      setImmediate(async () => {
+        try {
+          console.log(`Sending cancellation emails for order ${orderId}`);
+          await emailService.sendOrderCancelledEmails(orderId);
+        } catch (emailError) {
+          console.error(`Error sending cancellation emails: ${emailError}`);
+        }
+      });
+
+      // Create a permanent notification for the buyer asynchronously (non-blocking)
+      setImmediate(async () => {
+        try {
+          await storage.createNotification({
+            userId: order.userId,
+            title: "Order Cancelled",
+            message: `Your order #${orderId} has been cancelled. Any payment will be refunded according to the payment method used.`,
+            type: "order_update",
+            link: `/order/${orderId}`,
+          });
+        } catch (notificationError) {
+          console.error(
+            "Error creating cancellation notification:",
+            notificationError
+          );
+        }
+      });
 
       res.json({
         message: "Order cancelled successfully",
@@ -6760,30 +6824,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedOrder = await handleOrderStatusChange(id, status);
       console.log(`Updated main order #${id} status to ${status}`);
 
-      // Send appropriate email notifications based on the new status
+      // Send immediate real-time notification to buyer for status changes
       try {
-        console.log(
-          `Sending email notifications for order ${id} status update to: ${status}`
-        );
-        if (status === "shipped") {
-          // Send shipping notifications asynchronously
-          emailService.sendOrderShippedEmails(id).catch((emailError) => {
-            console.error(`Error sending shipped order emails: ${emailError}`);
-          });
-        } else if (status === "cancelled") {
-          // Send cancellation notifications asynchronously
-          emailService.sendOrderCancelledEmails(id).catch((emailError) => {
-            console.error(
-              `Error sending cancelled order emails: ${emailError}`
-            );
-          });
-        }
-      } catch (emailError) {
+        const { sendNotificationToUser } = await import("./websocket");
+        await sendNotificationToUser(order.userId, {
+          type: "ORDER_STATUS",
+          title: `Order #${id} ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+          message: `Your order #${id} status has been updated to ${status}.`,
+          read: false,
+          link: `/orders/${id}`,
+          metadata: JSON.stringify({ orderId: id, status }),
+        });
+      } catch (notificationError) {
         console.error(
-          `Error initiating order status update emails: ${emailError}`
+          "Error sending real-time notification:",
+          notificationError
         );
-        // Don't fail the order status update if email sending fails
       }
+
+      // Send appropriate email notifications asynchronously (non-blocking)
+      setImmediate(async () => {
+        try {
+          console.log(
+            `Sending email notifications for order ${id} status update to: ${status}`
+          );
+          if (status === "shipped") {
+            await emailService.sendOrderShippedEmails(id);
+          } else if (status === "cancelled") {
+            await emailService.sendOrderCancelledEmails(id);
+          }
+        } catch (emailError) {
+          console.error(
+            `Error sending order status update emails: ${emailError}`
+          );
+        }
+      });
 
       res.json(updatedOrder);
     } catch (error) {
@@ -9050,6 +9125,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log("SEARCH API: Searching products with query:", query);
+
+      // For discount range queries, ensure we use the same filtering as the home page
+      const cleanedQuery = query.trim().toLowerCase();
+      const discountRangeMatch = cleanedQuery.match(
+        /(\d+)\s*-\s*(\d+)(?:\s*%|\s+percent)\s+off/
+      );
+
+      if (discountRangeMatch) {
+        // Use the same filtering logic as the home page for discount range queries
+        const minDiscountPercent = parseInt(discountRangeMatch[1]);
+        const maxDiscountPercent = parseInt(discountRangeMatch[2]);
+
+        console.log(
+          `SEARCH API: Detected discount range query: ${minDiscountPercent}-${maxDiscountPercent}% off`
+        );
+
+        // Use the same filtering as home page (approved=true, not draft, not rejected)
+        const discountRangeQuery = `
+          SELECT p.*,
+            CASE 
+              WHEN p.mrp IS NOT NULL AND p.mrp > p.price THEN 
+                ROUND(((p.mrp - p.price) / p.mrp) * 100)
+              ELSE 0
+            END AS discount_percentage
+          FROM products p
+          WHERE p.deleted = false 
+            AND p.approved = true 
+            AND (p.is_draft IS NULL OR p.is_draft = false)
+            AND p.mrp IS NOT NULL 
+            AND p.mrp > p.price
+            AND ROUND(((p.mrp - p.price) / p.mrp) * 100) >= $1
+            AND ROUND(((p.mrp - p.price) / p.mrp) * 100) <= $2
+          ORDER BY discount_percentage DESC, p.id DESC
+          LIMIT $3
+        `;
+
+        const { rows } = await pool.query(discountRangeQuery, [
+          minDiscountPercent,
+          maxDiscountPercent,
+          limit,
+        ]);
+
+        console.log(
+          `SEARCH API: Found ${rows.length} products with discount between ${minDiscountPercent}-${maxDiscountPercent}%`
+        );
+
+        // Set the content type explicitly to application/json
+        res.setHeader("Content-Type", "application/json");
+        return res.json(rows);
+      }
+
+      // For other queries, use the existing searchProducts function
       const results = await storage.searchProducts(query, limit, userRole);
       console.log(`SEARCH API: Found ${results.length} results for "${query}"`);
 
@@ -11177,6 +11304,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     await returnsHandlers.updateReturnStatusHandler(req, res);
+  });
+
+  // Return action routes
+  app.post("/api/seller/returns/:id/accept", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" || !req.user.approved)
+      return res.status(403).json({ error: "Not authorized" });
+
+    await returnsHandlers.acceptReturnHandler(req, res);
+  });
+
+  app.post("/api/seller/returns/:id/reject", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" || !req.user.approved)
+      return res.status(403).json({ error: "Not authorized" });
+
+    await returnsHandlers.rejectReturnHandler(req, res);
+  });
+
+  app.post("/api/seller/returns/:id/process", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" || !req.user.approved)
+      return res.status(403).json({ error: "Not authorized" });
+
+    await returnsHandlers.processReturnHandler(req, res);
   });
 
   // Analytics Routes
