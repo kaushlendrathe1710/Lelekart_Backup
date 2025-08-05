@@ -286,7 +286,9 @@ export default function AboutUsPage() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                       <div className="text-center">
                         <div className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-blue-100 mx-auto mb-3 md:mb-4 flex items-center justify-center">
-                          <span className="text-blue-600 font-bold text-lg md:text-xl">RS</span>
+                          <span className="text-blue-600 font-bold text-lg md:text-xl">
+                            RS
+                          </span>
                         </div>
                         <h3 className="font-semibold text-sm md:text-base">
                           Rahul Sharma
@@ -295,7 +297,9 @@ export default function AboutUsPage() {
                       </div>
                       <div className="text-center">
                         <div className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-green-100 mx-auto mb-3 md:mb-4 flex items-center justify-center">
-                          <span className="text-green-600 font-bold text-lg md:text-xl">PP</span>
+                          <span className="text-green-600 font-bold text-lg md:text-xl">
+                            PP
+                          </span>
                         </div>
                         <h3 className="font-semibold text-sm md:text-base">
                           Priya Patel
@@ -304,7 +308,9 @@ export default function AboutUsPage() {
                       </div>
                       <div className="text-center">
                         <div className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-purple-100 mx-auto mb-3 md:mb-4 flex items-center justify-center">
-                          <span className="text-purple-600 font-bold text-lg md:text-xl">AK</span>
+                          <span className="text-purple-600 font-bold text-lg md:text-xl">
+                            AK
+                          </span>
                         </div>
                         <h3 className="font-semibold text-sm md:text-base">
                           Amit Kumar
@@ -313,7 +319,9 @@ export default function AboutUsPage() {
                       </div>
                       <div className="text-center">
                         <div className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-orange-100 mx-auto mb-3 md:mb-4 flex items-center justify-center">
-                          <span className="text-orange-600 font-bold text-lg md:text-xl">DA</span>
+                          <span className="text-orange-600 font-bold text-lg md:text-xl">
+                            DA
+                          </span>
                         </div>
                         <h3 className="font-semibold text-sm md:text-base">
                           Deepa Agarwal
@@ -456,7 +464,7 @@ export default function AboutUsPage() {
                           Explore Careers
                         </a>
                         <a
-                          href="/seller"
+                          href="/become-a-seller"
                           className="bg-[#F8F5E4] text-[#2874f0] border border-[#2874f0] px-4 md:px-6 py-2 md:py-3 rounded-sm hover:bg-[#f5f9ff] transition-colors text-sm md:text-base"
                         >
                           Become a Seller
