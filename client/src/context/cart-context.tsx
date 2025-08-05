@@ -700,7 +700,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setIsOpen((prev) => !prev);
   };
 
-  // Buy now functionality (add to cart and redirect to checkout)
+  // Buy now functionality - direct purchase without affecting cart
   const buyNow = async (
     product: Product,
     quantity = 1,
@@ -708,6 +708,48 @@ export function CartProvider({ children }: { children: ReactNode }) {
   ) => {
     // Set Buy Now flow flag to prevent empty cart errors
     sessionStorage.setItem("lelekart_buynow_flow", "true");
+
+    // Store buy now product data in session storage for checkout
+    const buyNowData = {
+      product: {
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        price: variant ? variant.price : product.price,
+        imageUrl: product.imageUrl,
+        images: product.images,
+        category: product.category,
+        sellerId: product.sellerId,
+        approved: product.approved,
+        createdAt: product.createdAt,
+        specifications: product.specifications,
+        purchasePrice: product.purchasePrice,
+        color: product.color,
+        size: product.size,
+        stock: variant ? variant.stock : product.stock,
+        deliveryCharges: product.deliveryCharges,
+      },
+      variant: variant
+        ? {
+            id: variant.id,
+            productId: variant.productId,
+            sku: variant.sku,
+            price: variant.price,
+            mrp: variant.mrp,
+            stock: variant.stock,
+            color: variant.color,
+            size: variant.size,
+            images: variant.images,
+          }
+        : null,
+      quantity: quantity,
+      sellerId: product.sellerId, // Add sellerId for server processing
+    };
+
+    sessionStorage.setItem(
+      "lelekart_buynow_product",
+      JSON.stringify(buyNowData)
+    );
 
     // Handle buy now flow for direct purchase
     console.log("buyNow called in cart context with:", {
@@ -780,51 +822,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Use direct fetch API for more explicit control over the buy now process
-      // This avoids race conditions with React Query and ensures the cart item is created
-      const response = await fetch("/api/cart", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "no-cache",
-        },
-        body: JSON.stringify({
-          productId: product.id,
-          quantity: requestedQuantity,
-          variantId: variant?.id,
-          buyNow: true, // Signal to the server this is a buy now request
-        }),
-      });
-
-      if (!response.ok) {
-        // Handle error response
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Server error: ${response.status}`);
-      }
-
-      // Get the response data
-      const cartItem = await response.json();
-      console.log("Successfully added to cart:", cartItem);
-
-      // Force refresh cart data
-      await queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
-
       // Show success message
       toast({
-        title: "Added to cart",
-        description: `${product.name}${variant ? ` (${variant.color || ""}${variant.size ? `, ${variant.size}` : ""})` : ""} has been added to your cart`,
+        title: "Proceeding to checkout",
+        description: `${product.name}${variant ? ` (${variant.color || ""}${variant.size ? `, ${variant.size}` : ""})` : ""} - proceeding to direct purchase`,
         variant: "default",
       });
 
       // Redirect to checkout with buynow parameter
       setTimeout(() => {
         window.location.href = "/checkout?buynow=true";
-      }, 500); // Increased delay to ensure server processing completes
+      }, 500);
     } catch (error) {
       console.error("Buy Now error:", error);
       // Clear the Buy Now flow flag on error
       sessionStorage.removeItem("lelekart_buynow_flow");
+      sessionStorage.removeItem("lelekart_buynow_product");
       toast({
         title: "Purchase Failed",
         description:

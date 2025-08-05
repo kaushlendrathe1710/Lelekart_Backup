@@ -152,6 +152,10 @@ export default function CheckoutPage() {
   } = useCart();
   const { refetchNotifications } = useNotifications();
 
+  // State for buy now product data
+  const [buyNowProduct, setBuyNowProduct] = useState<any>(null);
+  const [isBuyNowFlow, setIsBuyNowFlow] = useState(false);
+
   // State for direct checkout data from localStorage
   const [directCheckoutData, setDirectCheckoutData] = useState<any>(null);
   const [isDirectCheckout, setIsDirectCheckout] = useState(false);
@@ -161,25 +165,70 @@ export default function CheckoutPage() {
     (number | string)[]
   >([]);
 
-  // On mount, read selected cart item IDs from sessionStorage
+  // Check for buy now flow on mount
   useEffect(() => {
-    const stored = sessionStorage.getItem("lelekart_selected_cart_items");
-    if (stored) {
-      try {
-        setSelectedCartItemIds(JSON.parse(stored).map(String));
-      } catch {
-        setSelectedCartItemIds([]);
-      }
-    } else {
-      // If nothing stored, default to all items
-      setSelectedCartItemIds(cartItems.map((item) => String(item.id)));
-    }
-  }, [cartItems]);
+    const fromBuyNow = window.location.search.includes("buynow=true");
+    const buyNowFlowFlag =
+      sessionStorage.getItem("lelekart_buynow_flow") === "true";
 
-  // Filtered cart items for checkout
-  const selectedCartItems = cartItems.filter((item) =>
-    selectedCartItemIds.map(String).includes(String(item.id))
-  );
+    if (fromBuyNow || buyNowFlowFlag) {
+      setIsBuyNowFlow(true);
+
+      // Get buy now product data from session storage
+      const buyNowData = sessionStorage.getItem("lelekart_buynow_product");
+      if (buyNowData) {
+        try {
+          const parsedData = JSON.parse(buyNowData);
+          setBuyNowProduct(parsedData);
+          console.log("Buy Now product loaded:", parsedData);
+        } catch (error) {
+          console.error("Error parsing buy now product data:", error);
+          // Clear invalid data
+          sessionStorage.removeItem("lelekart_buynow_product");
+          sessionStorage.removeItem("lelekart_buynow_flow");
+        }
+      }
+    }
+  }, []);
+
+  // On mount, read selected cart item IDs from sessionStorage (only for regular cart flow)
+  useEffect(() => {
+    if (!isBuyNowFlow) {
+      const stored = sessionStorage.getItem("lelekart_selected_cart_items");
+      if (stored) {
+        try {
+          setSelectedCartItemIds(JSON.parse(stored).map(String));
+        } catch {
+          setSelectedCartItemIds([]);
+        }
+      } else {
+        // If nothing stored, default to all items
+        setSelectedCartItemIds(cartItems.map((item) => String(item.id)));
+      }
+    }
+  }, [cartItems, isBuyNowFlow]);
+
+  // Filtered cart items for checkout (only used for regular cart flow)
+  const selectedCartItems = isBuyNowFlow
+    ? []
+    : cartItems.filter((item) =>
+        selectedCartItemIds.map(String).includes(String(item.id))
+      );
+
+  // Create buy now cart item for calculations
+  const buyNowCartItem = buyNowProduct
+    ? {
+        id: "buynow_" + Date.now(),
+        quantity: buyNowProduct.quantity,
+        userId: user?.id || 0,
+        product: buyNowProduct.product,
+        variant: buyNowProduct.variant,
+      }
+    : null;
+
+  // Use buy now item or selected cart items for calculations
+  const itemsForCheckout =
+    isBuyNowFlow && buyNowCartItem ? [buyNowCartItem] : selectedCartItems;
 
   // Initialize form with default values including email from user if available
   const form = useForm<CheckoutFormValues>({
@@ -204,12 +253,12 @@ export default function CheckoutPage() {
     value: number;
   } | null>(null);
 
-  // Use selectedCartItems for all calculations and rendering
-  const subtotal = selectedCartItems.reduce((total, item) => {
+  // Use itemsForCheckout for all calculations and rendering
+  const subtotal = itemsForCheckout.reduce((total, item) => {
     const price = item.variant ? item.variant.price : item.product.price;
     return total + price * item.quantity;
   }, 0);
-  const deliveryCharges = selectedCartItems.reduce((total, item) => {
+  const deliveryCharges = itemsForCheckout.reduce((total, item) => {
     const charge = item.product.deliveryCharges ?? 0;
     return total + charge * item.quantity;
   }, 0);
@@ -398,12 +447,14 @@ export default function CheckoutPage() {
 
   // Clear Buy Now flow flag when cart items are successfully loaded
   useEffect(() => {
-    if (!loading && selectedCartItems.length > 0) {
+    if (!loading && itemsForCheckout.length > 0) {
       // Clear the Buy Now flow flag since we have items
-      sessionStorage.removeItem("lelekart_buynow_flow");
-      console.log("Cleared Buy Now flow flag - cart has items");
+      if (!isBuyNowFlow) {
+        sessionStorage.removeItem("lelekart_buynow_flow");
+        console.log("Cleared Buy Now flow flag - cart has items");
+      }
     }
-  }, [loading, selectedCartItems.length]);
+  }, [loading, itemsForCheckout.length, isBuyNowFlow]);
 
   // Check if cart is empty and redirect if needed
   useEffect(() => {
@@ -418,7 +469,7 @@ export default function CheckoutPage() {
     const checkCartWithDelay = () => {
       if (
         !loading &&
-        selectedCartItems.length === 0 &&
+        itemsForCheckout.length === 0 &&
         !fromBuyNow &&
         !hasRecentCartActivity
       ) {
@@ -434,11 +485,11 @@ export default function CheckoutPage() {
         setLocation("/cart");
       } else if (!loading) {
         console.log(
-          `Checkout page loaded with ${selectedCartItems.length} items in cart or from Buy Now flow (skip redirect: ${fromBuyNow || hasRecentCartActivity})`
+          `Checkout page loaded with ${itemsForCheckout.length} items in cart or from Buy Now flow (skip redirect: ${fromBuyNow || hasRecentCartActivity})`
         );
 
         // Clear the Buy Now flow flag if we have items
-        if (selectedCartItems.length > 0) {
+        if (itemsForCheckout.length > 0) {
           sessionStorage.removeItem("lelekart_buynow_flow");
         }
       }
@@ -450,11 +501,11 @@ export default function CheckoutPage() {
     } else {
       checkCartWithDelay();
     }
-  }, [loading, selectedCartItems, setLocation, toast]);
+  }, [loading, itemsForCheckout, isBuyNowFlow, setLocation, toast]);
 
   // Verify cart with server on page load
   useEffect(() => {
-    if (!loading && user && selectedCartItems.length > 0) {
+    if (!loading && user && itemsForCheckout.length > 0 && !isBuyNowFlow) {
       console.log("Verifying cart contents with server on checkout page load");
       // Adding a delay to ensure we're getting fresh data after any redirects
       const timer = setTimeout(async () => {
@@ -477,7 +528,7 @@ export default function CheckoutPage() {
           console.log("Server cart verification:", serverCart.length, "items");
 
           // If server shows empty cart but client has items, invalidate client cache
-          if (serverCart.length === 0 && selectedCartItems.length > 0) {
+          if (serverCart.length === 0 && itemsForCheckout.length > 0) {
             console.log(
               "MISMATCH: Server shows empty cart but client shows items"
             );
@@ -660,7 +711,7 @@ export default function CheckoutPage() {
     } else {
       setWalletDiscount(0);
     }
-  }, [useWalletCoins, wallet, settings, selectedCartItems, subtotal]);
+  }, [useWalletCoins, wallet, settings, itemsForCheckout, subtotal]);
 
   // Fetch active wallet voucher for user on mount
   useEffect(() => {
@@ -729,8 +780,8 @@ export default function CheckoutPage() {
           return;
         }
 
-        // Check if cart is now empty after removing invalid items
-        if (selectedCartItems.length === 0) {
+        // Check if cart is now empty after removing invalid items (only for regular cart flow)
+        if (itemsForCheckout.length === 0 && !isBuyNowFlow) {
           toast({
             title: "No Items Selected",
             description: "Please select at least one item to checkout.",
@@ -809,6 +860,7 @@ export default function CheckoutPage() {
           userId: user.id,
           total: finalOrderTotal,
           paymentMethod: values.paymentMethod,
+          isBuyNow: isBuyNowFlow, // Flag to indicate this is a buy now order
           shippingDetails: JSON.stringify({
             name: values.name,
             email: values.email,
@@ -819,12 +871,15 @@ export default function CheckoutPage() {
             zipCode: values.zipCode,
             notes: values.notes,
           }),
-          items: selectedCartItems.map((item) => ({
-            id: item.id,
+          items: itemsForCheckout.map((item) => ({
+            id: isBuyNowFlow ? null : item.id, // Buy now items don't have cart IDs
             productId: item.product.id,
             variantId: item.variant?.id,
             quantity: item.quantity,
             price: item.variant ? item.variant.price : item.product.price,
+            sellerId: isBuyNowFlow
+              ? buyNowProduct.sellerId
+              : item.product.sellerId, // Include sellerId for buy now orders
           })),
         };
 
@@ -908,12 +963,20 @@ export default function CheckoutPage() {
         // Show success message
         toast({
           title: "Order Placed Successfully",
-          description:
-            "Your order has been placed successfully. Your cart has been cleared. Thank you for shopping with us!",
+          description: isBuyNowFlow
+            ? "Your order has been placed successfully. Thank you for shopping with us!"
+            : "Your order has been placed successfully. Your cart has been cleared. Thank you for shopping with us!",
         });
 
         // Clear selected cart items from sessionStorage
         sessionStorage.removeItem("lelekart_selected_cart_items");
+
+        // Clear buy now session data if this was a buy now order
+        if (isBuyNowFlow) {
+          sessionStorage.removeItem("lelekart_buynow_flow");
+          sessionStorage.removeItem("lelekart_buynow_product");
+          console.log("Cleared buy now session data after successful order");
+        }
 
         // Place this after order is successfully placed and before redirect/clear cart
         refetchWallet && refetchWallet();
@@ -1632,7 +1695,7 @@ export default function CheckoutPage() {
               )}
 
               <div className="space-y-4 mb-4">
-                {selectedCartItems.map((item) => (
+                {itemsForCheckout.map((item) => (
                   <div
                     key={item.id}
                     className="flex justify-between items-center border-b pb-2"
