@@ -50,24 +50,163 @@ import {
   Users,
 } from "lucide-react";
 
+// Custom Bar Chart Component
+const CustomBarChart = ({
+  data,
+  onBarClick,
+  showRevenue = true,
+  showOrders = true,
+}: {
+  data: any[];
+  onBarClick?: (item: any) => void;
+  showRevenue?: boolean;
+  showOrders?: boolean;
+}) => {
+  if (!data || data.length === 0)
+    return <div className="text-center text-gray-500">No data available</div>;
+
+  // Remove duplicates based on date
+  const uniqueData = data.filter(
+    (item, index, self) => index === self.findIndex((t) => t.date === item.date)
+  );
+
+  const maxRevenue = Math.max(...uniqueData.map((item) => item.revenue || 0));
+  const maxOrders = Math.max(...uniqueData.map((item) => item.orders || 0));
+  const maxValue = Math.max(maxRevenue, maxOrders);
+
+  // Generate Y-axis labels
+  const yAxisLabels = [];
+  const numLabels = 5;
+  for (let i = 0; i <= numLabels; i++) {
+    const value = Math.round((maxValue * i) / numLabels);
+    yAxisLabels.push(value);
+  }
+
+  return (
+    <div className="w-full h-80">
+      {/* Y-axis labels */}
+      <div className="flex h-64 mb-2">
+        <div className="w-16 flex flex-col justify-between text-xs text-gray-500 pr-2">
+          {yAxisLabels.reverse().map((label, index) => (
+            <div key={index} className="text-right">
+              {label.toLocaleString()}
+            </div>
+          ))}
+        </div>
+
+        {/* Chart area */}
+        <div className="flex-1 relative">
+          <div className="flex items-end justify-between h-full gap-2">
+            {uniqueData.map((item, index) => {
+              const revenueHeight =
+                maxValue > 0 ? (item.revenue / maxValue) * 100 : 0;
+              const ordersHeight =
+                maxValue > 0 ? (item.orders / maxValue) * 100 : 0;
+
+              return (
+                <div
+                  key={index}
+                  className="flex-1 flex flex-col items-center relative"
+                >
+                  {/* Value labels on top of bars */}
+                  <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 font-medium">
+                    {showRevenue && showOrders ? (
+                      <div className="text-center">
+                        <div className="text-green-600">
+                          ₹{item.revenue?.toLocaleString() || 0}
+                        </div>
+                        <div className="text-blue-600">{item.orders || 0}</div>
+                      </div>
+                    ) : showRevenue ? (
+                      <div className="text-green-600">
+                        ₹{item.revenue?.toLocaleString() || 0}
+                      </div>
+                    ) : (
+                      <div className="text-blue-600">{item.orders || 0}</div>
+                    )}
+                  </div>
+
+                  <div className="w-full flex flex-col items-center gap-1 h-full">
+                    {/* Revenue Bar - only show if showRevenue is true */}
+                    {showRevenue && (
+                      <div
+                        className="w-full bg-green-500 rounded-t-sm cursor-pointer hover:bg-green-600 transition-colors relative"
+                        style={{ height: `${revenueHeight}%` }}
+                        onClick={() => onBarClick?.(item)}
+                        title={`Revenue: ₹${item.revenue?.toLocaleString() || 0}`}
+                      />
+                    )}
+                    {/* Orders Bar - only show if showOrders is true */}
+                    {showOrders && (
+                      <div
+                        className="w-full bg-blue-500 rounded-b-sm cursor-pointer hover:bg-blue-600 transition-colors relative"
+                        style={{ height: `${ordersHeight}%` }}
+                        onClick={() => onBarClick?.(item)}
+                        title={`Orders: ${item.orders || 0}`}
+                      />
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* X-axis labels */}
+      <div className="flex justify-between px-16">
+        {uniqueData.map((item, index) => (
+          <div key={index} className="text-xs text-gray-600 text-center flex-1">
+            {item.date}
+          </div>
+        ))}
+      </div>
+
+      {/* Legend */}
+      <div className="flex justify-center gap-4 mt-4">
+        {showRevenue && (
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-green-500 rounded"></div>
+            <span className="text-sm">Revenue</span>
+          </div>
+        )}
+        {showOrders && (
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-blue-500 rounded"></div>
+            <span className="text-sm">Orders</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export default function SellerAnalyticsPage() {
   const [dateRange, setDateRange] = useState("last30");
   const [dataTab, setDataTab] = useState("overview");
   const [chartType, setChartType] = useState("bar");
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
 
   // Fetch analytics data based on date range
   const {
     data: analyticsData,
     isLoading,
     refetch,
+    error,
   } = useQuery({
-    queryKey: ["/api/seller/analytics", dateRange],
+    queryKey: ["/api/seller/analytics", dateRange, selectedMonth],
     queryFn: async () => {
-      const res = await fetch(`/api/seller/analytics?range=${dateRange}`);
+      const params = new URLSearchParams({ range: dateRange });
+      if (selectedMonth) {
+        params.append("month", selectedMonth);
+      }
+      const res = await fetch(`/api/seller/analytics?${params.toString()}`);
       if (!res.ok) {
         throw new Error("Failed to fetch analytics data");
       }
-      return res.json();
+      const data = await res.json();
+      console.log("API Response:", data);
+      return data;
     },
   });
 
@@ -90,15 +229,17 @@ export default function SellerAnalyticsPage() {
   const getDateRangeText = () => {
     switch (dateRange) {
       case "last7":
-        return "Last 7 days";
+        return "Current month";
       case "last30":
-        return "Last 30 days";
+        return "Current month";
       case "last90":
-        return "Last 90 days";
+        return "Last 3 months";
       case "year":
-        return "This year";
+        return "Last 12 months";
+      case "daily":
+        return selectedMonth ? `${selectedMonth} - Daily View` : "Daily View";
       default:
-        return "Last 30 days";
+        return "Current month";
     }
   };
 
@@ -122,34 +263,234 @@ export default function SellerAnalyticsPage() {
     return <span>0%</span>;
   };
 
+  // Generate proper date data for charts
+  const generateDateData = (range: string) => {
+    const data = [];
+    const today = new Date();
+
+    // Create a simple seeded random function for consistent data
+    const seededRandom = (seed: number) => {
+      const x = Math.sin(seed) * 10000;
+      return x - Math.floor(x);
+    };
+
+    // Generate data based on range type
+    if (range === "daily" && selectedMonth) {
+      // Generate daily data for the selected month
+      const monthParts = selectedMonth.split(" ");
+      if (monthParts.length === 2) {
+        const monthName = monthParts[0];
+        const year = parseInt(monthParts[1]);
+        const monthIndex = new Date(`${monthName} 1, ${year}`).getMonth();
+        const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+
+        const baseRevenue = 2000;
+        const baseOrders = 5;
+        for (let day = 1; day <= daysInMonth; day++) {
+          const date = new Date(year, monthIndex, day);
+          const growthFactor = 1 + (day / daysInMonth) * 0.5; // 50% growth over the month
+          const variation = seededRandom(day + 100) * 0.15 - 0.075;
+          data.push({
+            date: format(date, "MMM dd"),
+            revenue: Math.floor(baseRevenue * growthFactor * (1 + variation)),
+            orders: Math.floor(baseOrders * growthFactor * (1 + variation)),
+          });
+        }
+      }
+    } else if (range === "last7" || range === "last30") {
+      // Show last 1 month for last7 and last30 (monthly view)
+      const baseRevenue = 50000;
+      const baseOrders = 120;
+      for (let i = 0; i >= 0; i--) {
+        const date = new Date(today);
+        date.setMonth(today.getMonth() - i);
+        // Create dramatic upward trend - each month shows significant growth
+        const growthFactor = 1 + i * 0.3; // 30% growth each month
+        const variation = seededRandom(i + 30) * 0.15 - 0.075; // Small variation
+        data.push({
+          date: format(date, "MMM yyyy"),
+          revenue: Math.floor(baseRevenue * growthFactor * (1 + variation)),
+          orders: Math.floor(baseOrders * growthFactor * (1 + variation)),
+        });
+      }
+    } else if (range === "last90") {
+      // Create a dramatic growth trend for 3 months
+      const baseRevenue = 50000;
+      const baseOrders = 120;
+      for (let i = 2; i >= 0; i--) {
+        const date = new Date(today);
+        date.setMonth(today.getMonth() - i);
+        // Create dramatic upward trend - each month shows significant growth
+        const growthFactor = 1 + i * 1.0; // 100% growth each month
+        const variation = seededRandom(i + 90) * 0.15 - 0.075; // Small variation
+        data.push({
+          date: format(date, "MMM yyyy"),
+          revenue: Math.floor(baseRevenue * growthFactor * (1 + variation)),
+          orders: Math.floor(baseOrders * growthFactor * (1 + variation)),
+        });
+      }
+    } else if (range === "year") {
+      // Create a dramatic growth trend for 12 months
+      const baseRevenue = 40000;
+      const baseOrders = 100;
+      for (let i = 11; i >= 0; i--) {
+        const date = new Date(today);
+        date.setMonth(today.getMonth() - i);
+        // Create dramatic upward trend - each month shows significant growth
+        const growthFactor = 1 + i * 0.3; // 30% growth each month
+        const variation = seededRandom(i + 365) * 0.15 - 0.075; // Small variation
+        data.push({
+          date: format(date, "MMM yyyy"),
+          revenue: Math.floor(baseRevenue * growthFactor * (1 + variation)),
+          orders: Math.floor(baseOrders * growthFactor * (1 + variation)),
+        });
+      }
+    }
+
+    return data;
+  };
+
+  // Generate mock analytics data if API data is not available
+  const generateMockAnalyticsData = (range: string) => {
+    const chartData = generateDateData(range);
+
+    // Calculate totals from the chart data
+    const currentPeriodData = chartData.slice(-Math.ceil(chartData.length / 2));
+    const previousPeriodData = chartData.slice(
+      0,
+      Math.ceil(chartData.length / 2)
+    );
+
+    const currentRevenue = currentPeriodData.reduce(
+      (sum, item) => sum + item.revenue,
+      0
+    );
+    const currentOrders = currentPeriodData.reduce(
+      (sum, item) => sum + item.orders,
+      0
+    );
+    const previousRevenue = previousPeriodData.reduce(
+      (sum, item) => sum + item.revenue,
+      0
+    );
+    const previousOrders = previousPeriodData.reduce(
+      (sum, item) => sum + item.orders,
+      0
+    );
+
+    return {
+      revenueData: chartData,
+      orderData: chartData,
+      totals: {
+        revenue: currentRevenue,
+        orders: currentOrders,
+        avgOrderValue: currentOrders > 0 ? currentRevenue / currentOrders : 0,
+        conversionRate: 2.5 + Math.random() * 3,
+      },
+      previousTotals: {
+        revenue: previousRevenue,
+        orders: previousOrders,
+        avgOrderValue:
+          previousOrders > 0 ? previousRevenue / previousOrders : 0,
+        conversionRate: 2.0 + Math.random() * 2,
+      },
+      categoryData: [],
+      topProducts: [],
+    };
+  };
+
+  // Use only API data, no fallback to mock data
+  const finalAnalyticsData = analyticsData || {
+    revenueData: [],
+    orderData: [],
+    totals: { revenue: 0, orders: 0, avgOrderValue: 0, conversionRate: 0 },
+    previousTotals: {
+      revenue: 0,
+      orders: 0,
+      avgOrderValue: 0,
+      conversionRate: 0,
+    },
+    categoryData: [],
+    topProducts: [],
+  };
+
   // Prepare chart data
-  const revenueChartData = analyticsData?.revenueData || [];
-  const orderChartData = analyticsData?.orderData || [];
-  const categoryChartData = analyticsData?.categoryData || [];
-  const productPerformanceData = analyticsData?.topProducts || [];
+  const revenueChartData = finalAnalyticsData.revenueData;
+  const orderChartData = finalAnalyticsData.orderData;
+  const categoryChartData = finalAnalyticsData.categoryData;
+  const productPerformanceData = finalAnalyticsData.topProducts;
+
+  // Debug: Log the data to see what's being received
+  console.log("Analytics data received:", {
+    dateRange,
+    hasAnalyticsData: !!analyticsData,
+    revenueChartData: revenueChartData.slice(0, 3), // First 3 items
+    orderChartData: orderChartData.slice(0, 3), // First 3 items
+    totals: finalAnalyticsData.totals,
+    previousTotals: finalAnalyticsData.previousTotals,
+  });
+
+  // Handle bar click for drill-down
+  const handleBarClick = (item: any) => {
+    // Only allow drill-down for ranges that show multiple months
+    if ((dateRange === "last90" || dateRange === "year") && item.date) {
+      setSelectedMonth(item.date);
+      setDateRange("daily"); // Switch to daily view for the selected month
+    }
+  };
+
+  // Handle back button for drill-down
+  const handleBackToOverview = () => {
+    setSelectedMonth(null);
+    // Go back to the original range that was selected before drill-down
+    // For now, default to last90, but this could be improved to remember the original range
+    setDateRange("last90");
+  };
 
   return (
     <SellerDashboardLayout>
       <div className="container min-h-screen flex flex-col flex-1 min-h-0 py-0">
         <div className="mb-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-              Seller Analytics
-            </h1>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              Track your store's performance metrics and sales trends
-            </p>
+          <div className="flex items-center gap-4">
+            {selectedMonth && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBackToOverview}
+                className="flex items-center gap-2"
+              >
+                <ArrowUp className="h-4 w-4 rotate-90" />
+                Back to Overview
+              </Button>
+            )}
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+                Seller Analytics
+                {selectedMonth && (
+                  <span className="text-lg font-normal text-muted-foreground ml-2">
+                    - {selectedMonth}
+                  </span>
+                )}
+              </h1>
+              <p className="text-sm sm:text-base text-muted-foreground">
+                Track your store's performance metrics and sales trends
+              </p>
+            </div>
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-            <Select value={dateRange} onValueChange={setDateRange}>
+            <Select
+              value={dateRange}
+              onValueChange={setDateRange}
+              disabled={selectedMonth !== null}
+            >
               <SelectTrigger className="w-full sm:w-[160px]">
                 <SelectValue placeholder="Select time period" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="last7">Last 7 days</SelectItem>
-                <SelectItem value="last30">Last 30 days</SelectItem>
-                <SelectItem value="last90">Last 90 days</SelectItem>
-                <SelectItem value="year">This year</SelectItem>
+                <SelectItem value="last7">Current month</SelectItem>
+                <SelectItem value="last30">Current month</SelectItem>
+                <SelectItem value="last90">Last 3 months</SelectItem>
+                <SelectItem value="year">Last 12 months</SelectItem>
               </SelectContent>
             </Select>
             <div className="flex gap-2">
@@ -175,6 +516,20 @@ export default function SellerAnalyticsPage() {
           <div className="flex justify-center items-center h-40">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           </div>
+        ) : error ? (
+          <div className="flex justify-center items-center h-40">
+            <div className="text-center">
+              <div className="text-red-600 mb-2">
+                Error loading analytics data
+              </div>
+              <div className="text-sm text-muted-foreground mb-4">
+                {error.message}
+              </div>
+              <Button onClick={() => refetch()} variant="outline">
+                Retry
+              </Button>
+            </div>
+          </div>
         ) : (
           <>
             {/* Key Metrics Section */}
@@ -189,14 +544,14 @@ export default function SellerAnalyticsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {formatCurrency(analyticsData?.totals?.revenue || 0)}
+                    {formatCurrency(finalAnalyticsData?.totals?.revenue || 0)}
                   </div>
                   <div className="flex items-center pt-1 text-xs text-muted-foreground justify-between">
                     <span>vs. previous period</span>
                     {getTrendIndicator(
                       getPercentageChange(
-                        analyticsData?.totals?.revenue || 0,
-                        analyticsData?.previousTotals?.revenue || 0
+                        finalAnalyticsData?.totals?.revenue || 0,
+                        finalAnalyticsData?.previousTotals?.revenue || 0
                       )
                     )}
                   </div>
@@ -213,14 +568,14 @@ export default function SellerAnalyticsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {analyticsData?.totals?.orders || 0}
+                    {finalAnalyticsData?.totals?.orders || 0}
                   </div>
                   <div className="flex items-center pt-1 text-xs text-muted-foreground justify-between">
                     <span>vs. previous period</span>
                     {getTrendIndicator(
                       getPercentageChange(
-                        analyticsData?.totals?.orders || 0,
-                        analyticsData?.previousTotals?.orders || 0
+                        finalAnalyticsData?.totals?.orders || 0,
+                        finalAnalyticsData?.previousTotals?.orders || 0
                       )
                     )}
                   </div>
@@ -237,14 +592,16 @@ export default function SellerAnalyticsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {formatCurrency(analyticsData?.totals?.avgOrderValue || 0)}
+                    {formatCurrency(
+                      finalAnalyticsData?.totals?.avgOrderValue || 0
+                    )}
                   </div>
                   <div className="flex items-center pt-1 text-xs text-muted-foreground justify-between">
                     <span>vs. previous period</span>
                     {getTrendIndicator(
                       getPercentageChange(
-                        analyticsData?.totals?.avgOrderValue || 0,
-                        analyticsData?.previousTotals?.avgOrderValue || 0
+                        finalAnalyticsData?.totals?.avgOrderValue || 0,
+                        finalAnalyticsData?.previousTotals?.avgOrderValue || 0
                       )
                     )}
                   </div>
@@ -261,14 +618,17 @@ export default function SellerAnalyticsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {(analyticsData?.totals?.conversionRate || 0).toFixed(2)}%
+                    {(finalAnalyticsData?.totals?.conversionRate || 0).toFixed(
+                      2
+                    )}
+                    %
                   </div>
                   <div className="flex items-center pt-1 text-xs text-muted-foreground justify-between">
                     <span>vs. previous period</span>
                     {getTrendIndicator(
                       getPercentageChange(
-                        analyticsData?.totals?.conversionRate || 0,
-                        analyticsData?.previousTotals?.conversionRate || 0
+                        finalAnalyticsData?.totals?.conversionRate || 0,
+                        finalAnalyticsData?.previousTotals?.conversionRate || 0
                       )
                     )}
                   </div>
@@ -308,24 +668,29 @@ export default function SellerAnalyticsPage() {
               <TabsContent value="overview">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Sales Overview - {getDateRangeText()}</CardTitle>
+                    <CardTitle>
+                      Sales Performance Overview - {getDateRangeText()}
+                    </CardTitle>
                     <CardDescription>
-                      Key sales performance indicators over time
+                      Revenue and order volume trends over time
+                      {dateRange === "last90" && (
+                        <span className="block mt-1 text-xs text-blue-600">
+                          💡 Click on any month bar to drill down to daily view
+                        </span>
+                      )}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="h-40 sm:h-60">
+                  <CardContent className="h-60 sm:h-80">
                     {revenueChartData.length === 0 ? (
                       <div className="flex items-center justify-center h-full text-muted-foreground">
                         No data available
                       </div>
                     ) : (
-                      <LineChart
+                      <CustomBarChart
                         data={revenueChartData}
-                        index="date"
-                        categories={["revenue"]}
-                        colors={["primary"]}
-                        valueFormatter={(value) => formatCurrency(value)}
-                        className="h-full w-full"
+                        onBarClick={handleBarClick}
+                        showRevenue={true}
+                        showOrders={true}
                       />
                     )}
                   </CardContent>
@@ -335,21 +700,29 @@ export default function SellerAnalyticsPage() {
               <TabsContent value="orders">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Order Trends - {getDateRangeText()}</CardTitle>
+                    <CardTitle>
+                      Order & Sales Analysis - {getDateRangeText()}
+                    </CardTitle>
                     <CardDescription>
-                      Number of orders placed during the selected period
+                      Orders and revenue comparison by time period
+                      {dateRange === "last90" && (
+                        <span className="block mt-1 text-xs text-blue-600">
+                          💡 Click on any month bar to drill down to daily view
+                        </span>
+                      )}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="h-40 sm:h-60">
+                  <CardContent className="h-60 sm:h-80">
                     {orderChartData.length === 0 ? (
-                      <div className="text-center text-muted-foreground py-8">No orders in this period.</div>
+                      <div className="text-center text-muted-foreground py-8">
+                        No orders in this period.
+                      </div>
                     ) : (
-                      <BarChart
+                      <CustomBarChart
                         data={orderChartData}
-                        index="date"
-                        categories={["orders"]}
-                        colors={["blue"]}
-                        className="h-full w-full"
+                        onBarClick={handleBarClick}
+                        showRevenue={false}
+                        showOrders={true}
                       />
                     )}
                   </CardContent>
@@ -363,66 +736,27 @@ export default function SellerAnalyticsPage() {
                       Revenue Analysis - {getDateRangeText()}
                     </CardTitle>
                     <CardDescription>
-                      Revenue breakdown by various dimensions
+                      Revenue trends over time
+                      {dateRange === "last90" && (
+                        <span className="block mt-1 text-xs text-blue-600">
+                          💡 Click on any month bar to drill down to daily view
+                        </span>
+                      )}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 h-auto lg:h-60">
-                      <div>
-                        <h3 className="text-sm font-medium mb-4">
-                          Revenue by Category
-                        </h3>
-                        <div className="h-40 sm:h-52">
-                          {categoryChartData.length === 0 ? (
-                            <div className="flex items-center justify-center h-full text-muted-foreground">
-                              No data available
-                            </div>
-                          ) : (
-                            <PieChart
-                              data={categoryChartData}
-                              index="category"
-                              categories={["revenue"]}
-                              colors={[
-                                "#6366F1", // Indigo
-                                "#F59E42", // Orange
-                                "#10B981", // Green
-                                "#EF4444", // Red
-                                "#FBBF24", // Yellow
-                                "#3B82F6", // Blue
-                                "#A21CAF", // Purple
-                                "#F472B6", // Pink
-                                "#14B8A6", // Teal
-                                "#64748B", // Slate
-                              ]}
-                              valueFormatter={(value) => formatCurrency(value)}
-                              className="h-full w-full"
-                            />
-                          )}
-                        </div>
+                  <CardContent className="h-60 sm:h-80">
+                    {revenueChartData.length === 0 ? (
+                      <div className="flex items-center justify-center h-full text-muted-foreground">
+                        No data available
                       </div>
-                      <div>
-                        <h3 className="text-sm font-medium mb-4">
-                          Revenue by Payment Method
-                        </h3>
-                        <div className="h-[250px] sm:h-[320px]">
-                          {!analyticsData?.paymentMethodData ||
-                          analyticsData.paymentMethodData.length === 0 ? (
-                            <div className="flex items-center justify-center h-full text-muted-foreground">
-                              No data available
-                            </div>
-                          ) : (
-                            <DonutChart
-                              data={analyticsData.paymentMethodData}
-                              index="method"
-                              categories={["amount"]}
-                              colors={["primary", "blue", "cyan"]}
-                              valueFormatter={(value) => formatCurrency(value)}
-                              className="h-full w-full"
-                            />
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                    ) : (
+                      <CustomBarChart
+                        data={revenueChartData}
+                        onBarClick={handleBarClick}
+                        showRevenue={true}
+                        showOrders={false}
+                      />
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
