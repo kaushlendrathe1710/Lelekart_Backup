@@ -5760,27 +5760,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log("Request body:", JSON.stringify(req.body));
 
     try {
-      // Get cart items
-      const cartItems = await storage.getCartItems(req.user.id);
+      // Check if this is a buy now order
+      const isBuyNow = req.body.isBuyNow === true;
+      const orderItems = req.body.items || [];
 
-      if (cartItems.length === 0) {
-        return res.status(400).json({ error: "Cart is empty" });
+      let itemsToProcess = [];
+
+      if (isBuyNow) {
+        // For buy now orders, use the items from the request body
+        if (orderItems.length === 0) {
+          return res
+            .status(400)
+            .json({ error: "No items provided for buy now order" });
+        }
+        itemsToProcess = orderItems;
+      } else {
+        // For regular orders, get cart items
+        const cartItems = await storage.getCartItems(req.user.id);
+        if (cartItems.length === 0) {
+          return res.status(400).json({ error: "Cart is empty" });
+        }
+        itemsToProcess = cartItems;
       }
 
-      // Validate stock levels for all items in the cart
+      // Validate stock levels for all items
       const stockValidationErrors = [];
 
-      for (const item of cartItems) {
-        // First check if the item has a valid product object and ID
-        if (!item.product || !item.product.id) {
+      for (const item of itemsToProcess) {
+        // For buy now orders, items come from request body with productId
+        // For regular orders, items come from cart with product object
+        const productId = isBuyNow ? item.productId : item.product?.id;
+
+        if (!productId) {
           stockValidationErrors.push({
             id: item.id,
             error: "Product not found",
           });
           continue;
         }
-
-        const productId = item.product.id;
 
         // Verify the product still exists in the database and is approved
         const product = await storage.getProduct(productId);
@@ -5806,8 +5823,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let availableStock = product.stock;
 
         // If the item has a variant, check variant stock
-        if (item.variant && item.variant.id) {
-          const variantId = item.variant.id;
+        const variantId = isBuyNow ? item.variantId : item.variant?.id;
+        if (variantId) {
           const variant = await storage.getProductVariant(variantId);
           if (!variant) {
             stockValidationErrors.push({
@@ -5830,7 +5847,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           stockValidationErrors.push({
             id: item.id,
             productId: productId,
-            variantId: item.variant?.id,
+            variantId: variantId,
             productName: product.name,
             requestedQuantity: item.quantity,
             availableStock: availableStock,
@@ -5896,17 +5913,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Group cart items by seller
-      const itemsBySeller = cartItems.reduce(
+      // Group items by seller
+      const itemsBySeller = itemsToProcess.reduce(
         (acc, item) => {
-          const sellerId = item.product.sellerId;
+          const sellerId = isBuyNow ? item.sellerId : item.product.sellerId;
           if (!acc[sellerId]) {
             acc[sellerId] = [];
           }
           acc[sellerId].push(item);
-          return acc as Record<number, typeof cartItems>;
+          return acc as Record<number, typeof itemsToProcess>;
         },
-        {} as Record<number, typeof cartItems>
+        {} as Record<number, typeof itemsToProcess>
       );
 
       console.log(
@@ -5919,9 +5936,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sellerSubtotals = Object.entries(itemsBySeller).map(
         ([sellerId, items]) => {
           const subtotal = items.reduce((acc, item) => {
-            const price = item.variant
-              ? item.variant.price
-              : item.product.price;
+            const price = isBuyNow
+              ? item.price
+              : item.variant
+                ? item.variant.price
+                : item.product.price;
             return acc + price * item.quantity;
           }, 0);
           return {
@@ -6120,14 +6139,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Order created successfully:", order);
 
       // Create order items
-      for (const item of cartItems) {
-        const price = item.variant ? item.variant.price : item.product.price;
+      for (const item of itemsToProcess) {
+        const price = isBuyNow
+          ? item.price
+          : item.variant
+            ? item.variant.price
+            : item.product.price;
+        const productId = isBuyNow ? item.productId : item.product.id;
+        const variantId = isBuyNow ? item.variantId : item.variant?.id || null;
+
         const orderItemData = {
           orderId: order.id,
-          productId: item.product.id,
+          productId: productId,
           quantity: item.quantity,
           price: price,
-          variantId: item.variant?.id || null,
+          variantId: variantId,
         };
 
         console.log("Creating order item:", orderItemData);
@@ -6220,8 +6246,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Clear cart - only remove items that were ordered
-      if (req.body.items && Array.isArray(req.body.items)) {
+      // Clear cart - only for regular orders, not buy now orders
+      if (!isBuyNow && req.body.items && Array.isArray(req.body.items)) {
         // If specific items were provided, only remove those
         console.log(
           "Removing specific cart items that were ordered:",
@@ -6237,9 +6263,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
         }
-      } else {
-        // Fallback: clear entire cart if no specific items provided
-        console.log("No specific items provided, clearing entire cart");
+      } else if (!isBuyNow) {
+        // Fallback: clear entire cart if no specific items provided, but only if not a buy now order
+        console.log(
+          "No specific items provided, clearing entire cart (if not buy now)"
+        );
         await storage.clearCart(req.user.id);
       }
 
