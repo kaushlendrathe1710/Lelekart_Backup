@@ -6263,9 +6263,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
         }
-      } else {
-        // Fallback: clear entire cart if no specific items provided
-        console.log("No specific items provided, clearing entire cart");
+      } else if (!isBuyNow) {
+        // Fallback: clear entire cart if no specific items provided, but only if not a buy now order
+        console.log(
+          "No specific items provided, clearing entire cart (if not buy now)"
+        );
         await storage.clearCart(req.user.id);
       }
 
