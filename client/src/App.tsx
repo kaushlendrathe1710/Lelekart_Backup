@@ -45,6 +45,7 @@ import ReturnsPage from "./pages/static/returns";
 import PrivacyPolicyPage from "./pages/static/privacy";
 import PaymentsPage from "./pages/static/payments";
 import BecomeASellerPage from "./pages/static/become-a-seller";
+import ChatPage from "./pages/chat";
 import { Layout } from "./components/layout/layout";
 import { SimpleHeader } from "./components/layout/simple-header";
 import { Footer } from "./components/layout/footer";
@@ -85,6 +86,7 @@ import AdminBackupsPage from "./pages/admin/backups";
 import AdminNotificationsPage from "./pages/admin/notifications";
 import TicketManagementPage from "./pages/admin/ticket-management";
 import AffiliateMarketingPage from "./pages/admin/affilate-marketing";
+import AdminChatPage from "./pages/admin/chat";
 // Import shared components
 import { SuspenseWrapper } from "./components/shared/suspense-wrapper";
 import PressReleaseDetail from "./pages/static/press-release";
@@ -546,6 +548,14 @@ function App() {
                         {() => (
                           <Layout>
                             <FaqPage />
+                          </Layout>
+                        )}
+                      </Route>
+
+                      <Route path="/chat">
+                        {() => (
+                          <Layout>
+                            <ChatPage />
                           </Layout>
                         )}
                       </Route>
@@ -1026,6 +1036,16 @@ function App() {
                             path="/admin/tickets"
                             role="admin"
                             component={TicketManagementPage}
+                          />
+                        )}
+                      </Route>
+
+                      <Route path="/admin/chat">
+                        {() => (
+                          <ProtectedRoute
+                            path="/admin/chat"
+                            role="admin"
+                            component={AdminChatPage}
                           />
                         )}
                       </Route>

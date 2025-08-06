@@ -74,6 +74,7 @@ export const EMAIL_TEMPLATES = {
   CAREER_APPLICATION: "career-application",
   WALLET_USED: "wallet-used",
   REDEEM_USED: "redeem-used",
+  NEW_CHAT_REQUEST: "new-chat-request",
 };
 
 interface EmailOptions {
@@ -149,13 +150,20 @@ export async function sendOrderConfirmationEmail(
     // Calculate subtotal and delivery charges if not present
     let subtotal = order.subtotal;
     let deliveryCharges = order.deliveryCharges;
-    if (typeof subtotal !== 'number' || typeof deliveryCharges !== 'number') {
+    if (typeof subtotal !== "number" || typeof deliveryCharges !== "number") {
       // Calculate from items if missing
       subtotal = Array.isArray(order.items)
-        ? order.items.reduce((sum: any, item: any) => sum + (item.price * item.quantity), 0)
+        ? order.items.reduce(
+            (sum: any, item: any) => sum + item.price * item.quantity,
+            0
+          )
         : 0;
       deliveryCharges = Array.isArray(order.items)
-        ? order.items.reduce((sum: any, item: any) => sum + ((item.product?.deliveryCharges ?? 0) * item.quantity), 0)
+        ? order.items.reduce(
+            (sum: any, item: any) =>
+              sum + (item.product?.deliveryCharges ?? 0) * item.quantity,
+            0
+          )
         : 0;
     }
     // Attach to order object for template
@@ -165,7 +173,12 @@ export async function sendOrderConfirmationEmail(
     const walletDiscount = Number(order.walletDiscount) || 0;
     const rewardDiscount = Number(order.rewardDiscount) || 0;
     const redeemDiscount = Number(order.redeemDiscount) || 0;
-    order.total = subtotal + deliveryCharges - walletDiscount - rewardDiscount - redeemDiscount;
+    order.total =
+      subtotal +
+      deliveryCharges -
+      walletDiscount -
+      rewardDiscount -
+      redeemDiscount;
     if (order.total < 0) order.total = 0;
 
     let emailOptions = {
@@ -176,7 +189,11 @@ export async function sendOrderConfirmationEmail(
         order,
         date: new Date().toLocaleDateString(),
         orderLink: `${process.env.SITE_URL}/orders/${order.id}`,
-        shippingDetails: order.shippingDetails || order.shipping_details || order.shipping_address || {},
+        shippingDetails:
+          order.shippingDetails ||
+          order.shipping_details ||
+          order.shipping_address ||
+          {},
       },
       attachments: [] as any[],
     };
@@ -184,7 +201,10 @@ export async function sendOrderConfirmationEmail(
     try {
       return await sendEmail(emailOptions);
     } catch (templateError) {
-      console.error("Error rendering order confirmation template, sending fallback plain text email:", templateError);
+      console.error(
+        "Error rendering order confirmation template, sending fallback plain text email:",
+        templateError
+      );
       // Fallback: send plain text email
       try {
         await transporter.sendMail({
@@ -195,7 +215,10 @@ export async function sendOrderConfirmationEmail(
         });
         return true;
       } catch (fallbackError) {
-        console.error("Error sending fallback plain text order confirmation email:", fallbackError);
+        console.error(
+          "Error sending fallback plain text order confirmation email:",
+          fallbackError
+        );
         return false;
       }
     }
@@ -614,7 +637,9 @@ export async function sendOrderShippedEmails(
  */
 export async function sendOrderPlacedEmails(orderId: number): Promise<boolean> {
   try {
-    console.log(`[EMAIL DEBUG] Sending order confirmation emails for order #${orderId}`);
+    console.log(
+      `[EMAIL DEBUG] Sending order confirmation emails for order #${orderId}`
+    );
 
     // Import storage here to avoid circular dependencies
     const { storage } = await import("../storage");
@@ -622,7 +647,9 @@ export async function sendOrderPlacedEmails(orderId: number): Promise<boolean> {
     // Get the complete order with items and products
     const order = await storage.getOrder(orderId);
     if (!order) {
-      console.error(`[EMAIL DEBUG] Cannot send order confirmation emails: Order #${orderId} not found`);
+      console.error(
+        `[EMAIL DEBUG] Cannot send order confirmation emails: Order #${orderId} not found`
+      );
       return false;
     }
 
@@ -654,7 +681,10 @@ export async function sendOrderPlacedEmails(orderId: number): Promise<boolean> {
             };
           }
         } catch (addressError) {
-          console.error("[EMAIL DEBUG] Error fetching address for order email:", addressError);
+          console.error(
+            "[EMAIL DEBUG] Error fetching address for order email:",
+            addressError
+          );
         }
       }
     } catch (e) {
@@ -664,11 +694,18 @@ export async function sendOrderPlacedEmails(orderId: number): Promise<boolean> {
     // Get the buyer
     const buyer = await storage.getUser(order.userId);
     if (!buyer || !buyer.email) {
-      console.error(`[EMAIL DEBUG] Cannot send buyer order confirmation email: Buyer for order #${orderId} not found or has no email. User object:`, buyer);
+      console.error(
+        `[EMAIL DEBUG] Cannot send buyer order confirmation email: Buyer for order #${orderId} not found or has no email. User object:`,
+        buyer
+      );
       // Fallback: Optionally notify admin or log for manual follow-up
       try {
-        const adminEmailsSetting = await storage.getSystemSetting("adminNotificationEmails");
-        const adminEmails = adminEmailsSetting?.value ? JSON.parse(adminEmailsSetting.value) : [];
+        const adminEmailsSetting = await storage.getSystemSetting(
+          "adminNotificationEmails"
+        );
+        const adminEmails = adminEmailsSetting?.value
+          ? JSON.parse(adminEmailsSetting.value)
+          : [];
         if (adminEmails.length > 0) {
           for (const adminEmail of adminEmails) {
             await sendEmail({
@@ -677,7 +714,11 @@ export async function sendOrderPlacedEmails(orderId: number): Promise<boolean> {
               template: EMAIL_TEMPLATES.ADMIN_NOTIFICATION,
               data: {
                 order: completeOrder,
-                buyerInfo: buyer || { id: order.userId, name: "Unknown", email: "Missing" },
+                buyerInfo: buyer || {
+                  id: order.userId,
+                  name: "Unknown",
+                  email: "Missing",
+                },
                 note: "Buyer email missing, could not send confirmation to buyer.",
                 date: new Date().toLocaleDateString(),
                 orderLink: `${process.env.SITE_URL}/admin/orders/${orderId}`,
@@ -686,11 +727,16 @@ export async function sendOrderPlacedEmails(orderId: number): Promise<boolean> {
           }
         }
       } catch (fallbackError) {
-        console.error(`[EMAIL DEBUG] Fallback admin notification failed:`, fallbackError);
+        console.error(
+          `[EMAIL DEBUG] Fallback admin notification failed:`,
+          fallbackError
+        );
       }
       return false;
     } else {
-      console.log(`[EMAIL DEBUG] Sending order confirmation email to buyer: ${buyer.email} for order #${orderId}`);
+      console.log(
+        `[EMAIL DEBUG] Sending order confirmation email to buyer: ${buyer.email} for order #${orderId}`
+      );
       // Send detailed email to buyer
       try {
         await sendOrderConfirmationEmail(
@@ -701,9 +747,14 @@ export async function sendOrderPlacedEmails(orderId: number): Promise<boolean> {
           },
           buyer.email
         );
-        console.log(`[EMAIL DEBUG] Order confirmation email sent to buyer: ${buyer.email}`);
+        console.log(
+          `[EMAIL DEBUG] Order confirmation email sent to buyer: ${buyer.email}`
+        );
       } catch (buyerEmailError) {
-        console.error(`[EMAIL DEBUG] Failed to send order confirmation email to buyer: ${buyer.email}`, buyerEmailError);
+        console.error(
+          `[EMAIL DEBUG] Failed to send order confirmation email to buyer: ${buyer.email}`,
+          buyerEmailError
+        );
       }
     }
 
@@ -770,7 +821,10 @@ export async function sendOrderPlacedEmails(orderId: number): Promise<boolean> {
                 id: buyer.id,
                 name: buyer.name || buyer.username || "Unknown Buyer",
                 email: buyer.email || "Not available",
-                phone: ((buyer as any).phone || (shippingDetails as any)?.phone || "Not provided"),
+                phone:
+                  (buyer as any).phone ||
+                  (shippingDetails as any)?.phone ||
+                  "Not provided",
               },
               sellerInfo,
               date: new Date().toLocaleDateString(),
@@ -1479,6 +1533,33 @@ function getDefaultTemplate(templateType: string): string {
         </div>
       `;
 
+    case EMAIL_TEMPLATES.NEW_CHAT_REQUEST:
+      return `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e5e5; border-radius: 5px;">
+          <div style="text-align: center; margin-bottom: 20px; background-color: #2196F3; padding: 20px; border-radius: 5px;">
+            <h1 style="color: white; margin: 0;">New Live Chat Request</h1>
+          </div>
+          
+          <div style="background-color: #f8f8f8; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+            <h2 style="color: #333; margin-top: 0;">Chat Request Details</h2>
+            <p style="margin: 5px 0;"><strong>User Name:</strong> {{userName}}</p>
+            <p style="margin: 5px 0;"><strong>User Email:</strong> {{userEmail}}</p>
+            <p style="margin: 5px 0;"><strong>Session ID:</strong> {{sessionId}}</p>
+            <p style="margin: 5px 0;"><strong>Request Time:</strong> {{requestTime}}</p>
+          </div>
+          
+          <div style="text-align: center; margin-top: 30px;">
+            <a href="{{adminChatLink}}" style="display: inline-block; padding: 12px 24px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">Respond to Chat</a>
+            <p style="margin-top: 20px; font-size: 14px; color: #777;">Click the button above to open the chat interface and respond to the user's request.</p>
+          </div>
+          
+          <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin-top: 20px; border-left: 4px solid #ffc107;">
+            <h3 style="color: #856404; margin-top: 0;">Important</h3>
+            <p style="color: #856404; margin: 0;">Please respond to this chat request as soon as possible to provide excellent customer service.</p>
+          </div>
+        </div>
+      `;
+
     default:
       // Default empty template
       return `
@@ -1493,7 +1574,10 @@ function getDefaultTemplate(templateType: string): string {
 /**
  * Send a wallet used notification email
  */
-export async function sendWalletUsedEmail(order: any, email: string): Promise<boolean> {
+export async function sendWalletUsedEmail(
+  order: any,
+  email: string
+): Promise<boolean> {
   try {
     if (!order.walletDiscount || order.walletDiscount <= 0) return false;
     const emailOptions = {
@@ -1516,7 +1600,10 @@ export async function sendWalletUsedEmail(order: any, email: string): Promise<bo
 /**
  * Send a redeem used notification email
  */
-export async function sendRedeemUsedEmail(order: any, email: string): Promise<boolean> {
+export async function sendRedeemUsedEmail(
+  order: any,
+  email: string
+): Promise<boolean> {
   try {
     if (!order.redeemDiscount || order.redeemDiscount <= 0) return false;
     const emailOptions = {
