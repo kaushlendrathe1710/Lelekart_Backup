@@ -195,6 +195,15 @@ export default function BecomeASellerPage() {
   });
 
   const watchedPanNumber = watch("panNumber");
+  const watchedBusinessState = watch("businessState");
+  const watchedBusinessCity = watch("businessCity");
+  const watchedBankState = watch("bankState");
+  const watchedBankCity = watch("bankCity");
+
+  // Debug logging for form values
+  console.log(
+    `Current form values - Business State: "${watchedBusinessState}", Business City: "${watchedBusinessCity}", Bank State: "${watchedBankState}", Bank City: "${watchedBankCity}"`
+  );
 
   // PAN validation function
   const validatePAN = async (panNumber: string) => {
@@ -296,7 +305,11 @@ export default function BecomeASellerPage() {
     pincode: string,
     type: "business" | "bank"
   ) => {
-    if (!pincode || pincode.length !== 6) return;
+    console.log(`Validating ${type} pincode:`, pincode);
+    if (!pincode || pincode.length !== 6) {
+      console.log(`Invalid pincode length: ${pincode?.length}`);
+      return;
+    }
 
     const setValidationStatus =
       type === "business"
@@ -307,37 +320,116 @@ export default function BecomeASellerPage() {
 
     setValidationStatus("validating");
     try {
-      const response = await fetch("/api/validate-pincode", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pincode }),
-      });
+      console.log(`Fetching pincode data for: ${pincode}`);
+      const response = await fetch(`/api/pincode/${pincode}`);
 
       if (response.ok) {
         const result = await response.json();
-        if (result.success && result.data) {
-          setValidationStatus("valid");
-          setPincodeData(result.data);
-          // Auto-fill state and city
-          setValue(`${type}State`, result.data.state);
-          setValue(`${type}City`, result.data.city);
-          if (type === "business") {
-            setSelectedBusinessState(result.data.state);
-          } else {
-            setSelectedBankState(result.data.state);
-          }
+        console.log(`Pincode API response:`, result);
+
+        // Auto-fill state and city
+        setValue(`${type}State`, result.state);
+
+        if (type === "business") {
+          setBusinessPincodeValidationStatus("valid");
+          setBusinessPincodeData(result);
+          setSelectedBusinessState(result.state);
         } else {
-          setValidationStatus("invalid");
-          setPincodeData(null);
+          setBankPincodeValidationStatus("valid");
+          setBankPincodeData(result);
+          setSelectedBankState(result.state);
         }
+
+        // Use setTimeout to ensure state is updated before setting city
+        setTimeout(() => {
+          // Enhanced city matching logic with common naming discrepancies
+          const availableCities = getCitiesByState(result.state);
+          console.log(`Available cities for ${result.state}:`, availableCities);
+
+          // Common naming discrepancies mapping
+          const cityNameMapping: { [key: string]: string } = {
+            Gurugram: "Gurgaon",
+            Gurgaon: "Gurugram",
+            Mumbai: "Mumbai City",
+            "Mumbai City": "Mumbai",
+            "New Delhi": "Delhi",
+            Delhi: "New Delhi",
+            Bangalore: "Bengaluru",
+            Bengaluru: "Bangalore",
+            Calcutta: "Kolkata",
+            Kolkata: "Calcutta",
+            Madras: "Chennai",
+            Chennai: "Madras",
+          };
+
+          // Check if district exists directly in available cities
+          if (availableCities.includes(result.district)) {
+            setValue(`${type}City`, result.district);
+            console.log(`Auto-set ${type} city to: ${result.district}`);
+          } else {
+            // Check if there's a mapped name
+            const mappedName = cityNameMapping[result.district];
+            if (mappedName && availableCities.includes(mappedName)) {
+              setValue(`${type}City`, mappedName);
+              console.log(
+                `Auto-set ${type} city to mapped name: ${mappedName} (from ${result.district})`
+              );
+            } else {
+              // Try to find a close match
+              const closeMatch = availableCities.find(
+                (city) =>
+                  city.toLowerCase().includes(result.district.toLowerCase()) ||
+                  result.district.toLowerCase().includes(city.toLowerCase())
+              );
+
+              if (closeMatch) {
+                setValue(`${type}City`, closeMatch);
+                console.log(
+                  `Auto-set ${type} city to close match: ${closeMatch}`
+                );
+              } else {
+                // Set as-is if no match found
+                setValue(`${type}City`, result.district);
+                console.log(
+                  `No close match found for '${result.district}', setting as-is`
+                );
+              }
+            }
+          }
+
+          // Clear city search to ensure dropdown shows all cities
+          if (type === "business") {
+            setBusinessCitySearch("");
+          } else {
+            setBankCitySearch("");
+          }
+        }, 0);
+
+        console.log(
+          `Auto-filled ${type} state: ${result.state}, city: ${result.district}`
+        );
+        console.log(
+          `Form values after setValue: businessState=${watch("businessState")}, businessCity=${watch("businessCity")}, bankState=${watch("bankState")}, bankCity=${watch("bankCity")}`
+        );
       } else {
-        setValidationStatus("invalid");
-        setPincodeData(null);
+        console.log(`Pincode API error: ${response.status}`);
+        if (type === "business") {
+          setBusinessPincodeValidationStatus("invalid");
+          setBusinessPincodeData(null);
+        } else {
+          setBankPincodeValidationStatus("invalid");
+          setBankPincodeData(null);
+        }
       }
     } catch (error) {
       console.error("Pincode validation error:", error);
-      setValidationStatus("invalid");
-      setPincodeData(null);
+      if (type === "business") {
+        setBusinessPincodeValidationStatus("invalid");
+        setBusinessPincodeData(null);
+      } else {
+        setBankPincodeValidationStatus("invalid");
+        setBankPincodeData(null);
+      }
     }
   };
 
@@ -346,10 +438,17 @@ export default function BecomeASellerPage() {
 
   // Debounced business pincode validation
   React.useEffect(() => {
+    console.log(
+      `Business pincode changed: "${watchedBusinessPincode}" (length: ${watchedBusinessPincode?.length})`
+    );
     const timeoutId = setTimeout(() => {
       if (watchedBusinessPincode && watchedBusinessPincode.length === 6) {
+        console.log(
+          `Triggering business pincode validation for: ${watchedBusinessPincode}`
+        );
         validatePincode(watchedBusinessPincode, "business");
       } else {
+        console.log(`Resetting business pincode validation status`);
         setBusinessPincodeValidationStatus("idle");
         setBusinessPincodeData(null);
       }
@@ -360,10 +459,17 @@ export default function BecomeASellerPage() {
 
   // Debounced bank pincode validation
   React.useEffect(() => {
+    console.log(
+      `Bank pincode changed: "${watchedBankPincode}" (length: ${watchedBankPincode?.length})`
+    );
     const timeoutId = setTimeout(() => {
       if (watchedBankPincode && watchedBankPincode.length === 6) {
+        console.log(
+          `Triggering bank pincode validation for: ${watchedBankPincode}`
+        );
         validatePincode(watchedBankPincode, "bank");
       } else {
+        console.log(`Resetting bank pincode validation status`);
         setBankPincodeValidationStatus("idle");
         setBankPincodeData(null);
       }
@@ -371,6 +477,143 @@ export default function BecomeASellerPage() {
 
     return () => clearTimeout(timeoutId);
   }, [watchedBankPincode]);
+
+  // Watch for state changes and auto-set city when state is updated via pincode
+  React.useEffect(() => {
+    if (selectedBusinessState && businessPincodeData?.district) {
+      console.log(
+        `Business state changed to: ${selectedBusinessState}, auto-setting city: ${businessPincodeData.district}`
+      );
+
+      // Enhanced city matching logic with common naming discrepancies
+      const availableCities = getCitiesByState(selectedBusinessState);
+      console.log(
+        `Available cities for ${selectedBusinessState}:`,
+        availableCities
+      );
+
+      // Common naming discrepancies mapping
+      const cityNameMapping: { [key: string]: string } = {
+        Gurugram: "Gurgaon",
+        Gurgaon: "Gurugram",
+        Mumbai: "Mumbai City",
+        "Mumbai City": "Mumbai",
+        "New Delhi": "Delhi",
+        Delhi: "New Delhi",
+        Bangalore: "Bengaluru",
+        Bengaluru: "Bangalore",
+        Calcutta: "Kolkata",
+        Kolkata: "Calcutta",
+        Madras: "Chennai",
+        Chennai: "Madras",
+      };
+
+      // Check if district exists directly in available cities
+      if (availableCities.includes(businessPincodeData.district)) {
+        setValue("businessCity", businessPincodeData.district);
+        console.log(
+          `Auto-set business city to: ${businessPincodeData.district}`
+        );
+      } else {
+        // Check if there's a mapped name
+        const mappedName = cityNameMapping[businessPincodeData.district];
+        if (mappedName && availableCities.includes(mappedName)) {
+          setValue("businessCity", mappedName);
+          console.log(
+            `Auto-set business city to mapped name: ${mappedName} (from ${businessPincodeData.district})`
+          );
+        } else {
+          // Try to find a close match
+          const closeMatch = availableCities.find(
+            (city) =>
+              city
+                .toLowerCase()
+                .includes(businessPincodeData.district.toLowerCase()) ||
+              businessPincodeData.district
+                .toLowerCase()
+                .includes(city.toLowerCase())
+          );
+
+          if (closeMatch) {
+            setValue("businessCity", closeMatch);
+            console.log(`Auto-set business city to close match: ${closeMatch}`);
+          } else {
+            setValue("businessCity", businessPincodeData.district);
+            console.log(
+              `Auto-set business city to district as-is: ${businessPincodeData.district}`
+            );
+          }
+        }
+      }
+    }
+  }, [selectedBusinessState, businessPincodeData]);
+
+  React.useEffect(() => {
+    if (selectedBankState && bankPincodeData?.district) {
+      console.log(
+        `Bank state changed to: ${selectedBankState}, auto-setting city: ${bankPincodeData.district}`
+      );
+
+      // Enhanced city matching logic with common naming discrepancies
+      const availableCities = getCitiesByState(selectedBankState);
+      console.log(
+        `Available cities for ${selectedBankState}:`,
+        availableCities
+      );
+
+      // Common naming discrepancies mapping
+      const cityNameMapping: { [key: string]: string } = {
+        Gurugram: "Gurgaon",
+        Gurgaon: "Gurugram",
+        Mumbai: "Mumbai City",
+        "Mumbai City": "Mumbai",
+        "New Delhi": "Delhi",
+        Delhi: "New Delhi",
+        Bangalore: "Bengaluru",
+        Bengaluru: "Bangalore",
+        Calcutta: "Kolkata",
+        Kolkata: "Calcutta",
+        Madras: "Chennai",
+        Chennai: "Madras",
+      };
+
+      // Check if district exists directly in available cities
+      if (availableCities.includes(bankPincodeData.district)) {
+        setValue("bankCity", bankPincodeData.district);
+        console.log(`Auto-set bank city to: ${bankPincodeData.district}`);
+      } else {
+        // Check if there's a mapped name
+        const mappedName = cityNameMapping[bankPincodeData.district];
+        if (mappedName && availableCities.includes(mappedName)) {
+          setValue("bankCity", mappedName);
+          console.log(
+            `Auto-set bank city to mapped name: ${mappedName} (from ${bankPincodeData.district})`
+          );
+        } else {
+          // Try to find a close match
+          const closeMatch = availableCities.find(
+            (city) =>
+              city
+                .toLowerCase()
+                .includes(bankPincodeData.district.toLowerCase()) ||
+              bankPincodeData.district
+                .toLowerCase()
+                .includes(city.toLowerCase())
+          );
+
+          if (closeMatch) {
+            setValue("bankCity", closeMatch);
+            console.log(`Auto-set bank city to close match: ${closeMatch}`);
+          } else {
+            setValue("bankCity", bankPincodeData.district);
+            console.log(
+              `Auto-set bank city to district as-is: ${bankPincodeData.district}`
+            );
+          }
+        }
+      }
+    }
+  }, [selectedBankState, bankPincodeData]);
 
   // File upload function using existing upload endpoint
   const handleFileUpload = async (file: File) => {
@@ -468,11 +711,16 @@ export default function BecomeASellerPage() {
         setValue("phone", "");
         setValue("businessName", "");
         setValue("businessAddress", "");
+        setValue("businessState", "");
+        setValue("businessCity", "");
+        setValue("businessPincode", "");
         setValue("companyRegistrationNumber", "");
         setValue("gstNumber", "");
         setValue("panNumber", "");
         setValue("bankName", "");
-        setValue("bankLocation", "");
+        setValue("bankState", "");
+        setValue("bankCity", "");
+        setValue("bankPincode", "");
         setValue("accountNumber", "");
         setValue("ifscCode", "");
         setValue("governmentIdNumber", "");
@@ -482,6 +730,15 @@ export default function BecomeASellerPage() {
         // Reset file upload state
         setUploadedFileUrl("");
         setSelectedFileName("");
+        // Reset state variables
+        setSelectedBusinessState("");
+        setSelectedBankState("");
+        setBusinessCitySearch("");
+        setBankCitySearch("");
+        setBusinessPincodeData(null);
+        setBankPincodeData(null);
+        setBusinessPincodeValidationStatus("idle");
+        setBankPincodeValidationStatus("idle");
       } else {
         const errorData = await response.json();
         toast({
@@ -726,6 +983,7 @@ export default function BecomeASellerPage() {
                         <div>
                           <Label htmlFor="businessState">State *</Label>
                           <Select
+                            value={watchedBusinessState}
                             onValueChange={(value) => {
                               setValue("businessState", value);
                               setValue("businessCity", "");
@@ -757,9 +1015,13 @@ export default function BecomeASellerPage() {
                         <div>
                           <Label htmlFor="businessCity">City *</Label>
                           <Select
-                            onValueChange={(value) =>
-                              setValue("businessCity", value)
-                            }
+                            value={watchedBusinessCity}
+                            onValueChange={(value) => {
+                              console.log(
+                                `Business city dropdown changed to: ${value}`
+                              );
+                              setValue("businessCity", value);
+                            }}
                             disabled={!selectedBusinessState}
                           >
                             <SelectTrigger
@@ -767,7 +1029,9 @@ export default function BecomeASellerPage() {
                                 errors.businessCity ? "border-red-500" : ""
                               }
                             >
-                              <SelectValue placeholder="Select city" />
+                              <SelectValue placeholder="Select city">
+                                {watchedBusinessCity || "Select city"}
+                              </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                               {selectedBusinessState && (
@@ -782,14 +1046,21 @@ export default function BecomeASellerPage() {
                                       className="mb-2"
                                     />
                                   </div>
-                                  {searchCitiesByState(
-                                    selectedBusinessState,
-                                    businessCitySearch
-                                  ).map((city) => (
-                                    <SelectItem key={city} value={city}>
-                                      {city}
-                                    </SelectItem>
-                                  ))}
+                                  {(() => {
+                                    const cities = searchCitiesByState(
+                                      selectedBusinessState,
+                                      businessCitySearch
+                                    );
+                                    console.log(
+                                      `Business cities for ${selectedBusinessState}:`,
+                                      cities
+                                    );
+                                    return cities.map((city) => (
+                                      <SelectItem key={city} value={city}>
+                                        {city}
+                                      </SelectItem>
+                                    ));
+                                  })()}
                                 </>
                               )}
                             </SelectContent>
@@ -812,14 +1083,19 @@ export default function BecomeASellerPage() {
                             <Input
                               id="businessPincode"
                               placeholder="123456"
-                              {...register("businessPincode")}
+                              {...register("businessPincode", {
+                                onChange: (e) => {
+                                  // Only allow digits
+                                  const value = e.target.value.replace(
+                                    /\D/g,
+                                    ""
+                                  );
+                                  e.target.value = value;
+                                  return value;
+                                },
+                              })}
                               className={`${errors.businessPincode ? "border-red-500" : ""} pr-10`}
                               maxLength={6}
-                              onChange={(e) => {
-                                // Only allow digits
-                                const value = e.target.value.replace(/\D/g, "");
-                                e.target.value = value;
-                              }}
                             />
                             {businessPincodeValidationStatus ===
                               "validating" && (
@@ -839,7 +1115,7 @@ export default function BecomeASellerPage() {
                           )}
                           {businessPincodeData && (
                             <p className="text-green-500 text-xs mt-1">
-                              ✓ Auto-filled: {businessPincodeData.city},{" "}
+                              ✓ Auto-filled: {businessPincodeData.district},{" "}
                               {businessPincodeData.state}
                             </p>
                           )}
@@ -996,6 +1272,7 @@ export default function BecomeASellerPage() {
                         <div>
                           <Label htmlFor="bankState">State *</Label>
                           <Select
+                            value={watchedBankState}
                             onValueChange={(value) => {
                               setValue("bankState", value);
                               setValue("bankCity", "");
@@ -1027,9 +1304,13 @@ export default function BecomeASellerPage() {
                         <div>
                           <Label htmlFor="bankCity">City *</Label>
                           <Select
-                            onValueChange={(value) =>
-                              setValue("bankCity", value)
-                            }
+                            value={watchedBankCity}
+                            onValueChange={(value) => {
+                              console.log(
+                                `Bank city dropdown changed to: ${value}`
+                              );
+                              setValue("bankCity", value);
+                            }}
                             disabled={!selectedBankState}
                           >
                             <SelectTrigger
@@ -1037,7 +1318,9 @@ export default function BecomeASellerPage() {
                                 errors.bankCity ? "border-red-500" : ""
                               }
                             >
-                              <SelectValue placeholder="Select city" />
+                              <SelectValue placeholder="Select city">
+                                {watchedBankCity || "Select city"}
+                              </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                               {selectedBankState && (
@@ -1052,14 +1335,21 @@ export default function BecomeASellerPage() {
                                       className="mb-2"
                                     />
                                   </div>
-                                  {searchCitiesByState(
-                                    selectedBankState,
-                                    bankCitySearch
-                                  ).map((city) => (
-                                    <SelectItem key={city} value={city}>
-                                      {city}
-                                    </SelectItem>
-                                  ))}
+                                  {(() => {
+                                    const cities = searchCitiesByState(
+                                      selectedBankState,
+                                      bankCitySearch
+                                    );
+                                    console.log(
+                                      `Bank cities for ${selectedBankState}:`,
+                                      cities
+                                    );
+                                    return cities.map((city) => (
+                                      <SelectItem key={city} value={city}>
+                                        {city}
+                                      </SelectItem>
+                                    ));
+                                  })()}
                                 </>
                               )}
                             </SelectContent>
@@ -1082,14 +1372,19 @@ export default function BecomeASellerPage() {
                             <Input
                               id="bankPincode"
                               placeholder="123456"
-                              {...register("bankPincode")}
+                              {...register("bankPincode", {
+                                onChange: (e) => {
+                                  // Only allow digits
+                                  const value = e.target.value.replace(
+                                    /\D/g,
+                                    ""
+                                  );
+                                  e.target.value = value;
+                                  return value;
+                                },
+                              })}
                               className={`${errors.bankPincode ? "border-red-500" : ""} pr-10`}
                               maxLength={6}
-                              onChange={(e) => {
-                                // Only allow digits
-                                const value = e.target.value.replace(/\D/g, "");
-                                e.target.value = value;
-                              }}
                             />
                             {bankPincodeValidationStatus === "validating" && (
                               <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-blue-500" />
@@ -1108,7 +1403,7 @@ export default function BecomeASellerPage() {
                           )}
                           {bankPincodeData && (
                             <p className="text-green-500 text-xs mt-1">
-                              ✓ Auto-filled: {bankPincodeData.city},{" "}
+                              ✓ Auto-filled: {bankPincodeData.district},{" "}
                               {bankPincodeData.state}
                             </p>
                           )}
@@ -1119,15 +1414,17 @@ export default function BecomeASellerPage() {
                         <Input
                           id="accountNumber"
                           placeholder="Account number"
-                          {...register("accountNumber")}
+                          {...register("accountNumber", {
+                            onChange: (e) => {
+                              // Only allow digits
+                              const value = e.target.value.replace(/\D/g, "");
+                              e.target.value = value;
+                              return value;
+                            },
+                          })}
                           className={
                             errors.accountNumber ? "border-red-500" : ""
                           }
-                          onChange={(e) => {
-                            // Only allow digits
-                            const value = e.target.value.replace(/\D/g, "");
-                            e.target.value = value;
-                          }}
                         />
                         {errors.accountNumber && (
                           <p className="text-red-500 text-sm mt-1">
