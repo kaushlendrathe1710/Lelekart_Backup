@@ -9,6 +9,9 @@ interface SearchSuggestion {
   image: string | null;
   price: number;
   category: string;
+  sellerName?: string;
+  sellerUsername?: string;
+  businessName?: string;
 }
 
 // Add helper function to process image URLs
@@ -169,6 +172,15 @@ export function SearchSuggestions({
                   <p className="text-sm font-medium text-gray-900 truncate">
                     {suggestion.name}
                   </p>
+                  {(suggestion.businessName ||
+                    suggestion.sellerName ||
+                    suggestion.sellerUsername) && (
+                    <p className="text-xs text-blue-600 truncate font-medium">
+                      {suggestion.businessName ||
+                        suggestion.sellerName ||
+                        suggestion.sellerUsername}
+                    </p>
+                  )}
                   <p className="text-xs text-gray-500 truncate">
                     in {suggestion.category}
                   </p>

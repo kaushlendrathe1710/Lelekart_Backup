@@ -3863,30 +3863,47 @@ export class DatabaseStorage implements IStorage {
       // Add approval filter for all users using this search function
       const approvalFilter = ` AND p.approved = true AND (p.is_draft IS NULL OR p.is_draft = false)`;
 
-      // Ultra-strict query that only returns highly relevant results
+      // Enhanced search query that includes seller/brand information
       const finalQuery = `
         WITH ranked_products AS (
           SELECT 
             p.*,
+            u.name as seller_name,
+            u.username as seller_username,
+            bd.business_name as business_name,
             CASE 
               -- Exact word match with word boundaries (highest priority)
               WHEN p.name ~* ('^' || $2 || '$') THEN 10.0 -- Exact word match in name
               WHEN p.name ~* ('\\y' || $2 || '\\y') THEN 8.0 -- Word boundary match in name
               WHEN p.category ~* ('\\y' || $2 || '\\y') THEN 6.0 -- Word boundary match in category
+              WHEN u.name ~* ('\\y' || $2 || '\\y') THEN 7.0 -- Word boundary match in seller name
+              WHEN u.username ~* ('\\y' || $2 || '\\y') THEN 7.0 -- Word boundary match in seller username
+              WHEN bd.business_name ~* ('\\y' || $2 || '\\y') THEN 9.0 -- Word boundary match in business name (brand)
               -- Only exact word matches (no partial matches)
               WHEN p.name ILIKE $1 THEN 3.0
               WHEN p.category ILIKE $1 THEN 2.0
+              WHEN u.name ILIKE $1 THEN 4.0
+              WHEN u.username ILIKE $1 THEN 4.0
+              WHEN bd.business_name ILIKE $1 THEN 5.0
               ELSE 0
             END AS exact_match_rank
           FROM products p
-                      WHERE 
+          LEFT JOIN users u ON p.seller_id = u.id
+          LEFT JOIN business_details bd ON p.seller_id = bd.seller_id
+          WHERE 
             p.deleted = false AND (
-              -- ONLY exact word boundary matches (most relevant)
+              -- Search in product fields
               p.name ~* ('\\y' || $2 || '\\y') OR
               p.category ~* ('\\y' || $2 || '\\y') OR
-              -- OR exact word matches in name/category only
               p.name ILIKE $1 OR
-              p.category ILIKE $1
+              p.category ILIKE $1 OR
+              -- Search in seller/brand fields
+              u.name ~* ('\\y' || $2 || '\\y') OR
+              u.username ~* ('\\y' || $2 || '\\y') OR
+              bd.business_name ~* ('\\y' || $2 || '\\y') OR
+              u.name ILIKE $1 OR
+              u.username ILIKE $1 OR
+              bd.business_name ILIKE $1
             )
             ${approvalFilter}
         )
@@ -3904,28 +3921,29 @@ export class DatabaseStorage implements IStorage {
 
       // Log the exact search parameters to help debug
       console.log(
-        "SEARCH DEBUG - ULTRA-STRICT RELEVANCE: Using the following parameters:"
+        "SEARCH DEBUG - ENHANCED SEARCH WITH SELLER/BRAND: Using the following parameters:"
       );
       console.log("- Original query:", query);
       console.log("- Exact word boundary pattern:", `\\y${query}\\y`);
       console.log("- Exact match pattern:", `% ${query} %`);
       console.log(
-        "- Search strategy: ONLY word boundaries + exact matches (no description search)"
+        "- Search strategy: Product name/category + Seller name/username + Business name (brand)"
       );
 
       console.log(
-        "Executing ultra-strict relevance search query with params:",
+        "Executing enhanced search query with seller/brand support with params:",
         params
       );
 
-      // Execute the query with ultra-strict relevance scoring
-      // This search now ONLY returns:
+      // Execute the query with enhanced relevance scoring including seller/brand information
+      // This search now returns:
       // 1. Exact word boundary matches in name/category (highest relevance)
-      // 2. Exact word matches in name/category (lower relevance)
-      // 3. NO description search (prevents all unrelated results)
+      // 2. Word boundary matches in seller name/username and business name (brand)
+      // 3. Exact word matches in all fields
+      // 4. Business name (brand) gets higher priority than seller name/username
       const { rows } = await pool.query(finalQuery, params);
       console.log(
-        `Found ${rows.length} products with ultra-strict relevance search`
+        `Found ${rows.length} products with enhanced search including seller/brand information`
       );
 
       return rows;

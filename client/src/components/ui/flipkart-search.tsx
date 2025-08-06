@@ -9,6 +9,9 @@ interface SearchSuggestion {
   image: string | null;
   price: number;
   category: string;
+  sellerName?: string;
+  sellerUsername?: string;
+  businessName?: string;
 }
 
 interface FlipkartSearchProps {
@@ -118,6 +121,9 @@ export function FlipkartSearch({ className = "" }: FlipkartSearchProps) {
             image: imageUrl,
             price: item.price || 0,
             category: item.category || "Uncategorized",
+            sellerName: item.sellerName || null,
+            sellerUsername: item.sellerUsername || null,
+            businessName: item.businessName || null,
           };
         });
 
@@ -282,6 +288,15 @@ export function FlipkartSearch({ className = "" }: FlipkartSearchProps) {
                         <p className="text-sm font-medium text-gray-900 truncate">
                           {suggestion.name}
                         </p>
+                        {(suggestion.businessName ||
+                          suggestion.sellerName ||
+                          suggestion.sellerUsername) && (
+                          <p className="text-xs text-blue-600 font-medium">
+                            {suggestion.businessName ||
+                              suggestion.sellerName ||
+                              suggestion.sellerUsername}
+                          </p>
+                        )}
                         <p className="text-xs text-gray-500">
                           in {suggestion.category}
                         </p>

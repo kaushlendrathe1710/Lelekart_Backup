@@ -20,6 +20,9 @@ interface ExtendedProduct extends Omit<Product, "imageUrl"> {
   imageUrl?: string | null;
   hasVariants?: boolean;
   variants?: any[];
+  sellerName?: string;
+  sellerUsername?: string;
+  businessName?: string;
   gstDetails?: {
     gstRate: number;
     basePrice: number;
@@ -33,8 +36,9 @@ interface ProductCardProps {
   featured?: boolean;
   priority?: boolean; // For above-the-fold images
   showAddToCart?: boolean; // New prop to control Add to Cart button
-  variant?: 'default' | 'plain'; // Add variant prop
+  variant?: "default" | "plain"; // Add variant prop
   showWishlist?: boolean;
+  showSellerInfo?: boolean; // New prop to control seller/brand info display
   cardBg?: string;
 }
 
@@ -43,8 +47,9 @@ export const ProductCard = memo(function ProductCard({
   featured = false,
   priority = false,
   showAddToCart = true, // Default to true
-  variant = 'default', // Default to default
+  variant = "default", // Default to default
   showWishlist = true,
+  showSellerInfo = false, // Default to false to maintain current behavior
   cardBg,
 }: ProductCardProps) {
   const cartContext = useContext(CartContext); // Use context directly with optional chaining
@@ -145,9 +150,9 @@ export const ProductCard = memo(function ProductCard({
       <Link href={`/product/${product.id}`} className="block">
         <Card
           className={
-            variant === 'plain'
+            variant === "plain"
               ? `product-card h-full flex flex-col items-center p-0 border-none shadow-none rounded-none bg-transparent`
-              : 'product-card h-full flex flex-col items-center p-3 transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1 bg-[#F8F5E4] border border-[#e0c9a6] rounded-2xl'
+              : "product-card h-full flex flex-col items-center p-3 transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1 bg-[#F8F5E4] border border-[#e0c9a6] rounded-2xl"
           }
           style={{}}
           onClick={() => {
@@ -203,15 +208,15 @@ export const ProductCard = memo(function ProductCard({
           <CardContent className="p-0 w-full flex flex-col items-center h-full bg-transparent">
             <div
               className={
-                variant === 'plain'
+                variant === "plain"
                   ? `w-full flex-shrink-0 h-40 flex items-center justify-center mb-3 overflow-hidden bg-transparent`
-                  : 'w-full flex-shrink-0 h-40 flex items-center justify-center mb-3 bg-[#F8F5E4] rounded-2xl overflow-hidden'
+                  : "w-full flex-shrink-0 h-40 flex items-center justify-center mb-3 bg-[#F8F5E4] rounded-2xl overflow-hidden"
               }
               style={{}}
             >
               <ProductImage
                 product={product}
-                className={variant === 'plain' ? '' : 'rounded-xl'}
+                className={variant === "plain" ? "" : "rounded-xl"}
                 priority={shouldPrioritize}
                 sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 20vw"
               />
@@ -221,6 +226,16 @@ export const ProductCard = memo(function ProductCard({
               <h3 className="font-medium text-center text-sm line-clamp-2 h-10">
                 {product.name}
               </h3>
+              {showSellerInfo &&
+                (product.businessName ||
+                  product.sellerName ||
+                  product.sellerUsername) && (
+                  <div className="text-xs text-blue-600 mt-1 text-center line-clamp-1 font-medium">
+                    {product.businessName ||
+                      product.sellerName ||
+                      product.sellerUsername}
+                  </div>
+                )}
               <div className="text-green-600 font-medium mt-1 text-center flex items-center justify-center gap-2">
                 {product.gstDetails
                   ? formatPrice(product.gstDetails.priceWithGst)
