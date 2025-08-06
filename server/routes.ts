@@ -6455,7 +6455,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.role === "buyer" ? req.user.id : undefined;
 
       const orders = await storage.getOrders(userId, sellerId);
-      res.json(orders);
+
+      // If seller is requesting orders, include user information
+      if (req.user.role === "seller") {
+        const ordersWithUserDetails = await Promise.all(
+          orders.map(async (order) => {
+            try {
+              const user = await storage.getUser(order.userId);
+              return {
+                ...order,
+                buyerName: user?.name || user?.username || "N/A",
+                buyerEmail: user?.email || "N/A",
+                buyerPhone: user?.phone || "",
+              };
+            } catch (error) {
+              console.error(
+                `Error fetching user details for order ${order.id}:`,
+                error
+              );
+              return {
+                ...order,
+                buyerName: "N/A",
+                buyerEmail: "N/A",
+                buyerPhone: "",
+              };
+            }
+          })
+        );
+        res.json(ordersWithUserDetails);
+      } else {
+        res.json(orders);
+      }
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch orders" });
     }

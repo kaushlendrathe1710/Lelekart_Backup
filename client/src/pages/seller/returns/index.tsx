@@ -62,7 +62,7 @@ interface Order {
   total: number;
   paymentMethod: string;
   customer: string;
-  items: any[];
+  items: OrderItem[];
   sellerId?: number;
   buyerName?: string;
   buyerEmail?: string;
@@ -71,6 +71,22 @@ interface Order {
   returnReason?: string;
   returnDescription?: string;
   returnRequestDate?: string;
+}
+
+// OrderItem interface
+interface OrderItem {
+  id: number;
+  orderId: number;
+  productId: number;
+  quantity: number;
+  price: number;
+  variantId?: number;
+  product?: {
+    id: number;
+    name: string;
+    images?: string;
+    description?: string;
+  };
 }
 
 // Format payment method
@@ -91,6 +107,20 @@ const formatStatus = (status: string) => {
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
+};
+
+// Helper function to get product image
+const getProductImage = (images: string) => {
+  try {
+    const imagesArray = JSON.parse(images);
+    if (Array.isArray(imagesArray) && imagesArray.length > 0) {
+      return imagesArray[0];
+    }
+  } catch {
+    // If JSON parsing fails, try using it directly
+    return images;
+  }
+  return "https://placehold.co/100x100?text=No+Image";
 };
 
 export default function SellerReturnManagement() {
@@ -120,8 +150,29 @@ export default function SellerReturnManagement() {
       const res = await fetch("/api/orders", { credentials: "include" });
       if (!res.ok) return [];
       const data = await res.json();
-      // The backend already returns only orders relevant to this seller
-      return data || [];
+
+      // Fetch items for each order
+      const ordersWithItems = await Promise.all(
+        data.map(async (order: Order) => {
+          try {
+            // Fetch items
+            const itemsRes = await fetch(`/api/orders/${order.id}/items`, {
+              credentials: "include",
+            });
+            const items = itemsRes.ok ? await itemsRes.json() : [];
+
+            return {
+              ...order,
+              items,
+            };
+          } catch (error) {
+            console.error(`Error fetching items for order ${order.id}:`, error);
+            return { ...order, items: [] };
+          }
+        })
+      );
+
+      return ordersWithItems || [];
     },
     enabled: !!user && user.role === "seller",
   });
@@ -133,6 +184,8 @@ export default function SellerReturnManagement() {
     "process_return",
     "reject_return",
     "completed_return",
+    "return_rejected",
+    "return_approved",
   ];
 
   // Filter orders by return statuses
@@ -148,6 +201,8 @@ export default function SellerReturnManagement() {
       process_return: 0,
       completed_return: 0,
       reject_return: 0,
+      return_rejected: 0,
+      return_approved: 0,
     };
     filteredOrders.forEach((order) => {
       if (counts.hasOwnProperty(order.status)) {
@@ -266,6 +321,29 @@ export default function SellerReturnManagement() {
       ];
     }
 
+    // Handle return_approved and return_rejected statuses
+    if (status === "return_approved") {
+      return [
+        {
+          label: "Process Return",
+          action: "process",
+          icon: <RefreshCcwIcon className="mr-2 h-4 w-4" />,
+          variant: "default" as const,
+        },
+      ];
+    }
+
+    if (status === "return_rejected") {
+      return [
+        {
+          label: "Review Again",
+          action: "review",
+          icon: <RefreshCcwIcon className="mr-2 h-4 w-4" />,
+          variant: "outline" as const,
+        },
+      ];
+    }
+
     return [];
   };
 
@@ -276,7 +354,7 @@ export default function SellerReturnManagement() {
           Return Management
         </h1>
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-7 gap-4 mb-6">
           <StatCard
             title="Marked for Return"
             value={statusCounts.marked_for_return.toString()}
@@ -304,6 +382,18 @@ export default function SellerReturnManagement() {
           <StatCard
             title="Rejected Returns"
             value={statusCounts.reject_return.toString()}
+            icon={<XCircleIcon className="h-4 w-4" />}
+            description="Returns rejected"
+          />
+          <StatCard
+            title="Return Approved"
+            value={statusCounts.return_approved.toString()}
+            icon={<CheckCircleIcon className="h-4 w-4" />}
+            description="Returns approved"
+          />
+          <StatCard
+            title="Return Rejected"
+            value={statusCounts.return_rejected.toString()}
             icon={<XCircleIcon className="h-4 w-4" />}
             description="Returns rejected"
           />
@@ -354,8 +444,15 @@ export default function SellerReturnManagement() {
                           <TableCell>
                             <div className="flex items-center">
                               <Package className="mr-2 h-4 w-4 text-gray-500" />
-                              {order.items?.length || 0} item
-                              {(order.items?.length || 0) === 1 ? "" : "s"}
+                              {Array.isArray(order.items)
+                                ? order.items.length
+                                : 0}{" "}
+                              item
+                              {(Array.isArray(order.items)
+                                ? order.items.length
+                                : 0) === 1
+                                ? ""
+                                : "s"}
                             </div>
                           </TableCell>
                           <TableCell className="font-medium">
@@ -415,6 +512,7 @@ export default function SellerReturnManagement() {
               {actionType === "accept" && "Accept Return Request"}
               {actionType === "reject" && "Reject Return Request"}
               {actionType === "process" && "Process Return"}
+              {actionType === "review" && "Review Return Request"}
             </DialogTitle>
             <DialogDescription>
               {actionType === "accept" &&
@@ -423,6 +521,8 @@ export default function SellerReturnManagement() {
                 "Reject this return request with a reason."}
               {actionType === "process" &&
                 "Process this return and initiate refund/replacement."}
+              {actionType === "review" &&
+                "Review this rejected return request again."}
             </DialogDescription>
           </DialogHeader>
 
@@ -431,14 +531,18 @@ export default function SellerReturnManagement() {
               <Label htmlFor="action-note">
                 {actionType === "reject"
                   ? "Reason for Rejection"
-                  : "Notes (Optional)"}
+                  : actionType === "review"
+                    ? "Review Notes"
+                    : "Notes (Optional)"}
               </Label>
               <Textarea
                 id="action-note"
                 placeholder={
                   actionType === "reject"
                     ? "Please provide a reason for rejecting this return"
-                    : "Add any additional notes"
+                    : actionType === "review"
+                      ? "Add notes for reviewing this return request"
+                      : "Add any additional notes"
                 }
                 className="resize-none min-h-[100px] mt-2"
                 value={actionNote}
@@ -456,7 +560,8 @@ export default function SellerReturnManagement() {
               <Button
                 onClick={handleActionSubmit}
                 disabled={
-                  (actionType === "reject" && !actionNote) ||
+                  ((actionType === "reject" || actionType === "review") &&
+                    !actionNote) ||
                   handleReturnAction.isPending
                 }
               >
@@ -518,8 +623,13 @@ export default function SellerReturnManagement() {
                         <Package className="h-4 w-4 text-gray-500" />
                         <span className="text-sm text-gray-600">Items:</span>
                         <span className="font-medium">
-                          {selectedOrderForDetails.items?.length || 0} item
-                          {(selectedOrderForDetails.items?.length || 0) === 1
+                          {Array.isArray(selectedOrderForDetails.items)
+                            ? selectedOrderForDetails.items.length
+                            : 0}{" "}
+                          item
+                          {(Array.isArray(selectedOrderForDetails.items)
+                            ? selectedOrderForDetails.items.length
+                            : 0) === 1
                             ? ""
                             : "s"}
                         </span>
@@ -665,7 +775,7 @@ export default function SellerReturnManagement() {
               )}
 
               {/* Order Items */}
-              {selectedOrderForDetails.items &&
+              {Array.isArray(selectedOrderForDetails.items) &&
                 selectedOrderForDetails.items.length > 0 && (
                   <Card>
                     <CardHeader>
@@ -674,27 +784,30 @@ export default function SellerReturnManagement() {
                     <CardContent>
                       <div className="space-y-3">
                         {selectedOrderForDetails.items.map(
-                          (item: any, index: number) => (
+                          (item: OrderItem, index: number) => (
                             <div
-                              key={index}
+                              key={item.id || index}
                               className="flex items-center gap-4 p-3 border rounded-lg"
                             >
-                              {item.image && (
+                              {item.product?.images && (
                                 <img
-                                  src={item.image}
-                                  alt={item.name}
+                                  src={getProductImage(item.product.images)}
+                                  alt={item.product.name}
                                   className="w-16 h-16 object-cover rounded-md"
                                 />
                               )}
                               <div className="flex-1">
-                                <h4 className="font-medium">{item.name}</h4>
+                                <h4 className="font-medium">
+                                  {item.product?.name ||
+                                    `Product ${item.productId}`}
+                                </h4>
                                 <p className="text-sm text-gray-600">
                                   Quantity: {item.quantity} | Price: ₹
                                   {item.price}
                                 </p>
-                                {item.variant && (
+                                {item.variantId && (
                                   <p className="text-sm text-gray-500">
-                                    Variant: {item.variant}
+                                    Variant ID: {item.variantId}
                                   </p>
                                 )}
                               </div>
@@ -719,11 +832,6 @@ export default function SellerReturnManagement() {
               onClick={() => setDetailsDialogOpen(false)}
             >
               Close
-            </Button>
-            <Button asChild>
-              <Link to={`/seller/returns/${selectedOrderForDetails?.id}`}>
-                View Full Details
-              </Link>
             </Button>
           </DialogFooter>
         </DialogContent>
