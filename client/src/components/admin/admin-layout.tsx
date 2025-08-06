@@ -11,6 +11,7 @@ import {
   BarChart3,
   RefreshCw,
   Database,
+  MessageCircle,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect } from "wouter";
@@ -88,6 +89,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       path: "/admin/settings",
       label: "Settings",
       icon: <Settings className="h-5 w-5" />,
+    },
+    {
+      path: "/admin/chat",
+      label: "Live Chat",
+      icon: <MessageCircle className="h-5 w-5" />,
     },
   ];
 

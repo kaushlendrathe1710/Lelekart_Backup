@@ -9,6 +9,7 @@ import {
   doublePrecision,
   jsonb,
   decimal,
+  varchar,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
@@ -1881,6 +1882,56 @@ export const supportMessagesRelations = relations(
   })
 );
 
+// ====================== LIVE CHAT SCHEMA ======================
+export const chatSessions = pgTable("chat_sessions", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  userId: varchar("user_id", { length: 255 }),
+  userName: varchar("user_name", { length: 255 }).notNull(),
+  userEmail: varchar("user_email", { length: 255 }),
+  status: varchar("status", { length: 50 })
+    .default("open")
+    .$type<"open" | "closed">(),
+  isRead: boolean("is_read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  closedAt: timestamp("closed_at"),
+  closedBy: varchar("closed_by", { length: 255 }),
+});
+
+export const insertChatSessionSchema = createInsertSchema(chatSessions).omit({
+  createdAt: true,
+  updatedAt: true,
+  closedAt: true,
+});
+
+export const chatMessages = pgTable("chat_messages", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  sessionId: varchar("session_id", { length: 255 }).notNull(),
+  senderType: varchar("sender_type", { length: 50 })
+    .notNull()
+    .$type<"user" | "admin">(),
+  senderId: varchar("sender_id", { length: 255 }),
+  senderName: varchar("sender_name", { length: 255 }).notNull(),
+  message: text("message").notNull(),
+  isRead: boolean("is_read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
+  createdAt: true,
+});
+
+export const chatSessionsRelations = relations(chatSessions, ({ many }) => ({
+  messages: many(chatMessages),
+}));
+
+export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
+  session: one(chatSessions, {
+    fields: [chatMessages.sessionId],
+    references: [chatSessions.id],
+  }),
+}));
+
 // Type exports for new schemas
 export type Return = typeof returns.$inferSelect;
 export type InsertReturn = z.infer<typeof insertReturnSchema>;
@@ -2327,3 +2378,9 @@ export type AffiliateMarketing = typeof affiliateMarketing.$inferSelect;
 export type InsertAffiliateMarketing = z.infer<
   typeof insertAffiliateMarketingSchema
 >;
+
+export type ChatSession = typeof chatSessions.$inferSelect;
+export type InsertChatSession = z.infer<typeof insertChatSessionSchema>;
+
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;

@@ -43,6 +43,7 @@ import {
   Upload,
   RefreshCcw,
   BarChart3,
+  MessageCircle,
 } from "lucide-react";
 import { useState } from "react";
 import {
@@ -258,6 +259,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       title: "Affiliate Marketing",
       href: "/admin/affilate-marketing",
       icon: <BarChart3 className="h-5 w-5" />,
+    },
+    {
+      title: "Live Chat",
+      href: "/admin/chat",
+      icon: <MessageCircle className="h-5 w-5" />,
     },
   ];
 
