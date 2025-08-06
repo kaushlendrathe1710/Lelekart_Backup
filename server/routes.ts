@@ -57,6 +57,7 @@ import QRCode from "qrcode";
 import { sendEmail, EMAIL_TEMPLATES } from "./services/email-service";
 import affiliateMarketingRoutes from "./routes/affiliate-marketing-routes";
 import becomeSellerRoutes from "./routes/become-seller-routes";
+import * as returnsHandlers from "./handlers/returns-handlers";
 
 // Helper function to apply product display settings
 function applyProductDisplaySettings(products: any[], settings: any) {
@@ -11343,6 +11344,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await returnsHandlers.acceptReturnHandler(req, res);
   });
 
+  app.post("/api/seller/returns/:id/approve", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" || !req.user.approved)
+      return res.status(403).json({ error: "Not authorized" });
+
+    await returnsHandlers.acceptReturnHandler(req, res);
+  });
+
   app.post("/api/seller/returns/:id/reject", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     if (req.user.role !== "seller" || !req.user.approved)
@@ -11357,6 +11366,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(403).json({ error: "Not authorized" });
 
     await returnsHandlers.processReturnHandler(req, res);
+  });
+
+  app.post("/api/seller/returns/:id/message", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" || !req.user.approved)
+      return res.status(403).json({ error: "Not authorized" });
+
+    await returnsHandlers.addReturnMessageHandler(req, res);
+  });
+
+  app.post("/api/seller/returns/:id/received", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" || !req.user.approved)
+      return res.status(403).json({ error: "Not authorized" });
+
+    await returnsHandlers.markReturnReceivedHandler(req, res);
+  });
+
+  app.post("/api/seller/returns/:id/process-refund", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" || !req.user.approved)
+      return res.status(403).json({ error: "Not authorized" });
+
+    await returnsHandlers.processRefundHandler(req, res);
+  });
+
+  app.post("/api/seller/returns/:id/ship-replacement", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" || !req.user.approved)
+      return res.status(403).json({ error: "Not authorized" });
+
+    await returnsHandlers.shipReplacementHandler(req, res);
+  });
+
+  app.get("/api/seller/returns/:id/label", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" || !req.user.approved)
+      return res.status(403).json({ error: "Not authorized" });
+
+    await returnsHandlers.generateReturnLabelHandler(req, res);
   });
 
   // Analytics Routes
