@@ -521,8 +521,19 @@ export default function HomePage() {
       .slice(0, count);
   }
   function getLowestDiscountFashion(products: Product[], count: number) {
-    return products
-      .filter((p) => p.category?.toLowerCase() === "fashion")
+    // More flexible filtering - check for fashion-related categories
+    const fashionProducts = products.filter((p) => {
+      const category = p.category?.toLowerCase();
+      return (
+        category === "fashion" ||
+        category === "clothing" ||
+        category === "apparel" ||
+        category?.includes("fashion") ||
+        category?.includes("clothing")
+      );
+    });
+
+    return fashionProducts
       .sort((a, b) => {
         const aDisc =
           a.mrp && a.mrp > a.price ? ((a.mrp - a.price) / a.mrp) * 100 : 0;
