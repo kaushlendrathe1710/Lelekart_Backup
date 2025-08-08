@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
 import { ProductCard } from "@/components/ui/product-card";
@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { FashionProductCardFixed } from "@/components/ui/fashion-product-card-fixed";
 import { LazySection } from "@/components/ui/lazy-section";
+import { LazyLoadingFallback } from "@/components/ui/lazy-loading-fallback";
 import { InfiniteScroll } from "@/components/ui/infinite-scroll";
 import {
   useInfiniteProducts,
@@ -31,6 +32,29 @@ import { ChevronDown } from "lucide-react";
 import { ArrowUp } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { Package } from "lucide-react";
+
+// Lazy load components for better performance
+const FeaturedDealsSection = lazy(
+  () => import("@/components/home/featured-deals-section")
+);
+const UnderPriceSection = lazy(
+  () => import("@/components/home/under-price-section")
+);
+const DiscountSection = lazy(
+  () => import("@/components/home/discount-section")
+);
+const RecentlyViewedSection = lazy(
+  () => import("@/components/home/recently-viewed-section")
+);
+const CategorySections = lazy(
+  () => import("@/components/home/category-sections")
+);
+const AllProductsSection = lazy(
+  () => import("@/components/home/all-products-section")
+);
+const BrowserHistorySection = lazy(
+  () => import("@/components/home/browser-history-section")
+);
 
 // Memoize categories to prevent unnecessary re-renders
 const allCategories = [
@@ -657,451 +681,113 @@ export default function HomePage() {
         )}
       </div>
       {/* --- Featured Deals, Best Seller, Trending (3 columns in one row) --- */}
-      <div className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Featured Deals */}
-          <div className="bg-[#F8F5E4] rounded-2xl p-4 border border-[#e0c9a6] shadow-md flex flex-col justify-between">
-            <h2 className="text-xl font-semibold mb-4 text-black">
-              Featured Deals
-            </h2>
-            <div className="grid grid-cols-2 gap-2 justify-center">
-              {featuredProducts.slice(0, 4).map((product, index) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  featured={true}
-                  priority={index < 2}
-                  variant="plain"
-                  showAddToCart={false}
-                  showWishlist={false}
-                />
-              ))}
-            </div>
-            <div className="flex justify-end mt-2">
-              <Link href="/products" className="text-primary hover:underline">
-                View All
-              </Link>
-            </div>
-          </div>
-          {/* Best Seller */}
-          <div className="bg-[#F8F5E4] rounded-2xl p-4 border border-[#e0c9a6] shadow-md flex flex-col justify-between">
-            <h2 className="text-xl font-semibold mb-4 text-black">
-              Best Seller
-            </h2>
-            <div className="grid grid-cols-2 gap-2 justify-center">
-              {[
-                ...getMaxDiscountProductsInRange(products, 40, 60, 2),
-                ...getMaxDiscountProductsInRange(products, 20, 40, 1),
-                ...getMaxDiscountProductsInRange(products, 0, 20, 1),
-              ]
-                .slice(0, 4)
-                .map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    showAddToCart={false}
-                    variant="plain"
-                    showWishlist={false}
-                  />
-                ))}
-            </div>
-          </div>
-          {/* Trending */}
-          <div className="bg-[#F8F5E4] rounded-2xl p-4 border border-[#e0c9a6] shadow-md flex flex-col justify-between">
-            <h2 className="text-xl font-semibold mb-4 text-black">Trending</h2>
-            <div className="grid grid-cols-2 gap-2 justify-center">
-              {getLowestDiscountFashion(products, 4).map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  showAddToCart={false}
-                  variant="plain"
-                  showWishlist={false}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+      <LazySection
+        fallback={<LazyLoadingFallback variant="cards" count={3} />}
+        threshold={0.2}
+        rootMargin="100px"
+      >
+        <Suspense fallback={<LazyLoadingFallback variant="cards" count={3} />}>
+          <FeaturedDealsSection featuredProducts={featuredProducts} />
+        </Suspense>
+      </LazySection>
       {/* --- Under Price Sections (with visible box) --- */}
-      <div className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[
-            { price: 199, data: under199Data, isLoading: isLoadingUnder199 },
-            { price: 399, data: under399Data, isLoading: isLoadingUnder399 },
-            { price: 599, data: under599Data, isLoading: isLoadingUnder599 },
-          ].map(({ price, data, isLoading }) => (
-            <div
-              key={price}
-              className="bg-[#F8F5E4] rounded-2xl p-4 border border-[#e0c9a6] shadow-md flex flex-col justify-between"
-            >
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-medium">Under ₹{price}</h2>
-                <Link
-                  href={`/under/${price}`}
-                  className="text-primary hover:underline"
-                >
-                  View All
-                </Link>
-              </div>
-              <div className="grid grid-cols-2 gap-2 justify-center">
-                {isLoading
-                  ? [...Array(4)].map((_, i) => (
-                      <div key={i} className="flex flex-col items-center">
-                        <Skeleton className="h-32 w-28 mb-2" />
-                        <Skeleton className="h-4 w-24 mb-2" />
-                        <Skeleton className="h-3 w-16" />
-                      </div>
-                    ))
-                  : (data?.products || [])
-                      .slice(0, 4)
-                      .map((product) => (
-                        <ProductCard
-                          key={product.id}
-                          product={product}
-                          showAddToCart={false}
-                          variant="plain"
-                          showWishlist={false}
-                        />
-                      ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <LazySection
+        fallback={<LazyLoadingFallback variant="cards" count={3} />}
+        threshold={0.2}
+        rootMargin="100px"
+      >
+        <Suspense fallback={<LazyLoadingFallback variant="cards" count={3} />}>
+          <UnderPriceSection
+            under199Data={under199Data}
+            under399Data={under399Data}
+            under599Data={under599Data}
+            isLoadingUnder199={isLoadingUnder199}
+            isLoadingUnder399={isLoadingUnder399}
+            isLoadingUnder599={isLoadingUnder599}
+          />
+        </Suspense>
+      </LazySection>
       {/* --- Discount % Off Sections (third row, with visible box) --- */}
-      <div className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[
-            { percent: 20, data: upTo20Data, isLoading: isLoadingUpTo20 },
-            { percent: 40, data: upTo40Data, isLoading: isLoadingUpTo40 },
-            { percent: 60, data: upTo60Data, isLoading: isLoadingUpTo60 },
-          ].map(({ percent, data, isLoading }) => (
-            <div
-              key={percent}
-              className="bg-[#F8F5E4] rounded-2xl p-4 border border-[#e0c9a6] shadow-md flex flex-col justify-between"
-            >
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-medium">Up to {percent}% Off</h2>
-                <Link
-                  href={`/search?q=upto+${percent}+percent+off`}
-                  className="text-primary hover:underline"
-                >
-                  View All
-                </Link>
-              </div>
-              <div className="grid grid-cols-2 gap-2 justify-center">
-                {isLoading
-                  ? [...Array(4)].map((_, i) => (
-                      <div key={i} className="flex flex-col items-center">
-                        <Skeleton className="h-32 w-28 mb-2" />
-                        <Skeleton className="h-4 w-24 mb-2" />
-                        <Skeleton className="h-3 w-16" />
-                      </div>
-                    ))
-                  : (data?.products || [])
-                      .slice(0, 4)
-                      .map((product) => (
-                        <ProductCard
-                          key={product.id}
-                          product={product}
-                          featured={true}
-                          showAddToCart={false}
-                          variant="plain"
-                          showWishlist={false}
-                          cardBg="#EADDCB"
-                        />
-                      ))}
-              </div>
-            </div>
-          ))}
-
-          {/* Additional discount range sections */}
-          {[
-            {
-              min: 20,
-              max: 40,
-              title: "20-40% Off",
-              data: discount20to40Data,
-              isLoading: isLoading20to40,
-            },
-            {
-              min: 40,
-              max: 60,
-              title: "40-60% Off",
-              data: discount40to60Data,
-              isLoading: isLoading40to60,
-            },
-            {
-              min: 60,
-              max: 80,
-              title: "60-80% Off",
-              data: discount60to80Data,
-              isLoading: isLoading60to80,
-            },
-          ].map(({ min, max, title, data, isLoading }) => (
-            <div
-              key={`${min}-${max}`}
-              className="bg-[#F8F5E4] rounded-2xl p-4 border border-[#e0c9a6] shadow-md flex flex-col justify-between"
-            >
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-medium">{title}</h2>
-                <Link
-                  href={`/search?q=${min}-${max}+percent+off`}
-                  className="text-primary hover:underline"
-                >
-                  View All
-                </Link>
-              </div>
-              <div className="grid grid-cols-2 gap-2 justify-center">
-                {isLoading
-                  ? [...Array(4)].map((_, i) => (
-                      <div key={i} className="flex flex-col items-center">
-                        <Skeleton className="h-32 w-28 mb-2" />
-                        <Skeleton className="h-4 w-24 mb-2" />
-                        <Skeleton className="h-3 w-16" />
-                      </div>
-                    ))
-                  : (data?.products || [])
-                      .slice(0, 4)
-                      .map((product) => (
-                        <ProductCard
-                          key={product.id}
-                          product={product}
-                          featured={true}
-                          showAddToCart={false}
-                          variant="plain"
-                          showWishlist={false}
-                          cardBg="#EADDCB"
-                        />
-                      ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <LazySection
+        fallback={<LazyLoadingFallback variant="cards" count={6} />}
+        threshold={0.2}
+        rootMargin="100px"
+      >
+        <Suspense fallback={<LazyLoadingFallback variant="cards" count={6} />}>
+          <DiscountSection
+            upTo20Data={upTo20Data}
+            upTo40Data={upTo40Data}
+            upTo60Data={upTo60Data}
+            discount20to40Data={discount20to40Data}
+            discount40to60Data={discount40to60Data}
+            discount60to80Data={discount60to80Data}
+            isLoadingUpTo20={isLoadingUpTo20}
+            isLoadingUpTo40={isLoadingUpTo40}
+            isLoadingUpTo60={isLoadingUpTo60}
+            isLoading20to40={isLoading20to40}
+            isLoading40to60={isLoading40to60}
+            isLoading60to80={isLoading60to80}
+          />
+        </Suspense>
+      </LazySection>
       {/* --- Recently Viewed Products --- */}
-      <div className="container mx-auto px-4 pb-6">
-        <div className="bg-[#EADDCB] p-4 rounded shadow-none">
-          <h2 className="text-lg font-semibold mb-4 text-black">
-            Recently Viewed Products
-          </h2>
-          {loadingRecentlyViewed ? (
-            <div className="flex items-center justify-center py-8 text-center flex-col">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
-              <h3 className="text-sm font-medium">
-                Loading recently viewed products...
-              </h3>
-            </div>
-          ) : recentlyViewed.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-2">
-              {recentlyViewed.map((product: any) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  featured={false}
-                  showAddToCart={true}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="flex items-center justify-center py-8 text-center flex-col">
-              <div className="bg-gray-100 rounded-full p-3 mb-3">
-                <Package className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <h3 className="text-sm font-medium">
-                No recently viewed products
-              </h3>
-              <p className="text-xs text-muted-foreground mt-1 mb-4">
-                Products you view will appear here
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
+      <LazySection
+        fallback={<LazyLoadingFallback variant="grid" count={5} />}
+        threshold={0.2}
+        rootMargin="100px"
+      >
+        <Suspense fallback={<LazyLoadingFallback variant="grid" count={5} />}>
+          <RecentlyViewedSection
+            recentlyViewed={recentlyViewed}
+            loadingRecentlyViewed={loadingRecentlyViewed}
+          />
+        </Suspense>
+      </LazySection>
       {/* --- Top Category Sections (with visible box) --- */}
-      {!category && (
-        <div className="container mx-auto px-4 py-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Sort categories by product count and display as per requirements */}
-            {(() => {
-              // Get product counts for each category
-              const categoryCounts = allCategories.map((categoryName) => {
-                const count = products.filter(
-                  (p: Product) =>
-                    p.category?.toLowerCase() === categoryName.toLowerCase()
-                ).length;
-                return { name: categoryName, count };
-              });
-              // Filter out categories with 0 products
-              const nonEmpty = categoryCounts.filter((c) => c.count > 0);
-              // Sort: 4+ first, then 3, then 2 (at end), then 1 (at end)
-              const sorted = [
-                ...nonEmpty.filter((c) => c.count >= 4),
-                ...nonEmpty.filter((c) => c.count === 3),
-                ...nonEmpty.filter((c) => c.count === 2),
-                ...nonEmpty.filter((c) => c.count === 1),
-              ];
-              return sorted.map((catGroup, idx) => (
-                <div
-                  key={catGroup.name}
-                  className="bg-transparent rounded-2xl p-0 flex flex-col justify-between"
-                >
-                  <div className="bg-[#F8F5E4] rounded-2xl p-4 border border-[#e0c9a6] shadow-md">
-                    <CategorySection
-                      category={catGroup.name}
-                      index={idx}
-                      imageUrl={categoryImageMap[catGroup.name]}
-                    />
-                  </div>
-                </div>
-              ));
-            })()}
-          </div>
-        </div>
-      )}
+      <LazySection
+        fallback={<LazyLoadingFallback variant="cards" count={3} />}
+        threshold={0.2}
+        rootMargin="100px"
+      >
+        <Suspense fallback={<LazyLoadingFallback variant="cards" count={3} />}>
+          <CategorySections products={products} category={category} />
+        </Suspense>
+      </LazySection>
       {/* --- All Products Section --- */}
-      {!category && (
-        <LazySection
-          fallback={<CategoryProductsLoading />}
-          threshold={0.1}
-          rootMargin="200px"
-        >
-          <div className="container mx-auto px-4 py-6">
-            <Tabs defaultValue="all" className="w-full">
-              <TabsList className="mb-4">
-                <TabsTrigger value="all">All Products</TabsTrigger>
-                <TabsTrigger value="new">New Arrivals</TabsTrigger>
-                <TabsTrigger value="popular">Popular</TabsTrigger>
-              </TabsList>
+      <LazySection
+        fallback={<LazyLoadingFallback variant="grid" count={6} />}
+        threshold={0.1}
+        rootMargin="200px"
+      >
+        <Suspense fallback={<LazyLoadingFallback variant="grid" count={6} />}>
+          <AllProductsSection
+            infiniteProducts={infiniteProducts}
+            hasMore={hasMore}
+            isFetchingNextPage={isFetchingNextPage}
+            loadMore={loadMore}
+            category={category}
+          />
+        </Suspense>
+      </LazySection>
 
-              <TabsContent
-                value="all"
-                className="bg-[#EADDCB] p-4 rounded shadow-none"
-              >
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-medium">All Products</h2>
-                  <Link
-                    href="/products"
-                    className="text-primary hover:underline flex items-center gap-1"
-                  >
-                    View All <span aria-hidden="true">→</span>
-                  </Link>
-                </div>
+      {/* --- Browser History Section --- */}
+      <LazySection
+        fallback={<LazyLoadingFallback variant="grid" count={5} />}
+        threshold={0.2}
+        rootMargin="100px"
+      >
+        <Suspense fallback={<LazyLoadingFallback variant="grid" count={5} />}>
+          <BrowserHistorySection
+            browserHistory={browserHistory}
+            recentSearchProducts={recentSearchProducts}
+            loadingRecentSearchProducts={loadingRecentSearchProducts}
+            hasMore={hasMore}
+            infiniteProducts={infiniteProducts}
+            infinitePagination={infinitePagination}
+          />
+        </Suspense>
+      </LazySection>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-                  {infiniteProducts.map((product, index) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      priority={index < 6}
-                    />
-                  ))}
-                </div>
-
-                {hasMore && (
-                  <div className="mt-6 flex justify-center">
-                    <Button
-                      onClick={loadMore}
-                      disabled={isFetchingNextPage}
-                      className="flex items-center gap-2"
-                    >
-                      {isFetchingNextPage ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Loading...
-                        </>
-                      ) : (
-                        <>
-                          View More
-                          <ChevronDown className="h-4 w-4" />
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                )}
-
-                {/* Browser History Section - below View More button, only if there are any */}
-                {browserHistory.length > 0 && (
-                  <div className="bg-[#F8F5E4] rounded-2xl p-4 border border-[#e0c9a6] shadow-md mt-6 mb-2">
-                    <h2 className="text-lg font-semibold mb-4 text-black">
-                      Your Recent Searches
-                    </h2>
-                    {loadingRecentSearchProducts ? (
-                      <div className="flex items-center justify-center py-8 text-center flex-col">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
-                        <h3 className="text-sm font-medium">
-                          Loading recent searches...
-                        </h3>
-                      </div>
-                    ) : recentSearchProducts.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-2">
-                        {recentSearchProducts.map((product, idx) => (
-                          <ProductCard
-                            key={product.id || idx}
-                            product={product}
-                            featured={false}
-                            showAddToCart={true}
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center py-8 text-center flex-col">
-                        <div className="bg-gray-100 rounded-full p-3 mb-3">
-                          <svg
-                            className="h-6 w-6 text-muted-foreground"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"
-                            />
-                          </svg>
-                        </div>
-                        <h3 className="text-sm font-medium">
-                          No products found for your recent searches
-                        </h3>
-                        <p className="text-xs text-muted-foreground mt-1 mb-4">
-                          Your recent search products will appear here
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {!hasMore && infiniteProducts.length > 0 && (
-                  <div className="text-sm text-gray-500 text-center mt-4">
-                    Showing {infiniteProducts.length} of{" "}
-                    {infinitePagination.total} products
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent
-                value="new"
-                className="bg-[#EADDCB] p-4 rounded shadow-none"
-              >
-                <div className="text-center py-8">
-                  <p>New arrivals coming soon!</p>
-                </div>
-              </TabsContent>
-
-              <TabsContent
-                value="popular"
-                className="bg-[#EADDCB] p-4 rounded shadow-none"
-              >
-                <div className="text-center py-8">
-                  <p>Popular products feature coming soon!</p>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </LazySection>
-      )}
       {/* Category-specific products with traditional pagination */}
       {category && products.length > 0 && (
         <div className="container mx-auto px-4 py-6">
