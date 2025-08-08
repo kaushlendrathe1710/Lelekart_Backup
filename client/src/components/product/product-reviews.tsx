@@ -105,7 +105,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId }) => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
         <h2 className="text-2xl font-bold">Customer Reviews</h2>
 
-        {user && !userHasReviewed && (
+        {user && !userHasReviewed && user.role === "buyer" && (
           <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
             <DialogTrigger asChild>
               <Button className="mt-2 md:mt-0">
@@ -171,6 +171,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId }) => {
                   isHelpful={review.isHelpful}
                   onDelete={refetch}
                   onEdit={refetch}
+                  productId={productId}
                 />
               ))}
             </div>
@@ -194,6 +195,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId }) => {
                     isHelpful={review.isHelpful}
                     onDelete={refetch}
                     onEdit={refetch}
+                    productId={productId}
                   />
                 ))}
               </div>

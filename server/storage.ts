@@ -38,6 +38,9 @@ import {
   reviewHelpful,
   ReviewHelpful,
   InsertReviewHelpful,
+  reviewReplies,
+  ReviewReply,
+  InsertReviewReply,
   wishlists,
   Wishlist,
   InsertWishlist,
@@ -637,6 +640,15 @@ export interface IStorage {
   markReviewHelpful(reviewId: number, userId: number): Promise<ReviewHelpful>;
   unmarkReviewHelpful(reviewId: number, userId: number): Promise<void>;
   isReviewHelpfulByUser(reviewId: number, userId: number): Promise<boolean>;
+
+  // Review Reply operations
+  createReviewReply(reply: InsertReviewReply): Promise<ReviewReply>;
+  getReviewReplies(reviewId: number): Promise<(ReviewReply & { user: User })[]>;
+  updateReviewReply(
+    id: number,
+    reply: Partial<ReviewReply>
+  ): Promise<ReviewReply>;
+  deleteReviewReply(id: number): Promise<void>;
 
   // Product Rating Summary
   getProductRatingSummary(productId: number): Promise<{
@@ -6778,6 +6790,133 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error getting product reviews for seller:", error);
       return [];
+    }
+  }
+
+  // Review Reply operations
+  async createReviewReply(
+    insertReply: InsertReviewReply
+  ): Promise<ReviewReply> {
+    console.log("=== STORAGE: createReviewReply ===");
+    console.log("Insert reply data:", insertReply);
+
+    try {
+      const now = new Date();
+      const replyData = {
+        ...insertReply,
+        createdAt: now,
+        updatedAt: now,
+      };
+      console.log("Final reply data to insert:", replyData);
+
+      const [reply] = await db
+        .insert(reviewReplies)
+        .values(replyData)
+        .returning();
+
+      console.log("Reply created successfully:", reply);
+      console.log("New reply ID:", reply.id);
+
+      return reply;
+    } catch (error) {
+      console.error("=== STORAGE: createReviewReply - ERROR ===");
+      console.error("Database error:", error);
+      console.error("Error stack:", error.stack);
+      throw error;
+    }
+  }
+
+  async getReviewReplies(
+    reviewId: number
+  ): Promise<(ReviewReply & { user: User })[]> {
+    console.log("=== STORAGE: getReviewReplies ===");
+    console.log("Review ID:", reviewId);
+    console.log("Review ID type:", typeof reviewId);
+
+    try {
+      // Use a simpler query structure to avoid Drizzle's orderSelectedFields issue
+      const replies = await db
+        .select({
+          // Review reply fields
+          id: reviewReplies.id,
+          reviewId: reviewReplies.reviewId,
+          replyUserId: reviewReplies.userId,
+          reply: reviewReplies.reply,
+          createdAt: reviewReplies.createdAt,
+          updatedAt: reviewReplies.updatedAt,
+          // User fields (flattened) - handle potential null values
+          userId: users.id,
+          userUsername: users.username,
+          userEmail: users.email,
+          userRole: users.role,
+          userProfileImage: sql<string>`COALESCE(${users.profileImage}, '')`,
+          userIsCoAdmin: sql<boolean>`COALESCE(${users.isCoAdmin}, false)`,
+        })
+        .from(reviewReplies)
+        .innerJoin(users, eq(reviewReplies.userId, users.id))
+        .where(eq(reviewReplies.reviewId, reviewId))
+        .orderBy(reviewReplies.createdAt);
+
+      console.log("Database query executed successfully");
+      console.log("Number of replies found:", replies.length);
+
+      // Transform the flattened result back to the expected structure
+      const transformedReplies = replies.map((reply) => ({
+        id: reply.id,
+        reviewId: reply.reviewId,
+        userId: reply.replyUserId,
+        reply: reply.reply,
+        createdAt: reply.createdAt,
+        updatedAt: reply.updatedAt,
+        user: {
+          id: reply.userId,
+          username: reply.userUsername,
+          email: reply.userEmail,
+          role: reply.userRole,
+          profileImage: reply.userProfileImage,
+          isCoAdmin: reply.userIsCoAdmin,
+        },
+      }));
+
+      console.log("Transformed replies data:", transformedReplies);
+      return transformedReplies;
+    } catch (error) {
+      console.error("=== STORAGE: getReviewReplies - ERROR ===");
+      console.error("Database error:", error);
+      console.error("Error stack:", error.stack);
+      throw error;
+    }
+  }
+
+  async updateReviewReply(
+    id: number,
+    replyData: Partial<ReviewReply>
+  ): Promise<ReviewReply> {
+    const dataToUpdate = {
+      ...replyData,
+      updatedAt: new Date(),
+    };
+
+    const [updatedReply] = await db
+      .update(reviewReplies)
+      .set(dataToUpdate)
+      .where(eq(reviewReplies.id, id))
+      .returning();
+
+    if (!updatedReply) {
+      throw new Error(`Review reply with ID ${id} not found`);
+    }
+
+    return updatedReply;
+  }
+
+  async deleteReviewReply(id: number): Promise<void> {
+    const result = await db
+      .delete(reviewReplies)
+      .where(eq(reviewReplies.id, id));
+
+    if (!result) {
+      throw new Error(`Review reply with ID ${id} not found`);
     }
   }
 

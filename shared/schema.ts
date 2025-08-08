@@ -586,6 +586,26 @@ export const insertReviewHelpfulSchema = createInsertSchema(reviewHelpful).pick(
   }
 );
 
+// Review Replies table (for seller/admin responses to reviews)
+export const reviewReplies = pgTable("review_replies", {
+  id: serial("id").primaryKey(),
+  reviewId: integer("review_id")
+    .notNull()
+    .references(() => reviews.id, { onDelete: "cascade" }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  reply: text("reply").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertReviewReplySchema = createInsertSchema(reviewReplies).pick({
+  reviewId: true,
+  userId: true,
+  reply: true,
+});
+
 // Relations for reviews
 export const reviewsRelations = relations(reviews, ({ one, many }) => ({
   user: one(users, {
@@ -602,6 +622,7 @@ export const reviewsRelations = relations(reviews, ({ one, many }) => ({
   }),
   images: many(reviewImages),
   helpfulVotes: many(reviewHelpful),
+  replies: many(reviewReplies),
 }));
 
 export const reviewImagesRelations = relations(reviewImages, ({ one }) => ({
@@ -618,6 +639,17 @@ export const reviewHelpfulRelations = relations(reviewHelpful, ({ one }) => ({
   }),
   user: one(users, {
     fields: [reviewHelpful.userId],
+    references: [users.id],
+  }),
+}));
+
+export const reviewRepliesRelations = relations(reviewReplies, ({ one }) => ({
+  review: one(reviews, {
+    fields: [reviewReplies.reviewId],
+    references: [reviews.id],
+  }),
+  user: one(users, {
+    fields: [reviewReplies.userId],
     references: [users.id],
   }),
 }));
@@ -722,6 +754,9 @@ export type InsertReviewImage = z.infer<typeof insertReviewImageSchema>;
 
 export type ReviewHelpful = typeof reviewHelpful.$inferSelect;
 export type InsertReviewHelpful = z.infer<typeof insertReviewHelpfulSchema>;
+
+export type ReviewReply = typeof reviewReplies.$inferSelect;
+export type InsertReviewReply = z.infer<typeof insertReviewReplySchema>;
 
 // User Activity Tracking for AI Assistant
 export const userActivities = pgTable("user_activities", {
