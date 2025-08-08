@@ -9524,6 +9524,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
+      // Check if user is a seller or admin - they cannot create reviews
+      if (
+        req.user.role === "seller" ||
+        req.user.role === "admin" ||
+        req.user.isCoAdmin
+      ) {
+        return res.status(403).json({
+          error:
+            "Sellers and admins cannot create reviews. They can only reply to existing reviews.",
+        });
+      }
+
       const productId = parseInt(req.params.id);
       const product = await storage.getProduct(productId);
 
@@ -9739,6 +9751,284 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error checking if review is helpful:", error);
       res.status(500).json({ error: "Failed to check if review is helpful" });
+    }
+  });
+
+  // REVIEW REPLY ENDPOINTS
+
+  // Debug endpoint to check review replies table
+  app.get("/api/debug/review-replies/:reviewId", async (req, res) => {
+    try {
+      const reviewId = parseInt(req.params.reviewId);
+      console.log("Debug: Checking review replies for review ID:", reviewId);
+
+      // Check if the review exists
+      const review = await storage.getReview(reviewId);
+      console.log("Debug: Review found:", review ? "Yes" : "No");
+
+      if (!review) {
+        return res.status(404).json({ error: "Review not found" });
+      }
+
+      // Try to get replies
+      const replies = await storage.getReviewReplies(reviewId);
+      console.log("Debug: Replies found:", replies.length);
+      console.log("Debug: Replies data:", replies);
+
+      res.json({
+        reviewId,
+        reviewExists: !!review,
+        repliesCount: replies.length,
+        replies: replies,
+      });
+    } catch (error) {
+      console.error("Debug: Error checking review replies:", error);
+      res.status(500).json({ error: "Failed to check review replies" });
+    }
+  });
+
+  // Get replies for a review
+  app.get("/api/reviews/:id/replies", async (req, res) => {
+    console.log("=== BACKEND: GET /api/reviews/:id/replies ===");
+    console.log("Request params:", req.params);
+    console.log("Request query:", req.query);
+    console.log("Request headers:", req.headers);
+
+    try {
+      const reviewId = parseInt(req.params.id);
+      console.log("Parsed review ID:", reviewId);
+      console.log("Review ID type:", typeof reviewId);
+      console.log("Is NaN:", isNaN(reviewId));
+
+      if (isNaN(reviewId)) {
+        console.log("Invalid review ID provided");
+        return res.status(400).json({ error: "Invalid review ID" });
+      }
+
+      console.log("Fetching review from database...");
+      const review = await storage.getReview(reviewId);
+      console.log("Review found:", review ? "Yes" : "No");
+      console.log("Review data:", review);
+
+      if (!review) {
+        console.log("Review not found for ID:", reviewId);
+        return res.status(404).json({ error: "Review not found" });
+      }
+
+      console.log("Fetching replies from database...");
+      const replies = await storage.getReviewReplies(reviewId);
+      console.log("Replies fetched successfully");
+      console.log("Number of replies found:", replies.length);
+      console.log("Replies data:", replies);
+
+      if (replies.length > 0) {
+        console.log(
+          "Reply details:",
+          replies.map((r) => ({
+            id: r.id,
+            userId: r.userId,
+            reply: r.reply?.substring(0, 50) + "...",
+            user: r.user
+              ? { id: r.user.id, username: r.user.username }
+              : "No user data",
+          }))
+        );
+      }
+
+      console.log("Sending response with", replies.length, "replies");
+      res.json(replies);
+      console.log("=== BACKEND: GET /api/reviews/:id/replies - SUCCESS ===");
+    } catch (error) {
+      console.error("=== BACKEND: GET /api/reviews/:id/replies - ERROR ===");
+      console.error("Error getting review replies:", error);
+      console.error("Error stack:", error.stack);
+      res.status(500).json({ error: "Failed to get review replies" });
+    }
+  });
+
+  // Add a reply to a review (only sellers and admins)
+  app.post("/api/reviews/:id/replies", async (req, res) => {
+    console.log("=== BACKEND: POST /api/reviews/:id/replies ===");
+    console.log("Request params:", req.params);
+    console.log("Request body:", req.body);
+    console.log("Request headers:", req.headers);
+    console.log("User authenticated:", req.isAuthenticated());
+
+    if (!req.isAuthenticated()) {
+      console.log("User not authenticated, returning 401");
+      return res.sendStatus(401);
+    }
+
+    console.log("Current user:", req.user);
+
+    try {
+      // Only sellers and admins can reply to reviews
+      if (
+        req.user.role !== "seller" &&
+        req.user.role !== "admin" &&
+        !req.user.isCoAdmin
+      ) {
+        console.log("User role not allowed:", req.user.role);
+        return res.status(403).json({
+          error: "Only sellers and admins can reply to reviews",
+        });
+      }
+
+      const reviewId = parseInt(req.params.id);
+      console.log("Parsed review ID:", reviewId);
+      console.log("Review ID type:", typeof reviewId);
+      console.log("Is NaN:", isNaN(reviewId));
+
+      if (isNaN(reviewId)) {
+        console.log("Invalid review ID provided");
+        return res.status(400).json({ error: "Invalid review ID" });
+      }
+
+      console.log("Fetching review from database...");
+      const review = await storage.getReview(reviewId);
+      console.log("Review found:", review ? "Yes" : "No");
+      console.log("Review data:", review);
+
+      if (!review) {
+        console.log("Review not found for ID:", reviewId);
+        return res.status(404).json({ error: "Review not found" });
+      }
+
+      // For sellers, check if they own the product being reviewed
+      if (req.user.role === "seller") {
+        console.log("Checking seller ownership...");
+        const product = await storage.getProduct(review.productId);
+        console.log("Product found:", product ? "Yes" : "No");
+        console.log("Product seller ID:", product?.sellerId);
+        console.log("Current user ID:", req.user.id);
+
+        if (!product || product.sellerId !== req.user.id) {
+          console.log("Seller not authorized to reply to this review");
+          return res.status(403).json({
+            error: "You can only reply to reviews for your own products",
+          });
+        }
+        console.log("Seller authorized to reply");
+      }
+
+      const { reply } = req.body;
+      console.log("Reply content from request:", reply);
+      console.log("Reply type:", typeof reply);
+      console.log("Reply length:", reply?.length);
+
+      if (!reply || typeof reply !== "string" || reply.trim().length === 0) {
+        console.log("Invalid reply content");
+        return res.status(400).json({ error: "Reply content is required" });
+      }
+
+      const replyData = {
+        reviewId,
+        userId: req.user.id,
+        reply: reply.trim(),
+      };
+      console.log("Reply data to save:", replyData);
+
+      console.log("Creating reply in database...");
+      const newReply = await storage.createReviewReply(replyData);
+      console.log("Reply created successfully:", newReply);
+      console.log("New reply ID:", newReply.id);
+
+      // Add a small delay to ensure the database transaction is committed
+      console.log("Waiting for transaction to commit...");
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Get the complete reply with user information by fetching it directly
+      console.log("Fetching complete reply data...");
+      const replies = await storage.getReviewReplies(reviewId);
+      console.log("All replies for this review:", replies);
+
+      const createdReply = replies.find((reply) => reply.id === newReply.id);
+      console.log("Found complete reply:", createdReply);
+
+      // If we can't find the complete reply, return the basic reply data
+      if (createdReply) {
+        console.log("Sending complete reply data");
+        res.status(201).json(createdReply);
+      } else {
+        // Fallback: return the basic reply data with user info
+        console.log(
+          "Could not find complete reply, returning basic data:",
+          newReply
+        );
+
+        // Get the current user info to include in the response
+        console.log("Fetching user data for response...");
+        const currentUser = await storage.getUser(req.user.id);
+        console.log("User data:", currentUser);
+
+        const replyWithUser = {
+          ...newReply,
+          user: currentUser,
+        };
+        console.log("Final response data:", replyWithUser);
+
+        res.status(201).json(replyWithUser);
+      }
+
+      console.log("=== BACKEND: POST /api/reviews/:id/replies - SUCCESS ===");
+    } catch (error) {
+      console.error("=== BACKEND: POST /api/reviews/:id/replies - ERROR ===");
+      console.error("Error creating review reply:", error);
+      console.error("Error stack:", error.stack);
+      res.status(500).json({ error: "Failed to create review reply" });
+    }
+  });
+
+  // Update a review reply
+  app.put("/api/reviews/replies/:replyId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const replyId = parseInt(req.params.replyId);
+      const { reply } = req.body;
+
+      if (!reply || typeof reply !== "string" || reply.trim().length === 0) {
+        return res.status(400).json({ error: "Reply content is required" });
+      }
+
+      // Get the reply to check ownership
+      const replies = await storage.getReviewReplies(0); // We need to get the specific reply
+      // For now, we'll implement a simpler approach - only allow admins to edit
+      if (req.user.role !== "admin" && !req.user.isCoAdmin) {
+        return res.status(403).json({
+          error: "Only admins can edit review replies",
+        });
+      }
+
+      const updatedReply = await storage.updateReviewReply(replyId, {
+        reply: reply.trim(),
+      });
+      res.json(updatedReply);
+    } catch (error) {
+      console.error("Error updating review reply:", error);
+      res.status(500).json({ error: "Failed to update review reply" });
+    }
+  });
+
+  // Delete a review reply
+  app.delete("/api/reviews/replies/:replyId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const replyId = parseInt(req.params.replyId);
+
+      // Only admins can delete replies
+      if (req.user.role !== "admin" && !req.user.isCoAdmin) {
+        return res.status(403).json({
+          error: "Only admins can delete review replies",
+        });
+      }
+
+      await storage.deleteReviewReply(replyId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting review reply:", error);
+      res.status(500).json({ error: "Failed to delete review reply" });
     }
   });
 
