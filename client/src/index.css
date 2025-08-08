@@ -16,4 +16,18 @@
   .rotate-270 {
     transform: rotate(270deg);
   }
+
+  /* 360 View Animations */
+  .animate-spin-slow {
+    animation: spin 2s linear infinite;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* Smooth transitions for 360 view */
+  .transition-360 {
+    transition: all 0.1s ease-in-out;
+  }
 }

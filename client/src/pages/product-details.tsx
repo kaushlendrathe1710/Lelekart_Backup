@@ -64,7 +64,6 @@ import { VariantSelector } from "@/components/product/variant-selector";
 import ImageZoom from "react-image-zoom";
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
-import React360View from "react-360-view";
 
 // Custom enhanced image slider component with zoom and 360-degree view capabilities
 function ProductImageSlider({
@@ -349,26 +348,14 @@ function ProductImageSlider({
       return Array(36).fill(images[0]);
     }
 
-    // Use all available product images and repeat them to create a circular effect
-    // For example, if we have 4 images, we'll create a sequence like [0,1,2,3,2,1,0,1,2,3...] to simulate rotation
-    const allImages = [...images];
-
-    // Create a sequence that goes forward then backward through the images
-    // This creates a more natural rotation effect with limited images
-    const frames: string[] = [];
-
     // Generate 36 frames for a complete 360° view (each frame = 10 degrees)
-    for (let i = 0; i < 36; i++) {
-      // Determine which image to use for this frame
-      // We cycle through the available images to create the illusion of rotation
-      const index = i % (allImages.length * 2);
+    const frames: string[] = [];
+    const totalFrames = 36;
 
-      // If we're in the first half of the cycle, go forward through images
-      // If we're in the second half, go backward
-      const imageIndex =
-        index < allImages.length ? index : allImages.length * 2 - index - 1;
-
-      frames.push(allImages[imageIndex]);
+    for (let i = 0; i < totalFrames; i++) {
+      // Calculate which image to use for this frame
+      const imageIndex = Math.floor((i / totalFrames) * images.length);
+      frames.push(images[imageIndex]);
     }
 
     return frames;
@@ -559,7 +546,7 @@ function ProductImageSlider({
                     <div className="w-full h-full">
                       {/* Interactive 360° view implementation with user controls */}
                       <div
-                        className="relative w-full h-full flex items-center justify-center"
+                        className="relative w-full h-full flex items-center justify-center cursor-grab active:cursor-grabbing"
                         onMouseMove={(e) => {
                           // Calculate rotation based on mouse position
                           const frames = get360Images();
@@ -576,8 +563,6 @@ function ProductImageSlider({
                           );
 
                           // Use already validated images
-                          const imageFrames = validImages || [];
-
                           if (validImages.length > 0) {
                             // Ensure frameIndex is valid and within bounds
                             const safeIndex = Math.min(
@@ -586,6 +571,14 @@ function ProductImageSlider({
                             );
                             setActiveImage(safeIndex);
                           }
+                        }}
+                        onMouseEnter={() => {
+                          // Add visual feedback when hovering
+                          e.currentTarget.style.cursor = "grab";
+                        }}
+                        onMouseLeave={() => {
+                          // Reset cursor when leaving
+                          e.currentTarget.style.cursor = "default";
                         }}
                       >
                         <img
