@@ -21,6 +21,8 @@ import {
   Tag,
   UserPlus,
   FileText as FileTextIcon,
+  Search,
+  Filter,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +36,14 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Type for auth-based sellers (existing system)
 type AuthSeller = {
@@ -91,6 +101,10 @@ export default function SellerApprovalPage() {
   const [selectedItem, setSelectedItem] = useState<SellerItem | null>(null);
   const [adminNotes, setAdminNotes] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sourceFilter, setSourceFilter] = useState<
+    "all" | "auth" | "registration"
+  >("all");
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -425,6 +439,43 @@ export default function SellerApprovalPage() {
     }
   };
 
+  // Filter items based on search query and source filter
+  const filterItems = (items: SellerItem[]) => {
+    return items.filter((item) => {
+      // Source filter
+      if (sourceFilter !== "all" && item.source !== sourceFilter) {
+        return false;
+      }
+
+      // Search filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const isAuthSeller = item.source === "auth";
+        const authSeller = item as AuthSeller;
+        const registrationApp = item as SellerApplication;
+
+        // Search by name/username/business name
+        const name = isAuthSeller
+          ? (authSeller.name || authSeller.username || "").toLowerCase()
+          : registrationApp.business_name.toLowerCase();
+
+        // Search by email
+        const email = isAuthSeller
+          ? authSeller.email.toLowerCase()
+          : registrationApp.email.toLowerCase();
+
+        return name.includes(query) || email.includes(query);
+      }
+
+      return true;
+    });
+  };
+
+  // Apply filters to the data
+  const filteredPendingItems = filterItems(pendingItems);
+  const filteredApprovedItems = filterItems(approvedItems);
+  const filteredRejectedItems = filterItems(rejectedItems);
+
   return (
     <AdminLayout>
       <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
@@ -451,6 +502,37 @@ export default function SellerApprovalPage() {
             >
               {totalStats.rejected} Rejected
             </Badge>
+          </div>
+        </div>
+
+        {/* Search and Filter Controls */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name or email..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select
+              value={sourceFilter}
+              onValueChange={(value: "all" | "auth" | "registration") =>
+                setSourceFilter(value)
+              }
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by source" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Sources</SelectItem>
+                <SelectItem value="auth">Auth Registration</SelectItem>
+                <SelectItem value="registration">Registration Page</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -508,13 +590,13 @@ export default function SellerApprovalPage() {
         >
           <TabsList className="mb-6">
             <TabsTrigger value="pending">
-              Pending ({totalStats.pending})
+              Pending ({filteredPendingItems.length})
             </TabsTrigger>
             <TabsTrigger value="approved">
-              Approved ({totalStats.approved})
+              Approved ({filteredApprovedItems.length})
             </TabsTrigger>
             <TabsTrigger value="rejected">
-              Rejected ({totalStats.rejected})
+              Rejected ({filteredRejectedItems.length})
             </TabsTrigger>
           </TabsList>
 
@@ -523,18 +605,23 @@ export default function SellerApprovalPage() {
               <div className="flex justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            ) : pendingItems.length === 0 ? (
+            ) : filteredPendingItems.length === 0 ? (
               <div className="bg-muted rounded-lg p-8 text-center">
                 <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium">No pending sellers</h3>
+                <h3 className="text-lg font-medium">
+                  {pendingItems.length === 0
+                    ? "No pending sellers"
+                    : "No sellers match your search criteria"}
+                </h3>
                 <p className="text-muted-foreground mt-1">
-                  All sellers have been reviewed. Check the approved tab to see
-                  approved sellers.
+                  {pendingItems.length === 0
+                    ? "All sellers have been reviewed. Check the approved tab to see approved sellers."
+                    : "Try adjusting your search terms or filters."}
                 </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-6">
-                {pendingItems.map((item) => (
+                {filteredPendingItems.map((item) => (
                   <SellerCard
                     key={`${item.source}-${item.id}`}
                     item={item}
@@ -551,17 +638,23 @@ export default function SellerApprovalPage() {
               <div className="flex justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            ) : approvedItems.length === 0 ? (
+            ) : filteredApprovedItems.length === 0 ? (
               <div className="bg-muted rounded-lg p-8 text-center">
                 <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium">No approved sellers</h3>
+                <h3 className="text-lg font-medium">
+                  {approvedItems.length === 0
+                    ? "No approved sellers"
+                    : "No sellers match your search criteria"}
+                </h3>
                 <p className="text-muted-foreground mt-1">
-                  Once you approve sellers, they will appear here.
+                  {approvedItems.length === 0
+                    ? "Once you approve sellers, they will appear here."
+                    : "Try adjusting your search terms or filters."}
                 </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-6">
-                {approvedItems.map((item) => (
+                {filteredApprovedItems.map((item) => (
                   <SellerCard
                     key={`${item.source}-${item.id}`}
                     item={item}
@@ -579,17 +672,23 @@ export default function SellerApprovalPage() {
               <div className="flex justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            ) : rejectedItems.length === 0 ? (
+            ) : filteredRejectedItems.length === 0 ? (
               <div className="bg-muted rounded-lg p-8 text-center">
                 <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium">No rejected sellers</h3>
+                <h3 className="text-lg font-medium">
+                  {rejectedItems.length === 0
+                    ? "No rejected sellers"
+                    : "No sellers match your search criteria"}
+                </h3>
                 <p className="text-muted-foreground mt-1">
-                  Rejected sellers will appear here.
+                  {rejectedItems.length === 0
+                    ? "Rejected sellers will appear here."
+                    : "Try adjusting your search terms or filters."}
                 </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-6">
-                {rejectedItems.map((item) => (
+                {filteredRejectedItems.map((item) => (
                   <SellerCard
                     key={`${item.source}-${item.id}`}
                     item={item}
