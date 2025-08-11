@@ -1194,8 +1194,9 @@ export default function EditProductPage() {
         variantCopy.images = [];
       }
 
-      // Set the selected variant and open the edit dialog
+      // Set the selected variant and variant images, then open the edit dialog
       setSelectedVariant(variantCopy);
+      setVariantImages(variantCopy.images || []);
       setEditVariantDialogOpen(true);
     } catch (error) {
       toast({
@@ -3726,13 +3727,12 @@ export default function EditProductPage() {
                                         size="sm"
                                         className="h-8 px-2 text-xs"
                                         onClick={() => {
-                                          // Set the selected variant and open the edit dialog
+                                          // Use the handleEditVariant function to properly process the variant
                                           console.log(
                                             "Edit button clicked for variant:",
                                             variant
                                           );
-                                          setSelectedVariant(variant);
-                                          setEditVariantDialogOpen(true);
+                                          handleEditVariant(variant);
                                         }}
                                       >
                                         <Edit className="h-3.5 w-3.5 mr-1" />
