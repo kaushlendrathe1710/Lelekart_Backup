@@ -841,24 +841,6 @@ function AuthSellerDetails({
           )}
         </div>
       </div>
-
-      {/* Timeline */}
-      <div>
-        <h4 className="font-semibold mb-3 flex items-center gap-2">
-          <Calendar className="h-4 w-4" />
-          Account Timeline
-        </h4>
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Created:</span>
-            <span>{formatDate(seller.created_at)}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Last Updated:</span>
-            <span>{formatDate(seller.updated_at)}</span>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
