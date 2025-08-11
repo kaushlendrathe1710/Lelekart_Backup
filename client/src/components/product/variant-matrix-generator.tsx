@@ -277,16 +277,6 @@ export function VariantMatrixGenerator({
     return combinations;
   };
 
-  const generateDefaultVariantImage = (
-    color: string,
-    size?: string
-  ): string => {
-    // Generate a placeholder image URL based on color and size
-    const encodedColor = encodeURIComponent(color);
-    const encodedSize = size ? encodeURIComponent(size) : "";
-    return `https://placehold.co/400x400/${encodedColor}/white?text=${encodedSize}`;
-  };
-
   const generateVariantRows = () => {
     // Safety check - if this function is triggered during an image upload process
     // or when we're in "configure" mode with no attribute changes, skip regeneration
@@ -344,12 +334,6 @@ export function VariantMatrixGenerator({
       // Check if we have uploaded images for this row
       const rowImages = currentUploadedImagesMap[rowId] || [];
 
-      // Generate default image if no images exist
-      const defaultImage =
-        rowImages.length === 0
-          ? [generateDefaultVariantImage(combo["Color"], combo["Size"])]
-          : rowImages;
-
       // Create the new row, preserving all existing data
       return {
         id: rowId,
@@ -362,8 +346,8 @@ export function VariantMatrixGenerator({
           existingRowData?.enabled !== undefined
             ? existingRowData.enabled
             : !!existingVariant || true,
-        // Use default image if no images exist
-        images: defaultImage,
+        // Use existing images only, no default images
+        images: rowImages,
       };
     });
 
