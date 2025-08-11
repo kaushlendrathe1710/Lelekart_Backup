@@ -326,11 +326,17 @@ export function VariantForm({
               </h4>
               <MultiMediaPicker
                 onSelect={(urls) => {
+                  // If the new array is shorter than the current one, it means items were removed
+                  // In that case, we need to handle this differently since we don't have a direct way to replace all images
+                  // For now, we'll just add new items and let the parent handle removals through the cross buttons
                   for (const url of urls) {
                     if (!variantImages.includes(url)) {
                       onAddImage(url);
                     }
                   }
+                }}
+                onRemove={(url, index) => {
+                  onRemoveImage(index);
                 }}
                 selectedUrls={variantImages}
                 buttonLabel="Browse Media Library"

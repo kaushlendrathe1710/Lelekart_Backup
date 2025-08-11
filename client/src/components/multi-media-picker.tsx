@@ -36,6 +36,7 @@ import { motion } from "framer-motion";
 
 interface MultiMediaPickerProps {
   onSelect: (urls: string[]) => void;
+  onRemove?: (url: string, index: number) => void; // Optional callback for individual removals
   selectedUrls?: string[];
   buttonLabel?: string;
   maxImages?: number;
@@ -43,6 +44,7 @@ interface MultiMediaPickerProps {
 
 export function MultiMediaPicker({
   onSelect,
+  onRemove,
   selectedUrls = [],
   buttonLabel = "Select Images",
   maxImages = 999,
@@ -58,6 +60,8 @@ export function MultiMediaPicker({
   const [alt, setAlt] = useState("");
   const [tags, setTags] = useState("");
   const [dragOver, setDragOver] = useState(false);
+  const [internalSelectedUrls, setInternalSelectedUrls] =
+    useState<string[]>(selectedUrls);
 
   const { toast } = useToast();
 
@@ -98,6 +102,11 @@ export function MultiMediaPicker({
       setTags("");
     }
   }, [uploadTab]);
+
+  // Sync internal selected URLs with prop
+  useEffect(() => {
+    setInternalSelectedUrls(selectedUrls);
+  }, [selectedUrls]);
 
   // Handle file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -231,6 +240,7 @@ export function MultiMediaPicker({
   // Handle final selection
   const handleSelect = () => {
     const urls = selectedMediaItems.map((item) => item.url);
+    setInternalSelectedUrls(urls);
     onSelect(urls);
     setOpen(false);
   };
@@ -557,7 +567,9 @@ export function MultiMediaPicker({
                         </div>
                       )}
                       {/* Accessibility label for hidden file input */}
-                      <label htmlFor="multi-media-upload" className="sr-only">Upload files</label>
+                      <label htmlFor="multi-media-upload" className="sr-only">
+                        Upload files
+                      </label>
                       <input
                         type="file"
                         id="multi-media-upload"
@@ -622,13 +634,13 @@ export function MultiMediaPicker({
         </Dialog>
 
         {/* Display selected images */}
-        {selectedUrls.length > 0 && (
+        {internalSelectedUrls.length > 0 && (
           <div>
             <Label className="block mb-2">
-              Selected Images ({selectedUrls.length})
+              Selected Images ({internalSelectedUrls.length})
             </Label>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              {selectedUrls.map((url, index) => (
+              {internalSelectedUrls.map((url, index) => (
                 <div
                   key={index}
                   className="relative group border rounded-md overflow-hidden h-24"
@@ -643,10 +655,18 @@ export function MultiMediaPicker({
                       variant="destructive"
                       size="icon"
                       className="opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => {
-                        const newUrls = [...selectedUrls];
-                        newUrls.splice(index, 1);
-                        onSelect(newUrls);
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onRemove) {
+                          // Use the onRemove callback if provided
+                          onRemove(url, index);
+                        } else {
+                          // Fallback to the old behavior
+                          const newUrls = [...internalSelectedUrls];
+                          newUrls.splice(index, 1);
+                          setInternalSelectedUrls(newUrls);
+                          onSelect(newUrls);
+                        }
                       }}
                     >
                       <X className="h-4 w-4" />
@@ -665,7 +685,7 @@ export function MultiMediaPicker({
           </div>
         )}
 
-        {selectedUrls.length === 0 && (
+        {internalSelectedUrls.length === 0 && (
           <div className="text-sm text-muted-foreground">
             No images selected. Click the button above to select images from the
             media library.

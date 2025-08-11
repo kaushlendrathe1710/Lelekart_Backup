@@ -2980,6 +2980,11 @@ export default function EditProductPage() {
                             }
                             setUploadedImages(combinedImages);
                           }}
+                          onRemove={(url, index) => {
+                            const newImages = [...uploadedImages];
+                            newImages.splice(index, 1);
+                            setUploadedImages(newImages);
+                          }}
                           selectedUrls={uploadedImages}
                           buttonLabel="Browse Media Library"
                           maxImages={999}
