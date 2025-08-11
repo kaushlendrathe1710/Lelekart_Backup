@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { sendEmail } from "../helpers/email";
+import { pool } from "../db";
 
 interface BecomeSellerRequest {
   email: string;
@@ -37,6 +38,40 @@ export async function handleBecomeSeller(req: Request, res: Response) {
         message: "Missing required fields",
       });
     }
+
+    // Insert into seller_applications table
+    const { rows } = await pool.query(
+      `INSERT INTO seller_applications (
+        email, phone, business_name, business_address, business_state, 
+        business_city, business_pincode, business_type, company_registration_number,
+        gst_number, pan_number, bank_name, bank_state, bank_city, bank_pincode,
+        account_number, ifsc_code, government_id_type, government_id_number, 
+        government_id_photo
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+      RETURNING *`,
+      [
+        data.email,
+        data.phone,
+        data.businessName,
+        data.businessAddress,
+        data.businessState,
+        data.businessCity,
+        data.businessPincode,
+        data.businessType,
+        data.companyRegistrationNumber || null,
+        data.gstNumber || null,
+        data.panNumber || null,
+        data.bankName,
+        data.bankState,
+        data.bankCity,
+        data.bankPincode,
+        data.accountNumber,
+        data.ifscCode,
+        data.governmentIdType,
+        data.governmentIdNumber,
+        data.governmentIdPhoto,
+      ]
+    );
 
     // Create email content for admin notification
     const adminEmailContent = `
@@ -170,17 +205,19 @@ export async function handleBecomeSeller(req: Request, res: Response) {
       html: applicantEmailContent,
     });
 
-    // Log the application (you can store this in database if needed)
+    // Log the application
     console.log("New seller application received:", {
       businessName: data.businessName,
       email: data.email,
       phone: data.phone,
+      applicationId: rows[0].id,
       timestamp: new Date().toISOString(),
     });
 
-    res.status(200).json({
+    res.status(201).json({
       success: true,
       message: "Application submitted successfully",
+      application: rows[0],
     });
   } catch (error) {
     console.error("Error processing seller application:", error);

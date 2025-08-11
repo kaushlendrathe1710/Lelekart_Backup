@@ -14239,5 +14239,200 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup WebSocket server for real-time notifications
   setupWebSocketServer(httpServer);
 
+  // ========== Seller Applications API endpoints ==========
+
+  // Submit seller application (this endpoint is handled by become-seller-routes.ts)
+  // The proper implementation with email functionality is in /api/become-seller
+  // This endpoint is kept for backward compatibility but should use the handler
+
+  // Get seller applications (admin only)
+  app.get("/api/admin/seller-applications", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin")
+      return res.status(403).json({ error: "Not authorized" });
+
+    try {
+      const { status } = req.query;
+      let query = `
+        SELECT sa.*, u.username as reviewed_by_name 
+        FROM seller_applications sa 
+        LEFT JOIN users u ON sa.reviewed_by = u.id
+      `;
+      const params = [];
+
+      if (status && status !== "all") {
+        query += ` WHERE sa.status = $1`;
+        params.push(status);
+      }
+
+      query += ` ORDER BY sa.created_at DESC`;
+
+      const { rows } = await pool.query(query, params);
+      res.json(rows);
+    } catch (error) {
+      console.error("Error fetching seller applications:", error);
+      res.status(500).json({ error: "Failed to fetch applications" });
+    }
+  });
+
+  // Approve seller application (admin only)
+  app.put("/api/admin/seller-applications/:id/approve", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin")
+      return res.status(403).json({ error: "Not authorized" });
+
+    try {
+      const { id } = req.params;
+      const { adminNotes } = req.body;
+
+      // Update application status
+      const {
+        rows: [application],
+      } = await pool.query(
+        `UPDATE seller_applications 
+         SET status = 'approved', admin_notes = $1, reviewed_by = $2, reviewed_at = CURRENT_TIMESTAMP
+         WHERE id = $3 RETURNING *`,
+        [adminNotes || null, req.user.id, id]
+      );
+
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+
+      // For OTP-based login, use a placeholder password
+      const otpPassword = "OTP_AUTH_ENABLED";
+
+      // Check if user already exists with this email
+      const { rows: existingUsers } = await pool.query(
+        `SELECT * FROM users WHERE email = $1`,
+        [application.email]
+      );
+
+      let user;
+      if (existingUsers.length > 0) {
+        // User exists - update their role to seller
+        const existingUser = existingUsers[0];
+        const {
+          rows: [updatedUser],
+        } = await pool.query(
+          `UPDATE users 
+           SET role = 'seller', approved = true, rejected = false, 
+               name = COALESCE($1, name), phone = COALESCE($2, phone), address = COALESCE($3, address)
+           WHERE id = $4 
+           RETURNING *`,
+          [
+            application.business_name,
+            application.phone,
+            application.business_address,
+            existingUser.id,
+          ]
+        );
+        user = updatedUser;
+      } else {
+        // User doesn't exist - create new user account
+        const {
+          rows: [newUser],
+        } = await pool.query(
+          `INSERT INTO users (username, email, password, role, approved, rejected, name, phone, address)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+           RETURNING *`,
+          [
+            application.business_name.toLowerCase().replace(/\s+/g, "_"),
+            application.email,
+            otpPassword,
+            "seller",
+            true,
+            false,
+            application.business_name,
+            application.phone,
+            application.business_address,
+          ]
+        );
+        user = newUser;
+      }
+
+      res.json({
+        success: true,
+        message:
+          existingUsers.length > 0
+            ? "Application approved and user role updated to seller"
+            : "Application approved and new user account created",
+        application,
+        user,
+      });
+    } catch (error) {
+      console.error("Error approving seller application:", error);
+      res.status(500).json({ error: "Failed to approve application" });
+    }
+  });
+
+  // Reject seller application (admin only)
+  app.put("/api/admin/seller-applications/:id/reject", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin")
+      return res.status(403).json({ error: "Not authorized" });
+
+    try {
+      const { id } = req.params;
+      const { adminNotes } = req.body;
+
+      const {
+        rows: [application],
+      } = await pool.query(
+        `UPDATE seller_applications 
+         SET status = 'rejected', admin_notes = $1, reviewed_by = $2, reviewed_at = CURRENT_TIMESTAMP
+         WHERE id = $3 RETURNING *`,
+        [adminNotes || null, req.user.id, id]
+      );
+
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+
+      res.json({
+        success: true,
+        message: "Application rejected",
+        application,
+      });
+    } catch (error) {
+      console.error("Error rejecting seller application:", error);
+      res.status(500).json({ error: "Failed to reject application" });
+    }
+  });
+
+  // Get application statistics (admin only)
+  app.get("/api/admin/seller-applications/stats", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin")
+      return res.status(403).json({ error: "Not authorized" });
+
+    try {
+      const { rows } = await pool.query(`
+        SELECT 
+          status,
+          COUNT(*) as count
+        FROM seller_applications 
+        GROUP BY status
+      `);
+
+      const stats = {
+        pending: 0,
+        approved: 0,
+        rejected: 0,
+        total: 0,
+      };
+
+      rows.forEach((row) => {
+        stats[row.status] = parseInt(row.count);
+        stats.total += parseInt(row.count);
+      });
+
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching application stats:", error);
+      res.status(500).json({ error: "Failed to fetch statistics" });
+    }
+  });
+
   return httpServer;
 }
