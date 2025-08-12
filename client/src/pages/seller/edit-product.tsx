@@ -87,6 +87,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { ProductVariant } from "@/components/product/variant-form";
 import { VariantMatrixGenerator } from "@/components/product/variant-matrix-generator";
+import { MultiVariantTable } from "@/components/product/multi-variant-table";
 import { GstRateField } from "@/components/product/gst-rate-field";
 import { MultiMediaPicker } from "@/components/multi-media-picker";
 import {
@@ -513,24 +514,9 @@ export default function EditProductPage() {
 
   // Updated memoized function to update variant fields with functional state update pattern
   // This prevents cursor jumping by ensuring state updates don't trigger re-renders that reset cursor position
-  // Maintain a cursor position state outside component re-renders
-  const cursorStateRef = useRef<{ field: string; position: number | null }>({
-    field: "",
-    position: null,
-  });
 
   const updateVariantField = useCallback(
     (field: keyof ProductVariant, value: any) => {
-      // Get the current cursor position from the active input element
-      const activeElement = document.activeElement as HTMLInputElement;
-      const cursorPosition = activeElement?.selectionStart || null;
-
-      // Store cursor position in ref to persist across renders
-      cursorStateRef.current = {
-        field: String(field),
-        position: cursorPosition,
-      };
-
       // Use functional state update to avoid state update race conditions
       setCurrentVariant((prev) => {
         if (!prev) return prev;
@@ -538,42 +524,6 @@ export default function EditProductPage() {
           ...prev,
           [field]: value,
         };
-      });
-
-      // Use requestAnimationFrame for higher priority than setTimeout
-      requestAnimationFrame(() => {
-        // Map the field name to the actual input id in the DOM
-        const fieldIdMap: Record<string, string> = {
-          sku: "variant-sku",
-          color: "variant-color",
-          size: "variant-size",
-          price: "variant-price",
-          mrp: "variant-mrp",
-          stock: "variant-stock",
-        };
-
-        // Get the corresponding input id
-        const inputId = fieldIdMap[cursorStateRef.current.field];
-        const storedPosition = cursorStateRef.current.position;
-
-        // Find the input for the same field that was just updated
-        if (inputId) {
-          const fieldInput = document.getElementById(
-            inputId
-          ) as HTMLInputElement;
-
-          if (fieldInput && storedPosition !== null) {
-            // First focus the input
-            fieldInput.focus();
-
-            // Then restore cursor position (only if the cursor was in the field)
-            try {
-              fieldInput.setSelectionRange(storedPosition, storedPosition);
-            } catch (e) {
-              // Silent handling of cursor position restoration errors
-            }
-          }
-        }
       });
     },
     []
@@ -1092,7 +1042,6 @@ export default function EditProductPage() {
       // 2. Then reset data after a small delay to avoid race conditions
       setTimeout(() => {
         setCurrentVariant(null);
-        setVariantImages([]);
 
         toast({
           title: "Success",
@@ -1272,7 +1221,6 @@ export default function EditProductPage() {
     // Add the new variant with state updates
     setCurrentVariant(newVariant);
     setNewVariantRow(true);
-    setVariantImages([]);
   };
 
   // Modify handleSaveNewVariant to process images
@@ -1282,9 +1230,13 @@ export default function EditProductPage() {
       setIsUploading(true);
       console.log("Processing variant images through AWS");
 
+      // Use images from the variant object passed by MultiVariantTable
+      const variantImagesToProcess = updatedVariant.images || [];
+      console.log("Images to process:", variantImagesToProcess);
+
       // Process each image through AWS
       const processedImages = await Promise.all(
-        (variantImages || []).map(async (image) => {
+        variantImagesToProcess.map(async (image) => {
           // If it's already an AWS URL, keep it
           if (image.startsWith("https://lelekart.s3.amazonaws.com/")) {
             console.log("Image is already an AWS URL:", image);
@@ -1343,45 +1295,89 @@ export default function EditProductPage() {
       console.log("Saving processed variant:", variantWithImages);
 
       // Update the variant in the appropriate state
-      if (variantWithImages.id) {
-        // Update existing variant
+      if (variantWithImages.id && variantWithImages.id > 0) {
+        // Update existing variant - save to server immediately
+        const response = await fetch(
+          `/api/products/${productId}/variants/${variantWithImages.id}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(variantWithImages),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to update variant on server");
+        }
+
+        const updatedVariant = await response.json();
+
+        // Update both variants and currentVariants with the server-updated variant
         setVariants((prevVariants) =>
           prevVariants.map((v) =>
-            v.id === variantWithImages.id ? variantWithImages : v
+            v.id === variantWithImages.id ? updatedVariant : v
           )
         );
 
-        // Also update in currentVariants
         setCurrentVariants((prevCurrentVariants) => {
           const currentIndex = prevCurrentVariants.findIndex(
             (v) => v.id === variantWithImages.id
           );
           if (currentIndex >= 0) {
             const newCurrentVariants = [...prevCurrentVariants];
-            newCurrentVariants[currentIndex] = variantWithImages;
+            newCurrentVariants[currentIndex] = updatedVariant;
             return newCurrentVariants;
           }
-          return [...prevCurrentVariants, variantWithImages];
+          return [...prevCurrentVariants, updatedVariant];
+        });
+
+        // Invalidate the product query to refresh the data
+        queryClient.invalidateQueries({
+          queryKey: ["/api/products", productId],
         });
       } else {
-        // Add new variant
+        // Add new variant - save to server immediately
         const newVariant = {
           ...variantWithImages,
-          id: Math.floor(Math.random() * -1000000), // Negative ID for new variants
+          productId: productId,
         };
-        setVariants((prev) => [...prev, newVariant]);
-        setCurrentVariants((prev) => [...prev, newVariant]);
+
+        // Save to server immediately
+        const response = await fetch(`/api/products/${productId}/variants`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify([newVariant]),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to save variant to server");
+        }
+
+        const savedVariant = await response.json();
+        const savedVariantArray = savedVariant.variants || savedVariant;
+
+        // Update both variants and currentVariants with the server-saved variant
+        setVariants((prev) => [...prev, ...savedVariantArray]);
+        setCurrentVariants((prev) => [...prev, ...savedVariantArray]);
+
+        // Invalidate the product query to refresh the data
+        queryClient.invalidateQueries({
+          queryKey: ["/api/products", productId],
+        });
       }
 
       // Reset state
       setCurrentVariant(null);
-      setVariantImages([]);
       setIsEditingVariant(false);
       setNewVariantRow(false);
 
       toast({
         title: "Success",
-        description: "Product variant has been updated successfully",
+        description: "Product variant has been saved successfully",
       });
     } catch (error) {
       console.error("Error saving variant:", error);
@@ -1397,9 +1393,8 @@ export default function EditProductPage() {
 
   // Cancel variant editing
   const handleCancelVariantEdit = () => {
-    // Only clear the current variant and images
+    // Only clear the current variant
     setCurrentVariant(null);
-    setVariantImages([]);
     setNewVariantRow(false);
     setIsEditingVariant(false); // Also reset the editing flag
     // We're not touching draftVariants here - previously added draft variants remain
@@ -3766,66 +3761,108 @@ export default function EditProductPage() {
                     </Card>
                   )}
 
-                  {/* Matrix Variant Generator Card */}
+                  {/* Variant Creation Card */}
                   <Card className="mb-6">
                     <CardHeader>
-                      <CardTitle>Create Additional Variants</CardTitle>
+                      <CardTitle>Product Variants</CardTitle>
                       <CardDescription>
-                        Define color and size options to automatically generate
-                        additional variant combinations
+                        Create and manage product variants with different
+                        attributes
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <VariantMatrixGenerator
-                        onSaveVariants={(generatedVariants) => {
-                          // Add to existing draft variants (not replace)
-                          const newDraftVariants = generatedVariants.map(
-                            (variant) => {
-                              // Process each variant from the matrix generator
+                      <Tabs defaultValue="manual" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2 mb-6">
+                          <TabsTrigger value="manual">
+                            Manual Creation
+                          </TabsTrigger>
+                          <TabsTrigger value="matrix">
+                            Matrix Generator
+                          </TabsTrigger>
+                        </TabsList>
 
-                              return {
-                                ...variant,
-                                id:
-                                  variant.id ||
-                                  -(
-                                    Date.now() +
-                                    Math.floor(Math.random() * 1000)
-                                  ), // Generate temporary ID
-                                productId: product?.id,
-                                // Ensure these fields are explicitly set
-                                sku:
-                                  variant.sku ||
-                                  `${form.getValues("name").substring(0, 5)}-${
-                                    variant.color
-                                  }-${variant.size}`.replace(/\s+/g, ""),
-                                color: variant.color || "",
-                                size: variant.size || "",
-                                price: Number(variant.price) || 0,
-                                mrp: Number(variant.mrp) || 0,
-                                stock: Number(variant.stock) || 0,
-                                images:
-                                  variant.images &&
-                                  Array.isArray(variant.images)
-                                    ? variant.images
-                                    : [],
-                              };
-                            }
-                          );
+                        {/* Manual Variant Creation Tab */}
+                        <TabsContent value="manual" className="mt-0">
+                          <MultiVariantTable
+                            variants={[...variants, ...draftVariants]}
+                            onAddVariant={handleAddVariant}
+                            onDeleteVariant={handleDeleteVariant}
+                            onEditVariant={handleEditVariant}
+                            onSaveNewVariant={handleSaveNewVariant}
+                            newVariantExists={isEditingVariant}
+                            currentVariant={currentVariant}
+                            onUpdateVariantField={updateVariantField}
+                            onCancelNewVariant={handleCancelVariantEdit}
+                          />
+                        </TabsContent>
 
-                          // Keep existing variants and add new ones to drafts
-                          setDraftVariants((prevDrafts) => [
-                            ...prevDrafts,
-                            ...newDraftVariants,
-                          ]);
+                        {/* Matrix Generator Tab */}
+                        <TabsContent value="matrix" className="mt-0">
+                          <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
+                            <h3 className="text-sm font-semibold text-blue-800 flex items-center mb-2">
+                              <HelpCircle className="h-4 w-4 mr-2" />
+                              Matrix Variant Generator
+                            </h3>
+                            <p className="text-sm text-blue-700">
+                              Use this tool to quickly create multiple variants
+                              by defining attributes like color and size. The
+                              system will generate all possible combinations
+                              automatically.
+                            </p>
+                          </div>
 
-                          toast({
-                            title: "Variants Generated",
-                            description: `${generatedVariants.length} variants have been generated. Save the product to make them permanent.`,
-                          });
-                        }}
-                        existingVariants={variants}
-                        productName={form.getValues("name")}
-                      />
+                          <VariantMatrixGenerator
+                            onSaveVariants={(generatedVariants) => {
+                              // Add to existing draft variants (not replace)
+                              const newDraftVariants = generatedVariants.map(
+                                (variant) => {
+                                  // Process each variant from the matrix generator
+
+                                  return {
+                                    ...variant,
+                                    id:
+                                      variant.id ||
+                                      -(
+                                        Date.now() +
+                                        Math.floor(Math.random() * 1000)
+                                      ), // Generate temporary ID
+                                    productId: product?.id,
+                                    // Ensure these fields are explicitly set
+                                    sku:
+                                      variant.sku ||
+                                      `${form.getValues("name").substring(0, 5)}-${
+                                        variant.color
+                                      }-${variant.size}`.replace(/\s+/g, ""),
+                                    color: variant.color || "",
+                                    size: variant.size || "",
+                                    price: Number(variant.price) || 0,
+                                    mrp: Number(variant.mrp) || 0,
+                                    stock: Number(variant.stock) || 0,
+                                    images:
+                                      variant.images &&
+                                      Array.isArray(variant.images)
+                                        ? variant.images
+                                        : [],
+                                  };
+                                }
+                              );
+
+                              // Keep existing variants and add new ones to drafts
+                              setDraftVariants((prevDrafts) => [
+                                ...prevDrafts,
+                                ...newDraftVariants,
+                              ]);
+
+                              toast({
+                                title: "Variants Generated",
+                                description: `${generatedVariants.length} variants have been generated. Save the product to make them permanent.`,
+                              });
+                            }}
+                            existingVariants={variants}
+                            productName={form.getValues("name")}
+                          />
+                        </TabsContent>
+                      </Tabs>
                     </CardContent>
                   </Card>
 
@@ -4908,6 +4945,11 @@ export default function EditProductPage() {
                       `Removed variant ${selectedVariant.id} from currentVariants, count before: ${prev.length}, after: ${filtered.length}`
                     );
                     return filtered;
+                  });
+
+                  // Invalidate the product query to refresh the data
+                  queryClient.invalidateQueries({
+                    queryKey: ["/api/products", productId],
                   });
 
                   toast({
