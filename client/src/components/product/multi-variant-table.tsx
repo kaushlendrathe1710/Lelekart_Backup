@@ -163,6 +163,12 @@ export function MultiVariantTable({
     // Mark this field as active
     setActiveField(fieldName);
 
+    // For color and size fields, don't update parent immediately to prevent focus loss
+    if (fieldName === "color" || fieldName === "size") {
+      // Only update parent when user finishes typing (on blur or after a delay)
+      return;
+    }
+
     // Ensure we're also updating the currentVariant value through the parent component
     if (currentVariant && onUpdateVariantField) {
       // Convert values to the right type based on field name
@@ -280,6 +286,18 @@ export function MultiVariantTable({
     setVariantImages((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // Handle field blur to update parent for color and size fields
+  const handleFieldBlur = (fieldName: string) => {
+    if (
+      (fieldName === "color" || fieldName === "size") &&
+      currentVariant &&
+      onUpdateVariantField
+    ) {
+      const fieldValue = fields[fieldName as keyof typeof fields].value;
+      onUpdateVariantField(fieldName as keyof ProductVariant, fieldValue);
+    }
+  };
+
   // Handle saving the variant
   const handleSave = () => {
     // Construct a variant object from our field values
@@ -308,14 +326,14 @@ export function MultiVariantTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>SKU</TableHead>
-            <TableHead>Color</TableHead>
-            <TableHead>Size</TableHead>
-            <TableHead>Price</TableHead>
-            <TableHead>MRP</TableHead>
-            <TableHead>Stock</TableHead>
-            <TableHead>Images</TableHead>
-            <TableHead className="text-center">
+            <TableHead className="w-48 min-w-48">SKU</TableHead>
+            <TableHead className="w-40 min-w-40">Color</TableHead>
+            <TableHead className="w-40 min-w-40">Size</TableHead>
+            <TableHead className="w-32 min-w-32">Price</TableHead>
+            <TableHead className="w-32 min-w-32">MRP</TableHead>
+            <TableHead className="w-24 min-w-24">Stock</TableHead>
+            <TableHead className="w-48 min-w-48">Images</TableHead>
+            <TableHead className="text-center w-48 min-w-48">
               <div className="flex justify-between items-center">
                 <Button
                   type="button"
@@ -342,8 +360,10 @@ export function MultiVariantTable({
               key={variant.id || variant.sku}
               className="hover:bg-gray-50"
             >
-              <TableCell className="font-medium">{variant.sku}</TableCell>
-              <TableCell>
+              <TableCell className="font-medium w-48 min-w-48">
+                {variant.sku}
+              </TableCell>
+              <TableCell className="w-40 min-w-40">
                 {variant.color && variant.color.trim() !== "" ? (
                   <div className="flex flex-wrap gap-1">
                     {variant.color
@@ -362,7 +382,7 @@ export function MultiVariantTable({
                   "—"
                 )}
               </TableCell>
-              <TableCell>
+              <TableCell className="w-40 min-w-40">
                 {variant.size && variant.size.trim() !== "" ? (
                   <div className="flex flex-wrap gap-1">
                     {variant.size
@@ -381,10 +401,12 @@ export function MultiVariantTable({
                   "—"
                 )}
               </TableCell>
-              <TableCell>₹{variant.price}</TableCell>
-              <TableCell>₹{variant.mrp || "—"}</TableCell>
-              <TableCell>{variant.stock}</TableCell>
-              <TableCell>
+              <TableCell className="w-32 min-w-32">₹{variant.price}</TableCell>
+              <TableCell className="w-32 min-w-32">
+                ₹{variant.mrp || "—"}
+              </TableCell>
+              <TableCell className="w-24 min-w-24">{variant.stock}</TableCell>
+              <TableCell className="w-48 min-w-48">
                 {Array.isArray(variant.images) && variant.images.length > 0 ? (
                   <div className="flex items-center space-x-2">
                     <div className="flex -space-x-2">
@@ -409,7 +431,7 @@ export function MultiVariantTable({
                   </span>
                 )}
               </TableCell>
-              <TableCell>
+              <TableCell className="w-48 min-w-48">
                 <div className="flex justify-center gap-2">
                   <Button
                     type="button"
@@ -440,7 +462,7 @@ export function MultiVariantTable({
           {/* New variant editing row - using independent field states */}
           {newVariantExists && (
             <TableRow className="bg-blue-50/40 hover:bg-blue-50/60">
-              <TableCell>
+              <TableCell className="w-48 min-w-48">
                 <Input
                   ref={skuRef}
                   placeholder="SKU"
@@ -450,27 +472,29 @@ export function MultiVariantTable({
                   className="h-9"
                 />
               </TableCell>
-              <TableCell>
+              <TableCell className="w-40 min-w-40">
                 <Input
                   ref={colorRef}
-                  placeholder="Red"
+                  placeholder="Red, Blue, Green"
                   value={fields.color.value}
                   onChange={(e) => handleFieldChange("color", e)}
                   onFocus={() => setActiveField("color")}
+                  onBlur={() => handleFieldBlur("color")}
                   className="h-9"
                 />
               </TableCell>
-              <TableCell>
+              <TableCell className="w-40 min-w-40">
                 <Input
                   ref={sizeRef}
-                  placeholder="S, M"
+                  placeholder="S, M, L, XL"
                   value={fields.size.value}
                   onChange={(e) => handleFieldChange("size", e)}
                   onFocus={() => setActiveField("size")}
+                  onBlur={() => handleFieldBlur("size")}
                   className="h-9"
                 />
               </TableCell>
-              <TableCell>
+              <TableCell className="w-32 min-w-32">
                 <Input
                   ref={priceRef}
                   type="number"
@@ -482,7 +506,7 @@ export function MultiVariantTable({
                   className="h-9"
                 />
               </TableCell>
-              <TableCell>
+              <TableCell className="w-32 min-w-32">
                 <Input
                   ref={mrpRef}
                   type="number"
@@ -494,7 +518,7 @@ export function MultiVariantTable({
                   className="h-9"
                 />
               </TableCell>
-              <TableCell>
+              <TableCell className="w-24 min-w-24">
                 <Input
                   ref={stockRef}
                   type="number"
@@ -506,7 +530,7 @@ export function MultiVariantTable({
                   className="h-9"
                 />
               </TableCell>
-              <TableCell>
+              <TableCell className="w-48 min-w-48">
                 <div className="space-y-2">
                   {/* Display current images */}
                   {variantImages.length > 0 && (
@@ -608,7 +632,7 @@ export function MultiVariantTable({
                   )}
                 </div>
               </TableCell>
-              <TableCell>
+              <TableCell className="w-48 min-w-48">
                 <div className="flex justify-center gap-2">
                   <Button
                     type="button"
