@@ -227,19 +227,8 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
   const handleDealAddToCart = async () => {
     if (!dealOfTheDay?.productId) return;
 
-    // Check if user is logged in
-    if (!user) {
-      toast({
-        title: "Please log in",
-        description: "You need to be logged in to add items to cart",
-        variant: "default",
-      });
-      navigate("/auth");
-      return;
-    }
-
-    // Check if user is admin or seller
-    if (user.role === "admin" || user.role === "seller") {
+    // Check if user is logged in and is admin or seller
+    if (user && (user.role === "admin" || user.role === "seller")) {
       toast({
         title: "Action Not Allowed",
         description:
@@ -281,9 +270,14 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
 
   // Helper to format price in INR with max 2 decimals
   function formatINR(price: number | string) {
-    const num = typeof price === 'string' ? parseFloat(price) : price;
+    const num = typeof price === "string" ? parseFloat(price) : price;
     if (isNaN(num)) return price;
-    return Math.round(num).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, minimumFractionDigits: 0 });
+    return Math.round(num).toLocaleString("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+      minimumFractionDigits: 0,
+    });
   }
 
   return (
@@ -340,7 +334,13 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
                     }
                     alt={image.alt}
                     className="w-full h-64 md:h-96 object-contain"
-                    style={{ maxHeight: '420px', background: 'none', border: 'none', boxShadow: 'none', borderRadius: 0 }}
+                    style={{
+                      maxHeight: "420px",
+                      background: "none",
+                      border: "none",
+                      boxShadow: "none",
+                      borderRadius: 0,
+                    }}
                     onError={(e) => {
                       // Use a category-specific fallback image on error
                       const target = e.target as HTMLImageElement;
@@ -397,32 +397,50 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
               {/* Left side - Deal info */}
               <div className="md:w-2/3 w-full mb-8 md:mb-0 md:pr-12 text-center">
                 <div className="flex items-center mb-4 justify-center">
-                  <span className="bg-yellow-400 text-black text-xs font-bold px-3 py-1 rounded mr-4 tracking-wide shadow-sm">DEAL OF THE DAY</span>
+                  <span className="bg-yellow-400 text-black text-xs font-bold px-3 py-1 rounded mr-4 tracking-wide shadow-sm">
+                    DEAL OF THE DAY
+                  </span>
                   <div className="flex space-x-3">
                     <div className="text-center">
-                      <div className="text-xl font-bold text-[#e76f51]">{countdown.hours}</div>
+                      <div className="text-xl font-bold text-[#e76f51]">
+                        {countdown.hours}
+                      </div>
                       <div className="text-xs text-gray-500">Hours</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-xl font-bold text-[#e76f51]">{countdown.minutes}</div>
+                      <div className="text-xl font-bold text-[#e76f51]">
+                        {countdown.minutes}
+                      </div>
                       <div className="text-xs text-gray-500">Minutes</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-xl font-bold text-[#e76f51]">{countdown.seconds}</div>
+                      <div className="text-xl font-bold text-[#e76f51]">
+                        {countdown.seconds}
+                      </div>
                       <div className="text-xs text-gray-500">Seconds</div>
                     </div>
                   </div>
                 </div>
-                <h3 className="text-lg md:text-xl font-semibold text-black mb-2 leading-snug">{dealOfTheDay.title}</h3>
-                <p className="text-gray-700 mb-4 text-sm md:text-base">{dealOfTheDay.subtitle}</p>
+                <h3 className="text-lg md:text-xl font-semibold text-black mb-2 leading-snug">
+                  {dealOfTheDay.title}
+                </h3>
+                <p className="text-gray-700 mb-4 text-sm md:text-base">
+                  {dealOfTheDay.subtitle}
+                </p>
                 <div className="flex items-end mb-4 gap-3 flex-wrap justify-center">
-                  <span className="text-xl md:text-2xl font-bold text-black">{formatINR(dealOfTheDay.discountPrice)}</span>
-                  <span className="text-base md:text-lg line-through text-gray-400">{formatINR(dealOfTheDay.originalPrice)}</span>
-                  <span className="bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded shadow-sm">{dealOfTheDay.discountPercentage}% OFF</span>
+                  <span className="text-xl md:text-2xl font-bold text-black">
+                    {formatINR(dealOfTheDay.discountPrice)}
+                  </span>
+                  <span className="text-base md:text-lg line-through text-gray-400">
+                    {formatINR(dealOfTheDay.originalPrice)}
+                  </span>
+                  <span className="bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded shadow-sm">
+                    {dealOfTheDay.discountPercentage}% OFF
+                  </span>
                 </div>
                 <Button
                   className="bg-gradient-to-r from-yellow-400 to-orange-400 text-black font-bold text-lg px-8 py-3 rounded-full shadow-md hover:from-orange-400 hover:to-yellow-400 transition-colors border-none"
-                  style={{boxShadow: '0 4px 16px 0 rgba(0,0,0,0.10)'}}
+                  style={{ boxShadow: "0 4px 16px 0 rgba(0,0,0,0.10)" }}
                   onClick={isDealInCart ? handleGoToCart : handleDealAddToCart}
                 >
                   {isDealInCart ? "Go to Cart" : "Add to Cart"}

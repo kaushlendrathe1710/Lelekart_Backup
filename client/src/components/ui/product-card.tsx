@@ -81,16 +81,9 @@ export const ProductCard = memo(function ProductCard({
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!user) {
-      toast({
-        title: "Please log in",
-        description: "You need to be logged in to add items to cart",
-        variant: "default",
-      });
-      setLocation("/auth");
-      return;
-    }
-    if (user.role === "admin" || user.role === "seller") {
+
+    // If user is logged in, check if they are a buyer
+    if (user && (user.role === "admin" || user.role === "seller")) {
       toast({
         title: "Action Not Allowed",
         description:
@@ -99,6 +92,7 @@ export const ProductCard = memo(function ProductCard({
       });
       return;
     }
+
     try {
       if (cartContext) {
         cartContext.addToCart(product as Product);
@@ -254,10 +248,10 @@ export const ProductCard = memo(function ProductCard({
             {showAddToCart && (
               <Button
                 className="mt-2 w-full bg-gradient-to-r from-yellow-400 to-orange-400 text-black font-bold text-base px-4 py-2 rounded-full shadow-md hover:from-orange-400 hover:to-yellow-400 border-none flex items-center justify-center gap-2"
-                onClick={handleAddToCart}
+                onClick={isInCart ? handleGoToCart : handleAddToCart}
               >
                 <ShoppingCart className="h-4 w-4 mr-2" />
-                Add to Cart
+                {isInCart ? "Go to Cart" : "Add to Cart"}
               </Button>
             )}
           </CardContent>

@@ -25,30 +25,33 @@ export function FashionProductCard({ product }: FashionProductCardProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  
+
   // Get user data to check if logged in
   const { data: user } = useQuery<User | null>({
-    queryKey: ['/api/user'],
+    queryKey: ["/api/user"],
     retry: false,
     staleTime: 60000,
   });
 
+  // Get cart items to check if product is already in cart
+  const { cartItems } = useCart();
+
   // Format price in Indian Rupees
   const formatPrice = (price: number) => {
-    return `₹${price.toLocaleString('en-IN')}`;
+    return `₹${price.toLocaleString("en-IN")}`;
   };
-  
+
   // Strip HTML tags from string
   const stripHtmlTags = (html: string) => {
-    const tmp = document.createElement('DIV');
+    const tmp = document.createElement("DIV");
     tmp.innerHTML = html;
-    return tmp.textContent || tmp.innerText || '';
+    return tmp.textContent || tmp.innerText || "";
   };
-  
+
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     // Remove login check, allow add to cart for all
     try {
       if (cartContext) {
@@ -64,20 +67,31 @@ export function FashionProductCard({ product }: FashionProductCardProps) {
     }
   };
 
+  // Check if product is already in cart
+  const isInCart = cartItems.some((item) => item.product.id === product.id);
+
+  const handleGoToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setLocation("/cart");
+  };
+
   // Use a consistent fashion image for all fashion products
   return (
     <div className="relative">
       {/* Add Wishlist button on top right of card */}
       <WishlistButton productId={product.id} variant="card" />
-      
-      <Card 
+
+      <Card
         className="product-card h-full flex flex-col items-center p-3 transition-transform duration-200 hover:cursor-pointer hover:shadow-md hover:-translate-y-1 bg-[#F8F5E4] border border-[#e0c9a6] rounded-2xl"
         onClick={() => {
           try {
-            console.log(`Navigating to product details page: /product/${product.id}`);
+            console.log(
+              `Navigating to product details page: /product/${product.id}`
+            );
             setLocation(`/product/${product.id}`);
           } catch (e) {
-            console.error('Navigation error:', e);
+            console.error("Navigation error:", e);
           }
         }}
       >
@@ -89,19 +103,25 @@ export function FashionProductCard({ product }: FashionProductCardProps) {
               className="max-w-full max-h-full object-contain rounded-xl"
             />
           </div>
-          
+
           <div className="flex flex-col flex-grow w-full">
-            <h3 className="font-medium text-center text-sm line-clamp-2 h-10">{product.name}</h3>
-            <div className="text-green-600 font-medium mt-1 text-center">{formatPrice(product.price)}</div>
-            <div className="text-xs text-gray-500 mt-1 text-center line-clamp-1">{stripHtmlTags(product.description).slice(0, 30)}...</div>
+            <h3 className="font-medium text-center text-sm line-clamp-2 h-10">
+              {product.name}
+            </h3>
+            <div className="text-green-600 font-medium mt-1 text-center">
+              {formatPrice(product.price)}
+            </div>
+            <div className="text-xs text-gray-500 mt-1 text-center line-clamp-1">
+              {stripHtmlTags(product.description).slice(0, 30)}...
+            </div>
           </div>
-          
+
           <Button
             className="mt-2 w-full bg-gradient-to-r from-yellow-400 to-orange-400 text-black font-bold text-base px-4 py-2 rounded-full shadow-md hover:from-orange-400 hover:to-yellow-400 border-none flex items-center justify-center gap-2"
-            onClick={handleAddToCart}
+            onClick={isInCart ? handleGoToCart : handleAddToCart}
           >
             <ShoppingCart className="h-4 w-4 mr-2" />
-            Add to Cart
+            {isInCart ? "Go to Cart" : "Add to Cart"}
           </Button>
         </CardContent>
       </Card>

@@ -61,7 +61,9 @@ export default function ProductPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
+    null
+  );
 
   // Clean up effect
   useEffect(() => {
@@ -81,7 +83,9 @@ export default function ProductPage() {
   });
 
   // Fetch product details with stable identity
-  const { data: product, isLoading: isProductLoading } = useQuery<ProductWithVariants | undefined>({
+  const { data: product, isLoading: isProductLoading } = useQuery<
+    ProductWithVariants | undefined
+  >({
     queryKey: ["/api/products", productId],
     queryFn: async () => {
       console.log("Fetching product data for ID:", productId);
@@ -242,17 +246,6 @@ export default function ProductPage() {
   const handleAddToCart = async () => {
     if (!product) return;
 
-    // If user is not logged in, redirect to auth
-    if (!user) {
-      toast({
-        title: "Please log in",
-        description: "You need to be logged in to add items to cart",
-        variant: "default",
-      });
-      setLocation("/auth", { replace: false });
-      return;
-    }
-
     // Only buyers can add to cart
     const userRole = user?.role as string;
     if (userRole && userRole !== "buyer") {
@@ -387,14 +380,16 @@ export default function ProductPage() {
                 </div>
 
                 {/* Variant Selector */}
-                {product?.variants && Array.isArray(product.variants) && product.variants.length > 0 && (
-                  <div className="my-4">
-                    <VariantSelector
-                      variants={product.variants}
-                      onVariantChange={setSelectedVariant}
-                    />
-                  </div>
-                )}
+                {product?.variants &&
+                  Array.isArray(product.variants) &&
+                  product.variants.length > 0 && (
+                    <div className="my-4">
+                      <VariantSelector
+                        variants={product.variants}
+                        onVariantChange={setSelectedVariant}
+                      />
+                    </div>
+                  )}
 
                 <div className="mt-4">
                   <span className="text-3xl font-semibold text-gray-900">
@@ -405,11 +400,13 @@ export default function ProductPage() {
                       ₹{getDisplayMrp()}
                     </span>
                   )}
-                  {getDisplayMrp() && getDisplayPrice() && getDisplayMrp() > getDisplayPrice() && (
-                    <span className="text-sm text-green-600 ml-2">
-                      {`-${Math.round(((getDisplayMrp() - getDisplayPrice()) / getDisplayMrp()) * 100)}% off`}
-                    </span>
-                  )}
+                  {getDisplayMrp() &&
+                    getDisplayPrice() &&
+                    getDisplayMrp() > getDisplayPrice() && (
+                      <span className="text-sm text-green-600 ml-2">
+                        {`-${Math.round(((getDisplayMrp() - getDisplayPrice()) / getDisplayMrp()) * 100)}% off`}
+                      </span>
+                    )}
                 </div>
 
                 <div className="mt-6">
@@ -424,7 +421,9 @@ export default function ProductPage() {
                   <h3 className="font-medium text-gray-900">
                     Available Stock:
                   </h3>
-                  <p className="mt-1 text-gray-600">{product?.stock ?? 0} units</p>
+                  <p className="mt-1 text-gray-600">
+                    {product?.stock ?? 0} units
+                  </p>
                 </div>
 
                 <Separator className="my-6" />
@@ -461,14 +460,18 @@ export default function ProductPage() {
                 <div className="mt-6 flex flex-col sm:flex-row gap-4">
                   <Button
                     className="bg-orange-500 hover:bg-orange-600 text-white px-8"
-                    onClick={() => { if (product) handleAddToCart(); }}
+                    onClick={() => {
+                      if (product) handleAddToCart();
+                    }}
                   >
                     <ShoppingCart className="h-4 w-4 mr-2" />
                     ADD TO CART
                   </Button>
                   <Button
                     className="bg-primary hover:bg-primary/90 text-white px-8"
-                    onClick={() => { if (product) handleBuyNow(); }}
+                    onClick={() => {
+                      if (product) handleBuyNow();
+                    }}
                   >
                     <Zap className="h-4 w-4 mr-2" />
                     BUY NOW

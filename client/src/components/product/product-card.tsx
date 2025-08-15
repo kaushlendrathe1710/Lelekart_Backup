@@ -22,7 +22,7 @@ export function ProductCard({
   imageUrl,
   category,
 }: ProductCardProps) {
-  const { addToCart } = useCart();
+  const { addToCart, cartItems } = useCart();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
@@ -34,19 +34,8 @@ export function ProductCard({
   });
 
   const handleAddToCart = () => {
-    // If user is not logged in, redirect to auth
-    if (!user) {
-      toast({
-        title: "Please log in",
-        description: "You need to be logged in to add items to cart",
-        variant: "default",
-      });
-      setLocation("/auth", { replace: false });
-      return;
-    }
-
-    // Only buyers can add to cart
-    if (user.role !== "buyer") {
+    // If user is logged in, check if they are a buyer
+    if (user && user.role !== "buyer") {
       toast({
         title: "Action Not Allowed",
         description:
@@ -69,6 +58,13 @@ export function ProductCard({
       title: "Added to Cart",
       description: `${name} has been added to your cart.`,
     });
+  };
+
+  // Check if product is already in cart
+  const isInCart = cartItems.some((item) => item.product.id === id);
+
+  const handleGoToCart = () => {
+    setLocation("/cart");
   };
 
   return (
@@ -104,10 +100,12 @@ export function ProductCard({
             size="sm"
             variant="outline"
             className="flex items-center gap-1"
-            onClick={handleAddToCart}
+            onClick={isInCart ? handleGoToCart : handleAddToCart}
           >
             <ShoppingCart className="h-4 w-4" />
-            <span className="sr-only sm:not-sr-only sm:inline-block">Add</span>
+            <span className="sr-only sm:not-sr-only sm:inline-block">
+              {isInCart ? "Cart" : "Add"}
+            </span>
           </Button>
         </div>
       </div>
