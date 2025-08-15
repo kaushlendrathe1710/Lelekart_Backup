@@ -364,23 +364,6 @@ export default function HomePage() {
           return discount > 80;
         }).length,
       };
-
-      console.log("Homepage Products Debug:", {
-        totalProducts: products.length,
-        productsWithDiscount: productsWithMrp.length,
-        discountRanges,
-        sampleProducts: products.slice(0, 3).map((p) => ({
-          id: p.id,
-          name: p.name,
-          mrp: p.mrp,
-          price: p.price,
-          hasDiscount: p.mrp && p.mrp > p.price,
-          discountPercent:
-            p.mrp && p.mrp > p.price
-              ? Math.round(((p.mrp - p.price) / p.mrp) * 100)
-              : 0,
-        })),
-      });
     }
   }, [products]);
 
@@ -564,20 +547,6 @@ export default function HomePage() {
     const productsInRange = productsWithDiscountCalculated.filter(
       (p) => p.discount >= min && p.discount <= max
     );
-
-    console.log(`getMaxDiscountProductsInRange(${min}-${max}%):`, {
-      totalProducts: products.length,
-      productsWithDiscount: productsWithDiscount.length,
-      productsInRange: productsInRange.length,
-      range: `${min}-${max}%`,
-      sampleProducts: productsInRange.slice(0, 3).map((p) => ({
-        id: p.id,
-        name: p.name,
-        mrp: p.mrp,
-        price: p.price,
-        discount: p.discount,
-      })),
-    });
 
     return productsInRange
       .sort((a, b) => b.discount - a.discount)

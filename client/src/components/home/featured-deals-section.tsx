@@ -9,23 +9,6 @@ interface FeaturedDealsSectionProps {
 export default function FeaturedDealsSection({
   featuredProducts,
 }: FeaturedDealsSectionProps) {
-  // Debug logging
-  console.log("FeaturedDealsSection received products:", {
-    totalProducts: featuredProducts.length,
-    productsWithDiscount: featuredProducts.filter(
-      (p) => p.mrp && p.mrp > p.price
-    ).length,
-    categories: [...new Set(featuredProducts.map((p) => p.category))],
-    sampleProducts: featuredProducts.slice(0, 3).map((p) => ({
-      id: p.id,
-      name: p.name,
-      category: p.category,
-      price: p.price,
-      mrp: p.mrp,
-      hasDiscount: p.mrp && p.mrp > p.price,
-    })),
-  });
-
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -132,10 +115,6 @@ function getMaxDiscountProductsInRange(
 }
 
 function getLowestDiscountFashion(products: Product[], count: number) {
-  // Debug: Log available categories
-  const availableCategories = [...new Set(products.map((p) => p.category))];
-  console.log("Available categories:", availableCategories);
-
   // More flexible filtering - check for fashion-related categories
   const fashionProducts = products.filter((p) => {
     const category = p.category?.toLowerCase();
@@ -147,10 +126,6 @@ function getLowestDiscountFashion(products: Product[], count: number) {
       category?.includes("clothing")
     );
   });
-
-  console.log(
-    `Found ${fashionProducts.length} fashion products out of ${products.length} total products`
-  );
 
   return fashionProducts
     .sort((a, b) => {
