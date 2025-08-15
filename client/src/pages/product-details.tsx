@@ -808,6 +808,7 @@ export default function ProductDetailsPage() {
 
   // Try to use context first if available
   const cartContext = useContext(CartContext);
+  const { cartItems, isProductRecentlyAdded } = useCart();
 
   // Get user data to check if logged in
   const { data: user } = useQuery<User | null>({
@@ -932,26 +933,8 @@ export default function ProductDetailsPage() {
       // Use cart context for both guest and logged-in users
       if (cartContext) {
         if (selectedVariant) {
-          const isValidId =
-            typeof selectedVariant.id === "number" &&
-            selectedVariant.id > 0 &&
-            selectedVariant.id < 10000;
-
-          const variantId = isValidId ? selectedVariant.id : product.id;
-
-          cartContext.addToCart(
-            {
-              ...product,
-              id: variantId,
-              price: selectedVariant.price,
-              mrp: selectedVariant.mrp,
-              isVariant: true,
-              parentProductId: product.id,
-              color: selectedVariant.color,
-              size: selectedSize, // Use the selected size instead of the full variant size string
-            },
-            quantity
-          );
+          // Pass the variant to the cart context so it can handle it properly
+          cartContext.addToCart(product, quantity, selectedVariant);
         } else {
           cartContext.addToCart(product, quantity);
         }
@@ -968,6 +951,11 @@ export default function ProductDetailsPage() {
     } catch (error) {
       console.error("Failed to add to cart:", error);
     }
+  };
+
+  // Handle go to cart action
+  const handleGoToCart = () => {
+    setLocation("/cart");
   };
 
   // Handle buy now action - simplified approach
@@ -1544,6 +1532,11 @@ export default function ProductDetailsPage() {
   let safeGstAmount =
     typeof gstAmount === "number" && gstAmount > 0 ? gstAmount : undefined;
 
+  // Check if product is already in cart or was recently added
+  const isInCart = cartItems.some((item) => item.product.id === product?.id);
+  const wasRecentlyAdded = product ? isProductRecentlyAdded(product.id) : false;
+  const shouldShowGoToCart = isInCart || wasRecentlyAdded;
+
   return (
     <CartProvider>
       <div className="bg-[#EADDCB] min-h-screen font-serif">
@@ -1967,14 +1960,16 @@ export default function ProductDetailsPage() {
                 <Button
                   size="lg"
                   className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white"
-                  onClick={handleAddToCart}
+                  onClick={
+                    shouldShowGoToCart ? handleGoToCart : handleAddToCart
+                  }
                   disabled={
                     (!isValidSelection &&
                       product?.variants &&
                       product.variants.length > 0) ||
                     (selectedVariant && selectedVariant.stock <= 0)
                   }
-                  title="Add to Cart"
+                  title={shouldShowGoToCart ? "Go to Cart" : "Add to Cart"}
                 >
                   <ShoppingCart className="h-5 w-5 mr-2" />
                   {!isValidSelection &&
@@ -1983,7 +1978,9 @@ export default function ProductDetailsPage() {
                     ? "SELECT OPTIONS"
                     : selectedVariant && selectedVariant.stock <= 0
                       ? "OUT OF STOCK"
-                      : "ADD TO CART"}
+                      : shouldShowGoToCart
+                        ? "GO TO CART"
+                        : "ADD TO CART"}
                 </Button>
                 <Button
                   size="lg"
