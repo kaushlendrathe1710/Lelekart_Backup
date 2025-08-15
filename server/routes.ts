@@ -20,7 +20,21 @@ import * as XLSX from "xlsx";
 import templateService from "./services/template-service";
 import * as pdfGenerator from "./services/pdf-generator"; // Import PDF generator service
 import { getShippingLabelTemplate } from "./services/pdf-generator"; // Import shipping label template
+import htmlPdf from "html-pdf-node"; // Import html-pdf-node for direct PDF generation
 import handlebars from "handlebars"; // For template rendering
+
+// Half A4 PDF generation options
+const HALF_A4_PDF_OPTIONS = {
+  format: "A4",
+  margin: {
+    top: "3mm",
+    right: "3mm",
+    bottom: "3mm",
+    left: "3mm",
+  },
+  printBackground: true,
+  preferCSSPageSize: true,
+};
 import fs from "fs"; // For writing files
 import {
   and,
@@ -1224,7 +1238,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
             errorCorrectionLevel: "H",
             margin: 1,
-            width: 150,
+            width: 75,
           });
 
           // Add QR code to the data
@@ -1233,7 +1247,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Register QR code helper
           handlebars.registerHelper("qrCode", function () {
             return new handlebars.SafeString(
-              `<img src="${qrCodeDataUrl}" alt="Invoice QR Code" style="width: 150px; height: 150px;">`
+              `<img src="${qrCodeDataUrl}" alt="Invoice QR Code" style="width: 75px; height: 75px;">`
             );
           });
 
@@ -1283,11 +1297,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           `
           )
           .join("");
-        await pdfGenerator.generatePdf(
-          res,
-          combinedHtml,
-          `Combined-Invoice-${orderId}.pdf`
+        // Use half A4 PDF generation for combined invoices
+        const file = { content: combinedHtml };
+        const pdfBuffer = await htmlPdf.generatePdf(file, HALF_A4_PDF_OPTIONS);
+
+        // Set response headers for PDF download
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="Combined-Invoice-${orderId}.pdf"`
         );
+
+        // Send PDF buffer directly
+        res.send(pdfBuffer);
       }
     } catch (error) {
       console.error(`Error generating invoice:`, error);
@@ -1503,7 +1525,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const qrCodeDataUrl = await QRCode.toDataURL(JSON.stringify(qrData), {
         errorCorrectionLevel: "H",
         margin: 1,
-        width: 150,
+        width: 75,
       });
 
       // Add QR code to the data
@@ -1512,7 +1534,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Register QR code helper
       handlebars.registerHelper("qrCode", function () {
         return new handlebars.SafeString(
-          `<img src="${qrCodeDataUrl}" alt="Invoice QR Code" style="width: 150px; height: 150px;">`
+          `<img src="${qrCodeDataUrl}" alt="Invoice QR Code" style="width: 75px; height: 75px;">`
         );
       });
 
@@ -1531,7 +1553,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           pdfGenerator.TEMPLATES.TAX_INVOICE,
           invoiceData
         );
-        await pdfGenerator.generatePdf(res, html, `TaxInvoice-${orderId}.pdf`);
+
+        // Use half A4 PDF generation for invoices
+        const file = { content: html };
+        const pdfBuffer = await htmlPdf.generatePdf(file, HALF_A4_PDF_OPTIONS);
+
+        // Set response headers for PDF download
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="TaxInvoice-${orderId}.pdf"`
+        );
+
+        // Send PDF buffer directly
+        res.send(pdfBuffer);
       }
     } catch (error) {
       console.error(`Error generating tax invoice:`, error);
@@ -13368,7 +13403,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
         errorCorrectionLevel: "H",
         margin: 1,
-        width: 150,
+        width: 75,
       });
 
       // Add QR code to the data
@@ -13377,7 +13412,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Register QR code helper
       handlebars.registerHelper("qrCode", function () {
         return new handlebars.SafeString(
-          `<img src="${qrCodeDataUrl}" alt="Invoice QR Code" style="width: 150px; height: 150px;">`
+          `<img src="${qrCodeDataUrl}" alt="Invoice QR Code" style="width: 75px; height: 75px;">`
         );
       });
 
@@ -13386,7 +13421,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return a > b;
       });
 
-      // Invoice template with fixed header alignment
+      // Invoice template with fixed header alignment - Half A4 size
       const invoiceTemplate = `<!DOCTYPE html>
 <html>
 <head>
@@ -13395,13 +13430,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   <style>
     @page {
       size: A4;
-      margin: 5mm;
+      margin: 3mm;
+    }
+    
+    /* Half A4 container - width is half of A4, height is full A4 */
+    .half-a4-container {
+      width: 148.5mm; /* Half of A4 width (297mm) */
+      height: 210mm; /* A4 height */
+      margin: 0 auto;
+      position: relative;
+      overflow: hidden;
     }
     
     body {
       font-family: Arial, sans-serif;
-      font-size: 11px;
-      line-height: 1.3;
+      font-size: 9px;
+      line-height: 1.2;
       color: #333;
       margin: 0;
       padding: 0;
@@ -13410,14 +13454,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     .container {
-      max-width: 100%;
+      width: 148.5mm;
+      min-height: 210mm;
       margin: 0 auto;
       border: 1px solid #000;
       page-break-inside: avoid;
+      overflow: visible;
+      position: relative;
     }
     
     .invoice-header {
-      padding: 10px;
+      padding: 5px;
       background-color: #ffffff;
       margin-bottom: 0;
       border-bottom: 1px solid #eee;
@@ -13425,13 +13472,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       display: table;
       width: 100%;
       box-sizing: border-box;
+      height: 40px;
     }
     
     .header-left {
       display: table-cell;
       width: 35%;
       vertical-align: top;
-      padding-top: 20px;
+      padding-top: 5px;
     }
     
     .header-right {
@@ -13442,19 +13490,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     .invoice-logo {
-      max-height: 75px;
-      margin-top: 10px;
-      height: 60px;
-      max-width: 300px;
+      max-height: 35px;
+      margin-top: 2px;
+      height: 30px;
+      max-width: 120px;
       object-fit: contain;
-      margin-bottom: 15px;
+      margin-bottom: 5px;
     }
     
     .invoice-title {
       font-weight: bold;
-      font-size: 16px;
+      font-size: 12px;
       color: #2c3e50;
-      margin: 0 0 10px 0;
+      margin: 0 0 5px 0;
       text-align: right;
     }
     
@@ -13466,16 +13514,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     .header-info-table td {
-      padding: 2px 0;
-      font-size: 11px;
-      line-height: 1.3;
+      padding: 1px 0;
+      font-size: 8px;
+      line-height: 1.1;
     }
     
     .header-info-table .label-col {
       text-align: left;
-      padding-right: 15px;
+      padding-right: 8px;
       white-space: nowrap;
-      min-width: 80px;
+      min-width: 50px;
     }
     
     .header-info-table .value-col {
@@ -13484,17 +13532,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     .address-section {
-      overflow: hidden;
-      font-size: 11px;
-      padding: 8px;
+      overflow: visible;
+      font-size: 9px;
+      padding: 4px;
       page-break-inside: avoid;
+      min-height: 60px;
     }
     
     .bill-to, .ship-to {
       width: 48%;
-      padding: 8px;
+      padding: 4px;
       box-sizing: border-box;
-      min-height: 100px;
+      min-height: 50px;
       vertical-align: top;
     }
     
@@ -13507,17 +13556,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     .business-section {
-      overflow: hidden;
-      font-size: 11px;
-      padding: 8px;
+      overflow: visible;
+      font-size: 9px;
+      padding: 4px;
       page-break-inside: avoid;
+      min-height: 50px;
+      margin-bottom: 15px;
     }
     
     .bill-from, .ship-from {
       width: 48%;
-      padding: 8px;
+      padding: 4px;
       box-sizing: border-box;
-      min-height: 90px;
+      min-height: 40px;
       vertical-align: top;
     }
     
@@ -13533,52 +13584,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       width: 100%;
       border-collapse: collapse;
       border-bottom: 1px solid #000;
-      font-size: 11px;
+      font-size: 8px;
       page-break-inside: avoid;
+      margin-top: 10px;
     }
     
     table.items th {
       background-color: #f8f9fa;
       border: 1px solid #000;
-      padding: 6px 4px;
+      padding: 4px 3px;
       text-align: center;
       font-weight: bold;
-      font-size: 11px;
+      font-size: 8px;
       color: #2c3e50;
     }
     
     table.items td {
       border: 1px solid #000;
-      padding: 6px 4px;
+      padding: 4px 3px;
       text-align: center;
-      font-size: 11px;
+      font-size: 8px;
       vertical-align: top;
     }
     
     .description-cell {
       text-align: left !important;
-      max-width: 180px;
+      max-width: 90px;
       word-wrap: break-word;
+      white-space: normal;
     }
     
     .amount-in-words {
       margin: 0;
-      padding: 8px;
+      padding: 4px;
       background-color: #ffffff;
       font-family: 'Arial', sans-serif;
-      font-size: 11px;
-      line-height: 1.3;
+      font-size: 9px;
+      line-height: 1.2;
       color: #2c3e50;
       page-break-inside: avoid;
+      min-height: 30px;
     }
     
     .signature-section {
       background-color: #ffffff;
-      padding: 8px;
+      padding: 4px;
       border-radius: 4px;
-      overflow: hidden;
+      overflow: visible;
       page-break-inside: avoid;
       margin-bottom: 2px;
+      min-height: 40px;
     }
     
     .signature-content {
@@ -13594,28 +13649,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     .qr-section img,
     .qr-section svg {
-      max-width: 70px;
-      max-height: 70px;
+      max-width: 35px;
+      max-height: 35px;
     }
     
     .signature-box {
       float: right;
       width: 60%;
       text-align: right;
-      font-size: 11px;
+      font-size: 8px;
       color: #2c3e50;
     }
     
     .signature-box .bold {
-      font-size: 12px;
-      margin-bottom: 4px;
+      font-size: 9px;
+      margin-bottom: 2px;
       font-weight: 600;
       color: #000000;
     }
     
     .signature-box img {
-      height: 40px;
-      margin: 6px 0;
+      height: 20px;
+      margin: 3px 0;
       display: block;
       margin-left: auto;
       object-fit: contain;
@@ -13627,7 +13682,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     .taxes-cell {
-      font-size: 10px;
+      font-size: 7px;
       line-height: 1.2;
     }
 

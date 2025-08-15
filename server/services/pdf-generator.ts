@@ -25,10 +25,23 @@ export const TEMPLATES = {
 const PDF_OPTIONS = {
   format: "A4",
   margin: {
-    top: "10mm",
-    right: "10mm",
-    bottom: "10mm",
-    left: "10mm",
+    top: "5mm",
+    right: "5mm",
+    bottom: "5mm",
+    left: "5mm",
+  },
+  printBackground: true,
+  preferCSSPageSize: true,
+};
+
+// Half A4 PDF generation options
+const HALF_A4_PDF_OPTIONS = {
+  format: "A4",
+  margin: {
+    top: "3mm",
+    right: "3mm",
+    bottom: "3mm",
+    left: "3mm",
   },
   printBackground: true,
   preferCSSPageSize: true,
@@ -57,6 +70,33 @@ export async function generatePdfBuffer(
     return pdfBuffer;
   } catch (error) {
     console.error("Error in PDF generation:", error);
+    throw error;
+  }
+}
+
+/**
+ * Generate a half A4 PDF document from a template
+ * @param templateType Type of template to use
+ * @param data Data to populate the template with
+ */
+export async function generateHalfA4PdfBuffer(
+  templateType: string,
+  data: any
+): Promise<Buffer> {
+  try {
+    // Get the template HTML
+    const templateHtml = getPdfTemplate(templateType);
+
+    // Render the template with data
+    const html = await templateService.renderTemplate(templateHtml, data);
+
+    // Generate PDF from HTML using html-pdf-node with half A4 options
+    const file = { content: html };
+    const pdfBuffer = await htmlPdf.generatePdf(file, HALF_A4_PDF_OPTIONS);
+
+    return pdfBuffer;
+  } catch (error) {
+    console.error("Error in half A4 PDF generation:", error);
     throw error;
   }
 }
@@ -145,53 +185,75 @@ function getInvoiceTemplate(): string {
         <meta charset="utf-8">
         <title>Invoice</title>
         <style>
+          @page {
+            size: A4;
+            margin: 3mm;
+          }
+          
           body {
             font-family: Arial, sans-serif;
-            font-size: 12px;
-            line-height: 1.5;
+            font-size: 9px;
+            line-height: 1.2;
             color: #333;
+            margin: 0;
+            padding: 0;
           }
+          
+                     .container {
+             width: 148.5mm;
+             min-height: 210mm;
+             margin: 0 auto;
+             border: 1px solid #000;
+             page-break-inside: avoid;
+             overflow: visible;
+             position: relative;
+           }
           .invoice-header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
+            padding: 5px;
           }
           .invoice-title {
-            font-size: 24px;
+            font-size: 16px;
             font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
           }
-          .invoice-details {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
-          }
-          .invoice-details-left, .invoice-details-right {
-            width: 45%;
-          }
-          .invoice-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-          }
-          .invoice-table th, .invoice-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-          }
+                     .invoice-details {
+             display: flex;
+             justify-content: space-between;
+             margin-bottom: 25px;
+             font-size: 8px;
+           }
+           .invoice-details-left, .invoice-details-right {
+             width: 45%;
+           }
+           .invoice-table {
+             width: 100%;
+             border-collapse: collapse;
+             margin-bottom: 10px;
+             font-size: 8px;
+             margin-top: 15px;
+           }
+                     .invoice-table th, .invoice-table td {
+             border: 1px solid #ddd;
+             padding: 4px 3px;
+             text-align: left;
+           }
           .invoice-table th {
             background-color: #f2f2f2;
           }
           .invoice-total {
             text-align: right;
-            margin-top: 20px;
+            margin-top: 10px;
+            font-size: 8px;
           }
           .invoice-total-row {
-            margin-bottom: 5px;
+            margin-bottom: 2px;
           }
           .invoice-footer {
-            margin-top: 40px;
+            margin-top: 20px;
             text-align: center;
-            font-size: 10px;
+            font-size: 8px;
             color: #777;
           }
         </style>
@@ -865,48 +927,56 @@ function getTaxInvoiceTemplate(): string {
         <meta charset="utf-8">
         <title>Tax Invoice</title>
         <style>
+          @page {
+            size: A4;
+            margin: 3mm;
+          }
+          
           body {
             font-family: Arial, sans-serif;
-            font-size: 12px;
+            font-size: 9px;
             color: #333;
             margin: 0;
-            padding: 10px;
+            padding: 5px;
           }
-          .invoice-container {
-            width: 100%;
-            max-width: 800px;
-            margin: 0 auto;
-            border: 1px solid #ccc;
-          }
+                     .invoice-container {
+             width: 148.5mm;
+             min-height: 210mm;
+             margin: 0 auto;
+             border: 1px solid #ccc;
+             overflow: visible;
+             position: relative;
+           }
           .header-logo {
-            padding: 10px;
+            padding: 5px;
             border-bottom: 1px solid #ccc;
             display: flex;
             justify-content: space-between;
             align-items: center;
           }
           .logo {
-            font-size: 24px;
+            font-size: 16px;
             font-weight: bold;
             color: #2874f0;
           }
           .header-title {
             background-color: #f0f0f0;
             text-align: center;
-            padding: 8px;
+            padding: 4px;
             font-weight: bold;
-            font-size: 16px;
+            font-size: 12px;
             border-bottom: 1px solid #ccc;
           }
-          .info-section {
-            display: flex;
-            width: 100%;
-            border-bottom: 1px solid #ccc;
-          }
-          .left-column, .right-column {
-            width: 50%;
-            padding: 10px;
-          }
+                     .info-section {
+             display: flex;
+             width: 100%;
+             border-bottom: 1px solid #ccc;
+             margin-bottom: 15px;
+           }
+           .left-column, .right-column {
+             width: 50%;
+             padding: 10px;
+           }
           .right-column {
             border-left: 1px solid #ccc;
           }
@@ -920,25 +990,26 @@ function getTaxInvoiceTemplate(): string {
             font-size: 11px;
             line-height: 1.4;
           }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-          }
+                     table {
+             width: 100%;
+             border-collapse: collapse;
+             margin-top: 10px;
+           }
           table, th, td {
             border: 1px solid #ccc;
           }
-          th {
-            background-color: #f5f5f5;
-            text-align: center;
-            padding: 8px 5px;
-            font-weight: bold;
-            font-size: 11px;
-          }
-          td {
-            padding: 8px 5px;
-            text-align: center;
-            font-size: 11px;
-          }
+                     th {
+             background-color: #f5f5f5;
+             text-align: center;
+             padding: 5px 4px;
+             font-weight: bold;
+             font-size: 9px;
+           }
+           td {
+             padding: 5px 4px;
+             text-align: center;
+             font-size: 9px;
+           }
           .align-left {
             text-align: left;
           }
@@ -958,17 +1029,17 @@ function getTaxInvoiceTemplate(): string {
           .totals-section {
             display: flex;
             justify-content: flex-end;
-            padding: 10px;
-            font-size: 11px;
+            padding: 5px;
+            font-size: 8px;
             border-top: 1px solid #ccc;
           }
           .totals-table {
-            width: 300px;
+            width: 200px;
             border: none;
           }
           .totals-table td {
             border: none;
-            padding: 3px 5px;
+            padding: 2px 3px;
           }
           .totals-table .total-label {
             text-align: right;
@@ -983,8 +1054,8 @@ function getTaxInvoiceTemplate(): string {
             border-top: 1px solid #ccc;
           }
           .invoice-footer {
-            padding: 10px;
-            font-size: 10px;
+            padding: 5px;
+            font-size: 8px;
             text-align: center;
             color: #666;
             border-top: 1px solid #ccc;
