@@ -57,7 +57,7 @@ export const ProductCard = memo(function ProductCard({
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   // Use the useCart hook for cart context
-  const { cartItems, addToCart } = useCart();
+  const { cartItems, addToCart, isProductRecentlyAdded } = useCart();
 
   // Get user data to check if logged in
   const { data: user } = useQuery<User | null>({
@@ -117,8 +117,10 @@ export const ProductCard = memo(function ProductCard({
       ? Math.round(((product.mrp - product.price) / product.mrp) * 100)
       : 0;
 
-  // Check if product is already in cart
+  // Check if product is already in cart or was recently added
   const isInCart = cartItems.some((item) => item.product.id === product.id);
+  const wasRecentlyAdded = isProductRecentlyAdded(product.id);
+  const shouldShowGoToCart = isInCart || wasRecentlyAdded;
 
   const handleGoToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -248,10 +250,10 @@ export const ProductCard = memo(function ProductCard({
             {showAddToCart && (
               <Button
                 className="mt-2 w-full bg-gradient-to-r from-yellow-400 to-orange-400 text-black font-bold text-base px-4 py-2 rounded-full shadow-md hover:from-orange-400 hover:to-yellow-400 border-none flex items-center justify-center gap-2"
-                onClick={isInCart ? handleGoToCart : handleAddToCart}
+                onClick={shouldShowGoToCart ? handleGoToCart : handleAddToCart}
               >
                 <ShoppingCart className="h-4 w-4 mr-2" />
-                {isInCart ? "Go to Cart" : "Add to Cart"}
+                {shouldShowGoToCart ? "Go to Cart" : "Add to Cart"}
               </Button>
             )}
           </CardContent>

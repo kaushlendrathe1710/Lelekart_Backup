@@ -47,6 +47,7 @@ export default function ProductViewPage() {
 
   // Try to use context first if available
   const cartContext = useContext(CartContext);
+  const { cartItems, isProductRecentlyAdded } = useCart();
 
   // Get user data to check if logged in
   const { data: user } = useQuery<User | null>({
@@ -194,6 +195,16 @@ export default function ProductViewPage() {
       // Silent error handling - the mutation will show a toast error
     }
   };
+
+  // Handle go to cart action
+  const handleGoToCart = () => {
+    setLocation("/cart");
+  };
+
+  // Check if product is already in cart or was recently added
+  const isInCart = cartItems.some((item) => item.product.id === product?.id);
+  const wasRecentlyAdded = product ? isProductRecentlyAdded(product.id) : false;
+  const shouldShowGoToCart = isInCart || wasRecentlyAdded;
 
   // Handle buy now action
   const handleBuyNow = async () => {
@@ -487,7 +498,9 @@ export default function ProductViewPage() {
                 <div className="mt-6 flex flex-col sm:flex-row gap-4">
                   <Button
                     className="bg-orange-500 hover:bg-orange-600 text-white px-8"
-                    onClick={handleAddToCart}
+                    onClick={
+                      shouldShowGoToCart ? handleGoToCart : handleAddToCart
+                    }
                     disabled={!isValidSelection}
                   >
                     <ShoppingCart className="h-4 w-4 mr-2" />
@@ -495,7 +508,9 @@ export default function ProductViewPage() {
                     product.variants &&
                     product.variants.length > 0
                       ? "SELECT OPTIONS"
-                      : "ADD TO CART"}
+                      : shouldShowGoToCart
+                        ? "GO TO CART"
+                        : "ADD TO CART"}
                   </Button>
                   <Button
                     className="bg-primary hover:bg-primary/90 text-white px-8"

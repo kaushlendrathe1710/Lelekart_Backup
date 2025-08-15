@@ -30,6 +30,7 @@ interface CartItem {
 
 interface CartContextType {
   cartItems: CartItem[];
+  recentlyAddedProducts: Set<number>; // Track recently added products
   addToCart: (
     product: Product,
     quantity?: number,
@@ -48,6 +49,7 @@ interface CartContextType {
   validateCart: () => Promise<boolean>;
   cleanupInvalidCartItems: () => Promise<boolean>;
   removeCartItems: (itemIds: (number | string)[]) => void;
+  isProductRecentlyAdded: (productId: number) => boolean; // Check if product was recently added
 }
 
 export const CartContext = createContext<CartContextType | undefined>(
@@ -57,6 +59,9 @@ export const CartContext = createContext<CartContextType | undefined>(
 export function CartProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [guestCart, setGuestCart] = useState<CartItem[]>([]);
+  const [recentlyAddedProducts, setRecentlyAddedProducts] = useState<
+    Set<number>
+  >(new Set());
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
@@ -448,6 +453,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
           quantity,
           variantId: variant?.id,
         });
+
+        // Mark product as recently added
+        setRecentlyAddedProducts((prev) => {
+          const newSet = new Set(prev);
+          newSet.add(product.id);
+          return newSet;
+        });
+
+        // Remove from recently added after 5 seconds
+        setTimeout(() => {
+          setRecentlyAddedProducts((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(product.id);
+            return newSet;
+          });
+        }, 5000);
+
         toast({
           title: "Added to cart",
           description: `${product.name} has been added to your cart`,
@@ -1007,8 +1029,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Helper function to check if a product was recently added
+  const isProductRecentlyAdded = (productId: number): boolean => {
+    return recentlyAddedProducts.has(productId);
+  };
+
   const contextValue: CartContextType = {
     cartItems,
+    recentlyAddedProducts,
     addToCart,
     removeFromCart,
     updateQuantity,
@@ -1018,7 +1046,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     buyNow,
     validateCart,
     cleanupInvalidCartItems,
-    removeCartItems, // add to context
+    removeCartItems,
+    isProductRecentlyAdded,
   };
 
   return (

@@ -4560,51 +4560,12 @@ export class DatabaseStorage implements IStorage {
           `Product with ID ${insertCart.productId} does not exist or is deleted`
         );
 
-        // Check if the user might be trying to add a variant ID as a product ID
-        const [variantAsProduct] = await db
-          .select({
-            id: productVariants.id,
-            productId: productVariants.productId,
-          })
-          .from(productVariants)
-          .where(eq(productVariants.id, insertCart.productId));
-
-        if (variantAsProduct) {
-          console.warn(
-            `ID ${insertCart.productId} matches a variant ID, not a product ID. Will use the parent product ID ${variantAsProduct.productId} instead.`
-          );
-
-          // Update product ID to use the variant's parent product
-          insertCart.productId = variantAsProduct.productId;
-          insertCart.variantId = variantAsProduct.id;
-
-          // Verify the corrected product ID exists and is not deleted
-          const [correctedProductExists] = await db
-            .select({ id: products.id })
-            .from(products)
-            .where(
-              and(
-                eq(products.id, insertCart.productId),
-                eq(products.deleted, false)
-              )
-            );
-
-          if (!correctedProductExists) {
-            throw new Error(
-              `Product with ID ${insertCart.productId} does not exist or is no longer available`
-            );
-          }
-
-          // If we got here, we've successfully fixed the product ID/variant ID confusion
-          console.log(
-            `Successfully corrected product/variant confusion. Using product ${insertCart.productId} with variant ${insertCart.variantId}`
-          );
-        } else {
-          // Original product doesn't exist and it's not a variant ID either
-          throw new Error(
-            `Product with ID ${insertCart.productId} does not exist or is no longer available`
-          );
-        }
+        // Note: Removed the problematic logic that was automatically converting variant IDs to product IDs.
+        // This was causing different products to be added for logged-in vs non-logged-in users.
+        // The client should send the correct productId and variantId, and we should trust those values.
+        throw new Error(
+          `Product with ID ${insertCart.productId} does not exist or is no longer available`
+        );
       }
 
       // Validate quantity is positive

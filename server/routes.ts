@@ -4939,33 +4939,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         JSON.stringify(requestBody, null, 2)
       );
 
-      // Pre-check: If a variant ID is present but was sent as a product ID (Buy Now flow)
-      // This handles the case when client sends the variant ID as the product ID
-      if (requestBody.productId && !requestBody.variantId) {
-        try {
-          // Check if the product ID might actually be a variant ID
-          const variant = await storage.getProductVariant(
-            requestBody.productId
-          );
-          if (variant) {
-            console.log(
-              `Detected variant ID ${requestBody.productId} sent as product ID. Correcting request.`
-            );
-            // This is a variant ID - adjust the request data
-            requestBody.variantId = requestBody.productId;
-            requestBody.productId = variant.productId;
-            console.log(
-              `Corrected request data:`,
-              JSON.stringify(requestBody, null, 2)
-            );
-          }
-        } catch (error) {
-          console.log(
-            `Variant pre-check failed, continuing with original values:`,
-            error
-          );
-        }
-      }
+      // Note: Removed the problematic pre-check logic that was causing different products
+      // to be added for logged-in vs non-logged-in users. The client should send
+      // the correct productId and variantId, and we should trust those values.
 
       // Validate the request body against the schema
       const cartData = insertCartSchema.parse({
