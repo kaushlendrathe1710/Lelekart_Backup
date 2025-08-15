@@ -31,9 +31,6 @@ export function usePerformanceMonitor(
   const startTimer = useCallback(
     (name: string) => {
       timersRef.current[name] = Date.now();
-      if (enableLogging) {
-        console.log(`🚀 Started timing: ${name}`);
-      }
     },
     [enableLogging]
   );
@@ -49,10 +46,6 @@ export function usePerformanceMonitor(
           metricsRef.current.apiCallTimes[name] = duration;
         } else {
           metricsRef.current.sectionLoadTimes[name] = duration;
-        }
-
-        if (enableLogging) {
-          console.log(`⏱️ ${name}: ${duration}ms`, additionalData);
         }
 
         // Calculate average load time
@@ -75,10 +68,6 @@ export function usePerformanceMonitor(
     const initialLoadTime = Date.now() - startTimeRef.current;
     metricsRef.current.initialLoadTime = initialLoadTime;
 
-    if (enableLogging) {
-      console.log(`🎯 Initial page load: ${initialLoadTime}ms`);
-    }
-
     onMetricsUpdate?.(metricsRef.current);
   }, [enableLogging, onMetricsUpdate]);
 
@@ -86,12 +75,6 @@ export function usePerformanceMonitor(
   const recordProductsLoaded = useCallback(
     (count: number) => {
       metricsRef.current.totalProductsLoaded += count;
-
-      if (enableLogging) {
-        console.log(
-          `📦 Products loaded: ${count} (Total: ${metricsRef.current.totalProductsLoaded})`
-        );
-      }
 
       onMetricsUpdate?.(metricsRef.current);
     },
