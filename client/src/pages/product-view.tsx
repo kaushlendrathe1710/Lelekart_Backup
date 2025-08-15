@@ -131,17 +131,6 @@ export default function ProductViewPage() {
   const handleAddToCart = async () => {
     if (!product) return;
 
-    // If user is not logged in, redirect to auth
-    if (!user) {
-      toast({
-        title: "Please log in",
-        description: "You need to be logged in to add items to cart",
-        variant: "default",
-      });
-      window.location.href = "/auth";
-      return;
-    }
-
     // Only buyers can add to cart
     const userRole = user?.role as string;
     if (userRole && userRole !== "buyer") {
