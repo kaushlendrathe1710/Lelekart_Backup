@@ -72,6 +72,29 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
+// Custom phone validation function
+const validatePhoneNumber = (value: string) => {
+  console.log("Validating phone:", value);
+
+  // If empty, don't validate yet
+  if (!value) {
+    return true;
+  }
+
+  // Check if it's exactly 10 digits
+  if (!/^\d{10}$/.test(value)) {
+    console.log("Phone validation failed: not 10 digits");
+    return false;
+  }
+
+  // Check if it starts with 6, 7, or 9
+  const firstDigit = value.charAt(0);
+  const isValidStart = ["6", "7", "9"].includes(firstDigit);
+  console.log("First digit:", firstDigit, "Valid start:", isValidStart);
+
+  return isValidStart;
+};
+
 // Create a form schema for address validation
 const addressFormSchema = z.object({
   addressName: z.string().min(1, "Address name is required"),
@@ -84,7 +107,48 @@ const addressFormSchema = z.object({
     .min(6, "Pincode must be exactly 6 digits")
     .max(6, "Pincode must be exactly 6 digits")
     .regex(/^\d{6}$/, "Pincode must contain exactly 6 digits"),
-  phone: z.string().min(10, "Phone number must be at least 10 characters"),
+  phone: z.string().refine(
+    (value) => {
+      // If empty, don't validate yet
+      if (!value) return true;
+
+      // If there's any input, first check if it starts with valid digit
+      if (value.length > 0) {
+        const firstDigit = value.charAt(0);
+        if (!["6", "7", "9"].includes(firstDigit)) {
+          return false;
+        }
+      }
+
+      // Then check if it's exactly 10 digits
+      if (!/^\d{10}$/.test(value)) {
+        return false;
+      }
+
+      return true;
+    },
+    (value) => {
+      // Custom error message based on the issue
+      if (!value) {
+        return { message: "Phone number is required" };
+      }
+
+      // Check starting digit first
+      if (value.length > 0) {
+        const firstDigit = value.charAt(0);
+        if (!["6", "7", "9"].includes(firstDigit)) {
+          return { message: "Phone number must start with 6, 7, or 9" };
+        }
+      }
+
+      // Then check length
+      if (!/^\d{10}$/.test(value)) {
+        return { message: "Phone number must be exactly 10 digits" };
+      }
+
+      return { message: "Invalid phone number" };
+    }
+  ),
   isDefault: z.boolean().default(false),
   addressType: z.enum(["billing", "shipping", "both"]).default("both"),
 });
@@ -115,6 +179,7 @@ const AddressForm: React.FC<AddressFormProps> = ({
   const form = useForm<AddressFormValues>({
     resolver: zodResolver(addressFormSchema),
     defaultValues,
+    mode: "onChange",
   });
 
   return (
@@ -324,11 +389,42 @@ const AddressForm: React.FC<AddressFormProps> = ({
                       const value = e.target.value.replace(/[^0-9]/g, "");
                       e.target.value = value;
                       field.onChange(value);
+                      console.log("Phone field changed to:", value);
+
+                      // Check if it starts with invalid digit
+                      if (value && value.length > 0) {
+                        const firstDigit = value.charAt(0);
+                        if (!["6", "7", "9"].includes(firstDigit)) {
+                          console.log("Invalid starting digit:", firstDigit);
+                        }
+                      }
+
+                      // Trigger validation immediately
+                      form.trigger("phone").then((isValid) => {
+                        console.log("Phone validation result:", isValid);
+                        const errors = form.formState.errors;
+                        console.log("Form errors:", errors);
+                        if (errors.phone) {
+                          console.log(
+                            "Phone error message:",
+                            errors.phone.message
+                          );
+                        }
+                      });
+                    }}
+                    onBlur={() => {
+                      // Trigger validation on blur
+                      console.log("Phone field blur, triggering validation");
+                      form.trigger("phone").then((isValid) => {
+                        console.log("Phone blur validation result:", isValid);
+                        const errors = form.formState.errors;
+                        console.log("Form errors on blur:", errors);
+                      });
                     }}
                   />
                 </FormControl>
                 <FormDescription className="text-xs">
-                  Enter a 10-digit number without spaces or special characters
+                  Enter a 10-digit number starting with 6, 7, or 9
                 </FormDescription>
                 <FormMessage />
               </FormItem>
