@@ -47,6 +47,7 @@ import {
   Coins,
   AlertCircle,
   ArrowUp,
+  Trash2,
 } from "lucide-react";
 import { UserAddress } from "@shared/schema";
 import { useWallet } from "@/context/wallet-context";
@@ -54,6 +55,17 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useNotifications } from "@/contexts/notification-context";
 import { fbq } from "../lib/metaPixel";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 // Define form schema with Zod - with more permissive validation
 const checkoutSchema = z.object({
@@ -164,6 +176,12 @@ export default function CheckoutPage() {
   const [selectedCartItemIds, setSelectedCartItemIds] = useState<
     (number | string)[]
   >([]);
+
+  // State for address management
+  const [isSavingAddress, setIsSavingAddress] = useState(false);
+  const [isDeletingAddress, setIsDeletingAddress] = useState<number | null>(
+    null
+  );
 
   // Check for buy now flow on mount
   useEffect(() => {
@@ -432,6 +450,128 @@ export default function CheckoutPage() {
       .catch((err) => {
         console.error("Error fetching addresses:", err);
       });
+  };
+
+  // Save current address form data as a new address
+  const handleSaveAddress = async () => {
+    // Trigger validation first
+    const isValid = await form.trigger();
+    if (!isValid) {
+      toast({
+        title: "Invalid Address",
+        description:
+          "Please fill in all required fields correctly before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSavingAddress(true);
+    try {
+      const formValues = form.getValues();
+
+      const addressData = {
+        addressName: `Address ${addresses.length + 1}`,
+        fullName: formValues.name,
+        address: formValues.address,
+        city: formValues.city,
+        state: formValues.state,
+        pincode: formValues.zipCode,
+        phone: formValues.phone,
+        isDefault: addresses.length === 0, // Set as default if this is the first address
+        addressType: "both" as const,
+      };
+
+      const response = await fetch("/api/addresses", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(addressData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save address");
+      }
+
+      const newAddress = await response.json();
+
+      toast({
+        title: "Address Saved",
+        description: "Your address has been saved successfully!",
+      });
+
+      // Refresh addresses list
+      fetchUserAddresses();
+
+      // Select the newly saved address
+      setSelectedAddressId(newAddress.id.toString());
+      setShowAddressForm(false);
+    } catch (error) {
+      console.error("Error saving address:", error);
+      toast({
+        title: "Save Failed",
+        description: "Failed to save address. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingAddress(false);
+    }
+  };
+
+  // Delete an address
+  const handleDeleteAddress = async (addressId: number) => {
+    if (addresses.length <= 1) {
+      toast({
+        title: "Cannot Delete",
+        description:
+          "You must have at least one address. Please add a new address first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsDeletingAddress(addressId);
+    try {
+      const response = await fetch(`/api/addresses/${addressId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to delete address");
+      }
+
+      toast({
+        title: "Address Deleted",
+        description: "Address has been deleted successfully.",
+      });
+
+      // Refresh addresses list
+      fetchUserAddresses();
+
+      // If the deleted address was selected, select the first remaining address
+      if (selectedAddressId === addressId.toString()) {
+        const remainingAddresses = addresses.filter(
+          (addr) => addr.id !== addressId
+        );
+        if (remainingAddresses.length > 0) {
+          setSelectedAddressId(remainingAddresses[0].id.toString());
+        }
+      }
+    } catch (error: any) {
+      console.error("Error deleting address:", error);
+      toast({
+        title: "Delete Failed",
+        description:
+          error.message || "Failed to delete address. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingAddress(null);
+    }
   };
 
   // No need for fetchCartItems function as we're now using cartItems from CartContext
@@ -1040,7 +1180,7 @@ export default function CheckoutPage() {
                 Shipping Information
               </h2>
 
-              {addresses.length > 0 && (
+              {addresses.length > 0 ? (
                 <div className="mb-6">
                   <h3 className="font-medium text-base mb-4">
                     Select Delivery Address
@@ -1151,9 +1291,56 @@ export default function CheckoutPage() {
                               </span>
                             )}
                           </div>
-                          {selectedAddressId === address.id.toString() && (
-                            <div className="w-4 h-4 rounded-full bg-primary"></div>
-                          )}
+                          <div className="flex items-center space-x-2">
+                            {selectedAddressId === address.id.toString() && (
+                              <div className="w-4 h-4 rounded-full bg-primary"></div>
+                            )}
+                            {addresses.length > 1 && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => e.stopPropagation()}
+                                    disabled={isDeletingAddress === address.id}
+                                    className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1 h-8 w-8"
+                                    title="Delete Address"
+                                  >
+                                    {isDeletingAddress === address.id ? (
+                                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-500"></div>
+                                    ) : (
+                                      <Trash2 className="h-3 w-3" />
+                                    )}
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                      Delete Address
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete this
+                                      address? This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>
+                                      Cancel
+                                    </AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() =>
+                                        handleDeleteAddress(address.id)
+                                      }
+                                      className="bg-red-500 hover:bg-red-600"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
+                          </div>
                         </div>
                         <div className="text-sm text-gray-700 mb-1">
                           <User className="inline-block h-3 w-3 mr-1" />
@@ -1193,6 +1380,16 @@ export default function CheckoutPage() {
                     <h3 className="font-medium text-base mb-4">
                       Or Enter New Address
                     </h3>
+                  </div>
+                </div>
+              ) : (
+                <div className="mb-6">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                    <p className="text-sm text-blue-800">
+                      <strong>No saved addresses found.</strong> Please enter
+                      your delivery address below. You can save it for future
+                      use by clicking the "Save Address" button.
+                    </p>
                   </div>
                 </div>
               )}
@@ -1479,6 +1676,34 @@ export default function CheckoutPage() {
                           </FormItem>
                         )}
                       />
+
+                      {/* Save Address Button */}
+                      <div className="flex justify-end pt-4">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleSaveAddress}
+                          disabled={isSavingAddress}
+                          className="flex items-center"
+                        >
+                          {isSavingAddress ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="h-4 w-4 mr-2" />
+                              Save Address
+                            </>
+                          )}
+                        </Button>
+                        {!form.formState.isValid && (
+                          <p className="text-xs text-gray-500 mt-2 text-center w-full">
+                            Fill in all required fields to save this address
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
 
