@@ -50,7 +50,7 @@ import {
 } from "lucide-react";
 import { ProductCard } from "@/components/ui/product-card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CartContext, CartProvider } from "@/context/cart-context";
+import { CartContext, CartProvider, useCart } from "@/context/cart-context";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { formatPrice } from "@/lib/utils";
