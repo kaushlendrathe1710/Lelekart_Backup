@@ -44,6 +44,7 @@ export enum NotificationType {
   NEW_MESSAGE = "NEW_MESSAGE",
   SYSTEM = "SYSTEM",
   WALLET = "WALLET",
+  STOCK_AVAILABLE = "STOCK_AVAILABLE",
 }
 
 // User schema with role
@@ -2419,3 +2420,50 @@ export type InsertChatSession = z.infer<typeof insertChatSessionSchema>;
 
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+
+// Stock Reminders schema
+export const stockReminders = pgTable("stock_reminders", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  productId: integer("product_id")
+    .notNull()
+    .references(() => products.id, { onDelete: "cascade" }),
+  variantId: integer("variant_id").references(() => productVariants.id, {
+    onDelete: "cascade",
+  }), // Optional, for variant-specific reminders
+  email: text("email").notNull(),
+  notified: boolean("notified").notNull().default(false), // Track if notification was sent
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  notifiedAt: timestamp("notified_at"), // When the notification was sent
+});
+
+export const insertStockReminderSchema = createInsertSchema(
+  stockReminders
+).pick({
+  userId: true,
+  productId: true,
+  variantId: true,
+  email: true,
+  notified: true,
+});
+
+export type StockReminder = typeof stockReminders.$inferSelect;
+export type InsertStockReminder = z.infer<typeof insertStockReminderSchema>;
+
+// Relation from users to stock reminders
+export const stockRemindersRelations = relations(stockReminders, ({ one }) => ({
+  user: one(users, {
+    fields: [stockReminders.userId],
+    references: [users.id],
+  }),
+  product: one(products, {
+    fields: [stockReminders.productId],
+    references: [products.id],
+  }),
+  variant: one(productVariants, {
+    fields: [stockReminders.variantId],
+    references: [productVariants.id],
+  }),
+}));

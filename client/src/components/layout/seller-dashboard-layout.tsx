@@ -50,6 +50,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ImpersonationBanner } from "@/components/ui/impersonation-banner";
 import { Logo } from "@/components/layout/logo";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 interface SellerDashboardLayoutProps {
   children: ReactNode;
@@ -166,14 +167,11 @@ export function SellerDashboardLayout({
                     <span className="sr-only">View Store</span>
                   </Link>
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
+                <NotificationBell
                   className="text-white hover:bg-primary-foreground/10"
-                >
-                  <Bell className="h-5 w-5" />
-                  <span className="sr-only">Notifications</span>
-                </Button>
+                  iconClassName="text-white"
+                  badgeClassName="bg-red-600 text-white"
+                />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
@@ -432,6 +430,18 @@ export function SellerDashboardLayout({
                 {/* Settings Section */}
                 <SidebarSeparator />
                 <SidebarMenu>
+                  <SidebarMenuItem>
+                    <Button
+                      variant="ghost"
+                      asChild
+                      className={`w-full justify-start ${isActive("/seller/notifications") ? "bg-primary/10 text-primary font-medium" : ""}`}
+                    >
+                      <Link href="/seller/notifications">
+                        <Bell className="mr-2 h-4 w-4" />
+                        <span>Notifications</span>
+                      </Link>
+                    </Button>
+                  </SidebarMenuItem>
                   <SidebarMenuItem>
                     <Button
                       variant="ghost"

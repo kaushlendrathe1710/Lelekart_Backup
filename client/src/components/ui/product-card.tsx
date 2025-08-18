@@ -2,11 +2,11 @@ import { Product, User } from "@shared/schema";
 import { Link, useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Bell } from "lucide-react";
 import { CartContext } from "@/context/cart-context"; // Import context directly
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useContext, memo } from "react";
+import { useContext, memo, useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { WishlistButton } from "./wishlist-button";
 import { ProductImage } from "./product-image";
@@ -66,6 +66,10 @@ export const ProductCard = memo(function ProductCard({
     staleTime: 60000,
   });
 
+  // Remind me state
+  const [isCreatingReminder, setIsCreatingReminder] = useState(false);
+  const [reminderSet, setReminderSet] = useState(false);
+
   // Format price in Indian Rupees
   const formatPrice = (price: number) => {
     return `₹${price.toLocaleString("en-IN")}`;
@@ -107,6 +111,82 @@ export const ProductCard = memo(function ProductCard({
     }
   };
 
+  const handleSetReminder = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!user) {
+      toast({
+        title: "Please log in",
+        description: "Log in to set a stock reminder",
+      });
+      setLocation("/auth");
+      return;
+    }
+
+    if (user.role === "admin" || user.role === "seller") {
+      toast({
+        title: "Action Not Allowed",
+        description:
+          "You can't perform this operation. You are a seller/admin.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!user.email) {
+      toast({
+        title: "Email required",
+        description: "Please update your profile with an email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsCreatingReminder(true);
+      const res = await fetch("/api/stock-reminders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: product.id,
+          variantId: null,
+          email: user.email,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setReminderSet(true);
+        toast({
+          title: "Reminder set",
+          description: "We'll notify you when it's back in stock.",
+        });
+      } else if (res.status === 409) {
+        setReminderSet(true);
+        toast({
+          title: "Already set",
+          description: "Reminder already exists.",
+        });
+      } else if (res.status === 401) {
+        setLocation("/auth");
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to set reminder",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to set reminder",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreatingReminder(false);
+    }
+  };
+
   // Determine if this should be a priority image (featured products or first few products)
   const shouldPrioritize = priority || featured;
 
@@ -121,6 +201,8 @@ export const ProductCard = memo(function ProductCard({
   const isInCart = cartItems.some((item) => item.product.id === product.id);
   const wasRecentlyAdded = isProductRecentlyAdded(product.id);
   const shouldShowGoToCart = isInCart || wasRecentlyAdded;
+
+  const isOutOfStock = (product?.stock ?? 0) <= 0;
 
   const handleGoToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -247,15 +329,31 @@ export const ProductCard = memo(function ProductCard({
                 {/* Removed description div for compact card */}
               </div>
             </div>
-            {showAddToCart && (
-              <Button
-                className="mt-2 w-full bg-gradient-to-r from-yellow-400 to-orange-400 text-black font-bold text-base px-4 py-2 rounded-full shadow-md hover:from-orange-400 hover:to-yellow-400 border-none flex items-center justify-center gap-2"
-                onClick={shouldShowGoToCart ? handleGoToCart : handleAddToCart}
-              >
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                {shouldShowGoToCart ? "Go to Cart" : "Add to Cart"}
-              </Button>
-            )}
+            {showAddToCart &&
+              (isOutOfStock ? (
+                <Button
+                  className="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm px-4 py-2 rounded-full shadow-md flex items-center justify-center gap-2"
+                  onClick={handleSetReminder}
+                  disabled={reminderSet || isCreatingReminder}
+                >
+                  <Bell className="h-4 w-4" />
+                  {isCreatingReminder
+                    ? "Setting..."
+                    : reminderSet
+                      ? "Reminder Set"
+                      : "Remind Me"}
+                </Button>
+              ) : (
+                <Button
+                  className="mt-2 w-full bg-gradient-to-r from-yellow-400 to-orange-400 text-black font-bold text-base px-4 py-2 rounded-full shadow-md hover:from-orange-400 hover:to-yellow-400 border-none flex items-center justify-center gap-2"
+                  onClick={
+                    shouldShowGoToCart ? handleGoToCart : handleAddToCart
+                  }
+                >
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  {shouldShowGoToCart ? "Go to Cart" : "Add to Cart"}
+                </Button>
+              ))}
           </CardContent>
         </Card>
       </Link>

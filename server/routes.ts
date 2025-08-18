@@ -14465,5 +14465,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Stock Reminder Routes
+  app.post("/api/stock-reminders", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { productId, variantId, email } = req.body;
+      const userId = req.user.id;
+
+      if (!productId || !email) {
+        return res.status(400).json({ error: "Product ID and email are required" });
+      }
+
+      // Check if product exists
+      const product = await storage.getProduct(productId);
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+
+      // Check if variant exists (if provided)
+      if (variantId) {
+        const variant = await storage.getProductVariant(variantId);
+        if (!variant) {
+          return res.status(404).json({ error: "Product variant not found" });
+        }
+      }
+
+      // Check if user already has a reminder for this product/variant
+      const existingReminder = await storage.checkExistingStockReminder(
+        userId,
+        productId,
+        variantId
+      );
+
+      if (existingReminder) {
+        return res.status(409).json({ 
+          error: "You already have a stock reminder for this product",
+          reminderId: existingReminder.id 
+        });
+      }
+
+      // Create the stock reminder
+      const reminder = await storage.createStockReminder({
+        userId,
+        productId,
+        variantId: variantId || null,
+        email,
+        notified: false,
+      });
+
+      res.status(201).json({
+        message: "Stock reminder created successfully",
+        reminder,
+      });
+    } catch (error) {
+      console.error("Error creating stock reminder:", error);
+      res.status(500).json({ error: "Failed to create stock reminder" });
+    }
+  });
+
+  app.get("/api/stock-reminders", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const userId = req.user.id;
+      const reminders = await storage.getUserStockReminders(userId);
+
+      // Get product details for each reminder
+      const remindersWithProducts = await Promise.all(
+        reminders.map(async (reminder) => {
+          const product = await storage.getProduct(reminder.productId);
+          let variant = null;
+          
+          if (reminder.variantId) {
+            variant = await storage.getProductVariant(reminder.variantId);
+          }
+
+          return {
+            ...reminder,
+            product,
+            variant,
+          };
+        })
+      );
+
+      res.status(200).json(remindersWithProducts);
+    } catch (error) {
+      console.error("Error getting user stock reminders:", error);
+      res.status(500).json({ error: "Failed to get stock reminders" });
+    }
+  });
+
+  app.delete("/api/stock-reminders/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { id } = req.params;
+      const userId = req.user.id;
+
+      const reminderId = parseInt(id);
+      if (isNaN(reminderId)) {
+        return res.status(400).json({ error: "Invalid reminder ID" });
+      }
+
+      // Get the reminder to check ownership
+      const reminder = await storage.getStockReminder(reminderId);
+      if (!reminder) {
+        return res.status(404).json({ error: "Stock reminder not found" });
+      }
+
+      if (reminder.userId !== userId) {
+        return res.status(403).json({ error: "Not authorized to delete this reminder" });
+      }
+
+      await storage.deleteStockReminder(reminderId);
+
+      res.status(200).json({ message: "Stock reminder deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting stock reminder:", error);
+      res.status(500).json({ error: "Failed to delete stock reminder" });
+    }
+  });
+
   return httpServer;
 }

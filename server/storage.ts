@@ -151,6 +151,10 @@ import {
   notifications,
   Notification,
   InsertNotification,
+  // Stock Reminders imports
+  stockReminders,
+  StockReminder,
+  InsertStockReminder,
   // Product Display Settings
   productDisplaySettings,
   ProductDisplaySettings,
@@ -279,6 +283,20 @@ export interface IStorage {
   markAllUserNotificationsAsRead(userId: number): Promise<void>;
   deleteNotification(id: number): Promise<void>;
   deleteAllUserNotifications(userId: number): Promise<void>;
+
+  // Stock Reminder Methods
+  createStockReminder(reminder: InsertStockReminder): Promise<StockReminder>;
+  getStockReminder(id: number): Promise<StockReminder | undefined>;
+  getUserStockReminders(userId: number): Promise<StockReminder[]>;
+  getStockRemindersByProduct(productId: number): Promise<StockReminder[]>;
+  getPendingStockReminders(): Promise<StockReminder[]>;
+  markStockReminderAsNotified(id: number): Promise<StockReminder>;
+  deleteStockReminder(id: number): Promise<void>;
+  checkExistingStockReminder(
+    userId: number,
+    productId: number,
+    variantId?: number
+  ): Promise<StockReminder | undefined>;
 
   // Rewards Methods
   getUserRewards(userId: number): Promise<SelectReward | undefined>;
@@ -1345,6 +1363,91 @@ export class DatabaseStorage implements IStorage {
 
   async deleteAllUserNotifications(userId: number): Promise<void> {
     await db.delete(notifications).where(eq(notifications.userId, userId));
+  }
+
+  // Stock Reminder Methods
+  async createStockReminder(
+    reminder: InsertStockReminder
+  ): Promise<StockReminder> {
+    const [createdReminder] = await db
+      .insert(stockReminders)
+      .values(reminder)
+      .returning();
+
+    return createdReminder;
+  }
+
+  async getStockReminder(id: number): Promise<StockReminder | undefined> {
+    const [reminder] = await db
+      .select()
+      .from(stockReminders)
+      .where(eq(stockReminders.id, id));
+
+    return reminder;
+  }
+
+  async getUserStockReminders(userId: number): Promise<StockReminder[]> {
+    return await db
+      .select()
+      .from(stockReminders)
+      .where(eq(stockReminders.userId, userId));
+  }
+
+  async getStockRemindersByProduct(
+    productId: number
+  ): Promise<StockReminder[]> {
+    return await db
+      .select()
+      .from(stockReminders)
+      .where(eq(stockReminders.productId, productId));
+  }
+
+  async getPendingStockReminders(): Promise<StockReminder[]> {
+    return await db
+      .select()
+      .from(stockReminders)
+      .where(eq(stockReminders.notified, false));
+  }
+
+  async markStockReminderAsNotified(id: number): Promise<StockReminder> {
+    const [updatedReminder] = await db
+      .update(stockReminders)
+      .set({
+        notified: true,
+        notifiedAt: new Date(),
+      })
+      .where(eq(stockReminders.id, id))
+      .returning();
+
+    return updatedReminder;
+  }
+
+  async deleteStockReminder(id: number): Promise<void> {
+    await db.delete(stockReminders).where(eq(stockReminders.id, id));
+  }
+
+  async checkExistingStockReminder(
+    userId: number,
+    productId: number,
+    variantId?: number
+  ): Promise<StockReminder | undefined> {
+    const whereConditions = [
+      eq(stockReminders.userId, userId),
+      eq(stockReminders.productId, productId),
+    ];
+
+    if (variantId) {
+      whereConditions.push(eq(stockReminders.variantId, variantId));
+    } else {
+      whereConditions.push(isNull(stockReminders.variantId));
+    }
+
+    const [existingReminder] = await db
+      .select()
+      .from(stockReminders)
+      .where(and(...whereConditions));
+
+    return existingReminder;
   }
 
   // Seller Document methods
@@ -4406,6 +4509,12 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`Updating stock for product ${productId} to ${newStock}`);
 
+      // Get current stock before update
+      const [currentProduct] = await db
+        .select({ stock: products.stock })
+        .from(products)
+        .where(eq(products.id, productId));
+
       await db
         .update(products)
         .set({ stock: newStock })
@@ -4414,6 +4523,20 @@ export class DatabaseStorage implements IStorage {
       console.log(
         `Successfully updated stock for product ${productId} to ${newStock}`
       );
+
+      // Process stock reminders if stock became available (was 0, now > 0)
+      if (currentProduct && currentProduct.stock === 0 && newStock > 0) {
+        try {
+          // Import the stock reminder processor
+          const { processStockRemindersForProduct } = await import(
+            "./handlers/stock-reminder-handlers"
+          );
+          await processStockRemindersForProduct(productId);
+        } catch (error) {
+          console.error("Error processing stock reminders for product:", error);
+          // Don't fail the stock update if reminder processing fails
+        }
+      }
     } catch (error) {
       console.error(`Error updating stock for product ${productId}:`, error);
       throw error;
@@ -4427,6 +4550,15 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`Updating stock for variant ${variantId} to ${newStock}`);
 
+      // Get current stock before update
+      const [currentVariant] = await db
+        .select({
+          stock: productVariants.stock,
+          productId: productVariants.productId,
+        })
+        .from(productVariants)
+        .where(eq(productVariants.id, variantId));
+
       await db
         .update(productVariants)
         .set({ stock: newStock })
@@ -4435,6 +4567,23 @@ export class DatabaseStorage implements IStorage {
       console.log(
         `Successfully updated stock for variant ${variantId} to ${newStock}`
       );
+
+      // Process stock reminders if stock became available (was 0, now > 0)
+      if (currentVariant && currentVariant.stock === 0 && newStock > 0) {
+        try {
+          // Import the stock reminder processor
+          const { processStockRemindersForProduct } = await import(
+            "./handlers/stock-reminder-handlers"
+          );
+          await processStockRemindersForProduct(
+            currentVariant.productId,
+            variantId
+          );
+        } catch (error) {
+          console.error("Error processing stock reminders for variant:", error);
+          // Don't fail the stock update if reminder processing fails
+        }
+      }
     } catch (error) {
       console.error(`Error updating stock for variant ${variantId}:`, error);
       throw error;
