@@ -511,7 +511,8 @@ export interface IStorage {
     hideRejected?: boolean,
     maxPrice?: number,
     minDiscount?: number,
-    maxDiscount?: number
+    maxDiscount?: number,
+    deletedFilter?: "exclude" | "include" | "only"
   ): Promise<number>;
   getProductsPaginated(
     category?: string,
@@ -525,7 +526,8 @@ export interface IStorage {
     hideRejected?: boolean,
     maxPrice?: number,
     minDiscount?: number,
-    maxDiscount?: number
+    maxDiscount?: number,
+    deletedFilter?: "exclude" | "include" | "only"
   ): Promise<Product[]>;
   getAllProducts(filters?: {
     sellerId?: number;
@@ -2831,15 +2833,23 @@ export class DatabaseStorage implements IStorage {
     hideRejected?: boolean,
     maxPrice?: number,
     minDiscount?: number,
-    maxDiscount?: number
+    maxDiscount?: number,
+    deletedFilter?: "exclude" | "include" | "only"
   ): Promise<number> {
     try {
       // Use SQL query for counting with filters
       let query = `
         SELECT COUNT(*) as count FROM products 
-        WHERE 1=1 AND deleted = false
+        WHERE 1=1
       `;
       const params: any[] = [];
+
+      // Deleted filter handling (default exclude)
+      if (deletedFilter === "only") {
+        query += ` AND deleted = true`;
+      } else if (deletedFilter === "exclude" || deletedFilter === undefined) {
+        query += ` AND deleted = false`;
+      }
 
       // Add category filter (case-insensitive)
       if (category) {
@@ -2947,7 +2957,8 @@ export class DatabaseStorage implements IStorage {
     hideRejected?: boolean,
     maxPrice?: number,
     minDiscount?: number,
-    maxDiscount?: number
+    maxDiscount?: number,
+    deletedFilter?: "exclude" | "include" | "only"
   ): Promise<Product[]> {
     try {
       // Use SQL query for pagination with filters and join with users table to get seller names
@@ -2962,9 +2973,16 @@ export class DatabaseStorage implements IStorage {
           u.username as seller_username, u.name as seller_name
         FROM products p
         LEFT JOIN users u ON p.seller_id = u.id
-        WHERE 1=1 AND p.deleted = false
+        WHERE 1=1
       `;
       const params: any[] = [];
+
+      // Deleted filter handling (default exclude)
+      if (deletedFilter === "only") {
+        query += ` AND p.deleted = true`;
+      } else if (deletedFilter === "exclude" || deletedFilter === undefined) {
+        query += ` AND p.deleted = false`;
+      }
 
       // Add category filter (case-insensitive)
       if (category) {
