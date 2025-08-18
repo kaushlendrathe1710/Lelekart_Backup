@@ -424,7 +424,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  getUsers(): Promise<User[]>;
+  getUsers(deletedFilter?: "exclude" | "include" | "only"): Promise<User[]>;
   updateUserRole(id: number, role: string): Promise<User>;
   updateUserProfile(id: number, data: Partial<User>): Promise<User>;
   getUserNotificationPreferences(id: number): Promise<any | null>;
@@ -1699,8 +1699,16 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async getUsers(): Promise<User[]> {
-    return db.select().from(users);
+  async getUsers(
+    deletedFilter?: "exclude" | "include" | "only"
+  ): Promise<User[]> {
+    let query = db.select().from(users);
+    if (deletedFilter === "only") {
+      query = query.where(eq(users.deleted, true));
+    } else if (deletedFilter === "exclude" || deletedFilter === undefined) {
+      query = query.where(eq(users.deleted, false));
+    }
+    return query;
   }
 
   async updateUserRole(id: number, role: string): Promise<User> {
@@ -2126,8 +2134,8 @@ export class DatabaseStorage implements IStorage {
         console.log("AI-generated content table might not exist");
       }
 
-      // Finally, delete the user
-      await pool.query(`DELETE FROM users WHERE id = $1`, [id]);
+      // Finally, soft delete the user by setting deleted = true
+      await pool.query(`UPDATE users SET deleted = TRUE WHERE id = $1`, [id]);
     } catch (error) {
       console.error(`Error deleting user with ID ${id}:`, error);
       throw new Error(`Failed to delete user: ${(error as Error).message}`);

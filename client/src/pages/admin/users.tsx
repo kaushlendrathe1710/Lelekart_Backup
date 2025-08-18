@@ -50,6 +50,10 @@ export default function AdminUsers() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
+  // Deleted filter: 'exclude' | 'include' | 'only'
+  const [deletedFilter, setDeletedFilter] = useState<
+    "exclude" | "include" | "only"
+  >("exclude");
   const [confirmRoleChange, setConfirmRoleChange] = useState<{
     open: boolean;
     userId: number | null;
@@ -93,7 +97,15 @@ export default function AdminUsers() {
     isError,
     refetch,
   } = useQuery<User[]>({
-    queryKey: ["/api/users"],
+    queryKey: ["/api/users", { deleted: deletedFilter }],
+    queryFn: async ({ queryKey }) => {
+      const [base, params] = queryKey as [
+        string,
+        { deleted: "exclude" | "include" | "only" },
+      ];
+      const res = await apiRequest("GET", `${base}?deleted=${params.deleted}`);
+      return res.json();
+    },
   });
 
   // Update user role mutation
@@ -482,6 +494,20 @@ export default function AdminUsers() {
                   )}
                   <span className="hidden sm:inline">Refresh</span>
                 </Button>
+                {/* Deleted filter dropdown */}
+                <Select
+                  value={deletedFilter}
+                  onValueChange={(v) => setDeletedFilter(v as any)}
+                >
+                  <SelectTrigger className="w-40 h-9 sm:h-10 text-xs sm:text-sm">
+                    <SelectValue placeholder="Deleted filter" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="exclude">Exclude Deleted</SelectItem>
+                    <SelectItem value="include">Include Deleted</SelectItem>
+                    <SelectItem value="only">Only Deleted</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Link href="/admin/create-user">
                   <Button size="sm" className="text-xs sm:text-sm h-9 sm:h-10">
                     <UserPlus className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
@@ -538,70 +564,82 @@ export default function AdminUsers() {
                           {user.name || "Not provided"}
                         </TableCell>
                         <TableCell>
-                          <Badge
-                            className={`text-xs ${
-                              user.role === "admin"
-                                ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
-                                : user.role === "seller"
-                                  ? "bg-purple-100 text-purple-800 hover:bg-purple-100"
-                                  : "bg-green-100 text-green-800 hover:bg-green-100"
-                            }`}
-                          >
-                            {user.role}
-                          </Badge>
+                          {user.deleted ? (
+                            <Badge className="text-xs bg-red-100 text-red-800 hover:bg-red-100">
+                              Deleted
+                            </Badge>
+                          ) : (
+                            <Badge
+                              className={`text-xs ${
+                                user.role === "admin"
+                                  ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
+                                  : user.role === "seller"
+                                    ? "bg-purple-100 text-purple-800 hover:bg-purple-100"
+                                    : "bg-green-100 text-green-800 hover:bg-green-100"
+                              }`}
+                            >
+                              {user.role}
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1 sm:gap-2">
-                            <Select
-                              value={user.role}
-                              onValueChange={(value) =>
-                                handleRoleChange(user.id, user.role, value)
-                              }
-                              disabled={updateRoleMutation.isPending}
-                            >
-                              <SelectTrigger className="w-20 sm:w-28 h-8 text-xs">
-                                <SelectValue placeholder="Change role" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="admin">Admin</SelectItem>
-                                <SelectItem value="seller">Seller</SelectItem>
-                                <SelectItem value="buyer">Buyer</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            {!user.deleted && (
+                              <Select
+                                value={user.role}
+                                onValueChange={(value) =>
+                                  handleRoleChange(user.id, user.role, value)
+                                }
+                                disabled={updateRoleMutation.isPending}
+                              >
+                                <SelectTrigger className="w-20 sm:w-28 h-8 text-xs">
+                                  <SelectValue placeholder="Change role" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="admin">Admin</SelectItem>
+                                  <SelectItem value="seller">Seller</SelectItem>
+                                  <SelectItem value="buyer">Buyer</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            )}
 
-                            {/* Impersonate User Button */}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8 px-2 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
-                              onClick={() =>
-                                handleImpersonateUser(
-                                  user.id,
-                                  user.username,
-                                  user.role
-                                )
-                              }
-                              disabled={impersonateUserMutation.isPending}
-                            >
-                              <UserCog className="h-4 w-4" />
-                            </Button>
+                            {/* Impersonate User Button (hidden if deleted) */}
+                            {!user.deleted && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 px-2 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                                onClick={() =>
+                                  handleImpersonateUser(
+                                    user.id,
+                                    user.username,
+                                    user.role
+                                  )
+                                }
+                                disabled={impersonateUserMutation.isPending}
+                              >
+                                <UserCog className="h-4 w-4" />
+                              </Button>
+                            )}
 
-                            {/* Delete User Button */}
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8 px-2 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                  onClick={(e) => {
-                                    e.preventDefault(); // Prevent triggering the dialog twice
-                                    handleDeleteUser(user.id, user.username);
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                            </AlertDialog>
+                            {/* Delete User Button (hidden if already deleted) */}
+                            {!user.deleted && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 px-2 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      handleDeleteUser(user.id, user.username);
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                              </AlertDialog>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
