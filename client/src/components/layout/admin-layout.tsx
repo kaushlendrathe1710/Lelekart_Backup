@@ -300,10 +300,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     <SidebarProvider defaultOpen={true}>
       <div className="flex min-h-screen flex-col bg-gray-50">
         {/* Top Navigation - Header (Fixed) */}
-        <header className="fixed top-0 left-0 right-0 z-50 bg-[#F8F5E4] text-white shadow-md h-16">
+        <header className="fixed top-0 left-0 right-0 z-50 bg-[#F8F5E4] h-16 border-b shadow-md">
           <div className="container mx-auto flex h-full items-center justify-between px-4">
             <div className="flex items-center space-x-4">
-              <SidebarTrigger className="text-white hover:bg-orange-400/90" />
+              <SidebarTrigger className="text-black hover:bg-[#EADDCB] hover:text-black" />
               {/* Logo - using Link instead of window.location for client-side routing to maintain session */}
               <Link href="/">
                 <Button
@@ -325,7 +325,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             {/* Right Side Elements */}
             <div className="flex items-center space-x-3">
               {/* Notifications */}
-              <div className="relative text-white">
+              <div className="relative text-black">
                 <Button
                   variant="ghost"
                   className="relative p-2"
@@ -346,7 +346,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="text-white hover:bg-[#2874f0]/90"
+                    className="text-black hover:bg-[#EADDCB]"
                   >
                     <span className="font-medium mr-1">Kaushlendra Admin</span>
                     <ChevronDown className="h-4 w-4" />
