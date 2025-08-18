@@ -115,7 +115,7 @@ const addressFormSchema = z.object({
       // If there's any input, first check if it starts with valid digit
       if (value.length > 0) {
         const firstDigit = value.charAt(0);
-        if (!["6", "7", "9"].includes(firstDigit)) {
+        if (!["6", "7", "8", "9"].includes(firstDigit)) {
           return false;
         }
       }
@@ -136,8 +136,8 @@ const addressFormSchema = z.object({
       // Check starting digit first
       if (value.length > 0) {
         const firstDigit = value.charAt(0);
-        if (!["6", "7", "9"].includes(firstDigit)) {
-          return { message: "Phone number must start with 6, 7, or 9" };
+        if (!["6", "7", "8", "9"].includes(firstDigit)) {
+          return { message: "Phone number must start with 6, 7, 8, or 9" };
         }
       }
 

@@ -42,10 +42,14 @@ const registerSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   role: z.enum(["buyer", "seller"]).default("buyer"),
   name: z.string().optional().nullable(),
-  phone: z.string()
-    .min(10, "Phone number must be 10 digits")
-    .max(10, "Phone number must be 10 digits")
-    .regex(/^[0-9]+$/, "Phone number must contain only digits")
+  phone: z
+    .string()
+    .min(10, "Phone number must be exactly 10 digits")
+    .max(10, "Phone number must be exactly 10 digits")
+    .regex(
+      /^[6-9]\d{9}$/,
+      "Phone number must start with 6, 7, 8, or 9 and be exactly 10 digits"
+    )
     .optional()
     .nullable(),
   address: z.string().optional().nullable(),
@@ -77,14 +81,16 @@ type RegisterResponse = {
 export default function AuthPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  
+
   // Auth flow state management
-  const [authState, setAuthState] = useState<'email' | 'otp' | 'register'>('email');
-  const [email, setEmail] = useState<string>('');
+  const [authState, setAuthState] = useState<"email" | "otp" | "register">(
+    "email"
+  );
+  const [email, setEmail] = useState<string>("");
 
   // Fetch current user
   const { data: user } = useQuery<User>({
-    queryKey: ['/api/user'],
+    queryKey: ["/api/user"],
     retry: false,
   });
 
@@ -106,6 +112,7 @@ export default function AuthPage() {
   // Email form
   const emailForm = useForm<EmailFormValues>({
     resolver: zodResolver(emailSchema),
+    mode: "onChange",
     defaultValues: {
       email: "",
     },
@@ -114,6 +121,7 @@ export default function AuthPage() {
   // OTP form
   const otpForm = useForm<OtpFormValues>({
     resolver: zodResolver(otpSchema),
+    mode: "onChange",
     defaultValues: {
       email: "",
       otp: "",
@@ -123,6 +131,7 @@ export default function AuthPage() {
   // Register form
   const registerForm = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
+    mode: "onChange",
     defaultValues: {
       username: "",
       email: "",
@@ -134,19 +143,21 @@ export default function AuthPage() {
   });
 
   // Request OTP mutation
-  const requestOtpMutation = useMutation<OtpResponse, Error, { email: string }>({
-    mutationFn: async (data) => {
-      const res = await apiRequest('POST', '/api/auth/request-otp', data);
-      return res.json();
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+  const requestOtpMutation = useMutation<OtpResponse, Error, { email: string }>(
+    {
+      mutationFn: async (data) => {
+        const res = await apiRequest("POST", "/api/auth/request-otp", data);
+        return res.json();
+      },
+      onError: (error) => {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      },
     }
-  });
+  );
 
   // Verify OTP mutation
   const verifyOtpMutation = useMutation<
@@ -155,19 +166,21 @@ export default function AuthPage() {
     { email: string; otp: string }
   >({
     mutationFn: async (data) => {
-      const res = await apiRequest('POST', '/api/auth/verify-otp', data);
-      
+      const res = await apiRequest("POST", "/api/auth/verify-otp", data);
+
       // Check for invalid OTP error (400 status)
       if (res.status === 400) {
         const errorData = await res.json();
-        throw new Error(errorData.error || "Invalid or expired OTP. Please request a new OTP.");
+        throw new Error(
+          errorData.error || "Invalid or expired OTP. Please request a new OTP."
+        );
       }
-      
+
       return res.json();
     },
     onSuccess: () => {
       // When OTP is verified, refresh the user query to update UI
-      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
     },
     onError: (error) => {
       toast({
@@ -175,7 +188,7 @@ export default function AuthPage() {
         description: error.message,
         variant: "destructive",
       });
-    }
+    },
   });
 
   // Register mutation
@@ -185,12 +198,12 @@ export default function AuthPage() {
     RegisterFormValues
   >({
     mutationFn: async (data) => {
-      const res = await apiRequest('POST', '/api/auth/register', data);
+      const res = await apiRequest("POST", "/api/auth/register", data);
       return res.json();
     },
     onSuccess: () => {
       // When registration is successful, refresh the user query
-      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
     },
     onError: (error) => {
       toast({
@@ -198,35 +211,39 @@ export default function AuthPage() {
         description: error.message,
         variant: "destructive",
       });
-    }
+    },
   });
 
   // Request OTP for login or registration
   async function onEmailSubmit(values: EmailFormValues) {
     setEmail(values.email);
-    
+
     try {
-      requestOtpMutation.mutate({ email: values.email }, {
-        onSuccess: (data) => {
-          // Regular flow - move to OTP verification step
-          setAuthState('otp');
-          otpForm.setValue('email', values.email);
-          
-          toast({
-            title: "OTP Sent",
-            description: "Check your email for the OTP code",
-            variant: "default",
-          });
-        },
-        onError: (error) => {
-          console.error("OTP request error:", error);
-          toast({
-            title: "Error",
-            description: error.message || "Failed to send OTP. Please try again.",
-            variant: "destructive",
-          });
+      requestOtpMutation.mutate(
+        { email: values.email },
+        {
+          onSuccess: (data) => {
+            // Regular flow - move to OTP verification step
+            setAuthState("otp");
+            otpForm.setValue("email", values.email);
+
+            toast({
+              title: "OTP Sent",
+              description: "Check your email for the OTP code",
+              variant: "default",
+            });
+          },
+          onError: (error) => {
+            console.error("OTP request error:", error);
+            toast({
+              title: "Error",
+              description:
+                error.message || "Failed to send OTP. Please try again.",
+              variant: "destructive",
+            });
+          },
         }
-      });
+      );
     } catch (error) {
       console.error("Unexpected error in OTP request:", error);
       toast({
@@ -239,77 +256,92 @@ export default function AuthPage() {
 
   // Verify OTP
   async function onOtpSubmit(values: OtpFormValues) {
-    console.log("OTP submission with:", values.email, "otp length:", values.otp.length);
+    console.log(
+      "OTP submission with:",
+      values.email,
+      "otp length:",
+      values.otp.length
+    );
     try {
-      verifyOtpMutation.mutate({ email: values.email, otp: values.otp }, {
-        onSuccess: (data) => {
-          console.log("OTP verification successful:", data);
-          
-          // Force update the user data in the cache
-          queryClient.invalidateQueries({ queryKey: ['/api/user'] });
-          
-          // If user exists, they're now logged in
-          if (!data.isNewUser) {
-            toast({
-              title: "Login Successful",
-              description: "Welcome back!",
-              variant: "default",
-            });
-            
-            // Instead of relying on the useEffect to do redirection,
-            // manually check the user role and redirect directly
-            if (data.user) {
-              console.log("OTP login successful, found user role:", data.user.role);
-              setTimeout(() => {
-                if (data.user?.role === "admin") {
-                  setLocation("/admin");
-                } else if (data.user?.role === "seller") {
-                  setLocation("/seller/dashboard");
-                } else if (data.user?.role === "buyer") {
-                  setLocation("/buyer/dashboard");
-                } else {
-                  setLocation("/");
-                }
-              }, 500); // Small delay to allow the toast to show
-            } else {
-              console.log("OTP login successful but no user object returned");
-              // Force a query refetch to get the user data
-              queryClient.fetchQuery<User>({ queryKey: ['/api/user'] }).then(userData => {
-                console.log("Fetched user data after OTP:", userData);
-                if (userData) {
-                  if (userData.role === "admin") {
+      verifyOtpMutation.mutate(
+        { email: values.email, otp: values.otp },
+        {
+          onSuccess: (data) => {
+            console.log("OTP verification successful:", data);
+
+            // Force update the user data in the cache
+            queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+
+            // If user exists, they're now logged in
+            if (!data.isNewUser) {
+              toast({
+                title: "Login Successful",
+                description: "Welcome back!",
+                variant: "default",
+              });
+
+              // Instead of relying on the useEffect to do redirection,
+              // manually check the user role and redirect directly
+              if (data.user) {
+                console.log(
+                  "OTP login successful, found user role:",
+                  data.user.role
+                );
+                setTimeout(() => {
+                  if (data.user?.role === "admin") {
                     setLocation("/admin");
-                  } else if (userData.role === "seller") {
+                  } else if (data.user?.role === "seller") {
                     setLocation("/seller/dashboard");
-                  } else if (userData.role === "buyer") {
+                  } else if (data.user?.role === "buyer") {
                     setLocation("/buyer/dashboard");
                   } else {
                     setLocation("/");
                   }
-                }
+                }, 500); // Small delay to allow the toast to show
+              } else {
+                console.log("OTP login successful but no user object returned");
+                // Force a query refetch to get the user data
+                queryClient
+                  .fetchQuery<User>({ queryKey: ["/api/user"] })
+                  .then((userData) => {
+                    console.log("Fetched user data after OTP:", userData);
+                    if (userData) {
+                      if (userData.role === "admin") {
+                        setLocation("/admin");
+                      } else if (userData.role === "seller") {
+                        setLocation("/seller/dashboard");
+                      } else if (userData.role === "buyer") {
+                        setLocation("/buyer/dashboard");
+                      } else {
+                        setLocation("/");
+                      }
+                    }
+                  });
+              }
+            } else {
+              // User needs to complete registration
+              setAuthState("register");
+              registerForm.setValue("email", values.email);
+
+              toast({
+                title: "OTP Verified",
+                description: "Please complete your registration",
+                variant: "default",
               });
             }
-          } else {
-            // User needs to complete registration
-            setAuthState('register');
-            registerForm.setValue('email', values.email);
-            
+          },
+          onError: (error) => {
+            console.error("OTP verification error:", error);
             toast({
-              title: "OTP Verified",
-              description: "Please complete your registration",
-              variant: "default",
+              title: "Verification Failed",
+              description:
+                error.message ||
+                "Failed to verify OTP. Please try again or request a new OTP.",
+              variant: "destructive",
             });
-          }
-        },
-        onError: (error) => {
-          console.error("OTP verification error:", error);
-          toast({
-            title: "Verification Failed",
-            description: error.message || "Failed to verify OTP. Please try again or request a new OTP.",
-            variant: "destructive",
-          });
+          },
         }
-      });
+      );
     } catch (error) {
       console.error("Unexpected error in OTP verification:", error);
       toast({
@@ -322,21 +354,26 @@ export default function AuthPage() {
 
   // Complete registration
   async function onRegisterSubmit(values: RegisterFormValues) {
-    console.log("Registration submission with:", values.email, "role:", values.role);
+    console.log(
+      "Registration submission with:",
+      values.email,
+      "role:",
+      values.role
+    );
     try {
       registerMutation.mutate(values, {
         onSuccess: (data) => {
           console.log("Registration successful:", data);
-          
+
           // Force update the user data in the cache
-          queryClient.invalidateQueries({ queryKey: ['/api/user'] });
-          
+          queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+
           toast({
             title: "Registration Successful",
             description: "Your account has been created",
             variant: "default",
           });
-          
+
           // Directly redirect based on role instead of waiting for useEffect
           setTimeout(() => {
             if (values.role === "admin") {
@@ -354,10 +391,12 @@ export default function AuthPage() {
           console.error("Registration error:", error);
           toast({
             title: "Registration Failed",
-            description: error.message || "Failed to complete registration. Please try again.",
+            description:
+              error.message ||
+              "Failed to complete registration. Please try again.",
             variant: "destructive",
           });
-        }
+        },
       });
     } catch (error) {
       console.error("Unexpected error in registration:", error);
@@ -377,7 +416,7 @@ export default function AuthPage() {
             {/* OTP Auth Forms */}
             <Card className="shadow-md bg-transparent">
               {/* Email Form - Step 1 */}
-              {authState === 'email' && (
+              {authState === "email" && (
                 <>
                   <CardHeader>
                     <CardTitle>Login or Register</CardTitle>
@@ -387,7 +426,10 @@ export default function AuthPage() {
                   </CardHeader>
                   <CardContent>
                     <Form {...emailForm}>
-                      <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="space-y-4">
+                      <form
+                        onSubmit={emailForm.handleSubmit(onEmailSubmit)}
+                        className="space-y-4"
+                      >
                         <FormField
                           control={emailForm.control}
                           name="email"
@@ -395,18 +437,18 @@ export default function AuthPage() {
                             <FormItem>
                               <FormLabel>Email</FormLabel>
                               <FormControl>
-                                <Input 
-                                  type="email" 
-                                  placeholder="Enter your email" 
-                                  {...field} 
+                                <Input
+                                  type="email"
+                                  placeholder="Enter your email"
+                                  {...field}
                                 />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-                        <Button 
-                          type="submit" 
+                        <Button
+                          type="submit"
                           className="w-full"
                           disabled={requestOtpMutation.isPending}
                         >
@@ -424,9 +466,9 @@ export default function AuthPage() {
                   </CardContent>
                 </>
               )}
-              
+
               {/* OTP Verification - Step 2 */}
-              {authState === 'otp' && (
+              {authState === "otp" && (
                 <>
                   <CardHeader>
                     <CardTitle>Verify Your Email</CardTitle>
@@ -436,7 +478,10 @@ export default function AuthPage() {
                   </CardHeader>
                   <CardContent>
                     <Form {...otpForm}>
-                      <form onSubmit={otpForm.handleSubmit(onOtpSubmit)} className="space-y-4">
+                      <form
+                        onSubmit={otpForm.handleSubmit(onOtpSubmit)}
+                        className="space-y-4"
+                      >
                         <FormField
                           control={otpForm.control}
                           name="otp"
@@ -444,18 +489,18 @@ export default function AuthPage() {
                             <FormItem>
                               <FormLabel>OTP Code</FormLabel>
                               <FormControl>
-                                <Input 
-                                  placeholder="Enter 6-digit OTP" 
+                                <Input
+                                  placeholder="Enter 6-digit OTP"
                                   maxLength={6}
-                                  {...field} 
+                                  {...field}
                                 />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-                        <Button 
-                          type="submit" 
+                        <Button
+                          type="submit"
                           className="w-full"
                           disabled={verifyOtpMutation.isPending}
                         >
@@ -472,10 +517,10 @@ export default function AuthPage() {
                     </Form>
                   </CardContent>
                   <CardFooter className="flex flex-col items-center">
-                    <Button 
-                      variant="link" 
+                    <Button
+                      variant="link"
                       className="mt-2"
-                      onClick={() => setAuthState('email')}
+                      onClick={() => setAuthState("email")}
                       disabled={verifyOtpMutation.isPending}
                     >
                       Back to email
@@ -483,19 +528,23 @@ export default function AuthPage() {
                   </CardFooter>
                 </>
               )}
-              
+
               {/* Registration - Step 3 (only for new users) */}
-              {authState === 'register' && (
+              {authState === "register" && (
                 <>
                   <CardHeader>
                     <CardTitle>Complete Registration</CardTitle>
                     <CardDescription>
-                      Please provide additional information to complete your account
+                      Please provide additional information to complete your
+                      account
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <Form {...registerForm}>
-                      <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
+                      <form
+                        onSubmit={registerForm.handleSubmit(onRegisterSubmit)}
+                        className="space-y-4"
+                      >
                         <FormField
                           control={registerForm.control}
                           name="username"
@@ -503,7 +552,10 @@ export default function AuthPage() {
                             <FormItem>
                               <FormLabel>Username</FormLabel>
                               <FormControl>
-                                <Input placeholder="Choose a username" {...field} />
+                                <Input
+                                  placeholder="Choose a username"
+                                  {...field}
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -516,10 +568,10 @@ export default function AuthPage() {
                             <FormItem>
                               <FormLabel>Full Name</FormLabel>
                               <FormControl>
-                                <Input 
-                                  placeholder="Enter your full name" 
-                                  {...field} 
-                                  value={field.value || ''}
+                                <Input
+                                  placeholder="Enter your full name"
+                                  {...field}
+                                  value={field.value || ""}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -534,8 +586,8 @@ export default function AuthPage() {
                               <FormItem>
                                 <FormLabel>Phone Number</FormLabel>
                                 <FormControl>
-                                  <Input 
-                                    placeholder="9876543210" 
+                                  <Input
+                                    placeholder="9876543210"
                                     maxLength={10}
                                     onKeyPress={(e) => {
                                       // Allow only digits
@@ -545,15 +597,19 @@ export default function AuthPage() {
                                     }}
                                     onChange={(e) => {
                                       // Only allow digits in the field
-                                      const value = e.target.value.replace(/[^0-9]/g, '');
+                                      const value = e.target.value.replace(
+                                        /[^0-9]/g,
+                                        ""
+                                      );
                                       e.target.value = value;
                                       field.onChange(value);
                                     }}
-                                    value={field.value || ''}
+                                    value={field.value || ""}
                                   />
                                 </FormControl>
                                 <p className="text-xs text-muted-foreground">
-                                  Enter a 10-digit number without spaces or special characters
+                                  Enter a 10-digit mobile number starting with
+                                  6, 7, 8, or 9
                                 </p>
                                 <FormMessage />
                               </FormItem>
@@ -586,18 +642,18 @@ export default function AuthPage() {
                             <FormItem>
                               <FormLabel>Address</FormLabel>
                               <FormControl>
-                                <Input 
-                                  placeholder="Enter your address" 
-                                  {...field} 
-                                  value={field.value || ''}
+                                <Input
+                                  placeholder="Enter your address"
+                                  {...field}
+                                  value={field.value || ""}
                                 />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-                        <Button 
-                          type="submit" 
+                        <Button
+                          type="submit"
                           className="w-full"
                           disabled={registerMutation.isPending}
                         >
@@ -614,10 +670,10 @@ export default function AuthPage() {
                     </Form>
                   </CardContent>
                   <CardFooter className="flex flex-col items-center">
-                    <Button 
-                      variant="link" 
+                    <Button
+                      variant="link"
                       className="mt-2"
-                      onClick={() => setAuthState('email')}
+                      onClick={() => setAuthState("email")}
                       disabled={registerMutation.isPending}
                     >
                       Start over
@@ -631,43 +687,85 @@ export default function AuthPage() {
             <div className="bg-primary rounded-lg shadow-md overflow-hidden hidden md:block">
               <div className="p-8 text-white">
                 <h2 className="text-3xl font-bold mb-4">Welcome to Lelekart</h2>
-                <p className="mb-6">India's largest online marketplace for all your shopping needs.</p>
-                
+                <p className="mb-6">
+                  India's largest online marketplace for all your shopping
+                  needs.
+                </p>
+
                 <div className="space-y-4">
                   <div className="flex items-start">
                     <div className="bg-[#2874f0]/20 p-2 rounded mr-3">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-6 w-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
                       </svg>
                     </div>
                     <div>
                       <h3 className="font-medium text-lg">Huge Selection</h3>
-                      <p className="text-white/80">Millions of products across categories.</p>
+                      <p className="text-white/80">
+                        Millions of products across categories.
+                      </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start">
                     <div className="bg-[#2874f0]/20 p-2 rounded mr-3">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-6 w-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
                       </svg>
                     </div>
                     <div>
                       <h3 className="font-medium text-lg">Best Prices</h3>
-                      <p className="text-white/80">Get the most competitive prices in India.</p>
+                      <p className="text-white/80">
+                        Get the most competitive prices in India.
+                      </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start">
                     <div className="bg-[#2874f0]/20 p-2 rounded mr-3">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-6 w-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
                         <path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"
+                        />
                       </svg>
                     </div>
                     <div>
                       <h3 className="font-medium text-lg">Fast Delivery</h3>
-                      <p className="text-white/80">Quick delivery to your doorstep.</p>
+                      <p className="text-white/80">
+                        Quick delivery to your doorstep.
+                      </p>
                     </div>
                   </div>
                 </div>

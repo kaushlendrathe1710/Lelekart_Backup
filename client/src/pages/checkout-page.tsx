@@ -1505,8 +1505,8 @@ export default function CheckoutPage() {
                               />
                             </FormControl>
                             <FormDescription className="text-xs">
-                              Enter a 10-digit number without spaces or special
-                              characters
+                              Enter a 10-digit mobile number starting with 6, 7,
+                              8, or 9
                             </FormDescription>
                             <FormMessage />
                           </FormItem>

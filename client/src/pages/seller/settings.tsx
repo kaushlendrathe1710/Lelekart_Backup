@@ -1352,8 +1352,8 @@ export default function SellerSettingsPage() {
                               </p>
                             )}
                             <p className="text-xs text-muted-foreground">
-                              Enter a 10-digit number without spaces or special
-                              characters
+                              Enter a 10-digit mobile number starting with 6, 7,
+                              8, or 9
                             </p>
                           </>
                         ) : (
@@ -1395,8 +1395,8 @@ export default function SellerSettingsPage() {
                               </p>
                             )}
                             <p className="text-xs text-muted-foreground">
-                              Enter a 10-digit number without spaces or special
-                              characters
+                              Enter a 10-digit mobile number starting with 6, 7,
+                              8, or 9
                             </p>
                           </>
                         ) : (
@@ -3311,8 +3311,8 @@ export default function SellerSettingsPage() {
                           }}
                         />
                         <p className="text-xs text-muted-foreground">
-                          Enter a 10-digit number without spaces or special
-                          characters
+                          Enter a 10-digit mobile number starting with 6, 7, 8,
+                          or 9
                         </p>
                       </div>
                     </div>
