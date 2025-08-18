@@ -1364,7 +1364,36 @@ export default function CheckoutPage() {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => setShowAddressForm(!showAddressForm)}
+                      onClick={() => {
+                        const nextShow = !showAddressForm;
+                        setShowAddressForm(nextShow);
+                        if (nextShow) {
+                          // Switching to "Enter New Address" → clear any previously selected address and reset the form
+                          setSelectedAddressId("");
+                          const emailValue =
+                            user?.email ?? user?.username ?? "";
+                          form.reset(
+                            {
+                              name: "",
+                              email: emailValue,
+                              phone: "",
+                              address: "",
+                              city: "",
+                              state: "",
+                              zipCode: "",
+                              paymentMethod:
+                                form.getValues("paymentMethod") || "cod",
+                              notes: form.getValues("notes") || "",
+                            },
+                            {
+                              keepDirty: false,
+                              keepTouched: false,
+                              keepIsValid: false,
+                            }
+                          );
+                          form.clearErrors();
+                        }
+                      }}
                     >
                       {showAddressForm ? "Hide Form" : "Enter New Address"}
                     </Button>
@@ -1476,8 +1505,8 @@ export default function CheckoutPage() {
                               />
                             </FormControl>
                             <FormDescription className="text-xs">
-                              Enter a 10-digit number without spaces or special
-                              characters
+                              Enter a 10-digit mobile number starting with 6, 7,
+                              8, or 9
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
@@ -1986,7 +2015,7 @@ export default function CheckoutPage() {
                                     // TODO: Store selected size in order items for better accuracy
                                     const sizes = sizeValue
                                       .split(",")
-                                      .map((s) => s.trim());
+                                      .map((s: string) => s.trim());
                                     return sizes[0];
                                   }
                                   return sizeValue;
