@@ -75,6 +75,7 @@ export const EMAIL_TEMPLATES = {
   WALLET_USED: "wallet-used",
   REDEEM_USED: "redeem-used",
   NEW_CHAT_REQUEST: "new-chat-request",
+  STOCK_AVAILABLE: "stock-available",
 };
 
 interface EmailOptions {
@@ -1560,6 +1561,36 @@ function getDefaultTemplate(templateType: string): string {
         </div>
       `;
 
+    case EMAIL_TEMPLATES.STOCK_AVAILABLE:
+      return `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e5e5; border-radius: 5px;">
+          <div style="text-align: center; margin-bottom: 20px; background-color: #4CAF50; padding: 20px; border-radius: 5px;">
+            <h1 style="color: white; margin: 0;">Product Back in Stock!</h1>
+          </div>
+          
+          <div style="background-color: #f8f8f8; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+            <h2 style="color: #333; margin-top: 0;">Great News!</h2>
+            <p style="font-size: 16px; color: #666;">Hi {{userName}},</p>
+            <p style="font-size: 16px; color: #666;">The product you were waiting for is now back in stock!</p>
+            <p style="font-size: 18px; font-weight: bold; color: #333;">{{productName}}</p>
+          </div>
+          
+          <div style="text-align: center; margin-top: 30px;">
+            <a href="{{productLink}}" style="display: inline-block; padding: 12px 24px; background-color: #FF6B35; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">View Product</a>
+            <p style="margin-top: 20px; font-size: 14px; color: #777;">Click the button above to view the product and make your purchase.</p>
+          </div>
+          
+          <div style="background-color: #e8f5e8; padding: 15px; border-radius: 5px; margin-top: 20px; border-left: 4px solid #4CAF50;">
+            <h3 style="color: #2e7d32; margin-top: 0;">Hurry!</h3>
+            <p style="color: #2e7d32; margin: 0;">Stock is limited and may sell out quickly. Don't miss out on this opportunity!</p>
+          </div>
+          
+          <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e5e5; text-align: center;">
+            <p style="font-size: 12px; color: #999;">Date: {{date}}</p>
+          </div>
+        </div>
+      `;
+
     default:
       // Default empty template
       return `
@@ -1619,6 +1650,35 @@ export async function sendRedeemUsedEmail(
     return await sendEmail(emailOptions);
   } catch (error) {
     console.error("Error sending redeem used email:", error);
+    return false;
+  }
+}
+
+/**
+ * Send a stock available notification email
+ */
+export async function sendStockAvailableEmail(
+  email: string,
+  userName: string,
+  productName: string,
+  productId: number
+): Promise<boolean> {
+  try {
+    const emailOptions = {
+      to: email,
+      subject: `Product Back in Stock: ${productName}`,
+      template: EMAIL_TEMPLATES.STOCK_AVAILABLE,
+      data: {
+        userName,
+        productName,
+        productId,
+        productLink: `${process.env.SITE_URL}/product/${productId}`,
+        date: new Date().toLocaleDateString(),
+      },
+    };
+    return await sendEmail(emailOptions);
+  } catch (error) {
+    console.error("Error sending stock available email:", error);
     return false;
   }
 }

@@ -47,6 +47,8 @@ import {
   Info,
   Check,
   ZoomIn,
+  Bell,
+  X,
 } from "lucide-react";
 import { ProductCard } from "@/components/ui/product-card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -684,6 +686,13 @@ export default function ProductDetailsPage() {
   const [pincodeResponse, setPincodeResponse] =
     useState<PincodeResponse | null>(null);
 
+  // State for stock reminder
+  const [showStockReminderModal, setShowStockReminderModal] =
+    useState<boolean>(false);
+  const [reminderEmail, setReminderEmail] = useState<string>("");
+  const [isCreatingReminder, setIsCreatingReminder] = useState<boolean>(false);
+  const [existingReminder, setExistingReminder] = useState<any>(null);
+
   // Track slider update trigger for debugging purposes
   const [sliderUpdateCount, setSliderUpdateCount] = useState(0);
 
@@ -956,6 +965,95 @@ export default function ProductDetailsPage() {
   // Handle go to cart action
   const handleGoToCart = () => {
     setLocation("/cart");
+  };
+
+  // Handle stock reminder creation
+  const handleCreateStockReminder = async () => {
+    if (!product) return;
+
+    // Require auth
+    if (!user) {
+      toast({
+        title: "Please log in",
+        description: "Log in to set a stock reminder",
+      });
+      setLocation("/auth");
+      return;
+    }
+
+    // Block sellers/admins
+    if (user.role === "admin" || user.role === "seller") {
+      toast({
+        title: "Action Not Allowed",
+        description:
+          "You can't perform this operation. You are a seller/admin.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Require email on profile
+    if (!user.email) {
+      toast({
+        title: "Email required",
+        description: "Please update your profile with an email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsCreatingReminder(true);
+    try {
+      const response = await fetch("/api/stock-reminders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          productId: product.id,
+          variantId: selectedVariant?.id || null,
+          email: user.email,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Stock Reminder Created",
+          description: "You'll be notified when this product is back in stock!",
+          variant: "default",
+        });
+        setExistingReminder(data.reminder ?? true);
+      } else {
+        if (response.status === 409) {
+          // User already has a reminder
+          setExistingReminder(data.reminderId ?? true);
+          toast({
+            title: "Reminder Already Exists",
+            description: "You already have a stock reminder for this product.",
+            variant: "default",
+          });
+        } else if (response.status === 401) {
+          setLocation("/auth");
+        } else {
+          toast({
+            title: "Error",
+            description: data.error || "Failed to create stock reminder",
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error creating stock reminder:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create stock reminder. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreatingReminder(false);
+    }
   };
 
   // Handle buy now action - simplified approach
@@ -1957,48 +2055,78 @@ export default function ProductDetailsPage() {
 
               {/* Buttons Section - Only shown in product info section, not duplicated at bottom */}
               <div className="flex flex-col sm:flex-row mt-6 gap-3">
-                <Button
-                  size="lg"
-                  className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white"
-                  onClick={
-                    shouldShowGoToCart ? handleGoToCart : handleAddToCart
-                  }
-                  disabled={
-                    (!isValidSelection &&
+                {(selectedVariant && selectedVariant.stock <= 0) ||
+                (!selectedVariant && (product?.stock ?? 0) <= 0) ? (
+                  // Show "Remind me when available" button when out of stock
+                  <Button
+                    size="lg"
+                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
+                    onClick={handleCreateStockReminder}
+                    disabled={!!existingReminder || isCreatingReminder}
+                    title="Get notified when back in stock"
+                  >
+                    <Bell className="h-5 w-5 mr-2" />
+                    {existingReminder
+                      ? "REMINDER SET"
+                      : isCreatingReminder
+                        ? "SETTING..."
+                        : "REMIND ME WHEN AVAILABLE"}
+                  </Button>
+                ) : (
+                  // Show normal add to cart button when in stock
+                  <Button
+                    size="lg"
+                    className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white"
+                    onClick={
+                      shouldShowGoToCart ? handleGoToCart : handleAddToCart
+                    }
+                    disabled={
+                      !isValidSelection &&
                       product?.variants &&
-                      product.variants.length > 0) ||
-                    (selectedVariant && selectedVariant.stock <= 0)
-                  }
-                  title={shouldShowGoToCart ? "Go to Cart" : "Add to Cart"}
-                >
-                  <ShoppingCart className="h-5 w-5 mr-2" />
-                  {!isValidSelection &&
-                  product?.variants &&
-                  product.variants.length > 0
-                    ? "SELECT OPTIONS"
-                    : selectedVariant && selectedVariant.stock <= 0
-                      ? "OUT OF STOCK"
+                      product.variants.length > 0
+                    }
+                    title={shouldShowGoToCart ? "Go to Cart" : "Add to Cart"}
+                  >
+                    <ShoppingCart className="h-5 w-5 mr-2" />
+                    {!isValidSelection &&
+                    product?.variants &&
+                    product.variants.length > 0
+                      ? "SELECT OPTIONS"
                       : shouldShowGoToCart
                         ? "GO TO CART"
                         : "ADD TO CART"}
-                </Button>
-                <Button
-                  size="lg"
-                  className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
-                  onClick={handleBuyNow}
-                  disabled={
-                    (!isValidSelection &&
+                  </Button>
+                )}
+
+                {(selectedVariant && selectedVariant.stock <= 0) ||
+                (!selectedVariant && (product?.stock ?? 0) <= 0) ? (
+                  // Show disabled buy now button when out of stock
+                  <Button
+                    size="lg"
+                    className="flex-1 bg-gray-400 text-white cursor-not-allowed"
+                    disabled={true}
+                    title="Product is out of stock"
+                  >
+                    <Zap className="h-5 w-5 mr-2" />
+                    OUT OF STOCK
+                  </Button>
+                ) : (
+                  // Show normal buy now button when in stock
+                  <Button
+                    size="lg"
+                    className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
+                    onClick={handleBuyNow}
+                    disabled={
+                      !isValidSelection &&
                       product?.variants &&
-                      product.variants.length > 0) ||
-                    (selectedVariant && selectedVariant.stock <= 0)
-                  }
-                  title="Buy Now"
-                >
-                  <Zap className="h-5 w-5 mr-2" />
-                  {selectedVariant && selectedVariant.stock <= 0
-                    ? "OUT OF STOCK"
-                    : "BUY NOW"}
-                </Button>
+                      product.variants.length > 0
+                    }
+                    title="Buy Now"
+                  >
+                    <Zap className="h-5 w-5 mr-2" />
+                    BUY NOW
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -2305,6 +2433,58 @@ export default function ProductDetailsPage() {
         variantInfo={modalVariantInfo}
         title={`${product?.name || "Product"} - Variant Images`}
       />
+
+      {/* Stock Reminder Modal */}
+      {false && showStockReminderModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Get Stock Notification</h3>
+              <button
+                onClick={() => setShowStockReminderModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              We'll notify you when this product is back in stock.
+            </p>
+            <div className="mb-4">
+              <label
+                htmlFor="reminder-email"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Email Address
+              </label>
+              <input
+                id="reminder-email"
+                type="email"
+                value={reminderEmail}
+                onChange={(e) => setReminderEmail(e.target.value)}
+                placeholder="Enter your email address"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div className="flex gap-3">
+              <Button
+                onClick={() => setShowStockReminderModal(false)}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreateStockReminder}
+                disabled={!reminderEmail || isCreatingReminder}
+                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
+              >
+                {isCreatingReminder ? "Creating..." : "Set Reminder"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </CartProvider>
   );
 }
