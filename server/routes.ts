@@ -7202,7 +7202,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(403).json({ error: "Not authorized" });
 
     try {
-      const users = await storage.getUsers();
+      const deletedParam =
+        (req.query.deleted as string | undefined) || "exclude";
+      const deletedFilter: "exclude" | "include" | "only" =
+        deletedParam === "only"
+          ? "only"
+          : deletedParam === "include"
+            ? "include"
+            : "exclude";
+
+      const users = await storage.getUsers(deletedFilter);
       res.json(users);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch users" });

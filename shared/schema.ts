@@ -60,6 +60,7 @@ export const users = pgTable("users", {
   profileImage: text("profile_image"), // Profile image URL
   approved: boolean("approved").notNull().default(false), // Sellers need admin approval
   rejected: boolean("rejected").notNull().default(false), // For rejected sellers
+  deleted: boolean("deleted").notNull().default(false), // Soft delete flag for users
   isCoAdmin: boolean("is_co_admin").default(false), // Designates a user as a co-admin
   permissions: jsonb("permissions").default("{}"), // JSON object containing permission settings
   notificationPreferences: jsonb("notification_preferences").default("{}"), // User notification preferences
