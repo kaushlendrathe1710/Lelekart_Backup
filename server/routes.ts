@@ -2952,6 +2952,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Deleted filter handling for admin (include/exclude/only)
+      // Allowed values: exclude (default), include, only
+      const deletedParam =
+        (req.query.deleted as string | undefined) || "exclude";
+      const deletedFilter: "exclude" | "include" | "only" =
+        deletedParam === "only"
+          ? "only"
+          : deletedParam === "include"
+            ? "include"
+            : "exclude";
+
+      // If non-admin tries to include deleted, force exclude
+      const isAdmin = req.isAuthenticated() && req.user.role === "admin";
+      const effectiveDeletedFilter = isAdmin ? deletedFilter : "exclude";
+
       // Pagination parameters
       const page = req.query.page ? parseInt(req.query.page as string) : 1;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 12;
@@ -3120,7 +3135,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         rejected,
         maxPrice,
         minDiscount,
-        maxDiscount
+        maxDiscount,
+        effectiveDeletedFilter
       );
       const totalPages = Math.ceil(totalCount / limit);
 
@@ -3149,7 +3165,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         rejected, // Pass rejected parameter (now can be true/false/undefined)
         maxPrice, // Pass maxPrice parameter for price filtering
         minDiscount, // Pass minDiscount parameter for discount filtering
-        maxDiscount // Pass maxDiscount parameter for discount filtering
+        maxDiscount, // Pass maxDiscount parameter for discount filtering
+        effectiveDeletedFilter
       );
       console.log(
         `Found ${products?.length || 0} products (page ${page}/${totalPages})`
@@ -14468,13 +14485,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Stock Reminder Routes
   app.post("/api/stock-reminders", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     try {
       const { productId, variantId, email } = req.body;
       const userId = req.user.id;
 
       if (!productId || !email) {
-        return res.status(400).json({ error: "Product ID and email are required" });
+        return res
+          .status(400)
+          .json({ error: "Product ID and email are required" });
       }
 
       // Check if product exists
@@ -14499,9 +14518,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       if (existingReminder) {
-        return res.status(409).json({ 
+        return res.status(409).json({
           error: "You already have a stock reminder for this product",
-          reminderId: existingReminder.id 
+          reminderId: existingReminder.id,
         });
       }
 
@@ -14526,7 +14545,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/stock-reminders", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     try {
       const userId = req.user.id;
       const reminders = await storage.getUserStockReminders(userId);
@@ -14536,7 +14555,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         reminders.map(async (reminder) => {
           const product = await storage.getProduct(reminder.productId);
           let variant = null;
-          
+
           if (reminder.variantId) {
             variant = await storage.getProductVariant(reminder.variantId);
           }
@@ -14558,7 +14577,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/stock-reminders/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     try {
       const { id } = req.params;
       const userId = req.user.id;
@@ -14575,7 +14594,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (reminder.userId !== userId) {
-        return res.status(403).json({ error: "Not authorized to delete this reminder" });
+        return res
+          .status(403)
+          .json({ error: "Not authorized to delete this reminder" });
       }
 
       await storage.deleteStockReminder(reminderId);

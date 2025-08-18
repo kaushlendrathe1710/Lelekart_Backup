@@ -178,6 +178,10 @@ function AdminProductsContent({
   const [viewProduct, setViewProduct] = useState<Product | null>(null);
   // Set approvalFilter to null (show all products) by default
   const [approvalFilter, setApprovalFilter] = useState<string | null>(null);
+  // Deleted filter: 'exclude' (default), 'include', 'only'
+  const [deletedFilter, setDeletedFilter] = useState<
+    "exclude" | "include" | "only"
+  >("exclude");
   const [selectedSellerId, setSelectedSellerId] = useState<string>("");
   const [sellerSearchTerm, setSellerSearchTerm] = useState("");
   const [assignSellerProduct, setAssignSellerProduct] =
@@ -231,6 +235,7 @@ function AdminProductsContent({
         approvalFilter,
         categoryFilter,
         search,
+        deleted: deletedFilter,
       },
     ],
     queryFn: async ({ queryKey }) => {
@@ -242,6 +247,7 @@ function AdminProductsContent({
           approvalFilter: string | null;
           categoryFilter: string | null;
           search: string;
+          deleted: "exclude" | "include" | "only";
         },
       ];
       let url = `/api/products?page=${params.page}&limit=${params.limit}`;
@@ -256,6 +262,10 @@ function AdminProductsContent({
       } else if (params.approvalFilter === "pending") {
         // SWAPPED: Now sends rejected logic
         url += `&approved=false&rejected=true`;
+      }
+      // Deleted filter
+      if (params.deleted) {
+        url += `&deleted=${params.deleted}`;
       }
       // All: do not send any status param
       const res = await apiRequest("GET", url);
@@ -984,12 +994,18 @@ function AdminProductsContent({
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const approvalParam = urlParams.get("approval");
+    const deletedParam = urlParams.get("deleted");
     if (approvalParam === "rejected") {
       setApprovalFilter("rejected");
     } else if (approvalParam === "approved") {
       setApprovalFilter("approved");
     } else if (approvalParam === "pending") {
       setApprovalFilter("pending");
+    }
+    if (deletedParam === "include" || deletedParam === "only") {
+      setDeletedFilter(deletedParam);
+    } else {
+      setDeletedFilter("exclude");
     }
   }, [location]); // depend on location so it updates on navigation
 
@@ -1019,6 +1035,19 @@ function AdminProductsContent({
     setSearchInput("");
     setCategoryFilter(null);
   }, [approvalFilter]);
+
+  // When deletedFilter changes, persist to URL and refetch
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    if (deletedFilter && deletedFilter !== "exclude") {
+      searchParams.set("deleted", deletedFilter);
+    } else {
+      searchParams.delete("deleted");
+    }
+    const newUrl = `${window.location.pathname}?${searchParams.toString()}`;
+    window.history.pushState({}, "", newUrl);
+    queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+  }, [deletedFilter]);
 
   return (
     <AdminLayout>
@@ -1475,6 +1504,27 @@ function AdminProductsContent({
                       </Button>
                     </Badge>
                   )}
+                  {deletedFilter !== "exclude" && (
+                    <Badge
+                      variant="secondary"
+                      className="flex items-center gap-1 text-xs"
+                    >
+                      <span>
+                        Deleted:{" "}
+                        {deletedFilter === "include"
+                          ? "Include"
+                          : "Only Deleted"}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-4 w-4 p-0 ml-1"
+                        onClick={() => setDeletedFilter("exclude")}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  )}
                   {searchField !== "all" && (
                     <Badge
                       variant="outline"
@@ -1679,6 +1729,43 @@ function AdminProductsContent({
 
                   <DropdownMenuSeparator />
 
+                  {/* Deleted filter */}
+                  <div className="p-2">
+                    <div className="mb-2 font-medium text-sm">Deleted</div>
+                    <div className="flex flex-col space-y-2">
+                      <Button
+                        variant={
+                          deletedFilter === "exclude" ? "secondary" : "outline"
+                        }
+                        size="sm"
+                        onClick={() => setDeletedFilter("exclude")}
+                        className="justify-start"
+                      >
+                        Exclude Deleted
+                      </Button>
+                      <Button
+                        variant={
+                          deletedFilter === "include" ? "secondary" : "outline"
+                        }
+                        size="sm"
+                        onClick={() => setDeletedFilter("include")}
+                        className="justify-start"
+                      >
+                        Include Deleted
+                      </Button>
+                      <Button
+                        variant={
+                          deletedFilter === "only" ? "secondary" : "outline"
+                        }
+                        size="sm"
+                        onClick={() => setDeletedFilter("only")}
+                        className="justify-start"
+                      >
+                        Only Deleted
+                      </Button>
+                    </div>
+                  </div>
+
                   <div className="p-2">
                     <div className="mb-2 font-medium text-sm">Categories</div>
                     <div className="flex flex-col space-y-2 max-h-48 overflow-y-auto">
@@ -1717,6 +1804,7 @@ function AdminProductsContent({
                       setApprovalFilter(null);
                       setCategoryFilter(null);
                       setSearch("");
+                      setDeletedFilter("exclude");
                     }}
                   >
                     Clear All Filters
@@ -1933,22 +2021,28 @@ function AdminProductsContent({
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge
-                            variant={
-                              product.approved
-                                ? "default"
+                          {product.deleted ? (
+                            <Badge variant="destructive" className="text-xs">
+                              Deleted
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant={
+                                product.approved
+                                  ? "default"
+                                  : product.rejected
+                                    ? "destructive"
+                                    : "secondary"
+                              }
+                              className="text-xs"
+                            >
+                              {product.approved
+                                ? "Approved"
                                 : product.rejected
-                                  ? "destructive"
-                                  : "secondary"
-                            }
-                            className="text-xs"
-                          >
-                            {product.approved
-                              ? "Approved"
-                              : product.rejected
-                                ? "Rejected"
-                                : "Pending"}
-                          </Badge>
+                                  ? "Rejected"
+                                  : "Pending"}
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell>
                           <DropdownMenu>
@@ -1966,40 +2060,46 @@ function AdminProductsContent({
                                 <Eye className="mr-2 h-4 w-4" />
                                 View Details
                               </DropdownMenuItem>
-                              <DropdownMenuItem asChild>
-                                <Link
-                                  href={`/admin/products/edit/${product.id}`}
-                                >
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  Edit Product
-                                </Link>
-                              </DropdownMenuItem>
-                              {!product.approved && (
+                              {!product.deleted && (
                                 <>
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      handleApproveProduct(product)
-                                    }
-                                  >
-                                    <Check className="mr-2 h-4 w-4" />
-                                    Approve
+                                  <DropdownMenuItem asChild>
+                                    <Link
+                                      href={`/admin/products/edit/${product.id}`}
+                                    >
+                                      <Edit className="mr-2 h-4 w-4" />
+                                      Edit Product
+                                    </Link>
                                   </DropdownMenuItem>
+                                  {!product.approved && (
+                                    <>
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          handleApproveProduct(product)
+                                        }
+                                      >
+                                        <Check className="mr-2 h-4 w-4" />
+                                        Approve
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          handleRejectProduct(product)
+                                        }
+                                      >
+                                        <X className="mr-2 h-4 w-4" />
+                                        Reject
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                  <DropdownMenuSeparator />
                                   <DropdownMenuItem
-                                    onClick={() => handleRejectProduct(product)}
+                                    onClick={() => handleDeleteClick(product)}
+                                    className="text-destructive"
                                   >
-                                    <X className="mr-2 h-4 w-4" />
-                                    Reject
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete
                                   </DropdownMenuItem>
                                 </>
                               )}
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => handleDeleteClick(product)}
-                                className="text-destructive"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
