@@ -50,6 +50,9 @@ export default function AdminUsers() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<
+    "all" | "admin" | "seller" | "buyer"
+  >("all");
   // Deleted filter: 'exclude' | 'include' | 'only'
   const [deletedFilter, setDeletedFilter] = useState<
     "exclude" | "include" | "only"
@@ -317,9 +320,10 @@ export default function AdminUsers() {
     }
   };
 
-  // Filter users by search term
+  // Filter users by role and search term
   const filteredUsers = users
     ?.filter((user) => {
+      if (roleFilter !== "all" && user.role !== roleFilter) return false;
       if (!search) return true;
       const searchLower = search.toLowerCase();
       return (
@@ -423,7 +427,16 @@ export default function AdminUsers() {
           <RoleStatsLoading />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 lg:gap-4">
-            <Card className="bg-white">
+            <Card
+              className={`bg-white cursor-pointer border ${
+                roleFilter === "admin"
+                  ? "border-blue-500 ring-2 ring-blue-200"
+                  : ""
+              }`}
+              onClick={() =>
+                setRoleFilter((prev) => (prev === "admin" ? "all" : "admin"))
+              }
+            >
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs sm:text-sm font-medium">
                   Admins
@@ -435,7 +448,16 @@ export default function AdminUsers() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-white">
+            <Card
+              className={`bg-white cursor-pointer border ${
+                roleFilter === "seller"
+                  ? "border-blue-500 ring-2 ring-blue-200"
+                  : ""
+              }`}
+              onClick={() =>
+                setRoleFilter((prev) => (prev === "seller" ? "all" : "seller"))
+              }
+            >
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs sm:text-sm font-medium">
                   Sellers
@@ -447,7 +469,16 @@ export default function AdminUsers() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-white">
+            <Card
+              className={`bg-white cursor-pointer border ${
+                roleFilter === "buyer"
+                  ? "border-blue-500 ring-2 ring-blue-200"
+                  : ""
+              }`}
+              onClick={() =>
+                setRoleFilter((prev) => (prev === "buyer" ? "all" : "buyer"))
+              }
+            >
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs sm:text-sm font-medium">
                   Buyers
