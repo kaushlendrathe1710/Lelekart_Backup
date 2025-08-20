@@ -43,7 +43,6 @@ import {
   MapPin,
   Phone,
   User,
-  Plus,
   Coins,
   AlertCircle,
   ArrowUp,
@@ -1707,13 +1706,13 @@ export default function CheckoutPage() {
                       />
 
                       {/* Save Address Button */}
-                      <div className="flex justify-end pt-4">
+                      <div className="flex justify-end w-full pt-4">
                         <Button
                           type="button"
-                          variant="outline"
+                          variant="default"
                           onClick={handleSaveAddress}
                           disabled={isSavingAddress}
-                          className="flex items-center"
+                          className="inline-flex items-center ml-auto"
                         >
                           {isSavingAddress ? (
                             <>
@@ -1721,18 +1720,15 @@ export default function CheckoutPage() {
                               Saving...
                             </>
                           ) : (
-                            <>
-                              <Plus className="h-4 w-4 mr-2" />
-                              Save Address
-                            </>
+                            <>Save Address</>
                           )}
                         </Button>
-                        {!form.formState.isValid && (
-                          <p className="text-xs text-gray-500 mt-2 text-center w-full">
-                            Fill in all required fields to save this address
-                          </p>
-                        )}
                       </div>
+                      {!form.formState.isValid && (
+                        <p className="text-xs text-gray-500 mt-2 text-right w-full">
+                          Fill in all required fields to save this address
+                        </p>
+                      )}
                     </div>
                   </div>
 

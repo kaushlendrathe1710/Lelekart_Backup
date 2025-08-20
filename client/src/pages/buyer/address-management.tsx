@@ -87,9 +87,9 @@ const validatePhoneNumber = (value: string) => {
     return false;
   }
 
-  // Check if it starts with 6, 7, or 9
+  // Check if it starts with 6, 7, 8, or 9
   const firstDigit = value.charAt(0);
-  const isValidStart = ["6", "7", "9"].includes(firstDigit);
+  const isValidStart = ["6", "7", "8", "9"].includes(firstDigit);
   console.log("First digit:", firstDigit, "Valid start:", isValidStart);
 
   return isValidStart;
@@ -394,7 +394,7 @@ const AddressForm: React.FC<AddressFormProps> = ({
                       // Check if it starts with invalid digit
                       if (value && value.length > 0) {
                         const firstDigit = value.charAt(0);
-                        if (!["6", "7", "9"].includes(firstDigit)) {
+                        if (!["6", "7", "8", "9"].includes(firstDigit)) {
                           console.log("Invalid starting digit:", firstDigit);
                         }
                       }
@@ -424,7 +424,7 @@ const AddressForm: React.FC<AddressFormProps> = ({
                   />
                 </FormControl>
                 <FormDescription className="text-xs">
-                  Enter a 10-digit number starting with 6, 7, or 9
+                  Enter a 10-digit number starting with 6, 7, 8, or 9
                 </FormDescription>
                 <FormMessage />
               </FormItem>
