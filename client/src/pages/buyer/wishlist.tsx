@@ -34,6 +34,10 @@ export default function BuyerWishlistPage() {
   const [loadingProducts, setLoadingProducts] = useState<Set<number>>(
     new Set()
   );
+  // Track removing state for individual wishlist items
+  const [removingProducts, setRemovingProducts] = useState<Set<number>>(
+    new Set()
+  );
 
   // Fetch wishlist data
   const { data: wishlistItems = [], isLoading: isLoadingWishlist } = useQuery<
@@ -61,6 +65,9 @@ export default function BuyerWishlistPage() {
         throw new Error("Failed to remove item from wishlist");
       }
     },
+    onMutate: async (productId: number) => {
+      setRemovingProducts((prev) => new Set(prev).add(productId));
+    },
     onSuccess: () => {
       // Invalidate wishlist query to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/wishlist"] });
@@ -75,6 +82,15 @@ export default function BuyerWishlistPage() {
         description: error.message,
         variant: "destructive",
       });
+    },
+    onSettled: (_data, _error, productId) => {
+      if (typeof productId === "number") {
+        setRemovingProducts((prev) => {
+          const next = new Set(prev);
+          next.delete(productId);
+          return next;
+        });
+      }
     },
   });
 
@@ -160,6 +176,7 @@ export default function BuyerWishlistPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {wishlistItems.map((item) => {
                 const isProductLoading = loadingProducts.has(item.product.id);
+                const isRemoving = removingProducts.has(item.product.id);
                 return (
                   <Card
                     key={item.product.id}
@@ -234,9 +251,9 @@ export default function BuyerWishlistPage() {
                           onClick={() =>
                             removeFromWishlistMutation.mutate(item.product.id)
                           }
-                          disabled={removeFromWishlistMutation.isPending}
+                          disabled={isRemoving}
                         >
-                          {removeFromWishlistMutation.isPending ? (
+                          {isRemoving ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
                             <Trash2 className="h-4 w-4" />
