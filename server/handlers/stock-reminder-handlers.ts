@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { storage } from "../storage";
-import { sendNotificationToUser } from "../utils/ai-assistant";
-import { emailService } from "../services/email-service";
+import { sendNotificationToUser } from "../websocket";
+import * as emailService from "../services/email-service";
 
 /**
  * Create a stock reminder for a product
