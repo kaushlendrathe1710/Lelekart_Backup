@@ -831,12 +831,16 @@ export default function CheckoutPage() {
       )
     : 0;
 
-  // The final total after wallet, redeem, and coupon discount
+  // COD handling fee (₹7) applies only when Cash on Delivery is selected
+  const codHandlingFee = form.watch("paymentMethod") === "cod" ? 7 : 0;
+
+  // The final total after discounts and any applicable COD handling fee
   const finalOrderTotal =
     subtotal +
     deliveryCharges -
     (useWalletCoins && walletDiscount > 0 ? walletDiscount : 0) -
-    (appliedCoupon ? couponDiscountAmount : 0);
+    (appliedCoupon ? couponDiscountAmount : 0) +
+    codHandlingFee;
 
   // Update wallet discount state only when checkbox is checked and wallet is eligible
   useEffect(() => {
@@ -2125,6 +2129,13 @@ export default function CheckoutPage() {
                   </span>
                 </div>
               )}
+              {/* Show COD handling fee when COD is selected */}
+              {form.watch("paymentMethod") === "cod" && (
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-600">Cash Handling Fee (COD)</span>
+                  <span className="font-medium">+₹7.00</span>
+                </div>
+              )}
               {/* Show original total with strikethrough and discounted total in green if any discount is applied */}
               {walletDiscount > 0 || couponDiscountAmount > 0 ? (
                 <div className="flex flex-col mb-6">
@@ -2159,6 +2170,11 @@ export default function CheckoutPage() {
                     ? "Pay Online with Razorpay"
                     : "Cash on Delivery (COD)"}
                 </p>
+                {form.watch("paymentMethod") === "cod" && (
+                  <p className="text-xs text-orange-700 mt-2">
+                    An additional ₹7 will be added for cash handling.
+                  </p>
+                )}
               </div>
             </div>
           </div>

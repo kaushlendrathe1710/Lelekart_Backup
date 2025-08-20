@@ -461,6 +461,19 @@ export default function OrderConfirmationPage() {
                       FREE
                     </td>
                   </tr>
+                  {orderDetails.paymentMethod === "cod" && (
+                    <tr>
+                      <td
+                        colSpan={2}
+                        className="px-6 py-4 text-right font-medium"
+                      >
+                        Cash Handling Fee (COD)
+                      </td>
+                      <td className="px-6 py-4 text-right font-medium">
+                        ₹7.00
+                      </td>
+                    </tr>
+                  )}
                   {orderDetails.walletDiscount > 0 && (
                     <tr>
                       <td
@@ -525,6 +538,14 @@ export default function OrderConfirmationPage() {
                     ₹{(orderDetails.total || 0).toFixed(2)}
                   </span>
                 </div>
+                {orderDetails.paymentMethod === "cod" && (
+                  <div className="flex justify-between mb-2">
+                    <span className="text-gray-600">
+                      Cash Handling Fee (COD)
+                    </span>
+                    <span className="font-medium">₹7.00</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-gray-600">Payment Method</span>
                   <span className="font-medium capitalize">

@@ -591,6 +591,7 @@ export default function OrderDetailsPage() {
                     sum + (item.product?.deliveryCharges ?? 0) * item.quantity,
                   0
                 );
+                const codHandlingFee = order.paymentMethod === "cod" ? 7 : 0;
                 return (
                   <>
                     <div className="flex justify-between text-sm mt-2">
@@ -609,6 +610,12 @@ export default function OrderDetailsPage() {
                       <span>Delivery Charges:</span>
                       <span>₹{deliveryCharges.toFixed(2)}</span>
                     </div>
+                    {order.paymentMethod === "cod" && (
+                      <div className="flex justify-between text-sm">
+                        <span>Cash Handling Fee (COD):</span>
+                        <span>₹{codHandlingFee.toFixed(2)}</span>
+                      </div>
+                    )}
                     {(order.walletDiscount ?? 0) > 0 && (
                       <div className="flex justify-between text-green-600 text-sm">
                         <span>Wallet Points Used:</span>
@@ -634,7 +641,8 @@ export default function OrderDetailsPage() {
                           (order.walletDiscount || 0) -
                           (order.rewardDiscount || 0) -
                           (order.discount || 0) -
-                          (order.couponDiscount || 0)
+                          (order.couponDiscount || 0) +
+                          codHandlingFee
                         ).toFixed(2)}
                       </span>
                     </div>
@@ -929,6 +937,7 @@ export default function OrderDetailsPage() {
                     };
                     return total + gstDetails.gstAmount * item.quantity;
                   }, 0);
+                  const codHandlingFee = order.paymentMethod === "cod" ? 7 : 0;
                   return (
                     <>
                       <div className="flex justify-between">
@@ -943,6 +952,12 @@ export default function OrderDetailsPage() {
                         <span>Shipping:</span>
                         <span>₹{(order.shippingCharges || 0).toFixed(2)}</span>
                       </div>
+                      {order.paymentMethod === "cod" && (
+                        <div className="flex justify-between">
+                          <span>Cash Handling Fee (COD):</span>
+                          <span>₹{codHandlingFee.toFixed(2)}</span>
+                        </div>
+                      )}
                       {(order.walletDiscount ?? 0) > 0 && (
                         <div className="flex justify-between text-green-600">
                           <span>Wallet Points Used:</span>
@@ -957,14 +972,7 @@ export default function OrderDetailsPage() {
                       )}
                       <div className="flex justify-between font-bold">
                         <span>Grand Total:</span>
-                        <span>
-                          ₹
-                          {(
-                            order.total -
-                            (order.walletDiscount || 0) -
-                            (order.couponDiscount || 0)
-                          ).toFixed(2)}
-                        </span>
+                        <span>₹{order.total.toFixed(2)}</span>
                       </div>
                       {(order.couponDiscount ?? 0) > 0 && (
                         <div className="flex justify-between text-green-600">
@@ -1084,6 +1092,8 @@ export default function OrderDetailsPage() {
                       };
                       return total + gstDetails.gstAmount * item.quantity;
                     }, 0);
+                    const codHandlingFee =
+                      order.paymentMethod === "cod" ? 7 : 0;
                     return (
                       <>
                         <tr>
@@ -1128,6 +1138,22 @@ export default function OrderDetailsPage() {
                             ₹{(order.shippingCharges || 0).toFixed(2)}
                           </td>
                         </tr>
+                        {order.paymentMethod === "cod" && (
+                          <tr>
+                            <td
+                              colSpan={4}
+                              className="px-2 sm:px-6 py-3 text-right text-sm font-medium"
+                            >
+                              Cash Handling Fee (COD):
+                            </td>
+                            <td
+                              colSpan={2}
+                              className="px-2 sm:px-6 py-3 text-left text-sm"
+                            >
+                              ₹{codHandlingFee.toFixed(2)}
+                            </td>
+                          </tr>
+                        )}
                         {(order.walletDiscount ?? 0) > 0 && (
                           <tr>
                             <td
@@ -1185,12 +1211,7 @@ export default function OrderDetailsPage() {
                             colSpan={2}
                             className="px-2 sm:px-6 py-3 text-left text-sm font-bold"
                           >
-                            ₹
-                            {(
-                              order.total -
-                              (order.walletDiscount || 0) -
-                              (order.couponDiscount || 0)
-                            ).toFixed(2)}
+                            ₹{order.total.toFixed(2)}
                           </td>
                         </tr>
                       </>
