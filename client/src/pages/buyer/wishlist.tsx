@@ -1,12 +1,14 @@
-import { useEffect, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Trash2, Loader2 } from "lucide-react";
-import { Link } from "wouter";
+import { ShoppingCart, Trash2, Loader2, Bell } from "lucide-react";
+import { Link, useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { User } from "@shared/schema";
+import { useWishlist } from "@/context/wishlist-context";
 
 // Define the product type for wishlist items
 interface WishlistProduct {
@@ -14,13 +16,13 @@ interface WishlistProduct {
   product: {
     id: number;
     name: string;
-    description: string;
+    description?: string;
     price: number;
     salePrice?: number;
     imageUrl: string;
     images?: string; // JSON string of images
-    category: string;
-    stock: number;
+    category?: string;
+    stock?: number;
   };
   userId: number;
   dateAdded: string;
@@ -29,6 +31,7 @@ interface WishlistProduct {
 export default function BuyerWishlistPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
 
   // Track loading states for individual products
   const [loadingProducts, setLoadingProducts] = useState<Set<number>>(
@@ -39,60 +42,23 @@ export default function BuyerWishlistPage() {
     new Set()
   );
 
-  // Fetch wishlist data
-  const { data: wishlistItems = [], isLoading: isLoadingWishlist } = useQuery<
-    WishlistProduct[]
-  >({
-    queryKey: ["/api/wishlist"],
-    queryFn: async () => {
-      try {
-        const res = await apiRequest("GET", "/api/wishlist");
-        return res.json();
-      } catch (error) {
-        console.error("Error fetching wishlist:", error);
-        return [];
-      }
-    },
+  // Track reminder creation state per product
+  const [creatingReminderIds, setCreatingReminderIds] = useState<Set<number>>(
+    new Set()
+  );
+  const [reminderSetIds, setReminderSetIds] = useState<Set<number>>(new Set());
+
+  // Subscribe to global wishlist state for immediate updates
+  const { wishlistItems, isLoading, removeFromWishlist } = useWishlist();
+
+  // Fetch current user for permission/email checks
+  const { data: user } = useQuery<User | null>({
+    queryKey: ["/api/user"],
     retry: false,
-    refetchOnWindowFocus: false,
+    staleTime: 60000,
   });
 
-  // Remove item from wishlist mutation
-  const removeFromWishlistMutation = useMutation({
-    mutationFn: async (productId: number) => {
-      const res = await apiRequest("DELETE", `/api/wishlist/${productId}`);
-      if (!res.ok) {
-        throw new Error("Failed to remove item from wishlist");
-      }
-    },
-    onMutate: async (productId: number) => {
-      setRemovingProducts((prev) => new Set(prev).add(productId));
-    },
-    onSuccess: () => {
-      // Invalidate wishlist query to refresh data
-      queryClient.invalidateQueries({ queryKey: ["/api/wishlist"] });
-      toast({
-        title: "Item removed",
-        description: "The item has been removed from your wishlist",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-    onSettled: (_data, _error, productId) => {
-      if (typeof productId === "number") {
-        setRemovingProducts((prev) => {
-          const next = new Set(prev);
-          next.delete(productId);
-          return next;
-        });
-      }
-    },
-  });
+  // (Removed local mutation; using shared context instead)
 
   // Handle add to cart with individual loading states
   const handleAddToCart = async (product: WishlistProduct["product"]) => {
@@ -132,6 +98,98 @@ export default function BuyerWishlistPage() {
     }
   };
 
+  // Remove item from wishlist using shared context, with local UI spinner
+  const handleRemoveFromWishlist = async (productId: number) => {
+    setRemovingProducts((prev) => new Set(prev).add(productId));
+    try {
+      await removeFromWishlist(productId);
+    } finally {
+      setRemovingProducts((prev) => {
+        const next = new Set(prev);
+        next.delete(productId);
+        return next;
+      });
+    }
+  };
+
+  // Handle setting stock reminder for an out-of-stock product
+  const handleSetReminder = async (product: WishlistProduct["product"]) => {
+    if (!user) {
+      toast({
+        title: "Please log in",
+        description: "Log in to set a stock reminder",
+      });
+      setLocation("/auth");
+      return;
+    }
+
+    if (user.role === "admin" || user.role === "seller") {
+      toast({
+        title: "Action Not Allowed",
+        description:
+          "You can't perform this operation. You are a seller/admin.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!user.email) {
+      toast({
+        title: "Email required",
+        description: "Please update your profile with an email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCreatingReminderIds((prev) => new Set(prev).add(product.id));
+    try {
+      const res = await fetch("/api/stock-reminders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: product.id,
+          variantId: null,
+          email: user.email,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setReminderSetIds((prev) => new Set(prev).add(product.id));
+        toast({
+          title: "Reminder set",
+          description: "We'll notify you when it's back in stock.",
+        });
+      } else if (res.status === 409) {
+        setReminderSetIds((prev) => new Set(prev).add(product.id));
+        toast({
+          title: "Already set",
+          description: "Reminder already exists.",
+        });
+      } else if (res.status === 401) {
+        setLocation("/auth");
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to set reminder",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to set reminder",
+        variant: "destructive",
+      });
+    } finally {
+      setCreatingReminderIds((prev) => {
+        const next = new Set(prev);
+        next.delete(product.id);
+        return next;
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F8F5E4]">
       <DashboardLayout>
@@ -140,7 +198,7 @@ export default function BuyerWishlistPage() {
             <h1 className="text-2xl font-bold">My Wishlist</h1>
           </div>
 
-          {isLoadingWishlist ? (
+          {isLoading ? (
             <div className="flex items-center justify-center min-h-[200px]">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
@@ -231,25 +289,41 @@ export default function BuyerWishlistPage() {
                         )}
                       </div>
                       <div className="mt-4 flex space-x-2">
-                        <Button
-                          className="flex-1"
-                          onClick={() => handleAddToCart(item.product)}
-                          disabled={item.product.stock <= 0 || isProductLoading}
-                        >
-                          {isProductLoading ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <ShoppingCart className="mr-2 h-4 w-4" />
-                          )}
-                          {item.product.stock > 0
-                            ? "Add to Cart"
-                            : "Out of Stock"}
-                        </Button>
+                        {item.product.stock > 0 ? (
+                          <Button
+                            className="flex-1"
+                            onClick={() => handleAddToCart(item.product)}
+                            disabled={isProductLoading}
+                          >
+                            {isProductLoading ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <ShoppingCart className="mr-2 h-4 w-4" />
+                            )}
+                            {"Add to Cart"}
+                          </Button>
+                        ) : (
+                          <Button
+                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                            onClick={() => handleSetReminder(item.product)}
+                            disabled={
+                              creatingReminderIds.has(item.product.id) ||
+                              reminderSetIds.has(item.product.id)
+                            }
+                          >
+                            <Bell className="mr-2 h-4 w-4" />
+                            {creatingReminderIds.has(item.product.id)
+                              ? "Setting..."
+                              : reminderSetIds.has(item.product.id)
+                                ? "Reminder Set"
+                                : "Remind Me"}
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="icon"
                           onClick={() =>
-                            removeFromWishlistMutation.mutate(item.product.id)
+                            handleRemoveFromWishlist(item.product.id)
                           }
                           disabled={isRemoving}
                         >
