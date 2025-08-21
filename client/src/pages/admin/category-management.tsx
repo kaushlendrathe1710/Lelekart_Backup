@@ -836,7 +836,7 @@ export default function CategoryManagement() {
 
         {/* Add/Edit Category Dialog */}
         <Dialog open={isAddCategoryOpen} onOpenChange={setIsAddCategoryOpen}>
-          <DialogContent className="max-w-md w-full">
+          <DialogContent className="max-w-md w-full max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingCategory ? "Edit Category" : "Add New Category"}
@@ -973,7 +973,7 @@ export default function CategoryManagement() {
           open={isAddSubcategoryOpen}
           onOpenChange={setIsAddSubcategoryOpen}
         >
-          <DialogContent className="max-w-md w-full">
+          <DialogContent className="max-w-md w-full max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingSubcategory
