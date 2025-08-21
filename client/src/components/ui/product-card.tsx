@@ -97,6 +97,16 @@ export const ProductCard = memo(function ProductCard({
       return;
     }
 
+    // Check if product is out of stock
+    if (product.stock <= 0) {
+      toast({
+        title: "Out of Stock",
+        description: "This product is currently out of stock.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       if (cartContext) {
         cartContext.addToCart(product as Product);

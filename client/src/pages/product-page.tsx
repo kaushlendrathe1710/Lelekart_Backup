@@ -258,6 +258,26 @@ export default function ProductPage() {
       return;
     }
 
+    // Check if product is out of stock
+    if (product.stock <= 0) {
+      toast({
+        title: "Out of Stock",
+        description: "This product is currently out of stock.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if requested quantity exceeds available stock
+    if (quantity > product.stock) {
+      toast({
+        title: "Stock Limit Exceeded",
+        description: `This item has only ${product.stock} units in stock. Please reduce the quantity.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       // Try to use context if available
       if (cartContext) {

@@ -52,6 +52,16 @@ export function FashionProductCard({ product }: FashionProductCardProps) {
     e.preventDefault();
     e.stopPropagation();
 
+    // Check if product is out of stock
+    if (product.stock <= 0) {
+      toast({
+        title: "Out of Stock",
+        description: "This product is currently out of stock.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Remove login check, allow add to cart for all
     try {
       if (cartContext) {
