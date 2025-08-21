@@ -1373,12 +1373,10 @@ export default function CheckoutPage() {
                         if (nextShow) {
                           // Switching to "Enter New Address" → clear any previously selected address and reset the form
                           setSelectedAddressId("");
-                          const emailValue =
-                            user?.email ?? user?.username ?? "";
                           form.reset(
                             {
                               name: "",
-                              email: emailValue,
+                              email: "",
                               phone: "",
                               address: "",
                               city: "",
