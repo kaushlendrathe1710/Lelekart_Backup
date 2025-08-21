@@ -9,6 +9,7 @@ import { AuthContext } from "@/hooks/use-auth";
 import { User } from "@shared/schema";
 import { useCart } from "@/context/cart-context";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/hooks/use-toast";
 
 interface CartItem {
   id: number | string; // Allow both number and string for guest vs logged-in users
@@ -47,6 +48,7 @@ interface CartItem {
 export default function CartPage() {
   const [, setLocation] = useLocation();
   const { cartItems, updateQuantity, removeFromCart, clearCart } = useCart();
+  const { toast } = useToast();
   const { data: user } = useQuery<User | null>({
     queryKey: ["/api/user"],
     retry: false,
@@ -283,12 +285,24 @@ export default function CartPage() {
                               variant="outline"
                               size="icon"
                               className="h-8 w-8 rounded-r"
-                              onClick={() =>
+                              onClick={() => {
+                                const availableStock =
+                                  item.variant?.stock ??
+                                  item.product.stock ??
+                                  0;
+                                if (item.quantity + 1 > availableStock) {
+                                  toast({
+                                    title: "Stock Limit Reached",
+                                    description: `This item has only ${availableStock} units in stock.`,
+                                    variant: "destructive",
+                                  });
+                                  return;
+                                }
                                 updateQuantity(
                                   user && item.id !== undefined ? item.id : idx,
                                   item.quantity + 1
-                                )
-                              }
+                                );
+                              }}
                               title="Increase quantity"
                             >
                               <Plus className="h-4 w-4" />

@@ -431,6 +431,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
     quantity = 1,
     variant?: ProductVariant
   ) => {
+    // Check if product is out of stock
+    const availableStock = variant?.stock ?? product.stock ?? 0;
+    if (availableStock <= 0) {
+      toast({
+        title: "Out of Stock",
+        description: "This product is currently out of stock.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if requested quantity exceeds available stock
+    if (quantity > availableStock) {
+      toast({
+        title: "Stock Limit Exceeded",
+        description: `This item has only ${availableStock} units in stock. Please reduce the quantity.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Fire Meta Pixel AddToCart event
     fbq("track", "AddToCart", {
       content_name: product.name,
