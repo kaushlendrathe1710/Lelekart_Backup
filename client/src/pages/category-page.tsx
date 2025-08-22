@@ -391,7 +391,7 @@ export default function CategoryPage() {
                     <Slider
                       min={0}
                       max={100000}
-                      step={1000}
+                      step={100}
                       value={[priceRange[0], priceRange[1]]}
                       onValueChange={handlePriceRangeChange}
                       className="mt-6"
