@@ -267,13 +267,22 @@ export default function CartPage() {
                               variant="outline"
                               size="icon"
                               className="h-8 w-8 rounded-l"
-                              onClick={() =>
-                                updateQuantity(
-                                  user && item.id !== undefined ? item.id : idx,
-                                  Math.max(1, item.quantity - 1)
-                                )
-                              }
-                              disabled={item.quantity <= 1}
+                              onClick={() => {
+                                if (item.quantity <= 1) {
+                                  removeFromCart(
+                                    user && item.id !== undefined
+                                      ? item.id
+                                      : idx
+                                  );
+                                } else {
+                                  updateQuantity(
+                                    user && item.id !== undefined
+                                      ? item.id
+                                      : idx,
+                                    item.quantity - 1
+                                  );
+                                }
+                              }}
                               title="Decrease quantity"
                             >
                               <Minus className="h-4 w-4" />
