@@ -2614,10 +2614,10 @@ export default function AddProductPage() {
         console.log("Saving draft with data:", data);
         console.log("Including variants:", allVariants.length);
 
-        // The data is already prepared in the onSaveAsDraft function
+        // Structure the data correctly for the server - it expects productData and variants as separate top-level properties
         const response = await apiRequest("POST", "/api/products/draft", {
-          ...data,
-          variants: allVariants, // Include all variants
+          productData: data.productData,
+          variants: allVariants,
         });
 
         if (!response.ok) {

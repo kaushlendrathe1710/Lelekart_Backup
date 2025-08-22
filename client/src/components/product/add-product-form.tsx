@@ -211,7 +211,10 @@ export default function AddProductForm({
     }
     if (typeof initialValues.images === "string") {
       try {
-        if (initialValues.images.startsWith("[") && initialValues.images.includes("]")) {
+        if (
+          initialValues.images.startsWith("[") &&
+          initialValues.images.includes("]")
+        ) {
           const parsed = JSON.parse(initialValues.images);
           if (Array.isArray(parsed)) {
             setUploadedImages(parsed);
@@ -231,17 +234,25 @@ export default function AddProductForm({
   });
 
   // Query to fetch all subcategories
-  const { data: subcategoriesData, isLoading: isSubcategoriesLoading } = useQuery({
-    queryKey: ["/api/subcategories/all"],
-  });
+  const { data: subcategoriesData, isLoading: isSubcategoriesLoading } =
+    useQuery({
+      queryKey: ["/api/subcategories/all"],
+    });
 
-  const safeCategoriesData = Array.isArray(categoriesData) ? categoriesData : [];
-  const safeSubcategoriesData = Array.isArray(subcategoriesData) ? subcategoriesData : [];
+  const safeCategoriesData = Array.isArray(categoriesData)
+    ? categoriesData
+    : [];
+  const safeSubcategoriesData = Array.isArray(subcategoriesData)
+    ? subcategoriesData
+    : [];
   const categories = safeCategoriesData.map((category: any) => category.name);
-  const categoryGstRates = safeCategoriesData.reduce((acc: Record<string, number>, category: any) => {
-    acc[category.name] = parseFloat(category.gstRate) || 0;
-    return acc;
-  }, {});
+  const categoryGstRates = safeCategoriesData.reduce(
+    (acc: Record<string, number>, category: any) => {
+      acc[category.name] = parseFloat(category.gstRate) || 0;
+      return acc;
+    },
+    {}
+  );
 
   // Debug: Log initial form values and subcategory info
   useEffect(() => {
@@ -313,7 +324,14 @@ export default function AddProductForm({
   });
 
   // Watch important fields to calculate completion and for GST calculation
-  const [watchedName, watchedCategory, watchedPrice, watchedDescription, watchedStock, watchedGstRate] = form.watch([
+  const [
+    watchedName,
+    watchedCategory,
+    watchedPrice,
+    watchedDescription,
+    watchedStock,
+    watchedGstRate,
+  ] = form.watch([
     "name",
     "category",
     "price",
@@ -350,11 +368,20 @@ export default function AddProductForm({
 
   // Calculate form completion status
   const getCompletionStatus = () => {
-    const basicComplete = Boolean(watchedName && watchedCategory && watchedPrice);
-    const descriptionComplete = Boolean(watchedDescription && watchedDescription.length >= 20);
+    const basicComplete = Boolean(
+      watchedName && watchedCategory && watchedPrice
+    );
+    const descriptionComplete = Boolean(
+      watchedDescription && watchedDescription.length >= 20
+    );
     const inventoryComplete = Boolean(watchedStock);
     const imagesComplete = uploadedImages.length > 0;
-    const total = [basicComplete, descriptionComplete, inventoryComplete, imagesComplete].filter(Boolean).length;
+    const total = [
+      basicComplete,
+      descriptionComplete,
+      inventoryComplete,
+      imagesComplete,
+    ].filter(Boolean).length;
     return {
       basicComplete,
       descriptionComplete,
@@ -466,10 +493,10 @@ export default function AddProductForm({
         // Combine both regular variants and draft variants
         const allVariants = [...variants, ...draftVariants];
 
-        // The data is already prepared in the onSaveAsDraft function
+        // Structure the data correctly for the server - it expects productData and variants as separate top-level properties
         const response = await apiRequest("POST", "/api/products/draft", {
-          ...data,
-          variants: allVariants, // Include all variants
+          productData: data,
+          variants: allVariants,
         });
 
         if (!response.ok) {
@@ -508,7 +535,9 @@ export default function AddProductForm({
         description:
           "Your product draft has been saved and can be edited later.",
       });
-      // Don't navigate immediately to let seller see the updated list
+
+      // Navigate to the products page after successful draft save
+      navigate(redirectTo);
     },
     onError: (error: Error) => {
       toast({
@@ -866,7 +895,10 @@ export default function AddProductForm({
         await updateProductMutation.mutateAsync(productData);
       } else {
         // Create new product
-        await createProductMutation.mutateAsync({ productData, variants: [...variants, ...draftVariants] });
+        await createProductMutation.mutateAsync({
+          productData,
+          variants: [...variants, ...draftVariants],
+        });
       }
 
       // Show success message
@@ -1091,7 +1123,10 @@ export default function AddProductForm({
               type="button"
               variant="default"
               onClick={handleSubmit}
-              disabled={isSubmitting || (!initialValues?.id && completionStatus.percentage < 100)}
+              disabled={
+                isSubmitting ||
+                (!initialValues?.id && completionStatus.percentage < 100)
+              }
             >
               {createProductMutation.isPending ||
               updateProductMutation.isPending ? (
@@ -1286,12 +1321,17 @@ export default function AddProductForm({
                           <SelectContent>
                             {safeCategoriesData.length > 0 ? (
                               safeCategoriesData.map((category: any) => (
-                                <SelectItem key={category.id} value={category.name}>
+                                <SelectItem
+                                  key={category.id}
+                                  value={category.name}
+                                >
                                   {category.name}
                                 </SelectItem>
                               ))
                             ) : (
-                              <SelectItem value="none" disabled>No matching entry</SelectItem>
+                              <SelectItem value="none" disabled>
+                                No matching entry
+                              </SelectItem>
                             )}
                           </SelectContent>
                         </Select>
@@ -1306,15 +1346,32 @@ export default function AddProductForm({
                   name="subcategory"
                   render={({ field }) => {
                     const selectedCategory = form.watch("category");
-                    const categoryObject = safeCategoriesData.find((c: any) => c.name === selectedCategory);
+                    const categoryObject = safeCategoriesData.find(
+                      (c: any) => c.name === selectedCategory
+                    );
                     // Level 1 subcategories
-                    const filteredSubcategories = safeSubcategoriesData.filter((sc: any) => categoryObject && sc.categoryId === categoryObject.id && !sc.parentId);
+                    const filteredSubcategories = safeSubcategoriesData.filter(
+                      (sc: any) =>
+                        categoryObject &&
+                        sc.categoryId === categoryObject.id &&
+                        !sc.parentId
+                    );
                     // Find the selected subcategory object (level 1)
-                    const selectedSubcategory = safeSubcategoriesData.find((sc: any) => sc.name === form.watch("subcategory") && sc.categoryId === categoryObject?.id && !sc.parentId);
+                    const selectedSubcategory = safeSubcategoriesData.find(
+                      (sc: any) =>
+                        sc.name === form.watch("subcategory") &&
+                        sc.categoryId === categoryObject?.id &&
+                        !sc.parentId
+                    );
                     // Level 2 subcategories for the selected subcategory
-                    const filteredSubcategory2 = safeSubcategoriesData.filter((sc: any) => selectedSubcategory && sc.parentId === selectedSubcategory.id);
+                    const filteredSubcategory2 = safeSubcategoriesData.filter(
+                      (sc: any) =>
+                        selectedSubcategory &&
+                        sc.parentId === selectedSubcategory.id
+                    );
                     // If a level 1 subcategory is selected and it has children, show level 2 options
-                    const showLevel2 = selectedSubcategory && filteredSubcategory2.length > 0;
+                    const showLevel2 =
+                      selectedSubcategory && filteredSubcategory2.length > 0;
                     return (
                       <FormItem>
                         <FormLabel>Subcategory</FormLabel>
@@ -1322,20 +1379,34 @@ export default function AddProductForm({
                           <Select
                             onValueChange={(value) => {
                               // Check if value is a level 2 subcategory
-                              const subcat2 = safeSubcategoriesData.find((sc: any) => sc.name === value && sc.parentId === selectedSubcategory?.id);
+                              const subcat2 = safeSubcategoriesData.find(
+                                (sc: any) =>
+                                  sc.name === value &&
+                                  sc.parentId === selectedSubcategory?.id
+                              );
                               if (subcat2) {
                                 field.onChange(subcat2.name);
                                 form.setValue("subcategoryId", subcat2.id);
                               } else {
                                 // Check if value is a level 1 subcategory
-                                const subcat1 = safeSubcategoriesData.find((sc: any) => sc.name === value && sc.categoryId === categoryObject?.id && !sc.parentId);
+                                const subcat1 = safeSubcategoriesData.find(
+                                  (sc: any) =>
+                                    sc.name === value &&
+                                    sc.categoryId === categoryObject?.id &&
+                                    !sc.parentId
+                                );
                                 field.onChange(subcat1?.name || "");
                                 // If this subcategory has children, wait for user to pick level 2
-                                const hasChildren = safeSubcategoriesData.some((sc: any) => sc.parentId === subcat1?.id);
+                                const hasChildren = safeSubcategoriesData.some(
+                                  (sc: any) => sc.parentId === subcat1?.id
+                                );
                                 if (hasChildren) {
                                   form.setValue("subcategoryId", null);
                                 } else {
-                                  form.setValue("subcategoryId", subcat1?.id || null);
+                                  form.setValue(
+                                    "subcategoryId",
+                                    subcat1?.id || null
+                                  );
                                 }
                               }
                             }}
@@ -1348,36 +1419,59 @@ export default function AddProductForm({
                             <SelectContent>
                               {selectedCategory ? (
                                 filteredSubcategories.length > 0 ? (
-                                  filteredSubcategories.map((subcategory: any) => {
-                                    // Check if this subcategory has children (level 2)
-                                    const hasChildren = safeSubcategoriesData.some((sc: any) => sc.parentId === subcategory.id);
-                                    if (hasChildren) {
-                                      // Render as optgroup-like: show level 2 subcategories as indented options
-                                      return [
-                                        <SelectItem key={subcategory.id} value={subcategory.name} disabled>
-                                          {subcategory.name}
-                                        </SelectItem>,
-                                        ...safeSubcategoriesData
-                                          .filter((sc: any) => sc.parentId === subcategory.id)
-                                          .map((sub2: any) => (
-                                            <SelectItem key={sub2.id} value={sub2.name}>
-                                              &nbsp;&nbsp;{sub2.name}
-                                            </SelectItem>
-                                          )),
-                                      ];
-                                    } else {
-                                      return (
-                                        <SelectItem key={subcategory.id} value={subcategory.name}>
-                                          {subcategory.name}
-                                        </SelectItem>
-                                      );
+                                  filteredSubcategories.map(
+                                    (subcategory: any) => {
+                                      // Check if this subcategory has children (level 2)
+                                      const hasChildren =
+                                        safeSubcategoriesData.some(
+                                          (sc: any) =>
+                                            sc.parentId === subcategory.id
+                                        );
+                                      if (hasChildren) {
+                                        // Render as optgroup-like: show level 2 subcategories as indented options
+                                        return [
+                                          <SelectItem
+                                            key={subcategory.id}
+                                            value={subcategory.name}
+                                            disabled
+                                          >
+                                            {subcategory.name}
+                                          </SelectItem>,
+                                          ...safeSubcategoriesData
+                                            .filter(
+                                              (sc: any) =>
+                                                sc.parentId === subcategory.id
+                                            )
+                                            .map((sub2: any) => (
+                                              <SelectItem
+                                                key={sub2.id}
+                                                value={sub2.name}
+                                              >
+                                                &nbsp;&nbsp;{sub2.name}
+                                              </SelectItem>
+                                            )),
+                                        ];
+                                      } else {
+                                        return (
+                                          <SelectItem
+                                            key={subcategory.id}
+                                            value={subcategory.name}
+                                          >
+                                            {subcategory.name}
+                                          </SelectItem>
+                                        );
+                                      }
                                     }
-                                  })
+                                  )
                                 ) : (
-                                  <SelectItem value="none" disabled>No matching entry</SelectItem>
+                                  <SelectItem value="none" disabled>
+                                    No matching entry
+                                  </SelectItem>
                                 )
                               ) : (
-                                <SelectItem value="none" disabled>Select category first</SelectItem>
+                                <SelectItem value="none" disabled>
+                                  Select category first
+                                </SelectItem>
                               )}
                             </SelectContent>
                           </Select>
