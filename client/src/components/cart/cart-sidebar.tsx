@@ -9,17 +9,24 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 export function CartSidebar() {
-  const { isOpen, toggleCart, cartItems, updateQuantity, removeFromCart, clearCart } = useCart();
+  const {
+    isOpen,
+    toggleCart,
+    cartItems,
+    updateQuantity,
+    removeFromCart,
+    clearCart,
+  } = useCart();
   // Temporarily remove authentication dependency
   const user = null;
   const { toast } = useToast();
   const cartRef = useRef<HTMLDivElement>(null);
-  
+
   // Calculate subtotal, discount and total (using variant price if available)
   const subtotal = cartItems.reduce((total, item) => {
     // Use variant price if available, otherwise use product price
     const itemPrice = item.variant?.price || item.product.price;
-    return total + (itemPrice * item.quantity);
+    return total + itemPrice * item.quantity;
   }, 0);
   const discount = Math.round(subtotal * 0.05); // 5% discount for example
   // Always set shipping to 0 (FREE shipping)
@@ -45,7 +52,8 @@ export function CartSidebar() {
     onError: (error: Error) => {
       toast({
         title: "Checkout failed",
-        description: error.message || "Failed to place order. Please try again.",
+        description:
+          error.message || "Failed to place order. Please try again.",
         variant: "destructive",
       });
     },
@@ -53,7 +61,7 @@ export function CartSidebar() {
 
   // Format price in Indian Rupees
   const formatPrice = (price: number) => {
-    return `₹${price.toLocaleString('en-IN')}`;
+    return `₹${price.toLocaleString("en-IN")}`;
   };
 
   // Handle checkout
@@ -66,7 +74,7 @@ export function CartSidebar() {
       });
       return;
     }
-    
+
     if (cartItems.length === 0) {
       toast({
         title: "Cart is empty",
@@ -82,7 +90,11 @@ export function CartSidebar() {
   // Close cart when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (cartRef.current && !cartRef.current.contains(event.target as Node) && isOpen) {
+      if (
+        cartRef.current &&
+        !cartRef.current.contains(event.target as Node) &&
+        isOpen
+      ) {
         toggleCart();
       }
     };
@@ -100,7 +112,7 @@ export function CartSidebar() {
     } else {
       document.body.style.overflow = "";
     }
-    
+
     return () => {
       document.body.style.overflow = "";
     };
@@ -110,95 +122,115 @@ export function CartSidebar() {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-end">
-      <div 
+      <div
         ref={cartRef}
         className="w-full md:w-96 bg-white shadow-lg h-full flex flex-col animate-in slide-in-from-right duration-300"
       >
         <div className="flex justify-between items-center p-4 border-b">
-          <h3 className="text-lg font-semibold">Shopping Cart ({cartItems.length})</h3>
+          <h3 className="text-lg font-semibold">
+            Shopping Cart ({cartItems.length})
+          </h3>
           <Button variant="ghost" size="icon" onClick={toggleCart}>
             <X className="h-5 w-5" />
           </Button>
         </div>
-        
+
         <div className="flex-grow overflow-y-auto p-4">
           {cartItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full">
               <AlertCircle className="h-12 w-12 text-gray-300 mb-3" />
               <p className="text-gray-500">Your cart is empty</p>
-              <Button 
-                variant="outline"
-                className="mt-4"
-                onClick={toggleCart}
-              >
+              <Button variant="outline" className="mt-4" onClick={toggleCart}>
                 Continue Shopping
               </Button>
             </div>
           ) : (
             cartItems.map((item) => (
-              <Card key={`${item.product.id}-${item.variant?.id || 'main'}`} className="mb-4">
+              <Card
+                key={`${item.product.id}-${item.variant?.id || "main"}`}
+                className="mb-4"
+              >
                 <CardContent className="p-3">
                   <div className="flex">
-                    <img 
-                      src={item.variant?.images ? 
-                            JSON.parse(item.variant.images as string)[0] || item.product.imageUrl 
-                            : item.product.imageUrl} 
-                      alt={item.product.name} 
-                      className="w-20 h-20 object-contain rounded" 
+                    <img
+                      src={
+                        item.variant?.images
+                          ? JSON.parse(item.variant.images as string)[0] ||
+                            item.product.imageUrl
+                          : item.product.imageUrl
+                      }
+                      alt={item.product.name}
+                      className="w-20 h-20 object-contain rounded"
                     />
                     <div className="ml-4 flex-grow">
-                      <h4 className="font-medium text-sm">{item.product.name}</h4>
-                      
+                      <h4 className="font-medium text-sm">
+                        {item.product.name}
+                      </h4>
+
                       {/* Show variant details if available */}
                       {item.variant && (
                         <div className="text-xs text-gray-600 mt-1">
                           <span className="inline-block px-2 py-1 bg-gray-100 rounded-sm mr-1">
-                            {item.variant.color || 'Default'}
+                            {item.variant.color || "Default"}
                           </span>
                           <span className="inline-block px-2 py-1 bg-gray-100 rounded-sm">
-                            {item.variant.size || 'Default'}
+                            {item.variant.size || "Default"}
                           </span>
                         </div>
                       )}
-                      
+
                       <div className="text-xs text-gray-500 mt-1">
                         {item.product.category}
                       </div>
-                      
+
                       <div className="text-green-600 font-medium mt-1">
                         {formatPrice(item.variant?.price || item.product.price)}
                       </div>
-                      
+
                       <div className="flex items-center mt-2">
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          className="h-6 w-6 rounded-l" 
-                          onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                          disabled={item.quantity <= 1}
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-6 w-6 rounded-l"
+                          onClick={() => {
+                            if (item.quantity <= 1) {
+                              removeFromCart(item.id);
+                            } else {
+                              updateQuantity(item.id, item.quantity - 1);
+                            }
+                          }}
                         >
                           <Minus className="h-3 w-3" />
                         </Button>
                         <span className="w-8 h-6 bg-white flex items-center justify-center text-sm border-t border-b">
                           {item.quantity}
                         </span>
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          className="h-6 w-6 rounded-r" 
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-6 w-6 rounded-r"
                           onClick={() => {
                             // Check stock limits against available stock
-                            const availableStock = item.variant?.stock || item.product.stock || 999;
-                            updateQuantity(item.id, Math.min(availableStock, item.quantity + 1));
+                            const availableStock =
+                              item.variant?.stock || item.product.stock || 999;
+                            updateQuantity(
+                              item.id,
+                              Math.min(availableStock, item.quantity + 1)
+                            );
                           }}
-                          disabled={item.variant?.stock ? item.quantity >= item.variant.stock : 
-                                   item.product.stock ? item.quantity >= item.product.stock : false}
+                          disabled={
+                            item.variant?.stock
+                              ? item.quantity >= item.variant.stock
+                              : item.product.stock
+                                ? item.quantity >= item.product.stock
+                                : false
+                          }
                         >
                           <Plus className="h-3 w-3" />
                         </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           className="ml-auto text-red-500 text-xs h-6 px-2"
                           onClick={() => removeFromCart(item.id)}
                         >
@@ -212,7 +244,7 @@ export function CartSidebar() {
             ))
           )}
         </div>
-        
+
         {cartItems.length > 0 && (
           <div className="border-t p-4">
             <div className="flex justify-between mb-3">
@@ -232,12 +264,14 @@ export function CartSidebar() {
               <span>Total:</span>
               <span>{formatPrice(total)}</span>
             </div>
-            <Button 
+            <Button
               className="w-full bg-orange-500 hover:bg-orange-600 text-white py-6 text-2xl rounded-lg font-extrabold shadow-lg mt-4 mb-2 border-4 border-orange-300"
               onClick={handleCheckout}
               disabled={checkoutMutation.isPending}
             >
-              {checkoutMutation.isPending ? "Processing..." : "Proceed to Checkout"}
+              {checkoutMutation.isPending
+                ? "Processing..."
+                : "Proceed to Checkout"}
             </Button>
           </div>
         )}
