@@ -4174,25 +4174,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const { productData, variants, deletedVariantIds } = req.body;
 
+        // Handle case where productData might not exist in the request body
+        // If productData is undefined, use the entire req.body as productData
+        const actualProductData = productData || req.body;
+
         // Log subcategory1 and subcategory2 for debugging
         console.log(
           `DEBUG: Product ${id} subcategory1 in request:`,
-          productData?.subcategory1,
-          `(type: ${typeof productData?.subcategory1})`
+          actualProductData?.subcategory1,
+          `(type: ${typeof actualProductData?.subcategory1})`
         );
         console.log(
           `DEBUG: Product ${id} subcategory2 in request:`,
-          productData?.subcategory2,
-          `(type: ${typeof productData?.subcategory2})`
+          actualProductData?.subcategory2,
+          `(type: ${typeof actualProductData?.subcategory2})`
         );
 
         // Process productData for update to ensure proper handling of gstRate and new fields
-        let processedProductData = { ...productData };
+        let processedProductData = actualProductData
+          ? { ...actualProductData }
+          : {};
 
         // Process numeric fields for dimensions
         const dimensionFields = ["height", "width", "weight", "length"];
         dimensionFields.forEach((field) => {
-          if (processedProductData[field] !== undefined) {
+          if (
+            processedProductData &&
+            processedProductData[field] !== undefined
+          ) {
             processedProductData[field] =
               typeof processedProductData[field] === "string"
                 ? parseFloat(processedProductData[field]) || null
@@ -4201,20 +4210,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         // Process warranty and return policy
-        if (processedProductData.warranty !== undefined) {
+        if (
+          processedProductData &&
+          processedProductData.warranty !== undefined
+        ) {
           processedProductData.warranty = processedProductData.warranty || null;
         }
-        if (processedProductData.returnPolicy !== undefined) {
+        if (
+          processedProductData &&
+          processedProductData.returnPolicy !== undefined
+        ) {
           processedProductData.returnPolicy =
             processedProductData.returnPolicy || null;
         }
 
         // Log the subcategoryId specifically for debugging
-        if (productData) {
+        if (actualProductData) {
           console.log(
             `DEBUG: Product ${id} subcategoryId in request:`,
-            productData.subcategoryId,
-            `(type: ${typeof productData.subcategoryId})`
+            actualProductData.subcategoryId,
+            `(type: ${typeof actualProductData.subcategoryId})`
           );
         }
 
@@ -4230,20 +4245,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Handle GST rate to ensure it's correctly stored as a decimal
-        if (productData.gstRate !== undefined) {
+        if (actualProductData && actualProductData.gstRate !== undefined) {
           // Convert gstRate to a proper decimal format
           console.log(
             "Processing GST rate before update:",
-            productData.gstRate,
-            typeof productData.gstRate
+            actualProductData.gstRate,
+            typeof actualProductData.gstRate
           );
 
           processedProductData.gstRate =
-            typeof productData.gstRate === "number"
-              ? productData.gstRate
-              : typeof productData.gstRate === "string" &&
-                  productData.gstRate !== ""
-                ? parseFloat(productData.gstRate)
+            typeof actualProductData.gstRate === "number"
+              ? actualProductData.gstRate
+              : typeof actualProductData.gstRate === "string" &&
+                  actualProductData.gstRate !== ""
+                ? parseFloat(actualProductData.gstRate)
                 : null;
 
           console.log("Processed GST rate:", processedProductData.gstRate);
@@ -4256,12 +4271,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
         console.log(
           `DEBUG: Product ${id} subcategoryId after processing:`,
-          processedProductData.subcategoryId,
-          `(type: ${typeof processedProductData.subcategoryId})`
+          processedProductData?.subcategoryId,
+          `(type: ${typeof processedProductData?.subcategoryId})`
         );
 
         // Ensure subcategoryId is properly formatted as number or null with more robust handling
-        if (processedProductData.subcategoryId !== undefined) {
+        if (
+          processedProductData &&
+          processedProductData.subcategoryId !== undefined
+        ) {
           if (
             processedProductData.subcategoryId === null ||
             processedProductData.subcategoryId === "" ||
@@ -4288,7 +4306,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Handle subcategory1 and subcategory2 fields
-        if (processedProductData.subcategory1 !== undefined) {
+        if (
+          processedProductData &&
+          processedProductData.subcategory1 !== undefined
+        ) {
           console.log(
             `DEBUG: Product ${id} processed subcategory1:`,
             processedProductData.subcategory1,
@@ -4297,7 +4318,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           processedProductData.subcategory1 =
             processedProductData.subcategory1 || null;
         }
-        if (processedProductData.subcategory2 !== undefined) {
+        if (
+          processedProductData &&
+          processedProductData.subcategory2 !== undefined
+        ) {
           console.log(
             `DEBUG: Product ${id} processed subcategory2:`,
             processedProductData.subcategory2,
@@ -4309,8 +4333,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         console.log(
           `DEBUG: Product ${id} subcategoryId after formatting:`,
-          processedProductData.subcategoryId,
-          `(type: ${typeof processedProductData.subcategoryId})`
+          processedProductData?.subcategoryId,
+          `(type: ${typeof processedProductData?.subcategoryId})`
         );
 
         // Get the existing product data, including variants, before updating
@@ -4324,14 +4348,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Update the main product with processed data
         const updatedProduct = await storage.updateProduct(
           id,
-          processedProductData || req.body
+          processedProductData
         );
 
         // Enhanced variant preservation logic
         // If __preserveVariants flag is set or if we should automatically preserve variants
         // when category changes but they exist in the database
         const shouldPreserveVariants =
-          processedProductData.__preserveVariants === true ||
+          (processedProductData &&
+            processedProductData.__preserveVariants === true) ||
           req.body.__preserveVariants === true ||
           req.body.__includeAllVariants === true ||
           ((!variants || !Array.isArray(variants) || variants.length === 0) &&
@@ -4341,7 +4366,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (shouldPreserveVariants) {
           console.log(
-            `DEBUG: Preserving existing variants for product ${id}. Preservation flag: ${processedProductData.__preserveVariants}, Include all flag: ${req.body.__includeAllVariants}`
+            `DEBUG: Preserving existing variants for product ${id}. Preservation flag: ${processedProductData?.__preserveVariants}, Include all flag: ${req.body.__includeAllVariants}`
           );
           console.log(
             `DEBUG: Existing variants count before preservation: ${
