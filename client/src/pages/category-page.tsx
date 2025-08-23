@@ -59,6 +59,26 @@ export default function CategoryPage() {
     null
   );
 
+  // Calculate actual price range from products for better slider experience
+  const [actualPriceRange, setActualPriceRange] = useState<[number, number]>([
+    0, 1000,
+  ]);
+
+  // Current slider range (changes based on selected preset)
+  const [sliderRange, setSliderRange] = useState<[number, number]>([0, 1000]);
+
+  // Preset price ranges for quick filtering (like Amazon/Flipkart)
+  const presetPriceRanges = [
+    { label: "Under ₹500", range: [0, 500] },
+    { label: "₹500 - ₹1,000", range: [500, 1000] },
+    { label: "₹1,000 - ₹2,000", range: [1000, 2000] },
+    { label: "₹2,000 - ₹5,000", range: [2000, 5000] },
+    { label: "₹5,000 - ₹10,000", range: [5000, 10000] },
+    { label: "₹10,000 - ₹20,000", range: [10000, 20000] },
+    { label: "₹20,000 - ₹50,000", range: [20000, 50000] },
+    { label: "Above ₹50,000", range: [50000, 100000] },
+  ];
+
   // Find category ID from categorySlug
   const { data: categories } = useQuery<any[]>({
     queryKey: ["/api/categories"],
@@ -174,9 +194,25 @@ export default function CategoryPage() {
     total: 0,
   };
 
-  // Extract available distinct values from the products to act as "brands"
+  // Calculate actual price range from products and extract brands
   useEffect(() => {
     if (products && products.length > 0) {
+      // Calculate actual price range for better slider experience
+      const prices = products
+        .map((product: Product) => Number(product.price))
+        .filter((price) => !isNaN(price));
+      if (prices.length > 0) {
+        const minPrice = Math.floor(Math.min(...prices) / 100) * 100; // Round down to nearest 100
+        const maxPrice = Math.ceil(Math.max(...prices) / 100) * 100; // Round up to nearest 100
+        setActualPriceRange([minPrice, maxPrice]);
+
+        // Update price range if it's still at default values
+        if (priceRange[0] === 0 && priceRange[1] === 100000) {
+          setPriceRange([0, 100000]);
+          setSliderRange([0, 100000]); // Also update slider range
+        }
+      }
+
       // Use seller names as "brands" since our schema doesn't have a separate brand field
       const distinctNames: string[] = [];
       products.forEach((product: Product) => {
@@ -247,6 +283,7 @@ export default function CategoryPage() {
   const handleClearFilters = () => {
     setSelectedBrands([]);
     setPriceRange([0, 100000]);
+    setSliderRange([0, 100000]); // Reset slider range too
     setSortOrder("featured");
     setSelectedSubcategory(null);
 
@@ -258,7 +295,16 @@ export default function CategoryPage() {
 
   // Handle price range changes
   const handlePriceRangeChange = (value: number[]) => {
-    setPriceRange([value[0], value[1]]);
+    // Ensure the values stay within the slider range bounds
+    const minValue = Math.max(value[0], sliderRange[0]);
+    const maxValue = Math.min(value[1], sliderRange[1]);
+    setPriceRange([minValue, maxValue]);
+  };
+
+  // Handle preset price range selection
+  const handlePresetPriceRange = (range: [number, number]) => {
+    setPriceRange(range);
+    setSliderRange(range); // Update slider range to match the preset
   };
 
   // Build page title and meta description based on category
@@ -387,16 +433,57 @@ export default function CategoryPage() {
                 {/* Price Range Filter */}
                 <div>
                   <h3 className="font-medium mb-3">Price Range</h3>
+
+                  {/* Preset Price Range Buttons */}
+                  <div className="mb-4">
+                    <div className="text-sm text-gray-600 mb-2">
+                      Quick Filters
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {presetPriceRanges.map((preset, index) => (
+                        <Button
+                          key={index}
+                          variant={
+                            priceRange[0] === preset.range[0] &&
+                            priceRange[1] === preset.range[1]
+                              ? "default"
+                              : "outline"
+                          }
+                          size="sm"
+                          onClick={() => handlePresetPriceRange(preset.range)}
+                          className="text-xs h-8"
+                        >
+                          {preset.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Custom Price Range Slider */}
                   <div className="space-y-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-sm text-gray-600">Custom Range</div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSliderRange([0, 100000]);
+                          setPriceRange([0, 100000]);
+                        }}
+                        className="text-xs h-6"
+                      >
+                        Reset to Full Range
+                      </Button>
+                    </div>
                     <Slider
-                      min={0}
-                      max={100000}
+                      min={sliderRange[0]}
+                      max={sliderRange[1]}
                       step={100}
                       value={[priceRange[0], priceRange[1]]}
                       onValueChange={handlePriceRangeChange}
                       className="mt-6"
                     />
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between text-sm">
                       <span>₹{priceRange[0].toLocaleString()}</span>
                       <span>₹{priceRange[1].toLocaleString()}</span>
                     </div>
