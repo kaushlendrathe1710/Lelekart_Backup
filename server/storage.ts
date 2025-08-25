@@ -6758,10 +6758,12 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    // Set timestamps
+    // Set initial status and timestamps
     const now = new Date();
     const reviewData = {
       ...insertReview,
+      // Ensure new reviews require approval by default
+      status: "pending",
       createdAt: now,
       updatedAt: now,
     };
