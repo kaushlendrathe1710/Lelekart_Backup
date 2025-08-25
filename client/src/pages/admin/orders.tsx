@@ -418,53 +418,65 @@ export default function AdminOrders() {
     }
   };
 
-  // Print invoice
-  const printInvoice = () => {
-    if (!invoiceRef.current || !viewOrder) return;
+  // Print invoice using same API as buyer/seller (HTML format)
+  const printInvoice = async () => {
+    if (!viewOrder) return;
 
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) {
+    try {
+      const response = await fetch(
+        `/api/orders/${viewOrder.id}/invoice?format=html`,
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch invoice HTML");
+      }
+
+      const invoiceHtml = await response.text();
+
+      const printWindow = window.open("", "_blank");
+      if (!printWindow) {
+        toast({
+          title: "Error",
+          description:
+            "Could not open print window. Please check your browser settings.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Invoice #${viewOrder.id}</title>
+            <style>
+              body { margin: 0; padding: 20px; }
+              @media print { @page { margin: 0.5cm; } }
+            </style>
+          </head>
+          <body>
+            ${invoiceHtml}
+          </body>
+        </html>
+      `);
+
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 500);
+    } catch (error) {
+      console.error("Error printing invoice:", error);
       toast({
         title: "Error",
-        description:
-          "Could not open print window. Please check your browser settings.",
+        description: "Failed to load invoice. Please try again.",
         variant: "destructive",
       });
-      return;
     }
-
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Invoice #${viewOrder.id}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-            .invoice-container { max-width: 800px; margin: 0 auto; }
-            .invoice-header { display: flex; justify-content: space-between; margin-bottom: 20px; }
-            .company-details { text-align: right; }
-            .invoice-title { font-size: 24px; font-weight: bold; margin-bottom: 20px; }
-            .customer-details, .order-details { margin-bottom: 20px; }
-            .section-title { font-size: 16px; font-weight: bold; margin-bottom: 10px; }
-            table { width: 100%; border-collapse: collapse; }
-            th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
-            th { background-color: #f9f9f9; }
-            .total-section { margin-top: 20px; text-align: right; }
-            .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
-            @media print { @page { margin: 0.5cm; } }
-          </style>
-        </head>
-        <body>
-          ${invoiceRef.current.innerHTML}
-        </body>
-      </html>
-    `);
-
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 500);
   };
 
   // Download invoice as PDF
@@ -477,25 +489,30 @@ export default function AdminOrders() {
         description: "Your invoice is being generated...",
       });
 
-      // Create a blob from the fetch response and open it in a new window
       const response = await fetch(`/api/orders/${viewOrder.id}/invoice`, {
         method: "GET",
-        credentials: "include", // Important: Include credentials for authentication
+        credentials: "include",
       });
 
       if (!response.ok) {
         throw new Error(`Error: ${response.status} ${response.statusText}`);
       }
 
-      // Get the PDF blob and create an object URL
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      window.open(url, "_blank");
+
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+      a.download = `invoice-order-${viewOrder.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
 
       toast({
-        title: "Invoice Generated",
-        description:
-          "Your invoice has been opened in a new tab. You can save it from there.",
+        title: "Invoice Downloaded",
+        description: "Your invoice has been downloaded successfully.",
       });
     } catch (error) {
       console.error("Error downloading invoice:", error);
@@ -945,14 +962,12 @@ export default function AdminOrders() {
                               onClick={() => {
                                 fetchOrderDetails(order.id);
                                 setTimeout(() => {
-                                  if (invoiceRef.current) {
-                                    printInvoice();
-                                  }
+                                  downloadInvoice();
                                 }, 1000);
                               }}
                             >
-                              <Printer className="mr-2 h-4 w-4" />
-                              Print Invoice
+                              <Download className="mr-2 h-4 w-4" />
+                              Download Invoice
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => {
@@ -1231,13 +1246,11 @@ export default function AdminOrders() {
                   <Button
                     variant="outline"
                     onClick={() => {
-                      if (invoiceRef.current) {
-                        printInvoice();
-                      }
+                      downloadInvoice();
                     }}
                   >
-                    <FileText className="mr-2 h-4 w-4" />
-                    Print Invoice
+                    <Download className="mr-2 h-4 w-4" />
+                    Download Invoice
                   </Button>
                   <Button
                     variant="outline"
