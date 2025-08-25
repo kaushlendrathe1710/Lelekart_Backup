@@ -97,6 +97,7 @@ function ProductImageSlider({
 
   // Default placeholder image based on category
   const defaultImage = "../images/placeholder.svg";
+  const [showAllThumbs, setShowAllThumbs] = useState(false);
 
   // Helper function to check problematic URLs
   const isProblematicUrl = (url: string) => {
@@ -446,38 +447,82 @@ function ProductImageSlider({
       </div>
 
       <div className="flex">
-        {/* Thumbnails on the left - always visible regardless of view mode */}
+        {/* Thumbnails on the left - collapse to first 4 with +N */}
         <div className="flex flex-col gap-2 mr-4">
           {(() => {
             const images = validImages || [];
 
-            if (Array.isArray(images) && images.length > 0) {
-              return images.map((image: string, index: number) => (
-                <div
-                  key={index}
-                  className={`w-16 h-16 border cursor-pointer hover:border-primary ${
-                    index === activeImage ? "border-primary" : "border-gray-200"
-                  }`}
-                  onClick={() => {
-                    setActiveImage(index);
-                    if (viewMode !== "normal") setViewMode("normal");
-                  }}
-                >
-                  <img
-                    src={image}
-                    alt={`${name} thumbnail ${index + 1}`}
-                    className="w-full h-full object-contain"
-                    onError={handleImageError}
-                  />
-                </div>
-              ));
-            } else {
+            if (!Array.isArray(images) || images.length === 0) {
               return (
                 <div className="w-16 h-16 border border-gray-200 flex items-center justify-center">
                   <span className="text-xs text-gray-400">No images</span>
                 </div>
               );
             }
+
+            if (images.length > 4 && !showAllThumbs) {
+              return (
+                <>
+                  {images.slice(0, 3).map((image: string, index: number) => (
+                    <div
+                      key={index}
+                      className={`w-16 h-16 border cursor-pointer hover:border-primary ${
+                        index === activeImage
+                          ? "border-primary"
+                          : "border-gray-200"
+                      }`}
+                      onClick={() => {
+                        setActiveImage(index);
+                        if (viewMode !== "normal") setViewMode("normal");
+                      }}
+                    >
+                      <img
+                        src={image}
+                        alt={`${name} thumbnail ${index + 1}`}
+                        className="w-full h-full object-contain"
+                        onError={handleImageError}
+                      />
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    className="relative w-16 h-16 border border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 rounded"
+                    onClick={() => setShowAllThumbs(true)}
+                    aria-label={`Show ${images.length - 3} more images`}
+                  >
+                    <img
+                      src={images[3]}
+                      alt={`More images`}
+                      className="w-full h-full object-contain opacity-60"
+                      onError={handleImageError}
+                    />
+                    <span className="absolute inset-0 flex items-center justify-center text-sm font-semibold bg-black/50 text-white">
+                      +{images.length - 4}
+                    </span>
+                  </button>
+                </>
+              );
+            }
+
+            return images.map((image: string, index: number) => (
+              <div
+                key={index}
+                className={`w-16 h-16 border cursor-pointer hover:border-primary ${
+                  index === activeImage ? "border-primary" : "border-gray-200"
+                }`}
+                onClick={() => {
+                  setActiveImage(index);
+                  if (viewMode !== "normal") setViewMode("normal");
+                }}
+              >
+                <img
+                  src={image}
+                  alt={`${name} thumbnail ${index + 1}`}
+                  className="w-full h-full object-contain"
+                  onError={handleImageError}
+                />
+              </div>
+            ));
           })()}
         </div>
 
