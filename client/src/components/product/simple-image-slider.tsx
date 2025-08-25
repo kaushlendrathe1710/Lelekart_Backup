@@ -21,6 +21,7 @@ export default function SimpleImageSlider({
   const [activeIndex, setActiveIndex] = useState(0);
   const [viewMode, setViewMode] = useState<"normal" | "zoom" | "360">("normal");
   const [isDragging, setIsDragging] = useState(false);
+  const [showAllThumbs, setShowAllThumbs] = useState(false);
 
   // Container ref for calculating dimensions
   const containerRef = useRef<HTMLDivElement>(null);
@@ -209,20 +210,55 @@ export default function SimpleImageSlider({
         {/* Thumbnails on the left */}
         <div className="flex flex-col gap-2 mr-4">
           {allImagesUrls.length > 0 ? (
-            allImagesUrls.map((image, index) => (
-              <div
-                key={`thumb-${index}`}
-                className={`w-16 h-16 border cursor-pointer hover:border-primary ${index === activeIndex ? "border-primary" : "border-gray-200"}`}
-                onClick={() => handleThumbnailClick(index)}
-              >
-                <img
-                  src={image}
-                  alt={`${name} thumbnail ${index + 1}`}
-                  className="w-full h-full object-contain"
-                  onError={handleImageError}
-                />
-              </div>
-            ))
+            allImagesUrls.length > 4 && !showAllThumbs ? (
+              <>
+                {allImagesUrls.slice(0, 3).map((image, index) => (
+                  <div
+                    key={`thumb-${index}`}
+                    className={`w-16 h-16 border cursor-pointer hover:border-primary ${index === activeIndex ? "border-primary" : "border-gray-200"}`}
+                    onClick={() => handleThumbnailClick(index)}
+                  >
+                    <img
+                      src={image}
+                      alt={`${name} thumbnail ${index + 1}`}
+                      className="w-full h-full object-contain"
+                      onError={handleImageError}
+                    />
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className="relative w-16 h-16 border border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 rounded"
+                  onClick={() => setShowAllThumbs(true)}
+                  aria-label={`Show ${allImagesUrls.length - 3} more images`}
+                >
+                  <img
+                    src={allImagesUrls[3]}
+                    alt="More images"
+                    className="w-full h-full object-contain opacity-60"
+                    onError={handleImageError}
+                  />
+                  <span className="absolute inset-0 flex items-center justify-center text-sm font-semibold bg-black/50 text-white">
+                    +{allImagesUrls.length - 4}
+                  </span>
+                </button>
+              </>
+            ) : (
+              allImagesUrls.map((image, index) => (
+                <div
+                  key={`thumb-${index}`}
+                  className={`w-16 h-16 border cursor-pointer hover:border-primary ${index === activeIndex ? "border-primary" : "border-gray-200"}`}
+                  onClick={() => handleThumbnailClick(index)}
+                >
+                  <img
+                    src={image}
+                    alt={`${name} thumbnail ${index + 1}`}
+                    className="w-full h-full object-contain"
+                    onError={handleImageError}
+                  />
+                </div>
+              ))
+            )
           ) : (
             <div className="w-16 h-16 border border-gray-200 flex items-center justify-center">
               <span className="text-xs text-gray-400">No images</span>
