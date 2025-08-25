@@ -29,6 +29,12 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { apiRequest } from "@/lib/queryClient";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  differenceInHours,
+  differenceInMinutes,
+  parseISO,
+  isValid,
+} from "date-fns";
 
 // Types
 interface Product {
@@ -60,7 +66,8 @@ interface Review {
   rating: number;
   title: string;
   review: string; // Changed from 'content' to 'review' to match database schema
-  verified: boolean;
+  verifiedPurchase: boolean;
+  status?: string; // 'published' | 'pending' | 'rejected'
   createdAt: string;
   updatedAt: string;
   product: Product;
@@ -94,9 +101,17 @@ export default function BuyerReviewsPage() {
     },
   });
 
-  // Filter reviews based on active tab
-  const pendingReviews = reviews.filter((review) => !review.verified);
-  const verifiedReviews = reviews.filter((review) => review.verified);
+  // Filter reviews based on status (fallback to verifiedPurchase boolean)
+  const pendingReviews = reviews.filter(
+    (review) =>
+      (review.status || (review.verifiedPurchase ? "published" : "pending")) ===
+      "pending"
+  );
+  const verifiedReviews = reviews.filter(
+    (review) =>
+      (review.status || (review.verifiedPurchase ? "published" : "pending")) ===
+      "published"
+  );
   const displayedReviews =
     activeTab === "pending"
       ? pendingReviews
@@ -228,6 +243,31 @@ export default function BuyerReviewsPage() {
         <span className="ml-2 text-sm font-medium">{rating}/5</span>
       </div>
     );
+  };
+
+  // Show human-readable pending duration since createdAt
+  const getPendingDuration = (createdAt: string) => {
+    // Safari/iOS-safe parsing: ensure ISO format and validate
+    const created = (() => {
+      try {
+        const parsed = parseISO(createdAt.replace(" ", "T"));
+        return isValid(parsed) ? parsed : new Date(createdAt);
+      } catch {
+        return new Date(createdAt);
+      }
+    })();
+    if (!isValid(created)) return "Just now";
+    const now = new Date();
+    const hours = differenceInHours(now, created);
+    if (hours < 1) {
+      const minutes = Math.max(1, differenceInMinutes(now, created));
+      return `${minutes} min ago`;
+    }
+    if (hours < 24) {
+      return `${hours} hr ago`;
+    }
+    const days = Math.floor(hours / 24);
+    return days === 1 ? "1 day ago" : `${days} days ago`;
   };
 
   // Helper for edit dialog star rating
@@ -387,7 +427,10 @@ export default function BuyerReviewsPage() {
           </Dialog>
 
           {/* Delete Confirmation Dialog */}
-          <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <Dialog
+            open={isDeleteDialogOpen}
+            onOpenChange={setIsDeleteDialogOpen}
+          >
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Delete Review</DialogTitle>
@@ -505,18 +548,43 @@ export default function BuyerReviewsPage() {
                 </div>
               </div>
 
-              {/* Rating and Verified Badge */}
+              {/* Rating, Status, and Verified chips */}
               <div className="flex items-center gap-3">
                 {renderStars(review.rating)}
-                {review.verified ? (
+                {(() => {
+                  const status =
+                    review.status ||
+                    (review.verifiedPurchase ? "published" : "pending");
+                  if (status === "pending") {
+                    return (
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-orange-100 text-orange-800 flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          Pending Approval
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {getPendingDuration(review.createdAt)}
+                        </span>
+                      </div>
+                    );
+                  }
+                  if (status === "rejected") {
+                    return (
+                      <Badge className="bg-red-100 text-red-800">
+                        Rejected
+                      </Badge>
+                    );
+                  }
+                  return (
+                    <Badge className="bg-blue-100 text-blue-800">
+                      Published
+                    </Badge>
+                  );
+                })()}
+                {review.verifiedPurchase && (
                   <Badge className="bg-green-100 text-green-800 flex items-center gap-1">
                     <CheckCircle2 className="h-3 w-3" />
                     Verified Purchase
-                  </Badge>
-                ) : (
-                  <Badge className="bg-orange-100 text-orange-800 flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    Pending Verification
                   </Badge>
                 )}
               </div>
@@ -525,6 +593,14 @@ export default function BuyerReviewsPage() {
               <div>
                 <h4 className="font-semibold text-base">{review.title}</h4>
                 <p className="text-muted-foreground mt-1">{review.review}</p>
+                {(review.status ||
+                  (review.verifiedPurchase ? "published" : "pending")) ===
+                  "pending" && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Your review is under moderation. It will be approved within
+                    24–48 hours if it complies with our terms and conditions.
+                  </p>
+                )}
               </div>
 
               {/* Review Images if any */}

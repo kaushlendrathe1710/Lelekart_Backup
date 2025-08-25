@@ -61,6 +61,8 @@ const StarRatingInput = ({
           onMouseEnter={() => setHoverRating(star)}
           onMouseLeave={() => setHoverRating(0)}
           className="focus:outline-none"
+          aria-label={`Rate ${star} ${star === 1 ? "star" : "stars"}`}
+          title={`Rate ${star} ${star === 1 ? "star" : "stars"}`}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -140,7 +142,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) => {
       toast({
         title: "Review submitted",
         description:
-          "Thank you for your review! You earned 50 reward points for writing this review.",
+          "Thanks for your review! It will be reviewed within 24–48 hours per our terms. You'll also earn 50 reward points.",
       });
 
       // Reset form
@@ -232,7 +234,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) => {
                 <FormLabel>Add Images (Optional)</FormLabel>
                 {/* File upload option */}
                 <FileUpload
-                  onChange={(urls) => {
+                  onChange={(urls: string | string[]) => {
                     const urlArray = Array.isArray(urls)
                       ? urls
                       : urls
@@ -240,9 +242,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, onSuccess }) => {
                         : [];
                     setUploadedImageUrls(urlArray);
                   }}
-                  value={
-                    uploadedImageUrls.length > 0 ? uploadedImageUrls : undefined
-                  }
+                  value={undefined as unknown as string}
                   multiple
                   showMediaLibrary
                   label="Upload or select images"
