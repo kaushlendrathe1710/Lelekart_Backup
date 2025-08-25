@@ -418,6 +418,24 @@ export default function AdminOrders() {
     }
   };
 
+  // Helper to get a product image URL with graceful fallbacks
+  function getProductImageUrl(product: AdminProduct): string {
+    if (product?.image) return product.image as unknown as string;
+    if (product?.imageUrl) return product.imageUrl;
+    if (product?.image_url) return product.image_url;
+    if (product?.images) {
+      try {
+        const imagesArray = JSON.parse(product.images as unknown as string);
+        if (Array.isArray(imagesArray) && imagesArray.length > 0) {
+          return imagesArray[0];
+        }
+      } catch {
+        return product.images as unknown as string;
+      }
+    }
+    return "https://placehold.co/100x100?text=No+Image";
+  }
+
   // Print invoice using same API as buyer/seller (HTML format)
   const printInvoice = async () => {
     if (!viewOrder) return;
@@ -1179,11 +1197,29 @@ export default function AdminOrders() {
                       >
                         <img
                           src={
-                            item.product.image ||
-                            "https://placehold.co/100x100?text=No+Image"
+                            item.variant?.images
+                              ? (() => {
+                                  try {
+                                    const imgs = JSON.parse(
+                                      item.variant!.images as unknown as string
+                                    );
+                                    return (
+                                      imgs[0] ||
+                                      getProductImageUrl(item.product)
+                                    );
+                                  } catch {
+                                    return getProductImageUrl(item.product);
+                                  }
+                                })()
+                              : getProductImageUrl(item.product)
                           }
                           alt={item.product.name}
-                          className="w-16 h-16 object-cover rounded"
+                          className="w-16 h-16 object-cover rounded bg-[#EADDCB]"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src =
+                              "https://placehold.co/100x100?text=No+Image";
+                          }}
                         />
                         <div className="flex-1">
                           <h4 className="font-medium">{item.product.name}</h4>
