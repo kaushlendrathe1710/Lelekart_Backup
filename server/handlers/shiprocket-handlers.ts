@@ -707,11 +707,10 @@ export async function getShiprocketCouriers(req: Request, res: Response) {
       }
     }
 
-    // If no orderId provided, return error
-    return res.status(400).json({
-      error: "Order ID required",
-      message: "Please provide an order ID to get courier rates",
-      code: "ORDER_ID_REQUIRED",
+    // If no orderId provided, return a safe empty response to avoid frontend error popups
+    return res.status(200).json({
+      couriers: [],
+      recommended_courier_company_id: null,
     });
   } catch (error: any) {
     console.error("Error in getShiprocketCouriers handler:", error);
@@ -1075,11 +1074,10 @@ export async function autoShipWithShiprocket(req: Request, res: Response) {
           });
 
           // Find the default courier in available couriers
-          const defaultCourier =
-            courierRates.data.available_courier_companies.find(
-              (c: any) =>
-                c.courier_company_id === parseInt(setting.defaultCourier || "0")
-            );
+          const defaultCourier = courierRates.couriers.find(
+            (c: any) =>
+              c.courier_company_id === parseInt(setting.defaultCourier || "0")
+          );
 
           if (!defaultCourier) {
             shipResults.push({
@@ -1121,7 +1119,7 @@ export async function autoShipWithShiprocket(req: Request, res: Response) {
                 shippingStatus: "processing",
                 status: "shipped",
                 awbCode:
-                  awbResponse.data.awb_code || defaultCourier.awb_code || null,
+                  awbResponse.data?.awb_code || defaultCourier.awb_code || null,
                 courierName: defaultCourier.courier_name,
                 estimatedDeliveryDate: defaultCourier.etd
                   ? new Date(defaultCourier.etd)
@@ -1136,7 +1134,7 @@ export async function autoShipWithShiprocket(req: Request, res: Response) {
               shiprocketOrderId: response.data.order_id.toString(),
               shiprocketShipmentId: response.data.shipment_id.toString(),
               awbCode:
-                awbResponse.data.awb_code || defaultCourier.awb_code || null,
+                awbResponse.data?.awb_code || defaultCourier.awb_code || null,
             });
 
             successCount++;
