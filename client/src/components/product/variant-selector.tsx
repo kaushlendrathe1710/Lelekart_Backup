@@ -455,21 +455,30 @@ export function VariantSelector({
     const hasSizeVariants = availableSizes.length > 0;
 
     // Determine if the selection is valid based on what variants are available
-    const isValidSelection =
-      !hasColorVariants || (hasColorVariants && selectedColor !== null);
+    let isValidSelection = true;
+
+    // If colors are available, a color must be selected
+    if (hasColorVariants && !selectedColor) {
+      isValidSelection = false;
+    }
+
+    // If sizes are available for the selected color, a size must be selected
+    if (availableSizes.length > 0 && selectedColor && !selectedSize) {
+      isValidSelection = false;
+    }
 
     // Add debug logging to help identify selection issues
-    console.log("Variant selection state:", {
-      hasColorVariants,
-      hasSizeVariants,
-      selectedColor,
-      selectedSize,
-      isValidSelection,
-    });
+    // console.log("Variant selection state:", {
+    //   hasColorVariants,
+    //   hasSizeVariants,
+    //   selectedColor,
+    //   selectedSize,
+    //   isValidSelection,
+    // });
 
     // Update parent component with validation state if the callback exists
     if (onValidSelectionChange) {
-      onValidSelectionChange(Boolean(isValidSelection));
+      onValidSelectionChange(isValidSelection);
     }
 
     // If size is selected, hide size error
@@ -495,14 +504,19 @@ export function VariantSelector({
     let matchedVariant: ProductVariant | null = null;
 
     if (selectedColor) {
-      const variantsWithColor = variants.filter(
-        (v) =>
-          colorMatches(v.color, selectedColor) &&
-          typeof v.stock === "number" &&
-          v.stock > 0
-      );
+      const variantsWithColor =
+        selectedColor === "Default"
+          ? // Size-only products: consider all in-stock variants
+            variants.filter((v) => typeof v.stock === "number" && v.stock > 0)
+          : // Color + size products: filter by exact color match and in-stock
+            variants.filter(
+              (v) =>
+                colorMatches(v.color, selectedColor) &&
+                typeof v.stock === "number" &&
+                v.stock > 0
+            );
 
-      if (hasSizeVariants) {
+      if (availableSizes.length > 0) {
         if (selectedSize) {
           // If size is selected, find the exact match
           matchedVariant =
@@ -532,7 +546,16 @@ export function VariantSelector({
     }
 
     // Update validity based on whether a variant was successfully matched
-    onValidSelectionChange(!!matchedVariant);
+    // Only update if we have a matched variant, otherwise keep the previous validation state
+    if (matchedVariant) {
+      onValidSelectionChange(true);
+    } else if (availableSizes.length > 0 && selectedColor && !selectedSize) {
+      // If sizes are available but not selected, mark as invalid
+      onValidSelectionChange(false);
+    } else if (hasColorVariants && !selectedColor) {
+      // If colors are available but not selected, mark as invalid
+      onValidSelectionChange(false);
+    }
 
     // If we have a matched variant, update images
     if (matchedVariant) {
