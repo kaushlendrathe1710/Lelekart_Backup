@@ -46,6 +46,12 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
+  const goToDealProduct = () => {
+    if (dealOfTheDay?.productId) {
+      navigate(`/product/${dealOfTheDay.productId}`);
+    }
+  };
+
   // Helper function to get category-specific image
   const getCategoryImage = (category?: string) => {
     if (category) {
@@ -371,6 +377,8 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
                 className={`w-3 h-3 rounded-full border-2 border-yellow-400 ${
                   index === currentSlide ? "bg-orange-400" : "bg-yellow-200"
                 }`}
+                aria-label={`Go to slide ${index + 1}`}
+                title={`Go to slide ${index + 1}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   goToSlide(index);
@@ -395,7 +403,13 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
           <div className="container mx-auto px-4">
             <div className="bg-[#F8F5E4] rounded-2xl shadow-2xl p-8 flex flex-col md:flex-row items-center justify-center border border-[#e0c9a6]">
               {/* Left side - Deal info */}
-              <div className="md:w-2/3 w-full mb-8 md:mb-0 md:pr-12 text-center">
+              <div
+                className="md:w-2/3 w-full mb-8 md:mb-0 md:pr-12 text-center"
+                onClick={goToDealProduct}
+                style={{
+                  cursor: dealOfTheDay?.productId ? "pointer" : undefined,
+                }}
+              >
                 <div className="flex items-center mb-4 justify-center">
                   <span className="bg-yellow-400 text-black text-xs font-bold px-3 py-1 rounded mr-4 tracking-wide shadow-sm">
                     DEAL OF THE DAY
@@ -447,7 +461,13 @@ export function HeroSection({ sliderImages, dealOfTheDay }: HeroSectionProps) {
                 </Button>
               </div>
               {/* Right side - Deal image */}
-              <div className="md:w-1/3 w-full flex items-center justify-center">
+              <div
+                className="md:w-1/3 w-full flex items-center justify-center"
+                onClick={goToDealProduct}
+                style={{
+                  cursor: dealOfTheDay?.productId ? "pointer" : undefined,
+                }}
+              >
                 <div className="bg-[#F8F5E4] rounded-2xl shadow-xl p-2 flex items-center justify-center border border-[#e0c9a6]">
                   <img
                     src={dealOfTheDay.image}
