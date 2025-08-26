@@ -4,13 +4,18 @@
 function getTaxInvoiceTemplate(): string {
   try {
     // First try to load the template from the filesystem
-    const template = fs.readFileSync('flipkart_style_invoice_template.html', 'utf8');
-    console.log('Using Flipkart-style tax invoice template from filesystem');
+    const template = fs.readFileSync(
+      "flipkart_style_invoice_template.html",
+      "utf8"
+    );
+    console.log("Using Flipkart-style tax invoice template from filesystem");
     return template;
   } catch (error) {
     // If file read fails, return the default template
-    console.warn('Flipkart-style template not found in filesystem, using default template');
-    
+    console.warn(
+      "Flipkart-style template not found in filesystem, using default template"
+    );
+
     return `<!DOCTYPE html>
       <html>
       <head>
@@ -22,7 +27,7 @@ function getTaxInvoiceTemplate(): string {
             font-size: 12px;
             color: #333;
             margin: 0;
-            padding: 10px;
+            padding: 0; /* remove outer padding to avoid extra bottom gap */
           }
           .invoice-container {
             width: 100%;
@@ -98,8 +103,8 @@ function getTaxInvoiceTemplate(): string {
             text-align: right;
           }
           .signature-section {
-            margin-top: 30px;
-            padding: 10px;
+            margin-top: 16px;
+            padding: 10px 10px 6px; /* reduce bottom padding */
             font-size: 11px;
             text-align: right;
             border-top: 1px solid #ccc;
@@ -110,7 +115,7 @@ function getTaxInvoiceTemplate(): string {
           .totals-section {
             display: flex;
             justify-content: flex-end;
-            padding: 10px;
+            padding: 10px 10px 6px; /* reduce bottom padding */
             font-size: 11px;
             border-top: 1px solid #ccc;
           }
@@ -135,7 +140,7 @@ function getTaxInvoiceTemplate(): string {
             border-top: 1px solid #ccc;
           }
           .invoice-footer {
-            padding: 10px;
+            padding: 8px 10px 6px; /* reduce bottom padding */
             font-size: 10px;
             text-align: center;
             color: #666;

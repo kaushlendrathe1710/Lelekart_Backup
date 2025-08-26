@@ -27,7 +27,7 @@ const PDF_OPTIONS = {
   margin: {
     top: "5mm",
     right: "5mm",
-    bottom: "5mm",
+    bottom: "0mm", // remove extra bottom page margin
     left: "5mm",
   },
   printBackground: true,
@@ -40,7 +40,7 @@ const HALF_A4_PDF_OPTIONS = {
   margin: {
     top: "3mm",
     right: "3mm",
-    bottom: "3mm",
+    bottom: "0mm",
     left: "3mm",
   },
   printBackground: true,
