@@ -3,6 +3,7 @@ import axios from "axios";
 import { storage } from "../storage";
 import { db } from "../db";
 import { shiprocketSettings, orders } from "@shared/schema";
+import { returnRequests } from "@shared/return-schema";
 import { eq, inArray, not, and, isNull, desc, sql } from "drizzle-orm";
 
 const SHIPROCKET_API_BASE = "https://apiv2.shiprocket.in/v1/external";
@@ -610,6 +611,8 @@ export async function getShiprocketCouriers(req: Request, res: Response) {
 
     // Get order details from request if provided
     const { orderId } = req.query;
+    const isReturn =
+      String(req.query.return || req.query.is_return || "0") === "1";
     let courierRates = null;
 
     if (orderId) {
@@ -638,10 +641,24 @@ export async function getShiprocketCouriers(req: Request, res: Response) {
           });
         }
 
-        // Get shipping address
+        // Get shipping address (customer) and seller pickup address
         const address = order.addressId
           ? await storage.getUserAddress(order.addressId)
           : null;
+        let sellerPickup: any = null;
+        try {
+          const firstItem = orderItems[0];
+          const sellerId = firstItem?.product?.sellerId;
+          if (sellerId) {
+            const sellerSettings = await storage.getSellerSettings(sellerId);
+            if (sellerSettings?.pickupAddress) {
+              sellerPickup =
+                typeof sellerSettings.pickupAddress === "string"
+                  ? JSON.parse(sellerSettings.pickupAddress)
+                  : sellerSettings.pickupAddress;
+            }
+          }
+        } catch {}
 
         if (!address) {
           return res.status(400).json({
@@ -677,15 +694,30 @@ export async function getShiprocketCouriers(req: Request, res: Response) {
 
         // Get courier rates
         try {
-          courierRates = await getCourierRates(token, {
-            shipping_pincode: address.pincode,
-            weight: totalWeight / 1000, // Convert to kg
+          // For returns, pickup is customer's pincode and delivery is seller warehouse.
+          // getCourierRates expects shipping_pincode and derives pickup from sellerId; so we pass swapped values by overriding
+          const basePayload: any = {
+            shipping_pincode: address?.pincode,
+            weight: totalWeight / 1000,
             length: maxLength || 10,
             breadth: maxWidth || 10,
             height: maxHeight || 10,
             payment_method: order.paymentMethod,
-            sellerId: orderItems[0]?.product?.sellerId, // Pass seller ID from first product
-          });
+            sellerId: orderItems[0]?.product?.sellerId,
+          };
+
+          if (isReturn) {
+            // When return, we want pickup_postcode = customer, delivery_postcode = seller.
+            // The helper getCourierRates builds pickup from sellerId and uses shipping_pincode as delivery.
+            // So we temporarily swap: pass seller's pincode as shipping to invert inside helper, and carry a flag.
+            basePayload.shipping_pincode =
+              sellerPickup?.pincode || address?.pincode;
+            basePayload.is_return = 1;
+            basePayload.qc_check = 0;
+            // Also attach a hint couriers_type if needed; keeping default.
+          }
+
+          courierRates = await getCourierRates(token, basePayload);
 
           // Return the processed courier data directly
           return res.status(200).json(courierRates);
@@ -1247,6 +1279,372 @@ export async function getShiprocketOrders(req: Request, res: Response) {
     return res.status(200).json(ordersWithDetails);
   } catch (error) {
     console.error("Error getting Shiprocket orders:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+/**
+ * Get pending return requests that need Shiprocket courier assignment
+ */
+export async function getPendingShiprocketReturns(req: Request, res: Response) {
+  try {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    const page = parseInt((req.query.page as string) || "1");
+    const limit = parseInt((req.query.limit as string) || "10");
+    const offset = (page - 1) * limit;
+
+    // Consider returns that are marked/pending/approved/processing and not yet shipped back
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(returnRequests)
+      .where(
+        and(
+          inArray(returnRequests.status, [
+            "marked_for_return",
+            "pending",
+            "approved",
+            "processing",
+          ]),
+          isNull(returnRequests.shiprocketReturnShipmentId as any)
+        )
+      );
+
+    const rows = await db
+      .select()
+      .from(returnRequests)
+      .where(
+        and(
+          inArray(returnRequests.status, [
+            "marked_for_return",
+            "pending",
+            "approved",
+            "processing",
+          ]),
+          isNull(returnRequests.shiprocketReturnShipmentId as any)
+        )
+      )
+      .limit(limit)
+      .offset(offset)
+      .orderBy(desc(returnRequests.createdAt));
+
+    // Enrich minimal details for UI (order, item, buyer)
+    const enriched = await Promise.all(
+      rows.map(async (rr: any) => {
+        const order = await storage.getOrder(rr.orderId);
+        const items = await storage.getOrderItems(rr.orderId);
+        const orderItem = items.find((i: any) => i.id === rr.orderItemId);
+        const buyer = await storage.getUser(rr.buyerId);
+        const address = order?.addressId
+          ? await storage.getUserAddress(order.addressId)
+          : null;
+        return {
+          ...rr,
+          orderTotal: order?.total ?? null,
+          productName: orderItem?.product?.name ?? null,
+          buyerName: buyer?.name ?? buyer?.username ?? null,
+          shippingAddress: address
+            ? {
+                address: address.address,
+                city: address.city,
+                state: address.state,
+                pincode: address.pincode,
+                phone: address.phone,
+              }
+            : null,
+        };
+      })
+    );
+
+    return res.status(200).json({
+      returns: enriched,
+      total: count,
+      page,
+      limit,
+      totalPages: Math.ceil(count / limit),
+    });
+  } catch (error) {
+    console.error("Error getting pending Shiprocket returns:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+/**
+ * Create Shiprocket return order and optionally assign courier
+ */
+export async function shipReturnWithShiprocket(req: Request, res: Response) {
+  try {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    const { returnRequestId, courierCompany } = req.body as {
+      returnRequestId: number;
+      courierCompany?: string;
+    };
+    if (!returnRequestId) {
+      return res.status(400).json({ error: "returnRequestId is required" });
+    }
+
+    // Load return and order
+    const rr = await storage.getReturnRequestById(returnRequestId);
+    if (!rr) return res.status(404).json({ error: "Return request not found" });
+
+    const order = await storage.getOrder(rr.orderId);
+    if (!order) return res.status(404).json({ error: "Order not found" });
+
+    const items = await storage.getOrderItems(rr.orderId);
+    let address = order.addressId
+      ? await storage.getUserAddress(order.addressId)
+      : null;
+    const buyer = await storage.getUser(order.userId);
+    if (!buyer) {
+      return res.status(400).json({ error: "Missing buyer details" });
+    }
+
+    const token = await getShiprocketToken();
+    if (!token) return res.status(400).json({ error: "Token unavailable" });
+
+    // Build Shiprocket return shipment payload (reverse pickup)
+    const normalizeAddress = (raw: any) => {
+      if (!raw) return null as any;
+      const primary =
+        raw.address ||
+        raw.address1 ||
+        raw.address_1 ||
+        raw.line1 ||
+        raw.addressLine1;
+      const secondary =
+        raw.address_2 || raw.address2 || raw.line2 || raw.addressLine2 || "";
+      const city = raw.city || raw.town || raw.district || "";
+      const pincode =
+        raw.pincode || raw.postcode || raw.zip || raw.zipcode || "";
+      const state = raw.state || raw.province || raw.region || "";
+      const country = raw.country || "India";
+      const phone = raw.phone || raw.phoneNumber || raw.mobile || "";
+      return {
+        address: primary || "",
+        address_2: secondary,
+        city,
+        pincode,
+        state,
+        country,
+        phone,
+      } as any;
+    };
+    // Product weight is stored in kilograms in our catalog. Do not convert again.
+    const totalWeightKg = Math.max(
+      (
+        await Promise.all(
+          items.map(async (it: any) => {
+            const p = await storage.getProduct(it.productId);
+            const weightKg = parseFloat(p?.weight as any) || 0.5;
+            return weightKg * it.quantity;
+          })
+        )
+      ).reduce((a, b) => a + b, 0),
+      0.5
+    );
+
+    // Determine seller pickup/warehouse address (delivery endpoint for reverse)
+    let sellerPickup: any = null;
+    try {
+      const firstItem = items[0];
+      const sellerId = firstItem?.product?.sellerId;
+      if (sellerId) {
+        const sellerSettings = await storage.getSellerSettings(sellerId);
+        if (sellerSettings?.pickupAddress) {
+          sellerPickup =
+            typeof sellerSettings.pickupAddress === "string"
+              ? JSON.parse(sellerSettings.pickupAddress)
+              : sellerSettings.pickupAddress;
+        }
+      }
+    } catch {}
+    if (!sellerPickup) {
+      const settings = await db
+        .select()
+        .from(shiprocketSettings)
+        .orderBy(shiprocketSettings.id);
+      const setting = settings[0];
+      sellerPickup = (setting as any)?.pickupAddress
+        ? typeof (setting as any).pickupAddress === "string"
+          ? JSON.parse((setting as any).pickupAddress)
+          : (setting as any).pickupAddress
+        : {
+            address: "LeleKart Warehouse",
+            city: "Ludhiana",
+            state: "Punjab",
+            country: "India",
+            pincode: "140601",
+            phone: (buyer as any)?.phone || (address as any)?.phone || "",
+          };
+    }
+
+    // Normalize addresses to ensure required keys exist
+    sellerPickup = normalizeAddress(sellerPickup) || {
+      address: "",
+      address_2: "",
+      city: "",
+      pincode: "",
+      state: "",
+      country: "India",
+      phone: "",
+    };
+    address = normalizeAddress(address);
+
+    // Fallback used for pickup_* fields if buyer address not present
+    const pickupFrom = address || sellerPickup;
+
+    const payload: any = {
+      order_id: `RET-${rr.id}`,
+      order_date: new Date().toISOString().split("T")[0],
+      comment: `Return for order ${order.id}`,
+      pickup_location:
+        sellerPickup.pickup_location || sellerPickup.name || "Primary",
+      pickup_customer_name: buyer.name || buyer.username,
+      pickup_last_name: "",
+      pickup_address: pickupFrom.address,
+      pickup_address_2: pickupFrom.address_2 || "",
+      pickup_city: pickupFrom.city,
+      pickup_pincode: pickupFrom.pincode,
+      pickup_state: pickupFrom.state,
+      pickup_country: "India",
+      pickup_email: buyer.email,
+      pickup_phone: buyer.phone || pickupFrom.phone,
+      // For reverse shipments, shipping_* should reflect the customer's address
+      shipping_customer_name: buyer.name || buyer.username,
+      shipping_last_name: "",
+      shipping_address: pickupFrom.address,
+      shipping_address_2: pickupFrom.address_2 || "",
+      shipping_city: pickupFrom.city,
+      shipping_pincode: pickupFrom.pincode,
+      shipping_state: pickupFrom.state,
+      shipping_country: pickupFrom.country || "India",
+      shipping_email: buyer.email,
+      shipping_phone: buyer.phone || pickupFrom.phone,
+      delivery_customer_name: "Warehouse",
+      delivery_last_name: "",
+      delivery_address: sellerPickup.address || pickupFrom.address,
+      delivery_address_2: sellerPickup.address_2 || "",
+      delivery_city: sellerPickup.city || pickupFrom.city,
+      delivery_pincode: sellerPickup.pincode || pickupFrom.pincode,
+      delivery_state: sellerPickup.state || pickupFrom.state,
+      delivery_country: sellerPickup.country || "India",
+      delivery_email: buyer.email,
+      delivery_phone: sellerPickup.phone || buyer.phone || pickupFrom.phone,
+      order_items: items.map((it: any) => ({
+        name: it.product?.name || `Product ID: ${it.productId}`,
+        sku: `SKU-${it.productId}`,
+        units: it.quantity,
+        selling_price: it.price,
+      })),
+      payment_method: order.paymentMethod === "cod" ? "COD" : "Prepaid",
+      sub_total: order.total,
+      length: 10,
+      breadth: 10,
+      height: 10,
+      weight: totalWeightKg,
+    };
+
+    // Debug log for visibility (sanitized)
+    try {
+      console.log("Shiprocket Return Payload:", {
+        order_id: payload.order_id,
+        pickup_pincode: payload.pickup_pincode,
+        shipping_pincode: payload.shipping_pincode,
+        delivery_pincode: payload.delivery_pincode,
+        weight: payload.weight,
+        pickup_location: payload.pickup_location,
+      });
+    } catch {}
+
+    const createResp = await axios.post(
+      `${SHIPROCKET_API_BASE}/shipments/create/return-shipment`,
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const srRaw = createResp.data || {};
+    const sr = srRaw.payload ? srRaw.payload : srRaw;
+
+    if (!sr?.order_id) {
+      console.error("Shiprocket return creation failed:", createResp.data);
+      return res.status(400).json({
+        error: "Failed to create return in Shiprocket",
+        details: createResp.data,
+        errors:
+          (createResp.data &&
+            (createResp.data.errors || createResp.data.message)) ||
+          undefined,
+      });
+    }
+
+    let awbCode: string | null = null;
+    let courierName: string | null = null;
+
+    if (courierCompany) {
+      try {
+        const awbResp = await assignAWB(token, sr.shipment_id, courierCompany);
+        awbCode = awbResp?.data?.awb_code || null;
+      } catch (e: any) {
+        const msg: string = e?.response?.data?.message || e?.message || "";
+        if (msg && msg.toLowerCase().includes("awb is already assigned")) {
+          const match = msg.match(/awb\s*-?\s*([A-Za-z0-9]+)/i);
+          if (match && match[1]) awbCode = match[1];
+          console.warn("AWB already assigned, proceeding:", msg);
+        } else {
+          throw e;
+        }
+      }
+      // Try to generate pickup as well
+      try {
+        await axios.post(
+          `${SHIPROCKET_API_BASE}/courier/generate/pickup`,
+          { shipment_id: [sr.shipment_id] },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+      } catch (_) {}
+    }
+
+    // Persist on return request
+    const [updated] = await db
+      .update(returnRequests)
+      .set({
+        shiprocketReturnOrderId: sr.order_id.toString(),
+        shiprocketReturnShipmentId: sr.shipment_id.toString(),
+        returnAwbCode: awbCode,
+        returnCourierName: courierName || undefined,
+        status: "processing",
+        updatedAt: new Date(),
+      } as any)
+      .where(eq(returnRequests.id, returnRequestId))
+      .returning();
+
+    return res.status(200).json(updated);
+  } catch (error: any) {
+    console.error(
+      "Error shipping return with Shiprocket:",
+      error?.response?.data || error
+    );
     return res.status(500).json({ error: "Internal server error" });
   }
 }

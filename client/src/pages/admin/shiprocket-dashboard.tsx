@@ -1,4 +1,4 @@
-import React, { useState, Suspense, lazy } from "react";
+import React, { useState, Suspense, lazy, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
@@ -34,6 +34,7 @@ import ShiprocketErrorDisplay from "@/components/shiprocket/shiprocket-error-dis
 
 // Lazy-load the shipment components for better initial loading performance
 const PendingShipments = lazy(() => import("./shiprocket-pending-shipments"));
+const PendingReturns = lazy(() => import("./shiprocket-pending-returns"));
 const ShiprocketShipments = lazy(() => import("./shiprocket-shipments"));
 
 const ShiprocketDashboardContent = () => {
@@ -120,11 +121,6 @@ const ShiprocketDashboardContent = () => {
         throw error;
       }
     },
-    onSuccess: (data) => {
-      setEmail(data.email || "");
-      setDefaultCourier(data.defaultCourier || "");
-      setAutoShipEnabled(data.autoShipEnabled || false);
-    },
     retry: (failureCount, error) => {
       // Don't retry if we get HTML response
       if (
@@ -139,6 +135,14 @@ const ShiprocketDashboardContent = () => {
       return failureCount < 2;
     },
   });
+
+  useEffect(() => {
+    if (settings) {
+      setEmail(settings.email || "");
+      setDefaultCourier(settings.defaultCourier || "");
+      setAutoShipEnabled(settings.autoShipEnabled || false);
+    }
+  }, [settings]);
 
   // Save Shiprocket settings
   const saveSettingsMutation = useMutation({
@@ -350,6 +354,13 @@ const ShiprocketDashboardContent = () => {
             <TabsTrigger value="pending" className="flex items-center gap-2">
               <TruckIcon size={16} />
               Pending Shipments
+            </TabsTrigger>
+            <TabsTrigger
+              value="pending_returns"
+              className="flex items-center gap-2"
+            >
+              <TruckIcon size={16} />
+              Pending Returns
             </TabsTrigger>
             <TabsTrigger value="shipped" className="flex items-center gap-2">
               <Check size={16} />
@@ -573,6 +584,19 @@ const ShiprocketDashboardContent = () => {
               }
             >
               {activeTab === "pending" && <PendingShipments />}
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="pending_returns">
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center h-64">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <span className="ml-2">Loading pending returns...</span>
+                </div>
+              }
+            >
+              {activeTab === "pending_returns" && <PendingReturns />}
             </Suspense>
           </TabsContent>
 

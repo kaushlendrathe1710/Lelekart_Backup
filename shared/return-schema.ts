@@ -1,10 +1,20 @@
 /**
  * Return Management Schema
- * 
+ *
  * This file contains database schemas and types for the return management system.
  */
 
-import { pgTable, serial, integer, varchar, text, boolean, timestamp, jsonb, decimal } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  serial,
+  integer,
+  varchar,
+  text,
+  boolean,
+  timestamp,
+  jsonb,
+  decimal,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { users } from "./schema";
@@ -15,7 +25,7 @@ import { users } from "./schema";
 export enum ReturnRequestType {
   REFUND = "refund",
   RETURN = "return",
-  REPLACEMENT = "replacement"
+  REPLACEMENT = "replacement",
 }
 
 /**
@@ -30,7 +40,7 @@ export enum ReturnStatus {
   RETURN_RECEIVED = "return_received",
   REPLACEMENT_SHIPPED = "replacement_shipped",
   COMPLETED = "completed",
-  CANCELLED = "cancelled"
+  CANCELLED = "cancelled",
 }
 
 /**
@@ -39,7 +49,7 @@ export enum ReturnStatus {
 export enum SenderRole {
   BUYER = "buyer",
   SELLER = "seller",
-  ADMIN = "admin"
+  ADMIN = "admin",
 }
 
 /**
@@ -48,7 +58,7 @@ export enum SenderRole {
 export enum ReturnReasonCategory {
   RETURN = "return",
   REFUND = "refund",
-  REPLACEMENT = "replacement"
+  REPLACEMENT = "replacement",
 }
 
 /**
@@ -61,7 +71,7 @@ export const returnReasons = pgTable("return_reasons", {
   displayOrder: integer("display_order").default(0),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow()
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 /**
@@ -72,7 +82,9 @@ export const returnPolicies = pgTable("return_policies", {
   sellerId: integer("seller_id").references(() => users.id),
   categoryId: integer("category_id"),
   returnWindowDays: integer("return_window_days").notNull().default(7),
-  replacementWindowDays: integer("replacement_window_days").notNull().default(7),
+  replacementWindowDays: integer("replacement_window_days")
+    .notNull()
+    .default(7),
   refundWindowDays: integer("refund_window_days").notNull().default(7),
   policyText: text("policy_text"),
   nonReturnableItems: jsonb("non_returnable_items"),
@@ -81,7 +93,7 @@ export const returnPolicies = pgTable("return_policies", {
   shippingPaidBy: varchar("shipping_paid_by", { length: 20 }).default("seller"),
   conditionalRules: jsonb("conditional_rules").default({}),
   createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow()
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 /**
@@ -92,9 +104,13 @@ export const returnRequests = pgTable("return_requests", {
   orderId: integer("order_id").notNull(),
   orderItemId: integer("order_item_id"),
   sellerId: integer("seller_id").references(() => users.id),
-  buyerId: integer("buyer_id").notNull().references(() => users.id),
+  buyerId: integer("buyer_id")
+    .notNull()
+    .references(() => users.id),
   requestType: varchar("request_type", { length: 20 }).notNull(),
-  reasonId: integer("reason_id").notNull().references(() => returnReasons.id),
+  reasonId: integer("reason_id")
+    .notNull()
+    .references(() => returnReasons.id),
   customReason: text("custom_reason"),
   description: text("description"),
   status: varchar("status", { length: 20 }).notNull().default("pending"),
@@ -110,11 +126,21 @@ export const returnRequests = pgTable("return_requests", {
   returnTracking: jsonb("return_tracking").default({}),
   replacementTracking: jsonb("replacement_tracking").default({}),
   replacementOrderId: integer("replacement_order_id"),
+  // Shiprocket return shipment fields
+  shiprocketReturnOrderId: varchar("shiprocket_return_order_id", {
+    length: 255,
+  }),
+  shiprocketReturnShipmentId: varchar("shiprocket_return_shipment_id", {
+    length: 255,
+  }),
+  returnAwbCode: varchar("return_awb_code", { length: 255 }),
+  returnCourierName: varchar("return_courier_name", { length: 255 }),
+  returnEstimatedPickupDate: timestamp("return_estimated_pickup_date"),
   pickupDate: timestamp("pickup_date"),
   returnReceivedDate: timestamp("return_received_date"),
   returnCondition: varchar("return_condition", { length: 20 }),
   createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow()
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 /**
@@ -125,12 +151,14 @@ export const returnMessages = pgTable("return_messages", {
   returnRequestId: integer("return_request_id")
     .notNull()
     .references(() => returnRequests.id, { onDelete: "cascade" }),
-  senderId: integer("sender_id").notNull().references(() => users.id),
+  senderId: integer("sender_id")
+    .notNull()
+    .references(() => users.id),
   senderRole: varchar("sender_role", { length: 20 }).notNull(),
   message: text("message").notNull(),
   mediaUrls: jsonb("media_urls").default([]),
   read: boolean("read").default(false),
-  createdAt: timestamp("created_at").defaultNow()
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 /**
@@ -143,17 +171,29 @@ export const returnStatusHistory = pgTable("return_status_history", {
     .references(() => returnRequests.id, { onDelete: "cascade" }),
   previousStatus: varchar("previous_status", { length: 20 }),
   newStatus: varchar("new_status", { length: 20 }).notNull(),
-  changedById: integer("changed_by").notNull().references(() => users.id),
+  changedById: integer("changed_by")
+    .notNull()
+    .references(() => users.id),
   notes: text("notes"),
-  createdAt: timestamp("created_at").defaultNow()
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Zod validation schemas for insertions
-export const insertReturnReasonSchema = createInsertSchema(returnReasons).omit({ id: true });
-export const insertReturnPolicySchema = createInsertSchema(returnPolicies).omit({ id: true });
-export const insertReturnRequestSchema = createInsertSchema(returnRequests).omit({ id: true });
-export const insertReturnMessageSchema = createInsertSchema(returnMessages).omit({ id: true });
-export const insertReturnStatusHistorySchema = createInsertSchema(returnStatusHistory).omit({ id: true });
+export const insertReturnReasonSchema = createInsertSchema(returnReasons).omit({
+  id: true,
+});
+export const insertReturnPolicySchema = createInsertSchema(returnPolicies).omit(
+  { id: true }
+);
+export const insertReturnRequestSchema = createInsertSchema(
+  returnRequests
+).omit({ id: true });
+export const insertReturnMessageSchema = createInsertSchema(
+  returnMessages
+).omit({ id: true });
+export const insertReturnStatusHistorySchema = createInsertSchema(
+  returnStatusHistory
+).omit({ id: true });
 
 // Types for database interactions
 export type ReturnReason = typeof returnReasons.$inferSelect;
@@ -169,21 +209,23 @@ export type ReturnMessage = typeof returnMessages.$inferSelect;
 export type InsertReturnMessage = z.infer<typeof insertReturnMessageSchema>;
 
 export type ReturnStatusHistory = typeof returnStatusHistory.$inferSelect;
-export type InsertReturnStatusHistory = z.infer<typeof insertReturnStatusHistorySchema>;
+export type InsertReturnStatusHistory = z.infer<
+  typeof insertReturnStatusHistorySchema
+>;
 
 // Extended types for API responses
 export interface ReturnRequestWithDetails extends ReturnRequest {
   reason?: ReturnReason;
-  buyer?: any;  // User object
-  seller?: any;  // User object
-  order?: any;  // Order object
-  orderItem?: any;  // OrderItem object
+  buyer?: any; // User object
+  seller?: any; // User object
+  order?: any; // Order object
+  orderItem?: any; // OrderItem object
   messages?: ReturnMessage[];
   statusHistory?: ReturnStatusHistory[];
 }
 
 export interface ReturnMessageWithUser extends ReturnMessage {
-  sender?: any;  // User object
+  sender?: any; // User object
 }
 
 // Additional query filter types
@@ -206,26 +248,26 @@ export const returnRelations = {
     buyer: {
       table: users,
       field: "buyerId",
-      references: "id"
+      references: "id",
     },
     seller: {
       table: users,
       field: "sellerId",
-      references: "id"
-    }
+      references: "id",
+    },
   },
   returnMessages: {
     sender: {
       table: users,
       field: "senderId",
-      references: "id"
-    }
+      references: "id",
+    },
   },
   returnStatusHistory: {
     changedBy: {
       table: users,
       field: "changedById",
-      references: "id"
-    }
-  }
+      references: "id",
+    },
+  },
 };
