@@ -11652,6 +11652,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     "/api/shiprocket/ship-order",
     shiprocketHandlers.shipOrderWithShiprocket
   );
+  // Returns - Shiprocket
+  app.get(
+    "/api/shiprocket/returns/pending",
+    shiprocketHandlers.getPendingShiprocketReturns
+  );
+  app.post(
+    "/api/shiprocket/returns/ship",
+    shiprocketHandlers.shipReturnWithShiprocket
+  );
   app.post(
     "/api/shiprocket/auto-ship",
     shiprocketHandlers.autoShipWithShiprocket
