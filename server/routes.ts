@@ -13506,7 +13506,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     .container {
       width: 148.5mm;
-      min-height: 210mm;
+      height: auto; /* allow content-driven height to avoid extra bottom space */
       margin: 0 auto;
       border: 1px solid #000;
       page-break-inside: avoid;
