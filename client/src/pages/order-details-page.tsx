@@ -492,6 +492,12 @@ export default function OrderDetailsPage() {
       shippingDetails = order.shippingDetails;
     }
 
+    // Determine if any items in the order are returnable based on policy
+    const hasReturnableItems = (items || []).some((it) => {
+      const p = it.product?.returnPolicy?.trim();
+      return p && !isNoReturnPolicy(p);
+    });
+
     return (
       <div className="order-details-container px-2 sm:px-0">
         {/* Header and Actions */}
@@ -550,19 +556,21 @@ export default function OrderDetailsPage() {
                 Shipping Label
               </Button>
             ) : null}
-            {order.status === "delivered" && user?.role === "buyer" && (
-              <Button
-                variant="outline"
-                className="flex items-center gap-1 text-blue-500 border-blue-200 hover:bg-blue-50 w-full sm:w-auto"
-                disabled={returning}
-                onClick={handleReturnOrder}
-              >
-                {returning ? (
-                  <span className="animate-spin mr-2">⟳</span>
-                ) : null}
-                Return
-              </Button>
-            )}
+            {order.status === "delivered" &&
+              user?.role === "buyer" &&
+              hasReturnableItems && (
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-1 text-blue-500 border-blue-200 hover:bg-blue-50 w-full sm:w-auto"
+                  disabled={returning}
+                  onClick={handleReturnOrder}
+                >
+                  {returning ? (
+                    <span className="animate-spin mr-2">⟳</span>
+                  ) : null}
+                  Return
+                </Button>
+              )}
           </div>
         </div>
 
