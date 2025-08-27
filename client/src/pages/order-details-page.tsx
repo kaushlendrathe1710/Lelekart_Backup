@@ -59,6 +59,7 @@ interface Product {
   gstDetails?: GstDetails;
   deliveryCharges?: number;
   sku?: string;
+  returnPolicy?: string;
 }
 
 interface OrderItem {
@@ -203,6 +204,40 @@ function getProductImageUrl(product: Product): string {
 
   // Return a default image if nothing found
   return "https://placehold.co/100x100?text=No+Image";
+}
+
+function isNoReturnPolicy(policy?: string): boolean {
+  if (!policy) return false;
+  const normalized = policy.trim().toLowerCase();
+  if (
+    normalized === "0" ||
+    normalized === "no return" ||
+    normalized === "no returns" ||
+    normalized === "no returns accepted"
+  ) {
+    return true;
+  }
+  if (/^0\s*(day|days)?$/.test(normalized)) {
+    return true;
+  }
+  const numeric = parseInt(normalized, 10);
+  if (!Number.isNaN(numeric) && numeric === 0) {
+    return true;
+  }
+  return false;
+}
+
+function extractReturnDays(policy?: string): number | null {
+  if (!policy) return null;
+  const normalized = policy.trim().toLowerCase();
+  const match = normalized.match(/(\d+)\s*(day|days)?/);
+  if (match) {
+    const days = parseInt(match[1], 10);
+    if (!Number.isNaN(days) && days > 0) {
+      return days;
+    }
+  }
+  return null;
 }
 
 export default function OrderDetailsPage() {
@@ -857,6 +892,20 @@ export default function OrderDetailsPage() {
                             (item.product?.deliveryCharges || 0) * item.quantity
                           ).toFixed(2)}
                         </span>
+                        <span className="text-xs text-muted-foreground mt-1">
+                          {(() => {
+                            const policyText =
+                              item.product?.returnPolicy?.trim();
+                            if (policyText && !isNoReturnPolicy(policyText)) {
+                              const days = extractReturnDays(policyText);
+                              if (days) {
+                                return `Can be returned within ${days} days`;
+                              }
+                              return `Return policy: ${policyText}`;
+                            }
+                            return "Return policy: No returns accepted";
+                          })()}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -1243,7 +1292,28 @@ export default function OrderDetailsPage() {
               <ul className="list-disc ml-5 space-y-1">
                 <li>All prices are inclusive of GST.</li>
                 <li>
-                  Returns accepted within 7 days of delivery for most items.
+                  {(() => {
+                    // Build a dynamic summary of return policies across items
+                    const rawPolicies = (items || [])
+                      .map((i) => i.product?.returnPolicy?.trim())
+                      .filter((p): p is string => !!p && p.length > 0);
+                    const policies = rawPolicies.filter(
+                      (p) => !isNoReturnPolicy(p)
+                    );
+                    if (policies.length === 0) {
+                      return "Return policy: No returns accepted.";
+                    }
+                    // If multiple distinct policies exist, format them succinctly
+                    const formatted = policies.map((p) => {
+                      const d = extractReturnDays(p);
+                      return d ? `within ${d} days` : p;
+                    });
+                    const unique = Array.from(new Set(formatted));
+                    if (unique.length === 1) {
+                      return `Return policy: ${unique[0]}`;
+                    }
+                    return `Return policies vary by item: ${unique.join(" | ")}`;
+                  })()}
                 </li>
                 <li>
                   Damaged or defective products should be reported within 48
