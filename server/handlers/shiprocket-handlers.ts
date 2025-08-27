@@ -7,6 +7,56 @@ import { returnRequests } from "@shared/return-schema";
 import { eq, inArray, not, and, isNull, desc, sql } from "drizzle-orm";
 
 const SHIPROCKET_API_BASE = "https://apiv2.shiprocket.in/v1/external";
+// Resolve a valid Shiprocket pickup_location nickname for the given seller pickup
+async function resolveShiprocketPickupLocation(
+  token: string,
+  sellerPickup: any
+): Promise<string> {
+  if (!sellerPickup) return "Primary";
+  try {
+    const resp = await axios.get(
+      `${SHIPROCKET_API_BASE}/settings/company/pickup`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const pickups: any[] = Array.isArray(resp.data?.data)
+      ? resp.data.data
+      : Array.isArray(resp.data)
+        ? resp.data
+        : [];
+
+    // Try match by pincode first
+    const byPin = pickups.find(
+      (p: any) => `${p.pin_code || p.pincode}` === `${sellerPickup.pincode}`
+    );
+    if (byPin?.pickup_location) return byPin.pickup_location;
+
+    // Try match by name/business
+    const candidateName =
+      sellerPickup.pickup_location ||
+      sellerPickup.businessName ||
+      sellerPickup.name ||
+      sellerPickup.contactName;
+    if (candidateName) {
+      const byName = pickups.find(
+        (p: any) =>
+          `${p.pickup_location}`.toLowerCase() ===
+          `${candidateName}`.toLowerCase()
+      );
+      if (byName?.pickup_location) return byName.pickup_location;
+    }
+
+    // Fallback to first available or Primary
+    return pickups[0]?.pickup_location || "Primary";
+  } catch (e) {
+    return "Primary";
+  }
+}
 
 interface CourierRatesResponse {
   couriers: any[];
@@ -651,6 +701,7 @@ export async function getShiprocketCouriers(req: Request, res: Response) {
           const sellerId = firstItem?.product?.sellerId;
           if (sellerId) {
             const sellerSettings = await storage.getSellerSettings(sellerId);
+
             if (sellerSettings?.pickupAddress) {
               sellerPickup =
                 typeof sellerSettings.pickupAddress === "string"
@@ -658,7 +709,7 @@ export async function getShiprocketCouriers(req: Request, res: Response) {
                   : sellerSettings.pickupAddress;
             }
           }
-        } catch {}
+        } catch (e) {}
 
         if (!address) {
           return res.status(400).json({
@@ -1031,11 +1082,33 @@ export async function autoShipWithShiprocket(req: Request, res: Response) {
           }
         }
 
+        // Resolve seller pickup settings for pickup location and pincode
+        let sellerPickup: any = null;
+        try {
+          const firstItem = orderItems[0];
+          const sellerId = firstItem?.product?.sellerId;
+          if (sellerId) {
+            const sellerSettings = await storage.getSellerSettings(sellerId);
+            if (sellerSettings?.pickupAddress) {
+              sellerPickup =
+                typeof sellerSettings.pickupAddress === "string"
+                  ? JSON.parse(sellerSettings.pickupAddress)
+                  : sellerSettings.pickupAddress;
+            }
+          }
+        } catch {}
+
+        // Resolve valid pickup location from Shiprocket account
+        const computedPickupLocation = await resolveShiprocketPickupLocation(
+          token,
+          sellerPickup
+        );
+
         // Transform order data for Shiprocket API
         const shiprocketOrderData = {
           order_id: `ORD-${order.id}`,
           order_date: new Date(order.date).toISOString().split("T")[0],
-          pickup_location: "Primary",
+          pickup_location: computedPickupLocation,
           channel_id: "",
           comment: "Order from LeLeKart (Auto-shipped)",
           billing_customer_name: user.name || user.username,
@@ -1080,6 +1153,33 @@ export async function autoShipWithShiprocket(req: Request, res: Response) {
           weight: totalWeight / 1000 || 0.5, // Use calculated total weight (converted to kg) or default to 0.5kg
         };
 
+        // Shiprocket logging (concise)
+        try {
+          console.log("[Shiprocket] Preparing order create (auto)", {
+            orderId: shiprocketOrderData.order_id,
+            pickup_location: shiprocketOrderData.pickup_location,
+            pickup_pincode: sellerPickup?.pincode,
+            shipping_pincode: address.pincode,
+            payment_method: shiprocketOrderData.payment_method,
+            weight: shiprocketOrderData.weight,
+            dimensions: {
+              length: shiprocketOrderData.length,
+              breadth: shiprocketOrderData.breadth,
+              height: shiprocketOrderData.height,
+            },
+            itemsCount: orderItems.length,
+            sellerId: orderItems[0]?.product?.sellerId,
+          });
+          if (
+            sellerPickup &&
+            shiprocketOrderData.pickup_location === "Primary"
+          ) {
+            console.warn(
+              "[Shiprocket] Warning: Seller pickup present but pickup_location fell back to 'Primary'. Ensure the seller's businessName/contactName matches a Shiprocket pickup location nickname."
+            );
+          }
+        } catch {}
+
         // Create order in Shiprocket
         const response = await axios.post(
           `${SHIPROCKET_API_BASE}/orders/create/adhoc`,
@@ -1092,10 +1192,19 @@ export async function autoShipWithShiprocket(req: Request, res: Response) {
           }
         );
 
+        try {
+          console.log("[Shiprocket] Created order (auto) response", {
+            order_id: response?.data?.order_id,
+            shipment_id: response?.data?.shipment_id,
+          });
+        } catch {}
+
         if (response.data.order_id) {
           // Get available couriers for this order
+
           const courierRates = await getCourierRates(token, {
-            pickup_postcode: pickupAddress.pincode,
+            pickup_postcode:
+              (sellerPickup && sellerPickup.pincode) || pickupAddress.pincode,
             delivery_postcode: address.pincode,
             weight: totalWeight / 1000,
             cod: order.paymentMethod === "cod" ? 1 : 0,
@@ -1129,6 +1238,11 @@ export async function autoShipWithShiprocket(req: Request, res: Response) {
             );
 
             // Generate pickup request
+            try {
+              console.log("[Shiprocket] Generating pickup (auto)", {
+                shipment_id: response.data.shipment_id,
+              });
+            } catch {}
             const pickupResponse = await axios.post(
               `${SHIPROCKET_API_BASE}/courier/generate/pickup`,
               {
@@ -1141,6 +1255,12 @@ export async function autoShipWithShiprocket(req: Request, res: Response) {
                 },
               }
             );
+            try {
+              console.log("[Shiprocket] Pickup queued (auto)", {
+                shipment_id: response?.data?.shipment_id,
+                pickup: pickupResponse?.data?.pickup_scheduled || true,
+              });
+            } catch {}
 
             // Update order with Shiprocket details
             const [updatedOrder] = await db
@@ -1757,11 +1877,50 @@ export async function shipOrderWithShiprocket(req: Request, res: Response) {
       return res.status(400).json({ error: "User not found" });
     }
 
+    // Resolve seller pickup settings for pickup location
+    let sellerPickup: any = null;
+    try {
+      const firstItem = orderItems[0];
+      const sellerId = firstItem?.product?.sellerId;
+      if (sellerId) {
+        console.log("[Shiprocket][ManualShip] Resolving seller pickup", {
+          orderId: order.id,
+          sellerId,
+        });
+        const sellerSettings = await storage.getSellerSettings(sellerId);
+        console.log("[Shiprocket][ManualShip] Seller settings fetched", {
+          hasPickupAddress: !!sellerSettings?.pickupAddress,
+          rawPickupAddress: sellerSettings?.pickupAddress || null,
+        });
+        if (sellerSettings?.pickupAddress) {
+          sellerPickup =
+            typeof sellerSettings.pickupAddress === "string"
+              ? JSON.parse(sellerSettings.pickupAddress)
+              : sellerSettings.pickupAddress;
+          console.log(
+            "[Shiprocket][ManualShip] Parsed seller pickup",
+            sellerPickup
+          );
+        }
+      }
+    } catch (e) {
+      console.error(
+        "[Shiprocket][ManualShip] Error resolving seller pickup",
+        e
+      );
+    }
+
+    // Resolve valid pickup location from Shiprocket account
+    const computedPickupLocation = await resolveShiprocketPickupLocation(
+      token,
+      sellerPickup
+    );
+
     // Transform order data for Shiprocket API
     const shiprocketOrderData = {
       order_id: `ORD-${order.id}`,
       order_date: new Date(order.date).toISOString().split("T")[0],
-      pickup_location: "Primary",
+      pickup_location: computedPickupLocation,
       channel_id: "",
       comment: "Order from LeLeKart",
       billing_customer_name: user.name || user.username,
@@ -1806,6 +1965,24 @@ export async function shipOrderWithShiprocket(req: Request, res: Response) {
       weight: totalWeight / 1000 || 0.5, // Use calculated total weight (converted to kg) or default to 0.5kg
     };
 
+    try {
+      console.log("[Shiprocket] Preparing order create (manual)", {
+        orderId: shiprocketOrderData.order_id,
+        pickup_location: shiprocketOrderData.pickup_location,
+        pickup_pincode: sellerPickup?.pincode,
+        shipping_pincode: address.pincode,
+        payment_method: shiprocketOrderData.payment_method,
+        weight: shiprocketOrderData.weight,
+        dimensions: {
+          length: shiprocketOrderData.length,
+          breadth: shiprocketOrderData.breadth,
+          height: shiprocketOrderData.height,
+        },
+        itemsCount: orderItems.length,
+        sellerId: orderItems[0]?.product?.sellerId,
+      });
+    } catch {}
+
     // Create order in Shiprocket
     const response = await axios.post(
       `${SHIPROCKET_API_BASE}/orders/create/adhoc`,
@@ -1819,6 +1996,14 @@ export async function shipOrderWithShiprocket(req: Request, res: Response) {
     );
 
     if (response.data.order_id) {
+      // Log response summary
+      try {
+        console.log("[Shiprocket] Created order (manual) response", {
+          order_id: response?.data?.order_id,
+          shipment_id: response?.data?.shipment_id,
+        });
+      } catch {}
+
       // If courier company provided, assign AWB and generate shipment
       let shipmentResponse = null;
       if (courierCompany) {
@@ -1832,6 +2017,11 @@ export async function shipOrderWithShiprocket(req: Request, res: Response) {
 
           // Then generate pickup
           try {
+            console.log("[Shiprocket] Generating pickup (manual)", {
+              shipment_id: response.data.shipment_id,
+            });
+          } catch {}
+          try {
             shipmentResponse = await axios.post(
               `${SHIPROCKET_API_BASE}/courier/generate/pickup`,
               {
@@ -1844,6 +2034,12 @@ export async function shipOrderWithShiprocket(req: Request, res: Response) {
                 },
               }
             );
+            try {
+              console.log("[Shiprocket] Pickup queued (manual)", {
+                shipment_id: response?.data?.shipment_id,
+                pickup: shipmentResponse?.data?.pickup_scheduled || true,
+              });
+            } catch {}
           } catch (shipmentError: any) {
             console.error(
               "Error generating shipment:",

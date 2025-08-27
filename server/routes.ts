@@ -4167,10 +4167,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Log the incoming request body for debugging subcategoryId issues
-        console.log(
-          `DEBUG: PUT /api/products/${id} request body:`,
-          JSON.stringify(req.body, null, 2)
-        );
 
         const { productData, variants, deletedVariantIds } = req.body;
 
@@ -4179,16 +4175,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const actualProductData = productData || req.body;
 
         // Log subcategory1 and subcategory2 for debugging
-        console.log(
-          `DEBUG: Product ${id} subcategory1 in request:`,
-          actualProductData?.subcategory1,
-          `(type: ${typeof actualProductData?.subcategory1})`
-        );
-        console.log(
-          `DEBUG: Product ${id} subcategory2 in request:`,
-          actualProductData?.subcategory2,
-          `(type: ${typeof actualProductData?.subcategory2})`
-        );
 
         // Process productData for update to ensure proper handling of gstRate and new fields
         let processedProductData = actualProductData
@@ -4226,11 +4212,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Log the subcategoryId specifically for debugging
         if (actualProductData) {
-          console.log(
-            `DEBUG: Product ${id} subcategoryId in request:`,
-            actualProductData.subcategoryId,
-            `(type: ${typeof actualProductData.subcategoryId})`
-          );
         }
 
         // Check if this is a draft product being updated
@@ -4265,15 +4246,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Log the processed data before sending to the storage layer
-        console.log(
-          `DEBUG: Product ${id} processed data for storage:`,
-          JSON.stringify(processedProductData, null, 2)
-        );
-        console.log(
-          `DEBUG: Product ${id} subcategoryId after processing:`,
-          processedProductData?.subcategoryId,
-          `(type: ${typeof processedProductData?.subcategoryId})`
-        );
 
         // Ensure subcategoryId is properly formatted as number or null with more robust handling
         if (
@@ -4292,9 +4264,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Convert to number with NaN check
             const parsedValue = Number(processedProductData.subcategoryId);
             if (isNaN(parsedValue)) {
-              console.log(
-                `DEBUG: Product ${id} subcategoryId is not a valid number, setting to null`
-              );
               processedProductData.subcategoryId = null;
             } else {
               processedProductData.subcategoryId = parsedValue;
@@ -4310,11 +4279,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           processedProductData &&
           processedProductData.subcategory1 !== undefined
         ) {
-          console.log(
-            `DEBUG: Product ${id} processed subcategory1:`,
-            processedProductData.subcategory1,
-            `(type: ${typeof processedProductData.subcategory1})`
-          );
           processedProductData.subcategory1 =
             processedProductData.subcategory1 || null;
         }
@@ -4322,28 +4286,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           processedProductData &&
           processedProductData.subcategory2 !== undefined
         ) {
-          console.log(
-            `DEBUG: Product ${id} processed subcategory2:`,
-            processedProductData.subcategory2,
-            `(type: ${typeof processedProductData.subcategory2})`
-          );
           processedProductData.subcategory2 =
             processedProductData.subcategory2 || null;
         }
 
-        console.log(
-          `DEBUG: Product ${id} subcategoryId after formatting:`,
-          processedProductData?.subcategoryId,
-          `(type: ${typeof processedProductData?.subcategoryId})`
-        );
-
         // Get the existing product data, including variants, before updating
         const existingProduct = await storage.getProductById(id, true);
-        console.log(
-          `DEBUG: Existing product variants before update: ${
-            existingProduct?.variants?.length || 0
-          }`
-        );
 
         // Update the main product with processed data
         const updatedProduct = await storage.updateProduct(
@@ -4365,24 +4313,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             !deletedVariantIds);
 
         if (shouldPreserveVariants) {
-          console.log(
-            `DEBUG: Preserving existing variants for product ${id}. Preservation flag: ${processedProductData?.__preserveVariants}, Include all flag: ${req.body.__includeAllVariants}`
-          );
-          console.log(
-            `DEBUG: Existing variants count before preservation: ${
-              existingProduct.variants?.length || 0
-            }`
-          );
-
           // Set variants to the existing variants to preserve them in the response
           updatedProduct.variants = existingProduct.variants;
 
           // Log the preservation process
-          console.log(
-            `DEBUG: After preservation, variants in response: ${
-              updatedProduct.variants?.length || 0
-            }`
-          );
         }
 
         // Handle variants updates if provided
@@ -6553,9 +6487,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const id = parseInt(req.params.id);
-      console.log(
-        `DEBUG: Order details requested for order ID: ${id}, raw param: ${req.params.id}`
-      );
+
       const order = await storage.getOrder(id);
 
       // Special case for order confirmation page - handle any missing order on confirmation page
@@ -6647,34 +6579,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.user.role === "seller") {
         // Get all order items for this specific order
         const allOrderItems = await storage.getOrderItems(id);
-        console.log(
-          `DEBUG: Retrieved ${allOrderItems.length} items for order #${id}`
-        );
-        console.log(
-          `DEBUG: Order items:`,
-          allOrderItems.map((item) => ({
-            id: item.id,
-            orderId: item.orderId,
-            productId: item.productId,
-            productName: item.product.name,
-            sellerId: item.product.sellerId,
-          }))
-        );
 
         // Mark which items belong to this seller
         orderItems = allOrderItems.map((item) => ({
           ...item,
           isSellerItem: item.product.sellerId === req.user.id,
         }));
-        console.log(
-          `Showing ${orderItems.length} items for order #${id} for seller ${req.user.id}, ${orderItems.filter((item) => item.isSellerItem).length} are seller's items`
-        );
       } else {
         // For buyers and admins, show all items for this specific order
         orderItems = await storage.getOrderItems(id);
-        console.log(
-          `DEBUG: Retrieved ${orderItems.length} items for order #${id} for ${req.user.role}`
-        );
       }
 
       // Fetch seller orders if this is a multi-seller order
