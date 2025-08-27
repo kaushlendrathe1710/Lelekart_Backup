@@ -321,7 +321,8 @@ export default function BuyerSettingsPage() {
 
   // Handle profile form submission
   const onProfileSubmit = (data: z.infer<typeof profileFormSchema>) => {
-    profileMutation.mutate(data);
+    const { email: _ignoredEmail, ...mutableData } = data as any;
+    profileMutation.mutate(mutableData);
   };
 
   // Handle security form submission
@@ -565,8 +566,14 @@ export default function BuyerSettingsPage() {
                                 <Input
                                   placeholder="your.email@example.com"
                                   {...field}
+                                  readOnly
+                                  disabled
                                 />
                               </FormControl>
+                              <FormDescription>
+                                Email cannot be changed. Contact support to
+                                update your email.
+                              </FormDescription>
                               <FormMessage />
                             </FormItem>
                           )}

@@ -1726,10 +1726,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUserProfile(id: number, data: Partial<User>): Promise<User> {
-    // Only allow updating these fields
+    // Only allow updating these fields (email is immutable)
     const allowedFields: (keyof User)[] = [
       "username",
-      "email",
       "phone",
       "address",
       "profileImage",
@@ -1743,12 +1742,9 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    // Check for email uniqueness if email is being updated
-    if (filteredData.email) {
-      const existingUser = await this.getUserByEmail(filteredData.email);
-      if (existingUser && existingUser.id !== id) {
-        throw new Error("Email address already in use by another account");
-      }
+    // Reject any attempt to update email explicitly
+    if (typeof (data as any).email !== "undefined") {
+      throw new Error("Email cannot be changed");
     }
 
     // Check for username uniqueness if username is being updated
