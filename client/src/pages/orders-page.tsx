@@ -67,6 +67,7 @@ interface Order {
       image: string;
       imageUrl?: string;
       images?: string;
+      returnPolicy?: string;
     };
     quantity: number;
     price: number;
@@ -966,21 +967,37 @@ export default function OrdersPage() {
                               Return Requested
                             </Button>
                           ) : (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex items-center text-blue-500 border-blue-200 hover:bg-blue-50 bg-[#F8F5E4]"
-                              disabled={returningOrderId === order.id}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleReturnOrder(order);
-                              }}
-                            >
-                              {returningOrderId === order.id ? (
-                                <span className="animate-spin mr-2">⟳</span>
-                              ) : null}
-                              Return
-                            </Button>
+                            (() => {
+                              const hasReturnableItems = (
+                                order.items || []
+                              ).some(
+                                (it) =>
+                                  it.product?.returnPolicy &&
+                                  !/^\s*(0|0\s*(day|days)?|no\s*returns?|no\s*return\s*accepted)\s*$/i.test(
+                                    it.product.returnPolicy
+                                  )
+                              );
+                              if (!hasReturnableItems) {
+                                return null;
+                              }
+                              return (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex items-center text-blue-500 border-blue-200 hover:bg-blue-50 bg-[#F8F5E4]"
+                                  disabled={returningOrderId === order.id}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleReturnOrder(order);
+                                  }}
+                                >
+                                  {returningOrderId === order.id ? (
+                                    <span className="animate-spin mr-2">⟳</span>
+                                  ) : null}
+                                  Return
+                                </Button>
+                              );
+                            })()
                           )}
                         </>
                       )}
