@@ -289,6 +289,9 @@ const AddressForm: React.FC<AddressFormProps> = ({
                               data.state,
                               data.district
                             );
+                            // Clear any pincode error if previously set
+                            form.clearErrors("pincode");
+
                             form.setValue("state", data.state || "", {
                               shouldValidate: true,
                             });
@@ -306,7 +309,17 @@ const AddressForm: React.FC<AddressFormProps> = ({
                               "Error fetching location data:",
                               error
                             );
-                            // Don't show error toast as this is optional functionality
+                            // Set a visible field error for invalid/unknown PIN code
+                            form.setError("pincode", {
+                              type: "manual",
+                              message:
+                                "Invalid PIN code. Please enter a valid 6-digit code.",
+                            });
+                            // Clear auto-populated fields if lookup failed
+                            form.setValue("state", "", {
+                              shouldValidate: true,
+                            });
+                            form.setValue("city", "", { shouldValidate: true });
                           });
                       }
                     }}
