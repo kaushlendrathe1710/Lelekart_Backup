@@ -122,6 +122,10 @@ const PendingShipments = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [totalOrders, setTotalOrders] = useState(0);
+  // Cache courier options per order to avoid reusing across orders
+  const [courierOptionsByOrder, setCourierOptionsByOrder] = useState<
+    Record<number, Courier[]>
+  >({});
   const [courierOptions, setCourierOptions] = useState<Courier[]>([]);
 
   const generateTokenMutation = useMutation({
@@ -274,6 +278,7 @@ const PendingShipments = () => {
   const openShippingDialog = async (orderId: number) => {
     setSelectedOrderId(orderId);
     setIsShippingDialogOpen(true);
+    setSelectedCourier("");
 
     try {
       const order = pendingOrders?.find((o: any) => o.id === orderId);
@@ -287,23 +292,30 @@ const PendingShipments = () => {
         });
       }
 
-      const response = await getCourierRates(orderId);
-      console.log("Courier rates response:", response);
+      // Use cached couriers if present for this order
+      if (courierOptionsByOrder[orderId]) {
+        setCourierOptions(courierOptionsByOrder[orderId]);
+        return;
+      }
 
+      const response = await getCourierRates(orderId);
       const availableCouriers = response.couriers || [];
-      console.log("Available couriers:", availableCouriers);
 
       if (availableCouriers.length === 0) {
-        console.log("No available couriers found in response:", response);
         toast({
           title: "No courier options available",
           description: "No courier services are available for this order.",
           variant: "destructive",
         });
+        setCourierOptions([]);
         return;
       }
 
       setCourierOptions(availableCouriers);
+      setCourierOptionsByOrder((prev) => ({
+        ...prev,
+        [orderId]: availableCouriers,
+      }));
     } catch (error) {
       console.error("Error fetching courier rates:", error);
       toast({

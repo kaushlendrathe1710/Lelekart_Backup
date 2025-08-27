@@ -5205,13 +5205,8 @@ export class DatabaseStorage implements IStorage {
       returnRequested?: boolean;
     })[]
   > {
-    console.log(
-      `DEBUG: getOrderItems called with orderId: ${orderId}, sellerId: ${sellerId}`
-    );
-
     // First, let's verify the orderId is valid
     if (!orderId || isNaN(orderId)) {
-      console.log(`DEBUG: Invalid orderId: ${orderId}`);
       return [];
     }
 
@@ -5221,8 +5216,6 @@ export class DatabaseStorage implements IStorage {
       .from(orders)
       .where(eq(orders.id, orderId))
       .limit(1);
-
-    console.log(`DEBUG: Order ${orderId} exists: ${orderExists.length > 0}`);
 
     // Build the query with explicit orderId filtering
     let query = db
@@ -5242,9 +5235,6 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Let's also verify the query structure
-    console.log(
-      `DEBUG: Query conditions: orderId=${orderId}, sellerId=${sellerId}`
-    );
 
     // Let's also try a simpler approach to ensure the filtering works
     const simpleQuery = await db
@@ -5256,31 +5246,15 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(products, eq(orderItems.productId, products.id))
       .where(eq(orderItems.orderId, orderId));
 
-    console.log(
-      `DEBUG: Simple query returned ${simpleQuery.length} items for orderId ${orderId}`
-    );
-
     // Let's also verify the query structure
-    console.log(
-      `DEBUG: Query conditions: orderId=${orderId}, sellerId=${sellerId}`
-    );
 
     // Let's also log the SQL query for debugging
-    console.log(`DEBUG: Query structure:`, {
-      orderId,
-      sellerId,
-      hasWhereClause: true,
-    });
 
     // Let's also run a simple test query to verify the orderId filtering
     const testQuery = await db
       .select({ count: orderItems.id })
       .from(orderItems)
       .where(eq(orderItems.orderId, orderId));
-
-    console.log(
-      `DEBUG: Test query found ${testQuery.length} order items for orderId ${orderId}`
-    );
 
     // Let's also check if there are any duplicate order items
     const allOrderItems = await db
@@ -5295,23 +5269,9 @@ export class DatabaseStorage implements IStorage {
       {} as Record<number, number>
     );
 
-    console.log(`DEBUG: Order item counts by orderId:`, orderItemCounts);
-
     const orderItemsWithProductsAndSellers = await query;
-    console.log(
-      `DEBUG: Database query returned ${orderItemsWithProductsAndSellers.length} items for order ${orderId}`
-    );
 
     // Log the first few items to see what we're getting
-    if (orderItemsWithProductsAndSellers.length > 0) {
-      console.log(`DEBUG: First item:`, {
-        orderItemId: orderItemsWithProductsAndSellers[0].orderItem.id,
-        orderId: orderItemsWithProductsAndSellers[0].orderItem.orderId,
-        productId: orderItemsWithProductsAndSellers[0].orderItem.productId,
-        productName: orderItemsWithProductsAndSellers[0].product.name,
-        sellerId: orderItemsWithProductsAndSellers[0].product.sellerId,
-      });
-    }
 
     // Let's also check if there are any items with different orderIds
     const orderIds = [
@@ -5319,7 +5279,6 @@ export class DatabaseStorage implements IStorage {
         orderItemsWithProductsAndSellers.map((item) => item.orderItem.orderId)
       ),
     ];
-    console.log(`DEBUG: Found orderIds in results:`, orderIds);
 
     // Fetch variant information and return request status for order items
     const result = await Promise.all(
@@ -5377,38 +5336,12 @@ export class DatabaseStorage implements IStorage {
       })
     );
 
-    console.log(`DEBUG: Returning ${result.length} items for order ${orderId}`);
-
     // Debug variant information
-    result.forEach((item, index) => {
-      console.log(`DEBUG: Item ${index + 1}:`, {
-        id: item.id,
-        productName: item.product.name,
-        variantId: item.variantId,
-        variant: item.variant
-          ? {
-              id: item.variant.id,
-              color: item.variant.color,
-              size: item.variant.size,
-              sku: item.variant.sku,
-            }
-          : null,
-      });
-    });
 
     // Let's also verify that all returned items belong to the correct order
     const incorrectOrderItems = result.filter(
       (item) => item.orderId !== orderId
     );
-    if (incorrectOrderItems.length > 0) {
-      console.log(
-        `DEBUG: WARNING: Found ${incorrectOrderItems.length} items with incorrect orderId:`,
-        incorrectOrderItems.map((item) => ({
-          id: item.id,
-          orderId: item.orderId,
-        }))
-      );
-    }
 
     return result;
   }
