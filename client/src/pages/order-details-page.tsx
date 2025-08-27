@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { InvoiceDialog } from "@/components/order/invoice-dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import ReviewForm from "@/components/product/review-form";
 
 interface GstDetails {
   gstRate: number;
@@ -219,6 +221,8 @@ export default function OrderDetailsPage() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [returning, setReturning] = useState(false);
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [reviewProductId, setReviewProductId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchOrderDetails();
@@ -856,6 +860,20 @@ export default function OrderDetailsPage() {
                       </div>
                     </div>
                   </div>
+                  {order.status === "delivered" && user?.role === "buyer" && (
+                    <div className="mt-2">
+                      <Button
+                        variant="outline"
+                        className="w-full sm:w-auto"
+                        onClick={() => {
+                          setReviewProductId(item.product.id);
+                          setReviewDialogOpen(true);
+                        }}
+                      >
+                        Rate & Review
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -1258,6 +1276,16 @@ export default function OrderDetailsPage() {
         onOpenChange={setInvoiceDialogOpen}
         orderId={orderId}
       />
+      <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
+        <DialogContent className="max-w-xl">
+          {reviewProductId != null && (
+            <ReviewForm
+              productId={reviewProductId}
+              onSuccess={() => setReviewDialogOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

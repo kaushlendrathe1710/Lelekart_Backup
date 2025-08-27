@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import ReviewForm from "@/components/product/review-form";
 
 // Types
 interface Order {
@@ -178,6 +179,8 @@ export default function OrdersPage() {
   const [returningOrderId, setReturningOrderId] = useState<number | null>(null);
   const { toast } = useToast();
   const [cancelReason, setCancelReason] = useState("");
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [reviewProductId, setReviewProductId] = useState<number | null>(null);
 
   // Fetch orders using React Query
   const {
@@ -309,7 +312,6 @@ export default function OrdersPage() {
     },
   });
 
-
   // Function to fetch orders
   const fetchOrders = async () => {
     try {
@@ -351,7 +353,7 @@ export default function OrdersPage() {
         })
       );
 
-      console.log('Orders with items:', ordersWithItems);
+      console.log("Orders with items:", ordersWithItems);
       setOrders(ordersWithItems);
       setFilteredOrders(ordersWithItems);
       setLoading(false);
@@ -365,7 +367,6 @@ export default function OrdersPage() {
       setLoading(false);
     }
   };
-
 
   useEffect(() => {
     // Check if user is logged in
@@ -844,6 +845,23 @@ export default function OrdersPage() {
                                 <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
                                   {index + 1}
                                 </div>
+                                {order.status === "delivered" &&
+                                  user?.role === "buyer" && (
+                                    <div className="mt-1">
+                                      <Button
+                                        variant="outline"
+                                        size="xs"
+                                        className="!h-6 text-[11px] px-2 bg-[#F8F5E4]"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setReviewProductId(item.product.id);
+                                          setReviewDialogOpen(true);
+                                        }}
+                                      >
+                                        Rate & Review
+                                      </Button>
+                                    </div>
+                                  )}
                               </div>
                             ))}
                             {order.items.length > 3 && (
@@ -1292,6 +1310,18 @@ export default function OrdersPage() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Review Dialog */}
+      <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          {reviewProductId != null && (
+            <ReviewForm
+              productId={reviewProductId}
+              onSuccess={() => setReviewDialogOpen(false)}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </DashboardLayout>
