@@ -9385,7 +9385,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Only allow updating certain fields
       const allowedFields = [
         "username",
-        "email",
+        // email is immutable and must not be updated via this route
         "phone",
         "address",
         "profileImage",
@@ -9397,6 +9397,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (req.body[field] !== undefined) {
           updateData[field as keyof User] = req.body[field];
         }
+      }
+
+      // Explicitly reject attempts to change email
+      if (typeof req.body.email !== "undefined") {
+        return res.status(400).json({
+          error: "Email cannot be changed. Please contact support if needed.",
+        });
       }
 
       if (Object.keys(updateData).length === 0) {
