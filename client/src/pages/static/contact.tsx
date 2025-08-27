@@ -174,7 +174,7 @@ export default function ContactUsPage() {
                             titleFilter="Corporate Address"
                             defaultContent={
                               <p className="text-sm md:text-base text-gray-600">
-                                Lelekart Internet Private Limited,
+                                Kaushal Ranjeet Pvt Ltd,
                                 <br />
                                 Building no 2072, Chandigarh Royale City
                                 <br />
@@ -191,8 +191,6 @@ export default function ContactUsPage() {
                             }
                           />
                         </div>
-
-
                       </div>
                     </CardContent>
                   </Card>
