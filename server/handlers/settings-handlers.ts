@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import { storage } from "../storage";
 import { InsertSellerSetting } from "@shared/schema";
 import { z } from "zod";
+import axios from "axios";
+import { getShiprocketToken } from "./shiprocket-handlers";
 
 // Pickup address handler - for invoices and shipping
 export async function updatePickupAddressHandler(req: Request, res: Response) {
@@ -21,6 +23,16 @@ export async function updatePickupAddressHandler(req: Request, res: Response) {
     // Update the seller settings
     const settings = await storage.getSellerSettings(sellerId);
 
+    // Disallow editing if a pickup already exists; require support
+    if (settings?.pickupAddress) {
+      return res.status(403).json({
+        error: "Pickup address locked",
+        message:
+          "Pickup address can only be added once. Please contact support to edit this information.",
+        code: "PICKUP_EDIT_LOCKED",
+      });
+    }
+
     if (!settings) {
       // Create new settings with pickup address
       await storage.createSellerSettings({
@@ -31,7 +43,7 @@ export async function updatePickupAddressHandler(req: Request, res: Response) {
             : JSON.stringify(pickupAddress),
       });
     } else {
-      // Update existing settings
+      // First-time creation allowed only
       await storage.updateSellerSettings(sellerId, {
         pickupAddress:
           typeof pickupAddress === "string"
@@ -40,7 +52,114 @@ export async function updatePickupAddressHandler(req: Request, res: Response) {
       });
     }
 
-    return res.status(200).json({ success: true });
+    // After saving locally, attempt to register/update pickup in Shiprocket
+    let shiprocketAddPickup: any = { attempted: false };
+    try {
+      const token = await getShiprocketToken();
+      if (!token) {
+        console.warn("[Shiprocket] Token unavailable, skipping addpickup");
+        shiprocketAddPickup = {
+          attempted: false,
+          success: false,
+          message: "Shiprocket token unavailable",
+        };
+      } else {
+        shiprocketAddPickup.attempted = true;
+        // Normalize input which may have different keys from UI
+        const raw =
+          typeof pickupAddress === "string"
+            ? JSON.parse(pickupAddress)
+            : pickupAddress;
+        const nickname =
+          raw?.pickup_location ||
+          raw?.businessName ||
+          raw?.contactName ||
+          raw?.name;
+        const shipperName = raw?.name || raw?.contactName || raw?.businessName;
+        const email =
+          raw?.email || raw?.contactEmail || (req.user as any)?.email || "";
+        const phone = raw?.phone || raw?.contactPhone || "";
+        const line1 =
+          raw?.address || raw?.line1 || raw?.address1 || raw?.address_1 || "";
+        const line2 = raw?.address_2 || raw?.line2 || raw?.address2 || "";
+        const city = raw?.city || "";
+        const state = raw?.state || "";
+        const country = raw?.country || "India";
+        const pin =
+          raw?.pin_code ||
+          raw?.pincode ||
+          raw?.pinCode ||
+          raw?.zip ||
+          raw?.zipcode ||
+          "";
+        const address_type =
+          raw?.address_type || (raw?.vendor_name ? "vendor" : undefined);
+        const vendor_name = raw?.vendor_name;
+        const gstin = raw?.gstin || raw?.gst || "";
+
+        const payload: any = {
+          pickup_location:
+            nickname?.toString().slice(0, 36) || `Seller-${sellerId}`,
+          name: shipperName || `Seller ${sellerId}`,
+          email,
+          phone,
+          address: line1?.toString().slice(0, 80),
+          address_2: line2 || "",
+          city,
+          state,
+          country,
+          pin_code: pin,
+        };
+        if (address_type) payload.address_type = address_type;
+        if (vendor_name) payload.vendor_name = vendor_name;
+        if (gstin) payload.gstin = gstin;
+
+        console.log("[Shiprocket] addpickup request", {
+          pickup_location: payload.pickup_location,
+          pin_code: payload.pin_code,
+          city: payload.city,
+          state: payload.state,
+        });
+
+        const apiResp = await axios.post(
+          "https://apiv2.shiprocket.in/v1/external/settings/company/addpickup",
+          payload,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        console.log("[Shiprocket] addpickup success", {
+          pickup_location: payload.pickup_location,
+        });
+        shiprocketAddPickup = {
+          attempted: true,
+          success: true,
+          message: "Pickup location registered/updated",
+          data: apiResp?.data,
+          pickup_location: payload.pickup_location,
+        };
+      }
+    } catch (e: any) {
+      console.error(
+        "[Shiprocket] addpickup failed",
+        e?.response?.data || e?.message || e
+      );
+      // Do not fail the seller save because of Shiprocket API
+      shiprocketAddPickup = {
+        attempted: true,
+        success: false,
+        message: e?.response?.data?.message || e?.message || "Addpickup failed",
+        details: e?.response?.data,
+      };
+    }
+
+    return res
+      .status(200)
+      .json({ success: true, shiprocket: shiprocketAddPickup });
   } catch (error) {
     console.error("Error updating pickup address:", error);
     return res.status(500).json({ error: "Internal server error" });

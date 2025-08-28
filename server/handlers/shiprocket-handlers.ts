@@ -8,9 +8,11 @@ import { eq, inArray, not, and, isNull, desc, sql } from "drizzle-orm";
 
 const SHIPROCKET_API_BASE = "https://apiv2.shiprocket.in/v1/external";
 // Resolve a valid Shiprocket pickup_location nickname for the given seller pickup
+// Optionally prefer a provided nickname if it exists in the Shiprocket account
 async function resolveShiprocketPickupLocation(
   token: string,
-  sellerPickup: any
+  sellerPickup: any,
+  preferredNickname?: string
 ): Promise<string> {
   if (!sellerPickup) return "Primary";
   try {
@@ -30,6 +32,15 @@ async function resolveShiprocketPickupLocation(
         ? resp.data
         : [];
 
+    // If the client provided an explicit nickname (e.g., business name), try to honor it first
+    const norm = (s: any) => `${s || ""}`.trim().toLowerCase();
+    if (preferredNickname) {
+      const byPreferred = pickups.find(
+        (p: any) => norm(p.pickup_location) === norm(preferredNickname)
+      );
+      if (byPreferred?.pickup_location) return byPreferred.pickup_location;
+    }
+
     // Try match by pincode first
     const byPin = pickups.find(
       (p: any) => `${p.pin_code || p.pincode}` === `${sellerPickup.pincode}`
@@ -38,15 +49,13 @@ async function resolveShiprocketPickupLocation(
 
     // Try match by name/business
     const candidateName =
-      sellerPickup.pickup_location ||
       sellerPickup.businessName ||
+      sellerPickup.pickup_location ||
       sellerPickup.name ||
       sellerPickup.contactName;
     if (candidateName) {
       const byName = pickups.find(
-        (p: any) =>
-          `${p.pickup_location}`.toLowerCase() ===
-          `${candidateName}`.toLowerCase()
+        (p: any) => norm(p.pickup_location) === norm(candidateName)
       );
       if (byName?.pickup_location) return byName.pickup_location;
     }
@@ -67,7 +76,7 @@ interface CourierRatesResponse {
  * Helper function to generate a fresh Shiprocket token for each API request
  * Following the recommendation to always generate a new token for each API call
  */
-async function getShiprocketToken(): Promise<string | null> {
+export async function getShiprocketToken(): Promise<string | null> {
   try {
     // Get the settings from the database - order by id to get a consistent record
     const settings = await db
@@ -1181,6 +1190,34 @@ export async function autoShipWithShiprocket(req: Request, res: Response) {
         } catch {}
 
         // Create order in Shiprocket
+        try {
+          console.log("[Shiprocket] Sending create order (auto)", {
+            endpoint: "/orders/create/adhoc",
+            pickup_location: shiprocketOrderData.pickup_location,
+            sellerPickup: sellerPickup
+              ? {
+                  name:
+                    sellerPickup.pickup_location ||
+                    sellerPickup.businessName ||
+                    sellerPickup.name ||
+                    undefined,
+                  address: sellerPickup.address,
+                  city: sellerPickup.city,
+                  state: sellerPickup.state,
+                  pincode: sellerPickup.pincode,
+                }
+              : null,
+            shipment: {
+              weight: shiprocketOrderData.weight,
+              length: shiprocketOrderData.length,
+              breadth: shiprocketOrderData.breadth,
+              height: shiprocketOrderData.height,
+            },
+            billing_pincode: shiprocketOrderData.billing_pincode,
+            shipping_pincode: shiprocketOrderData.shipping_pincode,
+            items: shiprocketOrderData.order_items?.length,
+          });
+        } catch {}
         const response = await axios.post(
           `${SHIPROCKET_API_BASE}/orders/create/adhoc`,
           shiprocketOrderData,
@@ -1677,13 +1714,29 @@ export async function shipReturnWithShiprocket(req: Request, res: Response) {
 
     // Debug log for visibility (sanitized)
     try {
-      console.log("Shiprocket Return Payload:", {
-        order_id: payload.order_id,
-        pickup_pincode: payload.pickup_pincode,
-        shipping_pincode: payload.shipping_pincode,
-        delivery_pincode: payload.delivery_pincode,
-        weight: payload.weight,
+      console.log("[Shiprocket] Sending create return shipment", {
+        endpoint: "/shipments/create/return-shipment",
         pickup_location: payload.pickup_location,
+        pickup: {
+          address: payload.pickup_address,
+          address_2: payload.pickup_address_2,
+          city: payload.pickup_city,
+          state: payload.pickup_state,
+          pincode: payload.pickup_pincode,
+        },
+        delivery: {
+          address: payload.delivery_address,
+          city: payload.delivery_city,
+          state: payload.delivery_state,
+          pincode: payload.delivery_pincode,
+        },
+        shipment: {
+          weight: payload.weight,
+          length: payload.length,
+          breadth: payload.breadth,
+          height: payload.height,
+        },
+        items: payload.order_items?.length,
       });
     } catch {}
 
@@ -1783,7 +1836,7 @@ export async function shipOrderWithShiprocket(req: Request, res: Response) {
       return res.status(403).json({ error: "Forbidden" });
     }
 
-    const { orderId, courierCompany } = req.body;
+    const { orderId, courierCompany, fdata } = req.body as any;
 
     if (!orderId) {
       return res.status(400).json({ error: "Order ID is required" });
@@ -1911,58 +1964,75 @@ export async function shipOrderWithShiprocket(req: Request, res: Response) {
     }
 
     // Resolve valid pickup location from Shiprocket account
+    const preferredNickname =
+      (fdata && (fdata.pickup_location || fdata?.pickupLocation)) ||
+      sellerPickup?.businessName ||
+      undefined;
     const computedPickupLocation = await resolveShiprocketPickupLocation(
       token,
-      sellerPickup
+      sellerPickup,
+      preferredNickname
     );
 
     // Transform order data for Shiprocket API
-    const shiprocketOrderData = {
-      order_id: `ORD-${order.id}`,
-      order_date: new Date(order.date).toISOString().split("T")[0],
-      pickup_location: computedPickupLocation,
-      channel_id: "",
-      comment: "Order from LeLeKart",
-      billing_customer_name: user.name || user.username,
-      billing_last_name: "",
-      billing_address: address.address,
-      billing_address_2: "",
-      billing_city: address.city,
-      billing_pincode: address.pincode,
-      billing_state: address.state,
-      billing_country: "India",
-      billing_email: user.email,
-      billing_phone: user.phone || address.phone,
-      shipping_is_billing: true,
-      shipping_customer_name: user.name || user.username,
-      shipping_last_name: "",
-      shipping_address: address.address,
-      shipping_address_2: "",
-      shipping_city: address.city,
-      shipping_pincode: address.pincode,
-      shipping_state: address.state,
-      shipping_country: "India",
-      shipping_email: user.email,
-      shipping_phone: user.phone || address.phone,
-      order_items: orderItems.map((item) => ({
-        name: item.product?.name || `Product ID: ${item.productId}`,
-        sku: `SKU-${item.productId}`,
-        units: item.quantity,
-        selling_price: item.price, // Price is already in rupees
-        discount: "",
-        tax: "",
-        hsn: "",
-      })),
-      payment_method: order.paymentMethod === "cod" ? "COD" : "Prepaid",
-      shipping_charges: 0,
-      giftwrap_charges: 0,
-      transaction_charges: 0,
-      total_discount: 0,
-      sub_total: order.total, // Price is already in rupees
-      length: maxLength || 10, // Use calculated max length or default to 10cm
-      breadth: maxWidth || 10, // Use calculated max width or default to 10cm
-      height: maxHeight || 10, // Use calculated max height or default to 10cm
-      weight: totalWeight / 1000 || 0.5, // Use calculated total weight (converted to kg) or default to 0.5kg
+    // If client provided an explicit fdata payload, respect its structure and values where provided
+    const shiprocketOrderData: any = {
+      order_id: fdata?.order_id || `ORD-${order.id}`,
+      order_date:
+        fdata?.order_date || new Date(order.date).toISOString().split("T")[0],
+      pickup_location: preferredNickname || computedPickupLocation,
+      channel_id: fdata?.channel_id || "",
+      comment: fdata?.comment || "Order from LeLeKart",
+      billing_customer_name:
+        fdata?.billing_customer_name || user.name || user.username,
+      billing_last_name: fdata?.billing_last_name || "",
+      billing_address: fdata?.billing_address || address.address,
+      billing_address_2: fdata?.billing_address_2 || "",
+      billing_city: fdata?.billing_city || address.city,
+      billing_pincode: fdata?.billing_pincode || address.pincode,
+      billing_state: fdata?.billing_state || address.state,
+      billing_country: fdata?.billing_country || "India",
+      billing_email: fdata?.billing_email || user.email,
+      billing_phone: fdata?.billing_phone || user.phone || address.phone,
+      shipping_is_billing:
+        typeof fdata?.shipping_is_billing !== "undefined"
+          ? fdata.shipping_is_billing
+          : true,
+      shipping_customer_name:
+        fdata?.shipping_customer_name || user.name || user.username,
+      shipping_last_name: fdata?.shipping_last_name || "",
+      shipping_address: fdata?.shipping_address || address.address,
+      shipping_address_2: fdata?.shipping_address_2 || "",
+      shipping_city: fdata?.shipping_city || address.city,
+      shipping_pincode: fdata?.shipping_pincode || address.pincode,
+      shipping_state: fdata?.shipping_state || address.state,
+      shipping_country: fdata?.shipping_country || "India",
+      shipping_email: fdata?.shipping_email || user.email,
+      shipping_phone: fdata?.shipping_phone || user.phone || address.phone,
+      order_items:
+        Array.isArray(fdata?.order_items) && fdata.order_items.length > 0
+          ? fdata.order_items
+          : orderItems.map((item) => ({
+              name: item.product?.name || `Product ID: ${item.productId}`,
+              sku: `SKU-${item.productId}`,
+              units: item.quantity,
+              selling_price: item.price,
+              discount: "",
+              tax: "",
+              hsn: "",
+            })),
+      payment_method:
+        fdata?.payment_method ||
+        (order.paymentMethod === "cod" ? "COD" : "Prepaid"),
+      shipping_charges: fdata?.shipping_charges ?? 0,
+      giftwrap_charges: fdata?.giftwrap_charges ?? 0,
+      transaction_charges: fdata?.transaction_charges ?? 0,
+      total_discount: fdata?.total_discount ?? 0,
+      sub_total: fdata?.sub_total ?? order.total,
+      length: fdata?.length ?? (maxLength || 10),
+      breadth: fdata?.breadth ?? (maxWidth || 10),
+      height: fdata?.height ?? (maxHeight || 10),
+      weight: fdata?.weight ?? (totalWeight / 1000 || 0.5),
     };
 
     try {
@@ -1984,6 +2054,36 @@ export async function shipOrderWithShiprocket(req: Request, res: Response) {
     } catch {}
 
     // Create order in Shiprocket
+    try {
+      console.log("[Shiprocket] Sending create order (manual)", {
+        endpoint: "/orders/create/adhoc",
+        pickup_location: shiprocketOrderData.pickup_location,
+        preferredNickname,
+        using_fdata: !!fdata,
+        sellerPickup: sellerPickup
+          ? {
+              name:
+                sellerPickup.pickup_location ||
+                sellerPickup.businessName ||
+                sellerPickup.name ||
+                undefined,
+              address: sellerPickup.address,
+              city: sellerPickup.city,
+              state: sellerPickup.state,
+              pincode: sellerPickup.pincode,
+            }
+          : null,
+        shipment: {
+          weight: shiprocketOrderData.weight,
+          length: shiprocketOrderData.length,
+          breadth: shiprocketOrderData.breadth,
+          height: shiprocketOrderData.height,
+        },
+        billing_pincode: shiprocketOrderData.billing_pincode,
+        shipping_pincode: shiprocketOrderData.shipping_pincode,
+        items: shiprocketOrderData.order_items?.length,
+      });
+    } catch {}
     const response = await axios.post(
       `${SHIPROCKET_API_BASE}/orders/create/adhoc`,
       shiprocketOrderData,
