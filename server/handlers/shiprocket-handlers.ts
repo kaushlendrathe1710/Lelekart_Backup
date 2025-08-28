@@ -1445,6 +1445,11 @@ export async function getShiprocketOrders(req: Request, res: Response) {
  */
 export async function getPendingShiprocketReturns(req: Request, res: Response) {
   try {
+    try {
+      console.log(
+        "[Shiprocket][Return] Fetching pending returns (dashboard view)"
+      );
+    } catch {}
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -1489,6 +1494,16 @@ export async function getPendingShiprocketReturns(req: Request, res: Response) {
       .limit(limit)
       .offset(offset)
       .orderBy(desc(returnRequests.createdAt));
+
+    try {
+      console.log("[Shiprocket][Return] Pending count:", count);
+      console.log(
+        "[Shiprocket][Return] Pending list (first 10):",
+        rows
+          .slice(0, 10)
+          .map((r: any) => ({ id: r.id, orderId: r.orderId, status: r.status }))
+      );
+    } catch {}
 
     // Enrich minimal details for UI (order, item, buyer)
     const enriched = await Promise.all(
@@ -1714,28 +1729,15 @@ export async function shipReturnWithShiprocket(req: Request, res: Response) {
 
     // Debug log for visibility (sanitized)
     try {
-      console.log("[Shiprocket] Sending create return shipment", {
+      console.log("[Shiprocket][Return] Sending create", {
         endpoint: "/shipments/create/return-shipment",
+        rrId: rr.id,
+        orderId: order.id,
         pickup_location: payload.pickup_location,
-        pickup: {
-          address: payload.pickup_address,
-          address_2: payload.pickup_address_2,
-          city: payload.pickup_city,
-          state: payload.pickup_state,
-          pincode: payload.pickup_pincode,
-        },
-        delivery: {
-          address: payload.delivery_address,
-          city: payload.delivery_city,
-          state: payload.delivery_state,
-          pincode: payload.delivery_pincode,
-        },
-        shipment: {
-          weight: payload.weight,
-          length: payload.length,
-          breadth: payload.breadth,
-          height: payload.height,
-        },
+        pickup_pincode: payload.pickup_pincode,
+        delivery_pincode: payload.delivery_pincode,
+        weight: payload.weight,
+        dims: { l: payload.length, b: payload.breadth, h: payload.height },
         items: payload.order_items?.length,
       });
     } catch {}
@@ -1765,6 +1767,14 @@ export async function shipReturnWithShiprocket(req: Request, res: Response) {
           undefined,
       });
     }
+
+    try {
+      console.log("[Shiprocket][Return] Created", {
+        rrId: rr.id,
+        order_id: sr.order_id,
+        shipment_id: sr.shipment_id,
+      });
+    } catch {}
 
     let awbCode: string | null = null;
     let courierName: string | null = null;
@@ -1811,6 +1821,15 @@ export async function shipReturnWithShiprocket(req: Request, res: Response) {
       } as any)
       .where(eq(returnRequests.id, returnRequestId))
       .returning();
+
+    try {
+      console.log("[Shiprocket][Return] DB updated", {
+        rrId: updated.id,
+        shiprocketReturnOrderId: updated.shiprocketReturnOrderId,
+        shiprocketReturnShipmentId: updated.shiprocketReturnShipmentId,
+        status: updated.status,
+      });
+    } catch {}
 
     return res.status(200).json(updated);
   } catch (error: any) {
