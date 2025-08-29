@@ -168,43 +168,45 @@ export default function CartPage() {
                           className="mr-2"
                         />
                         <div className="flex-shrink-0 w-full sm:w-24 h-40 sm:h-24 border border-gray-200 rounded-md overflow-hidden mx-auto sm:mx-0">
-                          <img
-                            src={
-                              item.variant?.images
-                                ? (() => {
-                                    try {
-                                      const imgs = JSON.parse(
-                                        item.variant.images
-                                      );
-                                      return (
-                                        imgs[0] ||
-                                        item.product.imageUrl ||
-                                        "/images/categories/fashion.svg"
-                                      );
-                                    } catch {
-                                      return (
-                                        item.product.imageUrl ||
-                                        "/images/categories/fashion.svg"
-                                      );
-                                    }
-                                  })()
-                                : item.product.imageUrl ||
-                                  "/images/categories/fashion.svg"
-                            }
-                            alt={item.product.name}
-                            className="w-full h-full object-center object-cover"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.onerror = null;
-                              if (item.product.category) {
-                                const categoryLower =
-                                  item.product.category.toLowerCase();
-                                target.src = `../images/${categoryLower}.svg`;
-                              } else {
-                                target.src = "../images/placeholder.svg";
+                          <Link href={`/product/${item.product.id}`}>
+                            <img
+                              src={
+                                item.variant?.images
+                                  ? (() => {
+                                      try {
+                                        const imgs = JSON.parse(
+                                          item.variant.images
+                                        );
+                                        return (
+                                          imgs[0] ||
+                                          item.product.imageUrl ||
+                                          "/images/categories/fashion.svg"
+                                        );
+                                      } catch {
+                                        return (
+                                          item.product.imageUrl ||
+                                          "/images/categories/fashion.svg"
+                                        );
+                                      }
+                                    })()
+                                  : item.product.imageUrl ||
+                                    "/images/categories/fashion.svg"
                               }
-                            }}
-                          />
+                              alt={item.product.name}
+                              className="w-full h-full object-center object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.onerror = null;
+                                if (item.product.category) {
+                                  const categoryLower =
+                                    item.product.category.toLowerCase();
+                                  target.src = `../images/${categoryLower}.svg`;
+                                } else {
+                                  target.src = "../images/placeholder.svg";
+                                }
+                              }}
+                            />
+                          </Link>
                         </div>
                       </div>
 
