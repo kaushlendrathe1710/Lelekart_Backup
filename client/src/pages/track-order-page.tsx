@@ -76,6 +76,8 @@ function getStatusColor(status: string) {
       return "bg-red-100 text-red-800 border-red-200";
     case "refunded":
       return "bg-purple-100 text-purple-800 border-purple-200";
+    case "marked_for_return":
+      return "bg-blue-100 text-blue-800 border-blue-200";
     default:
       return "bg-gray-100 text-gray-800 border-gray-200";
   }
@@ -95,13 +97,16 @@ function StatusIcon({ status }: { status: string }) {
       return <XCircle className="h-4 w-4 mr-1" />;
     case "refunded":
       return <CreditCard className="h-4 w-4 mr-1" />;
+    case "marked_for_return":
+      return <Package className="h-4 w-4 mr-1" />;
     default:
       return <Package className="h-4 w-4 mr-1" />;
   }
 }
 
 function getStatusTimeline(status: string) {
-  const timeline = [
+  const normalized = status.toLowerCase();
+  let timeline = [
     {
       status: "pending",
       title: "Order Placed",
@@ -128,8 +133,21 @@ function getStatusTimeline(status: string) {
     },
   ];
 
+  // Extend timeline for return flow
+  if (normalized === "marked_for_return") {
+    timeline = [
+      ...timeline,
+      {
+        status: "marked_for_return",
+        title: "Return Initiated",
+        description: "Your return has been initiated. Track it in My Returns.",
+        icon: <Package className="h-5 w-5" />,
+      },
+    ];
+  }
+
   const currentStatusIndex = timeline.findIndex(
-    (item) => item.status === status.toLowerCase()
+    (item) => item.status === normalized
   );
 
   return timeline.map((item, index) => ({
@@ -291,7 +309,19 @@ export default function TrackOrderPage() {
                   >
                     {item.completed ? (
                       // Show green checkmark for completed steps
-                      <svg className="h-5 w-5 text-green-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                      <svg
+                        className="h-5 w-5 text-green-500"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
                     ) : (
                       item.icon
                     )}
