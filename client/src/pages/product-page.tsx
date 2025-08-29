@@ -456,7 +456,7 @@ export default function ProductPage() {
                       size="icon"
                       className="h-8 w-8 rounded-l"
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      disabled={quantity <= 1}
+                      disabled={quantity <= 1 || (product?.stock ?? 0) <= 0}
                     >
                       <Minus className="h-3 w-3" />
                     </Button>
@@ -470,7 +470,10 @@ export default function ProductPage() {
                       onClick={() =>
                         setQuantity(Math.min(product?.stock ?? 1, quantity + 1))
                       }
-                      disabled={quantity >= (product?.stock ?? 1)}
+                      disabled={
+                        quantity >= (product?.stock ?? 1) ||
+                        (product?.stock ?? 0) <= 0
+                      }
                     >
                       <Plus className="h-3 w-3" />
                     </Button>

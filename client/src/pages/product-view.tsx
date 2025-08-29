@@ -503,7 +503,12 @@ export default function ProductViewPage() {
                       size="icon"
                       className="h-8 w-8 rounded-l"
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      disabled={quantity <= 1}
+                      disabled={
+                        quantity <= 1 ||
+                        (selectedVariant
+                          ? selectedVariant.stock <= 0
+                          : (product?.stock ?? 0) <= 0)
+                      }
                     >
                       <Minus className="h-3 w-3" />
                     </Button>
@@ -526,9 +531,12 @@ export default function ProductViewPage() {
                       }
                       disabled={
                         quantity >=
+                          (selectedVariant
+                            ? selectedVariant.stock
+                            : product.stock) ||
                         (selectedVariant
-                          ? selectedVariant.stock
-                          : product.stock)
+                          ? selectedVariant.stock <= 0
+                          : (product?.stock ?? 0) <= 0)
                       }
                     >
                       <Plus className="h-3 w-3" />
