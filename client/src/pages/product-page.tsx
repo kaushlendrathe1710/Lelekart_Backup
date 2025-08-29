@@ -113,12 +113,38 @@ export default function ProductPage() {
     refetchOnWindowFocus: false, // Don't refetch when window regains focus
   });
 
-  // Fetch related products
+  // Fetch related products - constrain to same category/subcategory and normalize response
   const { data: relatedProducts, isLoading: isRelatedLoading } = useQuery<
     Product[]
   >({
-    queryKey: ["/api/products", { category: product?.category }],
+    queryKey: [
+      "/api/products",
+      {
+        category: product?.category,
+        subcategory: product?.subcategory1,
+        limit: 12,
+      },
+    ],
     enabled: !!product?.category,
+    queryFn: async () => {
+      if (!product?.category) return [] as Product[];
+      const params = new URLSearchParams();
+      params.set("category", String(product.category));
+      if (product.subcategory1)
+        params.set("subcategory", String(product.subcategory1));
+      params.set("limit", "12");
+
+      const res = await fetch(`/api/products?${params.toString()}`);
+      const json = await res.json();
+      const items: Product[] = Array.isArray(json)
+        ? (json as Product[])
+        : Array.isArray(json?.products)
+          ? (json.products as Product[])
+          : [];
+      // Exclude the current product just in case
+      return items.filter((p) => p.id !== product?.id);
+    },
+    staleTime: 60000,
   });
 
   // Reset state when product changes
