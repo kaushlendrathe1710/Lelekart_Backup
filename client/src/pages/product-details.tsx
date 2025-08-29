@@ -1859,7 +1859,12 @@ export default function ProductDetailsPage() {
                         className="h-8 w-8 rounded-l"
                         title="Decrease quantity"
                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                        disabled={quantity <= 1}
+                        disabled={
+                          quantity <= 1 ||
+                          (selectedVariant
+                            ? selectedVariant.stock <= 0
+                            : (product?.stock ?? 0) <= 0)
+                        }
                       >
                         <Minus className="h-4 w-4" />
                       </Button>
@@ -1877,11 +1882,14 @@ export default function ProductDetailsPage() {
                           setQuantity(Math.min(availableStock, quantity + 1));
                         }}
                         disabled={
-                          selectedVariant?.stock
+                          (selectedVariant?.stock
                             ? quantity >= selectedVariant.stock
                             : product?.stock
                               ? quantity >= product.stock
-                              : false
+                              : false) ||
+                          (selectedVariant
+                            ? selectedVariant.stock <= 0
+                            : (product?.stock ?? 0) <= 0)
                         }
                       >
                         <Plus className="h-4 w-4" />
