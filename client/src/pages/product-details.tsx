@@ -1929,16 +1929,34 @@ export default function ProductDetailsPage() {
                         setPincode(value);
                       }}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter" && pincode.length === 6) {
+                        const outOfStock = selectedVariant
+                          ? selectedVariant.stock <= 0
+                          : (product?.stock ?? 0) <= 0;
+                        if (
+                          !outOfStock &&
+                          e.key === "Enter" &&
+                          pincode.length === 6
+                        ) {
                           checkPincodeAvailability();
                         }
                       }}
+                      disabled={
+                        selectedVariant
+                          ? selectedVariant.stock <= 0
+                          : (product?.stock ?? 0) <= 0
+                      }
                     />
                     <Button
                       variant="ghost"
                       className="text-primary text-sm"
                       onClick={checkPincodeAvailability}
-                      disabled={pincode.length !== 6 || isPincodeChecking}
+                      disabled={
+                        (selectedVariant
+                          ? selectedVariant.stock <= 0
+                          : (product?.stock ?? 0) <= 0) ||
+                        pincode.length !== 6 ||
+                        isPincodeChecking
+                      }
                     >
                       {isPincodeChecking ? (
                         <div className="flex items-center">
@@ -1952,7 +1970,16 @@ export default function ProductDetailsPage() {
                       )}
                     </Button>
                   </div>
-                  {pincodeResponse ? (
+                  {(
+                    selectedVariant
+                      ? selectedVariant.stock <= 0
+                      : (product?.stock ?? 0) <= 0
+                  ) ? (
+                    <div className="text-sm mt-2 p-2 rounded bg-gray-50 text-gray-700 border border-gray-200">
+                      This item is currently out of stock, so delivery is
+                      unavailable.
+                    </div>
+                  ) : pincodeResponse ? (
                     <div
                       className={`text-sm mt-2 p-2 rounded ${
                         pincodeResponse.isDeliverable
