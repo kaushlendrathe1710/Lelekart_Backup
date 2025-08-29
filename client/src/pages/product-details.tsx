@@ -741,6 +741,42 @@ export default function ProductDetailsPage() {
   // Track slider update trigger for debugging purposes
   const [sliderUpdateCount, setSliderUpdateCount] = useState(0);
 
+  // Persist and restore stock reminder state locally so it survives navigation
+  const getReminderStorage = (): Record<string, boolean> => {
+    try {
+      const raw = localStorage.getItem("lk_stock_reminders");
+      return raw ? (JSON.parse(raw) as Record<string, boolean>) : {};
+    } catch {
+      return {};
+    }
+  };
+
+  const saveReminderStorage = (store: Record<string, boolean>) => {
+    try {
+      localStorage.setItem("lk_stock_reminders", JSON.stringify(store));
+    } catch {
+      // ignore storage errors
+    }
+  };
+
+  const makeReminderKey = (
+    pid?: number | null,
+    vid?: number | null | undefined
+  ): string | null => {
+    if (!pid) return null;
+    return `${pid}:${vid ?? 0}`;
+  };
+
+  // On load and whenever productId/variant changes, restore existing reminder flag
+  useEffect(() => {
+    const key = makeReminderKey(productId, selectedVariant?.id ?? null);
+    if (!key) return;
+    const store = getReminderStorage();
+    if (store[key]) {
+      setExistingReminder(true);
+    }
+  }, [productId, selectedVariant?.id]);
+
   // --- Recently Viewed Products Tracking ---
   useEffect(() => {
     // Ensure productId is a valid number
@@ -1091,10 +1127,23 @@ export default function ProductDetailsPage() {
           variant: "default",
         });
         setExistingReminder(data.reminder ?? true);
+        // persist
+        const key = makeReminderKey(product.id, selectedVariant?.id || null);
+        if (key) {
+          const store = getReminderStorage();
+          store[key] = true;
+          saveReminderStorage(store);
+        }
       } else {
         if (response.status === 409) {
           // User already has a reminder
           setExistingReminder(data.reminderId ?? true);
+          const key = makeReminderKey(product.id, selectedVariant?.id || null);
+          if (key) {
+            const store = getReminderStorage();
+            store[key] = true;
+            saveReminderStorage(store);
+          }
           toast({
             title: "Reminder Already Exists",
             description: "You already have a stock reminder for this product.",
