@@ -1692,17 +1692,18 @@ export async function shipReturnWithShiprocket(req: Request, res: Response) {
       pickup_country: "India",
       pickup_email: buyer.email,
       pickup_phone: buyer.phone || pickupFrom.phone,
-      // For reverse shipments, shipping_* should reflect the customer's address
-      shipping_customer_name: buyer.name || buyer.username,
+      // For reverse shipments, shipping_* should reflect the SELLER pickup address (warehouse)
+      shipping_customer_name:
+        sellerPickup.pickup_location || sellerPickup.name || "Warehouse",
       shipping_last_name: "",
-      shipping_address: pickupFrom.address,
-      shipping_address_2: pickupFrom.address_2 || "",
-      shipping_city: pickupFrom.city,
-      shipping_pincode: pickupFrom.pincode,
-      shipping_state: pickupFrom.state,
-      shipping_country: pickupFrom.country || "India",
-      shipping_email: buyer.email,
-      shipping_phone: buyer.phone || pickupFrom.phone,
+      shipping_address: sellerPickup.address || pickupFrom.address,
+      shipping_address_2: sellerPickup.address_2 || "",
+      shipping_city: sellerPickup.city || pickupFrom.city,
+      shipping_pincode: sellerPickup.pincode || pickupFrom.pincode,
+      shipping_state: sellerPickup.state || pickupFrom.state,
+      shipping_country: sellerPickup.country || "India",
+      shipping_email: undefined,
+      shipping_phone: sellerPickup.phone || pickupFrom.phone,
       delivery_customer_name: "Warehouse",
       delivery_last_name: "",
       delivery_address: sellerPickup.address || pickupFrom.address,
@@ -1785,10 +1786,21 @@ export async function shipReturnWithShiprocket(req: Request, res: Response) {
         awbCode = awbResp?.data?.awb_code || null;
       } catch (e: any) {
         const msg: string = e?.response?.data?.message || e?.message || "";
-        if (msg && msg.toLowerCase().includes("awb is already assigned")) {
-          const match = msg.match(/awb\s*-?\s*([A-Za-z0-9]+)/i);
+        // Handle cases where AWB is already assigned or reassignment restricted
+        const normalized = (msg || "").toLowerCase();
+        if (
+          normalized.includes("awb is already assigned") ||
+          normalized.includes("cannot reassign this shipment") ||
+          normalized.includes("current awb")
+        ) {
+          // Try to extract AWB from the message
+          const match = msg.match(
+            /(?:current\s*awb|awb)\s*-?\s*([A-Za-z0-9]+)/i
+          );
           if (match && match[1]) awbCode = match[1];
-          console.warn("AWB already assigned, proceeding:", msg);
+          try {
+            console.warn("AWB already present, proceeding:", msg);
+          } catch {}
         } else {
           throw e;
         }
