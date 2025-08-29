@@ -45,6 +45,78 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import ReviewForm from "@/components/product/review-form";
+import React from "react";
+import { queryClient as qc } from "@/lib/queryClient";
+
+function StarRating({ value }: { value: number }) {
+  return (
+    <div
+      className="flex items-center gap-0.5"
+      aria-label={`Your rating: ${value} stars`}
+    >
+      {[1, 2, 3, 4, 5].map((star) => (
+        <svg
+          key={star}
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 20 20"
+          className={`h-4 w-4 ${star <= value ? "text-yellow-400" : "text-gray-300"}`}
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <path
+            fillRule="evenodd"
+            d="M10 15.934l-6.18 3.249 1.18-6.889L.083 7.514l6.91-1.004L10 0l3.008 6.51 6.909 1.004-4.917 4.78 1.18 6.89z"
+            clipRule="evenodd"
+          />
+        </svg>
+      ))}
+    </div>
+  );
+}
+
+function UserReviewIndicator({
+  productId,
+  onRate,
+}: {
+  productId: number;
+  onRate: () => void;
+}) {
+  const { user } = useAuth();
+  const { data } = useQuery<any>({
+    queryKey: ["userReviewForProduct", productId, user?.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/products/${productId}/reviews`, {
+        credentials: "include",
+      });
+      if (!res.ok) return null;
+      const all = await res.json();
+      const mine = Array.isArray(all)
+        ? all.find((r: any) => r.userId === user?.id)
+        : null;
+      return mine || null;
+    },
+    enabled: !!user && !!productId,
+    staleTime: 60_000,
+  });
+
+  if (data && typeof data.rating === "number") {
+    return <StarRating value={data.rating} />;
+  }
+
+  return (
+    <Button
+      variant="outline"
+      size="xs"
+      className="!h-6 text-[11px] px-2 bg-[#F8F5E4]"
+      onClick={(e) => {
+        e.stopPropagation();
+        onRate();
+      }}
+    >
+      Rate & Review
+    </Button>
+  );
+}
 
 // Types
 interface Order {
@@ -849,18 +921,13 @@ export default function OrdersPage() {
                                 {order.status === "delivered" &&
                                   user?.role === "buyer" && (
                                     <div className="mt-1">
-                                      <Button
-                                        variant="outline"
-                                        size="xs"
-                                        className="!h-6 text-[11px] px-2 bg-[#F8F5E4]"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
+                                      <UserReviewIndicator
+                                        productId={item.product.id}
+                                        onRate={() => {
                                           setReviewProductId(item.product.id);
                                           setReviewDialogOpen(true);
                                         }}
-                                      >
-                                        Rate & Review
-                                      </Button>
+                                      />
                                     </div>
                                   )}
                               </div>
@@ -1336,7 +1403,18 @@ export default function OrdersPage() {
           {reviewProductId != null && (
             <ReviewForm
               productId={reviewProductId}
-              onSuccess={() => setReviewDialogOpen(false)}
+              onSuccess={() => {
+                setReviewDialogOpen(false);
+                if (reviewProductId) {
+                  qc.invalidateQueries({
+                    queryKey: [
+                      "userReviewForProduct",
+                      reviewProductId,
+                      user?.id,
+                    ],
+                  });
+                }
+              }}
             />
           )}
         </DialogContent>
