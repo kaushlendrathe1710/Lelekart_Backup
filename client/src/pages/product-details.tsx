@@ -1696,10 +1696,20 @@ export default function ProductDetailsPage() {
   let safeGstAmount =
     typeof gstAmount === "number" && gstAmount > 0 ? gstAmount : undefined;
 
-  // Check if product is already in cart or was recently added
+  // Check if product/variant is already in cart or was recently added
   const isInCart = cartItems.some((item) => item.product.id === product?.id);
+  const isVariantInCart = selectedVariant
+    ? cartItems.some(
+        (item) =>
+          item.product.id === product?.id &&
+          item.variant?.id === selectedVariant.id
+      )
+    : false;
   const wasRecentlyAdded = product ? isProductRecentlyAdded(product.id) : false;
-  const shouldShowGoToCart = isInCart || wasRecentlyAdded;
+  // For variant products, only show Go to Cart when the exact variant is in cart
+  const shouldShowGoToCart = selectedVariant
+    ? isVariantInCart
+    : isInCart || wasRecentlyAdded;
 
   return (
     <CartProvider>
@@ -2509,6 +2519,7 @@ export default function ProductDetailsPage() {
               <button
                 onClick={() => setShowStockReminderModal(false)}
                 className="text-gray-500 hover:text-gray-700"
+                aria-label="Close stock reminder modal"
               >
                 <X className="h-5 w-5" />
               </button>
