@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { Link } from "wouter";
 import { X, Minus, Plus, AlertCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -152,16 +153,21 @@ export function CartSidebar() {
               >
                 <CardContent className="p-3">
                   <div className="flex">
-                    <img
-                      src={
-                        item.variant?.images
-                          ? JSON.parse(item.variant.images as string)[0] ||
-                            item.product.imageUrl
-                          : item.product.imageUrl
-                      }
-                      alt={item.product.name}
-                      className="w-20 h-20 object-contain rounded"
-                    />
+                    <Link
+                      href={`/product/${item.product.id}`}
+                      onClick={toggleCart}
+                    >
+                      <img
+                        src={
+                          item.variant?.images
+                            ? JSON.parse(item.variant.images as string)[0] ||
+                              item.product.imageUrl
+                            : item.product.imageUrl
+                        }
+                        alt={item.product.name}
+                        className="w-20 h-20 object-contain rounded"
+                      />
+                    </Link>
                     <div className="ml-4 flex-grow">
                       <h4 className="font-medium text-sm">
                         {item.product.name}
@@ -193,10 +199,17 @@ export function CartSidebar() {
                           size="icon"
                           className="h-6 w-6 rounded-l"
                           onClick={() => {
+                            const removeKey = (item.id ?? item.product.id) as
+                              | string
+                              | number;
+                            const updateKey =
+                              typeof item.id === "number"
+                                ? item.id
+                                : item.product.id;
                             if (item.quantity <= 1) {
-                              removeFromCart(item.id);
+                              removeFromCart(removeKey);
                             } else {
-                              updateQuantity(item.id, item.quantity - 1);
+                              updateQuantity(updateKey, item.quantity - 1);
                             }
                           }}
                         >
@@ -213,8 +226,12 @@ export function CartSidebar() {
                             // Check stock limits against available stock
                             const availableStock =
                               item.variant?.stock || item.product.stock || 999;
+                            const updateKey =
+                              typeof item.id === "number"
+                                ? item.id
+                                : item.product.id;
                             updateQuantity(
-                              item.id,
+                              updateKey,
                               Math.min(availableStock, item.quantity + 1)
                             );
                           }}
@@ -232,7 +249,12 @@ export function CartSidebar() {
                           variant="ghost"
                           size="sm"
                           className="ml-auto text-red-500 text-xs h-6 px-2"
-                          onClick={() => removeFromCart(item.id)}
+                          onClick={() => {
+                            const removeKey = (item.id ?? item.product.id) as
+                              | string
+                              | number;
+                            removeFromCart(removeKey);
+                          }}
                         >
                           Remove
                         </Button>
