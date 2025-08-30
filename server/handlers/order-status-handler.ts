@@ -80,6 +80,25 @@ export async function handleOrderStatusChange(orderId: number, status: string) {
       );
     }
 
+    // Restore stock for cancelled orders (async - don't block the response)
+    if (status === "cancelled") {
+      console.log(
+        `Processing stock restoration for cancelled order #${orderId}`
+      );
+
+      // Import and call stock restoration function asynchronously
+      import("./stock-restoration-handler")
+        .then(({ restoreOrderStock }) => {
+          return restoreOrderStock(orderId);
+        })
+        .catch((stockError) => {
+          console.error(
+            `Error restoring stock for cancelled order #${orderId}:`,
+            stockError
+          );
+        });
+    }
+
     // Send notifications asynchronously (don't block the response)
     sendNotificationsAsync(orderId, status, order.userId).catch((error) => {
       console.error(
