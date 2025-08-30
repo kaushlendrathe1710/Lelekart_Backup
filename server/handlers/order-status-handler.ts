@@ -9,6 +9,23 @@ import { sendEmail } from "../services/email-service";
 import { sendNotificationToUser } from "../websocket";
 
 /**
+ * Validate if an email template exists
+ * @param templateName The name of the template to validate
+ * @returns Promise<boolean> True if template exists, false otherwise
+ */
+async function validateEmailTemplate(templateName: string): Promise<boolean> {
+  try {
+    // Import the template service to check if template exists
+    const { getTemplate } = await import("../services/template-service");
+    const template = await getTemplate(templateName);
+    return !!template;
+  } catch (error) {
+    console.warn(`Failed to validate email template "${templateName}":`, error);
+    return false;
+  }
+}
+
+/**
  * Handle order status change, including related business logic like refunds
  * @param orderId The ID of the order to update
  * @param status The new status to set
@@ -30,6 +47,113 @@ export async function handleOrderStatusChange(orderId: number, status: string) {
     if (order.status === status) {
       console.log(`Order #${orderId} is already in ${status} status`);
       return order;
+    }
+
+    // Validate that the status parameter is a valid order status
+    const validStatuses = [
+      "pending",
+      "confirmed",
+      "processing",
+      "shipped",
+      "delivered",
+      "returned",
+      "refunded",
+      "replaced",
+      "cancelled",
+      "approve_return",
+      "reject_return",
+      "process_return",
+      "completed_return",
+    ];
+
+    if (!validStatuses.includes(status)) {
+      throw new Error(
+        `Invalid status "${status}". Valid statuses are: ${validStatuses.join(", ")}`
+      );
+    }
+
+    // Add status transition validation
+    const validTransitions = {
+      pending: ["confirmed", "cancelled"],
+      confirmed: ["processing", "cancelled"],
+      processing: ["shipped", "cancelled"],
+      shipped: ["delivered", "returned", "cancelled"],
+      delivered: ["returned"],
+      returned: ["refunded", "replaced"],
+      refunded: [],
+      replaced: ["shipped"],
+      cancelled: [],
+      approve_return: ["process_return"],
+      reject_return: ["returned"],
+      process_return: ["completed_return", "returned"],
+      completed_return: [],
+    };
+
+    // Check if the transition is valid
+    if (
+      !validTransitions[order.status] ||
+      !validTransitions[order.status].includes(status)
+    ) {
+      throw new Error(
+        `Invalid status transition from "${order.status}" to "${status}". ` +
+          `Valid transitions from "${order.status}" are: ${validTransitions[order.status].join(", ")}`
+      );
+    }
+
+    // Add business rule validation
+    if (status === "cancelled") {
+      if (order.status === "delivered") {
+        throw new Error(
+          "Cannot cancel a delivered order. Please use return process instead."
+        );
+      }
+      if (order.status === "shipped") {
+        console.warn(
+          `Order #${orderId} is being cancelled while shipped. This may require special handling.`
+        );
+      }
+      if (order.status === "returned") {
+        throw new Error("Cannot cancel an already returned order.");
+      }
+      if (order.status === "refunded") {
+        throw new Error("Cannot cancel an already refunded order.");
+      }
+    }
+
+    if (status === "delivered") {
+      if (order.status !== "shipped") {
+        throw new Error(
+          "Order must be shipped before it can be marked as delivered."
+        );
+      }
+    }
+
+    if (status === "shipped") {
+      if (order.status !== "processing") {
+        throw new Error(
+          "Order must be in processing status before it can be shipped."
+        );
+      }
+    }
+
+    if (status === "returned") {
+      if (!["delivered", "shipped"].includes(order.status)) {
+        throw new Error(
+          "Order must be delivered or shipped before it can be returned."
+        );
+      }
+    }
+
+    if (status === "refunded") {
+      if (order.status !== "returned") {
+        throw new Error("Order must be returned before it can be refunded.");
+      }
+    }
+
+    if (status === "replaced") {
+      if (order.status !== "returned") {
+        throw new Error("Order must be returned before it can be replaced.");
+      }
     }
 
     // Update the order status first (fast path)
@@ -116,7 +240,26 @@ export async function handleOrderStatusChange(orderId: number, status: string) {
         "completed_return",
       ].includes(status)
     ) {
-      // TODO: Add any custom business logic for these statuses if needed
+      // Add business logic for return-related statuses
+      if (status === "approve_return") {
+        if (order.status !== "pending" && order.status !== "confirmed") {
+          throw new Error(
+            "Return can only be approved for pending or confirmed orders."
+          );
+        }
+      }
+
+      if (status === "process_return") {
+        if (order.status !== "approve_return") {
+          throw new Error("Return can only be processed after approval.");
+        }
+      }
+
+      if (status === "completed_return") {
+        if (order.status !== "process_return") {
+          throw new Error("Return can only be completed after processing.");
+        }
+      }
     }
 
     return updatedOrder;
@@ -262,17 +405,27 @@ export async function updateOrderStatus(
       const seller = await storage.getUser(sellerOrder.sellerId);
 
       if (seller && seller.email) {
-        await sendEmail({
-          to: seller.email,
-          subject: `Order #${orderId} Status Update`,
-          template: "order-status-updated",
-          data: {
-            orderId,
-            sellerOrderId: sellerOrder.id,
-            status,
-            sellerName: seller.username,
-          },
-        });
+        // Validate email template before sending
+        const templateExists = await validateEmailTemplate(
+          "order-status-updated"
+        );
+        if (templateExists) {
+          await sendEmail({
+            to: seller.email,
+            subject: `Order #${orderId} Status Update`,
+            template: "order-status-updated",
+            data: {
+              orderId,
+              sellerOrderId: sellerOrder.id,
+              status,
+              sellerName: seller.username,
+            },
+          });
+        } else {
+          console.warn(
+            `Email template "order-status-updated" not found. Skipping seller notification for order #${orderId}`
+          );
+        }
       }
       // Permanent in-app notification for seller
       if (seller) {
@@ -319,16 +472,26 @@ export async function updateOrderStatus(
       const buyer = await storage.getUser(order.userId);
 
       if (buyer && buyer.email) {
-        await sendEmail({
-          to: buyer.email,
-          subject: `Your Order #${orderId} Status Update`,
-          template: "order-status-updated-buyer",
-          data: {
-            orderId,
-            status,
-            buyerName: buyer.username,
-          },
-        });
+        // Validate email template before sending
+        const templateExists = await validateEmailTemplate(
+          "order-status-updated-buyer"
+        );
+        if (templateExists) {
+          await sendEmail({
+            to: buyer.email,
+            subject: `Your Order #${orderId} Status Update`,
+            template: "order-status-updated-buyer",
+            data: {
+              orderId,
+              status,
+              buyerName: buyer.username,
+            },
+          });
+        } else {
+          console.warn(
+            `Email template "order-status-updated-buyer" not found. Skipping buyer notification for order #${orderId}`
+          );
+        }
       }
       // Send notification to buyer
       if (buyer) {
