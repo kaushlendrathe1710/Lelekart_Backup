@@ -1,7 +1,14 @@
 import { db } from "../db";
 import { products } from "@shared/schema";
 import { sql, desc, eq, and, or, inArray, like, ilike } from "drizzle-orm";
-import { getChatResponse, findSimilarProducts } from "./gemini-ai";
+import { findSimilarProducts } from "./gemini-ai";
+
+// Simple in-memory cache for AI recommendations (in production, use Redis)
+const aiRecommendationCache = new Map<
+  string,
+  { products: any[]; timestamp: number }
+>();
+const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
 /**
  * Enhanced recommendation engine that provides product suggestions based on:
@@ -12,7 +19,7 @@ import { getChatResponse, findSimilarProducts } from "./gemini-ai";
  * 5. Similar products in the same category and subcategory
  * 6. Popular products for new users
  */
-export class RecommendationEngine {
+export class EnhancedRecommendationEngine {
   /**
    * Get personalized product recommendations for a user
    * @param userId The user ID to get recommendations for, or null for anonymous users
@@ -53,10 +60,24 @@ export class RecommendationEngine {
         return [];
       }
 
+      // Check cache first
+      const cacheKey = `similar_${productId}_${limit}`;
+      const cached = aiRecommendationCache.get(cacheKey);
+
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        console.log(`Using cached AI recommendations for product ${productId}`);
+        return cached.products;
+      }
+
       // First, try to get AI-powered similar products
       const aiSimilarProducts = await this.getAISimilarProducts(product, limit);
 
       if (aiSimilarProducts.length >= limit) {
+        // Cache the results
+        aiRecommendationCache.set(cacheKey, {
+          products: aiSimilarProducts,
+          timestamp: Date.now(),
+        });
         return aiSimilarProducts;
       }
 
@@ -65,8 +86,15 @@ export class RecommendationEngine {
         product,
         limit - aiSimilarProducts.length
       );
+      const allProducts = [...aiSimilarProducts, ...fallbackProducts];
 
-      return [...aiSimilarProducts, ...fallbackProducts];
+      // Cache the results
+      aiRecommendationCache.set(cacheKey, {
+        products: allProducts,
+        timestamp: Date.now(),
+      });
+
+      return allProducts;
     } catch (error) {
       console.error(
         "Error in AI similar products, falling back to traditional method:",
@@ -80,6 +108,14 @@ export class RecommendationEngine {
   }
 
   /**
+   * Clear the recommendation cache (useful for testing or when products are updated)
+   */
+  static clearCache(): void {
+    aiRecommendationCache.clear();
+    console.log("AI recommendation cache cleared");
+  }
+
+  /**
    * Get AI-powered similar products using Gemini
    * @param product The product to find similar items for
    * @param limit Maximum number of similar products to return
@@ -90,45 +126,48 @@ export class RecommendationEngine {
     limit: number
   ): Promise<any[]> {
     try {
-      // Prepare product context for AI
-      const productContext = `
-        Product Name: ${product.name}
-        Category: ${product.category}
-        Subcategory: ${product.subcategory1 || ""} ${product.subcategory2 || ""}
-        Description: ${product.description || ""}
-        Brand: ${product.brand || ""}
-        Price Range: ${product.price}
-      `;
+      // First, get all available products in the same category for AI to choose from
+      const availableProducts = await db
+        .select({
+          id: products.id,
+          name: products.name,
+          category: products.category,
+          subcategory1: products.subcategory1,
+          subcategory2: products.subcategory2,
+          description: products.description,
+          brand: products.brand,
+          price: products.price,
+        })
+        .from(products)
+        .where(
+          and(
+            eq(products.category, product.category),
+            eq(products.approved, true),
+            eq(products.deleted, false),
+            sql`${products.id} != ${product.id}`
+          )
+        );
 
-      // Create AI prompt for finding similar products
-      const prompt = `
-        You are an AI product recommendation system for an e-commerce platform.
-        
-        I need to find ${limit} products that are MOST SIMILAR to this product:
-        ${productContext}
-        
-        IMPORTANT: Focus on finding products that are in the SAME category and have similar characteristics.
-        For example, if this is a jewellery product, find other jewellery items, not clothing or electronics.
-        
-        Analyze the product name, description, and category to understand what type of product this is.
-        Then suggest products that would be genuinely similar and relevant.
-        
-        Return ONLY a JSON array of product IDs (numbers) that would be most similar.
-        Example: [123, 456, 789]
-        
-        If you cannot determine similarity or don't have enough context, return an empty array: []
-      `;
+      if (availableProducts.length === 0) {
+        return [];
+      }
 
-      // Get AI response
-      const aiResponse = await getChatResponse(
-        [{ role: "user", content: prompt }],
-        "You are a product recommendation AI. Return only JSON arrays of product IDs."
+      // Use the enhanced AI function to find similar products
+      const similarProductIds = await findSimilarProducts(
+        {
+          name: product.name,
+          category: product.category,
+          subcategory1: product.subcategory1,
+          subcategory2: product.subcategory2,
+          description: product.description,
+          brand: product.brand,
+          price: product.price,
+        },
+        availableProducts,
+        limit
       );
 
-      // Parse AI response to extract product IDs
-      const productIds = this.parseAIResponse(aiResponse);
-
-      if (productIds.length === 0) {
+      if (similarProductIds.length === 0) {
         return [];
       }
 
@@ -138,10 +177,9 @@ export class RecommendationEngine {
         .from(products)
         .where(
           and(
-            inArray(products.id, productIds),
+            inArray(products.id, similarProductIds),
             eq(products.approved, true),
-            eq(products.deleted, false),
-            sql`${products.id} != ${product.id}`
+            eq(products.deleted, false)
           )
         )
         .limit(limit);
@@ -149,35 +187,6 @@ export class RecommendationEngine {
       return similarProducts;
     } catch (error) {
       console.error("Error getting AI similar products:", error);
-      return [];
-    }
-  }
-
-  /**
-   * Parse AI response to extract product IDs
-   * @param aiResponse The response from Gemini AI
-   * @returns Array of product IDs
-   */
-  private static parseAIResponse(aiResponse: string): number[] {
-    try {
-      // Try to extract JSON array from the response
-      const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        if (Array.isArray(parsed)) {
-          return parsed.filter((id) => typeof id === "number" && id > 0);
-        }
-      }
-
-      // Fallback: try to find numbers in the response
-      const numberMatches = aiResponse.match(/\d+/g);
-      if (numberMatches) {
-        return numberMatches.map(Number).filter((id) => id > 0);
-      }
-
-      return [];
-    } catch (error) {
-      console.error("Error parsing AI response:", error);
       return [];
     }
   }

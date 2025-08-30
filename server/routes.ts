@@ -277,6 +277,7 @@ import {
 import { z } from "zod";
 import { handleImageProxy } from "./utils/image-proxy";
 import { RecommendationEngine } from "./utils/recommendation-engine";
+import { EnhancedRecommendationEngine } from "./utils/enhanced-recommendation-engine";
 import {
   createRazorpayOrder,
   handleSuccessfulPayment,
@@ -3733,7 +3734,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Duplicate POST endpoint has been removed
+  // Get similar products for a specific product
+  app.get("/api/recommendations/similar/:id", async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 6;
+
+      // Determine if we should filter by approval status based on user role
+      const userRole = req.isAuthenticated() ? req.user.role : "buyer";
+      const showOnlyApproved = userRole !== "admin" && userRole !== "seller";
+
+      console.log(`Getting similar products for product ID ${productId}`);
+
+      // Use the enhanced AI-powered recommendation engine
+      const similarProducts =
+        await EnhancedRecommendationEngine.getSimilarProducts(productId, limit);
+
+      // For regular buyers, ensure we only return approved products that aren't drafts
+      let filteredProducts = similarProducts;
+      if (showOnlyApproved) {
+        filteredProducts = similarProducts.filter(
+          (product) =>
+            product.approved === true &&
+            product.isDraft !== true &&
+            product.deleted !== true
+        );
+
+        if (filteredProducts.length < similarProducts.length) {
+          console.log(
+            `Filtered out ${
+              similarProducts.length - filteredProducts.length
+            } unapproved/draft products from similar products`
+          );
+        }
+      }
+
+      console.log(
+        `Found ${filteredProducts.length} similar products for product ID ${productId}`
+      );
+      res.json(filteredProducts);
+    } catch (error) {
+      console.error("Error getting similar products:", error);
+      res.status(500).json({ error: "Failed to get similar products" });
+    }
+  });
+
+  // Clear AI recommendation cache (for testing/debugging)
+  app.post("/api/recommendations/clear-cache", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      EnhancedRecommendationEngine.clearCache();
+      res.json({ message: "AI recommendation cache cleared successfully" });
+    } catch (error) {
+      console.error("Error clearing recommendation cache:", error);
+      res.status(500).json({ error: "Failed to clear cache" });
+    }
+  });
 
   app.post(
     "/api/products",
@@ -10077,10 +10136,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const showOnlyApproved = userRole !== "admin" && userRole !== "seller";
 
       console.log(`Getting similar products for product ID ${productId}`);
-      const similarProducts = await RecommendationEngine.getSimilarProducts(
-        productId,
-        limit
-      );
+
+      // Use the enhanced AI-powered recommendation engine
+      const similarProducts =
+        await EnhancedRecommendationEngine.getSimilarProducts(productId, limit);
 
       // For regular buyers, ensure we only return approved products that aren't drafts
       let filteredProducts = similarProducts;
@@ -10108,6 +10167,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error getting similar products:", error);
       res.status(500).json({ error: "Failed to get similar products" });
+    }
+  });
+
+  // Clear AI recommendation cache (for testing/debugging)
+  app.post("/api/recommendations/clear-cache", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      EnhancedRecommendationEngine.clearCache();
+      res.json({ message: "AI recommendation cache cleared successfully" });
+    } catch (error) {
+      console.error("Error clearing recommendation cache:", error);
+      res.status(500).json({ error: "Failed to clear cache" });
     }
   });
 

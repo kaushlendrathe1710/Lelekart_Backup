@@ -351,3 +351,109 @@ export async function answerProductQuestion(
     );
   }
 }
+
+/**
+ * Find similar products using AI analysis
+ * @param productInfo Information about the product to find similar items for
+ * @param availableProducts Array of available products to choose from
+ * @param limit Maximum number of similar products to return
+ * @returns Array of similar product IDs
+ */
+export async function findSimilarProducts(
+  productInfo: {
+    name: string;
+    category: string;
+    subcategory1?: string;
+    subcategory2?: string;
+    description?: string;
+    brand?: string;
+    price?: number;
+  },
+  availableProducts: Array<{
+    id: number;
+    name: string;
+    category: string;
+    subcategory1?: string;
+    subcategory2?: string;
+    description?: string;
+    brand?: string;
+    price?: number;
+  }>,
+  limit: number = 6
+): Promise<number[]> {
+  if (!model) {
+    throw new Error(
+      "Gemini API is not configured. Please add GEMINI_API_KEY to your secrets."
+    );
+  }
+
+  try {
+    // Create a detailed prompt for the AI
+    const prompt = `
+You are an AI product recommendation system for an e-commerce platform.
+
+I need to find ${limit} products that are MOST SIMILAR to this product:
+- Name: ${productInfo.name}
+- Category: ${productInfo.category}
+- Subcategory: ${productInfo.subcategory1 || "N/A"} ${productInfo.subcategory2 || "N/A"}
+- Description: ${productInfo.description || "N/A"}
+- Brand: ${productInfo.brand || "N/A"}
+- Price: ${productInfo.price || "N/A"}
+
+Available products to choose from:
+${availableProducts.map((p) => `ID: ${p.id}, Name: ${p.name}, Category: ${p.category}, Subcategory: ${p.subcategory1 || "N/A"} ${p.subcategory2 || "N/A"}, Brand: ${p.brand || "N/A"}, Price: ${p.price || "N/A"}`).join("\n")}
+
+IMPORTANT RULES:
+1. Focus on products in the SAME category as the target product
+2. Prioritize products with similar subcategories
+3. Consider product names, descriptions, and brands for similarity
+4. If this is jewellery, find other jewellery items, not clothing or electronics
+5. If this is electronics, find other electronics, not clothing or jewellery
+6. Price similarity is a factor but not the primary one
+7. Return ONLY the product IDs of the most similar products
+
+Return ONLY a JSON array of product IDs (numbers) that would be most similar.
+Example: [123, 456, 789]
+
+If you cannot determine similarity or don't have enough context, return an empty array: []
+`;
+
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    const text = response.text();
+
+    // Extract JSON array from the response
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      try {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (Array.isArray(parsed)) {
+          // Filter to only include IDs that exist in availableProducts
+          const validIds = parsed.filter(
+            (id) =>
+              typeof id === "number" &&
+              id > 0 &&
+              availableProducts.some((p) => p.id === id)
+          );
+          return validIds.slice(0, limit);
+        }
+      } catch (parseError) {
+        console.error("Error parsing AI response JSON:", parseError);
+      }
+    }
+
+    // Fallback: try to find numbers in the response
+    const numberMatches = text.match(/\d+/g);
+    if (numberMatches) {
+      const ids = numberMatches
+        .map(Number)
+        .filter((id) => id > 0 && availableProducts.some((p) => p.id === id));
+      return ids.slice(0, limit);
+    }
+
+    return [];
+  } catch (error) {
+    console.error("Error in AI similar products:", error);
+    return [];
+  }
+}
