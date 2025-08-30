@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
@@ -58,6 +58,127 @@ export default function BuyerWishlistPage() {
     staleTime: 60000,
   });
 
+  // Helper functions for localStorage persistence (similar to product details page)
+  const getReminderStorage = (): Record<string, boolean> => {
+    try {
+      const raw = localStorage.getItem("lk_stock_reminders");
+      return raw ? (JSON.parse(raw) as Record<string, boolean>) : {};
+    } catch {
+      return {};
+    }
+  };
+
+  const saveReminderStorage = (store: Record<string, boolean>) => {
+    try {
+      localStorage.setItem("lk_stock_reminders", JSON.stringify(store));
+    } catch {
+      // ignore storage errors
+    }
+  };
+
+  const makeReminderKey = (productId: number): string => {
+    return `${productId}:0`; // Using 0 for variant ID since wishlist doesn't handle variants
+  };
+
+  // Fetch existing stock reminders when user changes or page loads
+  useEffect(() => {
+    const fetchExistingReminders = async () => {
+      if (!user) {
+        setReminderSetIds(new Set());
+        return;
+      }
+
+      try {
+        // First check localStorage for immediate state restoration
+        const store = getReminderStorage();
+        const localReminderIds = new Set<number>();
+
+        // Check if any wishlist items have local reminders
+        wishlistItems.forEach((item) => {
+          const key = makeReminderKey(item.product.id);
+          if (store[key]) {
+            localReminderIds.add(item.product.id);
+          }
+        });
+
+        // Set local reminders immediately for better UX
+        if (localReminderIds.size > 0) {
+          setReminderSetIds(localReminderIds);
+        }
+
+        // Then fetch from API to sync with server state
+        const response = await fetch("/api/stock-reminders");
+        if (response.ok) {
+          const reminders = await response.json();
+          // Extract product IDs from reminders and set them in reminderSetIds
+          const productIds = reminders.map(
+            (reminder: any) => reminder.productId
+          );
+
+          // Merge API reminders with local reminders
+          const allReminderIds = new Set([...localReminderIds, ...productIds]);
+          setReminderSetIds(allReminderIds);
+
+          // Update localStorage with any new reminders from API
+          const updatedStore = { ...store };
+          productIds.forEach((productId: number) => {
+            const key = makeReminderKey(productId);
+            updatedStore[key] = true;
+          });
+          saveReminderStorage(updatedStore);
+        }
+      } catch (error) {
+        console.error("Error fetching existing reminders:", error);
+        // If API fails, still show local reminders
+        const store = getReminderStorage();
+        const localReminderIds = new Set<number>();
+        wishlistItems.forEach((item) => {
+          const key = makeReminderKey(item.product.id);
+          if (store[key]) {
+            localReminderIds.add(item.product.id);
+          }
+        });
+        setReminderSetIds(localReminderIds);
+      }
+    };
+
+    fetchExistingReminders();
+  }, [user, wishlistItems]);
+
+  // Clean up localStorage reminders for products that are no longer in wishlist
+  useEffect(() => {
+    if (!wishlistItems.length) return;
+
+    const store = getReminderStorage();
+    const wishlistProductIds = new Set(
+      wishlistItems.map((item) => item.product.id)
+    );
+    let hasChanges = false;
+
+    // Remove reminders for products that are no longer in wishlist
+    Object.keys(store).forEach((key) => {
+      const productId = parseInt(key.split(":")[0]);
+      if (!wishlistProductIds.has(productId)) {
+        delete store[key];
+        hasChanges = true;
+      }
+    });
+
+    // Save updated store if changes were made
+    if (hasChanges) {
+      saveReminderStorage(store);
+      // Update local state to reflect changes
+      const remainingReminderIds = new Set<number>();
+      Object.keys(store).forEach((key) => {
+        const productId = parseInt(key.split(":")[0]);
+        if (wishlistProductIds.has(productId)) {
+          remainingReminderIds.add(productId);
+        }
+      });
+      setReminderSetIds(remainingReminderIds);
+    }
+  }, [wishlistItems]);
+
   // (Removed local mutation; using shared context instead)
 
   // Handle add to cart with individual loading states
@@ -103,6 +224,19 @@ export default function BuyerWishlistPage() {
     setRemovingProducts((prev) => new Set(prev).add(productId));
     try {
       await removeFromWishlist(productId);
+      // Clean up localStorage reminder for this product
+      const key = makeReminderKey(productId);
+      const store = getReminderStorage();
+      if (store[key]) {
+        delete store[key];
+        saveReminderStorage(store);
+        // Also remove from local state
+        setReminderSetIds((prev) => {
+          const next = new Set(prev);
+          next.delete(productId);
+          return next;
+        });
+      }
     } finally {
       setRemovingProducts((prev) => {
         const next = new Set(prev);
@@ -156,12 +290,22 @@ export default function BuyerWishlistPage() {
       const data = await res.json();
       if (res.ok) {
         setReminderSetIds((prev) => new Set(prev).add(product.id));
+        // Save to localStorage for persistence
+        const key = makeReminderKey(product.id);
+        const store = getReminderStorage();
+        store[key] = true;
+        saveReminderStorage(store);
         toast({
           title: "Reminder set",
           description: "We'll notify you when it's back in stock.",
         });
       } else if (res.status === 409) {
         setReminderSetIds((prev) => new Set(prev).add(product.id));
+        // Save to localStorage for persistence
+        const key = makeReminderKey(product.id);
+        const store = getReminderStorage();
+        store[key] = true;
+        saveReminderStorage(store);
         toast({
           title: "Already set",
           description: "Reminder already exists.",
