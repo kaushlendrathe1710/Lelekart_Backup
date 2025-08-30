@@ -6,7 +6,7 @@ import { ShoppingCart, Bell } from "lucide-react";
 import { CartContext } from "@/context/cart-context"; // Import context directly
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useContext, memo, useState } from "react";
+import { useContext, memo, useState, useEffect } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { WishlistButton } from "./wishlist-button";
 import { ProductImage } from "./product-image";
@@ -69,6 +69,39 @@ export const ProductCard = memo(function ProductCard({
   // Remind me state
   const [isCreatingReminder, setIsCreatingReminder] = useState(false);
   const [reminderSet, setReminderSet] = useState(false);
+
+  // Helper functions for localStorage persistence (similar to wishlist page)
+  const getReminderStorage = (): Record<string, boolean> => {
+    try {
+      const raw = localStorage.getItem("lk_stock_reminders");
+      return raw ? (JSON.parse(raw) as Record<string, boolean>) : {};
+    } catch {
+      return {};
+    }
+  };
+
+  const saveReminderStorage = (store: Record<string, boolean>) => {
+    try {
+      localStorage.setItem("lk_stock_reminders", JSON.stringify(store));
+    } catch {
+      // ignore storage errors
+    }
+  };
+
+  const makeReminderKey = (productId: number): string => {
+    return `${productId}:0`; // Using 0 for variant ID since ProductCard doesn't handle variants
+  };
+
+  // Check localStorage for existing reminder when component mounts
+  useEffect(() => {
+    if (!user) return;
+
+    const store = getReminderStorage();
+    const key = makeReminderKey(product.id);
+    if (store[key]) {
+      setReminderSet(true);
+    }
+  }, [user, product.id]);
 
   // Format price in Indian Rupees
   const formatPrice = (price: number) => {
@@ -167,12 +200,22 @@ export const ProductCard = memo(function ProductCard({
       const data = await res.json();
       if (res.ok) {
         setReminderSet(true);
+        // Save to localStorage for persistence
+        const key = makeReminderKey(product.id);
+        const store = getReminderStorage();
+        store[key] = true;
+        saveReminderStorage(store);
         toast({
           title: "Reminder set",
           description: "We'll notify you when it's back in stock.",
         });
       } else if (res.status === 409) {
         setReminderSet(true);
+        // Save to localStorage for persistence
+        const key = makeReminderKey(product.id);
+        const store = getReminderStorage();
+        store[key] = true;
+        saveReminderStorage(store);
         toast({
           title: "Already set",
           description: "Reminder already exists.",
