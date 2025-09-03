@@ -10,6 +10,7 @@ import { User } from "@shared/schema";
 import { useCart } from "@/context/cart-context";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import { getCartItemImageUrl } from "@/lib/product-image-utils";
 
 interface CartItem {
   id: number | string; // Allow both number and string for guest vs logged-in users
@@ -170,28 +171,7 @@ export default function CartPage() {
                         <div className="flex-shrink-0 w-full sm:w-24 h-40 sm:h-24 border border-gray-200 rounded-md overflow-hidden mx-auto sm:mx-0">
                           <Link href={`/product/${item.product.id}`}>
                             <img
-                              src={
-                                item.variant?.images
-                                  ? (() => {
-                                      try {
-                                        const imgs = JSON.parse(
-                                          item.variant.images
-                                        );
-                                        return (
-                                          imgs[0] ||
-                                          item.product.imageUrl ||
-                                          "/images/categories/fashion.svg"
-                                        );
-                                      } catch {
-                                        return (
-                                          item.product.imageUrl ||
-                                          "/images/categories/fashion.svg"
-                                        );
-                                      }
-                                    })()
-                                  : item.product.imageUrl ||
-                                    "/images/categories/fashion.svg"
-                              }
+                              src={getCartItemImageUrl(item)}
                               alt={item.product.name}
                               className="w-full h-full object-center object-cover"
                               onError={(e) => {

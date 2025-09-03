@@ -65,6 +65,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { getCartItemImageUrl } from "@/lib/product-image-utils";
 
 // Define form schema with Zod - with more permissive validation
 const checkoutSchema = z.object({
@@ -1955,28 +1956,7 @@ export default function CheckoutPage() {
                     <div className="flex items-center">
                       <div className="w-10 h-10 rounded-md overflow-hidden mr-2 bg-gray-100 flex items-center justify-center">
                         <img
-                          src={
-                            item.variant?.images
-                              ? (() => {
-                                  try {
-                                    const imgs = JSON.parse(
-                                      item.variant.images
-                                    );
-                                    return (
-                                      imgs[0] ||
-                                      item.product.imageUrl ||
-                                      "https://via.placeholder.com/80?text=Product"
-                                    );
-                                  } catch {
-                                    return (
-                                      item.product.imageUrl ||
-                                      "https://via.placeholder.com/80?text=Product"
-                                    );
-                                  }
-                                })()
-                              : item.product.imageUrl ||
-                                "https://via.placeholder.com/80?text=Product"
-                          }
+                          src={getCartItemImageUrl(item)}
                           alt={item.product.name}
                           className="w-full h-full object-cover"
                           onError={(e) => {

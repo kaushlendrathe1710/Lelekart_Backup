@@ -47,6 +47,7 @@ import { Label } from "@/components/ui/label";
 import ReviewForm from "@/components/product/review-form";
 import React from "react";
 import { queryClient as qc } from "@/lib/queryClient";
+import { getOrderItemImageUrl } from "@/lib/product-image-utils";
 
 function StarRating({ value }: { value: number }) {
   return (
@@ -185,42 +186,6 @@ function getStatusColor(status: string) {
     default:
       return "bg-gray-100 text-gray-800";
   }
-}
-
-// Helper to get product image URL
-function getProductImageUrl(product: any): string {
-  console.log("Getting image URL for product:", product);
-
-  // First try product.image
-  if (product?.image) {
-    console.log("Using product.image:", product.image);
-    return product.image;
-  }
-
-  // Then try product.imageUrl
-  if (product?.imageUrl) {
-    console.log("Using product.imageUrl:", product.imageUrl);
-    return product.imageUrl;
-  }
-
-  // Finally try to get first image from product.images JSON
-  if (product?.images) {
-    try {
-      const imagesArray = JSON.parse(product.images);
-      if (Array.isArray(imagesArray) && imagesArray.length > 0) {
-        console.log("Using product.images[0]:", imagesArray[0]);
-        return imagesArray[0];
-      }
-    } catch {
-      // If JSON parsing fails, try using it directly
-      console.log("Using product.images directly:", product.images);
-      return product.images;
-    }
-  }
-
-  console.log("No image found, using placeholder");
-  // Return a default image if nothing found
-  return "https://placehold.co/100x100?text=No+Image";
 }
 
 // Helper to get status icon
@@ -894,7 +859,7 @@ export default function OrdersPage() {
                             {order.items.slice(0, 3).map((item, index) => (
                               <div key={index} className="relative">
                                 <img
-                                  src={getProductImageUrl(item.product)}
+                                  src={getOrderItemImageUrl(item)}
                                   alt={item.product?.name || "Product"}
                                   className="w-12 h-12 object-cover rounded border bg-[#EADDCB]"
                                   onError={(e) => {
