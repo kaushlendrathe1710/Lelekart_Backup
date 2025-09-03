@@ -289,13 +289,14 @@ export default function SimpleImageSlider({
         {/* Main image area */}
         <div ref={containerRef} className="flex-1">
           {viewMode === "normal" && (
-            <div className="w-full h-96 border border-gray-100 flex items-center justify-center bg-white relative">
+            <div className="w-full h-64 sm:h-80 md:h-96 border border-gray-100 flex items-center justify-center bg-white relative overflow-hidden">
               <img
                 src={allImagesUrls[activeIndex] || defaultImage}
                 alt={name}
-                className="max-w-full max-h-full object-contain cursor-zoom-in transition-transform hover:scale-105"
+                className="w-full h-full object-contain cursor-zoom-in transition-transform hover:scale-105"
                 onError={handleImageError}
                 onClick={() => setViewMode("zoom")}
+                style={{ maxWidth: "100%", maxHeight: "100%" }}
               />
               {canNavigate && (
                 <>
@@ -324,14 +325,15 @@ export default function SimpleImageSlider({
           )}
 
           {viewMode === "zoom" && (
-            <div className="w-full h-96 border border-gray-100 bg-white">
+            <div className="w-full h-64 sm:h-80 md:h-96 border border-gray-100 bg-white overflow-hidden">
               <div className="h-full relative flex items-center justify-center">
                 <Zoom>
                   <img
                     src={allImagesUrls[activeIndex] || defaultImage}
                     alt={name}
-                    className="max-w-full max-h-96 object-contain mx-auto"
+                    className="w-full h-full object-contain"
                     onError={handleImageError}
+                    style={{ maxWidth: "100%", maxHeight: "100%" }}
                   />
                 </Zoom>
                 {canNavigate && (
@@ -364,7 +366,7 @@ export default function SimpleImageSlider({
 
           {viewMode === "360" && (
             <div
-              className="w-full h-96 border border-gray-100 bg-white flex items-center justify-center cursor-grab active:cursor-grabbing"
+              className="w-full h-64 sm:h-80 md:h-96 border border-gray-100 bg-white flex items-center justify-center cursor-grab active:cursor-grabbing"
               onMouseMove={handle360MouseMove}
               onMouseEnter={() => setIsDragging(true)}
               onMouseLeave={() => setIsDragging(false)}
@@ -375,8 +377,9 @@ export default function SimpleImageSlider({
                     <img
                       src={allImagesUrls[activeIndex] || defaultImage}
                       alt={`${name} 360 view`}
-                      className="max-w-full max-h-full object-contain transition-all duration-200"
+                      className="w-full h-full object-contain transition-all duration-200"
                       onError={handleImageError}
+                      style={{ maxWidth: "100%", maxHeight: "100%" }}
                     />
                     {canNavigate && (
                       <>

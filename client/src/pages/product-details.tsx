@@ -529,7 +529,7 @@ function ProductImageSlider({
         {/* Main image area with different view modes */}
         <div ref={containerRef} className="flex-1 sticky top-0">
           {viewMode === "normal" && (
-            <div className="w-full h-96 border border-gray-100 flex items-center justify-center bg-white">
+            <div className="w-full h-64 sm:h-80 md:h-96 border border-gray-100 flex items-center justify-center bg-white overflow-hidden">
               {/* Use simple clickable image that expands to full screen on click */}
               <img
                 src={(() => {
@@ -548,9 +548,10 @@ function ProductImageSlider({
                   return defaultImage; // Fallback to default image
                 })()}
                 alt={name}
-                className="max-w-full max-h-full object-contain cursor-zoom-in main-image"
+                className="w-full h-full object-contain cursor-zoom-in main-image"
                 onError={handleImageError}
                 onClick={() => setViewMode("zoom")}
+                style={{ maxWidth: "100%", maxHeight: "100%" }}
               />
               <div className="absolute bottom-2 right-2 bg-black bg-opacity-60 text-white p-1 rounded text-xs">
                 Click to zoom
@@ -559,8 +560,8 @@ function ProductImageSlider({
           )}
 
           {viewMode === "zoom" && (
-            <div className="w-full h-96 border border-gray-100 bg-white">
-              <div className="h-full relative">
+            <div className="w-full h-64 sm:h-80 md:h-96 border border-gray-100 bg-white overflow-hidden">
+              <div className="h-full relative flex items-center justify-center">
                 <Zoom>
                   <img
                     src={
@@ -573,9 +574,9 @@ function ProductImageSlider({
                           : defaultImage
                     }
                     alt={name}
-                    className="max-w-full max-h-full object-contain"
+                    className="w-full h-full object-contain"
                     onError={handleImageError}
-                    style={{ maxHeight: "384px", margin: "0 auto" }}
+                    style={{ maxWidth: "100%", maxHeight: "100%" }}
                   />
                 </Zoom>
               </div>
@@ -586,7 +587,7 @@ function ProductImageSlider({
           )}
 
           {viewMode === "360" && (
-            <div className="w-full h-96 border border-gray-100 bg-white overflow-hidden">
+            <div className="w-full h-64 sm:h-80 md:h-96 border border-gray-100 bg-white overflow-hidden">
               {get360Images().length > 0 ? (
                 <>
                   <div className="h-full flex items-center justify-center">
@@ -635,8 +636,9 @@ function ProductImageSlider({
                               : defaultImage
                           }
                           alt={`${name} 360 view`}
-                          className="max-w-full max-h-full object-contain"
+                          className="w-full h-full object-contain"
                           onError={handleImageError}
+                          style={{ maxWidth: "100%", maxHeight: "100%" }}
                         />
                         <div className="absolute bottom-4 left-0 right-0 flex justify-center">
                           <div className="bg-black bg-opacity-60 text-white px-3 py-1 rounded-full text-xs flex items-center">
