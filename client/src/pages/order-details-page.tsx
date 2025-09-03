@@ -29,6 +29,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import ReviewForm from "@/components/product/review-form";
 import { useQuery } from "@tanstack/react-query";
 import { queryClient as qc } from "@/lib/queryClient";
+import { getOrderItemImageUrl } from "@/lib/product-image-utils";
 
 interface GstDetails {
   gstRate: number;
@@ -878,20 +879,7 @@ export default function OrderDetailsPage() {
                   <div className="flex flex-col sm:flex-row gap-4">
                     <div className="relative w-20 h-20 rounded bg-[#EADDCB] flex-shrink-0 mx-auto sm:mx-0 overflow-hidden">
                       <img
-                        src={
-                          item.variant?.images
-                            ? (() => {
-                                try {
-                                  const imgs = JSON.parse(item.variant.images);
-                                  return (
-                                    imgs[0] || getProductImageUrl(item.product)
-                                  );
-                                } catch {
-                                  return getProductImageUrl(item.product);
-                                }
-                              })()
-                            : getProductImageUrl(item.product)
-                        }
+                        src={getOrderItemImageUrl(item)}
                         alt={item.product.name}
                         className="h-full w-full object-cover"
                         onError={(e) => {
