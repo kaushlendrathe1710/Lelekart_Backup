@@ -7410,6 +7410,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Recover a user (admin only)
+  app.post("/api/users/:id/recover", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin")
+      return res.status(403).json({ error: "Not authorized" });
+
+    try {
+      const id = parseInt(req.params.id);
+
+      // Don't allow admins to recover themselves if they're not deleted
+      const currentUser = await storage.getUser(req.user.id);
+      if (id === req.user.id && !currentUser?.deleted) {
+        return res
+          .status(400)
+          .json({ error: "You cannot recover your own account" });
+      }
+
+      const recoveredUser = await storage.recoverUser(id);
+      res.json(recoveredUser);
+    } catch (error) {
+      console.error("Error recovering user:", error);
+      res.status(500).json({ error: "Failed to recover user" });
+    }
+  });
+
   // Co-Admin Management
 
   // Get all co-admins

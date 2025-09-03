@@ -39,6 +39,7 @@ import {
   Loader2,
   Trash2,
   UserCog,
+  RotateCcw,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
@@ -91,6 +92,17 @@ export default function AdminUsers() {
     userId: null,
     username: "",
     role: "",
+  });
+
+  // State for recover user confirmation
+  const [confirmRecover, setConfirmRecover] = useState<{
+    open: boolean;
+    userId: number | null;
+    username: string;
+  }>({
+    open: false,
+    userId: null,
+    username: "",
   });
 
   // Fetch users data
@@ -150,6 +162,28 @@ export default function AdminUsers() {
     onError: (error: Error) => {
       toast({
         title: "Failed to delete user",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Recover user mutation
+  const recoverUserMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      const res = await apiRequest("POST", `/api/users/${userId}/recover`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({
+        title: "User recovered",
+        description: "User has been recovered successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to recover user",
         description: error.message,
         variant: "destructive",
       });
@@ -282,6 +316,15 @@ export default function AdminUsers() {
     }
   };
 
+  // Handle recover user
+  const handleRecoverUser = (userId: number, username: string) => {
+    setConfirmRecover({
+      open: true,
+      userId,
+      username,
+    });
+  };
+
   // Handle impersonate user
   const handleImpersonateUser = (
     userId: number,
@@ -294,6 +337,28 @@ export default function AdminUsers() {
       username,
       role,
     });
+  };
+
+  // Confirm recover user
+  const confirmRecoverUser = async () => {
+    const { userId } = confirmRecover;
+    if (userId !== null) {
+      try {
+        await recoverUserMutation.mutateAsync(userId);
+        setConfirmRecover({
+          open: false,
+          userId: null,
+          username: "",
+        });
+      } catch (error) {
+        // Error handling is done in the mutation
+        setConfirmRecover({
+          open: false,
+          userId: null,
+          username: "",
+        });
+      }
+    }
   };
 
   // Confirm impersonation
@@ -653,6 +718,21 @@ export default function AdminUsers() {
                               </Button>
                             )}
 
+                            {/* Recover User Button (only shown if deleted) */}
+                            {user.deleted && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 px-2 text-green-500 hover:text-green-600 hover:bg-green-50"
+                                onClick={() =>
+                                  handleRecoverUser(user.id, user.username)
+                                }
+                                disabled={recoverUserMutation.isPending}
+                              >
+                                <RotateCcw className="h-4 w-4" />
+                              </Button>
+                            )}
+
                             {/* Delete User Button (hidden if already deleted) */}
                             {!user.deleted && (
                               <AlertDialog>
@@ -817,6 +897,46 @@ export default function AdminUsers() {
                 </>
               ) : (
                 "Impersonate User"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirmation Dialog for Recover User */}
+      <AlertDialog
+        open={confirmRecover.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmRecover((prev) => ({ ...prev, open: false }));
+          }
+        }}
+      >
+        <AlertDialogContent className="max-w-md w-full">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Recover User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to recover the user{" "}
+              <strong>{confirmRecover.username}</strong>?
+              <br />
+              <br />
+              This will restore the user's account and they will be able to log
+              in again. All their data and permissions will be restored.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmRecoverUser}
+              className="bg-green-600 hover:bg-green-700 focus:ring-green-600"
+            >
+              {recoverUserMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Recovering...
+                </>
+              ) : (
+                "Recover User"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
