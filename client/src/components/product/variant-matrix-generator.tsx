@@ -1032,269 +1032,283 @@ export function VariantMatrixGenerator({
           </Card>
 
           {/* Variant Table */}
-          <ScrollArea className="h-[800px] border rounded-md">
-            <Table>
-              <TableHeader className="sticky top-0 bg-background">
-                <TableRow>
-                  <TableHead className="w-[80px]">Use</TableHead>
-                  {attributes.map((attr) => (
-                    <TableHead key={attr.name} className="min-w-[120px]">
-                      {attr.name}
-                    </TableHead>
-                  ))}
-                  <TableHead className="min-w-[200px]">SKU</TableHead>
-                  <TableHead className="text-right min-w-[120px]">
-                    Price
-                  </TableHead>
-                  <TableHead className="text-right min-w-[120px]">
-                    MRP
-                  </TableHead>
-                  <TableHead className="text-right min-w-[120px]">
-                    Stock
-                  </TableHead>
-                  <TableHead className="text-right min-w-[300px]">
-                    Images
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {variantRows.map((row) => (
-                  <TableRow key={row.id} className="hover:bg-muted/50">
-                    <TableCell className="py-4">
-                      <Checkbox
-                        checked={row.enabled}
-                        onCheckedChange={() => toggleVariantEnabled(row.id)}
-                      />
-                    </TableCell>
-
+          <div className="w-full border rounded-md overflow-hidden">
+            <ScrollArea className="h-[1200px] w-full">
+              <Table className="w-full">
+                <TableHeader className="sticky top-0 bg-background z-10">
+                  <TableRow>
+                    <TableHead className="w-[80px]">Use</TableHead>
                     {attributes.map((attr) => (
-                      <TableCell
-                        key={`${row.id}-${attr.name}`}
-                        className="py-4"
+                      <TableHead
+                        key={attr.name}
+                        className="min-w-[120px] w-[150px]"
                       >
-                        {row.attributes[attr.name]}
-                      </TableCell>
+                        {attr.name}
+                      </TableHead>
                     ))}
+                    <TableHead className="min-w-[200px] w-[250px]">
+                      SKU
+                    </TableHead>
+                    <TableHead className="text-right min-w-[120px] w-[140px]">
+                      Price
+                    </TableHead>
+                    <TableHead className="text-right min-w-[120px] w-[140px]">
+                      MRP
+                    </TableHead>
+                    <TableHead className="text-right min-w-[120px] w-[140px]">
+                      Stock
+                    </TableHead>
+                    <TableHead className="text-right w-full">Images</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {variantRows.map((row) => (
+                    <TableRow key={row.id} className="hover:bg-muted/50">
+                      <TableCell className="py-4">
+                        <Checkbox
+                          checked={row.enabled}
+                          onCheckedChange={() => toggleVariantEnabled(row.id)}
+                        />
+                      </TableCell>
 
-                    <TableCell className="py-4">
-                      <Input
-                        value={row.sku}
-                        onChange={(e) =>
-                          updateVariantField(row.id, "sku", e.target.value)
-                        }
-                        className="w-full min-w-[180px]"
-                      />
-                    </TableCell>
+                      {attributes.map((attr) => (
+                        <TableCell
+                          key={`${row.id}-${attr.name}`}
+                          className="py-4 w-[150px]"
+                        >
+                          <div className="font-medium text-sm">
+                            {row.attributes[attr.name]}
+                          </div>
+                        </TableCell>
+                      ))}
 
-                    <TableCell className="text-right py-4">
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={row.price}
-                        onChange={(e) =>
-                          updateVariantField(row.id, "price", e.target.value)
-                        }
-                        className="w-full min-w-[100px] text-right"
-                      />
-                    </TableCell>
+                      <TableCell className="py-4 w-[250px]">
+                        <Input
+                          value={row.sku}
+                          onChange={(e) =>
+                            updateVariantField(row.id, "sku", e.target.value)
+                          }
+                          className="w-full"
+                        />
+                      </TableCell>
 
-                    <TableCell className="text-right py-4">
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={row.mrp}
-                        onChange={(e) =>
-                          updateVariantField(row.id, "mrp", e.target.value)
-                        }
-                        className="w-full min-w-[100px] text-right"
-                      />
-                    </TableCell>
+                      <TableCell className="text-right py-4 w-[140px]">
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={row.price}
+                          onChange={(e) =>
+                            updateVariantField(row.id, "price", e.target.value)
+                          }
+                          className="w-full text-right"
+                        />
+                      </TableCell>
 
-                    <TableCell className="text-right py-4">
-                      <Input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={row.stock}
-                        onChange={(e) =>
-                          updateVariantField(row.id, "stock", e.target.value)
-                        }
-                        className="w-full min-w-[100px] text-right"
-                      />
-                    </TableCell>
+                      <TableCell className="text-right py-4 w-[140px]">
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={row.mrp}
+                          onChange={(e) =>
+                            updateVariantField(row.id, "mrp", e.target.value)
+                          }
+                          className="w-full text-right"
+                        />
+                      </TableCell>
 
-                    <TableCell className="py-4">
-                      <div className="flex flex-col gap-3 min-w-[280px]">
-                        {/* Image count and controls row */}
-                        <div className="flex items-center gap-2">
-                          {/* Show image count badge */}
-                          {uploadedImages[row.id] &&
-                            Array.isArray(uploadedImages[row.id]) &&
-                            uploadedImages[row.id].length > 0 && (
-                              <Badge variant="outline" className="text-xs">
-                                {uploadedImages[row.id].length} images
-                              </Badge>
-                            )}
+                      <TableCell className="text-right py-4 w-[140px]">
+                        <Input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={row.stock}
+                          onChange={(e) =>
+                            updateVariantField(row.id, "stock", e.target.value)
+                          }
+                          className="w-full text-right"
+                        />
+                      </TableCell>
 
-                          {/* Show image uploading progress */}
-                          {imageUploadingForRow === row.id ? (
-                            <Badge
-                              variant="outline"
-                              className="animate-pulse text-xs"
-                            >
-                              Uploading: {uploadProgress}%
-                            </Badge>
-                          ) : (
-                            <>
-                              {/* File upload button */}
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="h-8 px-2"
-                                onClick={() => {
-                                  const input = document.createElement("input");
-                                  input.type = "file";
-                                  input.accept = "image/*";
-                                  input.multiple = true;
-                                  input.onchange = function (e: Event) {
-                                    // Convert the regular Event to a format handleFileChange can process
-                                    const files = (e.target as HTMLInputElement)
-                                      .files;
-                                    if (files) {
-                                      const mockEvent = {
-                                        target: {
-                                          files: files,
-                                        },
-                                      } as React.ChangeEvent<HTMLInputElement>;
-                                      handleFileChange(mockEvent, row.id);
-                                    }
-                                  };
-                                  input.click();
-                                }}
-                                title="Upload image files"
-                              >
-                                <Upload className="h-4 w-4" />
-                              </Button>
+                      <TableCell className="py-4 w-full">
+                        <div className="flex flex-col gap-3 w-full">
+                          {/* Image count and controls row */}
+                          <div className="flex items-center justify-between gap-2 w-full">
+                            <div className="flex items-center gap-2">
+                              {/* Show image count badge */}
+                              {uploadedImages[row.id] &&
+                                Array.isArray(uploadedImages[row.id]) &&
+                                uploadedImages[row.id].length > 0 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {uploadedImages[row.id].length} images
+                                  </Badge>
+                                )}
 
-                              {/* URL input toggle button */}
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="h-8 px-2"
-                                onClick={() => {
-                                  setCurrentRowForImages(row.id);
-                                  setShowImageUrlInput(
-                                    !showImageUrlInput ||
-                                      currentRowForImages !== row.id
-                                  );
-                                }}
-                                title="Add image by URL"
-                              >
-                                <Link className="h-4 w-4" />
-                              </Button>
+                              {/* Show image uploading progress */}
+                              {imageUploadingForRow === row.id && (
+                                <Badge
+                                  variant="outline"
+                                  className="animate-pulse text-xs"
+                                >
+                                  Uploading: {uploadProgress}%
+                                </Badge>
+                              )}
+                            </div>
 
-                              {/* Batch URL input button */}
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="h-8 px-2"
-                                onClick={() => {
-                                  setCurrentRowForImages(row.id);
-                                  setShowBatchUploadDialog(true);
-                                }}
-                                title="Add multiple image URLs at once"
-                              >
-                                <ExternalLink className="h-4 w-4" />
-                              </Button>
-
-                              {/* Gallery view button */}
-                              {uploadedImages[row.id]?.length > 0 && (
+                            {/* Action buttons */}
+                            {imageUploadingForRow !== row.id && (
+                              <div className="flex items-center gap-1">
+                                {/* File upload button */}
                                 <Button
                                   type="button"
                                   variant="outline"
                                   size="sm"
                                   className="h-8 px-2"
-                                  onClick={() => showImageGallery(row.id)}
-                                  title="View all images"
+                                  onClick={() => {
+                                    const input =
+                                      document.createElement("input");
+                                    input.type = "file";
+                                    input.accept = "image/*";
+                                    input.multiple = true;
+                                    input.onchange = function (e: Event) {
+                                      // Convert the regular Event to a format handleFileChange can process
+                                      const files = (
+                                        e.target as HTMLInputElement
+                                      ).files;
+                                      if (files) {
+                                        const mockEvent = {
+                                          target: {
+                                            files: files,
+                                          },
+                                        } as React.ChangeEvent<HTMLInputElement>;
+                                        handleFileChange(mockEvent, row.id);
+                                      }
+                                    };
+                                    input.click();
+                                  }}
+                                  title="Upload image files"
                                 >
-                                  <ImageIcon className="h-4 w-4" />
+                                  <Upload className="h-4 w-4" />
                                 </Button>
-                              )}
-                            </>
-                          )}
-                        </div>
 
-                        {/* URL input field */}
-                        {showImageUrlInput &&
-                          currentRowForImages === row.id && (
-                            <div className="flex gap-2">
-                              <Input
-                                value={imageUrlInput}
-                                onChange={(e) =>
-                                  setImageUrlInput(e.target.value)
-                                }
-                                placeholder="Enter image URL"
-                                className="flex-1 text-sm"
-                              />
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={() => addImageByUrl(row.id)}
-                              >
-                                Add
-                              </Button>
-                            </div>
-                          )}
-
-                        {/* Show uploaded images */}
-                        {uploadedImages[row.id] &&
-                          Array.isArray(uploadedImages[row.id]) &&
-                          uploadedImages[row.id].length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                              {uploadedImages[row.id].map((imageUrl, idx) => (
-                                <div
-                                  key={idx}
-                                  className="relative group h-16 w-16"
+                                {/* URL input toggle button */}
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 px-2"
+                                  onClick={() => {
+                                    setCurrentRowForImages(row.id);
+                                    setShowImageUrlInput(
+                                      !showImageUrlInput ||
+                                        currentRowForImages !== row.id
+                                    );
+                                  }}
+                                  title="Add image by URL"
                                 >
-                                  <img
-                                    src={imageUrl}
-                                    alt={`Variant ${row.id} image ${idx + 1}`}
-                                    className="h-full w-full object-cover rounded border"
-                                    onError={(e) => {
-                                      // Show error indicator for broken images
-                                      (e.target as HTMLImageElement).src =
-                                        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'%3E%3C/circle%3E%3Cline x1='12' y1='8' x2='12' y2='12'%3E%3C/line%3E%3Cline x1='12' y1='16' x2='12.01' y2='16'%3E%3C/line%3E%3C/svg%3E";
-                                      (
-                                        e.target as HTMLImageElement
-                                      ).className += " p-2 bg-red-50";
-                                    }}
-                                  />
+                                  <Link className="h-4 w-4" />
+                                </Button>
+
+                                {/* Batch URL input button */}
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 px-2"
+                                  onClick={() => {
+                                    setCurrentRowForImages(row.id);
+                                    setShowBatchUploadDialog(true);
+                                  }}
+                                  title="Add multiple image URLs at once"
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                </Button>
+
+                                {/* Gallery view button */}
+                                {uploadedImages[row.id]?.length > 0 && (
                                   <Button
                                     type="button"
-                                    variant="destructive"
-                                    size="icon"
-                                    className="h-6 w-6 absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={() => removeImage(row.id, idx)}
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 px-2"
+                                    onClick={() => showImageGallery(row.id)}
+                                    title="View all images"
                                   >
-                                    <X className="h-3 w-3" />
+                                    <ImageIcon className="h-4 w-4" />
                                   </Button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </ScrollArea>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* URL input field */}
+                          {showImageUrlInput &&
+                            currentRowForImages === row.id && (
+                              <div className="flex gap-2">
+                                <Input
+                                  value={imageUrlInput}
+                                  onChange={(e) =>
+                                    setImageUrlInput(e.target.value)
+                                  }
+                                  placeholder="Enter image URL"
+                                  className="flex-1 text-sm"
+                                />
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => addImageByUrl(row.id)}
+                                >
+                                  Add
+                                </Button>
+                              </div>
+                            )}
+
+                          {/* Show uploaded images */}
+                          {uploadedImages[row.id] &&
+                            Array.isArray(uploadedImages[row.id]) &&
+                            uploadedImages[row.id].length > 0 && (
+                              <div className="flex flex-wrap gap-2 w-full">
+                                {uploadedImages[row.id].map((imageUrl, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="relative group h-16 w-16 flex-shrink-0"
+                                  >
+                                    <img
+                                      src={imageUrl}
+                                      alt={`Variant ${row.id} image ${idx + 1}`}
+                                      className="h-full w-full object-cover rounded border"
+                                      onError={(e) => {
+                                        // Show error indicator for broken images
+                                        (e.target as HTMLImageElement).src =
+                                          "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'%3E%3C/circle%3E%3Cline x1='12' y1='8' x2='12' y2='12'%3E%3C/line%3E%3Cline x1='12' y1='16' x2='12.01' y2='16'%3E%3C/line%3E%3C/svg%3E";
+                                        (
+                                          e.target as HTMLImageElement
+                                        ).className += " p-2 bg-red-50";
+                                      }}
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="destructive"
+                                      size="icon"
+                                      className="h-6 w-6 absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      onClick={() => removeImage(row.id, idx)}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          </div>
 
           <div className="flex justify-end">
             <Button type="button" onClick={saveVariants}>
