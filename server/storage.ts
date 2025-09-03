@@ -433,6 +433,7 @@ export interface IStorage {
     preferences: any
   ): Promise<User>;
   deleteUser(id: number): Promise<void>;
+  recoverUser(id: number): Promise<User>;
   getSellers(approved?: boolean, rejected?: boolean): Promise<User[]>;
   getPendingSellers(): Promise<User[]>;
   getApprovedSellers(): Promise<User[]>;
@@ -2135,6 +2136,38 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error(`Error deleting user with ID ${id}:`, error);
       throw new Error(`Failed to delete user: ${(error as Error).message}`);
+    }
+  }
+
+  async recoverUser(id: number): Promise<User> {
+    try {
+      // Check if user exists and is deleted
+      const user = await this.getUser(id);
+
+      if (!user) {
+        throw new Error(`User with ID ${id} not found`);
+      }
+
+      if (!user.deleted) {
+        throw new Error(`User with ID ${id} is not deleted`);
+      }
+
+      // Recover the user by setting deleted = false
+      const [recoveredUser] = await db
+        .update(users)
+        .set({ deleted: false })
+        .where(eq(users.id, id))
+        .returning();
+
+      if (!recoveredUser) {
+        throw new Error(`Failed to recover user with ID ${id}`);
+      }
+
+      console.log(`Successfully recovered user with ID ${id}`);
+      return recoveredUser;
+    } catch (error) {
+      console.error(`Error recovering user with ID ${id}:`, error);
+      throw new Error(`Failed to recover user: ${(error as Error).message}`);
     }
   }
 
