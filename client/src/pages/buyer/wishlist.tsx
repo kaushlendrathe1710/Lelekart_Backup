@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { User } from "@shared/schema";
 import { useWishlist } from "@/context/wishlist-context";
+import { CartContext } from "@/context/cart-context";
 
 // Define the product type for wishlist items
 interface WishlistProduct {
@@ -50,6 +51,15 @@ export default function BuyerWishlistPage() {
 
   // Subscribe to global wishlist state for immediate updates
   const { wishlistItems, isLoading, removeFromWishlist } = useWishlist();
+
+  // Get cart context to check if products are in cart
+  const cartContext = useContext(CartContext);
+  const cartItems = cartContext?.cartItems || [];
+
+  // Helper function to check if a product is in the cart
+  const isProductInCart = (productId: number): boolean => {
+    return cartItems.some((item) => item.product.id === productId);
+  };
 
   // Fetch current user for permission/email checks
   const { data: user } = useQuery<User | null>({
@@ -116,7 +126,10 @@ export default function BuyerWishlistPage() {
           );
 
           // Merge API reminders with local reminders
-          const allReminderIds = new Set([...localReminderIds, ...productIds]);
+          const allReminderIds = new Set([
+            ...Array.from(localReminderIds),
+            ...productIds,
+          ]);
           setReminderSetIds(allReminderIds);
 
           // Update localStorage with any new reminders from API
@@ -187,22 +200,28 @@ export default function BuyerWishlistPage() {
     setLoadingProducts((prev) => new Set(prev).add(product.id));
 
     try {
-      const res = await apiRequest("POST", "/api/cart", {
-        productId: product.id,
-        quantity: 1,
-      });
+      // Use cart context if available for better state management
+      if (cartContext) {
+        cartContext.addToCart(product as any, 1);
+      } else {
+        // Fallback to direct API call
+        const res = await apiRequest("POST", "/api/cart", {
+          productId: product.id,
+          quantity: 1,
+        });
 
-      if (!res.ok) {
-        throw new Error("Failed to add item to cart");
+        if (!res.ok) {
+          throw new Error("Failed to add item to cart");
+        }
+
+        // Refresh cart data if needed
+        queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
       }
 
       toast({
         title: "Added to cart",
         description: `${product.name} has been added to your cart.`,
       });
-
-      // Refresh cart data if needed
-      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
     } catch (error) {
       toast({
         title: "Error",
@@ -444,7 +463,9 @@ export default function BuyerWishlistPage() {
                             ) : (
                               <ShoppingCart className="mr-2 h-4 w-4" />
                             )}
-                            {"Add to Cart"}
+                            {isProductInCart(item.product.id)
+                              ? "Item in Cart"
+                              : "Add to Cart"}
                           </Button>
                         ) : (
                           <Button
