@@ -740,6 +740,9 @@ export default function ProductDetailsPage() {
   const [isCreatingReminder, setIsCreatingReminder] = useState<boolean>(false);
   const [existingReminder, setExistingReminder] = useState<any>(null);
 
+  // State for share functionality
+  const [showShareModal, setShowShareModal] = useState<boolean>(false);
+
   // Track slider update trigger for debugging purposes
   const [sliderUpdateCount, setSliderUpdateCount] = useState(0);
 
@@ -1094,6 +1097,83 @@ export default function ProductDetailsPage() {
   // Handle go to cart action
   const handleGoToCart = () => {
     setLocation("/cart");
+  };
+
+  // Handle share functionality
+  const handleShare = async () => {
+    if (!product) return;
+
+    const productUrl = window.location.href;
+    const productTitle = product.name;
+    const productDescription = product.description?.substring(0, 100) + "...";
+    const shareText = `Check out this amazing product: ${productTitle}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: productTitle,
+          text: shareText,
+          url: productUrl,
+        });
+      } catch (error) {
+        console.log("Error sharing:", error);
+        // Fallback to modal
+        setShowShareModal(true);
+      }
+    } else {
+      // Fallback to modal for browsers that don't support Web Share API
+      setShowShareModal(true);
+    }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: "Copied!",
+        description: "Product link has been copied to clipboard.",
+      });
+    } catch (error) {
+      console.error("Failed to copy:", error);
+      toast({
+        title: "Copy Failed",
+        description: "Failed to copy link. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const shareToSocial = (platform: string) => {
+    if (!product) return;
+
+    const productUrl = encodeURIComponent(window.location.href);
+    const productTitle = encodeURIComponent(product.name);
+    const shareText = encodeURIComponent(
+      `Check out this amazing product: ${product.name}`
+    );
+
+    let shareUrl = "";
+    switch (platform) {
+      case "facebook":
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${productUrl}`;
+        break;
+      case "twitter":
+        shareUrl = `https://twitter.com/intent/tweet?text=${shareText}&url=${productUrl}`;
+        break;
+      case "whatsapp":
+        shareUrl = `https://wa.me/?text=${shareText}%20${productUrl}`;
+        break;
+      case "telegram":
+        shareUrl = `https://t.me/share/url?url=${productUrl}&text=${shareText}`;
+        break;
+      case "linkedin":
+        shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${productUrl}`;
+        break;
+      default:
+        return;
+    }
+
+    window.open(shareUrl, "_blank", "width=600,height=400");
   };
 
   // Handle stock reminder creation
@@ -1815,18 +1895,29 @@ export default function ProductDetailsPage() {
 
             {/* Right: Product Info (7/12) */}
             <div className="md:col-span-7 p-2 sm:p-4">
-              {/* Product Title with Wishlist Button */}
+              {/* Product Title with Wishlist and Share Buttons */}
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                 <h1 className="text-xl text-gray-800 font-medium break-words">
                   {product?.name}
                 </h1>
-                {product && (
-                  <WishlistButton
-                    productId={product.id}
-                    variant="icon-label"
-                    className="text-gray-600 hover:text-primary mt-2 sm:mt-0"
-                  />
-                )}
+                <div className="flex items-center gap-2 mt-2 sm:mt-0">
+                  {product && (
+                    <WishlistButton
+                      productId={product.id}
+                      variant="icon-label"
+                      className="text-gray-600 hover:text-primary"
+                    />
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleShare}
+                    className="text-gray-600 hover:text-primary border-gray-300 hover:border-primary"
+                  >
+                    <Share2 className="h-4 w-4 mr-1" />
+                    Share
+                  </Button>
+                </div>
               </div>
 
               {/* SKU */}
@@ -2669,6 +2760,103 @@ export default function ProductDetailsPage() {
               >
                 {isCreatingReminder ? "Creating..." : "Set Reminder"}
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Share Product</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowShareModal(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Copy Link */}
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                      <Share2 className="h-4 w-4 text-gray-600" />
+                    </div>
+                    <span className="text-sm font-medium">Copy Link</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyToClipboard(window.location.href)}
+                  >
+                    Copy
+                  </Button>
+                </div>
+
+                {/* Social Media Options */}
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    variant="outline"
+                    className="flex items-center gap-2 justify-start"
+                    onClick={() => shareToSocial("whatsapp")}
+                  >
+                    <div className="w-5 h-5 bg-green-500 rounded flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">W</span>
+                    </div>
+                    WhatsApp
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    className="flex items-center gap-2 justify-start"
+                    onClick={() => shareToSocial("facebook")}
+                  >
+                    <div className="w-5 h-5 bg-blue-600 rounded flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">f</span>
+                    </div>
+                    Facebook
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    className="flex items-center gap-2 justify-start"
+                    onClick={() => shareToSocial("twitter")}
+                  >
+                    <div className="w-5 h-5 bg-blue-400 rounded flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">t</span>
+                    </div>
+                    Twitter
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    className="flex items-center gap-2 justify-start"
+                    onClick={() => shareToSocial("telegram")}
+                  >
+                    <div className="w-5 h-5 bg-blue-500 rounded flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">T</span>
+                    </div>
+                    Telegram
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    className="flex items-center gap-2 justify-start"
+                    onClick={() => shareToSocial("linkedin")}
+                  >
+                    <div className="w-5 h-5 bg-blue-700 rounded flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">in</span>
+                    </div>
+                    LinkedIn
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
