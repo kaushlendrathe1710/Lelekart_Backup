@@ -385,9 +385,7 @@ export default function SellerPaymentsPage() {
                   <span>Orders count</span>
                   <span>{summaryData?.deliveredOrdersCount || 0}</span>
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  Based on purchase prices
-                </div>
+                
               </div>
             </CardFooter>
           </Card>
@@ -1575,7 +1573,7 @@ export default function SellerPaymentsPage() {
             <DialogTitle>Withdraw Funds</DialogTitle>
             <DialogDescription>
               Enter the amount you wish to withdraw. Minimum withdrawal amount
-              is ₹10,000.
+              is ₹5,000.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -1592,8 +1590,8 @@ export default function SellerPaymentsPage() {
               <Input
                 id="withdraw-amount"
                 type="number"
-                min={10000}
-                placeholder="Enter amount (min ₹10,000)"
+                min={5000}
+                placeholder="Enter amount (min ₹5,000)"
                 value={withdrawAmount}
                 onChange={(e) => {
                   setWithdrawAmount(e.target.value);
@@ -1624,8 +1622,8 @@ export default function SellerPaymentsPage() {
                   setWithdrawError("Please enter a valid amount.");
                   return;
                 }
-                if (amount < 10000) {
-                  setWithdrawError("Minimum withdrawal amount is ₹10,000.");
+                if (amount < 5000) {
+                  setWithdrawError("Minimum withdrawal amount is ₹5,000.");
                   return;
                 }
                 if (amount > available) {
