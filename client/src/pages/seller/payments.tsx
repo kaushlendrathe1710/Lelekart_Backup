@@ -239,31 +239,8 @@ export default function SellerPaymentsPage() {
           </p>
         </div>
 
-        {/* Purchase Price Information */}
-        <Card className="mb-2 md:mb-3 border-primary/20 bg-primary/5">
-          <CardContent className="pt-4 md:pt-6 pb-4 md:pb-6">
-            <div className="flex items-start gap-3 md:gap-4">
-              <div className="p-2 md:p-3 rounded-full bg-primary/10">
-                <CreditCard className="h-4 w-4 md:h-5 md:w-5 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-sm md:text-base font-medium mb-1">
-                  Vendor Payment Information
-                </h3>
-                <p className="text-xs md:text-sm text-muted-foreground">
-                  You receive payments based on the{" "}
-                  <strong>Purchase Price</strong> of your products. For each
-                  product sold, you will be paid exactly the amount specified in
-                  the Purchase Price field, regardless of the final selling
-                  price to the customer.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Payment Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3 mb-2 md:mb-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2 md:gap-3 mb-2 md:mb-3">
           {/* Available Balance */}
           <Card>
             <CardHeader className="pb-2 md:pb-3">
@@ -375,15 +352,43 @@ export default function SellerPaymentsPage() {
               </p>
             </CardContent>
             <CardFooter className="pt-0">
-              <Button
-                variant="link"
-                size="sm"
-                className="px-0 h-auto text-primary text-xs md:text-sm"
-                onClick={() => setShowScheduleDialog(true)}
-              >
-                <Calendar className="h-3 w-3 md:h-4 md:w-4 mr-1" />
-                View payout schedule
-              </Button>
+              <div className="w-full">
+                <div className="text-xs text-muted-foreground">
+                  Fixed weekly schedule
+                </div>
+              </div>
+            </CardFooter>
+          </Card>
+
+          {/* Delivered Orders Total */}
+          <Card>
+            <CardHeader className="pb-2 md:pb-3">
+              <CardTitle className="text-xs md:text-sm font-medium">
+                Delivered Orders Total
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-lg md:text-2xl font-bold">
+                {isSummaryLoading ? (
+                  <div className="h-6 md:h-7 w-20 md:w-24 bg-gray-200 animate-pulse rounded"></div>
+                ) : (
+                  formatCurrency(summaryData?.deliveredOrdersTotal || 0)
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Total from delivered orders
+              </p>
+            </CardContent>
+            <CardFooter className="pt-0">
+              <div className="w-full">
+                <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
+                  <span>Orders count</span>
+                  <span>{summaryData?.deliveredOrdersCount || 0}</span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Based on purchase prices
+                </div>
+              </div>
             </CardFooter>
           </Card>
         </div>
@@ -800,34 +805,21 @@ export default function SellerPaymentsPage() {
             </CardHeader>
             <CardContent>
               <p className="text-xs md:text-sm text-muted-foreground mb-2">
-                Your current payout cycle is set to{" "}
-                <span className="font-semibold">{payoutSchedule.cycle}</span>
-                {payoutSchedule.cycle === "Weekly" ? (
-                  <>
-                    {" "}
-                    on{" "}
-                    <span className="font-semibold">{payoutSchedule.day}</span>
-                  </>
-                ) : null}
-                .
+                Your payout cycle is fixed to{" "}
+                <span className="font-semibold">Weekly</span> on{" "}
+                <span className="font-semibold">Monday</span>.
               </p>
               <p className="text-xs md:text-sm text-muted-foreground">
                 Funds are typically processed within 1-2 business days after the
-                payout is initiated.
+                payout is initiated. This schedule cannot be changed.
               </p>
             </CardContent>
             <CardFooter>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setTempSchedule(payoutSchedule);
-                  setShowScheduleDialog(true);
-                }}
-                className="text-xs md:text-sm"
-              >
-                Change Schedule
-              </Button>
+              <div className="w-full">
+                <div className="text-xs text-muted-foreground">
+                  Schedule is fixed and cannot be changed
+                </div>
+              </div>
             </CardFooter>
           </Card>
 
@@ -1239,10 +1231,10 @@ export default function SellerPaymentsPage() {
                     How often will I receive payments from Lelekart?
                   </h4>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Lelekart processes payments on a weekly basis. The default
-                    payout schedule is set to weekly (every Monday), but you can
-                    change this to bi-weekly or monthly through your payment
-                    settings.
+                    Lelekart processes payments on a weekly basis. The payout
+                    schedule is fixed to weekly (every Monday) and cannot be
+                    changed. This ensures consistent and predictable payment
+                    processing for all sellers.
                   </p>
                 </div>
 

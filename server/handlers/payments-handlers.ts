@@ -6,19 +6,23 @@ import { z } from "zod";
 // Get all payments for a seller
 export async function getSellerPaymentsHandler(req: Request, res: Response) {
   try {
-    const sellerId = parseInt(req.params.sellerId || req.user?.id?.toString() || "0");
-    
+    const sellerId = parseInt(
+      req.params.sellerId || req.user?.id?.toString() || "0"
+    );
+
     if (!sellerId) {
-      return res.status(400).json({ error: 'Seller ID is required' });
+      return res.status(400).json({ error: "Seller ID is required" });
     }
-    
+
     // If this is not an admin or the seller themselves, deny access
-    if (req.user?.role !== 'admin' && req.user?.id !== sellerId) {
-      return res.status(403).json({ error: 'You do not have permission to view these payments' });
+    if (req.user?.role !== "admin" && req.user?.id !== sellerId) {
+      return res
+        .status(403)
+        .json({ error: "You do not have permission to view these payments" });
     }
-    
+
     const payments = await storage.getSellerPayments(sellerId);
-    
+
     return res.status(200).json(payments);
   } catch (error) {
     console.error("Error fetching seller payments:", error);
@@ -30,22 +34,24 @@ export async function getSellerPaymentsHandler(req: Request, res: Response) {
 export async function getSellerPaymentByIdHandler(req: Request, res: Response) {
   try {
     const paymentId = parseInt(req.params.id);
-    
+
     if (isNaN(paymentId)) {
-      return res.status(400).json({ error: 'Invalid payment ID' });
+      return res.status(400).json({ error: "Invalid payment ID" });
     }
-    
+
     const payment = await storage.getSellerPaymentById(paymentId);
-    
+
     if (!payment) {
-      return res.status(404).json({ error: 'Payment not found' });
+      return res.status(404).json({ error: "Payment not found" });
     }
-    
+
     // If this is not an admin or the seller themselves, deny access
-    if (req.user?.role !== 'admin' && req.user?.id !== payment.sellerId) {
-      return res.status(403).json({ error: 'You do not have permission to view this payment' });
+    if (req.user?.role !== "admin" && req.user?.id !== payment.sellerId) {
+      return res
+        .status(403)
+        .json({ error: "You do not have permission to view this payment" });
     }
-    
+
     return res.status(200).json(payment);
   } catch (error) {
     console.error("Error fetching payment:", error);
@@ -57,24 +63,31 @@ export async function getSellerPaymentByIdHandler(req: Request, res: Response) {
 export async function createSellerPaymentHandler(req: Request, res: Response) {
   try {
     // Only admins can create payments
-    if (req.user?.role !== 'admin') {
-      return res.status(403).json({ error: 'Only administrators can create payments' });
+    if (req.user?.role !== "admin") {
+      return res
+        .status(403)
+        .json({ error: "Only administrators can create payments" });
     }
-    
+
     const paymentSchema = z.object({
       sellerId: z.number(),
       amount: z.number().positive(),
-      status: z.string().default('pending'),
-      paymentDate: z.string().optional().transform(val => val ? new Date(val) : undefined),
+      status: z.string().default("pending"),
+      paymentDate: z
+        .string()
+        .optional()
+        .transform((val) => (val ? new Date(val) : undefined)),
       referenceId: z.string().optional(),
       paymentMethod: z.string().optional(),
       notes: z.string().optional(),
     });
-    
+
     const validatedData = paymentSchema.parse(req.body);
-    
-    const newPayment = await storage.createSellerPayment(validatedData as InsertSellerPayment);
-    
+
+    const newPayment = await storage.createSellerPayment(
+      validatedData as InsertSellerPayment
+    );
+
     return res.status(201).json(newPayment);
   } catch (error) {
     console.error("Error creating payment:", error);
@@ -89,33 +102,41 @@ export async function createSellerPaymentHandler(req: Request, res: Response) {
 export async function updateSellerPaymentHandler(req: Request, res: Response) {
   try {
     // Only admins can update payments
-    if (req.user?.role !== 'admin') {
-      return res.status(403).json({ error: 'Only administrators can update payments' });
+    if (req.user?.role !== "admin") {
+      return res
+        .status(403)
+        .json({ error: "Only administrators can update payments" });
     }
-    
+
     const paymentId = parseInt(req.params.id);
-    
+
     if (isNaN(paymentId)) {
-      return res.status(400).json({ error: 'Invalid payment ID' });
+      return res.status(400).json({ error: "Invalid payment ID" });
     }
-    
+
     const payment = await storage.getSellerPaymentById(paymentId);
-    
+
     if (!payment) {
-      return res.status(404).json({ error: 'Payment not found' });
+      return res.status(404).json({ error: "Payment not found" });
     }
-    
+
     const paymentSchema = z.object({
       status: z.string().optional(),
-      paymentDate: z.string().optional().transform(val => val ? new Date(val) : undefined),
+      paymentDate: z
+        .string()
+        .optional()
+        .transform((val) => (val ? new Date(val) : undefined)),
       referenceId: z.string().optional(),
       notes: z.string().optional(),
     });
-    
+
     const validatedData = paymentSchema.parse(req.body);
-    
-    const updatedPayment = await storage.updateSellerPayment(paymentId, validatedData);
-    
+
+    const updatedPayment = await storage.updateSellerPayment(
+      paymentId,
+      validatedData
+    );
+
     return res.status(200).json(updatedPayment);
   } catch (error) {
     console.error("Error updating payment:", error);
@@ -127,49 +148,116 @@ export async function updateSellerPaymentHandler(req: Request, res: Response) {
 }
 
 // Get payment summary for a seller
-export async function getSellerPaymentsSummaryHandler(req: Request, res: Response) {
+export async function getSellerPaymentsSummaryHandler(
+  req: Request,
+  res: Response
+) {
   try {
-    const sellerId = parseInt(req.params.sellerId || req.user?.id?.toString() || "0");
-    
+    const sellerId = parseInt(
+      req.params.sellerId || req.user?.id?.toString() || "0"
+    );
+
     if (!sellerId) {
-      return res.status(400).json({ error: 'Seller ID is required' });
+      return res.status(400).json({ error: "Seller ID is required" });
     }
-    
+
     // If this is not an admin or the seller themselves, deny access
-    if (req.user?.role !== 'admin' && req.user?.id !== sellerId) {
-      return res.status(403).json({ error: 'You do not have permission to view this payment summary' });
+    if (req.user?.role !== "admin" && req.user?.id !== sellerId) {
+      return res.status(403).json({
+        error: "You do not have permission to view this payment summary",
+      });
     }
-    
+
     const payments = await storage.getSellerPayments(sellerId);
-    
-    // Calculate totals
+
+    // Calculate payment totals
     let totalPaid = 0;
     let totalPending = 0;
     let pendingPayments = 0;
     let completedPayments = 0;
-    
-    payments.forEach(payment => {
-      if (payment.status === 'completed') {
+
+    payments.forEach((payment) => {
+      if (payment.status === "completed") {
         totalPaid += Number(payment.amount);
         completedPayments++;
-      } else if (payment.status === 'pending') {
+      } else if (payment.status === "pending") {
         totalPending += Number(payment.amount);
         pendingPayments++;
       }
     });
-    
+
+    // Get delivered orders for this seller
+    const orders = await storage.getOrders(undefined, sellerId);
+    const deliveredOrders = orders.filter(
+      (order) => order.status === "delivered"
+    );
+
+    // Calculate delivered orders total based on purchase prices
+    let deliveredOrdersTotal = 0;
+    let deliveredOrdersCount = deliveredOrders.length;
+
+    for (const order of deliveredOrders) {
+      try {
+        const orderItems = await storage.getOrderItems(order.id);
+        // Filter items that belong to this seller
+        const sellerItems = orderItems.filter((item) => {
+          // Check if the product belongs to this seller
+          return item.product && item.product.sellerId === sellerId;
+        });
+
+        // Sum up the purchase prices (item.price is the purchase price)
+        sellerItems.forEach((item) => {
+          deliveredOrdersTotal += Number(item.price) * item.quantity;
+        });
+      } catch (error) {
+        console.error(
+          `Error fetching order items for order ${order.id}:`,
+          error
+        );
+      }
+    }
+
+    // Calculate withdrawals (negative payments)
+    let totalWithdrawals = 0;
+    payments.forEach((payment) => {
+      if (payment.status === "completed" && Number(payment.amount) < 0) {
+        totalWithdrawals += Math.abs(Number(payment.amount));
+      }
+    });
+
+    // Available balance = delivered orders total - withdrawals
+    const availableBalance = deliveredOrdersTotal - totalWithdrawals;
+
     // Get the latest 5 payments
     const recentPayments = payments.slice(0, 5);
-    
+
     const summary = {
+      // Existing payment data
       totalPaid,
       totalPending,
       pendingPayments,
       completedPayments,
       totalPayments: payments.length,
-      recentPayments
+      recentPayments,
+
+      // New delivered orders data
+      deliveredOrdersTotal,
+      deliveredOrdersCount,
+
+      // Updated available balance calculation
+      availableBalance: Math.max(0, availableBalance), // Ensure it's not negative
+      totalWithdrawals,
+
+      // Legacy fields for backward compatibility
+      pendingBalance: totalPending,
+      lifetimeEarnings: deliveredOrdersTotal,
+      nextPayoutAmount: totalPending,
+      nextPayoutDate: new Date(
+        Date.now() + 7 * 24 * 60 * 60 * 1000
+      ).toISOString(), // Next Monday
+      growthRate: 0,
     };
-    
+
     return res.status(200).json(summary);
   } catch (error) {
     console.error("Error fetching payment summary:", error);
