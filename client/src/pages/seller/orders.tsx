@@ -92,6 +92,7 @@ interface OrderItem {
   price: number;
   product: Product;
   isSellerItem?: boolean;
+  sellingPrice?: number;
 }
 
 interface ShippingDetails {
@@ -149,17 +150,33 @@ export default function SellerOrdersPage() {
       const response = await apiRequest("GET", "/api/orders");
       const data = await response.json();
 
-      // Process each order to ensure shipping details are parsed
-      return data.map((order: Order) => {
-        if (typeof order.shippingDetails === "string") {
-          try {
-            order.shippingDetails = JSON.parse(order.shippingDetails);
-          } catch (e) {
-            console.error("Error parsing shipping details", e);
+      // Process each order to ensure shipping details are parsed and fetch items
+      const ordersWithItems = await Promise.all(
+        data.map(async (order: Order) => {
+          if (typeof order.shippingDetails === "string") {
+            try {
+              order.shippingDetails = JSON.parse(order.shippingDetails);
+            } catch (e) {
+              console.error("Error parsing shipping details", e);
+            }
           }
-        }
-        return order;
-      });
+
+          // Fetch items for each order to calculate selling price totals
+          try {
+            const itemsResponse = await apiRequest(
+              "GET",
+              `/api/orders/${order.id}/items`
+            );
+            const items = await itemsResponse.json();
+            return { ...order, items };
+          } catch (error) {
+            console.error(`Error fetching items for order ${order.id}:`, error);
+            return { ...order, items: [] };
+          }
+        })
+      );
+
+      return ordersWithItems;
     },
   });
 
@@ -212,17 +229,31 @@ export default function SellerOrdersPage() {
     return details.name || "Customer";
   };
 
-  // Filter orders by search query and status
-  const filteredOrders = orders.filter((order) => {
-    const matchesSearch =
-      searchQuery === "" ||
-      order.id.toString().includes(searchQuery) ||
-      getCustomerName(order).toLowerCase().includes(searchQuery.toLowerCase());
+  // Calculate total based on selling prices
+  const calculateSellingPriceTotal = (order: OrderWithItems) => {
+    if (!order.items) return order.total;
 
-    const matchesStatus = !statusFilter || order.status === statusFilter;
+    return order.items.reduce((total, item) => {
+      const sellingPrice = item.sellingPrice || item.price;
+      return total + sellingPrice * item.quantity;
+    }, 0);
+  };
 
-    return matchesSearch && matchesStatus;
-  });
+  // Filter orders by search query and status, then sort by latest date
+  const filteredOrders = orders
+    .filter((order) => {
+      const matchesSearch =
+        searchQuery === "" ||
+        order.id.toString().includes(searchQuery) ||
+        getCustomerName(order)
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase());
+
+      const matchesStatus = !statusFilter || order.status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   // Get status counts for tabs
   const getStatusCounts = () => {
@@ -907,6 +938,7 @@ export default function SellerOrdersPage() {
               toast={toast}
               expandedOrderId={expandedOrderId}
               setExpandedOrderId={setExpandedOrderId}
+              calculateSellingPriceTotal={calculateSellingPriceTotal}
             />
           </TabsContent>
 
@@ -925,6 +957,7 @@ export default function SellerOrdersPage() {
                   toast={toast}
                   expandedOrderId={expandedOrderId}
                   setExpandedOrderId={setExpandedOrderId}
+                  calculateSellingPriceTotal={calculateSellingPriceTotal}
                 />
               </TabsContent>
             )
@@ -932,15 +965,20 @@ export default function SellerOrdersPage() {
 
           <TabsContent value="returns">
             <OrderTable
-              orders={orders.filter((order) =>
-                [
-                  "marked_for_return",
-                  "approve_return",
-                  "process_return",
-                  "reject_return",
-                  "completed_return",
-                ].includes(order.status)
-              )}
+              orders={orders
+                .filter((order) =>
+                  [
+                    "marked_for_return",
+                    "approve_return",
+                    "process_return",
+                    "reject_return",
+                    "completed_return",
+                  ].includes(order.status)
+                )
+                .sort(
+                  (a, b) =>
+                    new Date(b.date).getTime() - new Date(a.date).getTime()
+                )}
               isLoading={isLoading}
               viewOrderDetails={viewOrderDetails}
               openStatusDialog={openStatusDialog}
@@ -951,6 +989,7 @@ export default function SellerOrdersPage() {
               toast={toast}
               expandedOrderId={expandedOrderId}
               setExpandedOrderId={setExpandedOrderId}
+              calculateSellingPriceTotal={calculateSellingPriceTotal}
             />
           </TabsContent>
         </Tabs>
@@ -1141,10 +1180,14 @@ export default function SellerOrdersPage() {
                               {item.quantity}
                             </TableCell>
                             <TableCell className="text-right text-sm">
-                              ₹{item.price.toFixed(2)}
+                              ₹{(item.sellingPrice || item.price).toFixed(2)}
                             </TableCell>
                             <TableCell className="text-right text-sm">
-                              ₹{(item.price * item.quantity).toFixed(2)}
+                              ₹
+                              {(
+                                (item.sellingPrice || item.price) *
+                                item.quantity
+                              ).toFixed(2)}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -1156,7 +1199,10 @@ export default function SellerOrdersPage() {
                             Total:
                           </TableCell>
                           <TableCell className="text-right font-bold text-sm">
-                            ₹{selectedOrder.total.toFixed(2)}
+                            ₹
+                            {calculateSellingPriceTotal(selectedOrder).toFixed(
+                              2
+                            )}
                           </TableCell>
                         </TableRow>
                       </TableBody>
@@ -1199,7 +1245,7 @@ export default function SellerOrdersPage() {
                               Price:
                             </span>
                             <span className="mt-1">
-                              ₹{item.price.toFixed(2)}
+                              ₹{(item.sellingPrice || item.price).toFixed(2)}
                             </span>
                           </div>
                         </div>
@@ -1208,7 +1254,10 @@ export default function SellerOrdersPage() {
                             Total:
                           </span>
                           <span className="mt-1 font-semibold">
-                            ₹{(item.price * item.quantity).toFixed(2)}
+                            ₹
+                            {(
+                              (item.sellingPrice || item.price) * item.quantity
+                            ).toFixed(2)}
                           </span>
                         </div>
                       </div>
@@ -1217,7 +1266,8 @@ export default function SellerOrdersPage() {
                       <div className="flex justify-between items-center">
                         <span className="font-bold text-lg">Total:</span>
                         <span className="font-bold text-lg">
-                          ₹{selectedOrder.total.toFixed(2)}
+                          ₹
+                          {calculateSellingPriceTotal(selectedOrder).toFixed(2)}
                         </span>
                       </div>
                     </div>
@@ -1364,6 +1414,7 @@ function OrderTable({
   toast,
   expandedOrderId,
   setExpandedOrderId,
+  calculateSellingPriceTotal,
 }: {
   orders: OrderWithItems[];
   isLoading: boolean;
@@ -1376,6 +1427,7 @@ function OrderTable({
   toast: any;
   expandedOrderId: number | null;
   setExpandedOrderId: (id: number | null) => void;
+  calculateSellingPriceTotal: (order: OrderWithItems) => number;
 }) {
   if (isLoading) {
     return (
@@ -1433,7 +1485,9 @@ function OrderTable({
                 <TableCell className="font-medium">#{order.id}</TableCell>
                 <TableCell>{formatDate(order.date)}</TableCell>
                 <TableCell>{getCustomerName(order)}</TableCell>
-                <TableCell>₹{order.total.toFixed(2)}</TableCell>
+                <TableCell>
+                  ₹{calculateSellingPriceTotal(order).toFixed(2)}
+                </TableCell>
                 <TableCell>
                   {formatPaymentMethod(order.paymentMethod)}
                 </TableCell>
@@ -1715,7 +1769,7 @@ function OrderTable({
                       Amount:
                     </span>
                     <span className="text-sm font-semibold">
-                      ₹{order.total.toFixed(2)}
+                      ₹{calculateSellingPriceTotal(order).toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
