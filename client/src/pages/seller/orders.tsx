@@ -239,6 +239,15 @@ export default function SellerOrdersPage() {
     }, 0);
   };
 
+  // Calculate total based on product listed prices
+  const calculateListedPriceTotal = (order: OrderWithItems) => {
+    if (!order.items) return order.total;
+
+    return order.items.reduce((total, item) => {
+      return total + item.price * item.quantity;
+    }, 0);
+  };
+
   // Filter orders by search query and status, then sort by latest date
   const filteredOrders = orders
     .filter((order) => {
@@ -939,6 +948,7 @@ export default function SellerOrdersPage() {
               expandedOrderId={expandedOrderId}
               setExpandedOrderId={setExpandedOrderId}
               calculateSellingPriceTotal={calculateSellingPriceTotal}
+              calculateListedPriceTotal={calculateListedPriceTotal}
             />
           </TabsContent>
 
@@ -958,6 +968,7 @@ export default function SellerOrdersPage() {
                   expandedOrderId={expandedOrderId}
                   setExpandedOrderId={setExpandedOrderId}
                   calculateSellingPriceTotal={calculateSellingPriceTotal}
+                  calculateListedPriceTotal={calculateListedPriceTotal}
                 />
               </TabsContent>
             )
@@ -990,6 +1001,7 @@ export default function SellerOrdersPage() {
               expandedOrderId={expandedOrderId}
               setExpandedOrderId={setExpandedOrderId}
               calculateSellingPriceTotal={calculateSellingPriceTotal}
+              calculateListedPriceTotal={calculateListedPriceTotal}
             />
           </TabsContent>
         </Tabs>
@@ -1415,6 +1427,7 @@ function OrderTable({
   expandedOrderId,
   setExpandedOrderId,
   calculateSellingPriceTotal,
+  calculateListedPriceTotal,
 }: {
   orders: OrderWithItems[];
   isLoading: boolean;
@@ -1428,6 +1441,7 @@ function OrderTable({
   expandedOrderId: number | null;
   setExpandedOrderId: (id: number | null) => void;
   calculateSellingPriceTotal: (order: OrderWithItems) => number;
+  calculateListedPriceTotal: (order: OrderWithItems) => number;
 }) {
   if (isLoading) {
     return (
@@ -1486,7 +1500,7 @@ function OrderTable({
                 <TableCell>{formatDate(order.date)}</TableCell>
                 <TableCell>{getCustomerName(order)}</TableCell>
                 <TableCell>
-                  ₹{calculateSellingPriceTotal(order).toFixed(2)}
+                  ₹{calculateListedPriceTotal(order).toFixed(2)}
                 </TableCell>
                 <TableCell>
                   {formatPaymentMethod(order.paymentMethod)}
@@ -1769,7 +1783,7 @@ function OrderTable({
                       Amount:
                     </span>
                     <span className="text-sm font-semibold">
-                      ₹{calculateSellingPriceTotal(order).toFixed(2)}
+                      ₹{calculateListedPriceTotal(order).toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
