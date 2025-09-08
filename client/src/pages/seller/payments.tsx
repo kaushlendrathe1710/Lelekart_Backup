@@ -157,6 +157,9 @@ export default function SellerPaymentsPage() {
   const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawError, setWithdrawError] = useState("");
+  const [showRequestPaymentDialog, setShowRequestPaymentDialog] =
+    useState(false);
+  const [requestPaymentAmount, setRequestPaymentAmount] = useState("");
 
   // Fetch payments summary
   const { data: summaryData, isLoading: isSummaryLoading } = useQuery({
@@ -227,6 +230,21 @@ export default function SellerPaymentsPage() {
     },
   });
 
+  const requestPaymentMutation = useMutation({
+    mutationFn: async (amount: number) => {
+      const res = await fetch("/api/seller/payments/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to request payment");
+      }
+      return res.json();
+    },
+  });
+
   return (
     <SellerDashboardLayout>
       <div className="container mx-auto py-1 md:py-2 px-4 md:px-0">
@@ -261,14 +279,30 @@ export default function SellerPaymentsPage() {
               </p>
             </CardContent>
             <CardFooter className="pt-0">
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full text-xs md:text-sm"
-                onClick={() => setShowWithdrawDialog(true)}
-              >
-                Withdraw Funds
-              </Button>
+              <div className="flex gap-2 w-full">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 text-xs md:text-sm"
+                  onClick={() => setShowWithdrawDialog(true)}
+                >
+                  Withdraw Funds
+                </Button>
+                {summaryData?.availableForPayment > 0 && (
+                  <Button
+                    size="sm"
+                    className="flex-1 text-xs md:text-sm"
+                    onClick={() => {
+                      setRequestPaymentAmount(
+                        summaryData.availableForPayment.toString()
+                      );
+                      setShowRequestPaymentDialog(true);
+                    }}
+                  >
+                    Request Payment
+                  </Button>
+                )}
+              </div>
             </CardFooter>
           </Card>
 
@@ -284,20 +318,31 @@ export default function SellerPaymentsPage() {
                 {isSummaryLoading ? (
                   <div className="h-6 md:h-7 w-20 md:w-24 bg-gray-200 animate-pulse rounded"></div>
                 ) : (
-                  formatCurrency(summaryData?.pendingBalance || 0)
+                  formatCurrency(summaryData?.pendingPayment || 0)
                 )}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Will be available after order processing
+                Will be available after 15 days from delivery
               </p>
             </CardContent>
             <CardFooter className="pt-0">
               <div className="w-full">
                 <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
-                  <span>Releasing soon</span>
-                  <span>{formatCurrency(summaryData?.releasingSoon || 0)}</span>
+                  <span>Available for payment</span>
+                  <span>
+                    {formatCurrency(summaryData?.availableForPayment || 0)}
+                  </span>
                 </div>
-                <Progress value={60} className="h-2" />
+                <Progress
+                  value={
+                    summaryData?.deliveredOrdersTotal
+                      ? ((summaryData?.availableForPayment || 0) /
+                          summaryData.deliveredOrdersTotal) *
+                        100
+                      : 0
+                  }
+                  className="h-2"
+                />
               </div>
             </CardFooter>
           </Card>
@@ -345,16 +390,13 @@ export default function SellerPaymentsPage() {
                 )}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Estimated on{" "}
-                {summaryData?.nextPayoutDate
-                  ? format(new Date(summaryData.nextPayoutDate), "dd MMM yyyy")
-                  : "loading..."}
+                Available for withdrawal now
               </p>
             </CardContent>
             <CardFooter className="pt-0">
               <div className="w-full">
                 <div className="text-xs text-muted-foreground">
-                  Fixed weekly schedule
+                  15-day processing period completed
                 </div>
               </div>
             </CardFooter>
@@ -385,7 +427,6 @@ export default function SellerPaymentsPage() {
                   <span>Orders count</span>
                   <span>{summaryData?.deliveredOrdersCount || 0}</span>
                 </div>
-                
               </div>
             </CardFooter>
           </Card>
@@ -795,27 +836,31 @@ export default function SellerPaymentsPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-sm md:text-base">
-                Payout Schedule
+                Payment Processing
               </CardTitle>
               <CardDescription className="text-xs md:text-sm">
-                When you'll receive your funds
+                How the 15-day payment system works
               </CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-xs md:text-sm text-muted-foreground mb-2">
-                Your payout cycle is fixed to{" "}
-                <span className="font-semibold">Weekly</span> on{" "}
-                <span className="font-semibold">Monday</span>.
+                Your payments are processed after a{" "}
+                <span className="font-semibold">15-day waiting period</span>{" "}
+                from order delivery.
+              </p>
+              <p className="text-xs md:text-sm text-muted-foreground mb-2">
+                Example: Order delivered on Sep 4th → Payment available on Sep
+                19th
               </p>
               <p className="text-xs md:text-sm text-muted-foreground">
-                Funds are typically processed within 1-2 business days after the
-                payout is initiated. This schedule cannot be changed.
+                This ensures customer satisfaction and reduces return disputes
+                before payment release.
               </p>
             </CardContent>
             <CardFooter>
               <div className="w-full">
                 <div className="text-xs text-muted-foreground">
-                  Schedule is fixed and cannot be changed
+                  You can request payment once the 15-day period is complete
                 </div>
               </div>
             </CardFooter>
@@ -1167,6 +1212,53 @@ export default function SellerPaymentsPage() {
 
           <div className="space-y-6 py-4">
             <div className="space-y-2">
+              <h3 className="text-lg font-semibold">
+                15-Day Payment Processing System
+              </h3>
+
+              <div className="border rounded-lg mb-6">
+                <div className="p-4 border-b">
+                  <h4 className="font-medium flex items-center">
+                    <HelpCircle className="h-5 w-5 mr-2 text-primary" />
+                    How does the 15-day payment processing work?
+                  </h4>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    After an order is delivered, there is a 15-day waiting
+                    period before the payment becomes available for withdrawal.
+                    This ensures customer satisfaction and reduces return
+                    disputes. For example, if an order is delivered on September
+                    4th, the payment will be available for withdrawal on
+                    September 19th.
+                  </p>
+                </div>
+
+                <div className="p-4 border-b">
+                  <h4 className="font-medium flex items-center">
+                    <HelpCircle className="h-5 w-5 mr-2 text-primary" />
+                    When can I request payment?
+                  </h4>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    You can request payment for any orders that have completed
+                    the 15-day processing period. The "Available Balance" shows
+                    the total amount you can withdraw, while "Pending Balance"
+                    shows orders that are still in the 15-day waiting period.
+                  </p>
+                </div>
+
+                <div className="p-4">
+                  <h4 className="font-medium flex items-center">
+                    <HelpCircle className="h-5 w-5 mr-2 text-primary" />
+                    What happens during the 15-day period?
+                  </h4>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    During this period, customers can still return products or
+                    raise disputes. This waiting period helps ensure that only
+                    legitimate sales result in payments to sellers, protecting
+                    both the platform and maintaining high service quality.
+                  </p>
+                </div>
+              </div>
+
               <h3 className="text-lg font-semibold">
                 Understanding the Purchase Price Payment Model
               </h3>
@@ -1640,6 +1732,127 @@ export default function SellerPaymentsPage() {
               }}
             >
               Confirm Withdrawal
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Request Payment Dialog */}
+      <Dialog
+        open={showRequestPaymentDialog}
+        onOpenChange={setShowRequestPaymentDialog}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Request Payment</DialogTitle>
+            <DialogDescription>
+              Request payment for orders that have completed the 15-day
+              processing period.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="flex justify-between">
+              <span className="text-sm">Available for Payment:</span>
+              <span className="text-sm font-medium">
+                {formatCurrency(summaryData?.availableForPayment || 0)}
+              </span>
+            </div>
+            <div>
+              <label htmlFor="request-amount" className="text-sm font-medium">
+                Payment Amount
+              </label>
+              <Input
+                id="request-amount"
+                type="number"
+                min={0}
+                max={summaryData?.availableForPayment || 0}
+                placeholder="Enter amount to request"
+                value={requestPaymentAmount}
+                onChange={(e) => setRequestPaymentAmount(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                You can request up to{" "}
+                {formatCurrency(summaryData?.availableForPayment || 0)}
+              </p>
+            </div>
+            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-medium text-blue-800">
+                    Payment Request Process
+                  </h4>
+                  <p className="text-xs text-blue-700 mt-1">
+                    Your payment request will be processed within 1-2 business
+                    days. You'll receive a confirmation email once the payment
+                    is initiated.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowRequestPaymentDialog(false);
+                setRequestPaymentAmount("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={requestPaymentMutation.isLoading}
+              onClick={async () => {
+                const amount = Number(requestPaymentAmount);
+                const available = summaryData?.availableForPayment || 0;
+                if (!requestPaymentAmount || isNaN(amount)) {
+                  toast({
+                    title: "Invalid amount",
+                    description: "Please enter a valid payment amount.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                if (amount <= 0) {
+                  toast({
+                    title: "Invalid amount",
+                    description: "Payment amount must be greater than 0.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                if (amount > available) {
+                  toast({
+                    title: "Amount exceeds available balance",
+                    description: `You can only request up to ${formatCurrency(available)}.`,
+                    variant: "destructive",
+                  });
+                  return;
+                }
+
+                try {
+                  await requestPaymentMutation.mutateAsync(amount);
+                  setShowRequestPaymentDialog(false);
+                  setRequestPaymentAmount("");
+                  toast({
+                    title: "Payment Request Submitted",
+                    description: `Your payment request for ${formatCurrency(amount)} has been submitted. You'll receive a confirmation email shortly.`,
+                  });
+                } catch (error: any) {
+                  toast({
+                    title: "Payment Request Failed",
+                    description:
+                      error.message ||
+                      "Failed to submit payment request. Please try again.",
+                    variant: "destructive",
+                  });
+                }
+              }}
+            >
+              {requestPaymentMutation.isLoading
+                ? "Submitting..."
+                : "Submit Request"}
             </Button>
           </div>
         </DialogContent>

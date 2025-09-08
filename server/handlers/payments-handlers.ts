@@ -195,9 +195,22 @@ export async function getSellerPaymentsSummaryHandler(
     // Calculate delivered orders total based on purchase prices
     let deliveredOrdersTotal = 0;
     let deliveredOrdersCount = deliveredOrders.length;
+    let availableForPayment = 0; // Orders available for payment (15+ days after delivery)
+    let pendingPayment = 0; // Orders delivered but not yet 15 days old
+
+    const currentDate = new Date();
+    const fifteenDaysAgo = new Date(
+      currentDate.getTime() - 15 * 24 * 60 * 60 * 1000
+    );
 
     for (const order of deliveredOrders) {
       try {
+        // Get delivery date from shipping tracking
+        const shippingTracking = await storage.getShippingTracking(order.id);
+        const deliveryDate = shippingTracking?.deliveredDate
+          ? new Date(shippingTracking.deliveredDate)
+          : null;
+
         const orderItems = await storage.getOrderItems(order.id);
         // Filter items that belong to this seller
         const sellerItems = orderItems.filter((item) => {
@@ -205,10 +218,20 @@ export async function getSellerPaymentsSummaryHandler(
           return item.product && item.product.sellerId === sellerId;
         });
 
-        // Sum up the purchase prices (item.price is the purchase price)
+        // Calculate order total for this seller
+        let orderTotal = 0;
         sellerItems.forEach((item) => {
-          deliveredOrdersTotal += Number(item.price) * item.quantity;
+          orderTotal += Number(item.price) * item.quantity;
         });
+
+        deliveredOrdersTotal += orderTotal;
+
+        // Check if 15 days have passed since delivery
+        if (deliveryDate && deliveryDate <= fifteenDaysAgo) {
+          availableForPayment += orderTotal;
+        } else {
+          pendingPayment += orderTotal;
+        }
       } catch (error) {
         console.error(
           `Error fetching order items for order ${order.id}:`,
@@ -225,8 +248,8 @@ export async function getSellerPaymentsSummaryHandler(
       }
     });
 
-    // Available balance = delivered orders total - withdrawals
-    const availableBalance = deliveredOrdersTotal - totalWithdrawals;
+    // Available balance = orders available for payment (15+ days after delivery) - withdrawals
+    const availableBalance = availableForPayment - totalWithdrawals;
 
     // Get the latest 5 payments
     const recentPayments = payments.slice(0, 5);
@@ -244,14 +267,16 @@ export async function getSellerPaymentsSummaryHandler(
       deliveredOrdersTotal,
       deliveredOrdersCount,
 
-      // Updated available balance calculation
-      availableBalance: Math.max(0, availableBalance), // Ensure it's not negative
+      // 15-day payment processing fields
+      availableForPayment, // Orders available for payment (15+ days after delivery)
+      pendingPayment, // Orders delivered but not yet 15 days old
+      availableBalance: Math.max(0, availableBalance), // Available balance after 15-day delay
       totalWithdrawals,
 
       // Legacy fields for backward compatibility
-      pendingBalance: totalPending,
+      pendingBalance: pendingPayment, // Now shows orders pending 15-day period
       lifetimeEarnings: deliveredOrdersTotal,
-      nextPayoutAmount: totalPending,
+      nextPayoutAmount: availableForPayment, // Next payout will be from available orders
       nextPayoutDate: new Date(
         Date.now() + 7 * 24 * 60 * 60 * 1000
       ).toISOString(), // Next Monday
@@ -261,6 +286,106 @@ export async function getSellerPaymentsSummaryHandler(
     return res.status(200).json(summary);
   } catch (error) {
     console.error("Error fetching payment summary:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+// Request payment for available balance
+export async function requestSellerPaymentHandler(req: Request, res: Response) {
+  try {
+    const sellerId = req.user?.id;
+
+    if (!sellerId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    if (req.user?.role !== "seller") {
+      return res
+        .status(403)
+        .json({ error: "Only sellers can request payments" });
+    }
+
+    const requestSchema = z.object({
+      amount: z.number().positive("Amount must be positive"),
+      notes: z.string().optional(),
+    });
+
+    const validatedData = requestSchema.parse(req.body);
+
+    // Get current payment summary to validate available balance
+    const payments = await storage.getSellerPayments(sellerId);
+    const orders = await storage.getOrders(undefined, sellerId);
+    const deliveredOrders = orders.filter(
+      (order) => order.status === "delivered"
+    );
+
+    let availableForPayment = 0;
+    const currentDate = new Date();
+    const fifteenDaysAgo = new Date(
+      currentDate.getTime() - 15 * 24 * 60 * 60 * 1000
+    );
+
+    for (const order of deliveredOrders) {
+      try {
+        const shippingTracking = await storage.getShippingTracking(order.id);
+        const deliveryDate = shippingTracking?.deliveredDate
+          ? new Date(shippingTracking.deliveredDate)
+          : null;
+
+        const orderItems = await storage.getOrderItems(order.id);
+        const sellerItems = orderItems.filter((item) => {
+          return item.product && item.product.sellerId === sellerId;
+        });
+
+        let orderTotal = 0;
+        sellerItems.forEach((item) => {
+          orderTotal += Number(item.price) * item.quantity;
+        });
+
+        if (deliveryDate && deliveryDate <= fifteenDaysAgo) {
+          availableForPayment += orderTotal;
+        }
+      } catch (error) {
+        console.error(`Error processing order ${order.id}:`, error);
+      }
+    }
+
+    // Calculate withdrawals
+    let totalWithdrawals = 0;
+    payments.forEach((payment) => {
+      if (payment.status === "completed" && Number(payment.amount) < 0) {
+        totalWithdrawals += Math.abs(Number(payment.amount));
+      }
+    });
+
+    const availableBalance = availableForPayment - totalWithdrawals;
+
+    if (validatedData.amount > availableBalance) {
+      return res.status(400).json({
+        error: "Insufficient available balance",
+        availableBalance: Math.max(0, availableBalance),
+      });
+    }
+
+    // Create payment request record
+    const paymentRequest = await storage.createSellerPayment({
+      sellerId,
+      amount: -validatedData.amount, // Negative amount for withdrawal
+      status: "pending",
+      notes: validatedData.notes || "Payment request",
+      paymentMethod: "bank_transfer",
+    });
+
+    return res.status(201).json({
+      message: "Payment request submitted successfully",
+      paymentRequest,
+      availableBalance: Math.max(0, availableBalance - validatedData.amount),
+    });
+  } catch (error) {
+    console.error("Error requesting payment:", error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
     return res.status(500).json({ error: "Internal server error" });
   }
 }

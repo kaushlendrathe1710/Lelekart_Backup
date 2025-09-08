@@ -11896,6 +11896,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await paymentsHandlers.getSellerPaymentsSummaryHandler(req, res);
   });
 
+  app.post("/api/seller/payments/request", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" || !req.user.approved)
+      return res.status(403).json({ error: "Not authorized" });
+
+    await paymentsHandlers.requestSellerPaymentHandler(req, res);
+  });
+
   // Settings Routes
   app.get("/api/seller/settings", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
