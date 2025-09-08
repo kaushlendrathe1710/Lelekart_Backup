@@ -154,9 +154,6 @@ export default function SellerPaymentsPage() {
     day: string;
   }>(payoutSchedule);
   const [showFilters, setShowFilters] = useState(false);
-  const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
-  const [withdrawAmount, setWithdrawAmount] = useState("");
-  const [withdrawError, setWithdrawError] = useState("");
   const [showRequestPaymentDialog, setShowRequestPaymentDialog] =
     useState(false);
   const [requestPaymentAmount, setRequestPaymentAmount] = useState("");
@@ -280,14 +277,6 @@ export default function SellerPaymentsPage() {
             </CardContent>
             <CardFooter className="pt-0">
               <div className="flex gap-2 w-full">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 text-xs md:text-sm"
-                  onClick={() => setShowWithdrawDialog(true)}
-                >
-                  Withdraw Funds
-                </Button>
                 {summaryData?.availableForPayment > 0 && (
                   <Button
                     size="sm"
@@ -300,6 +289,16 @@ export default function SellerPaymentsPage() {
                     }}
                   >
                     Request Payment
+                  </Button>
+                )}
+                {summaryData?.availableForPayment === 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 text-xs md:text-sm"
+                    disabled
+                  >
+                    No Available Balance
                   </Button>
                 )}
               </div>
@@ -509,7 +508,17 @@ export default function SellerPaymentsPage() {
                       .map((payment: any) => {
                         return [
                           payment.transactionId,
-                          format(new Date(payment.date), "yyyy-MM-dd"),
+                          (() => {
+                            try {
+                              const date = new Date(payment.date);
+                              if (isNaN(date.getTime())) {
+                                return "Invalid Date";
+                              }
+                              return format(date, "yyyy-MM-dd");
+                            } catch (error) {
+                              return "Invalid Date";
+                            }
+                          })(),
                           payment.type,
                           `"${payment.description?.replace(/"/g, '""') || ""}"`,
                           payment.amount,
@@ -613,7 +622,19 @@ export default function SellerPaymentsPage() {
                               {payment.transactionId}
                             </TableCell>
                             <TableCell>
-                              {format(new Date(payment.date), "dd MMM yyyy")}
+                              {payment.date
+                                ? (() => {
+                                    try {
+                                      const date = new Date(payment.date);
+                                      if (isNaN(date.getTime())) {
+                                        return "Invalid Date";
+                                      }
+                                      return format(date, "dd MMM yyyy");
+                                    } catch (error) {
+                                      return "Invalid Date";
+                                    }
+                                  })()
+                                : "N/A"}
                             </TableCell>
                             <TableCell>
                               {payment.type === "payout" ? (
@@ -729,7 +750,17 @@ export default function SellerPaymentsPage() {
                             {payment.transactionId}
                           </CardTitle>
                           <p className="text-xs text-muted-foreground mt-1">
-                            {format(new Date(payment.date), "dd MMM yyyy")}
+                            {(() => {
+                              try {
+                                const date = new Date(payment.date);
+                                if (isNaN(date.getTime())) {
+                                  return "Invalid Date";
+                                }
+                                return format(date, "dd MMM yyyy");
+                              } catch (error) {
+                                return "Invalid Date";
+                              }
+                            })()}
                           </p>
                         </div>
                         <div className="text-right">
@@ -1653,85 +1684,6 @@ export default function SellerPaymentsPage() {
               }}
             >
               {savePayoutScheduleMutation.isLoading ? "Saving..." : "Save"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Withdraw Funds Dialog */}
-      <Dialog open={showWithdrawDialog} onOpenChange={setShowWithdrawDialog}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Withdraw Funds</DialogTitle>
-            <DialogDescription>
-              Enter the amount you wish to withdraw. Minimum withdrawal amount
-              is ₹5,000.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="flex justify-between">
-              <span className="text-sm">Available Balance:</span>
-              <span className="text-sm font-medium">
-                {formatCurrency(summaryData?.availableBalance || 0)}
-              </span>
-            </div>
-            <div>
-              <label htmlFor="withdraw-amount" className="text-sm font-medium">
-                Withdrawal Amount
-              </label>
-              <Input
-                id="withdraw-amount"
-                type="number"
-                min={5000}
-                placeholder="Enter amount (min ₹5,000)"
-                value={withdrawAmount}
-                onChange={(e) => {
-                  setWithdrawAmount(e.target.value);
-                  setWithdrawError("");
-                }}
-              />
-              {withdrawError && (
-                <p className="text-xs text-red-600 mt-1">{withdrawError}</p>
-              )}
-            </div>
-          </div>
-          <div className="flex justify-end gap-2 mt-4">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowWithdrawDialog(false);
-                setWithdrawAmount("");
-                setWithdrawError("");
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                const amount = Number(withdrawAmount);
-                const available = summaryData?.availableBalance || 0;
-                if (!withdrawAmount || isNaN(amount)) {
-                  setWithdrawError("Please enter a valid amount.");
-                  return;
-                }
-                if (amount < 5000) {
-                  setWithdrawError("Minimum withdrawal amount is ₹5,000.");
-                  return;
-                }
-                if (amount > available) {
-                  setWithdrawError("Amount exceeds available balance.");
-                  return;
-                }
-                setShowWithdrawDialog(false);
-                setWithdrawAmount("");
-                setWithdrawError("");
-                toast({
-                  title: "Withdrawal Requested",
-                  description: `You have requested to withdraw ₹${amount}. (Demo only, no backend call)`,
-                });
-              }}
-            >
-              Confirm Withdrawal
             </Button>
           </div>
         </DialogContent>

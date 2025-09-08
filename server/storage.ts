@@ -198,6 +198,7 @@ import {
   isNull,
   asc,
   inArray,
+  lt,
 } from "drizzle-orm";
 import { db } from "./db";
 import { pool } from "./db";
@@ -11769,6 +11770,107 @@ export class DatabaseStorage implements IStorage {
         error
       );
       return [];
+    }
+  }
+
+  // Get all seller withdrawal requests for admin (negative amounts)
+  async getSellerWithdrawalsForAdmin() {
+    try {
+      const result = await db
+        .select()
+        .from(sellerPayments)
+        .where(lt(sellerPayments.amount, 0))
+        .orderBy(desc(sellerPayments.createdAt));
+
+      return result.map((payment) => ({
+        id: payment.id,
+        sellerId: payment.sellerId,
+        amount: Number(payment.amount),
+        status: payment.status,
+        paymentDate: payment.paymentDate?.toISOString() || null,
+        referenceId: payment.referenceId,
+        paymentMethod: payment.paymentMethod,
+        notes: payment.notes,
+        createdAt: payment.createdAt.toISOString(),
+        updatedAt: payment.updatedAt.toISOString(),
+      }));
+    } catch (error) {
+      console.error("Error fetching seller withdrawals for admin:", error);
+      return [];
+    }
+  }
+
+  // Get seller payment by ID
+  async getSellerPaymentById(id: number) {
+    try {
+      const result = await db
+        .select()
+        .from(sellerPayments)
+        .where(eq(sellerPayments.id, id))
+        .limit(1);
+
+      if (result.length === 0) {
+        return null;
+      }
+
+      const payment = result[0];
+      return {
+        id: payment.id,
+        sellerId: payment.sellerId,
+        amount: Number(payment.amount),
+        status: payment.status,
+        paymentDate: payment.paymentDate?.toISOString() || null,
+        referenceId: payment.referenceId,
+        paymentMethod: payment.paymentMethod,
+        notes: payment.notes,
+        createdAt: payment.createdAt.toISOString(),
+        updatedAt: payment.updatedAt.toISOString(),
+      };
+    } catch (error) {
+      console.error("Error fetching seller payment by ID:", error);
+      return null;
+    }
+  }
+
+  // Update seller payment
+  async updateSellerPayment(
+    id: number,
+    updates: Partial<{
+      status: string;
+      paymentDate: Date | null;
+      referenceId: string | null;
+      paymentMethod: string | null;
+      notes: string | null;
+      updatedAt: Date;
+    }>
+  ) {
+    try {
+      const result = await db
+        .update(sellerPayments)
+        .set(updates)
+        .where(eq(sellerPayments.id, id))
+        .returning();
+
+      if (result.length === 0) {
+        throw new Error("Payment not found");
+      }
+
+      const payment = result[0];
+      return {
+        id: payment.id,
+        sellerId: payment.sellerId,
+        amount: Number(payment.amount),
+        status: payment.status,
+        paymentDate: payment.paymentDate?.toISOString() || null,
+        referenceId: payment.referenceId,
+        paymentMethod: payment.paymentMethod,
+        notes: payment.notes,
+        createdAt: payment.createdAt.toISOString(),
+        updatedAt: payment.updatedAt.toISOString(),
+      };
+    } catch (error) {
+      console.error("Error updating seller payment:", error);
+      throw error;
     }
   }
 }

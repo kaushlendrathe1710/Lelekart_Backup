@@ -11347,6 +11347,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin withdrawal management endpoints
+  app.get("/api/admin/seller-withdrawals", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin")
+      return res.status(403).json({ error: "Not authorized" });
+
+    try {
+      const withdrawals = await storage.getSellerWithdrawalsForAdmin();
+
+      // For each withdrawal, get seller details and settings
+      const withdrawalsWithDetails = await Promise.all(
+        withdrawals.map(async (withdrawal) => {
+          try {
+            // Get seller basic info
+            const seller = await storage.getUser(withdrawal.sellerId);
+
+            // Get seller settings for bank details
+            const sellerSettings = await storage.getSellerSettings(
+              withdrawal.sellerId
+            );
+
+            const result = {
+              ...withdrawal,
+              seller: seller
+                ? {
+                    id: seller.id,
+                    name: seller.name,
+                    email: seller.email,
+                    phone: seller.phone,
+                  }
+                : null,
+              sellerSettings: sellerSettings
+                ? {
+                    taxInformation: sellerSettings.taxInformation,
+                    personalInfo: sellerSettings.personalInfo,
+                    address: sellerSettings.address,
+                  }
+                : null,
+            };
+
+            return result;
+          } catch (error) {
+            console.error(
+              `Error fetching details for withdrawal ${withdrawal.id}:`,
+              error
+            );
+            return {
+              ...withdrawal,
+              seller: null,
+              sellerSettings: null,
+            };
+          }
+        })
+      );
+
+      res.json(withdrawalsWithDetails);
+    } catch (error) {
+      console.error("Error fetching seller withdrawals:", error);
+      res.status(500).json({ error: "Failed to fetch seller withdrawals" });
+    }
+  });
+
+  app.put("/api/admin/seller-withdrawals/:id/status", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin")
+      return res.status(403).json({ error: "Not authorized" });
+
+    try {
+      const { id } = req.params;
+      const { status, referenceId, notes } = req.body;
+
+      // Validate status
+      const validStatuses = ["pending", "processing", "completed", "failed"];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ error: "Invalid status" });
+      }
+
+      // Get the withdrawal request
+      const withdrawal = await storage.getSellerPaymentById(parseInt(id));
+      if (!withdrawal) {
+        return res.status(404).json({ error: "Withdrawal request not found" });
+      }
+
+      // Update the withdrawal status
+      const updatedWithdrawal = await storage.updateSellerPayment(
+        parseInt(id),
+        {
+          status,
+          referenceId: referenceId || null,
+          notes: notes || withdrawal.notes,
+          paymentDate: status === "completed" ? new Date() : null,
+          updatedAt: new Date(),
+        }
+      );
+
+      res.json({
+        message: "Withdrawal status updated successfully",
+        withdrawal: updatedWithdrawal,
+      });
+    } catch (error) {
+      console.error("Error updating withdrawal status:", error);
+      res.status(500).json({ error: "Failed to update withdrawal status" });
+    }
+  });
+
   app.post("/api/admin/sellers/:id/approve", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     if (req.user.role !== "admin")

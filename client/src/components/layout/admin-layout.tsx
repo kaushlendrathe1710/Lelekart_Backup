@@ -265,6 +265,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       href: "/admin/chat",
       icon: <MessageCircle className="h-5 w-5" />,
     },
+    {
+      title: "Seller Withdrawals",
+      href: "/admin/seller-withdrawals",
+      icon: <CreditCard className="h-5 w-5" />,
+    },
   ];
 
   const handleLogout = async () => {

@@ -87,6 +87,7 @@ import AdminNotificationsPage from "./pages/admin/notifications";
 import TicketManagementPage from "./pages/admin/ticket-management";
 import AffiliateMarketingPage from "./pages/admin/affilate-marketing";
 import AdminChatPage from "./pages/admin/chat";
+import SellerWithdrawalsPage from "./pages/admin/seller-withdrawals";
 // Import shared components
 import { SuspenseWrapper } from "./components/shared/suspense-wrapper";
 import PressReleaseDetail from "./pages/static/press-release";
@@ -1046,6 +1047,16 @@ function App() {
                             path="/admin/chat"
                             role="admin"
                             component={AdminChatPage}
+                          />
+                        )}
+                      </Route>
+
+                      <Route path="/admin/seller-withdrawals">
+                        {() => (
+                          <ProtectedRoute
+                            path="/admin/seller-withdrawals"
+                            role="admin"
+                            component={SellerWithdrawalsPage}
                           />
                         )}
                       </Route>

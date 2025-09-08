@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard,
@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Database,
   MessageCircle,
+  CreditCard,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect } from "wouter";
@@ -23,6 +24,28 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [location] = useLocation();
   const { user, isLoading } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        mobileMenuRef.current &&
+        !mobileMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    if (isMobileMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isMobileMenuOpen]);
 
   // If user is not authenticated or not an admin, redirect to the auth page
   if (!isLoading && (!user || user.role !== "admin")) {
@@ -95,6 +118,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       label: "Live Chat",
       icon: <MessageCircle className="h-5 w-5" />,
     },
+    {
+      path: "/admin/seller-withdrawals",
+      label: "Seller Withdrawals",
+      icon: <CreditCard className="h-5 w-5" />,
+    },
   ];
 
   return (
@@ -139,8 +167,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       <div className="md:hidden w-full border-b bg-card p-4 sticky top-0 z-10 flex justify-between items-center">
         <h1 className="text-xl font-bold">Admin Panel</h1>
 
-        {/* Mobile menu button - could implement a mobile drawer/menu here */}
-        <button className="p-2 rounded-md hover:bg-muted">
+        {/* Mobile menu button */}
+        <button
+          className="p-2 rounded-md hover:bg-muted"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="24"
@@ -158,6 +189,36 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </svg>
         </button>
       </div>
+
+      {/* Mobile Menu Dropdown */}
+      {isMobileMenuOpen && (
+        <div
+          ref={mobileMenuRef}
+          className="md:hidden absolute top-16 left-0 right-0 bg-card border-b shadow-lg z-20"
+        >
+          <nav className="p-2">
+            <ul className="space-y-1">
+              {menuItems.map((item) => (
+                <li key={item.path}>
+                  <Link href={item.path}>
+                    <a
+                      className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                        location === item.path
+                          ? "bg-primary/10 text-primary font-medium"
+                          : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                      }`}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      {item.icon}
+                      {item.label}
+                    </a>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="flex-1">
