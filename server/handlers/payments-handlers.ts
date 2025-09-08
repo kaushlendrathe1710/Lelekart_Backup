@@ -205,11 +205,36 @@ export async function getSellerPaymentsSummaryHandler(
 
     for (const order of deliveredOrders) {
       try {
-        // Get delivery date from shipping tracking
+        // Get delivery date from shipping tracking first
         const shippingTracking = await storage.getShippingTracking(order.id);
-        const deliveryDate = shippingTracking?.deliveredDate
+        let deliveryDate = shippingTracking?.deliveredDate
           ? new Date(shippingTracking.deliveredDate)
           : null;
+
+        // If no shipping tracking delivery date, use order's updatedAt as fallback
+        // This assumes the order was marked as delivered when updatedAt was set
+        if (!deliveryDate) {
+          // For orders marked as delivered, use updatedAt as delivery date
+          // Subtract 1 day to account for the time between delivery and status update
+          if (order.updatedAt) {
+            deliveryDate = new Date(order.updatedAt);
+            // Check if the date is valid
+            if (isNaN(deliveryDate.getTime())) {
+              console.warn(
+                `Invalid updatedAt date for order ${order.id}: ${order.updatedAt}`
+              );
+              deliveryDate = null;
+            } else {
+              deliveryDate.setDate(deliveryDate.getDate() - 1);
+              console.log(
+                `Using fallback delivery date for order ${order.id}: ${deliveryDate.toISOString()}`
+              );
+            }
+          } else {
+            console.warn(`No updatedAt date for order ${order.id}`);
+            deliveryDate = null;
+          }
+        }
 
         const orderItems = await storage.getOrderItems(order.id);
         // Filter items that belong to this seller
@@ -227,10 +252,48 @@ export async function getSellerPaymentsSummaryHandler(
         deliveredOrdersTotal += orderTotal;
 
         // Check if 15 days have passed since delivery
-        if (deliveryDate && deliveryDate <= fifteenDaysAgo) {
-          availableForPayment += orderTotal;
+        // Use delivery date if available, otherwise use order creation date
+        let checkDate = deliveryDate;
+
+        if (!checkDate) {
+          if (order.createdAt) {
+            checkDate = new Date(order.createdAt);
+            // Check if the date is valid
+            if (isNaN(checkDate.getTime())) {
+              console.warn(
+                `Invalid createdAt date for order ${order.id}: ${order.createdAt}`
+              );
+              checkDate = null;
+            }
+          } else {
+            console.warn(`No createdAt date for order ${order.id}`);
+            checkDate = null;
+          }
+        }
+
+        if (checkDate) {
+          const daysDifference = Math.floor(
+            (currentDate.getTime() - checkDate.getTime()) /
+              (1000 * 60 * 60 * 24)
+          );
+
+          if (daysDifference >= 15) {
+            availableForPayment += orderTotal;
+            console.log(
+              `Order ${order.id} is available for payment (${daysDifference} days old, date: ${checkDate.toISOString()})`
+            );
+          } else {
+            pendingPayment += orderTotal;
+            console.log(
+              `Order ${order.id} is pending payment (${daysDifference} days old, date: ${checkDate.toISOString()})`
+            );
+          }
         } else {
-          pendingPayment += orderTotal;
+          // If we can't determine any valid date, assume it's very old and available
+          availableForPayment += orderTotal;
+          console.log(
+            `Order ${order.id} is available for payment (no valid date - assuming old order)`
+          );
         }
       } catch (error) {
         console.error(
@@ -327,10 +390,30 @@ export async function requestSellerPaymentHandler(req: Request, res: Response) {
 
     for (const order of deliveredOrders) {
       try {
+        // Get delivery date from shipping tracking first
         const shippingTracking = await storage.getShippingTracking(order.id);
-        const deliveryDate = shippingTracking?.deliveredDate
+        let deliveryDate = shippingTracking?.deliveredDate
           ? new Date(shippingTracking.deliveredDate)
           : null;
+
+        // If no shipping tracking delivery date, use order's updatedAt as fallback
+        if (!deliveryDate) {
+          if (order.updatedAt) {
+            deliveryDate = new Date(order.updatedAt);
+            // Check if the date is valid
+            if (isNaN(deliveryDate.getTime())) {
+              console.warn(
+                `Invalid updatedAt date for order ${order.id}: ${order.updatedAt}`
+              );
+              deliveryDate = null;
+            } else {
+              deliveryDate.setDate(deliveryDate.getDate() - 1);
+            }
+          } else {
+            console.warn(`No updatedAt date for order ${order.id}`);
+            deliveryDate = null;
+          }
+        }
 
         const orderItems = await storage.getOrderItems(order.id);
         const sellerItems = orderItems.filter((item) => {
@@ -342,7 +425,30 @@ export async function requestSellerPaymentHandler(req: Request, res: Response) {
           orderTotal += Number(item.price) * item.quantity;
         });
 
-        if (deliveryDate && deliveryDate <= fifteenDaysAgo) {
+        // Use delivery date if available, otherwise use order creation date
+        let checkDate = deliveryDate;
+
+        if (!checkDate) {
+          if (order.createdAt) {
+            checkDate = new Date(order.createdAt);
+            // Check if the date is valid
+            if (isNaN(checkDate.getTime())) {
+              checkDate = null;
+            }
+          }
+        }
+
+        if (checkDate) {
+          const daysDifference = Math.floor(
+            (currentDate.getTime() - checkDate.getTime()) /
+              (1000 * 60 * 60 * 24)
+          );
+
+          if (daysDifference >= 15) {
+            availableForPayment += orderTotal;
+          }
+        } else {
+          // If we can't determine any valid date, assume it's very old and available
           availableForPayment += orderTotal;
         }
       } catch (error) {
