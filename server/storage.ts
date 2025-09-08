@@ -5691,20 +5691,20 @@ export class DatabaseStorage implements IStorage {
   async updateOrderStatus(id: number, status: string): Promise<Order> {
     // Define allowed status transitions for security (moved outside to avoid recreation)
     const allowedTransitions: Record<string, string[]> = {
-      pending: ["processing", "confirmed", "cancelled", "delivered"],
-      processing: ["confirmed", "shipped", "cancelled"],
-      confirmed: ["shipped", "cancelled"],
-      shipped: ["delivered", "returned"],
-      delivered: ["returned", "completed", "marked_for_return"],
-      returned: ["refunded"],
-      cancelled: ["refunded"],
+      pending: ["confirmed", "cancelled"],
+      confirmed: ["processing", "cancelled"],
+      processing: ["shipped", "cancelled"],
+      shipped: ["delivered", "returned", "cancelled"],
+      delivered: ["returned"],
+      returned: ["refunded", "replaced"],
       refunded: [],
-      completed: [],
+      replaced: ["shipped"],
+      cancelled: [],
       marked_for_return: ["approve_return", "reject_return"],
-      approve_return: ["process_return", "reject_return"],
-      process_return: ["completed_return", "reject_return"],
-      completed_return: ["reject_return"],
-      reject_return: [],
+      approve_return: ["process_return"],
+      reject_return: ["returned"],
+      process_return: ["completed_return", "returned"],
+      completed_return: [],
     };
 
     // Get the current order to validate status transition

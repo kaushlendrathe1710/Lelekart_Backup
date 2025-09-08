@@ -179,6 +179,8 @@ function getStatusColor(status: string) {
       return "bg-blue-100 text-blue-800";
     case "processing":
       return "bg-yellow-100 text-yellow-800";
+    case "confirmed":
+      return "bg-orange-100 text-orange-800";
     case "cancelled":
       return "bg-red-100 text-red-800";
     case "marked_for_return":
@@ -197,6 +199,8 @@ function StatusIcon({ status }: { status: string }) {
       return <Truck className="h-5 w-5 text-blue-600" />;
     case "processing":
       return <Package2 className="h-5 w-5 text-yellow-600" />;
+    case "confirmed":
+      return <CheckCircle className="h-5 w-5 text-orange-600" />;
     case "cancelled":
       return <Clock className="h-5 w-5 text-red-600" />;
     case "marked_for_return":

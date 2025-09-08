@@ -131,6 +131,18 @@ export default function SellerOrdersPage() {
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [newStatus, setNewStatus] = useState<string>("");
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+  // Update selectedOrder when orders data changes (to reflect status updates)
+  useEffect(() => {
+    if (selectedOrder && orders.length > 0) {
+      const updatedOrder = orders.find(
+        (order) => order.id === selectedOrder.id
+      );
+      if (updatedOrder) {
+        setSelectedOrder(updatedOrder);
+      }
+    }
+  }, [orders, selectedOrder]);
   const invoiceRef = useRef<HTMLDivElement>(null);
   const shippingLabelRef = useRef<HTMLDivElement>(null);
 
@@ -147,8 +159,10 @@ export default function SellerOrdersPage() {
   } = useQuery<OrderWithItems[]>({
     queryKey: ["/api/orders"],
     queryFn: async () => {
+      console.log("Fetching orders from API...");
       const response = await apiRequest("GET", "/api/orders");
       const data = await response.json();
+      console.log("Orders fetched:", data);
 
       // Process each order to ensure shipping details are parsed and fetch items
       const ordersWithItems = await Promise.all(
@@ -199,11 +213,15 @@ export default function SellerOrdersPage() {
       return response.json();
     },
     onSuccess: (data, variables) => {
+      console.log("Status update successful:", data, variables);
       toast({
         title: "Status Updated",
         description: `Order #${variables.orderId} status has been updated to ${variables.status}.`,
       });
+      // Invalidate and refetch the orders query
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      // Also try to refetch immediately
+      queryClient.refetchQueries({ queryKey: ["/api/orders"] });
       setIsStatusDialogOpen(false);
       setNewStatus("");
     },
@@ -302,6 +320,15 @@ export default function SellerOrdersPage() {
             className="bg-yellow-50 text-yellow-700 border-yellow-200 flex items-center gap-1"
           >
             <Clock className="h-3 w-3" /> Pending
+          </Badge>
+        );
+      case "confirmed":
+        return (
+          <Badge
+            variant="outline"
+            className="bg-orange-50 text-orange-700 border-orange-200 flex items-center gap-1"
+          >
+            <CheckCircle2 className="h-3 w-3" /> Confirmed
           </Badge>
         );
       case "processing":
@@ -456,14 +483,18 @@ export default function SellerOrdersPage() {
   // Get available status options based on current status
   const getAvailableStatuses = (currentStatus: string) => {
     const statusFlow = {
-      pending: ["processing", "cancelled", "shipped", "delivered"],
-      processing: ["processing", "cancelled", "shipped", "delivered"],
-      shipped: ["processing", "cancelled", "shipped", "delivered"],
-      delivered: ["approve_return", "reject_return"],
+      pending: ["confirmed", "cancelled"],
+      confirmed: ["processing", "cancelled"],
+      processing: ["shipped", "cancelled"],
+      shipped: ["delivered", "returned", "cancelled"],
+      delivered: ["returned"],
+      returned: ["refunded", "replaced"],
+      refunded: [],
+      replaced: ["shipped"],
       cancelled: [],
       approve_return: ["process_return"],
-      reject_return: [],
-      process_return: ["completed_return"],
+      reject_return: ["returned"],
+      process_return: ["completed_return", "returned"],
       completed_return: [],
     };
 
@@ -473,6 +504,7 @@ export default function SellerOrdersPage() {
   const formatStatusForDisplay = (status: string) => {
     const statusMap: { [key: string]: string } = {
       pending: "Pending",
+      confirmed: "Confirmed",
       processing: "Processing",
       shipped: "Shipped",
       delivered: "Delivered",

@@ -6816,6 +6816,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate status
       const validStatuses = [
         "pending",
+        "confirmed",
         "processing",
         "shipped",
         "delivered",
@@ -7050,6 +7051,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate status
       const validStatuses = [
         "pending",
+        "confirmed",
         "processing",
         "shipped",
         "delivered",

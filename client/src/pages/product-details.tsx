@@ -1332,10 +1332,13 @@ export default function ProductDetailsPage() {
 
       // Call buyNow through context with modified variant
       if (selectedVariant) {
-        // Create a modified variant with the selected size instead of the full size string
+        // Create a modified variant with the selected color and size instead of the full strings
         const modifiedVariant = {
           ...selectedVariant,
-          size: selectedSize, // Use the selected size instead of the full variant size string
+          // Use the selected color instead of the full variant color string (which might contain multiple colors)
+          color: selectedColor || selectedVariant.color,
+          // Use the selected size instead of the full variant size string (which might contain multiple sizes)
+          size: selectedSize || selectedVariant.size,
         };
         cartContext.buyNow(product, quantity, modifiedVariant);
       } else {

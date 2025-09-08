@@ -534,11 +534,14 @@ export function VariantSelector({
 
     setCurrentVariant(matchedVariant);
 
-    // Create a modified variant with the selected size instead of the full size string
-    if (matchedVariant && selectedSize) {
+    // Create a modified variant with the selected color and size instead of the full strings
+    if (matchedVariant) {
       const modifiedVariant = {
         ...matchedVariant,
-        size: selectedSize, // Use the selected size instead of the full variant size string
+        // Use the selected color instead of the full variant color string (which might contain multiple colors)
+        color: selectedColor || matchedVariant.color,
+        // Use the selected size instead of the full variant size string (which might contain multiple sizes)
+        size: selectedSize || matchedVariant.size,
       };
       onVariantChange(modifiedVariant);
     } else {
