@@ -136,6 +136,8 @@ function getStatusColor(status: string) {
   switch (status.toLowerCase()) {
     case "pending":
       return "bg-yellow-100 text-yellow-800 border-yellow-200";
+    case "confirmed":
+      return "bg-orange-100 text-orange-800 border-orange-200";
     case "processing":
       return "bg-blue-100 text-blue-800 border-blue-200";
     case "shipped":
@@ -155,6 +157,8 @@ function StatusIcon({ status }: { status: string }) {
   switch (status.toLowerCase()) {
     case "pending":
       return <Clock className="h-4 w-4 mr-1" />;
+    case "confirmed":
+      return <CheckCircle2 className="h-4 w-4 mr-1" />;
     case "processing":
       return <ArrowRight className="h-4 w-4 mr-1" />;
     case "shipped":
