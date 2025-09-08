@@ -54,7 +54,14 @@ export default function ChatPage() {
   useEffect(() => {
     if (session && session.status === "open") {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const host = window.location.host;
+      let host = window.location.host;
+
+      // Fallback for development when host might be undefined
+      if (!host || host.includes("undefined")) {
+        host = "localhost:5000";
+        console.warn("WebSocket host fallback to localhost:5000");
+      }
+
       const wsUrl = `${protocol}//${host}/ws?userId=${user?.id || "guest"}&sessionId=${session.id}`;
       console.log("User WebSocket URL:", wsUrl);
 

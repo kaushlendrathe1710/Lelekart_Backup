@@ -268,7 +268,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
         // Get protocol and hostname - ensure we only use relative paths with hostname
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-        const host = window.location.host;
+        let host = window.location.host;
+
+        // Fallback for development when host might be undefined
+        if (!host || host.includes("undefined")) {
+          host = "localhost:5000";
+          console.warn("WebSocket host fallback to localhost:5000");
+        }
 
         // Only create connection if we have a valid host
         if (!host) {

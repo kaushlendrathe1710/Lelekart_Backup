@@ -132,17 +132,6 @@ export default function SellerOrdersPage() {
   const [newStatus, setNewStatus] = useState<string>("");
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
-  // Update selectedOrder when orders data changes (to reflect status updates)
-  useEffect(() => {
-    if (selectedOrder && orders.length > 0) {
-      const updatedOrder = orders.find(
-        (order) => order.id === selectedOrder.id
-      );
-      if (updatedOrder) {
-        setSelectedOrder(updatedOrder);
-      }
-    }
-  }, [orders, selectedOrder]);
   const invoiceRef = useRef<HTMLDivElement>(null);
   const shippingLabelRef = useRef<HTMLDivElement>(null);
 
@@ -193,6 +182,18 @@ export default function SellerOrdersPage() {
       return ordersWithItems;
     },
   });
+
+  // Update selectedOrder when orders data changes (to reflect status updates)
+  useEffect(() => {
+    if (selectedOrder && orders.length > 0) {
+      const updatedOrder = orders.find(
+        (order) => order.id === selectedOrder.id
+      );
+      if (updatedOrder) {
+        setSelectedOrder(updatedOrder);
+      }
+    }
+  }, [orders, selectedOrder]);
 
   // Status update mutation
   const updateOrderStatusMutation = useMutation({

@@ -89,7 +89,14 @@ export default function AdminChatPage() {
   useEffect(() => {
     if (user) {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const host = window.location.host;
+      let host = window.location.host;
+
+      // Fallback for development when host might be undefined
+      if (!host || host.includes("undefined")) {
+        host = "localhost:5000";
+        console.warn("WebSocket host fallback to localhost:5000");
+      }
+
       const wsUrl = `${protocol}//${host}/ws?userId=${user.id}&admin=true`;
       console.log("Admin WebSocket URL:", wsUrl);
 
