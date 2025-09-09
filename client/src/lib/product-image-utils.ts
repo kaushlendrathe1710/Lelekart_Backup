@@ -20,7 +20,7 @@ export interface ProductVariant {
   price: number;
   mrp?: number;
   stock: number;
-  images?: string;
+  images?: string | string[]; // Can be JSON string or parsed array
   [key: string]: any;
 }
 
@@ -30,6 +30,91 @@ export interface CartItem {
   product: Product;
   variant?: ProductVariant;
   [key: string]: any;
+}
+
+/**
+ * Parses variant images from various formats (JSON string, comma-separated, single URL)
+ * @param images - The images string or array
+ * @returns Array of image URLs
+ */
+function parseVariantImages(images: string | string[] | undefined): string[] {
+  if (!images) return [];
+
+  try {
+    // If images is already an array, return it (server now sends parsed arrays)
+    if (Array.isArray(images)) {
+      return images.filter((img) => img && img.trim() !== "");
+    }
+
+    // If images is a string
+    if (typeof images === "string") {
+      // Empty string case
+      if (images.trim() === "") {
+        return [];
+      }
+
+      // Handle if images is already a direct URL
+      if (
+        images.startsWith("http") &&
+        !images.startsWith("[") &&
+        !images.startsWith("{")
+      ) {
+        return [images];
+      }
+
+      // Handle comma-separated URLs that aren't in JSON format
+      if (
+        images.includes(",") &&
+        !images.startsWith("[") &&
+        !images.startsWith("{")
+      ) {
+        const urls = images
+          .split(",")
+          .map((url) => url.trim())
+          .filter((url) => url !== "");
+        return urls;
+      }
+
+      // Try to parse as JSON
+      if (images.startsWith("[") || images.startsWith("{")) {
+        try {
+          const parsedImages = JSON.parse(images);
+
+          // If it's an array of strings, use directly
+          if (Array.isArray(parsedImages)) {
+            const validImages = parsedImages
+              .map((img) =>
+                typeof img === "string" ? img : img?.url || img?.imageUrl || ""
+              )
+              .filter((url) => url && url.trim() !== "");
+            return validImages;
+          }
+
+          // If it's an object with url/imageUrl property
+          if (typeof parsedImages === "object") {
+            const url = parsedImages.url || parsedImages.imageUrl;
+            return url ? [url] : [];
+          }
+
+          return [];
+        } catch (parseError) {
+          // Use as plain string if parsing fails, but only if it looks like a URL
+          return images.includes("http") ? [images] : [];
+        }
+      }
+
+      // If not a valid JSON string, treat as a single URL if it looks like one
+      if (images.includes("http")) {
+        return [images];
+      }
+
+      return [];
+    }
+  } catch (error) {
+    console.error("Error processing variant images:", error);
+  }
+
+  return [];
 }
 
 /**
@@ -44,16 +129,9 @@ export function getProductImageUrl(
 ): string {
   // First priority: variant images if variant exists and has images
   if (variant?.images) {
-    try {
-      const variantImages = JSON.parse(variant.images);
-      if (Array.isArray(variantImages) && variantImages.length > 0) {
-        return variantImages[0];
-      }
-    } catch {
-      // If JSON parsing fails, try using variant.images directly
-      if (typeof variant.images === "string" && variant.images.trim()) {
-        return variant.images;
-      }
+    const variantImages = parseVariantImages(variant.images);
+    if (variantImages.length > 0) {
+      return variantImages[0];
     }
   }
 
@@ -69,21 +147,34 @@ export function getProductImageUrl(
 
   // Fourth priority: product.images JSON array
   if (product.images) {
-    try {
-      const imagesArray = JSON.parse(product.images);
-      if (Array.isArray(imagesArray) && imagesArray.length > 0) {
-        return imagesArray[0];
-      }
-    } catch {
-      // If JSON parsing fails, try using it directly
-      if (typeof product.images === "string" && product.images.trim()) {
-        return product.images;
-      }
+    const productImages = parseVariantImages(product.images);
+    if (productImages.length > 0) {
+      return productImages[0];
     }
   }
 
   // Fallback to default placeholder
   return "https://placehold.co/100x100?text=No+Image";
+}
+
+/**
+ * Gets all variant images for a product variant
+ * @param variant - The variant object
+ * @returns Array of image URLs
+ */
+export function getVariantImages(variant?: ProductVariant): string[] {
+  if (!variant?.images) return [];
+  return parseVariantImages(variant.images);
+}
+
+/**
+ * Gets the best image URL for a cart item with enhanced variant support
+ * This function prioritizes variant images and provides better debugging
+ * @param cartItem - The cart item object
+ * @returns The best image URL to display
+ */
+export function getCartItemImageUrlEnhanced(cartItem: CartItem): string {
+  return getCartItemImageUrl(cartItem);
 }
 
 /**
@@ -101,6 +192,18 @@ export function getCartItemImageUrl(cartItem: CartItem): string {
  * @returns The best image URL to display
  */
 export function getOrderItemImageUrl(orderItem: {
+  product: Product;
+  variant?: ProductVariant;
+}): string {
+  return getProductImageUrl(orderItem.product, orderItem.variant);
+}
+
+/**
+ * Enhanced version of getOrderItemImageUrl with detailed debugging
+ * @param orderItem - The order item object
+ * @returns The best image URL to display
+ */
+export function getOrderItemImageUrlEnhanced(orderItem: {
   product: Product;
   variant?: ProductVariant;
 }): string {

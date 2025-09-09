@@ -65,7 +65,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { getCartItemImageUrl } from "@/lib/product-image-utils";
+import {
+  getCartItemImageUrl,
+  getCartItemImageUrlEnhanced,
+} from "@/lib/product-image-utils";
 
 // Define form schema with Zod - with more permissive validation
 const checkoutSchema = z.object({
@@ -133,7 +136,7 @@ interface CartItem {
     stock: number;
     color: string;
     size: string;
-    images?: string;
+    images?: string | string[]; // Can be JSON string or parsed array
   };
 }
 
@@ -1956,7 +1959,7 @@ export default function CheckoutPage() {
                     <div className="flex items-center">
                       <div className="w-10 h-10 rounded-md overflow-hidden mr-2 bg-gray-100 flex items-center justify-center">
                         <img
-                          src={getCartItemImageUrl(item)}
+                          src={getCartItemImageUrlEnhanced(item)}
                           alt={item.product.name}
                           className="w-full h-full object-cover"
                           onError={(e) => {
@@ -1967,6 +1970,16 @@ export default function CheckoutPage() {
                             const target = e.target as HTMLImageElement;
                             target.src =
                               "https://via.placeholder.com/80?text=Product";
+                          }}
+                          onLoad={() => {
+                            // Debug: Log when image loads successfully
+                            console.log("Checkout item image loaded:", {
+                              productName: item.product.name,
+                              variantColor: item.variant?.color,
+                              variantSize: item.variant?.size,
+                              variantImages: item.variant?.images,
+                              imageUrl: getCartItemImageUrlEnhanced(item),
+                            });
                           }}
                         />
                       </div>

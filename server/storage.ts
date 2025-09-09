@@ -4700,7 +4700,257 @@ export class DatabaseStorage implements IStorage {
                 .where(eq(productVariants.id, item.variantId));
 
               if (variant) {
-                mappedItem = { ...mappedItem, variant };
+                // Process variant images to parse JSON strings into arrays
+                const processedVariant = { ...variant };
+
+                // Process the images field if it exists
+                if (variant.images) {
+                  try {
+                    console.log(
+                      `Processing cart variant ${variant.id} images:`,
+                      {
+                        type: typeof variant.images,
+                        value: variant.images,
+                        isArray: Array.isArray(variant.images),
+                      }
+                    );
+
+                    // If images is already an array, use it directly
+                    if (Array.isArray(variant.images)) {
+                      processedVariant.images = variant.images.filter(
+                        (img) => img && img.trim() !== ""
+                      );
+                      console.log(
+                        `Using existing array with ${processedVariant.images.length} images for cart variant ${variant.id}`
+                      );
+                    }
+                    // If images is a string that looks like a JSON array, parse it
+                    else if (
+                      typeof variant.images === "string" &&
+                      variant.images.trim().startsWith("[")
+                    ) {
+                      console.log(
+                        `Parsing cart variant ${variant.id} images from JSON string:`,
+                        variant.images
+                      );
+                      const parsedImages = JSON.parse(variant.images);
+                      // Ensure it's an array after parsing
+                      processedVariant.images = Array.isArray(parsedImages)
+                        ? parsedImages.filter((img) => img && img.trim() !== "")
+                        : [];
+                      console.log(
+                        `Successfully parsed ${processedVariant.images.length} images for cart variant ${variant.id}`
+                      );
+                    }
+                    // If images is a comma-separated string, split it
+                    else if (
+                      typeof variant.images === "string" &&
+                      variant.images.includes(",")
+                    ) {
+                      console.log(
+                        `Parsing cart variant ${variant.id} images from comma-separated string:`,
+                        variant.images
+                      );
+                      processedVariant.images = variant.images
+                        .split(",")
+                        .map((img) => img.trim())
+                        .filter((img) => img !== "");
+                      console.log(
+                        `Successfully parsed ${processedVariant.images.length} images for cart variant ${variant.id}`
+                      );
+                    }
+                    // If images is a single URL string, wrap it in an array
+                    else if (
+                      typeof variant.images === "string" &&
+                      variant.images.trim().startsWith("http")
+                    ) {
+                      console.log(
+                        `Using single URL for cart variant ${variant.id}:`,
+                        variant.images
+                      );
+                      processedVariant.images = [variant.images.trim()];
+                    }
+                    // Default case - empty array
+                    else {
+                      console.log(
+                        `No valid images found for cart variant ${variant.id}, using empty array`
+                      );
+                      processedVariant.images = [];
+                    }
+                  } catch (error) {
+                    console.error(
+                      `Error parsing images for cart variant ${variant.id}:`,
+                      error
+                    );
+                    processedVariant.images = [];
+                  }
+                } else {
+                  console.log(
+                    `No images field for cart variant ${variant.id}, using empty array`
+                  );
+                  processedVariant.images = [];
+                }
+
+                // If this variant has no images, try to fetch all images for this color across all variants
+                if (processedVariant.images.length === 0 && variant.color) {
+                  console.log(
+                    `Variant ${variant.id} has no images, fetching all images for color "${variant.color}"`
+                  );
+
+                  try {
+                    // Fetch all variants for this product with the same color
+                    const colorVariants = await db
+                      .select()
+                      .from(productVariants)
+                      .where(
+                        and(
+                          eq(productVariants.productId, item.product.id),
+                          eq(productVariants.color, variant.color)
+                        )
+                      );
+
+                    console.log(
+                      `Found ${colorVariants.length} variants with color "${variant.color}" for product ${item.product.id}`
+                    );
+
+                    // Collect all images from all variants with this color
+                    const allColorImages: string[] = [];
+                    colorVariants.forEach((colorVariant) => {
+                      if (colorVariant.images) {
+                        try {
+                          let images: string[] = [];
+
+                          if (Array.isArray(colorVariant.images)) {
+                            images = colorVariant.images.filter(
+                              (img) => img && img.trim() !== ""
+                            );
+                          } else if (typeof colorVariant.images === "string") {
+                            if (colorVariant.images.trim().startsWith("[")) {
+                              const parsed = JSON.parse(colorVariant.images);
+                              if (Array.isArray(parsed)) {
+                                images = parsed.filter(
+                                  (img) => img && img.trim() !== ""
+                                );
+                              }
+                            } else if (colorVariant.images.includes(",")) {
+                              images = colorVariant.images
+                                .split(",")
+                                .map((img) => img.trim())
+                                .filter((img) => img !== "");
+                            } else if (
+                              colorVariant.images.trim().startsWith("http")
+                            ) {
+                              images = [colorVariant.images.trim()];
+                            }
+                          }
+
+                          // Add unique images to the collection
+                          images.forEach((img) => {
+                            if (!allColorImages.includes(img)) {
+                              allColorImages.push(img);
+                            }
+                          });
+                        } catch (parseError) {
+                          console.error(
+                            `Error parsing images for color variant ${colorVariant.id}:`,
+                            parseError
+                          );
+                        }
+                      }
+                    });
+
+                    console.log(
+                      `Collected ${allColorImages.length} unique images for color "${variant.color}"`
+                    );
+
+                    // Use the collected images for this variant
+                    processedVariant.images = allColorImages;
+                  } catch (colorError) {
+                    console.error(
+                      `Error fetching color images for variant ${variant.id}:`,
+                      colorError
+                    );
+                  }
+                }
+
+                // If still no images found, try to use product images as fallback
+                if (processedVariant.images.length === 0) {
+                  console.log(
+                    `No variant images found for variant ${variant.id}, trying product images as fallback`
+                  );
+
+                  try {
+                    let productImages: string[] = [];
+
+                    // Try product.imageUrl first
+                    if (item.product.imageUrl) {
+                      productImages.push(item.product.imageUrl);
+                    }
+
+                    // Try product.image_url
+                    if (
+                      item.product.image_url &&
+                      !productImages.includes(item.product.image_url)
+                    ) {
+                      productImages.push(item.product.image_url);
+                    }
+
+                    // Try product.images JSON array
+                    if (item.product.images) {
+                      try {
+                        if (typeof item.product.images === "string") {
+                          if (item.product.images.trim().startsWith("[")) {
+                            const parsed = JSON.parse(item.product.images);
+                            if (Array.isArray(parsed)) {
+                              parsed.forEach((img) => {
+                                if (
+                                  img &&
+                                  img.trim() !== "" &&
+                                  !productImages.includes(img)
+                                ) {
+                                  productImages.push(img);
+                                }
+                              });
+                            }
+                          } else if (item.product.images.includes(",")) {
+                            item.product.images.split(",").forEach((img) => {
+                              const trimmed = img.trim();
+                              if (trimmed && !productImages.includes(trimmed)) {
+                                productImages.push(trimmed);
+                              }
+                            });
+                          } else if (
+                            item.product.images.trim().startsWith("http")
+                          ) {
+                            const trimmed = item.product.images.trim();
+                            if (!productImages.includes(trimmed)) {
+                              productImages.push(trimmed);
+                            }
+                          }
+                        }
+                      } catch (parseError) {
+                        console.error(
+                          `Error parsing product images for variant ${variant.id}:`,
+                          parseError
+                        );
+                      }
+                    }
+
+                    if (productImages.length > 0) {
+                      console.log(
+                        `Using ${productImages.length} product images as fallback for variant ${variant.id}`
+                      );
+                      processedVariant.images = productImages;
+                    }
+                  } catch (fallbackError) {
+                    console.error(
+                      `Error using product images fallback for variant ${variant.id}:`,
+                      fallbackError
+                    );
+                  }
+                }
+
+                mappedItem = { ...mappedItem, variant: processedVariant };
               }
             } catch (variantError) {
               console.error(
@@ -5328,7 +5578,257 @@ export class DatabaseStorage implements IStorage {
               .where(eq(productVariants.id, item.orderItem.variantId));
 
             if (variantData) {
-              variant = variantData;
+              // Process variant images to parse JSON strings into arrays
+              const processedVariant = { ...variantData };
+
+              // Process the images field if it exists
+              if (variantData.images) {
+                try {
+                  console.log(
+                    `Processing order variant ${variantData.id} images:`,
+                    {
+                      type: typeof variantData.images,
+                      value: variantData.images,
+                      isArray: Array.isArray(variantData.images),
+                    }
+                  );
+
+                  // If images is already an array, use it directly
+                  if (Array.isArray(variantData.images)) {
+                    processedVariant.images = variantData.images.filter(
+                      (img) => img && img.trim() !== ""
+                    );
+                    console.log(
+                      `Using existing array with ${processedVariant.images.length} images for order variant ${variantData.id}`
+                    );
+                  }
+                  // If images is a string that looks like a JSON array, parse it
+                  else if (
+                    typeof variantData.images === "string" &&
+                    variantData.images.trim().startsWith("[")
+                  ) {
+                    console.log(
+                      `Parsing order variant ${variantData.id} images from JSON string:`,
+                      variantData.images
+                    );
+                    const parsedImages = JSON.parse(variantData.images);
+                    // Ensure it's an array after parsing
+                    processedVariant.images = Array.isArray(parsedImages)
+                      ? parsedImages.filter((img) => img && img.trim() !== "")
+                      : [];
+                    console.log(
+                      `Successfully parsed ${processedVariant.images.length} images for order variant ${variantData.id}`
+                    );
+                  }
+                  // If images is a comma-separated string, split it
+                  else if (
+                    typeof variantData.images === "string" &&
+                    variantData.images.includes(",")
+                  ) {
+                    console.log(
+                      `Parsing order variant ${variantData.id} images from comma-separated string:`,
+                      variantData.images
+                    );
+                    processedVariant.images = variantData.images
+                      .split(",")
+                      .map((img) => img.trim())
+                      .filter((img) => img !== "");
+                    console.log(
+                      `Successfully parsed ${processedVariant.images.length} images for order variant ${variantData.id}`
+                    );
+                  }
+                  // If images is a single URL string, wrap it in an array
+                  else if (
+                    typeof variantData.images === "string" &&
+                    variantData.images.trim().startsWith("http")
+                  ) {
+                    console.log(
+                      `Using single URL for order variant ${variantData.id}:`,
+                      variantData.images
+                    );
+                    processedVariant.images = [variantData.images.trim()];
+                  }
+                  // Default case - empty array
+                  else {
+                    console.log(
+                      `No valid images found for order variant ${variantData.id}, using empty array`
+                    );
+                    processedVariant.images = [];
+                  }
+                } catch (error) {
+                  console.error(
+                    `Error parsing images for order variant ${variantData.id}:`,
+                    error
+                  );
+                  processedVariant.images = [];
+                }
+              } else {
+                console.log(
+                  `No images field for order variant ${variantData.id}, using empty array`
+                );
+                processedVariant.images = [];
+              }
+
+              // If this variant has no images, try to fetch all images for this color across all variants
+              if (processedVariant.images.length === 0 && variantData.color) {
+                console.log(
+                  `Order variant ${variantData.id} has no images, fetching all images for color "${variantData.color}"`
+                );
+
+                try {
+                  // Fetch all variants for this product with the same color
+                  const colorVariants = await db
+                    .select()
+                    .from(productVariants)
+                    .where(
+                      and(
+                        eq(productVariants.productId, item.product.id),
+                        eq(productVariants.color, variantData.color)
+                      )
+                    );
+
+                  console.log(
+                    `Found ${colorVariants.length} variants with color "${variantData.color}" for product ${item.product.id}`
+                  );
+
+                  // Collect all images from all variants with this color
+                  const allColorImages: string[] = [];
+                  colorVariants.forEach((colorVariant) => {
+                    if (colorVariant.images) {
+                      try {
+                        let images: string[] = [];
+
+                        if (Array.isArray(colorVariant.images)) {
+                          images = colorVariant.images.filter(
+                            (img) => img && img.trim() !== ""
+                          );
+                        } else if (typeof colorVariant.images === "string") {
+                          if (colorVariant.images.trim().startsWith("[")) {
+                            const parsed = JSON.parse(colorVariant.images);
+                            if (Array.isArray(parsed)) {
+                              images = parsed.filter(
+                                (img) => img && img.trim() !== ""
+                              );
+                            }
+                          } else if (colorVariant.images.includes(",")) {
+                            images = colorVariant.images
+                              .split(",")
+                              .map((img) => img.trim())
+                              .filter((img) => img !== "");
+                          } else if (
+                            colorVariant.images.trim().startsWith("http")
+                          ) {
+                            images = [colorVariant.images.trim()];
+                          }
+                        }
+
+                        // Add unique images to the collection
+                        images.forEach((img) => {
+                          if (!allColorImages.includes(img)) {
+                            allColorImages.push(img);
+                          }
+                        });
+                      } catch (parseError) {
+                        console.error(
+                          `Error parsing images for color variant ${colorVariant.id}:`,
+                          parseError
+                        );
+                      }
+                    }
+                  });
+
+                  console.log(
+                    `Collected ${allColorImages.length} unique images for color "${variantData.color}"`
+                  );
+
+                  // Use the collected images for this variant
+                  processedVariant.images = allColorImages;
+                } catch (colorError) {
+                  console.error(
+                    `Error fetching color images for order variant ${variantData.id}:`,
+                    colorError
+                  );
+                }
+              }
+
+              // If still no images found, try to use product images as fallback
+              if (processedVariant.images.length === 0) {
+                console.log(
+                  `No variant images found for order variant ${variantData.id}, trying product images as fallback`
+                );
+
+                try {
+                  let productImages: string[] = [];
+
+                  // Try product.imageUrl first
+                  if (item.product.imageUrl) {
+                    productImages.push(item.product.imageUrl);
+                  }
+
+                  // Try product.image_url
+                  if (
+                    item.product.image_url &&
+                    !productImages.includes(item.product.image_url)
+                  ) {
+                    productImages.push(item.product.image_url);
+                  }
+
+                  // Try product.images JSON array
+                  if (item.product.images) {
+                    try {
+                      if (typeof item.product.images === "string") {
+                        if (item.product.images.trim().startsWith("[")) {
+                          const parsed = JSON.parse(item.product.images);
+                          if (Array.isArray(parsed)) {
+                            parsed.forEach((img) => {
+                              if (
+                                img &&
+                                img.trim() !== "" &&
+                                !productImages.includes(img)
+                              ) {
+                                productImages.push(img);
+                              }
+                            });
+                          }
+                        } else if (item.product.images.includes(",")) {
+                          item.product.images.split(",").forEach((img) => {
+                            const trimmed = img.trim();
+                            if (trimmed && !productImages.includes(trimmed)) {
+                              productImages.push(trimmed);
+                            }
+                          });
+                        } else if (
+                          item.product.images.trim().startsWith("http")
+                        ) {
+                          const trimmed = item.product.images.trim();
+                          if (!productImages.includes(trimmed)) {
+                            productImages.push(trimmed);
+                          }
+                        }
+                      }
+                    } catch (parseError) {
+                      console.error(
+                        `Error parsing product images for order variant ${variantData.id}:`,
+                        parseError
+                      );
+                    }
+                  }
+
+                  if (productImages.length > 0) {
+                    console.log(
+                      `Using ${productImages.length} product images as fallback for order variant ${variantData.id}`
+                    );
+                    processedVariant.images = productImages;
+                  }
+                } catch (fallbackError) {
+                  console.error(
+                    `Error using product images fallback for order variant ${variantData.id}:`,
+                    fallbackError
+                  );
+                }
+              }
+
+              variant = processedVariant;
             }
           } catch (variantError) {
             console.error(

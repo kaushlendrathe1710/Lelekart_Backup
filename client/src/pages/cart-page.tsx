@@ -10,7 +10,10 @@ import { User } from "@shared/schema";
 import { useCart } from "@/context/cart-context";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { getCartItemImageUrl } from "@/lib/product-image-utils";
+import {
+  getCartItemImageUrl,
+  getCartItemImageUrlEnhanced,
+} from "@/lib/product-image-utils";
 
 interface CartItem {
   id: number | string; // Allow both number and string for guest vs logged-in users
@@ -42,7 +45,7 @@ interface CartItem {
     stock: number;
     color: string;
     size: string;
-    images?: string;
+    images?: string | string[]; // Can be JSON string or parsed array
   };
 }
 
@@ -56,6 +59,7 @@ export default function CartPage() {
     staleTime: 60000,
   });
   const isLoading = false;
+
   // For guest carts, store and compare selectedItems as strings
   const [selectedItems, setSelectedItems] = useState<(number | string)[]>(
     cartItems.map((item) => String(item.id))
@@ -171,7 +175,7 @@ export default function CartPage() {
                         <div className="flex-shrink-0 w-full sm:w-24 h-40 sm:h-24 border border-gray-200 rounded-md overflow-hidden mx-auto sm:mx-0">
                           <Link href={`/product/${item.product.id}`}>
                             <img
-                              src={getCartItemImageUrl(item)}
+                              src={getCartItemImageUrlEnhanced(item)}
                               alt={item.product.name}
                               className="w-full h-full object-center object-cover"
                               onError={(e) => {
@@ -228,12 +232,12 @@ export default function CartPage() {
                           {item.variant && (
                             <div className="mt-1 flex flex-wrap gap-1 justify-center sm:justify-start">
                               {item.variant.color && (
-                                <span className="inline-block px-2 py-0.5 bg-gray-100 rounded-sm text-xs">
+                                <span className="inline-block px-2 py-0.5 bg-blue-100 text-blue-800 rounded-sm text-xs">
                                   Color: {item.variant.color}
                                 </span>
                               )}
                               {item.variant.size && (
-                                <span className="inline-block px-2 py-0.5 bg-gray-100 rounded-sm text-xs">
+                                <span className="inline-block px-2 py-0.5 bg-green-100 text-green-800 rounded-sm text-xs">
                                   Size:{" "}
                                   {item.variant.size.includes(",")
                                     ? item.variant.size.split(",")[0]

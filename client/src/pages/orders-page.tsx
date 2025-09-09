@@ -21,6 +21,7 @@ import {
   UploadIcon,
   XIcon,
   Camera,
+  CheckCircle,
 } from "lucide-react";
 import {
   Dialog,
@@ -47,7 +48,7 @@ import { Label } from "@/components/ui/label";
 import ReviewForm from "@/components/product/review-form";
 import React from "react";
 import { queryClient as qc } from "@/lib/queryClient";
-import { getOrderItemImageUrl } from "@/lib/product-image-utils";
+import { getOrderItemImageUrlEnhanced } from "@/lib/product-image-utils";
 
 function StarRating({ value }: { value: number }) {
   return (
@@ -863,7 +864,7 @@ export default function OrdersPage() {
                             {order.items.slice(0, 3).map((item, index) => (
                               <div key={index} className="relative">
                                 <img
-                                  src={getOrderItemImageUrl(item)}
+                                  src={getOrderItemImageUrlEnhanced(item)}
                                   alt={item.product?.name || "Product"}
                                   className="w-12 h-12 object-cover rounded border bg-[#EADDCB]"
                                   onError={(e) => {
