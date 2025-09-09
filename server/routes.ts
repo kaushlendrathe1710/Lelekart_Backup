@@ -6541,7 +6541,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         orderItems = await storage.getOrderItems(orderId);
       }
 
-
       res.json(orderItems);
     } catch (error) {
       console.error("Error fetching order items:", error);
@@ -6868,7 +6867,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const { status } = req.body;
 
-      // Validate status
+      // Validate status - allow all order statuses
       const validStatuses = [
         "pending",
         "confirmed",
@@ -6876,11 +6875,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "shipped",
         "delivered",
         "cancelled",
-        // Add return-related statuses
+        // Return-related statuses
         "approve_return",
         "reject_return",
         "process_return",
         "completed_return",
+        "returned",
+        "refunded",
+        "replaced",
       ];
       if (!validStatuses.includes(status)) {
         return res.status(400).json({ error: "Invalid status" });
@@ -7103,7 +7105,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const { status } = req.body;
 
-      // Validate status
+      // Validate status - allow all order statuses
       const validStatuses = [
         "pending",
         "confirmed",
@@ -7111,11 +7113,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "shipped",
         "delivered",
         "cancelled",
-        // Add return-related statuses
+        // Return-related statuses
         "approve_return",
         "reject_return",
         "process_return",
         "completed_return",
+        "returned",
+        "refunded",
+        "replaced",
       ];
       if (!validStatuses.includes(status)) {
         return res.status(400).json({ error: "Invalid status" });
