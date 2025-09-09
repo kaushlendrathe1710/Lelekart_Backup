@@ -11452,6 +11452,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update withdrawal request details (status, transaction ID, notes)
+  app.put("/api/admin/seller-withdrawals/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin")
+      return res.status(403).json({ error: "Not authorized" });
+
+    try {
+      const { id } = req.params;
+      const { status, transactionId, notes } = req.body;
+
+      // Validate status if provided
+      if (status) {
+        const validStatuses = ["pending", "processing", "completed", "failed"];
+        if (!validStatuses.includes(status)) {
+          return res.status(400).json({ error: "Invalid status" });
+        }
+      }
+
+      // Get the withdrawal request to ensure it exists
+      const withdrawal = await storage.getSellerPaymentById(parseInt(id));
+      if (!withdrawal) {
+        return res.status(404).json({ error: "Withdrawal request not found" });
+      }
+
+      // Update the withdrawal details
+      const updatedWithdrawal = await storage.updateSellerWithdrawal(
+        parseInt(id),
+        {
+          status,
+          transactionId,
+          notes,
+        }
+      );
+
+      if (!updatedWithdrawal) {
+        return res.status(404).json({ error: "Failed to update withdrawal" });
+      }
+
+      res.json({
+        success: true,
+        withdrawal: updatedWithdrawal,
+      });
+    } catch (error) {
+      console.error("Error updating withdrawal details:", error);
+      res.status(500).json({ error: "Failed to update withdrawal details" });
+    }
+  });
+
   app.post("/api/admin/sellers/:id/approve", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     if (req.user.role !== "admin")

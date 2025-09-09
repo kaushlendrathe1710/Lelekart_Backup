@@ -9042,11 +9042,18 @@ export class DatabaseStorage implements IStorage {
   // Payments Management
   async getSellerPayments(sellerId: number): Promise<SellerPayment[]> {
     try {
-      return await db
+      const payments = await db
         .select()
         .from(sellerPayments)
         .where(eq(sellerPayments.sellerId, sellerId))
         .orderBy(desc(sellerPayments.createdAt));
+
+      // Map the data to include a 'date' field for frontend compatibility
+      return payments.map((payment) => ({
+        ...payment,
+        date: payment.paymentDate || payment.createdAt,
+        transactionId: payment.referenceId || `TXN-${payment.id}`,
+      }));
     } catch (error) {
       console.error(`Error getting payments for seller ID ${sellerId}:`, error);
       return [];
@@ -11870,6 +11877,33 @@ export class DatabaseStorage implements IStorage {
       };
     } catch (error) {
       console.error("Error updating seller payment:", error);
+      throw error;
+    }
+  }
+
+  async updateSellerWithdrawal(
+    id: number,
+    data: {
+      status?: string;
+      transactionId?: string;
+      notes?: string;
+    }
+  ): Promise<SelectSellerPayment | null> {
+    try {
+      const result = await db
+        .update(sellerPayments)
+        .set({
+          status: data.status,
+          referenceId: data.transactionId,
+          notes: data.notes,
+          updatedAt: new Date(),
+        })
+        .where(eq(sellerPayments.id, id))
+        .returning();
+
+      return result[0] || null;
+    } catch (error) {
+      console.error("Error updating seller withdrawal:", error);
       throw error;
     }
   }
