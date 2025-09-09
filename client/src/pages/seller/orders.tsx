@@ -195,7 +195,7 @@ export default function SellerOrdersPage() {
     }
   }, [orders, selectedOrder]);
 
-  // Status update mutation
+  // Status update mutation with optimistic updates
   const updateOrderStatusMutation = useMutation({
     mutationFn: async ({
       orderId,
@@ -213,26 +213,59 @@ export default function SellerOrdersPage() {
       );
       return response.json();
     },
+    onMutate: async ({ orderId, status }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/orders"] });
+
+      // Snapshot the previous value
+      const previousOrders = queryClient.getQueryData(["/api/orders"]);
+
+      // Optimistically update the order status
+      queryClient.setQueryData(["/api/orders"], (old: any) => {
+        if (!old) return old;
+        return old.map((order: any) => {
+          if (order.id === orderId) {
+            return { ...order, status };
+          }
+          return order;
+        });
+      });
+
+      // Return a context object with the snapshotted value
+      return { previousOrders };
+    },
     onSuccess: (data, variables) => {
       console.log("Status update successful:", data, variables);
       toast({
         title: "Status Updated",
-        description: `Order #${variables.orderId} status has been updated to ${variables.status}.`,
+        description: `Order #${variables.orderId} status has been updated to ${formatStatusForDisplay(variables.status)}.`,
       });
-      // Invalidate and refetch the orders query
-      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
-      // Also try to refetch immediately
-      queryClient.refetchQueries({ queryKey: ["/api/orders"] });
       setIsStatusDialogOpen(false);
       setNewStatus("");
+
+      // Update selectedOrder if it's the same order
+      if (selectedOrder && selectedOrder.id === variables.orderId) {
+        setSelectedOrder((prev) =>
+          prev ? { ...prev, status: variables.status } : null
+        );
+      }
     },
-    onError: (error: any) => {
+    onError: (error: any, variables, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousOrders) {
+        queryClient.setQueryData(["/api/orders"], context.previousOrders);
+      }
+
       toast({
         title: "Update Failed",
         description:
           error.message || "Failed to update order status. Please try again.",
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      // Always refetch after error or success to ensure we have the latest data
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
     },
   });
 
@@ -404,8 +437,42 @@ export default function SellerOrdersPage() {
             <CheckCircle2 className="h-3 w-3" /> Return Completed
           </Badge>
         );
+      case "returned":
+        return (
+          <Badge
+            variant="outline"
+            className="bg-amber-50 text-amber-700 border-amber-200 flex items-center gap-1"
+          >
+            <Package className="h-3 w-3" /> Returned
+          </Badge>
+        );
+      case "refunded":
+        return (
+          <Badge
+            variant="outline"
+            className="bg-emerald-50 text-emerald-700 border-emerald-200 flex items-center gap-1"
+          >
+            <CheckCircle2 className="h-3 w-3" /> Refunded
+          </Badge>
+        );
+      case "replaced":
+        return (
+          <Badge
+            variant="outline"
+            className="bg-cyan-50 text-cyan-700 border-cyan-200 flex items-center gap-1"
+          >
+            <Package className="h-3 w-3" /> Replaced
+          </Badge>
+        );
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return (
+          <Badge
+            variant="outline"
+            className="bg-gray-50 text-gray-700 border-gray-200 flex items-center gap-1"
+          >
+            <Clock className="h-3 w-3" /> {formatStatusForDisplay(status)}
+          </Badge>
+        );
     }
   };
 
@@ -481,25 +548,29 @@ export default function SellerOrdersPage() {
     }
   };
 
-  // Get available status options based on current status
-  const getAvailableStatuses = (currentStatus: string) => {
-    const statusFlow = {
-      pending: ["confirmed", "cancelled"],
-      confirmed: ["processing", "cancelled"],
-      processing: ["shipped", "cancelled"],
-      shipped: ["delivered", "returned", "cancelled"],
-      delivered: ["returned"],
-      returned: ["refunded", "replaced"],
-      refunded: [],
-      replaced: ["shipped"],
-      cancelled: [],
-      approve_return: ["process_return"],
-      reject_return: ["returned"],
-      process_return: ["completed_return", "returned"],
-      completed_return: [],
-    };
+  // Get all available status options (allow updating to any status)
+  const getAllStatuses = () => {
+    return [
+      "pending",
+      "confirmed",
+      "processing",
+      "shipped",
+      "delivered",
+      "cancelled",
+      "approve_return",
+      "reject_return",
+      "process_return",
+      "completed_return",
+      "returned",
+      "refunded",
+      "replaced",
+    ];
+  };
 
-    return statusFlow[currentStatus as keyof typeof statusFlow] || [];
+  // Get available status options based on current status (keeping original for reference)
+  const getAvailableStatuses = (currentStatus: string) => {
+    // Return all statuses except the current one
+    return getAllStatuses().filter((status) => status !== currentStatus);
   };
 
   const formatStatusForDisplay = (status: string) => {
@@ -514,6 +585,9 @@ export default function SellerOrdersPage() {
       reject_return: "Reject Return",
       process_return: "Process Return",
       completed_return: "Return Completed",
+      returned: "Returned",
+      refunded: "Refunded",
+      replaced: "Replaced",
     };
     return (
       statusMap[status] || status.charAt(0).toUpperCase() + status.slice(1)

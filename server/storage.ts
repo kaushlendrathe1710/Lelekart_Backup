@@ -6190,46 +6190,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateOrderStatus(id: number, status: string): Promise<Order> {
-    // Define allowed status transitions for security (moved outside to avoid recreation)
-    const allowedTransitions: Record<string, string[]> = {
-      pending: ["confirmed", "cancelled"],
-      confirmed: ["processing", "cancelled"],
-      processing: ["shipped", "cancelled"],
-      shipped: ["delivered", "returned", "cancelled"],
-      delivered: ["returned"],
-      returned: ["refunded", "replaced"],
-      refunded: [],
-      replaced: ["shipped"],
-      cancelled: [],
-      marked_for_return: ["approve_return", "reject_return"],
-      approve_return: ["process_return"],
-      reject_return: ["returned"],
-      process_return: ["completed_return", "returned"],
-      completed_return: [],
-    };
-
-    // Get the current order to validate status transition
+    // Get the current order
     const currentOrder = await this.getOrder(id);
     if (!currentOrder) {
       throw new Error(`Order with ID ${id} not found`);
     }
 
-    // Check if the status transition is allowed
-    const allowedNextStatuses = allowedTransitions[currentOrder.status] || [];
+    // Check if the status is already the same
     if (currentOrder.status === status) {
       console.log(
         `Order ${id} is already in status '${status}', skipping update.`
       );
       return currentOrder;
-    }
-    if (!allowedNextStatuses.includes(status)) {
-      throw new Error(
-        `Cannot transition order from '${
-          currentOrder.status
-        }' to '${status}'. Allowed transitions: ${allowedNextStatuses.join(
-          ", "
-        )}`
-      );
     }
 
     // Log the status change
@@ -6237,7 +6209,7 @@ export class DatabaseStorage implements IStorage {
       `Updating order ${id} status from '${currentOrder.status}' to '${status}'`
     );
 
-    // If transition is valid, proceed with the update
+    // Allow any status transition - update the order
     const updatedOrder = await this.updateOrder(id, { status });
     console.log(`Order ${id} status after update: ${updatedOrder.status}`);
     return updatedOrder;
