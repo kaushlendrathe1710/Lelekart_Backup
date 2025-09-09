@@ -4815,12 +4815,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Fetching cart items for user ID: ${req.user.id}`);
       const cartItems = await storage.getCartItems(req.user.id);
       console.log(`Successfully fetched ${cartItems.length} cart items`);
+
+      // Debug: Log variant image data for each cart item
+      cartItems.forEach((item, index) => {
+        if (item.variant) {
+          console.log(`Cart item ${index + 1} variant images:`, {
+            variantId: item.variant.id,
+            variantColor: item.variant.color,
+            variantSize: item.variant.size,
+            variantImages: item.variant.images,
+            variantImagesType: typeof item.variant.images,
+            variantImagesIsArray: Array.isArray(item.variant.images),
+          });
+        }
+      });
+
       res.json(cartItems);
     } catch (error) {
       console.error("Error fetching cart items:", error);
       res
         .status(500)
         .json({ error: "Failed to fetch cart", details: error.message });
+    }
+  });
+
+  // Debug endpoint to test variant images
+  app.get("/api/debug/variant/:id", async (req, res) => {
+    try {
+      const variantId = parseInt(req.params.id);
+      console.log(`Debug: Fetching variant ${variantId} from database`);
+
+      const [variant] = await db
+        .select()
+        .from(productVariants)
+        .where(eq(productVariants.id, variantId));
+
+      if (!variant) {
+        return res.status(404).json({ error: "Variant not found" });
+      }
+
+      console.log(`Debug: Raw variant data from database:`, {
+        id: variant.id,
+        color: variant.color,
+        size: variant.size,
+        images: variant.images,
+        imagesType: typeof variant.images,
+        imagesIsArray: Array.isArray(variant.images),
+      });
+
+      res.json({
+        raw: variant,
+        processed: {
+          ...variant,
+          images: variant.images ? JSON.parse(variant.images) : [],
+        },
+      });
+    } catch (error) {
+      console.error("Error in debug variant endpoint:", error);
+      res
+        .status(500)
+        .json({ error: "Failed to fetch variant", details: error.message });
     }
   });
 
@@ -6486,6 +6540,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // For buyers and admins, show all items for this specific order
         orderItems = await storage.getOrderItems(orderId);
       }
+
 
       res.json(orderItems);
     } catch (error) {
