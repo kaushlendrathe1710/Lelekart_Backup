@@ -587,8 +587,6 @@ export default function SellerPaymentsPage() {
                       <TableRow>
                         <TableHead>Transaction ID</TableHead>
                         <TableHead>Date</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Description</TableHead>
                         <TableHead className="text-right">Amount</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
@@ -598,14 +596,14 @@ export default function SellerPaymentsPage() {
                       {isPaymentsLoading ? (
                         Array.from({ length: 5 }).map((_, idx) => (
                           <TableRow key={idx}>
-                            <TableCell colSpan={7} className="py-3">
+                            <TableCell colSpan={5} className="py-3">
                               <div className="h-10 bg-gray-100 animate-pulse rounded"></div>
                             </TableCell>
                           </TableRow>
                         ))
                       ) : filteredPayments.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center py-8">
+                          <TableCell colSpan={5} className="text-center py-8">
                             <div className="flex flex-col items-center justify-center text-muted-foreground">
                               <CreditCard className="h-10 w-10 mb-2" />
                               <p>No payment transactions found</p>
@@ -635,28 +633,6 @@ export default function SellerPaymentsPage() {
                                     }
                                   })()
                                 : "N/A"}
-                            </TableCell>
-                            <TableCell>
-                              {payment.type === "payout" ? (
-                                <Badge
-                                  variant="outline"
-                                  className="bg-blue-50 text-blue-700 border-blue-300"
-                                >
-                                  Payout
-                                </Badge>
-                              ) : payment.type === "order" ? (
-                                <Badge
-                                  variant="outline"
-                                  className="bg-green-50 text-green-700 border-green-300"
-                                >
-                                  Order
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline">{payment.type}</Badge>
-                              )}
-                            </TableCell>
-                            <TableCell className="max-w-[240px] truncate">
-                              {payment.description}
                             </TableCell>
                             <TableCell className="text-right">
                               <span
@@ -781,43 +757,9 @@ export default function SellerPaymentsPage() {
                       <div className="space-y-3">
                         <div className="flex justify-between items-center">
                           <span className="text-xs text-muted-foreground">
-                            Type:
-                          </span>
-                          <div>
-                            {payment.type === "payout" ? (
-                              <Badge
-                                variant="outline"
-                                className="bg-blue-50 text-blue-700 border-blue-300 text-xs"
-                              >
-                                Payout
-                              </Badge>
-                            ) : payment.type === "order" ? (
-                              <Badge
-                                variant="outline"
-                                className="bg-green-50 text-green-700 border-green-300 text-xs"
-                              >
-                                Order
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-xs">
-                                {payment.type}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs text-muted-foreground">
                             Status:
                           </span>
                           <div>{getStatusBadge(payment.status)}</div>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-xs text-muted-foreground mb-1">
-                            Description:
-                          </span>
-                          <p className="text-sm text-gray-900">
-                            {payment.description}
-                          </p>
                         </div>
                       </div>
                     </CardContent>
