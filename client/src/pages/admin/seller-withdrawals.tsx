@@ -36,6 +36,9 @@ import {
   Eye,
   Filter,
   Search,
+  Edit,
+  Save,
+  X,
 } from "lucide-react";
 
 interface SellerWithdrawal {
@@ -77,6 +80,12 @@ export default function SellerWithdrawalsPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [referenceId, setReferenceId] = useState("");
   const [adminNotes, setAdminNotes] = useState("");
+  const [editingWithdrawal, setEditingWithdrawal] =
+    useState<SellerWithdrawal | null>(null);
+  const [editStatus, setEditStatus] = useState<string>("");
+  const [editTransactionId, setEditTransactionId] = useState<string>("");
+  const [editNotes, setEditNotes] = useState<string>("");
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -141,6 +150,74 @@ export default function SellerWithdrawalsPage() {
       });
     },
   });
+
+  // Edit withdrawal details mutation
+  const editWithdrawalMutation = useMutation({
+    mutationFn: async ({
+      id,
+      status,
+      transactionId,
+      notes,
+    }: {
+      id: number;
+      status?: string;
+      transactionId?: string;
+      notes?: string;
+    }) => {
+      const response = await fetch(`/api/admin/seller-withdrawals/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status, transactionId, notes }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update withdrawal details");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/admin/seller-withdrawals"],
+      });
+      toast({
+        title: "Details Updated",
+        description: "Withdrawal details updated successfully",
+      });
+      setIsEditModalOpen(false);
+      setEditingWithdrawal(null);
+      setEditStatus("");
+      setEditTransactionId("");
+      setEditNotes("");
+    },
+    onError: (error) => {
+      toast({
+        title: "Update Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleEditWithdrawal = (withdrawal: SellerWithdrawal) => {
+    setEditingWithdrawal(withdrawal);
+    setEditStatus(withdrawal.status);
+    setEditTransactionId(withdrawal.referenceId || "");
+    setEditNotes(withdrawal.notes || "");
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingWithdrawal) return;
+
+    editWithdrawalMutation.mutate({
+      id: editingWithdrawal.id,
+      status: editStatus,
+      transactionId: editTransactionId,
+      notes: editNotes,
+    });
+  };
 
   const handleStatusUpdate = (status: string) => {
     if (!selectedWithdrawal) return;
@@ -299,6 +376,14 @@ export default function SellerWithdrawalsPage() {
                     </div>
 
                     <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditWithdrawal(withdrawal)}
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit
+                      </Button>
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button
@@ -589,6 +674,99 @@ export default function SellerWithdrawalsPage() {
             </p>
           </div>
         )}
+
+        {/* Edit Withdrawal Modal */}
+        <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Edit Withdrawal Request</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6">
+              {editingWithdrawal && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="edit-seller">Seller</Label>
+                      <Input
+                        id="edit-seller"
+                        value={
+                          editingWithdrawal.seller?.name || "Unknown Seller"
+                        }
+                        disabled
+                        className="bg-gray-50"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="edit-amount">Amount</Label>
+                      <Input
+                        id="edit-amount"
+                        value={`₹${Math.abs(editingWithdrawal.amount).toLocaleString()}`}
+                        disabled
+                        className="bg-gray-50"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="edit-status">Status</Label>
+                    <Select value={editStatus} onValueChange={setEditStatus}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="processing">Processing</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="failed">Failed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="edit-transaction-id">Transaction ID</Label>
+                    <Input
+                      id="edit-transaction-id"
+                      value={editTransactionId}
+                      onChange={(e) => setEditTransactionId(e.target.value)}
+                      placeholder="Enter transaction ID"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="edit-notes">Notes</Label>
+                    <Textarea
+                      id="edit-notes"
+                      value={editNotes}
+                      onChange={(e) => setEditNotes(e.target.value)}
+                      placeholder="Enter admin notes"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEditModalOpen(false)}
+                  disabled={editWithdrawalMutation.isPending}
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSaveEdit}
+                  disabled={editWithdrawalMutation.isPending}
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {editWithdrawalMutation.isPending
+                    ? "Saving..."
+                    : "Save Changes"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </AdminLayout>
   );
