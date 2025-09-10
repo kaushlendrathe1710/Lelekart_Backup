@@ -1814,10 +1814,6 @@ function OrderTable({
                         <Printer className="h-4 w-4 mr-2" />
                         Download Shipping Label
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => openStatusDialog(order)}>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Update Status
-                      </DropdownMenuItem>
                       <DropdownMenuItem
                         disabled={
                           ![
@@ -1955,15 +1951,6 @@ function OrderTable({
                   <div className="text-sm font-medium text-muted-foreground mb-2">
                     Additional Actions:
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-start text-sm"
-                    onClick={() => openStatusDialog(order)}
-                  >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Update Status
-                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
@@ -2135,15 +2122,6 @@ function OrderTable({
                   >
                     <Printer className="h-4 w-4 mr-2" />
                     Download Shipping Label
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-start text-sm"
-                    onClick={() => openStatusDialog(order)}
-                  >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Update Status
                   </Button>
                   <Button
                     variant="outline"
