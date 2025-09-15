@@ -6967,7 +6967,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       // Process order status change with the handler (includes wallet refund logic)
-      const updatedOrder = await handleOrderStatusChange(id, status);
+      const updatedOrder = await handleOrderStatusChange(id, status, {
+        // Allow admins to bypass strict transition validations
+        bypassValidation: req.user.role === "admin",
+      });
       console.log(`Updated main order #${id} status to ${status}`);
 
       // Send immediate real-time notification to buyer for status changes
@@ -7007,9 +7010,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       res.json(updatedOrder);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating order status:", error);
-      res.status(500).json({ error: "Failed to update order status" });
+      const message = error?.message || "Failed to update order status";
+      // Treat business-rule/validation errors as 400-level
+      const isValidationError =
+        typeof message === "string" &&
+        (message.includes("Invalid status") ||
+          message.includes("Invalid status transition") ||
+          message.includes("must be") ||
+          message.includes("Cannot"));
+      res.status(isValidationError ? 400 : 500).json({ error: message });
     }
   });
 
