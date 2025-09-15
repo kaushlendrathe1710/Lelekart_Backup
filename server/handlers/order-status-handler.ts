@@ -31,7 +31,11 @@ async function validateEmailTemplate(templateName: string): Promise<boolean> {
  * @param status The new status to set
  * @returns The updated order
  */
-export async function handleOrderStatusChange(orderId: number, status: string) {
+export async function handleOrderStatusChange(
+  orderId: number,
+  status: string,
+  options?: { bypassValidation?: boolean }
+) {
   try {
     console.log(
       `Handling order status change for order #${orderId} to ${status}`
@@ -89,15 +93,18 @@ export async function handleOrderStatusChange(orderId: number, status: string) {
       completed_return: [],
     };
 
-    // Check if the transition is valid
-    if (
-      !validTransitions[order.status] ||
-      !validTransitions[order.status].includes(status)
-    ) {
-      throw new Error(
-        `Invalid status transition from "${order.status}" to "${status}". ` +
-          `Valid transitions from "${order.status}" are: ${validTransitions[order.status].join(", ")}`
-      );
+    // Check if the transition is valid (unless bypassed)
+    const shouldBypass = options?.bypassValidation === true;
+    if (!shouldBypass) {
+      if (
+        !validTransitions[order.status] ||
+        !validTransitions[order.status].includes(status)
+      ) {
+        throw new Error(
+          `Invalid status transition from "${order.status}" to "${status}". ` +
+            `Valid transitions from "${order.status}" are: ${validTransitions[order.status].join(", ")}`
+        );
+      }
     }
 
     // Add business rule validation
@@ -120,7 +127,7 @@ export async function handleOrderStatusChange(orderId: number, status: string) {
       }
     }
 
-    if (status === "delivered") {
+    if (!shouldBypass && status === "delivered") {
       if (order.status !== "shipped") {
         throw new Error(
           "Order must be shipped before it can be marked as delivered."
@@ -128,7 +135,7 @@ export async function handleOrderStatusChange(orderId: number, status: string) {
       }
     }
 
-    if (status === "shipped") {
+    if (!shouldBypass && status === "shipped") {
       if (order.status !== "processing") {
         throw new Error(
           "Order must be in processing status before it can be shipped."
@@ -136,7 +143,7 @@ export async function handleOrderStatusChange(orderId: number, status: string) {
       }
     }
 
-    if (status === "returned") {
+    if (!shouldBypass && status === "returned") {
       if (!["delivered", "shipped"].includes(order.status)) {
         throw new Error(
           "Order must be delivered or shipped before it can be returned."
@@ -144,13 +151,13 @@ export async function handleOrderStatusChange(orderId: number, status: string) {
       }
     }
 
-    if (status === "refunded") {
+    if (!shouldBypass && status === "refunded") {
       if (order.status !== "returned") {
         throw new Error("Order must be returned before it can be refunded.");
       }
     }
 
-    if (status === "replaced") {
+    if (!shouldBypass && status === "replaced") {
       if (order.status !== "returned") {
         throw new Error("Order must be returned before it can be replaced.");
       }
