@@ -48,6 +48,7 @@ import {
   ArrowUp,
   Trash2,
 } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { UserAddress } from "@shared/schema";
 import { useWallet } from "@/context/wallet-context";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -69,6 +70,7 @@ import {
   getCartItemImageUrl,
   getCartItemImageUrlEnhanced,
 } from "@/lib/product-image-utils";
+import type { CartItem as ImageCartItem } from "@/lib/product-image-utils";
 
 // Define form schema with Zod - with more permissive validation
 const checkoutSchema = z.object({
@@ -105,40 +107,8 @@ const checkoutSchema = z.object({
 
 type CheckoutFormValues = z.infer<typeof checkoutSchema>;
 
-interface CartItem {
-  id: number | string; // Allow both number and string for guest vs logged-in users
-  quantity: number;
-  userId: number;
-  product: {
-    id: number;
-    name: string;
-    description: string;
-    price: number;
-    imageUrl: string;
-    images: string;
-    category: string;
-    sellerId: number;
-    approved: boolean;
-    createdAt: string;
-    specifications?: string;
-    purchasePrice?: number;
-    color?: string;
-    size?: string;
-    stock: number;
-    deliveryCharges?: number;
-  };
-  variant?: {
-    id: number;
-    productId: number;
-    sku: string;
-    price: number;
-    mrp?: number;
-    stock: number;
-    color: string;
-    size: string;
-    images?: string | string[]; // Can be JSON string or parsed array
-  };
-}
+// Use shared CartItem type from product-image-utils for image helpers compatibility
+type CartItem = ImageCartItem;
 
 export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
@@ -166,6 +136,42 @@ export default function CheckoutPage() {
     removeCartItems,
   } = useCart();
   const { refetchNotifications } = useNotifications();
+
+  // Tentative delivery window state
+  const [estimatedWindow, setEstimatedWindow] = useState<{
+    start: Date;
+    end: Date;
+  } | null>(null);
+
+  const computeTentativeDeliveryWindow = (pincode?: string | null) => {
+    // Simple heuristic: 3-7 days from today when we have a valid 6-digit PIN
+    if (!pincode || String(pincode).length !== 6) return null;
+    const today = new Date();
+    const start = new Date(today);
+    start.setDate(start.getDate() + 3);
+    const end = new Date(today);
+    end.setDate(end.getDate() + 7);
+    return { start, end };
+  };
+
+  const formatTentativeDate = (date: Date) =>
+    date.toLocaleDateString("en-IN", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    });
+
+  // Ensure items conform to image utility type
+  const toImageCartItem = (item: any): ImageCartItem => {
+    const safeId =
+      item?.id ?? `${item?.product?.id ?? "p"}_${item?.variant?.id ?? "v"}`;
+    return {
+      id: safeId as string | number,
+      quantity: item?.quantity ?? 1,
+      product: item?.product,
+      variant: item?.variant,
+    } as ImageCartItem;
+  };
 
   // State for buy now product data
   const [buyNowProduct, setBuyNowProduct] = useState<any>(null);
@@ -212,6 +218,8 @@ export default function CheckoutPage() {
     }
   }, []);
 
+  // (moved below form initialization)
+
   // On mount, read selected cart item IDs from sessionStorage (only for regular cart flow)
   useEffect(() => {
     if (!isBuyNowFlow) {
@@ -251,6 +259,11 @@ export default function CheckoutPage() {
   const itemsForCheckout =
     isBuyNowFlow && buyNowCartItem ? [buyNowCartItem] : selectedCartItems;
 
+  // Normalize items for UI/image helpers
+  const itemsForDisplay: ImageCartItem[] = itemsForCheckout.map((it) =>
+    toImageCartItem(it)
+  );
+
   // Initialize form with default values including email from user if available
   const form = useForm<CheckoutFormValues>({
     resolver: zodResolver(checkoutSchema),
@@ -269,17 +282,45 @@ export default function CheckoutPage() {
     mode: "onChange",
   });
 
+  // Recompute tentative delivery on PIN code / address selection changes
+  useEffect(() => {
+    // Determine current PIN: from selected saved address, or from form input
+    let currentPin: string | undefined = undefined;
+    if (addresses.length > 0 && selectedAddressId && !showAddressForm) {
+      const selected = addresses.find(
+        (a) => a.id.toString() === selectedAddressId
+      );
+      currentPin = selected?.pincode;
+    } else {
+      currentPin = form.getValues("zipCode");
+    }
+
+    const win = computeTentativeDeliveryWindow(currentPin || null);
+    setEstimatedWindow(win);
+  }, [addresses, selectedAddressId, showAddressForm, form]);
+
+  // Also subscribe to zipCode changes when typing in the form
+  useEffect(() => {
+    const subscription = form.watch((value, info) => {
+      if (!info || info.name !== "zipCode") return;
+      const pin = value.zipCode as unknown as string | undefined;
+      const win = computeTentativeDeliveryWindow(pin || null);
+      setEstimatedWindow(win);
+    });
+    return () => subscription.unsubscribe && subscription.unsubscribe();
+  }, [form]);
+
   const [voucher, setVoucher] = useState<{
     code: string;
     value: number;
   } | null>(null);
 
   // Use itemsForCheckout for all calculations and rendering
-  const subtotal = itemsForCheckout.reduce((total, item) => {
+  const subtotal = itemsForDisplay.reduce((total, item) => {
     const price = item.variant ? item.variant.price : item.product.price;
     return total + price * item.quantity;
   }, 0);
-  const deliveryCharges = itemsForCheckout.reduce((total, item) => {
+  const deliveryCharges = itemsForDisplay.reduce((total, item) => {
     const charge = item.product.deliveryCharges ?? 0;
     return total + charge * item.quantity;
   }, 0);
@@ -1951,7 +1992,22 @@ export default function CheckoutPage() {
               )}
 
               <div className="space-y-4 mb-4">
-                {itemsForCheckout.map((item) => (
+                {/* Tentative delivery window */}
+                <div className="p-3 rounded-md bg-green-50 border border-green-200 flex items-start gap-2">
+                  <Calendar className="h-4 w-4 text-green-700 mt-0.5" />
+                  <div>
+                    <div className="text-sm font-medium text-green-800">
+                      Tentative Delivery
+                    </div>
+                    <div className="text-xs text-green-800/90">
+                      {estimatedWindow
+                        ? `${formatTentativeDate(estimatedWindow.start)} - ${formatTentativeDate(estimatedWindow.end)}`
+                        : "Enter a valid 6-digit PIN to see estimated delivery"}
+                    </div>
+                  </div>
+                </div>
+
+                {itemsForDisplay.map((item) => (
                   <div
                     key={item.id}
                     className="flex justify-between items-center border-b pb-2"
@@ -1959,7 +2015,9 @@ export default function CheckoutPage() {
                     <div className="flex items-center">
                       <div className="w-10 h-10 rounded-md overflow-hidden mr-2 bg-gray-100 flex items-center justify-center">
                         <img
-                          src={getCartItemImageUrlEnhanced(item)}
+                          src={getCartItemImageUrlEnhanced(
+                            toImageCartItem(item)
+                          )}
                           alt={item.product.name}
                           className="w-full h-full object-cover"
                           onError={(e) => {
@@ -1978,7 +2036,9 @@ export default function CheckoutPage() {
                               variantColor: item.variant?.color,
                               variantSize: item.variant?.size,
                               variantImages: item.variant?.images,
-                              imageUrl: getCartItemImageUrlEnhanced(item),
+                              imageUrl: getCartItemImageUrlEnhanced(
+                                toImageCartItem(item)
+                              ),
                             });
                           }}
                         />
