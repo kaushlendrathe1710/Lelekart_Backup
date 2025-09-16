@@ -455,7 +455,13 @@ export default function BuyerWishlistPage() {
                         {item.product.stock > 0 ? (
                           <Button
                             className="flex-1"
-                            onClick={() => handleAddToCart(item.product)}
+                            onClick={() => {
+                              if (isProductInCart(item.product.id)) {
+                                setLocation("/cart");
+                              } else {
+                                handleAddToCart(item.product);
+                              }
+                            }}
                             disabled={isProductLoading}
                           >
                             {isProductLoading ? (
