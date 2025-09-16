@@ -713,6 +713,16 @@ export default function ProductDetailsPage() {
   );
   const [isValidSelection, setIsValidSelection] = useState<boolean>(true);
 
+  // Read variantId from query string to preselect variant when arriving from cart
+  const searchParams =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search)
+      : null;
+  const variantIdFromQuery = searchParams?.get("variantId");
+  const defaultVariantId = variantIdFromQuery
+    ? parseInt(variantIdFromQuery)
+    : undefined;
+
   // Variant image modal state
   const [variantImageModalOpen, setVariantImageModalOpen] = useState(false);
   const [modalImages, setModalImages] = useState<string[]>([]);
@@ -2216,6 +2226,7 @@ export default function ProductDetailsPage() {
                     showImagePreviews={true}
                     includeStock={true}
                     mainProductImages={getProductImages(product)}
+                    defaultVariantId={defaultVariantId}
                   />
                 </div>
               )}
