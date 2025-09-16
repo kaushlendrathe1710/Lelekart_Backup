@@ -75,6 +75,7 @@ interface VariantSelectorProps {
   includeStock?: boolean; // Whether to show stock information
   showImagePreviews?: boolean; // Whether to show image previews in the variant selector
   mainProductImages?: string[]; // Main product images
+  defaultVariantId?: number; // Variant id to preselect on mount
 }
 
 export function VariantSelector({
@@ -86,6 +87,7 @@ export function VariantSelector({
   includeStock = true, // Default to showing stock information
   showImagePreviews = true, // Default to showing image previews
   mainProductImages = [],
+  defaultVariantId,
 }: VariantSelectorProps) {
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
@@ -98,6 +100,8 @@ export function VariantSelector({
   const [showSizeError, setShowSizeError] = useState<boolean>(false);
   const [debugMessage, setDebugMessage] = useState<string | null>(null);
   const [colorImages, setColorImages] = useState<Record<string, string[]>>({});
+  const [initializedFromDefault, setInitializedFromDefault] =
+    useState<boolean>(false);
 
   // Parse comma-separated string into array of values
   const parseCommaSeparatedValues = (
@@ -223,6 +227,53 @@ export function VariantSelector({
       onValidSelectionChange(true); // No selection needed
     }
   }, [variants, onValidSelectionChange]);
+
+  // Preselect from defaultVariantId (run once when variants load)
+  useEffect(() => {
+    if (initializedFromDefault) return;
+    if (!defaultVariantId) return;
+    if (!variants || variants.length === 0) return;
+
+    const match = variants.find((v) => v.id === defaultVariantId);
+    if (!match) return;
+
+    // Determine a specific color and size value to select
+    const firstColor =
+      (match.color || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)[0] || null;
+    const firstSize =
+      (match.size || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)[0] || null;
+
+    if (firstColor) {
+      setSelectedColor(firstColor);
+    } else {
+      // For size-only variants, set Default color to enable size selection
+      setSelectedColor("Default");
+    }
+    if (firstSize) {
+      setSelectedSize(firstSize);
+    }
+
+    // Inform parent of the matched variant immediately
+    onVariantChange({
+      ...match,
+      color: firstColor ?? match.color,
+      size: firstSize ?? match.size,
+    });
+    onValidSelectionChange(true);
+    setInitializedFromDefault(true);
+  }, [
+    defaultVariantId,
+    variants,
+    initializedFromDefault,
+    onVariantChange,
+    onValidSelectionChange,
+  ]);
 
   // Update available sizes when a color is selected
   useEffect(() => {

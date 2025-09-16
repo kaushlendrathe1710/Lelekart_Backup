@@ -154,7 +154,7 @@ export function CartSidebar() {
                 <CardContent className="p-3">
                   <div className="flex">
                     <Link
-                      href={`/product/${item.product.id}`}
+                      href={`/product/${item.product.id}${item.variant?.id ? `?variantId=${item.variant.id}` : ""}`}
                       onClick={toggleCart}
                     >
                       <img
