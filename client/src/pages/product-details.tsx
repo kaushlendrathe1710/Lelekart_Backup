@@ -921,6 +921,7 @@ export default function ProductDetailsPage() {
     retry: false,
     staleTime: 60000,
   });
+  const isRestrictedRole = user?.role === "seller" || user?.role === "admin";
 
   // Fetch product details with variants
   const {
@@ -2040,6 +2041,7 @@ export default function ProductDetailsPage() {
                         title="Decrease quantity"
                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
                         disabled={
+                          isRestrictedRole ||
                           quantity <= 1 ||
                           (selectedVariant
                             ? selectedVariant.stock <= 0
@@ -2062,6 +2064,7 @@ export default function ProductDetailsPage() {
                           setQuantity(Math.min(availableStock, quantity + 1));
                         }}
                         disabled={
+                          isRestrictedRole ||
                           (selectedVariant?.stock
                             ? quantity >= selectedVariant.stock
                             : product?.stock
