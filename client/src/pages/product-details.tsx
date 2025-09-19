@@ -1481,13 +1481,17 @@ export default function ProductDetailsPage() {
       Array.isArray(product.variants) &&
       product.variants.length > 0
     ) {
-      // If there are variants, select the first one by default
+      // If a defaultVariantId is provided via query (coming from cart), do not override here.
+      // The VariantSelector will handle preselection and propagate via onVariantChange.
+      if (defaultVariantId) return;
+
+      // Otherwise, select the first variant by default
       const firstVariant = product.variants[0];
       setSelectedVariant(firstVariant);
       setSelectedColor(firstVariant.color || null);
       setSelectedSize(firstVariant.size || null);
     }
-  }, [product]);
+  }, [product, defaultVariantId]);
 
   // Update selected variant when color or size changes
   useEffect(() => {
