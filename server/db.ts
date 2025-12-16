@@ -1,12 +1,8 @@
-import { Pool, neonConfig } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-serverless";
-import ws from "ws";
+import { drizzle } from "drizzle-orm/node-postgres";
+import pg from "pg";
 import * as schema from "@shared/schema";
 import dotenv from "dotenv";
 dotenv.config();
-neonConfig.webSocketConstructor = ws;
-
-// Debug log removed as environment variable is now working
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -14,5 +10,12 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool, schema });
+// Use standard pg Pool for persistent connections (not Neon serverless WebSocket)
+export const pool = new pg.Pool({ 
+  connectionString: process.env.DATABASE_URL,
+  max: 20, // Maximum number of connections in the pool
+  idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
+  connectionTimeoutMillis: 10000, // Timeout after 10 seconds if connection not available
+});
+
+export const db = drizzle(pool, { schema });
