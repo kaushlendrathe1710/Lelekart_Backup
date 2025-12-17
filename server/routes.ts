@@ -3275,7 +3275,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/products/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const product = await storage.getProduct(id);
+      
+      // Use retry logic for database queries to handle cold start timeouts
+      const { withRetry } = await import("./db");
+      const product = await withRetry(() => storage.getProduct(id), 3, 1000);
 
       if (!product) {
         return res.status(404).json({ error: "Product not found" });
