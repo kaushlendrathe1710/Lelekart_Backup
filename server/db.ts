@@ -45,14 +45,24 @@ export async function withRetry<T>(
       return await operation();
     } catch (error: any) {
       lastError = error;
+      const errorMessage = error.message?.toLowerCase() || '';
       const isRetryable = 
         error.code === 'ETIMEDOUT' || 
         error.code === 'ENETUNREACH' || 
         error.code === 'ECONNREFUSED' ||
-        error.code === 'ECONNRESET';
+        error.code === 'ECONNRESET' ||
+        error.code === 'EPIPE' ||
+        error.code === '57P01' || // admin shutdown
+        error.code === '57P02' || // crash shutdown
+        error.code === '57P03' || // cannot connect now
+        errorMessage.includes('connection timeout') ||
+        errorMessage.includes('connection terminated') ||
+        errorMessage.includes('connection reset') ||
+        errorMessage.includes('socket hang up') ||
+        errorMessage.includes('client has encountered a connection error');
       
       if (isRetryable && attempt < maxRetries) {
-        console.log(`Database connection retry ${attempt}/${maxRetries} after ${error.code}`);
+        console.log(`Database connection retry ${attempt}/${maxRetries}: ${error.message || error.code}`);
         await new Promise(resolve => setTimeout(resolve, delayMs * attempt));
       } else {
         throw error;
