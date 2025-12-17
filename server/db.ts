@@ -10,12 +10,57 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Use standard pg Pool for persistent connections (not Neon serverless WebSocket)
-export const pool = new pg.Pool({ 
+// Parse the DATABASE_URL to check if it's Neon
+const isNeonDb = process.env.DATABASE_URL.includes('neon.tech');
+
+// Configure pool with retry-friendly settings for Neon
+const poolConfig: pg.PoolConfig = {
   connectionString: process.env.DATABASE_URL,
-  max: 20, // Maximum number of connections in the pool
-  idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
-  connectionTimeoutMillis: 10000, // Timeout after 10 seconds if connection not available
+  max: 10, // Reduce max connections for serverless
+  idleTimeoutMillis: 20000, // Close idle connections after 20 seconds
+  connectionTimeoutMillis: 15000, // Longer timeout for Neon
+  // Force IPv4 to avoid IPv6 connectivity issues
+  ...(isNeonDb && { 
+    ssl: { rejectUnauthorized: false },
+  }),
+};
+
+export const pool = new pg.Pool(poolConfig);
+
+// Handle pool errors gracefully
+pool.on('error', (err) => {
+  console.error('Database pool error:', err.message);
 });
+
+// Connection retry wrapper for queries
+export async function withRetry<T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  delayMs: number = 1000
+): Promise<T> {
+  let lastError: Error | undefined;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      lastError = error;
+      const isRetryable = 
+        error.code === 'ETIMEDOUT' || 
+        error.code === 'ENETUNREACH' || 
+        error.code === 'ECONNREFUSED' ||
+        error.code === 'ECONNRESET';
+      
+      if (isRetryable && attempt < maxRetries) {
+        console.log(`Database connection retry ${attempt}/${maxRetries} after ${error.code}`);
+        await new Promise(resolve => setTimeout(resolve, delayMs * attempt));
+      } else {
+        throw error;
+      }
+    }
+  }
+  
+  throw lastError;
+}
 
 export const db = drizzle(pool, { schema });
