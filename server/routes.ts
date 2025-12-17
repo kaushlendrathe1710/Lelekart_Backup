@@ -2907,6 +2907,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Product routes with pagination
   app.get("/api/products", async (req, res) => {
+    // Import retry logic for database queries to handle cold start timeouts
+    const { withRetry } = await import("./db");
+    
     try {
       const category = req.query.category as string | undefined;
       const sellerId = req.query.sellerId
@@ -3125,8 +3128,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Get total count for pagination
-      const totalCount = await storage.getProductsCount(
+      // Get total count for pagination with retry logic
+      const totalCount = await withRetry(() => storage.getProductsCount(
         category,
         sellerId,
         approved,
@@ -3138,7 +3141,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         minDiscount,
         maxDiscount,
         effectiveDeletedFilter
-      );
+      ), 3, 1000);
       const totalPages = Math.ceil(totalCount / limit);
 
       // Get display settings if on the first page and no specific filters are applied
@@ -3153,8 +3156,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         displaySettings = await storage.getProductDisplaySettings();
       }
 
-      // Get paginated products with search
-      let products = await storage.getProductsPaginated(
+      // Get paginated products with search and retry logic
+      let products = await withRetry(() => storage.getProductsPaginated(
         category,
         sellerId,
         approved,
@@ -3168,7 +3171,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         minDiscount, // Pass minDiscount parameter for discount filtering
         maxDiscount, // Pass maxDiscount parameter for discount filtering
         effectiveDeletedFilter
-      );
+      ), 3, 1000);
       console.log(
         `Found ${products?.length || 0} products (page ${page}/${totalPages})`
       );
@@ -3368,8 +3371,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Including variants for product ${id}: ${includeVariants}`);
 
       if (includeVariants) {
-        // Fetch variants for this product
-        const variants = await storage.getProductVariants(id);
+        // Fetch variants for this product with retry logic
+        const variants = await withRetry(() => storage.getProductVariants(id), 3, 1000);
 
         // Calculate GST for each variant - Note: variant price already includes GST
         const variantsWithGst = variants.map((variant) => {
