@@ -3298,9 +3298,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Product not found" });
       }
 
-      // Import the debug utility
-      const { debugProductVariants } = await import("./routes.debug");
-      await debugProductVariants(id);
+      // Import the debug utility (wrapped in try-catch to not block product fetch)
+      try {
+        const { debugProductVariants } = await import("./routes.debug");
+        await debugProductVariants(id);
+      } catch (debugError) {
+        console.error("Debug variant check failed (non-blocking):", debugError);
+      }
 
       // Add GST calculations - Note: prices stored in DB already include GST
       const gstRate = product.gstRate ? Number(product.gstRate) : 0;
@@ -11643,9 +11647,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isActiveBoolean =
         isActive === "true" ? true : isActive === "false" ? false : undefined;
 
-      const contents = await storage.getFooterContents(
-        section as string | undefined,
-        isActiveBoolean
+      // Use retry logic for database queries to handle cold start timeouts
+      const { withRetry } = await import("./db");
+      const contents = await withRetry(
+        () => storage.getFooterContents(section as string | undefined, isActiveBoolean),
+        3,
+        1000
       );
       res.json(contents);
     } catch (error) {
