@@ -68,6 +68,27 @@ app.use((req, res, next) => {
   app.get("/health", (req, res) => {
     res.status(200).json({ status: "ok" });
   });
+  
+  // Database health check endpoint for debugging Railway issues
+  app.get("/api/db-health", async (req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const result = await pool.query('SELECT NOW() as time, current_database() as db');
+      res.json({ 
+        status: "connected", 
+        database: result.rows[0].db,
+        serverTime: result.rows[0].time,
+        nodeEnv: process.env.NODE_ENV
+      });
+    } catch (error: any) {
+      console.error("Database health check failed:", error.message);
+      res.status(500).json({ 
+        status: "error", 
+        message: error.message,
+        code: error.code
+      });
+    }
+  });
 
   // Add root path handler for deployment health checks
   app.get("/", (req, res, next) => {
@@ -95,9 +116,15 @@ app.use((req, res, next) => {
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
+    
+    // Log error for debugging (visible in Railway logs)
+    console.error(`Error ${status}: ${message}`, err.stack || '');
 
-    res.status(status).json({ message });
-    throw err;
+    res.status(status).json({ 
+      message,
+      // Include error details in non-production for debugging
+      ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
+    });
   });
 
   // importantly only setup vite in development and after

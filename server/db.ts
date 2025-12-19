@@ -12,25 +12,37 @@ if (!process.env.DATABASE_URL) {
 
 // Parse the DATABASE_URL to check if it's Neon
 const isNeonDb = process.env.DATABASE_URL.includes('neon.tech');
+console.log(`Database type: ${isNeonDb ? 'Neon' : 'Standard PostgreSQL'}`);
 
-// Configure pool with retry-friendly settings for Neon
+// Configure pool with production-ready settings for Railway + Neon
 const poolConfig: pg.PoolConfig = {
   connectionString: process.env.DATABASE_URL,
-  max: 10, // Reduce max connections for serverless
-  idleTimeoutMillis: 20000, // Close idle connections after 20 seconds
-  connectionTimeoutMillis: 15000, // Longer timeout for Neon
-  // Force IPv4 to avoid IPv6 connectivity issues
-  ...(isNeonDb && { 
-    ssl: { rejectUnauthorized: false },
-  }),
+  max: 5, // Lower max for serverless to avoid connection limits
+  min: 1, // Keep at least 1 connection alive
+  idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
+  connectionTimeoutMillis: 30000, // 30 second timeout for cold starts
+  keepAlive: true, // Keep connections alive
+  keepAliveInitialDelayMillis: 10000,
+  // SSL configuration for Neon (required in production)
+  ssl: isNeonDb ? { rejectUnauthorized: false } : undefined,
 };
 
 export const pool = new pg.Pool(poolConfig);
 
-// Handle pool errors gracefully
+// Handle pool errors gracefully - don't crash the server
 pool.on('error', (err) => {
-  console.error('Database pool error:', err.message);
+  console.error('Database pool error (non-fatal):', err.message);
 });
+
+// Test database connection on startup
+pool.connect()
+  .then(client => {
+    console.log('Database connection successful');
+    client.release();
+  })
+  .catch(err => {
+    console.error('Database connection failed on startup:', err.message);
+  });
 
 // Connection retry wrapper for queries
 export async function withRetry<T>(
