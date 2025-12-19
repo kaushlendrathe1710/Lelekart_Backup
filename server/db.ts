@@ -2,6 +2,11 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "@shared/schema";
 import dotenv from "dotenv";
+import dns from "dns";
+
+// Force IPv4 for all DNS lookups (Railway + Neon compatibility)
+dns.setDefaultResultOrder('ipv4first');
+
 dotenv.config();
 
 if (!process.env.DATABASE_URL) {
@@ -12,18 +17,25 @@ if (!process.env.DATABASE_URL) {
 
 // Parse the DATABASE_URL to check if it's Neon
 const isNeonDb = process.env.DATABASE_URL.includes('neon.tech');
-console.log(`Database type: ${isNeonDb ? 'Neon' : 'Standard PostgreSQL'}`);
+const isPooledConnection = process.env.DATABASE_URL.includes('-pooler');
+console.log(`Database: ${isNeonDb ? 'Neon' : 'PostgreSQL'}, Pooled: ${isPooledConnection}`);
+
+// Ensure sslmode is in the connection string for Neon
+let connectionString = process.env.DATABASE_URL;
+if (isNeonDb && !connectionString.includes('sslmode=')) {
+  connectionString += connectionString.includes('?') ? '&sslmode=require' : '?sslmode=require';
+}
 
 // Configure pool with production-ready settings for Railway + Neon
 const poolConfig: pg.PoolConfig = {
-  connectionString: process.env.DATABASE_URL,
-  max: 5, // Lower max for serverless to avoid connection limits
-  min: 1, // Keep at least 1 connection alive
-  idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
-  connectionTimeoutMillis: 30000, // 30 second timeout for cold starts
-  keepAlive: true, // Keep connections alive
-  keepAliveInitialDelayMillis: 10000,
-  // SSL configuration for Neon (required in production)
+  connectionString,
+  max: 3, // Very low for Neon pooler (it handles pooling)
+  min: 0, // Allow pool to be empty when idle
+  idleTimeoutMillis: 10000, // Release connections quickly
+  connectionTimeoutMillis: 60000, // 60 second timeout for cold starts
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 5000,
+  // SSL configuration for Neon
   ssl: isNeonDb ? { rejectUnauthorized: false } : undefined,
 };
 
@@ -34,15 +46,25 @@ pool.on('error', (err) => {
   console.error('Database pool error (non-fatal):', err.message);
 });
 
-// Test database connection on startup
-pool.connect()
-  .then(client => {
-    console.log('Database connection successful');
-    client.release();
-  })
-  .catch(err => {
-    console.error('Database connection failed on startup:', err.message);
-  });
+// Test database connection on startup with retry
+async function testConnection(retries = 3): Promise<void> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const client = await pool.connect();
+      console.log('Database connection successful');
+      client.release();
+      return;
+    } catch (err: any) {
+      console.error(`Database connection attempt ${i + 1}/${retries} failed:`, err.message);
+      if (i < retries - 1) {
+        await new Promise(r => setTimeout(r, 2000)); // Wait 2s before retry
+      }
+    }
+  }
+  console.error('All database connection attempts failed - app may have issues');
+}
+
+testConnection();
 
 // Connection retry wrapper for queries
 export async function withRetry<T>(
