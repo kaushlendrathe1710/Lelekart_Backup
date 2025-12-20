@@ -90,6 +90,12 @@ export class RecommendationEngine {
     limit: number
   ): Promise<any[]> {
     try {
+      // Guard against null/undefined product
+      if (!product || typeof product !== 'object') {
+        console.log("Invalid product for AI similar products, skipping");
+        return [];
+      }
+
       // Prepare product context for AI
       const productContext = `
         Product Name: ${product.name}
