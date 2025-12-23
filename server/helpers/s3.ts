@@ -3,11 +3,11 @@ import { v4 as uuidv4 } from "uuid";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 
-// AWS configuration
-const AWS_ACCESS_KEY = process.env.AWS_ACCESS_KEY || "";
-const AWS_SECRET_KEY = process.env.AWS_SECRET_KEY || "";
-const AWS_REGION = process.env.AWS_REGION || "us-east-1";
-const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME || "";
+// AWS configuration - support both naming conventions
+const AWS_ACCESS_KEY = process.env.AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY || "";
+const AWS_SECRET_KEY = process.env.AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_KEY || "";
+const AWS_REGION = process.env.AWS_REGION || "ap-northeast-1";
+const AWS_BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME || process.env.AWS_BUCKET_NAME || "";
 
 // Validate AWS configuration
 if (!AWS_ACCESS_KEY || !AWS_SECRET_KEY || !AWS_BUCKET_NAME) {

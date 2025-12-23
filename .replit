@@ -1,9 +1,9 @@
-modules = ["nodejs-20", "web", "postgresql-16", "python-3.11"]
+modules = ["nodejs-20", "web", "bash", "postgresql-16"]
 run = "npm run dev"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
-channel = "stable-24_05"
+channel = "stable-25_05"
 
 [deployment]
 deploymentTarget = "autoscale"
@@ -17,6 +17,7 @@ externalPort = 3000
 [[ports]]
 localPort = 5000
 externalPort = 80
+exposeLocalhost = true
 
 [workflows]
 runButton = "Project"
@@ -38,9 +39,14 @@ author = "agent"
 agentRequireRestartOnSave = false
 
 [[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
+
+[agent]
+expertMode = true
+
+[userenv]
+
+[userenv.shared]
+AWS_BUCKET_NAME = "chunumunu"

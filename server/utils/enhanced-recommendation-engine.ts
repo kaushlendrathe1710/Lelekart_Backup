@@ -126,6 +126,12 @@ export class EnhancedRecommendationEngine {
     limit: number
   ): Promise<any[]> {
     try {
+      // Guard against null/undefined product
+      if (!product || typeof product !== 'object') {
+        console.log("Invalid product for AI similar products, skipping");
+        return [];
+      }
+
       // First, get all available products in the same category for AI to choose from
       const availableProducts = await db
         .select({

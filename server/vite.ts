@@ -93,16 +93,22 @@ export function serveStatic(app: Express) {
     })
   );
 
-  // fall through to index.html if the file doesn't exist
-  app.use("*", (req, res) => {
+  // fall through to index.html if the file doesn't exist (for SPA routing)
+  // Important: API routes should already be handled before this point
+  app.use("*", (req, res, next) => {
+    // Skip API routes - they should have been handled by registerRoutes
+    if (req.path.startsWith("/api/")) {
+      return next();
+    }
+    
     const filePath = path.resolve(distPath, req.path.substring(1));
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
       res.sendFile(filePath);
-    } else if (req.method === "GET" && !req.path.startsWith("/api/")) {
-      // Only serve index.html for non-API GET requests (SPA routing)
+    } else if (req.method === "GET") {
+      // Serve index.html for SPA routes
       res.sendFile(path.resolve(distPath, "index.html"));
     } else {
-      res.status(404).send("Not Found");
+      next();
     }
   });
 }
