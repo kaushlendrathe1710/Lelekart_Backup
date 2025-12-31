@@ -26,6 +26,23 @@ export default defineConfig({
     },
   },
   root: path.resolve(import.meta.dirname, "client"),
+  optimizeDeps: {
+    include: [
+      "react",
+      "react-dom",
+      "wouter",
+      "react/jsx-runtime",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-dropdown-menu",
+      "@radix-ui/react-popover",
+      "@radix-ui/react-select",
+      "@radix-ui/react-tabs",
+      "@radix-ui/react-toast",
+    ],
+    esbuildOptions: {
+      target: "esnext",
+    },
+  },
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,

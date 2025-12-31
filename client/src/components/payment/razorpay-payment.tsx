@@ -427,7 +427,7 @@ export default function RazorpayPayment({
         </div>
 
         {/* Development mode info message */}
-        <div className="mt-3 p-3 border border-blue-200 bg-blue-50 rounded-md">
+        {/* <div className="mt-3 p-3 border border-blue-200 bg-blue-50 rounded-md">
           <p className="text-sm text-blue-800 font-medium">
             Development Environment
           </p>
@@ -436,9 +436,16 @@ export default function RazorpayPayment({
             register your domain in the Razorpay dashboard under Settings &gt;
             Websites &amp; Apps to avoid domain verification errors.
           </p>
-        </div>
+        </div> */}
       </CardContent>
-      <CardFooter>
+      <CardFooter className="flex flex-col">
+        <div className="w-full mb-4 p-3 rounded-md bg-red-50 border border-red-300 text-red-900 text-sm">
+          <strong>
+            WhatsApp confirmation required contact: +91-9877454036
+          </strong>
+          <br />
+          Orders without WhatsApp confirmation will not be shipped.
+        </div>
         <Button
           onClick={handlePayment}
           disabled={loading || !scriptLoaded || !razorpayKey}
