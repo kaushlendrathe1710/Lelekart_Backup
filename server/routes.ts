@@ -19,9 +19,13 @@ import { uploadFile, getPresignedDownloadUrl, deleteFile } from "./helpers/s3";
 import * as XLSX from "xlsx";
 import templateService from "./services/template-service";
 import * as pdfGenerator from "./services/pdf-generator"; // Import PDF generator service
-import { getShippingLabelTemplate } from "./services/pdf-generator"; // Import shipping label template
+import {
+  getShippingLabelTemplate,
+  formatOrderNumber,
+} from "./services/pdf-generator"; // Import shipping label template and format function
 import htmlPdf from "html-pdf-node"; // Import html-pdf-node for direct PDF generation
 import handlebars from "handlebars"; // For template rendering
+import { getGstType } from "./services/pincode-service"; // Import GST type determination
 
 // Half A4 PDF generation options
 const HALF_A4_PDF_OPTIONS = {
@@ -59,6 +63,9 @@ import {
   productVariants,
   orders,
   orderItems,
+  distributors,
+  distributorLedger,
+  distributorApplications,
 } from "@shared/schema";
 import returnRoutes from "./routes/return-routes"; // Import return management routes
 import * as backupHandlers from "./handlers/backup-handlers"; // Import backup handlers
@@ -230,8 +237,10 @@ const upload = multer({
 const s3Client = new S3Client({
   region: process.env.AWS_REGION || "ap-northeast-1",
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY || "",
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_KEY || "",
+    accessKeyId:
+      process.env.AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY || "",
+    secretAccessKey:
+      process.env.AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_KEY || "",
   },
 });
 
@@ -2909,7 +2918,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/products", async (req, res) => {
     // Import retry logic for database queries to handle cold start timeouts
     const { withRetry } = await import("./db");
-    
+
     try {
       const category = req.query.category as string | undefined;
       const sellerId = req.query.sellerId
@@ -3129,19 +3138,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get total count for pagination with retry logic
-      const totalCount = await withRetry(() => storage.getProductsCount(
-        category,
-        sellerId,
-        approved,
-        search,
-        isDraft,
-        subcategory,
-        rejected,
-        maxPrice,
-        minDiscount,
-        maxDiscount,
-        effectiveDeletedFilter
-      ), 3, 1000);
+      const totalCount = await withRetry(
+        () =>
+          storage.getProductsCount(
+            category,
+            sellerId,
+            approved,
+            search,
+            isDraft,
+            subcategory,
+            rejected,
+            maxPrice,
+            minDiscount,
+            maxDiscount,
+            effectiveDeletedFilter
+          ),
+        3,
+        1000
+      );
       const totalPages = Math.ceil(totalCount / limit);
 
       // Get display settings if on the first page and no specific filters are applied
@@ -3157,21 +3171,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get paginated products with search and retry logic
-      let products = await withRetry(() => storage.getProductsPaginated(
-        category,
-        sellerId,
-        approved,
-        offset,
-        limit,
-        search,
-        isDraft, // Pass isDraft parameter
-        subcategory, // Pass subcategory parameter
-        rejected, // Pass rejected parameter (now can be true/false/undefined)
-        maxPrice, // Pass maxPrice parameter for price filtering
-        minDiscount, // Pass minDiscount parameter for discount filtering
-        maxDiscount, // Pass maxDiscount parameter for discount filtering
-        effectiveDeletedFilter
-      ), 3, 1000);
+      let products = await withRetry(
+        () =>
+          storage.getProductsPaginated(
+            category,
+            sellerId,
+            approved,
+            offset,
+            limit,
+            search,
+            isDraft, // Pass isDraft parameter
+            subcategory, // Pass subcategory parameter
+            rejected, // Pass rejected parameter (now can be true/false/undefined)
+            maxPrice, // Pass maxPrice parameter for price filtering
+            minDiscount, // Pass minDiscount parameter for discount filtering
+            maxDiscount, // Pass maxDiscount parameter for discount filtering
+            effectiveDeletedFilter
+          ),
+        3,
+        1000
+      );
       console.log(
         `Found ${products?.length || 0} products (page ${page}/${totalPages})`
       );
@@ -3278,7 +3297,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/products/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      
+
       // Use retry logic for database queries to handle cold start timeouts
       const { withRetry } = await import("./db");
       const product = await withRetry(() => storage.getProduct(id), 3, 1000);
@@ -3376,7 +3395,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (includeVariants) {
         // Fetch variants for this product with retry logic
-        const variants = await withRetry(() => storage.getProductVariants(id), 3, 1000);
+        const variants = await withRetry(
+          () => storage.getProductVariants(id),
+          3,
+          1000
+        );
 
         // Calculate GST for each variant - Note: variant price already includes GST
         const variantsWithGst = variants.map((variant) => {
@@ -7612,15 +7635,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const { email, username, role } = req.body;
+      const { email, username, role, name, phone } = req.body;
 
-      if (!email || !username || !role) {
-        return res
-          .status(400)
-          .json({ error: "Email, username, and role are required" });
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
       }
 
-      if (role !== "buyer" && role !== "seller") {
+      // Default role to 'buyer' if not provided
+      const userRole = role || "buyer";
+
+      if (userRole !== "buyer" && userRole !== "seller") {
         return res
           .status(400)
           .json({ error: "Role must be either 'buyer' or 'seller'" });
@@ -7634,6 +7658,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .json({ error: "User with this email already exists" });
       }
 
+      // Generate username from email if not provided
+      const finalUsername =
+        username ||
+        email
+          .split("@")[0]
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, "");
+
       // Create a random password since we're using OTP authentication
       const randomPassword = Array.from(Array(20), () =>
         Math.floor(Math.random() * 36).toString(36)
@@ -7642,12 +7674,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create the user
       const newUser = await storage.createUser({
         email,
-        username,
+        username: finalUsername,
         password: randomPassword, // Use random password since authentication is via OTP
-        role,
+        role: userRole,
+        name: name || null, // Include name if provided
+        phone: phone || null, // Include phone if provided
         isCoAdmin: false,
         permissions: {},
-        approved: role === "buyer", // Buyers are auto-approved, sellers need approval
+        approved: userRole === "buyer", // Buyers are auto-approved, sellers need approval
         rejected: false,
       });
 
@@ -11650,7 +11684,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use retry logic for database queries to handle cold start timeouts
       const { withRetry } = await import("./db");
       const contents = await withRetry(
-        () => storage.getFooterContents(section as string | undefined, isActiveBoolean),
+        () =>
+          storage.getFooterContents(
+            section as string | undefined,
+            isActiveBoolean
+          ),
         3,
         1000
       );
@@ -14914,6 +14952,864 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting stock reminder:", error);
       res.status(500).json({ error: "Failed to delete stock reminder" });
+    }
+  });
+
+  // ===== Distributor Management Routes =====
+
+  // Get all distributors (Admin only)
+  app.get("/api/distributors", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin")
+      return res.status(403).json({ error: "Not authorized" });
+
+    try {
+      const distributors = await storage.getAllDistributors();
+      res.json(distributors);
+    } catch (error) {
+      console.error("Error fetching distributors:", error);
+      res.status(500).json({ error: "Failed to fetch distributors" });
+    }
+  });
+
+  // Get single distributor (Admin or the distributor themselves)
+  app.get("/api/distributors/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const id = parseInt(req.params.id);
+      const distributor = await storage.getDistributor(id);
+
+      if (!distributor) {
+        return res.status(404).json({ error: "Distributor not found" });
+      }
+
+      // Check authorization
+      if (req.user.role !== "admin" && distributor.userId !== req.user.id) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      res.json(distributor);
+    } catch (error) {
+      console.error("Error fetching distributor:", error);
+      res.status(500).json({ error: "Failed to fetch distributor" });
+    }
+  });
+
+  // Get distributor by user ID (used for dashboard)
+  app.get("/api/distributors/user/:userId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const userId = parseInt(req.params.userId);
+
+      // Check authorization
+      if (req.user.role !== "admin" && req.user.id !== userId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const distributor = await storage.getDistributorByUserId(userId);
+
+      if (!distributor) {
+        return res.status(404).json({ error: "Distributor not found" });
+      }
+
+      res.json(distributor);
+    } catch (error) {
+      console.error("Error fetching distributor:", error);
+      res.status(500).json({ error: "Failed to fetch distributor" });
+    }
+  });
+
+  // Create new distributor (Admin only)
+  app.post("/api/distributors", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin")
+      return res.status(403).json({ error: "Not authorized" });
+
+    try {
+      const { userId, ...distributorData } = req.body;
+
+      // Validate user exists
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Check if distributor already exists for this user
+      const existingDistributor = await storage.getDistributorByUserId(userId);
+      if (existingDistributor) {
+        return res
+          .status(400)
+          .json({ error: "Distributor already exists for this user" });
+      }
+
+      // Create distributor
+      const distributor = await storage.createDistributor({
+        userId,
+        ...distributorData,
+      });
+
+      res.status(201).json(distributor);
+    } catch (error) {
+      console.error("Error creating distributor:", error);
+      res.status(500).json({ error: "Failed to create distributor" });
+    }
+  });
+
+  // Update distributor (Admin only)
+  app.put("/api/distributors/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin")
+      return res.status(403).json({ error: "Not authorized" });
+
+    try {
+      const id = parseInt(req.params.id);
+      const distributor = await storage.updateDistributor(id, req.body);
+      res.json(distributor);
+    } catch (error) {
+      console.error("Error updating distributor:", error);
+      res.status(500).json({ error: "Failed to update distributor" });
+    }
+  });
+
+  // Delete distributor (Admin only)
+  app.delete("/api/distributors/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin")
+      return res.status(403).json({ error: "Not authorized" });
+
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteDistributor(id);
+      res.json({ message: "Distributor deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting distributor:", error);
+      res.status(500).json({ error: "Failed to delete distributor" });
+    }
+  });
+
+  // Get distributor ledger
+  app.get("/api/distributors/:id/ledger", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const id = parseInt(req.params.id);
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 50;
+
+      const distributor = await storage.getDistributor(id);
+      if (!distributor) {
+        return res.status(404).json({ error: "Distributor not found" });
+      }
+
+      // Check authorization
+      if (req.user.role !== "admin" && distributor.userId !== req.user.id) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const result = await storage.getDistributorLedgerWithPagination(
+        id,
+        page,
+        limit
+      );
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching distributor ledger:", error);
+      res.status(500).json({ error: "Failed to fetch ledger" });
+    }
+  });
+
+  // Add payment to distributor ledger (Admin only)
+  app.post("/api/distributors/:id/payments", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin")
+      return res.status(403).json({ error: "Not authorized" });
+
+    try {
+      const distributorId = parseInt(req.params.id);
+      const { amount, paymentMethod, paymentReference, notes } = req.body;
+
+      // Validate amount
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ error: "Invalid payment amount" });
+      }
+
+      // Get current distributor balance
+      const distributor = await storage.getDistributor(distributorId);
+      if (!distributor) {
+        return res.status(404).json({ error: "Distributor not found" });
+      }
+
+      // Calculate new balance (payments are negative, reducing the balance)
+      const newBalance = distributor.currentBalance - amount;
+
+      // Create ledger entry
+      const entry = await storage.addLedgerEntry({
+        distributorId,
+        entryType: "payment",
+        amount: -amount, // Negative for payments
+        description: `Payment received - ${paymentMethod || "Unknown method"}`,
+        balanceAfter: newBalance,
+        paymentMethod,
+        paymentReference,
+        createdBy: req.user.id,
+        notes,
+      });
+
+      res.status(201).json(entry);
+    } catch (error) {
+      console.error("Error adding payment:", error);
+      res.status(500).json({ error: "Failed to add payment" });
+    }
+  });
+
+  // Become a Distributor application
+  app.post("/api/become-distributor", async (req, res) => {
+    try {
+      const {
+        email,
+        phone,
+        name,
+        companyName,
+        businessType,
+        gstNumber,
+        panNumber,
+        address,
+        city,
+        state,
+        pincode,
+        notes,
+        aadharCardUrl,
+      } = req.body;
+
+      // Insert into distributor_applications table
+      const application = await db
+        .insert(distributorApplications)
+        .values({
+          name,
+          email,
+          phone,
+          companyName,
+          businessType: businessType || null,
+          gstNumber: gstNumber || null,
+          panNumber: panNumber || null,
+          aadharCardUrl: aadharCardUrl || null,
+          address,
+          city,
+          state,
+          pincode,
+          notes: notes || null,
+          status: "pending",
+        })
+        .returning();
+
+      console.log("Distributor application saved:", application[0].id);
+
+      res.json({
+        success: true,
+        message: "Application submitted successfully",
+        applicationId: application[0].id,
+      });
+    } catch (error) {
+      console.error("Error submitting distributor application:", error);
+      res.status(500).json({ error: "Failed to submit application" });
+    }
+  });
+
+  // Get all distributor applications (admin only)
+  app.get("/api/admin/distributor-applications", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin")
+      return res.status(403).json({ error: "Not authorized" });
+
+    try {
+      const { status } = req.query;
+
+      let query = db.select().from(distributorApplications);
+
+      if (status && status !== "all") {
+        query = query.where(
+          eq(distributorApplications.status, status as string)
+        );
+      }
+
+      const applications = await query.orderBy(
+        desc(distributorApplications.createdAt)
+      );
+
+      res.json(applications);
+    } catch (error) {
+      console.error("Error fetching distributor applications:", error);
+      res.status(500).json({ error: "Failed to fetch applications" });
+    }
+  });
+
+  // ===== Custom Invoice Routes =====
+
+  // Preview custom invoice (returns HTML)
+  app.post("/api/invoices/preview-custom", async (req, res) => {
+    // Authentication check - only sellers and admins can generate custom invoices
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" && req.user.role !== "admin") {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const { invoiceNumber, invoiceDate, distributor, items } = req.body;
+
+      // Use placeholder values if not provided (for preview mode)
+      const previewInvoiceNumber = invoiceNumber || "WILL BE AUTO-GENERATED";
+      const previewInvoiceDate = invoiceDate || new Date().toISOString();
+
+      console.log("Generating custom invoice preview:", previewInvoiceNumber);
+
+      // Fetch product details from database for each item
+      const itemsWithDetails = await Promise.all(
+        items.map(async (item: any) => {
+          const [product] = await db
+            .select()
+            .from(products)
+            .where(eq(products.id, item.productId))
+            .limit(1);
+
+          if (!product) {
+            throw new Error(`Product not found: ${item.productId}`);
+          }
+
+          // Calculate GST-inclusive pricing
+          const inclusivePrice = product.price;
+          const gstRate = parseFloat(product.gstRate as any) || 0;
+          const deliveryCharges = product.deliveryCharges || 0;
+          const totalPrice = item.quantity * inclusivePrice;
+
+          // Extract taxable value and GST amount from inclusive price
+          const taxableValue =
+            gstRate > 0 ? totalPrice / (1 + gstRate / 100) : totalPrice;
+          const gstAmount = totalPrice - taxableValue;
+
+          return {
+            productId: product.id,
+            productName: product.name,
+            quantity: item.quantity,
+            price: inclusivePrice,
+            gstRate: gstRate,
+            mrp: product.mrp || inclusivePrice,
+            deliveryCharges: deliveryCharges,
+            taxableValue: taxableValue,
+            gstAmount: gstAmount,
+            total: totalPrice,
+          };
+        })
+      );
+
+      // Calculate totals
+      const totalTaxableValue = itemsWithDetails.reduce(
+        (sum, item) => sum + item.taxableValue,
+        0
+      );
+      const totalGst = itemsWithDetails.reduce(
+        (sum, item) => sum + item.gstAmount,
+        0
+      );
+      const totalDeliveryCharges = itemsWithDetails.reduce(
+        (sum, item) => sum + item.deliveryCharges,
+        0
+      );
+      const grandTotal =
+        itemsWithDetails.reduce((sum, item) => sum + item.total, 0) +
+        totalDeliveryCharges;
+
+      // Get seller details
+      const seller = await storage.getUser(req.user.id);
+      if (!seller) {
+        return res.status(404).json({ error: "Seller not found" });
+      }
+
+      // Static seller address
+      const STATIC_SELLER_ADDRESS = {
+        businessName: "Kaushal Ranjeet Pvt. Ltd.",
+        line1: "Building No 2072, Chandigarh Royale City",
+        line2: "Bollywood Gully",
+        city: "Banur",
+        state: "Punjab",
+        pincode: "140601",
+        country: "India",
+      };
+
+      // Determine GST type
+      const gstType = getGstType(
+        STATIC_SELLER_ADDRESS.pincode,
+        distributor.pincode
+      );
+      const isSameState = gstType === "CGST+SGST";
+
+      const buyerName =
+        distributor.companyName && distributor.companyName.trim() !== ""
+          ? distributor.companyName
+          : distributor.name;
+
+      const invoiceData = {
+        invoiceNumber: previewInvoiceNumber,
+        invoiceDate: new Date(previewInvoiceDate).toLocaleDateString("en-IN", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+        order: {
+          id: previewInvoiceNumber,
+          date: new Date(previewInvoiceDate),
+          formattedDate: new Date(previewInvoiceDate).toLocaleDateString(
+            "en-IN"
+          ),
+          paymentMethod: "Custom",
+          orderNumber: previewInvoiceNumber,
+          shippingDetails: {
+            address: distributor.address,
+            address2: "",
+            city: distributor.city,
+            state: distributor.state,
+            zipCode: distributor.pincode,
+            country: "India",
+          },
+          items: itemsWithDetails.map((item: any, index: number) => ({
+            id: index + 1,
+            product: {
+              name: item.productName,
+              mrp: item.mrp || item.price,
+              gstRate: item.gstRate,
+              deliveryCharges: item.deliveryCharges,
+            },
+            quantity: item.quantity,
+            price: item.price,
+            gstRate: item.gstRate,
+            deliveryCharges: item.deliveryCharges,
+            taxableValue: item.taxableValue,
+            gstAmount: item.gstAmount,
+            total: item.total,
+          })),
+        },
+        user: {
+          name: buyerName,
+          email: distributor.email,
+          phone: distributor.phone,
+        },
+        buyer: {
+          name: buyerName,
+          companyName: distributor.companyName,
+          email: distributor.email,
+          phone: distributor.phone,
+          gstNumber: distributor.gstNumber,
+          address: `${distributor.address}, ${distributor.city}, ${distributor.state} - ${distributor.pincode}`,
+        },
+        seller: {
+          name: STATIC_SELLER_ADDRESS.businessName,
+          businessName: STATIC_SELLER_ADDRESS.businessName,
+          phone: seller.phone || "N/A",
+          email: seller.email,
+          gstNumber: "03AAICK9276F1ZC",
+          address: STATIC_SELLER_ADDRESS.line1,
+          pickupAddress: {
+            businessName: STATIC_SELLER_ADDRESS.businessName,
+            line1: STATIC_SELLER_ADDRESS.line1,
+            line2: STATIC_SELLER_ADDRESS.line2,
+            city: STATIC_SELLER_ADDRESS.city,
+            state: STATIC_SELLER_ADDRESS.state,
+            pincode: STATIC_SELLER_ADDRESS.pincode,
+            country: STATIC_SELLER_ADDRESS.country,
+          },
+          billingAddress: {
+            line1: STATIC_SELLER_ADDRESS.line1,
+            line2: STATIC_SELLER_ADDRESS.line2,
+            city: STATIC_SELLER_ADDRESS.city,
+            state: STATIC_SELLER_ADDRESS.state,
+            pincode: STATIC_SELLER_ADDRESS.pincode,
+            country: STATIC_SELLER_ADDRESS.country,
+          },
+          taxInformation: {
+            businessName: STATIC_SELLER_ADDRESS.businessName,
+            gstin: "03AAICK9276F1ZC",
+            panNumber: "N/A",
+          },
+        },
+        shippingAddress: {
+          address1: distributor.address,
+          city: distributor.city,
+          state: distributor.state,
+          pincode: distributor.pincode,
+          country: "India",
+        },
+        sellerAddress: {
+          address1: STATIC_SELLER_ADDRESS.line1,
+          city: STATIC_SELLER_ADDRESS.city,
+          state: STATIC_SELLER_ADDRESS.state,
+          pincode: STATIC_SELLER_ADDRESS.pincode,
+          country: STATIC_SELLER_ADDRESS.country,
+        },
+        totalTaxableValue,
+        totalGst,
+        deliveryCharges: totalDeliveryCharges,
+        total: grandTotal,
+        grandTotal,
+        gstType,
+        isSameState,
+        currentDate: new Date().toLocaleDateString("en-IN", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+      };
+
+      // Generate QR code
+      const qrData = `Invoice: ${previewInvoiceNumber}\nAmount: ₹${grandTotal}\nDate: ${invoiceData.invoiceDate}`;
+      const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
+        errorCorrectionLevel: "H",
+        margin: 1,
+        width: 75,
+      });
+
+      invoiceData.qrCodeDataUrl = qrCodeDataUrl;
+
+      // Generate HTML for preview
+      const invoiceHtml = await generateInvoiceHtml(invoiceData);
+
+      // Send HTML response
+      res.setHeader("Content-Type", "text/html");
+      res.send(invoiceHtml);
+    } catch (error) {
+      console.error("Error generating custom invoice preview:", error);
+      res.status(500).json({ error: "Failed to generate invoice preview" });
+    }
+  });
+
+  // Generate custom invoice from form data (creates order and ledger entry)
+  app.post("/api/invoices/generate-custom", async (req, res) => {
+    // Authentication check - only sellers and admins can generate custom invoices
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "seller" && req.user.role !== "admin") {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const { distributor, items } = req.body;
+
+      console.log("Generating custom invoice for distributor:", distributor.id);
+
+      // Get the distributor's user account
+      const distributorRecord = await db
+        .select()
+        .from(distributors)
+        .where(eq(distributors.id, distributor.id))
+        .limit(1);
+
+      if (!distributorRecord.length) {
+        return res.status(404).json({ error: "Distributor not found" });
+      }
+
+      const distributorUserId = distributorRecord[0].userId;
+
+      // Fetch product details and calculate totals
+      const itemsWithDetails = await Promise.all(
+        items.map(async (item: any) => {
+          const [product] = await db
+            .select()
+            .from(products)
+            .where(eq(products.id, item.productId))
+            .limit(1);
+
+          if (!product) {
+            throw new Error(`Product not found: ${item.productId}`);
+          }
+
+          const inclusivePrice = product.price;
+          const gstRate = parseFloat(product.gstRate as any) || 0;
+          const deliveryCharges = product.deliveryCharges || 0;
+          const totalPrice = item.quantity * inclusivePrice;
+
+          const taxableValue =
+            gstRate > 0 ? totalPrice / (1 + gstRate / 100) : totalPrice;
+          const gstAmount = totalPrice - taxableValue;
+
+          return {
+            productId: product.id,
+            productName: product.name,
+            quantity: item.quantity,
+            price: inclusivePrice,
+            gstRate: gstRate,
+            mrp: product.mrp || inclusivePrice,
+            deliveryCharges: deliveryCharges,
+            taxableValue: taxableValue,
+            gstAmount: gstAmount,
+            total: totalPrice,
+          };
+        })
+      );
+
+      const totalTaxableValue = itemsWithDetails.reduce(
+        (sum, item) => sum + item.taxableValue,
+        0
+      );
+      const totalGst = itemsWithDetails.reduce(
+        (sum, item) => sum + item.gstAmount,
+        0
+      );
+      const totalDeliveryCharges = itemsWithDetails.reduce(
+        (sum, item) => sum + item.deliveryCharges,
+        0
+      );
+      const grandTotal =
+        itemsWithDetails.reduce((sum, item) => sum + item.total, 0) +
+        totalDeliveryCharges;
+
+      // Get seller details
+      const seller = await storage.getUser(req.user.id);
+      if (!seller) {
+        return res.status(404).json({ error: "Seller not found" });
+      }
+
+      // Create shipping details for the order
+      const shippingDetails = {
+        name: distributor.name,
+        companyName: distributor.companyName,
+        email: distributor.email,
+        phone: distributor.phone,
+        address: distributor.address,
+        address2: "",
+        city: distributor.city,
+        state: distributor.state,
+        zipCode: distributor.pincode,
+        country: "India",
+      };
+
+      // Create the order first to get the order ID
+      const [newOrder] = await db
+        .insert(orders)
+        .values({
+          userId: distributorUserId,
+          status: "confirmed",
+          total: Math.round(grandTotal),
+          date: new Date(),
+          shippingDetails: JSON.stringify(shippingDetails),
+          paymentMethod: "custom_invoice",
+        })
+        .returning();
+
+      console.log("Order created with ID:", newOrder.id);
+
+      // Generate invoice number from order ID
+      const invoiceNumber = `${newOrder.id}`;
+      const invoiceDate = newOrder.date;
+
+      // Insert order items
+      const orderItemsData = itemsWithDetails.map((item: any) => ({
+        orderId: newOrder.id,
+        productId: item.productId,
+        quantity: item.quantity,
+        price: Math.round(item.price),
+        sellerId: req.user.id,
+      }));
+
+      await db.insert(orderItems).values(orderItemsData);
+
+      // Update the order with the generated invoice number
+      await db
+        .update(orders)
+        .set({ orderId: invoiceNumber })
+        .where(eq(orders.id, newOrder.id));
+
+      // Get current balance from distributor ledger
+      const lastLedgerEntry = await db
+        .select()
+        .from(distributorLedger)
+        .where(eq(distributorLedger.distributorId, distributor.id))
+        .orderBy(desc(distributorLedger.id))
+        .limit(1);
+
+      const currentBalance = lastLedgerEntry.length
+        ? lastLedgerEntry[0].balanceAfter
+        : 0;
+      const newBalance = currentBalance + Math.round(grandTotal);
+
+      // Add ledger entry for this order
+      await storage.addLedgerEntry({
+        distributorId: distributor.id,
+        entryType: "order",
+        amount: Math.round(grandTotal),
+        orderId: newOrder.id,
+        description: `Invoice ${invoiceNumber} - ${itemsWithDetails.length} item(s)`,
+        balanceAfter: newBalance,
+        createdBy: req.user.id,
+        notes: null,
+      });
+
+      console.log(
+        `Ledger updated for distributor ${distributor.id} with balance: ₹${
+          newBalance / 100
+        }`
+      );
+
+      // Static seller address
+      const STATIC_SELLER_ADDRESS = {
+        businessName: "Kaushal Ranjeet Pvt. Ltd.",
+        line1: "Building No 2072, Chandigarh Royale City",
+        line2: "Bollywood Gully",
+        city: "Banur",
+        state: "Punjab",
+        pincode: "140601",
+        country: "India",
+      };
+
+      // Determine GST type
+      const gstType = getGstType(
+        STATIC_SELLER_ADDRESS.pincode,
+        distributor.pincode
+      );
+      const isSameState = gstType === "CGST+SGST";
+
+      const buyerName =
+        distributor.companyName && distributor.companyName.trim() !== ""
+          ? distributor.companyName
+          : distributor.name;
+
+      const invoiceData = {
+        invoiceNumber,
+        invoiceDate: new Date(invoiceDate).toLocaleDateString("en-IN", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+        order: {
+          id: invoiceNumber,
+          date: new Date(invoiceDate),
+          formattedDate: new Date(invoiceDate).toLocaleDateString("en-IN"),
+          paymentMethod: "Custom",
+          orderNumber: formatOrderNumber(newOrder.id),
+          shippingDetails: {
+            address: distributor.address,
+            address2: "",
+            city: distributor.city,
+            state: distributor.state,
+            zipCode: distributor.pincode,
+            country: "India",
+          },
+          items: itemsWithDetails.map((item: any, index: number) => ({
+            id: index + 1,
+            product: {
+              name: item.productName,
+              mrp: item.mrp || item.price,
+              gstRate: item.gstRate,
+              deliveryCharges: item.deliveryCharges,
+            },
+            quantity: item.quantity,
+            price: item.price,
+            gstRate: item.gstRate,
+            deliveryCharges: item.deliveryCharges,
+            taxableValue: item.taxableValue,
+            gstAmount: item.gstAmount,
+            total: item.total,
+          })),
+        },
+        user: {
+          name: buyerName,
+          email: distributor.email,
+          phone: distributor.phone,
+        },
+        buyer: {
+          name: buyerName,
+          companyName: distributor.companyName,
+          email: distributor.email,
+          phone: distributor.phone,
+          gstNumber: distributor.gstNumber,
+          address: `${distributor.address}, ${distributor.city}, ${distributor.state} - ${distributor.pincode}`,
+        },
+        seller: {
+          name: STATIC_SELLER_ADDRESS.businessName,
+          businessName: STATIC_SELLER_ADDRESS.businessName,
+          phone: seller.phone || "N/A",
+          email: seller.email,
+          gstNumber: "03AAICK9276F1ZC",
+          address: STATIC_SELLER_ADDRESS.line1,
+          pickupAddress: {
+            businessName: STATIC_SELLER_ADDRESS.businessName,
+            line1: STATIC_SELLER_ADDRESS.line1,
+            line2: STATIC_SELLER_ADDRESS.line2,
+            city: STATIC_SELLER_ADDRESS.city,
+            state: STATIC_SELLER_ADDRESS.state,
+            pincode: STATIC_SELLER_ADDRESS.pincode,
+            country: STATIC_SELLER_ADDRESS.country,
+          },
+          billingAddress: {
+            line1: STATIC_SELLER_ADDRESS.line1,
+            line2: STATIC_SELLER_ADDRESS.line2,
+            city: STATIC_SELLER_ADDRESS.city,
+            state: STATIC_SELLER_ADDRESS.state,
+            pincode: STATIC_SELLER_ADDRESS.pincode,
+            country: STATIC_SELLER_ADDRESS.country,
+          },
+          taxInformation: {
+            businessName: STATIC_SELLER_ADDRESS.businessName,
+            gstin: "03AAICK9276F1ZC",
+            panNumber: "N/A",
+          },
+        },
+        shippingAddress: {
+          address1: distributor.address,
+          city: distributor.city,
+          state: distributor.state,
+          pincode: distributor.pincode,
+          country: "India",
+        },
+        sellerAddress: {
+          address1: STATIC_SELLER_ADDRESS.line1,
+          city: STATIC_SELLER_ADDRESS.city,
+          state: STATIC_SELLER_ADDRESS.state,
+          pincode: STATIC_SELLER_ADDRESS.pincode,
+          country: STATIC_SELLER_ADDRESS.country,
+        },
+        totalTaxableValue,
+        totalGst,
+        deliveryCharges: totalDeliveryCharges,
+        total: grandTotal,
+        grandTotal,
+        gstType,
+        isSameState,
+        currentDate: new Date().toLocaleDateString("en-IN", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+      };
+
+      // Generate QR code
+      const qrData = `Invoice: ${invoiceNumber}\nAmount: ₹${grandTotal}\nDate: ${invoiceData.invoiceDate}`;
+      const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
+        errorCorrectionLevel: "H",
+        margin: 1,
+        width: 75,
+      });
+
+      invoiceData.qrCodeDataUrl = qrCodeDataUrl;
+
+      // Generate HTML
+      const invoiceHtml = await generateInvoiceHtml(invoiceData);
+
+      // Generate PDF
+      const file = { content: invoiceHtml };
+      const pdfBuffer = await htmlPdf.generatePdf(file, HALF_A4_PDF_OPTIONS);
+
+      // Set response headers for PDF download
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="invoice-${invoiceNumber}.pdf"`
+      );
+
+      // Send PDF buffer
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error("Error generating custom invoice:", error);
+      res.status(500).json({ error: "Failed to generate custom invoice" });
     }
   });
 

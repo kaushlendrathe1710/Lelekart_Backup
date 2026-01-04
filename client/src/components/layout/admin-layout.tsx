@@ -44,6 +44,7 @@ import {
   RefreshCcw,
   BarChart3,
   MessageCircle,
+  Building2,
 } from "lucide-react";
 import { useState } from "react";
 import {
@@ -86,6 +87,12 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
   const [usersMenuOpen, setUsersMenuOpen] = useState(
     location.includes("/admin/users") || location.includes("/admin/create-user")
+  );
+
+  const [distributorMenuOpen, setDistributorMenuOpen] = useState(
+    location.includes("/admin/distributors") ||
+      location.includes("/admin/distributor-applications") ||
+      location.includes("/admin/custom-invoice")
   );
 
   const [shippingMenuOpen, setShippingMenuOpen] = useState(
@@ -138,6 +145,30 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           title: "Create User",
           href: "/admin/create-user",
           icon: <UserPlus className="h-5 w-5" />,
+        },
+      ],
+    },
+    {
+      collapsible: true,
+      title: "Distributors",
+      icon: <Building2 className="h-5 w-5" />,
+      open: distributorMenuOpen,
+      onOpenChange: setDistributorMenuOpen,
+      items: [
+        {
+          title: "Manage Distributors",
+          href: "/admin/distributors",
+          icon: <Building2 className="h-5 w-5" />,
+        },
+        {
+          title: "Applications",
+          href: "/admin/distributor-applications",
+          icon: <FileText className="h-5 w-5" />,
+        },
+        {
+          title: "Custom Invoice",
+          href: "/admin/custom-invoice",
+          icon: <FileText className="h-5 w-5" />,
         },
       ],
     },

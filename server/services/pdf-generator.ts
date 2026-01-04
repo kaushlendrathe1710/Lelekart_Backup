@@ -1181,3 +1181,13 @@ function getTaxInvoiceTemplate(): string {
     </html>`;
   }
 }
+
+/**
+ * Format order number with leading zeros
+ * @param orderId - Numeric order ID
+ * @param length - Desired length (default 4)
+ * @returns Formatted order number string
+ */
+export function formatOrderNumber(orderId: number, length = 4): string {
+  return orderId.toString().padStart(length, "0");
+}
