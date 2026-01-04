@@ -88,6 +88,13 @@ import TicketManagementPage from "./pages/admin/ticket-management";
 import AffiliateMarketingPage from "./pages/admin/affilate-marketing";
 import AdminChatPage from "./pages/admin/chat";
 import SellerWithdrawalsPage from "./pages/admin/seller-withdrawals";
+import AdminCustomInvoicePage from "./pages/admin/custom-invoice";
+import DistributorsPage from "./pages/admin/distributors";
+import CreateDistributorPage from "./pages/admin/create-distributor";
+import EditDistributorPage from "./pages/admin/edit-distributor";
+import DistributorDetailsPage from "./pages/admin/distributor-details";
+import DistributorApplicationsPage from "./pages/admin/distributor-applications";
+import DistributorDashboard from "./pages/distributor/dashboard";
 // Import shared components
 import { SuspenseWrapper } from "./components/shared/suspense-wrapper";
 import PressReleaseDetail from "./pages/static/press-release";
@@ -674,6 +681,67 @@ function App() {
                             path="/admin/users"
                             role="admin"
                             component={AdminUsers}
+                          />
+                        )}
+                      </Route>
+
+                      {/* Distributor Routes */}
+                      <Route path="/admin/distributors/create">
+                        {() => (
+                          <ProtectedRoute
+                            path="/admin/distributors/create"
+                            role="admin"
+                            component={CreateDistributorPage}
+                          />
+                        )}
+                      </Route>
+
+                      <Route path="/admin/distributors/:id/edit">
+                        {() => (
+                          <ProtectedRoute
+                            path="/admin/distributors/:id/edit"
+                            role="admin"
+                            component={EditDistributorPage}
+                          />
+                        )}
+                      </Route>
+
+                      <Route path="/admin/distributor-applications">
+                        {() => (
+                          <ProtectedRoute
+                            path="/admin/distributor-applications"
+                            role="admin"
+                            component={DistributorApplicationsPage}
+                          />
+                        )}
+                      </Route>
+
+                      <Route path="/admin/distributors/:id">
+                        {() => (
+                          <ProtectedRoute
+                            path="/admin/distributors/:id"
+                            role="admin"
+                            component={DistributorDetailsPage}
+                          />
+                        )}
+                      </Route>
+
+                      <Route path="/admin/distributors">
+                        {() => (
+                          <ProtectedRoute
+                            path="/admin/distributors"
+                            role="admin"
+                            component={DistributorsPage}
+                          />
+                        )}
+                      </Route>
+
+                      <Route path="/admin/custom-invoice">
+                        {() => (
+                          <ProtectedRoute
+                            path="/admin/custom-invoice"
+                            role="admin"
+                            component={AdminCustomInvoicePage}
                           />
                         )}
                       </Route>
@@ -1328,6 +1396,17 @@ function App() {
                             path="/buyer/returns/create/:orderId"
                             role="buyer"
                             component={BuyerCreateReturn}
+                          />
+                        )}
+                      </Route>
+
+                      {/* Distributor Dashboard */}
+                      <Route path="/distributor/dashboard">
+                        {() => (
+                          <ProtectedRoute
+                            path="/distributor/dashboard"
+                            role="buyer"
+                            component={DistributorDashboard}
                           />
                         )}
                       </Route>
