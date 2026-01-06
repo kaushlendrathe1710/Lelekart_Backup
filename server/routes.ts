@@ -352,8 +352,35 @@ import {
 } from "./handlers/shipping-handlers";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+    // More detailed health check endpoint
   app.get("/api/health", (req, res) => {
-    res.status(200).send("ok");
+    // Check database connection
+    try {
+      pool
+        .query("SELECT 1")
+        .then(() => {
+          res.status(200).json({
+            status: "ok",
+            message: "Server is running and database connection is working",
+            timestamp: new Date().toISOString(),
+          });
+        })
+        .catch((error) => {
+          console.error("Health check - Database error:", error);
+          res.status(500).json({
+            status: "error",
+            message: "Database connection failed",
+            timestamp: new Date().toISOString(),
+          });
+        });
+    } catch (error) {
+      console.error("Health check failed:", error);
+      res.status(500).json({
+        status: "error",
+        message: "Server error during health check",
+        timestamp: new Date().toISOString(),
+      });
+    }
   });
 
   // --- CRITICAL: Register this API route first! ---
