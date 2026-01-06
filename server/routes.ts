@@ -352,6 +352,10 @@ import {
 } from "./handlers/shipping-handlers";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  app.get("/api/health", (req, res) => {
+    res.status(200).send("ok");
+  });
+
   // --- CRITICAL: Register this API route first! ---
   app.get("/api/subcategories/all", async (_req, res) => {
     try {
@@ -1289,7 +1293,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .map(
             (invoice) => `
             <div class="seller-invoice">
-             
+
               ${invoice.invoiceHtml}
             </div>
             <div style="page-break-after: always;"></div>
@@ -1304,7 +1308,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .map(
             (invoice) => `
             <div class="seller-invoice">
-              
+
               ${invoice.invoiceHtml}
             </div>
             <div style="page-break-after: always;"></div>
@@ -2640,7 +2644,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // First find all non-deleted products that match the valid IDs - use raw SQL
       const selectQuery = `
-        SELECT id FROM products 
+        SELECT id FROM products
         WHERE id = ANY($1) AND deleted = false
       `;
       const { rows: existingProducts } = await pool.query(selectQuery, [
@@ -2784,7 +2788,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // First check if the product exists and is not deleted
       const productCheckResult = await pool.query(
         `
-        SELECT id FROM products 
+        SELECT id FROM products
         WHERE id = $1 AND deleted = false
       `,
         [productId]
@@ -2846,7 +2850,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // First check if the product exists and is not deleted
       const productCheckResult = await pool.query(
         `
-        SELECT id FROM products 
+        SELECT id FROM products
         WHERE id = $1 AND deleted = false
       `,
         [productId]
@@ -7381,7 +7385,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log("Deleting product relationships...");
           await pool.query(
             `
-            DELETE FROM product_relationships 
+            DELETE FROM product_relationships
             WHERE source_product_id IN (SELECT id FROM products WHERE seller_id = $1)
             OR related_product_id IN (SELECT id FROM products WHERE seller_id = $1)
           `,
@@ -7392,7 +7396,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log("Deleting carts with user's products...");
           await pool.query(
             `
-            DELETE FROM carts 
+            DELETE FROM carts
             WHERE product_id IN (SELECT id FROM products WHERE seller_id = $1)
           `,
             [id]
@@ -7402,7 +7406,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log("Deleting order items with user's products...");
           await pool.query(
             `
-            DELETE FROM order_items 
+            DELETE FROM order_items
             WHERE product_id IN (SELECT id FROM products WHERE seller_id = $1)
           `,
             [id]
@@ -7412,7 +7416,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log("Handling reviews for user's products...");
           const { rows: reviewRows } = await pool.query(
             `
-            SELECT id FROM reviews 
+            SELECT id FROM reviews
             WHERE product_id IN (SELECT id FROM products WHERE seller_id = $1)
           `,
             [id]
@@ -7432,7 +7436,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Delete reviews for products
           await pool.query(
             `
-            DELETE FROM reviews 
+            DELETE FROM reviews
             WHERE product_id IN (SELECT id FROM products WHERE seller_id = $1)
           `,
             [id]
@@ -7442,7 +7446,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log("Deleting AI assistant conversations for products...");
           await pool.query(
             `
-            DELETE FROM ai_assistant_conversations 
+            DELETE FROM ai_assistant_conversations
             WHERE product_id IN (SELECT id FROM products WHERE seller_id = $1)
           `,
             [id]
@@ -7452,7 +7456,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log("Deleting user activities for products...");
           await pool.query(
             `
-            DELETE FROM user_activities 
+            DELETE FROM user_activities
             WHERE product_id IN (SELECT id FROM products WHERE seller_id = $1)
           `,
             [id]
@@ -8039,7 +8043,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (search) {
         whereConditions.push(`(
-          LOWER(p.name) LIKE LOWER($${paramIndex++}) OR 
+          LOWER(p.name) LIKE LOWER($${paramIndex++}) OR
           LOWER(p.description) LIKE LOWER($${paramIndex++}) OR
           LOWER(p.category) LIKE LOWER($${paramIndex++}) OR
           LOWER(p.sku) LIKE LOWER($${paramIndex++})
@@ -9387,16 +9391,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Use the same filtering as home page (approved=true, not draft, not rejected)
         const discountRangeQuery = `
           SELECT p.*,
-            CASE 
-              WHEN p.mrp IS NOT NULL AND p.mrp > p.price THEN 
+            CASE
+              WHEN p.mrp IS NOT NULL AND p.mrp > p.price THEN
                 ROUND(((p.mrp - p.price) / p.mrp) * 100)
               ELSE 0
             END AS discount_percentage
           FROM products p
-          WHERE p.deleted = false 
-            AND p.approved = true 
+          WHERE p.deleted = false
+            AND p.approved = true
             AND (p.is_draft IS NULL OR p.is_draft = false)
-            AND p.mrp IS NOT NULL 
+            AND p.mrp IS NOT NULL
             AND p.mrp > p.price
             AND ROUND(((p.mrp - p.price) / p.mrp) * 100) >= $1
             AND ROUND(((p.mrp - p.price) / p.mrp) * 100) <= $2
@@ -12929,7 +12933,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         // Recent orders (last 5)
         const recentOrdersResult = await pool.query(`
-          SELECT o.id, o.user_id, o.date as created_at, o.status, o.total, u.username 
+          SELECT o.id, o.user_id, o.date as created_at, o.status, o.total, u.username
           FROM orders o
           JOIN users u ON o.user_id = u.id
           ORDER BY o.date DESC LIMIT 5
@@ -13800,7 +13804,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       size: A4;
       margin: 3mm;
     }
-    
+
     /* Half A4 container - width is half of A4, height is full A4 */
     .half-a4-container {
       width: 148.5mm; /* Half of A4 width (297mm) */
@@ -13809,7 +13813,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       position: relative;
       overflow: hidden;
     }
-    
+
     body {
       font-family: Arial, sans-serif;
       font-size: 9px;
@@ -13820,7 +13824,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
-    
+
     .container {
       width: 148.5mm;
       height: auto; /* allow content-driven height to avoid extra bottom space */
@@ -13830,7 +13834,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       overflow: visible;
       position: relative;
     }
-    
+
     .invoice-header {
       padding: 5px;
       background-color: #ffffff;
@@ -13842,21 +13846,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       box-sizing: border-box;
       height: 40px;
     }
-    
+
     .header-left {
       display: table-cell;
       width: 35%;
       vertical-align: top;
       padding-top: 5px;
     }
-    
+
     .header-right {
       display: table-cell;
       width: 65%;
       vertical-align: top;
       text-align: right;
     }
-    
+
     .invoice-logo {
       max-height: 35px;
       margin-top: 2px;
@@ -13865,7 +13869,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       object-fit: contain;
       margin-bottom: 5px;
     }
-    
+
     .invoice-title {
       font-weight: bold;
       font-size: 12px;
@@ -13873,32 +13877,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       margin: 0 0 5px 0;
       text-align: right;
     }
-    
+
     .header-info-table {
       border-collapse: collapse;
       float: right;
       clear: both;
       margin-top: 0;
     }
-    
+
     .header-info-table td {
       padding: 1px 0;
       font-size: 8px;
       line-height: 1.1;
     }
-    
+
     .header-info-table .label-col {
       text-align: left;
       padding-right: 8px;
       white-space: nowrap;
       min-width: 50px;
     }
-    
+
     .header-info-table .value-col {
       text-align: left;
       white-space: nowrap;
     }
-    
+
     .address-section {
       overflow: visible;
       font-size: 9px;
@@ -13906,7 +13910,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       page-break-inside: avoid;
       min-height: 60px;
     }
-    
+
     .bill-to, .ship-to {
       width: 48%;
       padding: 4px;
@@ -13914,15 +13918,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       min-height: 50px;
       vertical-align: top;
     }
-    
+
     .bill-to {
       float: left;
     }
-    
+
     .ship-to {
       float: right;
     }
-    
+
     .business-section {
       overflow: visible;
       font-size: 9px;
@@ -13931,7 +13935,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       min-height: 50px;
       margin-bottom: 15px;
     }
-    
+
     .bill-from, .ship-from {
       width: 48%;
       padding: 4px;
@@ -13939,15 +13943,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       min-height: 40px;
       vertical-align: top;
     }
-    
+
     .bill-from {
       float: left;
     }
-    
+
     .ship-from {
       float: right;
     }
-    
+
     table.items {
       width: 100%;
       border-collapse: collapse;
@@ -13956,7 +13960,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       page-break-inside: avoid;
       margin-top: 10px;
     }
-    
+
     table.items th {
       background-color: #f8f9fa;
       border: 1px solid #000;
@@ -13966,7 +13970,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       font-size: 8px;
       color: #2c3e50;
     }
-    
+
     table.items td {
       border: 1px solid #000;
       padding: 4px 3px;
@@ -13974,14 +13978,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       font-size: 8px;
       vertical-align: top;
     }
-    
+
     .description-cell {
       text-align: left !important;
       max-width: 90px;
       word-wrap: break-word;
       white-space: normal;
     }
-    
+
     .amount-in-words {
       margin: 0;
       padding: 4px;
@@ -13993,7 +13997,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       page-break-inside: avoid;
       min-height: 30px;
     }
-    
+
     .signature-section {
       background-color: #ffffff;
       padding: 4px;
@@ -14003,24 +14007,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       margin-bottom: 2px;
       min-height: 40px;
     }
-    
+
     .signature-content {
       width: 100%;
       overflow: hidden;
     }
-    
+
     .qr-section {
       float: left;
       width: 30%;
       text-align: left;
     }
-    
+
     .qr-section img,
     .qr-section svg {
       max-width: 35px;
       max-height: 35px;
     }
-    
+
     .signature-box {
       float: right;
       width: 60%;
@@ -14028,14 +14032,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       font-size: 8px;
       color: #2c3e50;
     }
-    
+
     .signature-box .bold {
       font-size: 9px;
       margin-bottom: 2px;
       font-weight: 600;
       color: #000000;
     }
-    
+
     .signature-box img {
       height: 20px;
       margin: 3px 0;
@@ -14043,12 +14047,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       margin-left: auto;
       object-fit: contain;
     }
-    
+
     .bold {
       font-weight: 600;
       color: #2c3e50;
     }
-    
+
     .taxes-cell {
       font-size: 7px;
       line-height: 1.2;
@@ -14067,19 +14071,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
       }
-      
+
       .container {
         page-break-inside: avoid;
       }
-      
+
       table.items {
         page-break-inside: avoid;
       }
-      
+
       .signature-section {
         page-break-inside: avoid;
       }
-      
+
       .header-info-table {
         page-break-inside: avoid;
       }
@@ -14099,10 +14103,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       <div class="header-left">
         <img src="${logoBase64}" alt="LeleKart Logo" class="invoice-logo">
       </div>
-      
+
       <div class="header-right">
         <div class="invoice-title">Tax Invoice/Bill of Supply/Cash Memo</div>
-        
+
         <table class="header-info-table">
           <tr>
             <td class="label-col bold">Invoice Date:</td>
@@ -14119,7 +14123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         </table>
       </div>
     </div>
-    
+
     <div class="address-section clearfix">
       <div class="bill-to">
         <div class="bold">Billing Address</div>
@@ -14150,7 +14154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {{/if}}
       </div>
     </div>
-    
+
     <div class="business-section clearfix">
       <div class="bill-from">
         <div class="bold">Bill From</div>
@@ -14187,7 +14191,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {{/if}}
       </div>
     </div>
-    
+
     <table class="items">
       <thead>
         <tr>
@@ -14218,12 +14222,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {{/each}}
       </tbody>
     </table>
-    
+
     <div class="amount-in-words">
       <span class="bold">Amount in words:</span>
       <span style="font-style: italic; margin-left: 5px;">{{amountInWords total}} Only</span>
     </div>
-    
+
     <div class="signature-section">
       <div class="signature-content clearfix">
         <div class="qr-section">
@@ -14238,7 +14242,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           {{else}}
             <div class="bold">Lele Kart Retail Private Limited</div>
           {{/if}}
-          <img 
+          <img
             src="${signatureBase64}"
             alt="Authorized Signature"
           />
@@ -14251,15 +14255,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           <div style="flex: 1; padding-right: 15px;">
             <div style="font-weight: bold; font-size: 11px; margin-bottom: 6px; color: #2c3e50;">Declaration</div>
             <div style="margin-bottom: 12px; text-align: justify;">The goods sold as part of this shipment are intended for end-user consumption and are not for retail sale distribution.</div>
-            
+
             <div style="font-weight: bold; font-size: 11px; margin-bottom: 6px; color: #2c3e50;">Return Policy:</div>
             <div style="text-align: justify;">If the item is defective or not as described, you may return it during delivery. You may also request a return within 02 days of delivery for defective items or items different from what you ordered. All returned items must be complete with freebies, undamaged, and unopened if returned for being different from what was ordered according to our policy.</div>
           </div>
-          
+
           <div style="flex: 1; padding-left: 15px;">
             <div style="font-weight: bold; font-size: 11px; margin-bottom: 6px; color: #2c3e50;">Regd. Office</div>
             <div style="margin-bottom: 12px; text-align: justify;">Building no 2072, Chandigarh Royale City, Bollywood Gully Banur, SAS Nagar, Mohali, Punjab, India - 140601</div>
-            
+
             <div style="font-weight: bold; font-size: 11px; margin-bottom: 6px; color: #2c3e50;">Contact us</div>
             <div style="text-align: justify;">For any questions, please call our customer care at +91 98774 54036. You can also use the Contact Us section in our App or visit www.lelekart.com/Contact-us for assistance and support regarding your orders.</div>
           </div>
@@ -14337,110 +14341,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
             margin: 20px;
             padding: 0;
           }
-          
+
           .container {
             max-width: 800px;
             margin: 0 auto;
             border: 2px solid #000;
           }
-          
+
           .slip-title {
             text-align: center;
             font-weight: bold;
             font-size: 18px;
             padding: 10px;
-           
+
           }
-          
+
           .seller-info {
             display: flex;
             justify-content: space-between;
             padding: 10px;
-        
+
           }
-          
+
           .seller-details {
             width: 70%;
           }
-          
+
           .qr-code {
             width: 30%;
             text-align: right;
           }
-          
+
           .address-section {
             display: flex;
             border-bottom: 1px solid #000;
           }
-            
-          
+
+
           .ship-from, .ship-to {
             width: 50%;
             padding: 12px;
             box-sizing: border-box;
           }
-          
+
           .ship-from {
             text-align: right;
             float: right;
           }
-          
+
           .order-details {
             display: flex;
             border-bottom: 1px solid #000;
           }
-          
+
           .order-left, .order-right {
             width: 50%;
             padding: 10px;
           }
-          
+
           .order-left {
             border-right: 1px solid #000;
           }
-          
+
           table {
             width: 100%;
             border-collapse: collapse;
           }
-          
+
           table.items {
             border-bottom: 1px solid #000;
           }
-          
+
           table.items th, table.items td {
             border: 1px solid #000;
             padding: 6px;
             text-align: center;
           }
-          
+
           table.items th {
             background-color: #f2f2f2;
           }
-          
+
           .summary {
             text-align: center;
             padding: 10px;
             border-bottom: 1px solid #000;
             font-weight: bold;
           }
-          
+
           .totals-section {
             border-bottom: 1px solid #000;
             padding: 10px;
           }
-          
+
           .signature-section {
             display: flex;
             padding: 10px;
-            
+
             margin-bottom: 2px;
           }
-          
+
           .signature {
             width: 50%;
           }
-          
+
           .authorized-signature {
             margin-top: 60px;
             border-top: 1px solid #000;
@@ -14448,29 +14452,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
             text-align: center;
             padding-top: 5px;
           }
-          
+
           .instructions {
             font-size: 10px;
             padding: 10px;
             border-bottom: 1px solid #000;
           }
-          
+
           .footer {
             display: flex;
             align-items: center;
             padding: 10px;
           }
-          
+
           .footer-text {
             width: 75%;
             font-size: 10px;
           }
-          
+
           .footer-logo {
             width: 25%;
             text-align: right;
           }
-          
+
           .barcode {
             font-family: monospace;
             text-align: center;
@@ -14479,11 +14483,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             border-bottom: 1px solid #000;
             margin: 10px 0;
           }
-          
+
           .bold {
             font-weight: bold;
           }
-          
+
           .item-list-title {
             font-weight: bold;
             text-align: left;
@@ -14497,7 +14501,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           <div class="slip-title">
             PACKING SLIP
           </div>
-          
+
           <div class="seller-info">
             <div class="seller-details">
               <div class="bold">Seller: {{#if businessDetails.businessName}}{{businessDetails.businessName}}{{else}}{{seller.username}}{{/if}}</div>
@@ -14509,7 +14513,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               QR Code #{{mainOrder.orderNumber}}
             </div>
           </div>
-          
+
           <div class="address-section">
             <div class="ship-from">
               <div class="bold">Ship From</div>
@@ -14537,7 +14541,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               {{/if}}
             </div>
           </div>
-          
+
           <div class="order-details">
             <div class="order-left">
               <div>Order Date: {{mainOrder.formattedDate}}</div>
@@ -14548,11 +14552,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               <div>Generated On: {{currentDate}}</div>
             </div>
           </div>
-          
+
           <div class="item-list-title">
             Items to Ship
           </div>
-          
+
           <table class="items">
             <thead>
               <tr>
@@ -14573,15 +14577,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
               {{/each}}
             </tbody>
           </table>
-          
+
           <div class="barcode">
             *LE-{{mainOrder.id}}-SO-{{sellerOrder.id}}*
           </div>
-          
+
           <div class="summary">
             Shipping Instructions
           </div>
-          
+
           <div class="totals-section">
             <div>
               {{#if mainOrder.shippingDetails.notes}}
@@ -14592,7 +14596,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               {{/if}}
             </div>
           </div>
-          
+
           <div class="signature-section">
             <div class="signature">
               <div class="bold">LeleKart Retail Private Limited</div>
@@ -14601,7 +14605,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               </div>
             </div>
           </div>
-          
+
           <div class="instructions">
             <div class="bold">Instructions for Packaging:</div>
             <ol>
@@ -14612,7 +14616,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               <li>Retain a copy of this packing slip for your records.</li>
             </ol>
           </div>
-          
+
           <div class="footer">
             <div class="footer-text">
               <div>This is a computer-generated document. No signature required.</div>
@@ -14653,8 +14657,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { status } = req.query;
       let query = `
-        SELECT sa.*, u.username as reviewed_by_name 
-        FROM seller_applications sa 
+        SELECT sa.*, u.username as reviewed_by_name
+        FROM seller_applications sa
         LEFT JOIN users u ON sa.reviewed_by = u.id
       `;
       const params = [];
@@ -14688,7 +14692,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const {
         rows: [application],
       } = await pool.query(
-        `UPDATE seller_applications 
+        `UPDATE seller_applications
          SET status = 'approved', admin_notes = $1, reviewed_by = $2, reviewed_at = CURRENT_TIMESTAMP
          WHERE id = $3 RETURNING *`,
         [adminNotes || null, req.user.id, id]
@@ -14714,10 +14718,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const {
           rows: [updatedUser],
         } = await pool.query(
-          `UPDATE users 
-           SET role = 'seller', approved = true, rejected = false, 
+          `UPDATE users
+           SET role = 'seller', approved = true, rejected = false,
                name = COALESCE($1, name), phone = COALESCE($2, phone), address = COALESCE($3, address)
-           WHERE id = $4 
+           WHERE id = $4
            RETURNING *`,
           [
             application.business_name,
@@ -14778,7 +14782,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const {
         rows: [application],
       } = await pool.query(
-        `UPDATE seller_applications 
+        `UPDATE seller_applications
          SET status = 'rejected', admin_notes = $1, reviewed_by = $2, reviewed_at = CURRENT_TIMESTAMP
          WHERE id = $3 RETURNING *`,
         [adminNotes || null, req.user.id, id]
@@ -14807,10 +14811,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const { rows } = await pool.query(`
-        SELECT 
+        SELECT
           status,
           COUNT(*) as count
-        FROM seller_applications 
+        FROM seller_applications
         GROUP BY status
       `);
 
