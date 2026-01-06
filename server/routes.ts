@@ -352,10 +352,6 @@ import {
 } from "./handlers/shipping-handlers";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  app.get("/api/health", (req, res) => {
-    res.status(200).send("ok");
-  });
-
   // --- CRITICAL: Register this API route first! ---
   app.get("/api/subcategories/all", async (_req, res) => {
     try {
@@ -12635,22 +12631,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create HTTP server with port forwarding support for Replit deployment
   const httpServer = createServer(app);
 
-  // Health check endpoint for Replit deployment
-  app.get("/health", (req, res) => {
-    res.status(200).send("OK");
-  });
-
-  // Handle health check at root for non-UI requests
-  app.get("/", (req, res, next) => {
-    // Only act as health check if the request explicitly wants non-HTML
-    const acceptHeader = req.get("Accept");
-    if (acceptHeader && !acceptHeader.includes("text/html")) {
-      return res.status(200).send("OK");
-    }
-    // Otherwise, proceed to serve the actual app
-    next();
-  });
-
   // Career form submission route
   app.post("/api/careers/submit", upload.single("resume"), async (req, res) => {
     try {
@@ -12779,42 +12759,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({
         error: "Failed to process application",
         details: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
-  });
-
-  // Simple ping endpoint for deployment health checks
-  app.get("/ping", (req, res) => {
-    res.status(200).send("pong");
-  });
-
-  // More detailed health check endpoint
-  app.get("/api/health", (req, res) => {
-    // Check database connection
-    try {
-      pool
-        .query("SELECT 1")
-        .then(() => {
-          res.status(200).json({
-            status: "ok",
-            message: "Server is running and database connection is working",
-            timestamp: new Date().toISOString(),
-          });
-        })
-        .catch((error) => {
-          console.error("Health check - Database error:", error);
-          res.status(500).json({
-            status: "error",
-            message: "Database connection failed",
-            timestamp: new Date().toISOString(),
-          });
-        });
-    } catch (error) {
-      console.error("Health check failed:", error);
-      res.status(500).json({
-        status: "error",
-        message: "Server error during health check",
-        timestamp: new Date().toISOString(),
       });
     }
   });
