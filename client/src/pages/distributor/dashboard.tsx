@@ -97,34 +97,38 @@ export default function DistributorDashboard() {
 
   if (loadingDistributor) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto space-y-6">
-          <Skeleton className="h-32 w-full" />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Skeleton className="h-32" />
-            <Skeleton className="h-32" />
-            <Skeleton className="h-32" />
+      <DashboardLayout>
+        <div className="min-h-screen bg-gray-50 p-6">
+          <div className="max-w-7xl mx-auto space-y-6">
+            <Skeleton className="h-32 w-full" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Skeleton className="h-32" />
+              <Skeleton className="h-32" />
+              <Skeleton className="h-32" />
+            </div>
           </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   if (!distributor) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="max-w-md">
-          <CardHeader>
-            <CardTitle>No Distributor Account</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Your account is not set up as a distributor. Please contact the
-              administrator for assistance.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <DashboardLayout>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <Card className="max-w-md">
+            <CardHeader>
+              <CardTitle>No Distributor Account</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Your account is not set up as a distributor. Please contact the
+                administrator for assistance.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
     );
   }
 
