@@ -79,6 +79,7 @@ import { sendEmail, EMAIL_TEMPLATES } from "./services/email-service";
 import affiliateMarketingRoutes from "./routes/affiliate-marketing-routes";
 import becomeSellerRoutes from "./routes/become-seller-routes";
 import chatRoutes from "./routes/chat-routes";
+import bulkOrdersRoutes from "./routes/bulk-orders-routes"; // Import bulk orders routes
 import * as returnsHandlers from "./handlers/returns-handlers";
 
 // Helper function to apply product display settings
@@ -417,6 +418,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register chat routes
   app.use("/api/chat", chatRoutes);
+
+  // Register bulk orders routes
+  app.use("/api", bulkOrdersRoutes);
 
   // --- FIX: Proxy /api/orders/:orderId/mark-for-return to returnRoutes ---
   app.post("/api/orders/:orderId/mark-for-return", (req, res, next) => {

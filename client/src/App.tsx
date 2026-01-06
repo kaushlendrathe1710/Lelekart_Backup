@@ -95,6 +95,9 @@ import EditDistributorPage from "./pages/admin/edit-distributor";
 import DistributorDetailsPage from "./pages/admin/distributor-details";
 import DistributorApplicationsPage from "./pages/admin/distributor-applications";
 import DistributorDashboard from "./pages/distributor/dashboard";
+import AdminBulkItemsManagement from "./pages/admin/bulk-items-management";
+import AdminBulkOrders from "./pages/admin/bulk-orders";
+import DistributorBulkOrders from "./pages/DistributorBulkOrders";
 // Import shared components
 import { SuspenseWrapper } from "./components/shared/suspense-wrapper";
 import PressReleaseDetail from "./pages/static/press-release";
@@ -1008,6 +1011,36 @@ function App() {
                         )}
                       </Route>
 
+                      <Route path="/admin/bulk-items">
+                        {() => (
+                          <ProtectedRoute
+                            path="/admin/bulk-items"
+                            role="admin"
+                            component={AdminBulkItemsManagement}
+                          />
+                        )}
+                      </Route>
+
+                      <Route path="/admin/bulk-items-management">
+                        {() => (
+                          <ProtectedRoute
+                            path="/admin/bulk-items-management"
+                            role="admin"
+                            component={AdminBulkItemsManagement}
+                          />
+                        )}
+                      </Route>
+
+                      <Route path="/admin/bulk-orders">
+                        {() => (
+                          <ProtectedRoute
+                            path="/admin/bulk-orders"
+                            role="admin"
+                            component={AdminBulkOrders}
+                          />
+                        )}
+                      </Route>
+
                       <Route path="/admin/product-display-settings">
                         {() => (
                           <ProtectedRoute
@@ -1407,6 +1440,16 @@ function App() {
                             path="/distributor/dashboard"
                             role="buyer"
                             component={DistributorDashboard}
+                          />
+                        )}
+                      </Route>
+
+                      <Route path="/distributor/bulk-orders">
+                        {() => (
+                          <ProtectedRoute
+                            path="/distributor/bulk-orders"
+                            role="buyer"
+                            component={DistributorBulkOrders}
                           />
                         )}
                       </Route>

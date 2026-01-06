@@ -2597,3 +2597,112 @@ export const stockRemindersRelations = relations(stockReminders, ({ one }) => ({
     references: [productVariants.id],
   }),
 }));
+
+// ============================================
+// BULK ORDERS FEATURE TABLES
+// ============================================
+
+// Bulk Items - Admin configuration for which products are available for bulk ordering
+export const bulkItems = pgTable("bulk_items", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id")
+    .notNull()
+    .references(() => products.id, { onDelete: "cascade" }),
+  allowPieces: boolean("allow_pieces").notNull().default(true),
+  allowSets: boolean("allow_sets").notNull().default(false),
+  piecesPerSet: integer("pieces_per_set"), // Required if allow_sets = true
+  sellingPrice: decimal("selling_price", { precision: 10, scale: 2 }), // Bulk order selling price (can be different from regular product price)
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertBulkItemSchema = createInsertSchema(bulkItems).pick({
+  productId: true,
+  allowPieces: true,
+  allowSets: true,
+  piecesPerSet: true,
+  sellingPrice: true,
+});
+
+export type BulkItem = typeof bulkItems.$inferSelect;
+export type InsertBulkItem = z.infer<typeof insertBulkItemSchema>;
+
+// Bulk Orders - Master table for bulk order submissions by distributors
+export const bulkOrders = pgTable("bulk_orders", {
+  id: serial("id").primaryKey(),
+  distributorId: integer("distributor_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  totalAmount: decimal("total_amount", { precision: 12, scale: 2 }).notNull(),
+  status: text("status").notNull().default("pending"), // 'pending', 'approved', 'rejected'
+  notes: text("notes"), // Admin notes for approval/rejection
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertBulkOrderSchema = createInsertSchema(bulkOrders).pick({
+  distributorId: true,
+  totalAmount: true,
+  status: true,
+  notes: true,
+});
+
+export type BulkOrder = typeof bulkOrders.$inferSelect;
+export type InsertBulkOrder = z.infer<typeof insertBulkOrderSchema>;
+
+// Bulk Order Items - Individual line items in a bulk order
+export const bulkOrderItems = pgTable("bulk_order_items", {
+  id: serial("id").primaryKey(),
+  bulkOrderId: integer("bulk_order_id")
+    .notNull()
+    .references(() => bulkOrders.id, { onDelete: "cascade" }),
+  productId: integer("product_id")
+    .notNull()
+    .references(() => products.id, { onDelete: "cascade" }),
+  orderType: text("order_type").notNull(), // 'pieces' or 'sets'
+  quantity: integer("quantity").notNull(), // Quantity in pieces or sets
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
+  totalPrice: decimal("total_price", { precision: 12, scale: 2 }).notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertBulkOrderItemSchema = createInsertSchema(bulkOrderItems).pick({
+  bulkOrderId: true,
+  productId: true,
+  orderType: true,
+  quantity: true,
+  unitPrice: true,
+  totalPrice: true,
+});
+
+export type BulkOrderItem = typeof bulkOrderItems.$inferSelect;
+export type InsertBulkOrderItem = z.infer<typeof insertBulkOrderItemSchema>;
+
+// Relations for Bulk Items
+export const bulkItemsRelations = relations(bulkItems, ({ one }) => ({
+  product: one(products, {
+    fields: [bulkItems.productId],
+    references: [products.id],
+  }),
+}));
+
+// Relations for Bulk Orders
+export const bulkOrdersRelations = relations(bulkOrders, ({ one, many }) => ({
+  distributor: one(users, {
+    fields: [bulkOrders.distributorId],
+    references: [users.id],
+  }),
+  items: many(bulkOrderItems),
+}));
+
+// Relations for Bulk Order Items
+export const bulkOrderItemsRelations = relations(bulkOrderItems, ({ one }) => ({
+  bulkOrder: one(bulkOrders, {
+    fields: [bulkOrderItems.bulkOrderId],
+    references: [bulkOrders.id],
+  }),
+  product: one(products, {
+    fields: [bulkOrderItems.productId],
+    references: [products.id],
+  }),
+}));

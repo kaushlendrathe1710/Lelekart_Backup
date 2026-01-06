@@ -609,6 +609,22 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     variant="ghost"
                     asChild
                     className={`w-full justify-start ${
+                      isActive("/distributor/bulk-orders")
+                        ? "bg-primary/10 text-primary"
+                        : ""
+                    }`}
+                  >
+                    <Link href="/distributor/bulk-orders">
+                      <Package className="mr-2 h-4 w-4" />
+                      <span>Bulk Orders</span>
+                    </Link>
+                  </Button>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <Button
+                    variant="ghost"
+                    asChild
+                    className={`w-full justify-start ${
                       isActive("/buyer/settings")
                         ? "bg-primary/10 text-primary"
                         : ""

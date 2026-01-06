@@ -95,6 +95,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       location.includes("/admin/custom-invoice")
   );
 
+  const [bulkOrdersMenuOpen, setBulkOrdersMenuOpen] = useState(
+    location.includes("/admin/bulk-items") ||
+      location.includes("/admin/bulk-orders")
+  );
+
   const [shippingMenuOpen, setShippingMenuOpen] = useState(
     location.includes("/admin/shipping-management") ||
       location.includes("/admin/shipping-settings") ||
@@ -169,6 +174,25 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           title: "Custom Invoice",
           href: "/admin/custom-invoice",
           icon: <FileText className="h-5 w-5" />,
+        },
+      ],
+    },
+    {
+      collapsible: true,
+      title: "Bulk Orders",
+      icon: <Package className="h-5 w-5" />,
+      open: bulkOrdersMenuOpen,
+      onOpenChange: setBulkOrdersMenuOpen,
+      items: [
+        {
+          title: "Manage Bulk Items",
+          href: "/admin/bulk-items-management",
+          icon: <Package className="h-5 w-5" />,
+        },
+        {
+          title: "Bulk Orders",
+          href: "/admin/bulk-orders",
+          icon: <ShoppingBag className="h-5 w-5" />,
         },
       ],
     },
