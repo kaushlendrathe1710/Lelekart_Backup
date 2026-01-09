@@ -66,6 +66,9 @@ import {
   distributors,
   distributorLedger,
   distributorApplications,
+  bulkOrders,
+  bulkOrderItems,
+  bulkItems,
 } from "@shared/schema";
 import returnRoutes from "./routes/return-routes"; // Import return management routes
 import * as backupHandlers from "./handlers/backup-handlers"; // Import backup handlers
@@ -80,7 +83,6 @@ import affiliateMarketingRoutes from "./routes/affiliate-marketing-routes";
 import becomeSellerRoutes from "./routes/become-seller-routes";
 import chatRoutes from "./routes/chat-routes";
 import bulkOrdersRoutes from "./routes/bulk-orders-routes"; // Import bulk orders routes
-import * as returnsHandlers from "./handlers/returns-handlers";
 
 // Helper function to apply product display settings
 function applyProductDisplaySettings(products: any[], settings: any) {
@@ -6368,6 +6370,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       console.log(`Created ${sellerOrders.length} seller orders successfully`);
+
+      // Add ledger entry if user is a distributor
+      try {
+        const [distributor] = await db
+          .select()
+          .from(distributors)
+          .where(eq(distributors.userId, req.user.id))
+          .limit(1);
+
+        if (distributor) {
+          // Get current balance from ledger
+          const lastLedgerEntry = await db
+            .select()
+            .from(distributorLedger)
+            .where(eq(distributorLedger.distributorId, distributor.id))
+            .orderBy(desc(distributorLedger.id))
+            .limit(1);
+
+          const currentBalance = lastLedgerEntry.length
+            ? lastLedgerEntry[0].balanceAfter
+            : 0;
+          const newBalance = currentBalance + Math.round(order.total);
+
+          // Add ledger entry for normal order
+          await storage.addLedgerEntry({
+            distributorId: distributor.id,
+            entryType: "order",
+            amount: Math.round(order.total),
+            orderId: order.id,
+            orderType: "normal",
+            description: `Order #${order.id} - ${itemsToProcess.length} item(s)`,
+            balanceAfter: newBalance,
+            createdBy: req.user.id,
+            notes: `Regular order from distributor`,
+          });
+
+          console.log(
+            `Ledger entry created for order ${order.id}, distributor ${distributor.id}`
+          );
+        }
+      } catch (ledgerError) {
+        console.error("Error creating ledger entry for order:", ledgerError);
+        // Don't fail the order creation if ledger fails
+      }
 
       // Process seller-specific order items
       if (sellerOrders.length > 1) {
@@ -13737,8 +13783,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return a > b;
       });
 
-      // Invoice template with fixed header alignment - Half A4 size
-      const invoiceTemplate = `<!DOCTYPE html>
+      // Regular Order Invoice Template - includes delivery charges column in items table
+      const orderInvoiceTemplate = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -14218,6 +14264,524 @@ export async function registerRoutes(app: Express): Promise<Server> {
 </body>
 </html>`;
 
+      // Bulk Order Invoice Template - shows delivery charges as separate row, not in items table
+      const bulkOrderInvoiceTemplate = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Tax Invoice</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 3mm;
+    }
+
+    /* Half A4 container - width is half of A4, height is full A4 */
+    .half-a4-container {
+      width: 148.5mm; /* Half of A4 width (297mm) */
+      height: 210mm; /* A4 height */
+      margin: 0 auto;
+      position: relative;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 9px;
+      line-height: 1.2;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .container {
+      width: 148.5mm;
+      height: auto; /* allow content-driven height to avoid extra bottom space */
+      margin: 0 auto;
+      border: 1px solid #000;
+      page-break-inside: avoid;
+      overflow: visible;
+      position: relative;
+    }
+
+    .invoice-header {
+      padding: 5px;
+      background-color: #ffffff;
+      margin-bottom: 0;
+      border-bottom: 1px solid #eee;
+      page-break-inside: avoid;
+      display: table;
+      width: 100%;
+      box-sizing: border-box;
+      height: 40px;
+    }
+
+    .header-left {
+      display: table-cell;
+      width: 35%;
+      vertical-align: top;
+      padding-top: 5px;
+    }
+
+    .header-right {
+      display: table-cell;
+      width: 65%;
+      vertical-align: top;
+      text-align: right;
+    }
+
+    .invoice-logo {
+      max-height: 35px;
+      margin-top: 2px;
+      height: 30px;
+      max-width: 120px;
+      object-fit: contain;
+      margin-bottom: 5px;
+    }
+
+    .invoice-title {
+      font-weight: bold;
+      font-size: 12px;
+      color: #2c3e50;
+      margin: 0 0 5px 0;
+      text-align: right;
+    }
+
+    .header-info-table {
+      border-collapse: collapse;
+      float: right;
+      clear: both;
+      margin-top: 0;
+    }
+
+    .header-info-table td {
+      padding: 1px 0;
+      font-size: 8px;
+      line-height: 1.1;
+    }
+
+    .header-info-table .label-col {
+      text-align: left;
+      padding-right: 8px;
+      white-space: nowrap;
+      min-width: 50px;
+    }
+
+    .header-info-table .value-col {
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .address-section {
+      overflow: visible;
+      font-size: 9px;
+      padding: 4px;
+      page-break-inside: avoid;
+      min-height: 60px;
+    }
+
+    .bill-to, .ship-to {
+      width: 48%;
+      padding: 4px;
+      box-sizing: border-box;
+      min-height: 50px;
+      vertical-align: top;
+    }
+
+    .bill-to {
+      float: left;
+    }
+
+    .ship-to {
+      float: right;
+    }
+
+    .business-section {
+      overflow: visible;
+      font-size: 9px;
+      padding: 4px;
+      page-break-inside: avoid;
+      min-height: 50px;
+      margin-bottom: 15px;
+    }
+
+    .bill-from, .ship-from {
+      width: 48%;
+      padding: 4px;
+      box-sizing: border-box;
+      min-height: 40px;
+      vertical-align: top;
+    }
+
+    .bill-from {
+      float: left;
+    }
+
+    .ship-from {
+      float: right;
+    }
+
+    table.items {
+      width: 100%;
+      border-collapse: collapse;
+      border-bottom: 1px solid #000;
+      font-size: 8px;
+      page-break-inside: avoid;
+      margin-top: 10px;
+    }
+
+    table.items th {
+      background-color: #f8f9fa;
+      border: 1px solid #000;
+      padding: 4px 3px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 8px;
+      color: #2c3e50;
+    }
+
+    table.items td {
+      border: 1px solid #000;
+      padding: 4px 3px;
+      text-align: center;
+      font-size: 8px;
+      vertical-align: top;
+    }
+
+    .description-cell {
+      text-align: left !important;
+      max-width: 90px;
+      word-wrap: break-word;
+      white-space: normal;
+    }
+
+    .amount-in-words {
+      margin: 0;
+      padding: 4px;
+      background-color: #ffffff;
+      font-family: 'Arial', sans-serif;
+      font-size: 9px;
+      line-height: 1.2;
+      color: #2c3e50;
+      page-break-inside: avoid;
+      min-height: 30px;
+    }
+
+    .signature-section {
+      background-color: #ffffff;
+      padding: 4px;
+      border-radius: 4px;
+      overflow: visible;
+      page-break-inside: avoid;
+      margin-bottom: 2px;
+      min-height: 40px;
+    }
+
+    .signature-content {
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .qr-section {
+      float: left;
+      width: 30%;
+      text-align: left;
+    }
+
+    .qr-section img,
+    .qr-section svg {
+      max-width: 35px;
+      max-height: 35px;
+    }
+
+    .signature-box {
+      float: right;
+      width: 60%;
+      text-align: right;
+      font-size: 8px;
+      color: #2c3e50;
+    }
+
+    .signature-box .bold {
+      font-size: 9px;
+      margin-bottom: 2px;
+      font-weight: 600;
+      color: #000000;
+    }
+
+    .signature-box img {
+      height: 20px;
+      margin: 3px 0;
+      display: block;
+      margin-left: auto;
+      object-fit: contain;
+    }
+
+    .bold {
+      font-weight: 600;
+      color: #2c3e50;
+    }
+
+    .taxes-cell {
+      font-size: 7px;
+      line-height: 1.2;
+    }
+
+    /* Clear floats */
+    .clearfix::after {
+      content: "";
+      display: table;
+      clear: both;
+    }
+
+    /* Print-specific styles */
+    @media print {
+      body {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .container {
+        page-break-inside: avoid;
+      }
+
+      table.items {
+        page-break-inside: avoid;
+      }
+
+      .signature-section {
+        page-break-inside: avoid;
+      }
+
+      .header-info-table {
+        page-break-inside: avoid;
+      }
+    }
+
+    /* Font loading fallbacks for consistent rendering */
+    @font-face {
+      font-family: 'Arial';
+      src: local('Arial'), local('Helvetica Neue'), local('Helvetica'), local('sans-serif');
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Fixed Header Section with proper alignment -->
+    <div class="invoice-header">
+      <div class="header-left">
+        <img src="${logoBase64}" alt="LeleKart Logo" class="invoice-logo">
+      </div>
+
+      <div class="header-right">
+        <div class="invoice-title">Tax Invoice/Bill of Supply/Cash Memo</div>
+
+        <table class="header-info-table">
+          <tr>
+            <td class="label-col bold">Invoice Date:</td>
+            <td class="value-col">{{formatDate order.date " DD MMM YYYY,dddd"}}</td>
+          </tr>
+          <tr>
+            <td class="label-col bold">Invoice No:</td>
+            <td class="value-col">LK-{{order.id}}</td>
+          </tr>
+          <tr>
+            <td class="label-col bold">Order No:</td>
+            <td class="value-col">{{order.orderNumber}}</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="address-section clearfix">
+      <div class="bill-to">
+        <div class="bold">Billing Address</div>
+        <br>
+        {{#if order.shippingDetails}}
+          <div>{{user.name}}</div>
+          <div>{{order.shippingDetails.address}}</div>
+          {{#if order.shippingDetails.address2}}<div>{{order.shippingDetails.address2}}</div>{{/if}}
+          <div>{{order.shippingDetails.city}}, {{order.shippingDetails.state}} {{order.shippingDetails.zipCode}}</div>
+        {{else}}
+          <div>{{user.name}}</div>
+          <div>{{user.email}}</div>
+          <div>Address details not available</div>
+        {{/if}}
+      </div>
+      <div class="ship-to">
+        <div class="bold">Shipping Address</div>
+        <br>
+        {{#if order.shippingDetails}}
+          <div>{{user.name}}</div>
+          <div>{{order.shippingDetails.address}}</div>
+          {{#if order.shippingDetails.address2}}<div>{{order.shippingDetails.address2}}</div>{{/if}}
+          <div>{{order.shippingDetails.city}}, {{order.shippingDetails.state}} {{order.shippingDetails.zipCode}}</div>
+        {{else}}
+          <div>{{user.name}}</div>
+          <div>{{user.email}}</div>
+          <div>Address details not available</div>
+        {{/if}}
+      </div>
+    </div>
+
+    <div class="business-section clearfix">
+      <div class="bill-from">
+        <div class="bold">Bill From</div>
+        <br>
+        {{#if seller.billingAddress}}
+          <div class="bold">{{seller.pickupAddress.businessName}}</div>
+          <div>{{seller.billingAddress.line1}}</div>
+          {{#if seller.billingAddress.line2}}<div>{{seller.billingAddress.line2}}</div>{{/if}}
+          <div>{{seller.billingAddress.city}}, {{seller.billingAddress.state}} {{seller.billingAddress.pincode}}</div>
+          <div>GSTIN: {{seller.taxInformation.gstin}}</div>
+          <div>PAN: {{seller.taxInformation.panNumber}}</div>
+        {{else}}
+          <div class="bold">{{seller.taxInformation.businessName}}</div>
+          <div>{{seller.address}}</div>
+          <div>Mumbai, Maharashtra 400001</div>
+          {{#if seller.taxInformation.gstin}}<div>GSTIN: {{seller.taxInformation.gstin}}</div>{{/if}}
+        {{/if}}
+      </div>
+      <div class="ship-from">
+        <div class="bold">Ship From</div>
+        <br>
+        {{#if seller.pickupAddress}}
+          <div class="bold">{{seller.pickupAddress.businessName}}</div>
+          <div>{{seller.pickupAddress.line1}}</div>
+          {{#if seller.pickupAddress.line2}}<div>{{seller.pickupAddress.line2}}</div>{{/if}}
+          <div>{{seller.pickupAddress.city}}, {{seller.pickupAddress.state}} {{seller.pickupAddress.pincode}}</div>
+          <div>GSTIN: {{seller.taxInformation.gstin}}</div>
+          <div>PAN: {{seller.taxInformation.panNumber}}</div>
+        {{else}}
+          <div class="bold">{{seller.taxInformation.businessName}}</div>
+          <div>Warehouse Address: {{seller.address}}</div>
+          <div>Mumbai, Maharashtra 400001</div>
+          {{#if seller.taxInformation.gstin}}<div>GSTIN: {{seller.taxInformation.gstin}}</div>{{/if}}
+        {{/if}}
+      </div>
+    </div>
+
+    <table class="items">
+      <thead>
+        <tr>
+          <th>Sr No</th>
+          <th>Description</th>
+          <th>Qty</th>
+          <th>MRP</th>
+          <th>Discount</th>
+          <th>Taxable Value</th>
+          <th>Taxes</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each order.items}}
+        <tr>
+          <td>{{add @index 1}}</td>
+          <td class="description-cell">{{this.product.name}}</td>
+          <td>{{this.displayQuantity}}</td>
+          <td>{{formatMoney (multiply this.product.mrp this.quantity)}}</td>
+          <td>{{formatMoney (multiply (subtract this.product.mrp this.price) this.quantity)}}</td>
+          <td>{{calculateTaxableValue this.price this.quantity this.product.gstRate}}</td>
+          <td class="taxes-cell">{{{calculateTaxes this.price this.quantity this.product.gstRate ../order.shippingDetails.state ../seller.pickupAddress.state}}}</td>
+          <td>{{formatMoney (multiply this.price this.quantity)}}</td>
+        </tr>
+        {{/each}}
+        {{#if additionalDeliveryCharges}}
+        {{#if (gt additionalDeliveryCharges 0)}}
+        <tr style="border-top: 2px solid #000;">
+          <td colspan="5" style="text-align: right; font-weight: bold;">Delivery Charges (Taxable Value)</td>
+          <td style="font-weight: bold;">{{formatMoney deliveryChargesTaxable}}</td>
+          <td class="taxes-cell" style="font-weight: bold;">
+            {{#if isSameState}}
+              CGST @ {{multiply deliveryChargesGstRate 0.5}}%: {{formatMoney (multiply deliveryChargesGst 0.5)}}<br>
+              SGST @ {{multiply deliveryChargesGstRate 0.5}}%: {{formatMoney (multiply deliveryChargesGst 0.5)}}
+            {{else}}
+              IGST @ {{deliveryChargesGstRate}}%: {{formatMoney deliveryChargesGst}}
+            {{/if}}
+          </td>
+          <td style="font-weight: bold;">{{formatMoney additionalDeliveryCharges}}</td>
+        </tr>
+        {{/if}}
+        {{/if}}
+      </tbody>
+    </table>
+
+    <!-- Totals Summary Section -->
+    <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+      <table style="width: 350px; border-collapse: collapse; font-size: 11px;">
+        <tr>
+          <td style="padding: 6px; text-align: right; font-weight: bold;">Subtotal (Items):</td>
+          <td style="padding: 6px; text-align: right; width: 120px;">₹{{formatMoney (calculateTotal order.items)}}</td>
+        </tr>
+        {{#if additionalDeliveryCharges}}
+        {{#if (gt additionalDeliveryCharges 0)}}
+        <tr>
+          <td style="padding: 6px; text-align: right;">Delivery Charges:</td>
+          <td style="padding: 6px; text-align: right;">₹{{formatMoney additionalDeliveryCharges}}</td>
+        </tr>
+        {{/if}}
+        {{/if}}
+        <tr style="border-top: 2px solid #000; font-weight: bold; font-size: 13px;">
+          <td style="padding: 10px 6px 6px 6px; text-align: right;">Grand Total:</td>
+          <td style="padding: 10px 6px 6px 6px; text-align: right;">₹{{formatMoney grandTotal}}</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="amount-in-words">
+      <span class="bold">Amount in words:</span>
+      <span style="font-style: italic; margin-left: 5px;">{{amountInWords grandTotal}} Only</span>
+    </div>
+
+    <div class="signature-section">
+      <div class="signature-content clearfix">
+        <div class="qr-section">
+          <div style="margin-bottom: 5px; font-size: 10px; color: #666;">Scan to verify invoice</div>
+          <div style="margin-top: 10px;">
+            {{{qrCode}}}
+          </div>
+        </div>
+        <div class="signature-box">
+          {{#if seller.pickupAddress.businessName}}
+            <div class="bold">{{seller.pickupAddress.businessName}}</div>
+          {{else}}
+            <div class="bold">Lele Kart Retail Private Limited</div>
+          {{/if}}
+          <img
+            src="${signatureBase64}"
+            alt="Authorized Signature"
+          />
+          <div class="bold">Authorized Signatory</div>
+        </div>
+      </div>
+      <!-- Declaration section inside container -->
+      <div style="padding: 12px; font-size: 10px; line-height: 1.4; color: #333; background-color: #f9f9f9; border-top: 1px solid #000; margin-top: 2px; max-width: 800px;">
+        <div style="display: flex; justify-content: space-between; gap: 20px;">
+          <div style="flex: 1; padding-right: 15px;">
+            <div style="font-weight: bold; font-size: 11px; margin-bottom: 6px; color: #2c3e50;">Declaration</div>
+            <div style="margin-bottom: 12px; text-align: justify;">The goods sold as part of this shipment are intended for end-user consumption and are not for retail sale distribution.</div>
+
+            <div style="font-weight: bold; font-size: 11px; margin-bottom: 6px; color: #2c3e50;">Return Policy:</div>
+            <div style="text-align: justify;">If the item is defective or not as described, you may return it during delivery. You may also request a return within 02 days of delivery for defective items or items different from what you ordered. All returned items must be complete with freebies, undamaged, and unopened if returned for being different from what was ordered according to our policy.</div>
+          </div>
+
+          <div style="flex: 1; padding-left: 15px;">
+            <div style="font-weight: bold; font-size: 11px; margin-bottom: 6px; color: #2c3e50;">Regd. Office</div>
+            <div style="margin-bottom: 12px; text-align: justify;">Building no 2072, Chandigarh Royale City, Bollywood Gully Banur, SAS Nagar, Mohali, Punjab, India - 140601</div>
+
+            <div style="font-weight: bold; font-size: 11px; margin-bottom: 6px; color: #2c3e50;">Contact us</div>
+            <div style="text-align: justify;">For any questions, please call our customer care at +91 98774 54036. You can also use the Contact Us section in our App or visit www.lelekart.com/Contact-us for assistance and support regarding your orders.</div>
+          </div>
+        </div>
+    </div>
+    </div>
+  </div>
+</body>
+</html>`;
+
       handlebars.registerHelper("calculateTotal", function (items) {
         return items.reduce(
           (sum: number, item: any) => sum + item.price * item.quantity,
@@ -14259,7 +14823,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return a > b;
       });
 
-      const template = handlebars.compile(invoiceTemplate);
+      // Use bulk order template if isBulkOrder flag is true, otherwise use regular order template
+      const templateToUse = data.isBulkOrder
+        ? bulkOrderInvoiceTemplate
+        : orderInvoiceTemplate;
+      const template = handlebars.compile(templateToUse);
       return template(data);
     } catch (error) {
       console.error("Error generating invoice HTML:", error);
@@ -15198,6 +15766,206 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get single distributor application (admin only)
+  app.get("/api/admin/distributor-applications/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin")
+      return res.status(403).json({ error: "Not authorized" });
+
+    try {
+      const id = parseInt(req.params.id);
+      const application = await db
+        .select()
+        .from(distributorApplications)
+        .where(eq(distributorApplications.id, id))
+        .limit(1);
+
+      if (application.length === 0) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+
+      res.json(application[0]);
+    } catch (error) {
+      console.error("Error fetching distributor application:", error);
+      res.status(500).json({ error: "Failed to fetch application" });
+    }
+  });
+
+  // Approve distributor application (admin only)
+  app.post(
+    "/api/admin/distributor-applications/:id/approve",
+    async (req, res) => {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      if (req.user.role !== "admin")
+        return res.status(403).json({ error: "Not authorized" });
+
+      try {
+        const id = parseInt(req.params.id);
+        const { reviewNotes } = req.body;
+
+        // Get the application
+        const application = await db
+          .select()
+          .from(distributorApplications)
+          .where(eq(distributorApplications.id, id))
+          .limit(1);
+
+        if (application.length === 0) {
+          return res.status(404).json({ error: "Application not found" });
+        }
+
+        const app = application[0];
+
+        // Normalize email to lowercase for consistency
+        const normalizedEmail = app.email.toLowerCase();
+
+        // Check if user already exists with this email
+        const existingUser = await storage.getUserByEmail(normalizedEmail);
+
+        let newUser;
+        if (existingUser) {
+          // User already exists, just update their information
+          newUser = existingUser;
+          console.log(
+            `User already exists for email ${normalizedEmail}, using existing user ID: ${newUser.id}`
+          );
+
+          // Update user with complete profile information if missing
+          await db
+            .update(users)
+            .set({
+              name: app.name,
+              phone: app.phone,
+              address: `${app.address}, ${app.city}, ${app.state} - ${app.pincode}`,
+              approved: true,
+            })
+            .where(eq(users.id, existingUser.id));
+        } else {
+          // Create new user account with unique username
+          let username = normalizedEmail
+            .split("@")[0]
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, "");
+
+          // Check if username already exists and make it unique
+          let usernameExists = await storage.getUserByUsername(username);
+          let suffix = 1;
+          while (usernameExists) {
+            username = `${normalizedEmail
+              .split("@")[0]
+              .toLowerCase()
+              .replace(/[^a-z0-9]/g, "")}${suffix}`;
+            usernameExists = await storage.getUserByUsername(username);
+            suffix++;
+          }
+
+          const randomPassword = Array.from(Array(20), () =>
+            Math.floor(Math.random() * 36).toString(36)
+          ).join("");
+
+          newUser = await storage.createUser({
+            email: normalizedEmail,
+            username,
+            password: randomPassword,
+            role: "buyer",
+            name: app.name, // Use name from application
+            phone: app.phone, // Use phone from application
+            address: `${app.address}, ${app.city}, ${app.state} - ${app.pincode}`, // Complete address
+            isCoAdmin: false,
+            permissions: {},
+            approved: true,
+            rejected: false,
+          });
+        }
+
+        // Create distributor record
+        await db.insert(distributors).values({
+          userId: newUser.id,
+          companyName: app.companyName,
+          businessType: app.businessType,
+          gstNumber: app.gstNumber,
+          panNumber: app.panNumber,
+          aadharCardUrl: app.aadharCardUrl,
+          address: app.address,
+          city: app.city,
+          state: app.state,
+          pincode: app.pincode,
+          notes: app.notes,
+          active: true,
+        });
+
+        // Update application status
+        await db
+          .update(distributorApplications)
+          .set({
+            status: "approved",
+            reviewedBy: req.user.id,
+            reviewedAt: new Date(),
+            reviewNotes: reviewNotes || null,
+          })
+          .where(eq(distributorApplications.id, id));
+
+        res.json({
+          success: true,
+          message: "Application approved and distributor created",
+        });
+      } catch (error) {
+        console.error("Error approving distributor application:", error);
+        res.status(500).json({ error: "Failed to approve application" });
+      }
+    }
+  );
+
+  // Reject distributor application (admin only)
+  app.post(
+    "/api/admin/distributor-applications/:id/reject",
+    async (req, res) => {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      if (req.user.role !== "admin")
+        return res.status(403).json({ error: "Not authorized" });
+
+      try {
+        const id = parseInt(req.params.id);
+        const { reviewNotes } = req.body;
+
+        await db
+          .update(distributorApplications)
+          .set({
+            status: "rejected",
+            reviewedBy: req.user.id,
+            reviewedAt: new Date(),
+            reviewNotes: reviewNotes || null,
+          })
+          .where(eq(distributorApplications.id, id));
+
+        res.json({ success: true, message: "Application rejected" });
+      } catch (error) {
+        console.error("Error rejecting distributor application:", error);
+        res.status(500).json({ error: "Failed to reject application" });
+      }
+    }
+  );
+
+  // Upload Aadhar card to S3
+  app.post("/api/upload/aadhar", upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      // Upload to S3 using the existing S3 setup
+      const uploadResult = await uploadFileToS3(req.file);
+
+      res.json({
+        url: uploadResult.Location,
+        filename: req.file.originalname,
+      });
+    } catch (error) {
+      console.error("Error uploading Aadhar:", error);
+      res.status(500).json({ error: "Failed to upload file" });
+    }
+  });
+
   // ===== Custom Invoice Routes =====
 
   // Preview custom invoice (returns HTML)
@@ -15230,11 +15998,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
             throw new Error(`Product not found: ${item.productId}`);
           }
 
-          // Calculate GST-inclusive pricing
-          const inclusivePrice = product.price;
+          // Fetch bulk item configuration
+          const [bulkItem] = await db
+            .select()
+            .from(bulkItems)
+            .where(eq(bulkItems.productId, item.productId))
+            .limit(1);
+
+          // Calculate actual quantity based on order type
+          let actualQuantity = item.quantity;
+          if (item.orderType === "sets" && bulkItem?.piecesPerSet) {
+            actualQuantity = item.quantity * bulkItem.piecesPerSet;
+          }
+
+          // Use bulk selling price if available, otherwise use product price
+          const inclusivePrice = bulkItem?.sellingPrice || product.price;
           const gstRate = parseFloat(product.gstRate as any) || 0;
-          const deliveryCharges = product.deliveryCharges || 0;
-          const totalPrice = item.quantity * inclusivePrice;
+          const totalPrice = actualQuantity * inclusivePrice;
 
           // Extract taxable value and GST amount from inclusive price
           const taxableValue =
@@ -15245,10 +16025,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             productId: product.id,
             productName: product.name,
             quantity: item.quantity,
+            actualQuantity: actualQuantity,
+            orderType: item.orderType,
             price: inclusivePrice,
             gstRate: gstRate,
             mrp: product.mrp || inclusivePrice,
-            deliveryCharges: deliveryCharges,
             taxableValue: taxableValue,
             gstAmount: gstAmount,
             total: totalPrice,
@@ -15265,13 +16046,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         (sum, item) => sum + item.gstAmount,
         0
       );
-      const totalDeliveryCharges = itemsWithDetails.reduce(
-        (sum, item) => sum + item.deliveryCharges,
-        0
-      );
+
+      // Get delivery charges from request body (inclusive of GST)
+      const deliveryCharges = req.body.deliveryCharges || 0;
+      const deliveryChargesGstRate = req.body.deliveryChargesGstRate || 0;
+
+      // Calculate delivery charges breakdown (GST inclusive)
+      const deliveryChargesTaxable =
+        deliveryChargesGstRate > 0
+          ? deliveryCharges / (1 + deliveryChargesGstRate / 100)
+          : deliveryCharges;
+      const deliveryChargesGst = deliveryCharges - deliveryChargesTaxable;
+
       const grandTotal =
         itemsWithDetails.reduce((sum, item) => sum + item.total, 0) +
-        totalDeliveryCharges;
+        deliveryCharges;
 
       // Get seller details
       const seller = await storage.getUser(req.user.id);
@@ -15303,6 +16092,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           : distributor.name;
 
       const invoiceData = {
+        isBulkOrder: true, // Flag to use bulk order template
         invoiceNumber: previewInvoiceNumber,
         invoiceDate: new Date(previewInvoiceDate).toLocaleDateString("en-IN", {
           year: "numeric",
@@ -15325,22 +16115,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
             zipCode: distributor.pincode,
             country: "India",
           },
-          items: itemsWithDetails.map((item: any, index: number) => ({
-            id: index + 1,
-            product: {
-              name: item.productName,
-              mrp: item.mrp || item.price,
+          items: itemsWithDetails.map((item: any, index: number) => {
+            const quantity = item.actualQuantity;
+            const displayQuantity =
+              item.orderType === "sets"
+                ? `${item.quantity} Set${item.quantity > 1 ? "s" : ""} (${item.actualQuantity} pcs)`
+                : `${item.quantity} pc${item.quantity > 1 ? "s" : ""}`;
+
+            return {
+              id: index + 1,
+              product: {
+                name: item.productName,
+                mrp: item.mrp || item.price,
+                gstRate: item.gstRate,
+              },
+              quantity: quantity,
+              orderType: item.orderType,
+              displayQuantity: displayQuantity,
+              price: item.price,
               gstRate: item.gstRate,
-              deliveryCharges: item.deliveryCharges,
-            },
-            quantity: item.quantity,
-            price: item.price,
-            gstRate: item.gstRate,
-            deliveryCharges: item.deliveryCharges,
-            taxableValue: item.taxableValue,
-            gstAmount: item.gstAmount,
-            total: item.total,
-          })),
+              taxableValue: item.taxableValue,
+              gstAmount: item.gstAmount,
+              total: item.total,
+            };
+          }),
         },
         user: {
           name: buyerName,
@@ -15401,7 +16199,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         totalTaxableValue,
         totalGst,
-        deliveryCharges: totalDeliveryCharges,
+        additionalDeliveryCharges: deliveryCharges,
+        deliveryChargesTaxable: deliveryChargesTaxable,
+        deliveryChargesGst: deliveryChargesGst,
+        deliveryChargesGstRate: deliveryChargesGstRate,
         total: grandTotal,
         grandTotal,
         gstType,
@@ -15435,7 +16236,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate custom invoice from form data (creates order and ledger entry)
+  // Generate custom invoice from form data (creates bulk order and ledger entry)
   app.post("/api/invoices/generate-custom", async (req, res) => {
     // Authentication check - only sellers and admins can generate custom invoices
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -15444,9 +16245,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const { distributor, items } = req.body;
+      const {
+        distributor,
+        items,
+        deliveryCharges = 0,
+        deliveryChargesGstRate = 18,
+      } = req.body;
 
-      console.log("Generating custom invoice for distributor:", distributor.id);
+      console.log(
+        "Generating custom invoice (bulk order) for distributor:",
+        distributor.id
+      );
 
       // Get the distributor's user account
       const distributorRecord = await db
@@ -15474,10 +16283,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
             throw new Error(`Product not found: ${item.productId}`);
           }
 
-          const inclusivePrice = product.price;
+          // Get bulk item configuration to check for pieces per set and selling price
+          const [bulkItem] = await db
+            .select()
+            .from(bulkItems)
+            .where(eq(bulkItems.productId, item.productId))
+            .limit(1);
+
+          // Calculate actual quantity based on order type
+          let actualQuantity = item.quantity;
+          if (item.orderType === "sets" && bulkItem && bulkItem.piecesPerSet) {
+            actualQuantity = item.quantity * bulkItem.piecesPerSet;
+          }
+
+          // Use bulk selling price if available, otherwise use product price
+          const inclusivePrice = bulkItem?.sellingPrice
+            ? parseFloat(bulkItem.sellingPrice.toString())
+            : product.price;
+
           const gstRate = parseFloat(product.gstRate as any) || 0;
-          const deliveryCharges = product.deliveryCharges || 0;
-          const totalPrice = item.quantity * inclusivePrice;
+          const totalPrice = actualQuantity * inclusivePrice;
 
           const taxableValue =
             gstRate > 0 ? totalPrice / (1 + gstRate / 100) : totalPrice;
@@ -15487,10 +16312,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             productId: product.id,
             productName: product.name,
             quantity: item.quantity,
+            orderType: item.orderType || "pieces",
+            actualQuantity: actualQuantity,
             price: inclusivePrice,
             gstRate: gstRate,
             mrp: product.mrp || inclusivePrice,
-            deliveryCharges: deliveryCharges,
             taxableValue: taxableValue,
             gstAmount: gstAmount,
             total: totalPrice,
@@ -15506,13 +16332,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         (sum, item) => sum + item.gstAmount,
         0
       );
-      const totalDeliveryCharges = itemsWithDetails.reduce(
-        (sum, item) => sum + item.deliveryCharges,
+
+      // Calculate products total
+      const productsTotal = itemsWithDetails.reduce(
+        (sum, item) => sum + item.total,
         0
       );
-      const grandTotal =
-        itemsWithDetails.reduce((sum, item) => sum + item.total, 0) +
-        totalDeliveryCharges;
+
+      // Parse and calculate delivery charges with GST
+      const inputDeliveryCharges = parseFloat(deliveryCharges.toString()) || 0;
+      const gstRate = parseFloat(deliveryChargesGstRate.toString()) || 18;
+
+      // Calculate delivery charges taxable value and GST (GST-inclusive pricing)
+      const deliveryChargesTaxable =
+        inputDeliveryCharges > 0
+          ? inputDeliveryCharges / (1 + gstRate / 100)
+          : 0;
+      const deliveryChargesGst = inputDeliveryCharges - deliveryChargesTaxable;
+
+      // Grand total = products total + delivery charges (which already includes GST)
+      const grandTotal = productsTotal + inputDeliveryCharges;
 
       // Get seller details
       const seller = await storage.getUser(req.user.id);
@@ -15534,41 +16373,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         country: "India",
       };
 
-      // Create the order first to get the order ID
-      const [newOrder] = await db
-        .insert(orders)
+      // Create bulk order (instead of regular order)
+      const [newBulkOrder] = await db
+        .insert(bulkOrders)
         .values({
-          userId: distributorUserId,
-          status: "confirmed",
-          total: Math.round(grandTotal),
-          date: new Date(),
-          shippingDetails: JSON.stringify(shippingDetails),
-          paymentMethod: "custom_invoice",
+          distributorId: distributorUserId,
+          totalAmount: grandTotal.toFixed(2),
+          deliveryCharges: inputDeliveryCharges.toFixed(2),
+          deliveryChargesGstRate: gstRate.toFixed(2),
+          status: "pending",
+          notes: `Custom invoice - ${itemsWithDetails.length} item(s)`,
         })
         .returning();
 
-      console.log("Order created with ID:", newOrder.id);
+      console.log("Bulk order created with ID:", newBulkOrder.id);
 
-      // Generate invoice number from order ID
-      const invoiceNumber = `${newOrder.id}`;
-      const invoiceDate = newOrder.date;
+      // Generate invoice number from bulk order ID
+      const invoiceNumber = `BO-${newBulkOrder.id}`;
+      const invoiceDate = newBulkOrder.createdAt;
 
-      // Insert order items
-      const orderItemsData = itemsWithDetails.map((item: any) => ({
-        orderId: newOrder.id,
+      // Insert bulk order items
+      const bulkOrderItemsData = itemsWithDetails.map((item: any) => ({
+        bulkOrderId: newBulkOrder.id,
         productId: item.productId,
+        orderType: item.orderType, // Use the actual orderType from the form
         quantity: item.quantity,
-        price: Math.round(item.price),
-        sellerId: req.user.id,
+        unitPrice: item.price.toFixed(2),
+        totalPrice: item.total.toFixed(2),
       }));
 
-      await db.insert(orderItems).values(orderItemsData);
-
-      // Update the order with the generated invoice number
-      await db
-        .update(orders)
-        .set({ orderId: invoiceNumber })
-        .where(eq(orders.id, newOrder.id));
+      await db.insert(bulkOrderItems).values(bulkOrderItemsData);
 
       // Get current balance from distributor ledger
       const lastLedgerEntry = await db
@@ -15583,16 +16417,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         : 0;
       const newBalance = currentBalance + Math.round(grandTotal);
 
-      // Add ledger entry for this order
+      // Add ledger entry for this bulk order
       await storage.addLedgerEntry({
         distributorId: distributor.id,
         entryType: "order",
         amount: Math.round(grandTotal),
-        orderId: newOrder.id,
-        description: `Invoice ${invoiceNumber} - ${itemsWithDetails.length} item(s)`,
+        orderId: newBulkOrder.id, // Bulk order ID
+        orderType: "bulk", // Mark as bulk order
+        description: `Bulk Invoice ${invoiceNumber} - ${itemsWithDetails.length} item(s)`,
         balanceAfter: newBalance,
         createdBy: req.user.id,
-        notes: null,
+        notes: `Bulk Order ID: ${newBulkOrder.id}`,
       });
 
       console.log(
@@ -15625,6 +16460,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           : distributor.name;
 
       const invoiceData = {
+        isBulkOrder: true, // Flag to use bulk order template
         invoiceNumber,
         invoiceDate: new Date(invoiceDate).toLocaleDateString("en-IN", {
           year: "numeric",
@@ -15632,11 +16468,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           day: "numeric",
         }),
         order: {
-          id: invoiceNumber,
+          id: newBulkOrder.id,
           date: new Date(invoiceDate),
           formattedDate: new Date(invoiceDate).toLocaleDateString("en-IN"),
           paymentMethod: "Custom",
-          orderNumber: formatOrderNumber(newOrder.id),
+          orderNumber: `BO-${newBulkOrder.id}`,
           shippingDetails: {
             address: distributor.address,
             address2: "",
@@ -15651,12 +16487,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
               name: item.productName,
               mrp: item.mrp || item.price,
               gstRate: item.gstRate,
-              deliveryCharges: item.deliveryCharges,
+              deliveryCharges: 0, // Bulk orders don't have per-product delivery charges
             },
-            quantity: item.quantity,
+            quantity: item.actualQuantity, // Use actual quantity (pieces or sets converted to pieces)
+            orderType: item.orderType,
+            displayQuantity:
+              item.orderType === "sets"
+                ? `${item.quantity} Set${item.quantity > 1 ? "s" : ""} (${item.actualQuantity} pcs)`
+                : `${item.quantity} pc${item.quantity > 1 ? "s" : ""}`,
             price: item.price,
             gstRate: item.gstRate,
-            deliveryCharges: item.deliveryCharges,
+            deliveryCharges: 0, // Bulk orders don't have per-product delivery charges
             taxableValue: item.taxableValue,
             gstAmount: item.gstAmount,
             total: item.total,
@@ -15721,7 +16562,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         totalTaxableValue,
         totalGst,
-        deliveryCharges: totalDeliveryCharges,
+        additionalDeliveryCharges: inputDeliveryCharges,
+        deliveryChargesTaxable,
+        deliveryChargesGst,
+        deliveryChargesGstRate: gstRate,
         total: grandTotal,
         grandTotal,
         gstType,
@@ -15762,6 +16606,335 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generating custom invoice:", error);
       res.status(500).json({ error: "Failed to generate custom invoice" });
+    }
+  });
+
+  // Download bulk order invoice by ID
+  app.get("/api/bulk-orders/:id/invoice", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const bulkOrderId = parseInt(req.params.id);
+
+      // Fetch bulk order
+      const [bulkOrder] = await db
+        .select()
+        .from(bulkOrders)
+        .where(eq(bulkOrders.id, bulkOrderId))
+        .limit(1);
+
+      if (!bulkOrder) {
+        return res.status(404).json({ error: "Bulk order not found" });
+      }
+
+      // Check permissions - distributors can only download their own invoices
+      if (req.user.role === "buyer") {
+        if (bulkOrder.distributorId !== req.user.id) {
+          return res.status(403).json({ error: "Unauthorized" });
+        }
+      } else if (req.user.role !== "admin" && req.user.role !== "seller") {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+
+      // Only allow downloading invoices for approved orders
+      if (bulkOrder.status !== "approved") {
+        return res.status(400).json({
+          error: "Invoice can only be downloaded for approved orders",
+        });
+      }
+
+      // Fetch bulk order items
+      const orderItems = await db
+        .select()
+        .from(bulkOrderItems)
+        .where(eq(bulkOrderItems.bulkOrderId, bulkOrderId));
+
+      if (!orderItems.length) {
+        return res.status(404).json({ error: "Order items not found" });
+      }
+
+      // Fetch distributor details
+      const [distributorUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, bulkOrder.distributorId))
+        .limit(1);
+
+      if (!distributorUser) {
+        return res.status(404).json({ error: "Distributor not found" });
+      }
+
+      const [distributorInfo] = await db
+        .select()
+        .from(distributors)
+        .where(eq(distributors.userId, distributorUser.id))
+        .limit(1);
+
+      if (!distributorInfo) {
+        return res
+          .status(404)
+          .json({ error: "Distributor information not found" });
+      }
+
+      // Fetch product details and calculate items with details
+      const itemsWithDetails = await Promise.all(
+        orderItems.map(async (item) => {
+          const [product] = await db
+            .select()
+            .from(products)
+            .where(eq(products.id, item.productId))
+            .limit(1);
+
+          if (!product) {
+            throw new Error(`Product not found: ${item.productId}`);
+          }
+
+          // Get bulk item configuration
+          const [bulkItem] = await db
+            .select()
+            .from(bulkItems)
+            .where(eq(bulkItems.productId, item.productId))
+            .limit(1);
+
+          // Calculate actual quantity
+          let actualQuantity = item.quantity;
+          if (item.orderType === "sets" && bulkItem?.piecesPerSet) {
+            actualQuantity = item.quantity * bulkItem.piecesPerSet;
+          }
+
+          const unitPrice = parseFloat(item.unitPrice);
+          const totalPrice = parseFloat(item.totalPrice);
+          const gstRate = parseFloat(product.gstRate as any) || 0;
+
+          const taxableValue =
+            gstRate > 0 ? totalPrice / (1 + gstRate / 100) : totalPrice;
+          const gstAmount = totalPrice - taxableValue;
+
+          return {
+            productId: product.id,
+            productName: product.name,
+            quantity: item.quantity,
+            orderType: item.orderType,
+            actualQuantity: actualQuantity,
+            price: unitPrice,
+            gstRate: gstRate,
+            mrp: product.mrp || unitPrice,
+            taxableValue: taxableValue,
+            gstAmount: gstAmount,
+            total: totalPrice,
+          };
+        })
+      );
+
+      // Calculate totals
+      const totalTaxableValue = itemsWithDetails.reduce(
+        (sum, item) => sum + item.taxableValue,
+        0
+      );
+      const totalGst = itemsWithDetails.reduce(
+        (sum, item) => sum + item.gstAmount,
+        0
+      );
+      const productsTotal = itemsWithDetails.reduce(
+        (sum, item) => sum + item.total,
+        0
+      );
+
+      // Get delivery charges
+      const deliveryCharges = parseFloat(
+        bulkOrder.deliveryCharges?.toString() || "0"
+      );
+      const deliveryChargesGstRate = parseFloat(
+        bulkOrder.deliveryChargesGstRate?.toString() || "18"
+      );
+
+      // Calculate delivery charges breakdown
+      const deliveryChargesTaxable =
+        deliveryChargesGstRate > 0
+          ? deliveryCharges / (1 + deliveryChargesGstRate / 100)
+          : deliveryCharges;
+      const deliveryChargesGst = deliveryCharges - deliveryChargesTaxable;
+
+      const grandTotal = productsTotal + deliveryCharges;
+
+      // Get seller details (use admin/creator if available)
+      const seller = await storage.getUser(req.user.id);
+      if (!seller) {
+        return res.status(404).json({ error: "Seller not found" });
+      }
+
+      // Static seller address
+      const STATIC_SELLER_ADDRESS = {
+        businessName: "Kaushal Ranjeet Pvt. Ltd.",
+        line1: "Building No 2072, Chandigarh Royale City",
+        line2: "Bollywood Gully",
+        city: "Banur",
+        state: "Punjab",
+        pincode: "140601",
+        country: "India",
+      };
+
+      // Determine GST type
+      const gstType = getGstType(
+        STATIC_SELLER_ADDRESS.pincode,
+        distributorInfo.pincode
+      );
+      const isSameState = gstType === "CGST+SGST";
+
+      const buyerName =
+        distributorInfo.companyName && distributorInfo.companyName.trim() !== ""
+          ? distributorInfo.companyName
+          : distributorUser.name || distributorUser.username;
+
+      // Invoice data
+      const invoiceNumber = `BO-${bulkOrder.id}`;
+      const invoiceDate = bulkOrder.createdAt;
+
+      const invoiceData = {
+        isBulkOrder: true,
+        invoiceNumber,
+        invoiceDate: new Date(invoiceDate).toLocaleDateString("en-IN", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+        order: {
+          id: bulkOrder.id,
+          date: new Date(invoiceDate),
+          formattedDate: new Date(invoiceDate).toLocaleDateString("en-IN"),
+          paymentMethod: "Custom",
+          orderNumber: invoiceNumber,
+          shippingDetails: {
+            address: distributorInfo.address,
+            address2: "",
+            city: distributorInfo.city,
+            state: distributorInfo.state,
+            zipCode: distributorInfo.pincode,
+            country: "India",
+          },
+          items: itemsWithDetails.map((item, index) => ({
+            id: index + 1,
+            product: {
+              name: item.productName,
+              mrp: item.mrp || item.price,
+              gstRate: item.gstRate,
+            },
+            quantity: item.actualQuantity,
+            orderType: item.orderType,
+            displayQuantity:
+              item.orderType === "sets"
+                ? `${item.quantity} Set${item.quantity > 1 ? "s" : ""} (${item.actualQuantity} pcs)`
+                : `${item.quantity} pc${item.quantity > 1 ? "s" : ""}`,
+            price: item.price,
+            gstRate: item.gstRate,
+            taxableValue: item.taxableValue,
+            gstAmount: item.gstAmount,
+            total: item.total,
+          })),
+        },
+        user: {
+          name: buyerName,
+          email: distributorUser.email,
+          phone: distributorUser.phone,
+        },
+        buyer: {
+          name: buyerName,
+          companyName: distributorInfo.companyName,
+          email: distributorUser.email,
+          phone: distributorUser.phone,
+          gstNumber: distributorInfo.gstNumber,
+          address: `${distributorInfo.address}, ${distributorInfo.city}, ${distributorInfo.state} - ${distributorInfo.pincode}`,
+        },
+        seller: {
+          name: STATIC_SELLER_ADDRESS.businessName,
+          businessName: STATIC_SELLER_ADDRESS.businessName,
+          phone: seller.phone || "N/A",
+          email: seller.email,
+          gstNumber: "03AAICK9276F1ZC",
+          address: STATIC_SELLER_ADDRESS.line1,
+          pickupAddress: {
+            businessName: STATIC_SELLER_ADDRESS.businessName,
+            line1: STATIC_SELLER_ADDRESS.line1,
+            line2: STATIC_SELLER_ADDRESS.line2,
+            city: STATIC_SELLER_ADDRESS.city,
+            state: STATIC_SELLER_ADDRESS.state,
+            pincode: STATIC_SELLER_ADDRESS.pincode,
+            country: STATIC_SELLER_ADDRESS.country,
+          },
+          billingAddress: {
+            line1: STATIC_SELLER_ADDRESS.line1,
+            line2: STATIC_SELLER_ADDRESS.line2,
+            city: STATIC_SELLER_ADDRESS.city,
+            state: STATIC_SELLER_ADDRESS.state,
+            pincode: STATIC_SELLER_ADDRESS.pincode,
+            country: STATIC_SELLER_ADDRESS.country,
+          },
+          taxInformation: {
+            businessName: STATIC_SELLER_ADDRESS.businessName,
+            gstin: "03AAICK9276F1ZC",
+            panNumber: "N/A",
+          },
+        },
+        shippingAddress: {
+          address1: distributorInfo.address,
+          city: distributorInfo.city,
+          state: distributorInfo.state,
+          pincode: distributorInfo.pincode,
+          country: "India",
+        },
+        sellerAddress: {
+          address1: STATIC_SELLER_ADDRESS.line1,
+          city: STATIC_SELLER_ADDRESS.city,
+          state: STATIC_SELLER_ADDRESS.state,
+          pincode: STATIC_SELLER_ADDRESS.pincode,
+          country: STATIC_SELLER_ADDRESS.country,
+        },
+        totalTaxableValue,
+        totalGst,
+        additionalDeliveryCharges: deliveryCharges,
+        deliveryChargesTaxable,
+        deliveryChargesGst,
+        deliveryChargesGstRate,
+        total: grandTotal,
+        grandTotal,
+        gstType,
+        isSameState,
+        currentDate: new Date().toLocaleDateString("en-IN", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+      };
+
+      // Generate QR code
+      const qrData = `Invoice: ${invoiceNumber}\nAmount: ₹${grandTotal}\nDate: ${invoiceData.invoiceDate}`;
+      const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
+        errorCorrectionLevel: "H",
+        margin: 1,
+        width: 75,
+      });
+
+      invoiceData.qrCodeDataUrl = qrCodeDataUrl;
+
+      // Generate HTML
+      const invoiceHtml = await generateInvoiceHtml(invoiceData);
+
+      // Generate PDF
+      const file = { content: invoiceHtml };
+      const pdfBuffer = await htmlPdf.generatePdf(file, HALF_A4_PDF_OPTIONS);
+
+      // Set response headers for PDF download
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="invoice-${invoiceNumber}.pdf"`
+      );
+
+      // Send PDF buffer
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error("Error downloading bulk order invoice:", error);
+      res.status(500).json({ error: "Failed to download invoice" });
     }
   });
 

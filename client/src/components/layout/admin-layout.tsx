@@ -91,13 +91,13 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
   const [distributorMenuOpen, setDistributorMenuOpen] = useState(
     location.includes("/admin/distributors") ||
-      location.includes("/admin/distributor-applications") ||
-      location.includes("/admin/custom-invoice")
+      location.includes("/admin/distributor-applications")
   );
 
   const [bulkOrdersMenuOpen, setBulkOrdersMenuOpen] = useState(
     location.includes("/admin/bulk-items") ||
-      location.includes("/admin/bulk-orders")
+      location.includes("/admin/bulk-orders") ||
+      location.includes("/admin/custom-invoice")
   );
 
   const [shippingMenuOpen, setShippingMenuOpen] = useState(
@@ -170,11 +170,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           href: "/admin/distributor-applications",
           icon: <FileText className="h-5 w-5" />,
         },
-        {
-          title: "Custom Invoice",
-          href: "/admin/custom-invoice",
-          icon: <FileText className="h-5 w-5" />,
-        },
       ],
     },
     {
@@ -193,6 +188,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           title: "Bulk Orders",
           href: "/admin/bulk-orders",
           icon: <ShoppingBag className="h-5 w-5" />,
+        },
+        {
+          title: "Custom Invoice",
+          href: "/admin/custom-invoice",
+          icon: <FileText className="h-5 w-5" />,
         },
       ],
     },

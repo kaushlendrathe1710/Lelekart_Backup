@@ -35,6 +35,7 @@ import {
   Check,
   ChevronsUpDown,
   Eye,
+  Truck,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -45,6 +46,9 @@ interface Product {
   price: number;
   gstRate: number;
   mrp: number;
+  allowPieces?: boolean;
+  allowSets?: boolean;
+  piecesPerSet?: number;
 }
 
 interface Distributor {
@@ -65,11 +69,14 @@ interface InvoiceItem {
   productId: number;
   productName: string;
   quantity: number;
+  orderType: "pieces" | "sets";
 }
 
 interface CustomInvoiceFormData {
   distributorId: string;
   items: InvoiceItem[];
+  deliveryCharges: number;
+  deliveryChargesGstRate: number;
 }
 
 export function CustomInvoiceForm() {
@@ -80,6 +87,7 @@ export function CustomInvoiceForm() {
   const [previewHtml, setPreviewHtml] = useState("");
   const [previewData, setPreviewData] = useState<any>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [bulkItems, setBulkItems] = useState<any[]>([]);
   const [distributors, setDistributors] = useState<Distributor[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [loadingDistributors, setLoadingDistributors] = useState(true);
@@ -87,6 +95,22 @@ export function CustomInvoiceForm() {
   const [productOpen, setProductOpen] = useState<{ [key: number]: boolean }>(
     {}
   );
+
+  // Helper function to get available order types for a product
+  const getAvailableOrderTypes = (productId: number): ("pieces" | "sets")[] => {
+    const bulkItem = bulkItems.find((item) => item.productId === productId);
+    if (!bulkItem) return [];
+
+    const types: ("pieces" | "sets")[] = [];
+    if (bulkItem.allowPieces) types.push("pieces");
+    if (bulkItem.allowSets) types.push("sets");
+    return types;
+  };
+
+  // Helper function to get bulk item info
+  const getBulkItemInfo = (productId: number) => {
+    return bulkItems.find((item) => item.productId === productId);
+  };
 
   const {
     register,
@@ -103,8 +127,11 @@ export function CustomInvoiceForm() {
           productId: 0,
           productName: "",
           quantity: 1,
+          orderType: "pieces",
         },
       ],
+      deliveryCharges: 0,
+      deliveryChargesGstRate: 18,
     },
   });
 
@@ -112,10 +139,24 @@ export function CustomInvoiceForm() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await fetch("/api/seller/products?limit=1000");
+        // Fetch only bulk-eligible products (products configured in bulk items)
+        const res = await fetch("/api/bulk-items");
         if (res.ok) {
           const data = await res.json();
-          setProducts(data.products || []);
+          // Store full bulk items data
+          setBulkItems(data || []);
+          // Map bulk items to product format expected by the form
+          const bulkProducts = data.map((item: any) => ({
+            id: item.productId,
+            name: item.productName,
+            price: parseFloat(item.sellingPrice || item.productPrice),
+            gstRate: 0, // GST rate will be fetched from product details when needed
+            mrp: parseFloat(item.productPrice),
+            allowPieces: item.allowPieces,
+            allowSets: item.allowSets,
+            piecesPerSet: item.piecesPerSet,
+          }));
+          setProducts(bulkProducts || []);
         }
       } catch (error) {
         console.error("Failed to fetch products:", error);
@@ -215,7 +256,10 @@ export function CustomInvoiceForm() {
           productId: item.productId,
           productName: item.productName,
           quantity: item.quantity,
+          orderType: item.orderType,
         })),
+        deliveryCharges: data.deliveryCharges || 0,
+        deliveryChargesGstRate: data.deliveryChargesGstRate || 18,
       };
 
       // Call preview endpoint
@@ -412,6 +456,7 @@ export function CustomInvoiceForm() {
                   productId: 0,
                   productName: "",
                   quantity: 1,
+                  orderType: "pieces",
                 })
               }
               disabled={loadingProducts}
@@ -438,7 +483,7 @@ export function CustomInvoiceForm() {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor={`items.${index}.productId`}>Product *</Label>
                   {loadingProducts ? (
@@ -512,6 +557,39 @@ export function CustomInvoiceForm() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor={`items.${index}.orderType`}>Order Type *</Label>
+                  <select
+                    id={`items.${index}.orderType`}
+                    {...register(`items.${index}.orderType`)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    disabled={!items[index]?.productId || getAvailableOrderTypes(items[index]?.productId || 0).length === 0}
+                  >
+                    {!items[index]?.productId && (
+                      <option value="">Select product first</option>
+                    )}
+                    {items[index]?.productId && (() => {
+                      const availableTypes = getAvailableOrderTypes(items[index].productId);
+                      const bulkItem = getBulkItemInfo(items[index].productId);
+                      return (
+                        <>
+                          {availableTypes.includes("pieces") && (
+                            <option value="pieces">Pieces</option>
+                          )}
+                          {availableTypes.includes("sets") && (
+                            <option value="sets">
+                              Sets{bulkItem?.piecesPerSet ? ` (${bulkItem.piecesPerSet} pcs/set)` : ''}
+                            </option>
+                          )}
+                          {availableTypes.length === 0 && (
+                            <option value="">No order types available</option>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor={`items.${index}.quantity`}>Quantity *</Label>
                   <Input
                     id={`items.${index}.quantity`}
@@ -533,6 +611,55 @@ export function CustomInvoiceForm() {
               </div>
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Truck className="h-5 w-5" />
+            Delivery Charges
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="deliveryCharges">
+                Delivery Charges (Inclusive of GST)
+              </Label>
+              <Input
+                id="deliveryCharges"
+                type="number"
+                min="0"
+                step="0.01"
+                {...register("deliveryCharges", {
+                  valueAsNumber: true,
+                })}
+                placeholder="0.00"
+              />
+              <p className="text-xs text-muted-foreground">
+                Enter the total delivery amount including GST
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="deliveryChargesGstRate">Delivery GST Rate (%)</Label>
+              <Input
+                id="deliveryChargesGstRate"
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                {...register("deliveryChargesGstRate", {
+                  valueAsNumber: true,
+                })}
+                placeholder="18"
+              />
+              <p className="text-xs text-muted-foreground">
+                GST rate as a percentage (e.g., 5, 12, 18)
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
