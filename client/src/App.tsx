@@ -45,6 +45,7 @@ import ReturnsPage from "./pages/static/returns";
 import PrivacyPolicyPage from "./pages/static/privacy";
 import PaymentsPage from "./pages/static/payments";
 import BecomeASellerPage from "./pages/static/become-a-seller";
+import BecomeADistributorPage from "./pages/static/become-a-distributor";
 import ChatPage from "./pages/chat";
 import { Layout } from "./components/layout/layout";
 import { SimpleHeader } from "./components/layout/simple-header";
@@ -607,6 +608,14 @@ function App() {
                         {() => (
                           <Layout>
                             <BecomeASellerPage />
+                          </Layout>
+                        )}
+                      </Route>
+
+                      <Route path="/become-a-distributor">
+                        {() => (
+                          <Layout>
+                            <BecomeADistributorPage />
                           </Layout>
                         )}
                       </Route>

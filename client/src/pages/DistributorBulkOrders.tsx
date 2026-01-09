@@ -38,6 +38,7 @@ import {
   CheckCircle,
   XCircle,
   Clock,
+  Download,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -111,6 +112,27 @@ export default function DistributorBulkOrdersPage() {
       });
     },
   });
+
+  // Handle invoice download
+  const handleDownloadInvoice = async (orderId: number) => {
+    try {
+      toast({
+        title: "Downloading...",
+        description: "Preparing your invoice",
+      });
+      await bulkOrdersService.downloadBulkOrderInvoice(orderId);
+      toast({
+        title: "Success",
+        description: "Invoice downloaded successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.error || "Failed to download invoice",
+        variant: "destructive",
+      });
+    }
+  };
 
   const addItem = () => {
     setOrderItems([...orderItems, { productId: 0, orderType: "pieces", quantity: 1 }]);
@@ -455,6 +477,17 @@ export default function DistributorBulkOrdersPage() {
                             <Eye className="h-4 w-4 mr-1" />
                             View
                           </Button>
+                          {order.status === "approved" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDownloadInvoice(order.id)}
+                              className="ml-2"
+                            >
+                              <Download className="h-4 w-4 mr-1" />
+                              Invoice
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}

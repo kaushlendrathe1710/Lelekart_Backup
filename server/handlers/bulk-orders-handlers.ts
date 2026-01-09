@@ -6,12 +6,15 @@ import {
   bulkOrderItems,
   products,
   users,
+  distributors,
+  distributorLedger,
   insertBulkItemSchema,
   insertBulkOrderSchema,
   insertBulkOrderItemSchema,
 } from "../../shared/schema";
 import { eq, and, desc, inArray, sql, or, ilike } from "drizzle-orm";
 import { z } from "zod";
+import { storage } from "../storage";
 
 // ========================
 // ADMIN BULK ITEMS HANDLERS
@@ -487,6 +490,52 @@ export async function createBulkOrderHandler(req: Request, res: Response) {
         items: createdItems,
       };
     });
+
+    // After successful order creation, add ledger entry
+    try {
+      // Get distributor record to find distributorId
+      const [distributor] = await db
+        .select()
+        .from(distributors)
+        .where(eq(distributors.userId, userId))
+        .limit(1);
+
+      if (distributor) {
+        // Get current balance from ledger
+        const lastLedgerEntry = await db
+          .select()
+          .from(distributorLedger)
+          .where(eq(distributorLedger.distributorId, distributor.id))
+          .orderBy(desc(distributorLedger.id))
+          .limit(1);
+
+        const currentBalance = lastLedgerEntry.length
+          ? lastLedgerEntry[0].balanceAfter
+          : 0;
+        const newBalance =
+          currentBalance + Math.round(result.order.totalAmount);
+
+        // Add ledger entry
+        await storage.addLedgerEntry({
+          distributorId: distributor.id,
+          entryType: "order",
+          amount: Math.round(result.order.totalAmount),
+          orderId: result.order.id,
+          orderType: "bulk",
+          description: `Bulk Order BO-${result.order.id} - ${result.items.length} item(s)`,
+          balanceAfter: newBalance,
+          createdBy: userId,
+          notes: result.order.notes || undefined,
+        });
+
+        console.log(
+          `Ledger entry created for bulk order ${result.order.id}, distributor ${distributor.id}`
+        );
+      }
+    } catch (ledgerError) {
+      console.error("Error creating ledger entry for bulk order:", ledgerError);
+      // Don't fail the order creation if ledger fails
+    }
 
     res.status(201).json(result);
   } catch (error: any) {

@@ -136,6 +136,7 @@ export const distributorLedger = pgTable("distributor_ledger", {
   entryType: text("entry_type").notNull(), // 'order' or 'payment'
   amount: integer("amount").notNull(), // Positive for orders, negative for payments
   orderId: integer("order_id").references(() => orders.id), // Reference to order if entry_type is 'order'
+  orderType: text("order_type").default("normal"), // 'normal' or 'bulk' - indicates the type of order
   description: text("description").notNull(), // Description of the transaction
   balanceAfter: integer("balance_after").notNull(), // Running balance after this transaction
   paymentMethod: text("payment_method"), // For payment entries: cash, bank_transfer, cheque, etc.
@@ -2634,6 +2635,14 @@ export const bulkOrders = pgTable("bulk_orders", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   totalAmount: decimal("total_amount", { precision: 12, scale: 2 }).notNull(),
+  deliveryCharges: decimal("delivery_charges", {
+    precision: 10,
+    scale: 2,
+  }).default("0"),
+  deliveryChargesGstRate: decimal("delivery_charges_gst_rate", {
+    precision: 5,
+    scale: 2,
+  }).default("18"), // GST rate as percentage
   status: text("status").notNull().default("pending"), // 'pending', 'approved', 'rejected'
   notes: text("notes"), // Admin notes for approval/rejection
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -2666,7 +2675,9 @@ export const bulkOrderItems = pgTable("bulk_order_items", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertBulkOrderItemSchema = createInsertSchema(bulkOrderItems).pick({
+export const insertBulkOrderItemSchema = createInsertSchema(
+  bulkOrderItems
+).pick({
   bulkOrderId: true,
   productId: true,
   orderType: true,
