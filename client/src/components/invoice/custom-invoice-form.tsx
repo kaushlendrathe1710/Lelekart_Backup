@@ -77,6 +77,7 @@ interface CustomInvoiceFormData {
   items: InvoiceItem[];
   deliveryCharges: number;
   deliveryChargesGstRate: number;
+  cashHandlingFees?: number;
 }
 
 export function CustomInvoiceForm() {
@@ -132,6 +133,7 @@ export function CustomInvoiceForm() {
       ],
       deliveryCharges: 0,
       deliveryChargesGstRate: 18,
+      cashHandlingFees: undefined,
     },
   });
 
@@ -260,6 +262,7 @@ export function CustomInvoiceForm() {
         })),
         deliveryCharges: data.deliveryCharges || 0,
         deliveryChargesGstRate: data.deliveryChargesGstRate || 18,
+        cashHandlingFees: data.cashHandlingFees || undefined,
       };
 
       // Call preview endpoint
@@ -618,7 +621,7 @@ export function CustomInvoiceForm() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Truck className="h-5 w-5" />
-            Delivery Charges
+            Delivery Charges & Payment Details
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -657,6 +660,25 @@ export function CustomInvoiceForm() {
               />
               <p className="text-xs text-muted-foreground">
                 GST rate as a percentage (e.g., 5, 12, 18)
+              </p>
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="cashHandlingFees">
+                Cash Handling Fees (Optional)
+              </Label>
+              <Input
+                id="cashHandlingFees"
+                type="number"
+                min="0"
+                step="0.01"
+                {...register("cashHandlingFees", {
+                  valueAsNumber: true,
+                })}
+                placeholder="0.00"
+              />
+              <p className="text-xs text-muted-foreground">
+                If provided, payment type will be set to COD. Leave empty for Prepaid orders.
               </p>
             </div>
           </div>
