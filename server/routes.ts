@@ -13609,7 +13609,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Add "Rupees" if there's any amount
         if (words) {
-          words += " Rupees";
+          words = `Rupees ${words}`;
         }
 
         // Add paise if any
@@ -14706,30 +14706,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         </tr>
         {{/if}}
         {{/if}}
+        {{#if cashHandlingFees}}
+        {{#if (gt cashHandlingFees 0)}}
+        <tr>
+          <td colspan="5" style="text-align: right; font-weight: bold;">Cash Handling Charges</td>
+          <td>-</td>
+          <td>-</td>
+          <td style="font-weight: bold;">{{formatMoney cashHandlingFees}}</td>
+        </tr>
+        {{/if}}
+        {{/if}}
+        <tr>
+          <td colspan="5" style="text-align: right; font-weight: bold;">Grand Total</td>
+          <td>-</td>
+          <td>-</td>
+          <td style="font-weight: bold;">{{formatMoney grandTotal}}</td>
+        </tr>
       </tbody>
     </table>
-
-    <!-- Totals Summary Section -->
-    <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
-      <table style="width: 350px; border-collapse: collapse; font-size: 11px;">
-        <tr>
-          <td style="padding: 6px; text-align: right; font-weight: bold;">Subtotal (Items):</td>
-          <td style="padding: 6px; text-align: right; width: 120px;">₹{{formatMoney (calculateTotal order.items)}}</td>
-        </tr>
-        {{#if additionalDeliveryCharges}}
-        {{#if (gt additionalDeliveryCharges 0)}}
-        <tr>
-          <td style="padding: 6px; text-align: right;">Delivery Charges:</td>
-          <td style="padding: 6px; text-align: right;">₹{{formatMoney additionalDeliveryCharges}}</td>
-        </tr>
-        {{/if}}
-        {{/if}}
-        <tr style="border-top: 2px solid #000; font-weight: bold; font-size: 13px;">
-          <td style="padding: 10px 6px 6px 6px; text-align: right;">Grand Total:</td>
-          <td style="padding: 10px 6px 6px 6px; text-align: right;">₹{{formatMoney grandTotal}}</td>
-        </tr>
-      </table>
-    </div>
 
     <div class="amount-in-words">
       <span class="bold">Amount in words:</span>
@@ -14745,16 +14739,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           </div>
         </div>
         <div class="signature-box">
+          <img
+            src="${signatureBase64}"
+            alt="Authorized Signature"
+          />
+          <div class="bold">(Authorized Signatory)</div>
           {{#if seller.pickupAddress.businessName}}
             <div class="bold">{{seller.pickupAddress.businessName}}</div>
           {{else}}
             <div class="bold">Lele Kart Retail Private Limited</div>
           {{/if}}
-          <img
-            src="${signatureBase64}"
-            alt="Authorized Signature"
-          />
-          <div class="bold">Authorized Signatory</div>
         </div>
       </div>
       <!-- Declaration section inside container -->
@@ -16050,6 +16044,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get delivery charges from request body (inclusive of GST)
       const deliveryCharges = req.body.deliveryCharges || 0;
       const deliveryChargesGstRate = req.body.deliveryChargesGstRate || 0;
+      const cashHandlingFees = req.body.cashHandlingFees || 0;
 
       // Calculate delivery charges breakdown (GST inclusive)
       const deliveryChargesTaxable =
@@ -16060,7 +16055,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const grandTotal =
         itemsWithDetails.reduce((sum, item) => sum + item.total, 0) +
-        deliveryCharges;
+        deliveryCharges +
+        cashHandlingFees;
 
       // Get seller details
       const seller = await storage.getUser(req.user.id);
@@ -16203,6 +16199,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         deliveryChargesTaxable: deliveryChargesTaxable,
         deliveryChargesGst: deliveryChargesGst,
         deliveryChargesGstRate: deliveryChargesGstRate,
+        cashHandlingFees: cashHandlingFees,
         total: grandTotal,
         grandTotal,
         gstType,
@@ -16250,12 +16247,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         items,
         deliveryCharges = 0,
         deliveryChargesGstRate = 18,
+        cashHandlingFees,
       } = req.body;
 
       console.log(
         "Generating custom invoice (bulk order) for distributor:",
         distributor.id
       );
+
+      // Determine payment type based on cash handling fees
+      const paymentType =
+        cashHandlingFees && parseFloat(cashHandlingFees.toString()) > 0
+          ? "cod"
+          : "prepaid";
 
       // Get the distributor's user account
       const distributorRecord = await db
@@ -16350,8 +16354,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           : 0;
       const deliveryChargesGst = inputDeliveryCharges - deliveryChargesTaxable;
 
-      // Grand total = products total + delivery charges (which already includes GST)
-      const grandTotal = productsTotal + inputDeliveryCharges;
+      // Parse cash handling fees if provided
+      const inputCashHandlingFees =
+        cashHandlingFees && parseFloat(cashHandlingFees.toString()) > 0
+          ? parseFloat(cashHandlingFees.toString())
+          : 0;
+
+      // Grand total = products total + delivery charges + cash handling fees
+      const grandTotal =
+        productsTotal + inputDeliveryCharges + inputCashHandlingFees;
 
       // Get seller details
       const seller = await storage.getUser(req.user.id);
@@ -16381,6 +16392,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalAmount: grandTotal.toFixed(2),
           deliveryCharges: inputDeliveryCharges.toFixed(2),
           deliveryChargesGstRate: gstRate.toFixed(2),
+          cashHandlingFees:
+            inputCashHandlingFees > 0
+              ? inputCashHandlingFees.toFixed(2)
+              : undefined,
+          paymentType: paymentType,
           status: "pending",
           notes: `Custom invoice - ${itemsWithDetails.length} item(s)`,
         })
@@ -16566,6 +16582,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         deliveryChargesTaxable,
         deliveryChargesGst,
         deliveryChargesGstRate: gstRate,
+        cashHandlingFees: inputCashHandlingFees,
         total: grandTotal,
         grandTotal,
         gstType,
@@ -16748,6 +16765,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         bulkOrder.deliveryChargesGstRate?.toString() || "18"
       );
 
+      // Get cash handling fees if available
+      const cashHandlingFees = parseFloat(
+        bulkOrder.cashHandlingFees?.toString() || "0"
+      );
+
       // Calculate delivery charges breakdown
       const deliveryChargesTaxable =
         deliveryChargesGstRate > 0
@@ -16755,7 +16777,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           : deliveryCharges;
       const deliveryChargesGst = deliveryCharges - deliveryChargesTaxable;
 
-      const grandTotal = productsTotal + deliveryCharges;
+      const grandTotal = productsTotal + deliveryCharges + cashHandlingFees;
 
       // Get seller details (use admin/creator if available)
       const seller = await storage.getUser(req.user.id);
@@ -16895,6 +16917,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         deliveryChargesTaxable,
         deliveryChargesGst,
         deliveryChargesGstRate,
+        cashHandlingFees: cashHandlingFees,
         total: grandTotal,
         grandTotal,
         gstType,

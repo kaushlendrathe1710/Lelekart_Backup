@@ -135,7 +135,7 @@ export const distributorLedger = pgTable("distributor_ledger", {
     .references(() => distributors.id, { onDelete: "cascade" }),
   entryType: text("entry_type").notNull(), // 'order' or 'payment'
   amount: integer("amount").notNull(), // Positive for orders, negative for payments
-  orderId: integer("order_id").references(() => orders.id), // Reference to order if entry_type is 'order'
+  orderId: integer("order_id"), // Order ID - references orders.id for normal orders or bulk_orders.id for bulk orders
   orderType: text("order_type").default("normal"), // 'normal' or 'bulk' - indicates the type of order
   description: text("description").notNull(), // Description of the transaction
   balanceAfter: integer("balance_after").notNull(), // Running balance after this transaction
@@ -2643,6 +2643,11 @@ export const bulkOrders = pgTable("bulk_orders", {
     precision: 5,
     scale: 2,
   }).default("18"), // GST rate as percentage
+  cashHandlingFees: decimal("cash_handling_fees", {
+    precision: 10,
+    scale: 2,
+  }), // Optional cash handling fees
+  paymentType: text("payment_type").default("prepaid"), // 'prepaid' or 'cod'
   status: text("status").notNull().default("pending"), // 'pending', 'approved', 'rejected'
   notes: text("notes"), // Admin notes for approval/rejection
   createdAt: timestamp("created_at").notNull().defaultNow(),
