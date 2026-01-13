@@ -493,11 +493,10 @@ export default function AdminUsers() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 lg:gap-4">
             <Card
-              className={`bg-white cursor-pointer border ${
-                roleFilter === "admin"
-                  ? "border-blue-500 ring-2 ring-blue-200"
-                  : ""
-              }`}
+              className={`bg-white cursor-pointer border ${roleFilter === "admin"
+                ? "border-blue-500 ring-2 ring-blue-200"
+                : ""
+                }`}
               onClick={() =>
                 setRoleFilter((prev) => (prev === "admin" ? "all" : "admin"))
               }
@@ -514,11 +513,10 @@ export default function AdminUsers() {
               </CardContent>
             </Card>
             <Card
-              className={`bg-white cursor-pointer border ${
-                roleFilter === "seller"
-                  ? "border-blue-500 ring-2 ring-blue-200"
-                  : ""
-              }`}
+              className={`bg-white cursor-pointer border ${roleFilter === "seller"
+                ? "border-blue-500 ring-2 ring-blue-200"
+                : ""
+                }`}
               onClick={() =>
                 setRoleFilter((prev) => (prev === "seller" ? "all" : "seller"))
               }
@@ -535,11 +533,10 @@ export default function AdminUsers() {
               </CardContent>
             </Card>
             <Card
-              className={`bg-white cursor-pointer border ${
-                roleFilter === "buyer"
-                  ? "border-blue-500 ring-2 ring-blue-200"
-                  : ""
-              }`}
+              className={`bg-white cursor-pointer border ${roleFilter === "buyer"
+                ? "border-blue-500 ring-2 ring-blue-200"
+                : ""
+                }`}
               onClick={() =>
                 setRoleFilter((prev) => (prev === "buyer" ? "all" : "buyer"))
               }
@@ -666,13 +663,12 @@ export default function AdminUsers() {
                             </Badge>
                           ) : (
                             <Badge
-                              className={`text-xs ${
-                                user.role === "admin"
-                                  ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
-                                  : user.role === "seller"
-                                    ? "bg-purple-100 text-purple-800 hover:bg-purple-100"
-                                    : "bg-green-100 text-green-800 hover:bg-green-100"
-                              }`}
+                              className={`text-xs ${user.role === "admin"
+                                ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
+                                : user.role === "seller"
+                                  ? "bg-purple-100 text-purple-800 hover:bg-purple-100"
+                                  : "bg-green-100 text-green-800 hover:bg-green-100"
+                                }`}
                             >
                               {user.role}
                             </Badge>

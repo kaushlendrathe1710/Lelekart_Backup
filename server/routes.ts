@@ -83,6 +83,7 @@ import affiliateMarketingRoutes from "./routes/affiliate-marketing-routes";
 import becomeSellerRoutes from "./routes/become-seller-routes";
 import chatRoutes from "./routes/chat-routes";
 import bulkOrdersRoutes from "./routes/bulk-orders-routes"; // Import bulk orders routes
+import adminOrderForBuyerRoutes from "./routes/admin-order-for-buyer-routes"; // Import admin order for buyer routes
 
 // Helper function to apply product display settings
 function applyProductDisplaySettings(products: any[], settings: any) {
@@ -423,6 +424,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register bulk orders routes
   app.use("/api", bulkOrdersRoutes);
+
+  // Register admin order for buyer routes
+  app.use("/api/admin", adminOrderForBuyerRoutes);
 
   // --- FIX: Proxy /api/orders/:orderId/mark-for-return to returnRoutes ---
   app.post("/api/orders/:orderId/mark-for-return", (req, res, next) => {
@@ -14227,16 +14231,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           </div>
         </div>
         <div class="signature-box">
+        <img
+            src="${signatureBase64}"
+            alt="Authorized Signature"
+          />
+          <div class="bold">(Authorized Signatory)</div>
           {{#if seller.pickupAddress.businessName}}
             <div class="bold">{{seller.pickupAddress.businessName}}</div>
           {{else}}
             <div class="bold">Lele Kart Retail Private Limited</div>
           {{/if}}
-          <img
-            src="${signatureBase64}"
-            alt="Authorized Signature"
-          />
-          <div class="bold">Authorized Signatory</div>
         </div>
       </div>
       <!-- Declaration section inside container -->
@@ -14753,24 +14757,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
       </div>
       <!-- Declaration section inside container -->
       <div style="padding: 12px; font-size: 10px; line-height: 1.4; color: #333; background-color: #f9f9f9; border-top: 1px solid #000; margin-top: 2px; max-width: 800px;">
-        <div style="display: flex; justify-content: space-between; gap: 20px;">
-          <div style="flex: 1; padding-right: 15px;">
-            <div style="font-weight: bold; font-size: 11px; margin-bottom: 6px; color: #2c3e50;">Declaration</div>
-            <div style="margin-bottom: 12px; text-align: justify;">The goods sold as part of this shipment are intended for end-user consumption and are not for retail sale distribution.</div>
 
-            <div style="font-weight: bold; font-size: 11px; margin-bottom: 6px; color: #2c3e50;">Return Policy:</div>
-            <div style="text-align: justify;">If the item is defective or not as described, you may return it during delivery. You may also request a return within 02 days of delivery for defective items or items different from what you ordered. All returned items must be complete with freebies, undamaged, and unopened if returned for being different from what was ordered according to our policy.</div>
+        <!-- Top Row -->
+        <div style="display: flex; justify-content: space-between; gap: 20px;">
+
+          <!-- (Left) -->
+          <div style="flex: 1; padding-right: 15px;">
+            <div style="font-weight: bold; font-size: 11px; color: #2c3e50;">
+              Contact Us
+            </div>
+            <div style="text-align: justify;">
+              For any questions, please call our customer care at +91 98774 54036. You can also use the Contact Us section in our App or visit krpl.lelekart.com/contact for assistance and support regarding your orders.
+            </div>
           </div>
 
+          <!-- (Right) -->
           <div style="flex: 1; padding-left: 15px;">
-            <div style="font-weight: bold; font-size: 11px; margin-bottom: 6px; color: #2c3e50;">Regd. Office</div>
-            <div style="margin-bottom: 12px; text-align: justify;">Building no 2072, Chandigarh Royale City, Bollywood Gully Banur, SAS Nagar, Mohali, Punjab, India - 140601</div>
-
-            <div style="font-weight: bold; font-size: 11px; margin-bottom: 6px; color: #2c3e50;">Contact us</div>
-            <div style="text-align: justify;">For any questions, please call our customer care at +91 98774 54036. You can also use the Contact Us section in our App or visit www.lelekart.com/Contact-us for assistance and support regarding your orders.</div>
+            <div style="font-weight: bold; font-size: 11px; color: #2c3e50;">
+              Legal Jurisdiction
+            </div>
+            <div style="text-align: justify; margin-bottom: 6px;">
+              All disputes are subject to Mohali, SAS Nagar Punjab jurisdiction only.
+            </div>
+            <div style="font-weight: bold; font-size: 11px; color: #2c3e50;">
+              Returns & Claims
+            </div>
+            <div style="text-align: justify; margin-bottom: 6px;">
+              Goods once sold will not be taken back.
+            </div>
           </div>
         </div>
-    </div>
+        <!-- Middle Row -->
+        <div style="display: flex; justify-content: space-between; gap: 20px;">
+
+          <!-- (Left) -->
+          <div style="flex: 1; padding-right: 15px;">
+            <div style="font-weight: bold; font-size: 11px; color: #2c3e50;">
+              Delivery & Shipping
+            </div>
+            <div style="text-align: justify;">
+              Delivery timelines vary based on order volume. We are not liable for delays caused by transport/logistics partners.
+            </div>
+          </div>
+
+          <!-- (Right) -->
+          <div style="flex: 1; padding-left: 15px;">
+            <div style="font-weight: bold; font-size: 11px; color: #2c3e50;">
+              Regd. Office
+            </div>
+            <div style="text-align: justify;">
+              Building no 2072, Chandigarh Royale City, Bollywood Gully Banur, SAS Nagar, Punjab, India - 140601
+            </div>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:center; align-items:center; font-weight:bold; margin-top:10px;">Thank you for doing business with us</div>
+      </div>
     </div>
   </div>
 </body>
