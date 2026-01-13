@@ -407,6 +407,10 @@ export default function AdminOrders() {
     switch (method) {
       case "cod":
         return "Cash on Delivery";
+      case "prepaid":
+        return "Razorpay";
+      case "razorpay":
+        return "Razorpay";
       case "card":
         return "Credit/Debit Card";
       case "upi":
@@ -1197,18 +1201,18 @@ export default function AdminOrders() {
                           src={
                             item.variant?.images
                               ? (() => {
-                                  try {
-                                    const imgs = JSON.parse(
-                                      item.variant!.images as unknown as string
-                                    );
-                                    return (
-                                      imgs[0] ||
-                                      getProductImageUrl(item.product)
-                                    );
-                                  } catch {
-                                    return getProductImageUrl(item.product);
-                                  }
-                                })()
+                                try {
+                                  const imgs = JSON.parse(
+                                    item.variant!.images as unknown as string
+                                  );
+                                  return (
+                                    imgs[0] ||
+                                    getProductImageUrl(item.product)
+                                  );
+                                } catch {
+                                  return getProductImageUrl(item.product);
+                                }
+                              })()
                               : getProductImageUrl(item.product)
                           }
                           alt={item.product.name}

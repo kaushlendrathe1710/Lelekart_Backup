@@ -98,6 +98,7 @@ import DistributorApplicationsPage from "./pages/admin/distributor-applications"
 import DistributorDashboard from "./pages/distributor/dashboard";
 import AdminBulkItemsManagement from "./pages/admin/bulk-items-management";
 import AdminBulkOrders from "./pages/admin/bulk-orders";
+import PlaceOrderForBuyer from "./pages/admin/place-order-for-buyer";
 import DistributorBulkOrders from "./pages/DistributorBulkOrders";
 // Import shared components
 import { SuspenseWrapper } from "./components/shared/suspense-wrapper";
@@ -693,6 +694,16 @@ function App() {
                             path="/admin/users"
                             role="admin"
                             component={AdminUsers}
+                          />
+                        )}
+                      </Route>
+
+                      <Route path="/admin/place-order-for-buyer">
+                        {() => (
+                          <ProtectedRoute
+                            path="/admin/place-order-for-buyer"
+                            role="admin"
+                            component={PlaceOrderForBuyer}
                           />
                         )}
                       </Route>

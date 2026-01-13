@@ -77,8 +77,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const [location] = useLocation();
   const [heroMenuOpen, setHeroMenuOpen] = useState(
     location.includes("/admin/banner-management") ||
-      location.includes("/admin/category-management") ||
-      location.includes("/admin/design-hero")
+    location.includes("/admin/category-management") ||
+    location.includes("/admin/design-hero")
   );
 
   const [footerMenuOpen, setFooterMenuOpen] = useState(
@@ -86,29 +86,29 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   );
 
   const [usersMenuOpen, setUsersMenuOpen] = useState(
-    location.includes("/admin/users") || location.includes("/admin/create-user")
+    location.includes("/admin/users") || location.includes("/admin/create-user") || location.includes("/admin/place-order-for-buyer")
   );
 
   const [distributorMenuOpen, setDistributorMenuOpen] = useState(
     location.includes("/admin/distributors") ||
-      location.includes("/admin/distributor-applications")
+    location.includes("/admin/distributor-applications")
   );
 
   const [bulkOrdersMenuOpen, setBulkOrdersMenuOpen] = useState(
     location.includes("/admin/bulk-items") ||
-      location.includes("/admin/bulk-orders") ||
-      location.includes("/admin/custom-invoice")
+    location.includes("/admin/bulk-orders") ||
+    location.includes("/admin/custom-invoice")
   );
 
   const [shippingMenuOpen, setShippingMenuOpen] = useState(
     location.includes("/admin/shipping-management") ||
-      location.includes("/admin/shipping-settings") ||
-      location.includes("/admin/shipping-dashboard") ||
-      location.includes("/admin/pending-shipments") ||
-      location.includes("/admin/shipping-rates") ||
-      location.includes("/admin/tracking-management") ||
-      location.includes("/admin/shiprocket-dashboard") ||
-      location.includes("/admin/shiprocket-pending-shipments")
+    location.includes("/admin/shipping-settings") ||
+    location.includes("/admin/shipping-dashboard") ||
+    location.includes("/admin/pending-shipments") ||
+    location.includes("/admin/shipping-rates") ||
+    location.includes("/admin/tracking-management") ||
+    location.includes("/admin/shiprocket-dashboard") ||
+    location.includes("/admin/shiprocket-pending-shipments")
   );
 
   const [productDisplayMenuOpen, setProductDisplayMenuOpen] = useState(
@@ -150,6 +150,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           title: "Create User",
           href: "/admin/create-user",
           icon: <UserPlus className="h-5 w-5" />,
+        },
+        {
+          title: "Place Order",
+          href: "/admin/place-order-for-buyer",
+          icon: <ShoppingCart className="h-5 w-5" />,
         },
       ],
     },
