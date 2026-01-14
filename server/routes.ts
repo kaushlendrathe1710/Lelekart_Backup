@@ -1075,17 +1075,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           let pickupAddress = null;
           let billingAddress = null;
           let taxInformation = null;
-
+          console.log("sellerSettings: ", sellerSettings);
+          const sellerDetails = await storage.getBusinessDetails(parseInt(sellerId))
+          console.log("sellerDetails: ", sellerDetails);
           if (sellerSettings) {
             try {
               if (sellerSettings.pickupAddress) {
                 pickupAddress = JSON.parse(sellerSettings.pickupAddress);
+                if(sellerDetails){
+                  pickupAddress.businessName = sellerDetails.businessName;
+                }
               }
               if (sellerSettings.address) {
                 billingAddress = JSON.parse(sellerSettings.address);
               }
-              if (sellerSettings.taxInformation) {
-                taxInformation = JSON.parse(sellerSettings.taxInformation);
+              if (sellerDetails) {
+                taxInformation = {
+                  gstin: sellerDetails.gstNumber,
+                  businessName: sellerDetails.businessName,
+                  panNumber: sellerDetails.panNumber,
+                };
               }
             } catch (err) {
               console.error("Error parsing seller settings:", err);
@@ -1097,7 +1106,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             pickupAddress = {
               businessName:
                 taxInformation?.businessName ||
-                seller.name ||
                 "Lele Kart Retail Private Limited",
               line1: seller.address || "123 Commerce Street",
               line2: "",
