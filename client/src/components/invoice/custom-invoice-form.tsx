@@ -453,28 +453,11 @@ export function CustomInvoiceForm() {
               <FileText className="h-5 w-5" />
               Invoice Items
             </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                append({
-                  productId: 0,
-                  productName: "",
-                  quantity: 1,
-                  orderType: "pieces",
-                })
-              }
-              disabled={loadingProducts}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Item
-            </Button>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-2">
           {fields.map((field, index) => (
-            <div key={field.id} className="border rounded-lg p-4 space-y-4">
+            <div key={field.id} className="border rounded-lg p-2 space-y-2">
               <div className="flex items-center justify-between">
                 <h4 className="font-medium">Item {index + 1}</h4>
                 {fields.length > 1 && (
@@ -489,8 +472,8 @@ export function CustomInvoiceForm() {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="space-y-2 md:col-span-2">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                <div className="space-y-1 md:col-span-2">
                   <Label htmlFor={`items.${index}.productId`}>Product *</Label>
                   {loadingProducts ? (
                     <Button
@@ -532,7 +515,7 @@ export function CustomInvoiceForm() {
                                   onSelect={() =>
                                     handleProductSelect(
                                       index,
-                                      product.id.toString()
+                                      product.id.toString(),
                                     )
                                   }
                                 >
@@ -569,7 +552,7 @@ export function CustomInvoiceForm() {
                   <select
                     id={`items.${index}.orderType`}
                     {...register(`items.${index}.orderType`)}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-2 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     disabled={
                       !items[index]?.productId ||
                       getAvailableOrderTypes(items[index]?.productId || 0)
@@ -582,10 +565,10 @@ export function CustomInvoiceForm() {
                     {items[index]?.productId &&
                       (() => {
                         const availableTypes = getAvailableOrderTypes(
-                          items[index].productId
+                          items[index].productId,
                         );
                         const bulkItem = getBulkItemInfo(
-                          items[index].productId
+                          items[index].productId,
                         );
                         return (
                           <>
@@ -631,6 +614,23 @@ export function CustomInvoiceForm() {
               </div>
             </div>
           ))}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              append({
+                productId: 0,
+                productName: "",
+                quantity: 1,
+                orderType: "pieces",
+              })
+            }
+            disabled={loadingProducts}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Item
+          </Button>
         </CardContent>
       </Card>
 
