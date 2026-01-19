@@ -131,10 +131,10 @@ function applyProductDisplaySettings(products: any[], settings: any) {
       ) {
         sortedProducts.sort((a, b) => {
           const aIndex = config.preferredCategories.findIndex(
-            (cat: string) => cat.toLowerCase() === a.category.toLowerCase()
+            (cat: string) => cat.toLowerCase() === a.category.toLowerCase(),
           );
           const bIndex = config.preferredCategories.findIndex(
-            (cat: string) => cat.toLowerCase() === b.category.toLowerCase()
+            (cat: string) => cat.toLowerCase() === b.category.toLowerCase(),
           );
 
           // If both categories are in the preferred list
@@ -178,7 +178,7 @@ function applyProductDisplaySettings(products: any[], settings: any) {
       sortedProducts = [];
       let allVendorProducts = Array.from(vendorGroups.values());
       let maxProducts = Math.max(
-        ...allVendorProducts.map((group) => group.length)
+        ...allVendorProducts.map((group) => group.length),
       );
 
       // Take one product from each vendor in a round-robin fashion
@@ -205,7 +205,7 @@ function applyProductDisplaySettings(products: any[], settings: any) {
       sortedProducts = [];
       let allCategoryProducts = Array.from(categoryGroups.values());
       let maxCategoryProducts = Math.max(
-        ...allCategoryProducts.map((group) => group.length)
+        ...allCategoryProducts.map((group) => group.length),
       );
 
       // Take one product from each category in a round-robin fashion
@@ -598,7 +598,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update the seller profile with the provided data
       const updatedSeller = await storage.updateSellerProfile(
         req.user.id,
-        req.body
+        req.body,
       );
 
       // Return the updated profile data
@@ -662,7 +662,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Error uploading seller document:", error);
         res.status(500).json({ error: "Failed to upload seller document" });
       }
-    }
+    },
   );
 
   // Download a seller document
@@ -690,7 +690,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log(
-        `Generating download URL for document: ${document.documentName}, URL: ${document.documentUrl}`
+        `Generating download URL for document: ${document.documentName}, URL: ${document.documentUrl}`,
       );
 
       try {
@@ -702,7 +702,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (downloadError) {
         console.error(
           "Failed with specific document URL, trying full URL extraction:",
-          downloadError
+          downloadError,
         );
 
         // If the document URL is a partial path or filename, let's try to construct a full S3 URL
@@ -788,19 +788,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get the latest agreement
   app.get(
     "/api/seller/agreements/latest",
-    sellerAgreementHandlers.getLatestAgreement
+    sellerAgreementHandlers.getLatestAgreement,
   );
 
   // Get the seller's agreement status (if they've accepted the latest agreement)
   app.get(
     "/api/seller/agreements/status",
-    sellerAgreementHandlers.checkSellerAgreementStatus
+    sellerAgreementHandlers.checkSellerAgreementStatus,
   );
 
   // Accept an agreement
   app.post(
     "/api/seller/agreements/accept",
-    sellerAgreementHandlers.acceptAgreement
+    sellerAgreementHandlers.acceptAgreement,
   );
 
   // Admin: Create a new agreement
@@ -820,19 +820,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get specific system setting
   app.get(
     "/api/admin/settings/:key",
-    systemSettingsHandlers.getSystemSettingHandler
+    systemSettingsHandlers.getSystemSettingHandler,
   );
 
   // Get all system settings
   app.get(
     "/api/admin/settings",
-    systemSettingsHandlers.getAllSystemSettingsHandler
+    systemSettingsHandlers.getAllSystemSettingsHandler,
   );
 
   // Update system setting
   app.put(
     "/api/admin/settings/:key",
-    systemSettingsHandlers.updateSystemSettingHandler
+    systemSettingsHandlers.updateSystemSettingHandler,
   );
 
   // Document Template Management routes
@@ -1056,7 +1056,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           acc[sellerId].push(item);
           return acc;
         },
-        {} as Record<number, typeof orderItems>
+        {} as Record<number, typeof orderItems>,
       );
 
       // Generate invoice for each seller
@@ -1070,14 +1070,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           // Get seller settings for pickup and billing addresses
           const sellerSettings = await storage.getSellerSettings(
-            parseInt(sellerId)
+            parseInt(sellerId),
           );
           let pickupAddress = null;
           let billingAddress = null;
           let taxInformation = null;
           console.log("sellerSettings: ", sellerSettings);
           const sellerDetails = await storage.getBusinessDetails(
-            parseInt(sellerId)
+            parseInt(sellerId),
           );
           console.log("sellerDetails: ", sellerDetails);
           if (sellerSettings) {
@@ -1188,13 +1188,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   },
                 };
               }
-            })
+            }),
           );
 
           // Calculate subtotal for this seller's items
           const subtotal = orderItemsWithProducts.reduce(
             (sum, item) => sum + item.price * item.quantity,
-            0
+            0,
           );
 
           // Format date properly
@@ -1204,7 +1204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               year: "numeric",
               month: "long",
               day: "numeric",
-            }
+            },
           );
 
           // Build the invoice data object for this seller
@@ -1241,7 +1241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const deliveryCharges = orderItems.reduce(
             (sum: number, item: any) =>
               sum + (item.product?.deliveryCharges || 0) * item.quantity,
-            0
+            0,
           );
           // Get wallet, reward, and redeem discounts from order
           const walletDiscount = Number(order.walletDiscount) || 0;
@@ -1277,7 +1277,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Register QR code helper
           handlebars.registerHelper("qrCode", function () {
             return new handlebars.SafeString(
-              `<img src="${qrCodeDataUrl}" alt="Invoice QR Code" style="width: 75px; height: 75px;">`
+              `<img src="${qrCodeDataUrl}" alt="Invoice QR Code" style="width: 75px; height: 75px;">`,
             );
           });
 
@@ -1288,12 +1288,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             sellerName: seller.name,
             invoiceHtml,
           };
-        })
+        }),
       );
 
       // Filter out any null results (failed invoice generations)
       const validInvoices = sellerInvoices.filter(
-        (invoice): invoice is NonNullable<typeof invoice> => invoice !== null
+        (invoice): invoice is NonNullable<typeof invoice> => invoice !== null,
       );
 
       if (format === "html") {
@@ -1309,7 +1309,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ${invoice.invoiceHtml}
             </div>
             <div style="page-break-after: always;"></div>
-          `
+          `,
           )
           .join("");
         res.send(combinedHtml);
@@ -1324,7 +1324,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ${invoice.invoiceHtml}
             </div>
             <div style="page-break-after: always;"></div>
-          `
+          `,
           )
           .join("");
         // Use half A4 PDF generation for combined invoices
@@ -1335,7 +1335,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.setHeader("Content-Type", "application/pdf");
         res.setHeader(
           "Content-Disposition",
-          `attachment; filename="Combined-Invoice-${orderId}.pdf"`
+          `attachment; filename="Combined-Invoice-${orderId}.pdf"`,
         );
 
         // Send PDF buffer directly
@@ -1357,7 +1357,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const format = req.query.format || "pdf"; // 'pdf' or 'html', default to pdf
 
       console.log(
-        `Generating tax invoice for order ${orderId}, format: ${format}`
+        `Generating tax invoice for order ${orderId}, format: ${format}`,
       );
 
       // Check if the current user has access to this order
@@ -1402,7 +1402,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch (err) {
           console.warn(
             `Failed to get shipping address for order ${orderId}:`,
-            err
+            err,
           );
         }
       }
@@ -1503,7 +1503,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .reduce((sum, item) => {
           const taxAmount = item.taxComponents.reduce(
             (taxSum, component) => taxSum + parseFloat(component.taxAmount),
-            0
+            0,
           );
           return sum + taxAmount;
         }, 0)
@@ -1564,7 +1564,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Register QR code helper
       handlebars.registerHelper("qrCode", function () {
         return new handlebars.SafeString(
-          `<img src="${qrCodeDataUrl}" alt="Invoice QR Code" style="width: 75px; height: 75px;">`
+          `<img src="${qrCodeDataUrl}" alt="Invoice QR Code" style="width: 75px; height: 75px;">`,
         );
       });
 
@@ -1572,7 +1572,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // For HTML format, we'll directly render the template
         const html = pdfGenerator.getPdfTemplateHtml(
           pdfGenerator.TEMPLATES.TAX_INVOICE,
-          invoiceData
+          invoiceData,
         );
 
         res.setHeader("Content-Type", "text/html");
@@ -1581,7 +1581,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // For PDF format, use our PDF generator service with the TAX_INVOICE template
         const html = pdfGenerator.getPdfTemplateHtml(
           pdfGenerator.TEMPLATES.TAX_INVOICE,
-          invoiceData
+          invoiceData,
         );
 
         // Use half A4 PDF generation for invoices
@@ -1592,7 +1592,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.setHeader("Content-Type", "application/pdf");
         res.setHeader(
           "Content-Disposition",
-          `attachment; filename="TaxInvoice-${orderId}.pdf"`
+          `attachment; filename="TaxInvoice-${orderId}.pdf"`,
         );
 
         // Send PDF buffer directly
@@ -1611,7 +1611,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const orderId = parseInt(req.params.id);
 
       console.log(
-        `Generating shipping label HTML preview for order ${orderId}`
+        `Generating shipping label HTML preview for order ${orderId}`,
       );
 
       // Check if order exists
@@ -1630,7 +1630,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch (err) {
           console.warn(
             `Failed to get shipping address for order ${orderId}:`,
-            err
+            err,
           );
           // Will fall back to shipping details below
         }
@@ -1640,7 +1640,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!shippingAddress && order.shippingDetails) {
         console.log(
           "Using shipping details from order:",
-          order.shippingDetails
+          order.shippingDetails,
         );
         // Parse shipping details if it's a string
         const details =
@@ -1737,7 +1737,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Shipping Address:", JSON.stringify(shippingAddress));
       console.log(
         "Shipping Details from order:",
-        JSON.stringify(shippingDetails)
+        JSON.stringify(shippingDetails),
       );
 
       const templateData = {
@@ -1763,7 +1763,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate and send HTML
       const htmlContent = await templateService.renderTemplate(
         pdfGenerator.getShippingLabelTemplate(),
-        templateData
+        templateData,
       );
 
       // Save a copy for inspection
@@ -1787,7 +1787,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const format = req.query.format || "pdf"; // 'pdf' or 'html', default to pdf
 
       console.log(
-        `Generating shipping label for order ${orderId}, format: ${format}`
+        `Generating shipping label for order ${orderId}, format: ${format}`,
       );
 
       // Check if order exists
@@ -1812,7 +1812,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch (err) {
           console.warn(
             `Failed to get shipping address for order ${orderId}:`,
-            err
+            err,
           );
           // Will fall back to shipping details below
         }
@@ -1822,7 +1822,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!shippingAddress && order.shippingDetails) {
         console.log(
           "Using shipping details from order:",
-          order.shippingDetails
+          order.shippingDetails,
         );
         // Parse shipping details if it's a string
         const details =
@@ -1880,13 +1880,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If product not found or marked as deleted, look for another product in the order
       if (!product || product.deleted) {
         console.log(
-          "First product not available (deleted), trying other products in the order"
+          "First product not available (deleted), trying other products in the order",
         );
 
         // Try to find any non-deleted product in this order
         for (let i = 1; i < orderItems.length; i++) {
           const otherProduct = await storage.getProduct(
-            orderItems[i].productId
+            orderItems[i].productId,
           );
           if (otherProduct && !otherProduct.deleted) {
             console.log(`Found valid product with ID ${otherProduct.id}`);
@@ -1898,7 +1898,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // If still no product, create a fallback for generating the label
         if (!product || product.deleted) {
           console.log(
-            "No valid products found in the order, using fallback product"
+            "No valid products found in the order, using fallback product",
           );
           product = {
             id: firstItem.productId,
@@ -1922,28 +1922,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Since getSellerPickupAddress might not be implemented, let's handle this gracefully
       console.log(
-        `Attempting to get seller pickup address for seller ID: ${product.sellerId}`
+        `Attempting to get seller pickup address for seller ID: ${product.sellerId}`,
       );
 
       // Check if the method exists before trying to call it
       if (typeof storage.getSellerPickupAddress === "function") {
         try {
           sellerAddress = await storage.getSellerPickupAddress(
-            product.sellerId
+            product.sellerId,
           );
           console.log(
             "Successfully retrieved seller pickup address:",
-            sellerAddress
+            sellerAddress,
           );
         } catch (err) {
           console.warn(
             `Failed to get seller pickup address for seller ${product.sellerId}:`,
-            err
+            err,
           );
         }
       } else {
         console.log(
-          "getSellerPickupAddress method not implemented, using fallback"
+          "getSellerPickupAddress method not implemented, using fallback",
         );
       }
 
@@ -2044,7 +2044,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use the templateService already imported at the top of the file
       const labelHtml = await templateService.renderTemplate(
         getShippingLabelTemplate(),
-        shippingLabelData
+        shippingLabelData,
       );
 
       if (format === "html") {
@@ -2058,7 +2058,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await pdfGenerator.generatePdf(
           res,
           labelHtml,
-          `Shipping-Label-${orderId}.pdf`
+          `Shipping-Label-${orderId}.pdf`,
         );
       }
     } catch (error) {
@@ -2075,7 +2075,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const format = req.query.format || "pdf"; // 'pdf' or 'html', default to pdf
 
       console.log(
-        `Generating shipping slip for seller order ${sellerOrderId}, format: ${format}`
+        `Generating shipping slip for seller order ${sellerOrderId}, format: ${format}`,
       );
 
       // Check if the current user has access to this seller order
@@ -2121,12 +2121,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let businessDetails = null;
       try {
         businessDetails = await storage.getBusinessDetails(
-          sellerOrder.sellerId
+          sellerOrder.sellerId,
         );
       } catch (err) {
         console.warn(
           `Failed to get business details for seller ${sellerOrder.sellerId}:`,
-          err
+          err,
         );
         // Continue without business details - not critical
       }
@@ -2159,7 +2159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               },
             };
           }
-        })
+        }),
       );
 
       // Format dates properly
@@ -2169,11 +2169,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           year: "numeric",
           month: "long",
           day: "numeric",
-        }
+        },
       );
 
       const formattedSellerOrderDate = new Date(
-        sellerOrder.date
+        sellerOrder.date,
       ).toLocaleDateString("en-IN", {
         year: "numeric",
         month: "long",
@@ -2225,7 +2225,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await pdfGenerator.generatePdf(
           res,
           shippingSlipHtml,
-          `ShippingSlip-${sellerOrderId}.pdf`
+          `ShippingSlip-${sellerOrderId}.pdf`,
         );
       }
     } catch (error) {
@@ -2248,7 +2248,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update or create business details
       const details = await storage.updateBusinessDetails(
         req.user.id,
-        req.body
+        req.body,
       );
 
       res.json(details);
@@ -2298,7 +2298,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update or create banking information
       const info = await storage.updateBankingInformation(
         req.user.id,
-        req.body
+        req.body,
       );
 
       res.json(info);
@@ -2362,12 +2362,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const returns = await storage.getReturnsForSeller(sellerId);
       // Count completed returns for delivered orders
       const completedReturnOrderIds = new Set(
-        returns.filter((r) => r.status === "completed").map((r) => r.orderId)
+        returns.filter((r) => r.status === "completed").map((r) => r.orderId),
       );
       let returnRate = "N/A";
       if (deliveredOrders.length > 0) {
         const returnedCount = deliveredOrders.filter((o) =>
-          completedReturnOrderIds.has(o.id)
+          completedReturnOrderIds.has(o.id),
         ).length;
         returnRate =
           ((returnedCount / deliveredOrders.length) * 100).toFixed(1) + "%";
@@ -2416,7 +2416,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userRole = req.isAuthenticated() ? req.user.role : "buyer";
 
       console.log(
-        `Searching for products with query: "${query}" for user role: ${userRole}`
+        `Searching for products with query: "${query}" for user role: ${userRole}`,
       );
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
       const results = await storage.searchProducts(query, limit, userRole);
@@ -2448,7 +2448,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use the specialized method that includes all validations
       const updatedProduct = await storage.assignProductSeller(
         productId,
-        newSellerId
+        newSellerId,
       );
 
       // Get seller information for the response message
@@ -2515,7 +2515,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Log validation results
       console.log(
-        `Bulk approve: received ${productIds.length} IDs, ${validIds.length} valid, ${invalidIds.length} invalid`
+        `Bulk approve: received ${productIds.length} IDs, ${validIds.length} valid, ${invalidIds.length} invalid`,
       );
       if (invalidIds.length > 0) {
         console.log(`Invalid IDs: ${JSON.stringify(invalidIds)}`);
@@ -2532,7 +2532,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .select()
         .from(products)
         .where(
-          and(inArray(products.id, validIds), eq(products.deleted, false))
+          and(inArray(products.id, validIds), eq(products.deleted, false)),
         );
 
       if (existingProducts.length === 0) {
@@ -2642,7 +2642,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Log validation results
       console.log(
-        `Bulk reject: received ${productIds.length} IDs, ${validIds.length} valid, ${invalidIds.length} invalid`
+        `Bulk reject: received ${productIds.length} IDs, ${validIds.length} valid, ${invalidIds.length} invalid`,
       );
       if (invalidIds.length > 0) {
         console.log(`Invalid IDs: ${JSON.stringify(invalidIds)}`);
@@ -2752,7 +2752,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(
         `Fetching pending products with filters: page=${validatedPage}, limit=${validatedLimit}, search=${
           search || "none"
-        }, category=${category || "none"}`
+        }, category=${category || "none"}`,
       );
 
       // Get products with pagination, search and category filter
@@ -2760,7 +2760,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         validatedPage,
         validatedLimit,
         search,
-        category
+        category,
       );
       res.json({
         products: result.products,
@@ -2803,7 +2803,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         SELECT id FROM products
         WHERE id = $1 AND deleted = false
       `,
-        [productId]
+        [productId],
       );
 
       if (productCheckResult.rows.length === 0) {
@@ -2820,7 +2820,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         WHERE id = $1 AND deleted = false
         RETURNING id, name, category, price, approved, rejected, deleted
       `,
-        [productId]
+        [productId],
       );
 
       if (updateResult.rows.length === 0) {
@@ -2865,7 +2865,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         SELECT id FROM products
         WHERE id = $1 AND deleted = false
       `,
-        [productId]
+        [productId],
       );
 
       if (productCheckResult.rows.length === 0) {
@@ -2882,7 +2882,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         WHERE id = $1 AND deleted = false
         RETURNING id, name, category, price, approved, rejected, deleted
       `,
-        [productId]
+        [productId],
       );
 
       if (updateResult.rows.length === 0) {
@@ -3068,9 +3068,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               undefined,
               true, // hideDrafts
               undefined,
-              true // hideRejected
-            )
-          )
+              true, // hideRejected
+            ),
+          ),
         );
         // Interleave products
         let interleavedProducts = [];
@@ -3135,7 +3135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               } catch (error) {
                 console.error(
                   `Error fetching seller for product ${product.id}:`,
-                  error
+                  error,
                 );
               }
             }
@@ -3144,7 +3144,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               sellerName: "Lele Kart Retail Private Limited",
               seller: { username: "Lele Kart Retail Private Limited" },
             };
-          })
+          }),
         );
         return res.json({
           products: productsWithSellerInfo,
@@ -3171,10 +3171,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             maxPrice,
             minDiscount,
             maxDiscount,
-            effectiveDeletedFilter
+            effectiveDeletedFilter,
           ),
         3,
-        1000
+        1000,
       );
       const totalPages = Math.ceil(totalCount / limit);
 
@@ -3206,13 +3206,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             maxPrice, // Pass maxPrice parameter for price filtering
             minDiscount, // Pass minDiscount parameter for discount filtering
             maxDiscount, // Pass maxDiscount parameter for discount filtering
-            effectiveDeletedFilter
+            effectiveDeletedFilter,
           ),
         3,
-        1000
+        1000,
       );
       console.log(
-        `Found ${products?.length || 0} products (page ${page}/${totalPages})`
+        `Found ${products?.length || 0} products (page ${page}/${totalPages})`,
       );
 
       // Apply display settings if available and on first page
@@ -3280,7 +3280,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             } catch (error) {
               console.error(
                 `Error fetching seller for product ${product.id}:`,
-                error
+                error,
               );
             }
           }
@@ -3290,7 +3290,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             sellerName: "Lele Kart Retail Private Limited",
             seller: { username: "Lele Kart Retail Private Limited" },
           };
-        })
+        }),
       );
 
       products = productsWithSellerInfo;
@@ -3332,7 +3332,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If user is a buyer and product is not approved or is a draft, return 404
       if (userRole === "buyer" && (!product.approved || product.isDraft)) {
         console.log(
-          `Unauthorized access attempt by buyer to unapproved/draft product ${id}`
+          `Unauthorized access attempt by buyer to unapproved/draft product ${id}`,
         );
         return res.status(404).json({ error: "Product not found" });
       }
@@ -3355,7 +3355,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const gstAmount = priceWithGst - basePrice;
 
       console.log(
-        `Product ${product.id} GST calculation: Rate=${gstRate}%, Inclusive Price=${priceWithGst}, Base Price=${basePrice}, GST Amount=${gstAmount}`
+        `Product ${product.id} GST calculation: Rate=${gstRate}%, Inclusive Price=${priceWithGst}, Base Price=${basePrice}, GST Amount=${gstAmount}`,
       );
 
       // Enhanced product with GST details and all fields
@@ -3418,7 +3418,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const variants = await withRetry(
           () => storage.getProductVariants(id),
           3,
-          1000
+          1000,
         );
 
         // Calculate GST for each variant - Note: variant price already includes GST
@@ -3432,7 +3432,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const variantGstAmount = variantPriceWithGst - variantBasePrice;
 
           console.log(
-            `Variant ${variant.id} GST calculation: Rate=${gstRate}%, Inclusive Price=${variantPriceWithGst}, Base Price=${variantBasePrice}, GST Amount=${variantGstAmount}`
+            `Variant ${variant.id} GST calculation: Rate=${gstRate}%, Inclusive Price=${variantPriceWithGst}, Base Price=${variantBasePrice}, GST Amount=${variantGstAmount}`,
           );
 
           return {
@@ -3478,7 +3478,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If user is a buyer and product is not approved or is a draft, return 404
       if (userRole === "buyer" && (!product.approved || product.isDraft)) {
         console.log(
-          `Unauthorized access attempt by buyer to variants of unapproved/draft product ${productId}`
+          `Unauthorized access attempt by buyer to variants of unapproved/draft product ${productId}`,
         );
         return res.status(404).json({ error: "Product not found" });
       }
@@ -3575,13 +3575,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Log the final update data
         console.log(
           `Updating variant ${variantId} for product ${productId} with data:`,
-          updateData
+          updateData,
         );
 
         // Update the variant
         const updatedVariant = await storage.updateProductVariant(
           variantId,
-          updateData
+          updateData,
         );
 
         // Send notification to the user
@@ -3597,7 +3597,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Error updating product variant:", error);
         res.status(500).json({ error: "Failed to update product variant" });
       }
-    }
+    },
   );
 
   // Endpoint for saving/updating product variants
@@ -3628,7 +3628,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log(
-        `Received ${variants.length} variants to process for product ID ${productId}`
+        `Received ${variants.length} variants to process for product ID ${productId}`,
       );
 
       // First, get existing variants for this product
@@ -3675,7 +3675,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log(`Updating existing variant ID ${variant.id}`);
             const updatedVariant = await storage.updateProductVariant(
               variant.id,
-              processedVariant
+              processedVariant,
             );
             results.updated.push(updatedVariant);
           } else {
@@ -3685,7 +3685,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               `Preparing for bulk creation: ${JSON.stringify({
                 ...variantWithoutId,
                 productId,
-              })}`
+              })}`,
             );
 
             variantsToCreate.push({
@@ -3718,7 +3718,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             } catch (createError) {
               console.error(
                 `Failed to create individual variant:`,
-                createError
+                createError,
               );
             }
           }
@@ -3728,7 +3728,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Fetch all current variants to return in response
       const updatedVariants = await storage.getProductVariants(productId);
       console.log(
-        `After processing, found ${updatedVariants.length} variants for product ${productId}`
+        `After processing, found ${updatedVariants.length} variants for product ${productId}`,
       );
 
       // Return detailed results
@@ -3770,7 +3770,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If user is a buyer and product is not approved or is a draft, return 404
       if (userRole === "buyer" && (!product.approved || product.isDraft)) {
         console.log(
-          `Unauthorized access attempt by buyer to variants of unapproved/draft product ${productId}`
+          `Unauthorized access attempt by buyer to variants of unapproved/draft product ${productId}`,
         );
         return res.status(404).json({ error: "Product not found" });
       }
@@ -3810,20 +3810,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           (product) =>
             product.approved === true &&
             product.isDraft !== true &&
-            product.deleted !== true
+            product.deleted !== true,
         );
 
         if (filteredProducts.length < similarProducts.length) {
           console.log(
             `Filtered out ${
               similarProducts.length - filteredProducts.length
-            } unapproved/draft products from similar products`
+            } unapproved/draft products from similar products`,
           );
         }
       }
 
       console.log(
-        `Found ${filteredProducts.length} similar products for product ID ${productId}`
+        `Found ${filteredProducts.length} similar products for product ID ${productId}`,
       );
       res.json(filteredProducts);
     } catch (error) {
@@ -3872,11 +3872,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         console.log(
           "[PRODUCT CREATE] Creating product with data:",
-          JSON.stringify(productData)
+          JSON.stringify(productData),
         );
         if (variants) {
           console.log(
-            `[PRODUCT CREATE] Variants received: count = ${variants.length}`
+            `[PRODUCT CREATE] Variants received: count = ${variants.length}`,
           );
           variants.forEach((v, i) => {
             console.log(`[PRODUCT CREATE] Variant[${i}]:`, JSON.stringify(v));
@@ -3968,7 +3968,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         console.log(
           "Processed product data:",
-          JSON.stringify(processedProductData)
+          JSON.stringify(processedProductData),
         );
 
         // Create the main product
@@ -4018,7 +4018,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             console.log(
               "Prepared variants for creation:",
-              JSON.stringify(cleanedVariants)
+              JSON.stringify(cleanedVariants),
             );
 
             // Create all variants in bulk
@@ -4026,7 +4026,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               await storage.createProductVariantsBulk(cleanedVariants);
             console.log(
               "Successfully created variants:",
-              createdVariants.length
+              createdVariants.length,
             );
           } catch (variantError) {
             console.error("Error processing variants:", variantError);
@@ -4049,7 +4049,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Error creating product:", error);
         res.status(500).json({ error: "Failed to create product" });
       }
-    }
+    },
   );
 
   // Add draft product - doesn't require seller agreement since it's just a draft
@@ -4075,11 +4075,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(
         "[PRODUCT DRAFT] Creating draft product with data:",
-        JSON.stringify(productData)
+        JSON.stringify(productData),
       );
       if (variants) {
         console.log(
-          `[PRODUCT DRAFT] Variants received: count = ${variants.length}`
+          `[PRODUCT DRAFT] Variants received: count = ${variants.length}`,
         );
         variants.forEach((v, i) => {
           console.log(`[PRODUCT DRAFT] Variant[${i}]:`, JSON.stringify(v));
@@ -4177,7 +4177,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(
         "Processed draft product data:",
-        JSON.stringify(processedProductData)
+        JSON.stringify(processedProductData),
       );
 
       // Create the main product
@@ -4227,7 +4227,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           console.log(
             "Prepared variants for draft creation:",
-            JSON.stringify(cleanedVariants)
+            JSON.stringify(cleanedVariants),
           );
 
           // Create all variants in bulk
@@ -4235,7 +4235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             await storage.createProductVariantsBulk(cleanedVariants);
           console.log(
             "Successfully created draft variants:",
-            createdVariants.length
+            createdVariants.length,
           );
         } catch (variantError) {
           console.error("Error processing draft variants:", variantError);
@@ -4329,7 +4329,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Check if this is a draft product being updated
         if (product.isDraft || product.is_draft) {
           console.log(
-            "Updating a draft product - changing status to pending approval"
+            "Updating a draft product - changing status to pending approval",
           );
           // Change isDraft and is_draft to false, approved remains false for pending status
           processedProductData.isDraft = false;
@@ -4343,7 +4343,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(
             "Processing GST rate before update:",
             actualProductData.gstRate,
-            typeof actualProductData.gstRate
+            typeof actualProductData.gstRate,
           );
 
           processedProductData.gstRate =
@@ -4408,7 +4408,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Update the main product with processed data
         const updatedProduct = await storage.updateProduct(
           id,
-          processedProductData
+          processedProductData,
         );
 
         // Enhanced variant preservation logic
@@ -4457,7 +4457,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // Log the variant data for debugging
               console.log(
                 "Processing variant on server side:",
-                variantWithoutDate
+                variantWithoutDate,
               );
 
               const processedVariant = {
@@ -4486,7 +4486,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     `Processing images for variant ${
                       variant.id || "new"
                     }, type:`,
-                    typeof variant.images
+                    typeof variant.images,
                   );
 
                   // If it's already an array, stringify it properly
@@ -4494,7 +4494,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     console.log(
                       `Variant ${variant.id || "new"} has ${
                         variant.images.length
-                      } images as an array, converting to JSON string`
+                      } images as an array, converting to JSON string`,
                     );
                     return JSON.stringify(variant.images);
                   }
@@ -4512,7 +4512,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                               variant.id || "new"
                             } had valid JSON string with ${
                               parsed.length
-                            } images`
+                            } images`,
                           );
                           return JSON.stringify(parsed);
                         }
@@ -4522,7 +4522,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                           `Invalid JSON string for variant ${
                             variant.id || "new"
                           } images:`,
-                          e
+                          e,
                         );
                       }
                     }
@@ -4531,7 +4531,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     console.log(
                       `Variant ${
                         variant.id || "new"
-                      } has a string that's not JSON, treating as single image`
+                      } has a string that's not JSON, treating as single image`,
                     );
                     return JSON.stringify([variant.images]);
                   }
@@ -4540,7 +4540,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   console.log(
                     `No valid images for variant ${
                       variant.id || "new"
-                    }, using empty array`
+                    }, using empty array`,
                   );
                   return JSON.stringify([]);
                 })(),
@@ -4553,7 +4553,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               if (variant.id && !isNaN(Number(variant.id))) {
                 // First check if this ID actually exists in the database
                 existingVariant = await storage.getProductVariant(
-                  Number(variant.id)
+                  Number(variant.id),
                 );
               }
 
@@ -4562,7 +4562,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 console.log(`Updating existing variant with ID: ${variant.id}`);
                 const updatedVariant = await storage.updateProductVariant(
                   Number(variant.id),
-                  processedVariant
+                  processedVariant,
                 );
                 updatedVariants.push(updatedVariant);
               } else {
@@ -4585,7 +4585,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 const newVariant =
                   await storage.createProductVariant(validVariant);
                 console.log(
-                  `Successfully created new variant with ID: ${newVariant.id}`
+                  `Successfully created new variant with ID: ${newVariant.id}`,
                 );
                 createdVariants.push(newVariant);
               }
@@ -4629,7 +4629,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       }
-    }
+    },
   );
 
   app.delete(
@@ -4672,14 +4672,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (error) {
         console.error(
           `[DELETE ERROR] Failed to delete product ${req.params.id}:`,
-          error
+          error,
         );
         res.status(500).json({
           error: "Failed to delete product",
           details: error instanceof Error ? error.message : String(error),
         });
       }
-    }
+    },
   );
 
   // Bulk delete products endpoint
@@ -4694,7 +4694,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "Bulk delete request from:",
         req.user.role,
         "User ID:",
-        req.user.id
+        req.user.id,
       );
       console.log("Request body:", req.body);
 
@@ -4756,7 +4756,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 } catch (error) {
                   console.error(
                     `Failed to send notification for product ${id}:`,
-                    error
+                    error,
                   );
                   // Continue execution even if notification fails
                 }
@@ -4772,7 +4772,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   error instanceof Error ? error.message : "Unknown error",
               };
             }
-          })
+          }),
         );
 
         const successful = results.filter((r) => r.success).length;
@@ -4789,7 +4789,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           details: error instanceof Error ? error.message : "Unknown error",
         });
       }
-    }
+    },
   );
 
   // Export products as CSV
@@ -4847,7 +4847,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "Content-Disposition",
         `attachment; filename=products-${sellerId}-${new Date()
           .toISOString()
-          .slice(0, 10)}.csv`
+          .slice(0, 10)}.csv`,
       );
 
       // Send CSV content
@@ -4945,7 +4945,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log(
-        `Cart validation: User ${req.user.id} has ${cartItems.length} items to validate`
+        `Cart validation: User ${req.user.id} has ${cartItems.length} items to validate`,
       );
 
       // Validate all cart items
@@ -4955,7 +4955,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Check for invalid cart item record first
         if (!item || typeof item !== "object") {
           console.log(
-            `Cart validation: Found completely invalid cart item object`
+            `Cart validation: Found completely invalid cart item object`,
           );
           // This is a serious error, but we can't fix it without an ID
           continue;
@@ -4969,7 +4969,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ) {
           console.log(
             `Cart validation: Found item with invalid or missing product:`,
-            item.id
+            item.id,
           );
           invalidItems.push({
             id: item.id, // Include cart item ID for deletion
@@ -4989,7 +4989,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const product = await storage.getProduct(productId);
           if (!product) {
             console.log(
-              `Cart validation: Product ${productId} not found in database`
+              `Cart validation: Product ${productId} not found in database`,
             );
             invalidItems.push({
               id: item.id, // Include cart item ID for deletion
@@ -5012,7 +5012,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Check if product has enough stock
           if (product.stock < item.quantity) {
             console.log(
-              `Cart validation: Product ${productId} has insufficient stock (requested: ${item.quantity}, available: ${product.stock})`
+              `Cart validation: Product ${productId} has insufficient stock (requested: ${item.quantity}, available: ${product.stock})`,
             );
             invalidItems.push({
               id: item.id, // Include cart item ID for deletion
@@ -5024,7 +5024,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch (error) {
           console.error(
             `Cart validation: Error checking product ${productId}:`,
-            error
+            error,
           );
           invalidItems.push({
             id: item.id, // Include cart item ID for deletion
@@ -5041,7 +5041,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const variant = await storage.getProductVariant(variantId);
             if (!variant) {
               console.log(
-                `Cart validation: Variant ${variantId} for product ${productId} not found`
+                `Cart validation: Variant ${variantId} for product ${productId} not found`,
               );
               invalidItems.push({
                 id: item.id, // Include cart item ID for deletion
@@ -5055,7 +5055,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Check if variant has enough stock
             if (variant.stock < item.quantity) {
               console.log(
-                `Cart validation: Variant ${variantId} has insufficient stock (requested: ${item.quantity}, available: ${variant.stock})`
+                `Cart validation: Variant ${variantId} has insufficient stock (requested: ${item.quantity}, available: ${variant.stock})`,
               );
               invalidItems.push({
                 id: item.id, // Include cart item ID for deletion
@@ -5068,7 +5068,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } catch (error) {
             console.error(
               `Cart validation: Error checking variant ${variantId}:`,
-              error
+              error,
             );
             invalidItems.push({
               id: item.id, // Include cart item ID for deletion
@@ -5084,7 +5084,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (invalidItems.length > 0) {
         console.log(
           `Cart validation found ${invalidItems.length} invalid items:`,
-          invalidItems
+          invalidItems,
         );
         return res.json({
           valid: false,
@@ -5113,7 +5113,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add log for debugging Buy Now requests
       console.log(
         `Cart API received request:`,
-        JSON.stringify(requestBody, null, 2)
+        JSON.stringify(requestBody, null, 2),
       );
 
       // Note: Removed the problematic pre-check logic that was causing different products
@@ -5154,7 +5154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if product is approved before adding to cart
       if (!product.approved) {
         console.log(
-          `Unauthorized attempt to add unapproved product ${cartData.productId} to cart by user ${req.user.id}`
+          `Unauthorized attempt to add unapproved product ${cartData.productId} to cart by user ${req.user.id}`,
         );
         return res.status(404).json({ error: "Product not found" });
       }
@@ -5224,7 +5224,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           cartData.variantId ? `, Variant ${cartData.variantId}` : ""
         } for user ${req.user.id}, quantity: ${
           cartData.quantity
-        }, available stock: ${availableStock}`
+        }, available stock: ${availableStock}`,
       );
 
       const cart = await storage.addToCart(cartData);
@@ -5294,7 +5294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if cart item belongs to user
       if (cartItem.userId !== req.user.id) {
         console.error(
-          `User ${req.user.id} not authorized to update cart item ${id} owned by user ${cartItem.userId}`
+          `User ${req.user.id} not authorized to update cart item ${id} owned by user ${cartItem.userId}`,
         );
         return res.status(403).json({ error: "Not authorized" });
       }
@@ -5335,7 +5335,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Attempt to update the cart item
       console.log(
-        `Updating cart item ${id} with quantity ${quantity}, available stock: ${availableStock}`
+        `Updating cart item ${id} with quantity ${quantity}, available stock: ${availableStock}`,
       );
       const updatedCartItem = await storage.updateCartItem(id, quantity);
       res.json(updatedCartItem);
@@ -5405,7 +5405,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Validate all IDs are numbers
       const validIds = itemIds.filter(
-        (id) => typeof id === "number" && !isNaN(id)
+        (id) => typeof id === "number" && !isNaN(id),
       );
       if (validIds.length !== itemIds.length) {
         return res
@@ -5414,7 +5414,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log(
-        `Bulk deleting cart items: ${validIds.join(", ")} for user ${req.user.id}`
+        `Bulk deleting cart items: ${validIds.join(", ")} for user ${req.user.id}`,
       );
 
       // Remove each item if it belongs to the user
@@ -5429,7 +5429,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log(`Removed cart item ${id}`);
           } else {
             console.log(
-              `Cart item ${id} not found or not owned by user ${req.user.id}`
+              `Cart item ${id} not found or not owned by user ${req.user.id}`,
             );
           }
         } catch (error) {
@@ -5438,7 +5438,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log(
-        `Successfully removed ${removedCount} out of ${validIds.length} cart items`
+        `Successfully removed ${removedCount} out of ${validIds.length} cart items`,
       );
       res.json({
         message: `Successfully removed ${removedCount} items from cart`,
@@ -5494,13 +5494,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? KEY_ID.startsWith("rzp_")
           ? `${KEY_ID.substring(0, 7)}...${KEY_ID.substring(KEY_ID.length - 5)}`
           : `Invalid format: ${KEY_ID.substring(0, 4)}...${KEY_ID.substring(
-              KEY_ID.length - 4
+              KEY_ID.length - 4,
             )}`
         : null;
 
       const maskedKeySecret = KEY_SECRET
         ? `${KEY_SECRET.substring(0, 3)}...${KEY_SECRET.substring(
-            KEY_SECRET.length - 3
+            KEY_SECRET.length - 3,
           )}`
         : null;
 
@@ -5522,28 +5522,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!configStatus.isConfigured) {
         if (!configStatus.keyIdPresent) {
           response.recommendations.push(
-            "Add RAZORPAY_KEY_ID to your environment secrets"
+            "Add RAZORPAY_KEY_ID to your environment secrets",
           );
         } else if (!configStatus.keyIdValid) {
           response.recommendations.push(
-            'RAZORPAY_KEY_ID is invalid. It should start with "rzp_"'
+            'RAZORPAY_KEY_ID is invalid. It should start with "rzp_"',
           );
         }
 
         if (!configStatus.keySecretPresent) {
           response.recommendations.push(
-            "Add RAZORPAY_KEY_SECRET to your environment secrets"
+            "Add RAZORPAY_KEY_SECRET to your environment secrets",
           );
         } else if (!configStatus.keySecretValid) {
           response.recommendations.push(
-            "RAZORPAY_KEY_SECRET seems invalid. Check for correct format and length"
+            "RAZORPAY_KEY_SECRET seems invalid. Check for correct format and length",
           );
         }
       }
 
       // Add domain verification recommendation regardless of configuration status
       response.recommendations.push(
-        "For production use, register your domain in the Razorpay dashboard under Settings > Websites & Apps"
+        "For production use, register your domain in the Razorpay dashboard under Settings > Websites & Apps",
       );
 
       // Return the enhanced response
@@ -5573,8 +5573,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const originalTotal = Math.round(
         cartItems.reduce(
           (acc, item) => acc + item.product.price * item.quantity,
-          0
-        ) * 100
+          0,
+        ) * 100,
       );
 
       const totalInPaise = discountedAmount
@@ -5602,7 +5602,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             name: item.product.name,
             quantity: item.quantity,
             price: item.product.price,
-          }))
+          })),
         ),
       };
 
@@ -5639,17 +5639,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           }
           console.log(
-            `Awarded ${pointsToAward} reward points to user ${req.user.id} for order #${order.id}`
+            `Awarded ${pointsToAward} reward points to user ${req.user.id} for order #${order.id}`,
           );
         } else {
           console.log(
-            `No reward points awarded for order #${order.id} (order value < 20rs)`
+            `No reward points awarded for order #${order.id} (order value < 20rs)`,
           );
         }
       } catch (rewardPointsError) {
         console.error(
           `Error awarding reward points for user ${req.user.id} and order #${order.id}:`,
-          rewardPointsError
+          rewardPointsError,
         );
       }
 
@@ -5695,7 +5695,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await handleSuccessfulPayment(
         razorpayPaymentId,
         razorpayOrderId,
-        razorpaySignature
+        razorpaySignature,
       );
 
       if (!result.success) {
@@ -5742,7 +5742,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           if (address.userId !== req.user.id) {
             console.error(
-              `Address ${parsedAddressId} belongs to user ${address.userId}, not ${req.user.id}`
+              `Address ${parsedAddressId} belongs to user ${address.userId}, not ${req.user.id}`,
             );
             return res.status(400).json({ error: "Invalid address selected" });
           }
@@ -5790,13 +5790,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (validatedAddressId) {
         orderData.addressId = validatedAddressId;
         console.log(
-          `Adding validated addressId ${validatedAddressId} to Razorpay order`
+          `Adding validated addressId ${validatedAddressId} to Razorpay order`,
         );
       }
 
       console.log(
         "Creating order after successful Razorpay payment:",
-        orderData
+        orderData,
       );
 
       const order = await storage.createOrder(orderData);
@@ -5821,21 +5821,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const rewardResult = await storage.processFirstPurchaseReward(
           req.user.id,
-          order.id
+          order.id,
         );
         if (rewardResult) {
           console.log(
-            `Awarded first purchase wallet coins to user ${req.user.id} for order #${order.id}`
+            `Awarded first purchase wallet coins to user ${req.user.id} for order #${order.id}`,
           );
         } else {
           console.log(
-            `No first purchase reward given (already awarded or not eligible) for user ${req.user.id} and order #${order.id}`
+            `No first purchase reward given (already awarded or not eligible) for user ${req.user.id} and order #${order.id}`,
           );
         }
       } catch (rewardError) {
         console.error(
           `Error awarding first purchase wallet coins for user ${req.user.id} and order #${order.id}:`,
-          rewardError
+          rewardError,
         );
       }
 
@@ -5843,12 +5843,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         await multiSellerOrderHandler.processMultiSellerOrder(order.id);
         console.log(
-          "Order processing for notifications completed successfully"
+          "Order processing for notifications completed successfully",
         );
       } catch (multiSellerError) {
         console.error(
           "Error processing order for notifications:",
-          multiSellerError
+          multiSellerError,
         );
         // Continue with the order even if notification processing fails
       }
@@ -5862,7 +5862,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           // Deduct coins from wallet
           console.log(
-            `Deducting ${walletDetails.coinsUsed} coins from wallet ${walletDetails.walletId}`
+            `Deducting ${walletDetails.coinsUsed} coins from wallet ${walletDetails.walletId}`,
           );
 
           // Import the redeemCoinsFromWallet function from wallet-handlers
@@ -5876,16 +5876,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             walletDetails.coinsUsed,
             "ORDER",
             order.id,
-            `Order #${order.id} coin redemption (Razorpay payment)`
+            `Order #${order.id} coin redemption (Razorpay payment)`,
           );
 
           console.log(
-            "Wallet transaction created successfully for Razorpay payment"
+            "Wallet transaction created successfully for Razorpay payment",
           );
         } catch (walletError) {
           console.error(
             "Error processing wallet redemption for Razorpay payment:",
-            walletError
+            walletError,
           );
           // We don't want to fail the order if wallet processing fails at this point
           // Just log the error and continue
@@ -6018,7 +6018,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (stockValidationErrors.length > 0) {
         console.log(
           "Stock validation errors during checkout:",
-          JSON.stringify(stockValidationErrors)
+          JSON.stringify(stockValidationErrors),
         );
         return res.status(400).json({
           error: "Insufficient stock for some items",
@@ -6058,7 +6058,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           if (address.userId !== req.user.id) {
             console.error(
-              `Address ${parsedAddressId} belongs to user ${address.userId}, not ${req.user.id}`
+              `Address ${parsedAddressId} belongs to user ${address.userId}, not ${req.user.id}`,
             );
             return res.status(400).json({ error: "Invalid address selected" });
           }
@@ -6081,13 +6081,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           acc[sellerId].push(item);
           return acc as Record<number, typeof itemsToProcess>;
         },
-        {} as Record<number, typeof itemsToProcess>
+        {} as Record<number, typeof itemsToProcess>,
       );
 
       console.log(
         `Cart items grouped by seller: ${
           Object.keys(itemsBySeller).length
-        } sellers found`
+        } sellers found`,
       );
 
       // Calculate subtotal per seller
@@ -6106,7 +6106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             items,
             subtotal,
           };
-        }
+        },
       );
 
       // Free delivery for all orders
@@ -6115,7 +6115,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Calculate subtotal from all cart items
       const subtotal = sellerSubtotals.reduce(
         (acc, seller) => acc + seller.subtotal,
-        0
+        0,
       );
       console.log(`Total subtotal from all cart items: ₹${subtotal}`);
 
@@ -6184,7 +6184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Get user's wallet
             const wallet = await storage.getWalletByUserId(req.user.id);
             console.log(
-              `Validating wallet for user ${req.user.id} with balance ${wallet?.balance} against required ${walletCoinsUsed} coins`
+              `Validating wallet for user ${req.user.id} with balance ${wallet?.balance} against required ${walletCoinsUsed} coins`,
             );
 
             if (!wallet) {
@@ -6198,7 +6198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const walletCoinsUsedNum = Number(walletCoinsUsed) || 0;
             if (walletBalanceNum < walletCoinsUsedNum) {
               console.error(
-                `Insufficient wallet balance: ${walletBalanceNum} < ${walletCoinsUsedNum}`
+                `Insufficient wallet balance: ${walletBalanceNum} < ${walletCoinsUsedNum}`,
               );
               return res
                 .status(400)
@@ -6206,7 +6206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
             if (walletCoinsUsedNum > orderTotal) {
               console.error(
-                `Cannot use more wallet coins than order total: ${walletCoinsUsedNum} > ${orderTotal}`
+                `Cannot use more wallet coins than order total: ${walletCoinsUsedNum} > ${orderTotal}`,
               );
               return res.status(400).json({
                 error: "Cannot use more wallet coins than order total",
@@ -6219,7 +6219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               walletCoinsUsed,
               "ORDER",
               null,
-              `Used for order at checkout`
+              `Used for order at checkout`,
             );
           } catch (walletError) {
             console.error("Error validating wallet:", walletError);
@@ -6247,7 +6247,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         redeemDiscount -
         couponDiscount;
       console.log(
-        `Final order total: ₹${total} (subtotal: ₹${subtotalNum} + delivery: ₹${totalDeliveryChargesNum} - wallet: ₹${walletDiscount} - reward: ₹${rewardDiscount} - redeem: ₹${redeemDiscount} - coupon: ₹${couponDiscount})`
+        `Final order total: ₹${total} (subtotal: ₹${subtotalNum} + delivery: ₹${totalDeliveryChargesNum} - wallet: ₹${walletDiscount} - reward: ₹${rewardDiscount} - redeem: ₹${redeemDiscount} - coupon: ₹${couponDiscount})`,
       );
 
       // Create order with payment method from request body
@@ -6278,7 +6278,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (validatedAddressId) {
         orderData.addressId = validatedAddressId;
         console.log(
-          `Adding validated addressId ${validatedAddressId} to order`
+          `Adding validated addressId ${validatedAddressId} to order`,
         );
       }
 
@@ -6286,7 +6286,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (sellerSubtotals.length > 1) {
         orderData.multiSeller = true;
         console.log(
-          `Setting multiSeller flag to true (order has ${sellerSubtotals.length} sellers)`
+          `Setting multiSeller flag to true (order has ${sellerSubtotals.length} sellers)`,
         );
       }
 
@@ -6322,27 +6322,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const rewardResult = await storage.processFirstPurchaseReward(
           req.user.id,
-          order.id
+          order.id,
         );
         if (rewardResult) {
           console.log(
-            `Awarded first purchase wallet coins to user ${req.user.id} for order #${order.id}`
+            `Awarded first purchase wallet coins to user ${req.user.id} for order #${order.id}`,
           );
         } else {
           console.log(
-            `No first purchase reward given (already awarded or not eligible) for user ${req.user.id} and order #${order.id}`
+            `No first purchase reward given (already awarded or not eligible) for user ${req.user.id} and order #${order.id}`,
           );
         }
       } catch (rewardError) {
         console.error(
           `Error awarding first purchase wallet coins for user ${req.user.id} and order #${order.id}:`,
-          rewardError
+          rewardError,
         );
       }
 
       // Create seller-specific sub-orders
       console.log(
-        `Creating ${sellerSubtotals.length} seller-specific sub-orders`
+        `Creating ${sellerSubtotals.length} seller-specific sub-orders`,
       );
 
       // Create a seller order for each seller
@@ -6363,24 +6363,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           console.log(
             `Creating seller order for seller ${sellerId}:`,
-            sellerOrderData
+            sellerOrderData,
           );
 
           try {
             const sellerOrder =
               await storage.createSellerOrder(sellerOrderData);
             console.log(
-              `Created seller order ${sellerOrder.id} for seller ${sellerId}`
+              `Created seller order ${sellerOrder.id} for seller ${sellerId}`,
             );
             return sellerOrder;
           } catch (error) {
             console.error(
               `Error creating seller order for seller ${sellerId}:`,
-              error
+              error,
             );
             throw error;
           }
-        })
+        }),
       );
 
       console.log(`Created ${sellerOrders.length} seller orders successfully`);
@@ -6421,7 +6421,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
 
           console.log(
-            `Ledger entry created for order ${order.id}, distributor ${distributor.id}`
+            `Ledger entry created for order ${order.id}, distributor ${distributor.id}`,
           );
         }
       } catch (ledgerError) {
@@ -6432,17 +6432,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Process seller-specific order items
       if (sellerOrders.length > 1) {
         console.log(
-          "This is a multi-seller order. Processing order items linking..."
+          "This is a multi-seller order. Processing order items linking...",
         );
         try {
           await multiSellerOrderHandler.processMultiSellerOrder(order.id);
           console.log(
-            "Multi-seller order items linked to seller orders successfully"
+            "Multi-seller order items linked to seller orders successfully",
           );
         } catch (multiSellerError) {
           console.error(
             "Error processing multi-seller order items:",
-            multiSellerError
+            multiSellerError,
           );
           // Continue with the order even if multi-seller processing fails
         }
@@ -6453,7 +6453,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // If specific items were provided, only remove those
         console.log(
           "Removing specific cart items that were ordered:",
-          req.body.items.map((item) => item.id)
+          req.body.items.map((item) => item.id),
         );
         for (const item of req.body.items) {
           if (item.id) {
@@ -6468,7 +6468,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (!isBuyNow) {
         // Fallback: clear entire cart if no specific items provided, but only if not a buy now order
         console.log(
-          "No specific items provided, clearing entire cart (if not buy now)"
+          "No specific items provided, clearing entire cart (if not buy now)",
         );
         await storage.clearCart(req.user.id);
       }
@@ -6476,12 +6476,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send order confirmation emails asynchronously
       try {
         console.log(
-          `Sending order confirmation emails for order ID ${order.id}`
+          `Sending order confirmation emails for order ID ${order.id}`,
         );
         // Send emails asynchronously to avoid delaying the response
         emailService.sendOrderPlacedEmails(order.id).catch((emailError) => {
           console.error(
-            `Error sending order confirmation emails: ${emailError}`
+            `Error sending order confirmation emails: ${emailError}`,
           );
         });
         // Send wallet/redeem notification emails if used
@@ -6507,7 +6507,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       } catch (emailError) {
         console.error(
-          `Error initiating order confirmation emails: ${emailError}`
+          `Error initiating order confirmation emails: ${emailError}`,
         );
         // Don't fail the order creation if email sending fails
       }
@@ -6516,12 +6516,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         await multiSellerOrderHandler.processMultiSellerOrder(order.id);
         console.log(
-          "Order processing for notifications completed successfully"
+          "Order processing for notifications completed successfully",
         );
       } catch (multiSellerError) {
         console.error(
           "Error processing order for notifications:",
-          multiSellerError
+          multiSellerError,
         );
         // Continue with the order even if notification processing fails
       }
@@ -6533,7 +6533,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             req.user.id,
             redeemCoinsUsed,
             order.id,
-            `Used for order at checkout`
+            `Used for order at checkout`,
           );
         } catch (err) {
           console.error("Error spending redeemed coins at checkout:", err);
@@ -6570,17 +6570,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           }
           console.log(
-            `Awarded ${pointsToAward} reward points to user ${req.user.id} for order #${order.id}`
+            `Awarded ${pointsToAward} reward points to user ${req.user.id} for order #${order.id}`,
           );
         } else {
           console.log(
-            `No reward points awarded for order #${order.id} (order value < 20rs)`
+            `No reward points awarded for order #${order.id} (order value < 20rs)`,
           );
         }
       } catch (rewardPointsError) {
         console.error(
           `Error awarding reward points for user ${req.user.id} and order #${order.id}:`,
-          rewardPointsError
+          rewardPointsError,
         );
       }
 
@@ -6631,7 +6631,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isSellerItem: item.product.sellerId === req.user.id,
         }));
         console.log(
-          `Retrieved ${orderItems.length} order items for seller ${req.user.id} from order #${orderId}, ${orderItems.filter((item) => item.isSellerItem).length} are seller's items`
+          `Retrieved ${orderItems.length} order items for seller ${req.user.id} from order #${orderId}, ${orderItems.filter((item) => item.isSellerItem).length} are seller's items`,
         );
       } else {
         // For buyers and admins, show all items for this specific order
@@ -6727,7 +6727,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             } catch (error) {
               console.error(
                 `Error fetching user details for order ${order.id}:`,
-                error
+                error,
               );
               return {
                 ...order,
@@ -6736,7 +6736,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 buyerPhone: "",
               };
             }
-          })
+          }),
         );
         res.json({
           orders: ordersWithUserDetails,
@@ -6800,7 +6800,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               status: "pending",
               total: orderItems.reduce(
                 (sum, item) => sum + item.price * item.quantity,
-                0
+                0,
               ),
               date: new Date().toISOString(),
               shippingDetails: JSON.stringify({
@@ -6830,20 +6830,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.user.role === "seller") {
         // Check if order contains products from this seller
         console.log(
-          `Checking if order ${id} has products from seller ${req.user.id}...`
+          `Checking if order ${id} has products from seller ${req.user.id}...`,
         );
         try {
           const hasSellerProduct = await storage.orderHasSellerProducts(
             id,
-            req.user.id
+            req.user.id,
           );
           console.log(
-            `Result of orderHasSellerProducts for order ${id}, seller ${req.user.id}: ${hasSellerProduct}`
+            `Result of orderHasSellerProducts for order ${id}, seller ${req.user.id}: ${hasSellerProduct}`,
           );
 
           if (!hasSellerProduct) {
             console.log(
-              `Access denied to order ${id} for seller ${req.user.id} - no products found`
+              `Access denied to order ${id} for seller ${req.user.id} - no products found`,
             );
 
             // TEMPORARY FIX: Allow access for testing if it's an impersonated admin
@@ -6853,7 +6853,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               req.session?.originalUser?.role === "admin";
             if (isImpersonatedAdmin) {
               console.log(
-                `Allowing access to order ${id} for impersonated admin (as seller ${req.user.id})`
+                `Allowing access to order ${id} for impersonated admin (as seller ${req.user.id})`,
               );
             } else {
               return res.status(403).json({ error: "Not authorized" });
@@ -6863,7 +6863,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error(`Error checking if order has seller products:`, error);
           // TEMPORARY: Don't reject based on error, allow access for now
           console.log(
-            `Allowing access to order ${id} due to error in orderHasSellerProducts check`
+            `Allowing access to order ${id} due to error in orderHasSellerProducts check`,
           );
         }
       }
@@ -6893,19 +6893,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (req.user.role === "seller") {
             const allSellerOrders = await storage.getSellerOrdersByOrderId(id);
             sellerOrders = allSellerOrders.filter(
-              (so) => so.sellerId === req.user.id
+              (so) => so.sellerId === req.user.id,
             );
           } else {
             // For admin and buyer, return all seller orders
             sellerOrders = await storage.getSellerOrdersByOrderId(id);
           }
           console.log(
-            `Found ${sellerOrders.length} seller orders for order #${id}`
+            `Found ${sellerOrders.length} seller orders for order #${id}`,
           );
         } catch (sellerOrderError) {
           console.error(
             `Error fetching seller orders for order #${id}:`,
-            sellerOrderError
+            sellerOrderError,
           );
           // Continue even if we can't get seller orders
         }
@@ -6969,7 +6969,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If this is a multi-seller order, update all seller orders to cancelled
       if (order.multiSeller) {
         console.log(
-          `Order #${orderId} is a multi-seller order, cancelling all seller orders`
+          `Order #${orderId} is a multi-seller order, cancelling all seller orders`,
         );
 
         // Get all seller orders
@@ -6996,7 +6996,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (notificationError) {
         console.error(
           "Error sending real-time notification:",
-          notificationError
+          notificationError,
         );
       }
 
@@ -7023,7 +7023,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch (notificationError) {
           console.error(
             "Error creating cancellation notification:",
-            notificationError
+            notificationError,
           );
         }
       });
@@ -7079,20 +7079,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Sellers can only update orders that contain their products
       if (req.user.role === "seller") {
         console.log(
-          `Checking if order ${id} has products from seller ${req.user.id} for status update...`
+          `Checking if order ${id} has products from seller ${req.user.id} for status update...`,
         );
         try {
           const hasSellerProduct = await storage.orderHasSellerProducts(
             id,
-            req.user.id
+            req.user.id,
           );
           console.log(
-            `Result of orderHasSellerProducts for order ${id}, seller ${req.user.id}: ${hasSellerProduct}`
+            `Result of orderHasSellerProducts for order ${id}, seller ${req.user.id}: ${hasSellerProduct}`,
           );
 
           if (!hasSellerProduct) {
             console.log(
-              `Access denied to update order ${id} for seller ${req.user.id} - no products found`
+              `Access denied to update order ${id} for seller ${req.user.id} - no products found`,
             );
 
             // TEMPORARY FIX: Allow access for testing if it's an impersonated admin
@@ -7102,7 +7102,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               req.session?.originalUser?.role === "admin";
             if (isImpersonatedAdmin) {
               console.log(
-                `Allowing access to update order ${id} for impersonated admin (as seller ${req.user.id})`
+                `Allowing access to update order ${id} for impersonated admin (as seller ${req.user.id})`,
               );
             } else {
               return res.status(403).json({ error: "Not authorized" });
@@ -7112,7 +7112,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error(`Error checking if order has seller products:`, error);
           // TEMPORARY: Don't reject based on error, allow access for now
           console.log(
-            `Allowing access to update order ${id} due to error in orderHasSellerProducts check`
+            `Allowing access to update order ${id} due to error in orderHasSellerProducts check`,
           );
         }
       }
@@ -7120,7 +7120,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If this is a multi-seller order, handle it differently
       if (order.multiSeller) {
         console.log(
-          `Order #${id} is a multi-seller order, updating all seller orders to ${status}`
+          `Order #${id} is a multi-seller order, updating all seller orders to ${status}`,
         );
 
         // Get all seller orders
@@ -7138,7 +7138,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           await storage.updateSellerOrderStatus(sellerOrder.id, status);
           console.log(
-            `Updated seller order #${sellerOrder.id} status to ${status}`
+            `Updated seller order #${sellerOrder.id} status to ${status}`,
           );
         }
       }
@@ -7169,7 +7169,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (notificationError) {
         console.error(
           "Error sending real-time notification:",
-          notificationError
+          notificationError,
         );
       }
 
@@ -7177,7 +7177,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       setImmediate(async () => {
         try {
           console.log(
-            `Sending email notifications for order ${id} status update to: ${status}`
+            `Sending email notifications for order ${id} status update to: ${status}`,
           );
           if (status === "shipped") {
             await emailService.sendOrderShippedEmails(id);
@@ -7186,7 +7186,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         } catch (emailError) {
           console.error(
-            `Error sending order status update emails: ${emailError}`
+            `Error sending order status update emails: ${emailError}`,
           );
         }
       });
@@ -7226,20 +7226,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.user.role === "seller") {
         // Sellers can only view seller orders for orders that contain their products
         console.log(
-          `Checking if order ${orderId} has products from seller ${req.user.id} for seller-orders endpoint...`
+          `Checking if order ${orderId} has products from seller ${req.user.id} for seller-orders endpoint...`,
         );
         try {
           const hasSellerProduct = await storage.orderHasSellerProducts(
             orderId,
-            req.user.id
+            req.user.id,
           );
           console.log(
-            `Result of orderHasSellerProducts for order ${orderId}, seller ${req.user.id}: ${hasSellerProduct}`
+            `Result of orderHasSellerProducts for order ${orderId}, seller ${req.user.id}: ${hasSellerProduct}`,
           );
 
           if (!hasSellerProduct) {
             console.log(
-              `Access denied to seller-orders for order ${orderId} for seller ${req.user.id} - no products found`
+              `Access denied to seller-orders for order ${orderId} for seller ${req.user.id} - no products found`,
             );
 
             // TEMPORARY FIX: Allow access for testing if it's an impersonated admin
@@ -7249,7 +7249,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               req.session?.originalUser?.role === "admin";
             if (isImpersonatedAdmin) {
               console.log(
-                `Allowing access to seller-orders for order ${orderId} for impersonated admin (as seller ${req.user.id})`
+                `Allowing access to seller-orders for order ${orderId} for impersonated admin (as seller ${req.user.id})`,
               );
             } else {
               return res.status(403).json({ error: "Not authorized" });
@@ -7259,7 +7259,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error(`Error checking if order has seller products:`, error);
           // TEMPORARY: Don't reject based on error, allow access for now
           console.log(
-            `Allowing access to seller-orders for order ${orderId} due to error in orderHasSellerProducts check`
+            `Allowing access to seller-orders for order ${orderId} due to error in orderHasSellerProducts check`,
           );
         }
       }
@@ -7268,7 +7268,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.user.role === "seller") {
         const sellerOrders = await storage.getSellerOrdersByOrderId(orderId);
         const sellerOrder = sellerOrders.find(
-          (so) => so.sellerId === req.user.id
+          (so) => so.sellerId === req.user.id,
         );
 
         if (!sellerOrder) {
@@ -7333,13 +7333,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update the seller order status
       const updatedSellerOrder = await storage.updateSellerOrderStatus(
         id,
-        status
+        status,
       );
 
       // Get the main order to check if all seller orders have the same status
       const mainOrder = await storage.getOrder(sellerOrder.orderId);
       const allSellerOrders = await storage.getSellerOrders(
-        sellerOrder.orderId
+        sellerOrder.orderId,
       );
 
       // Check if all seller orders have the same status
@@ -7355,7 +7355,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Process order status change with the handler (includes wallet refund logic)
         await handleOrderStatusChange(mainOrder.id, status);
         console.log(
-          `All seller orders for order ${mainOrder.id} now have status '${status}', updated main order status`
+          `All seller orders for order ${mainOrder.id} now have status '${status}', updated main order status`,
         );
       }
 
@@ -7405,19 +7405,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const sellerOrders = await storage.getSellerOrders(id);
         console.log(
-          `Cancelling ${sellerOrders.length} seller orders for order #${id}`
+          `Cancelling ${sellerOrders.length} seller orders for order #${id}`,
         );
 
         for (const sellerOrder of sellerOrders) {
           await storage.updateSellerOrderStatus(sellerOrder.id, "cancelled");
           console.log(
-            `Seller order #${sellerOrder.id} for seller ${sellerOrder.sellerId} cancelled`
+            `Seller order #${sellerOrder.id} for seller ${sellerOrder.sellerId} cancelled`,
           );
         }
       } catch (sellerOrderError) {
         console.error(
           `Error cancelling seller orders for order #${id}:`,
-          sellerOrderError
+          sellerOrderError,
         );
         // Continue with the main order cancellation even if seller order updates fail
       }
@@ -7430,12 +7430,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Sending cancellation emails for order ID ${id}`);
         emailService.sendOrderCancelledEmails(id).catch((emailError) => {
           console.error(
-            `Error sending order cancellation emails: ${emailError}`
+            `Error sending order cancellation emails: ${emailError}`,
           );
         });
       } catch (emailError) {
         console.error(
-          `Error initiating order cancellation emails: ${emailError}`
+          `Error initiating order cancellation emails: ${emailError}`,
         );
         // Don't fail the order cancellation if email sending fails
       }
@@ -7472,7 +7472,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         limit,
         search,
         role,
-        deletedFilter
+        deletedFilter,
       );
 
       res.json({
@@ -7553,13 +7553,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (id === 10) {
         try {
           console.log(
-            "Special handling for user 10 (MKAY/ambi.mohit09@gmail.com)"
+            "Special handling for user 10 (MKAY/ambi.mohit09@gmail.com)",
           );
 
           // 1. Check if user exists
           const { rows: userRows } = await pool.query(
             "SELECT * FROM users WHERE id = $1",
-            [id]
+            [id],
           );
           if (userRows.length === 0) {
             return res.status(404).json({ error: "User not found" });
@@ -7573,7 +7573,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             WHERE source_product_id IN (SELECT id FROM products WHERE seller_id = $1)
             OR related_product_id IN (SELECT id FROM products WHERE seller_id = $1)
           `,
-            [id]
+            [id],
           );
 
           // 3. Delete carts referencing user's products
@@ -7583,7 +7583,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             DELETE FROM carts
             WHERE product_id IN (SELECT id FROM products WHERE seller_id = $1)
           `,
-            [id]
+            [id],
           );
 
           // 4. Delete order_items referencing user's products
@@ -7593,7 +7593,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             DELETE FROM order_items
             WHERE product_id IN (SELECT id FROM products WHERE seller_id = $1)
           `,
-            [id]
+            [id],
           );
 
           // 5. Find and delete review-related data
@@ -7603,7 +7603,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             SELECT id FROM reviews
             WHERE product_id IN (SELECT id FROM products WHERE seller_id = $1)
           `,
-            [id]
+            [id],
           );
 
           // Delete review images and helpful marks
@@ -7613,7 +7613,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ]);
             await pool.query(
               "DELETE FROM review_helpful WHERE review_id = $1",
-              [review.id]
+              [review.id],
             );
           }
 
@@ -7623,7 +7623,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             DELETE FROM reviews
             WHERE product_id IN (SELECT id FROM products WHERE seller_id = $1)
           `,
-            [id]
+            [id],
           );
 
           // 6. Delete AI assistant conversations for products
@@ -7633,7 +7633,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             DELETE FROM ai_assistant_conversations
             WHERE product_id IN (SELECT id FROM products WHERE seller_id = $1)
           `,
-            [id]
+            [id],
           );
 
           // 7. Delete user activities related to products
@@ -7643,7 +7643,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             DELETE FROM user_activities
             WHERE product_id IN (SELECT id FROM products WHERE seller_id = $1)
           `,
-            [id]
+            [id],
           );
 
           // 8. Now it's safe to delete the products
@@ -7661,23 +7661,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ]);
           await pool.query(
             "DELETE FROM ai_assistant_conversations WHERE user_id = $1",
-            [id]
+            [id],
           );
           await pool.query(
             "DELETE FROM user_size_preferences WHERE user_id = $1",
-            [id]
+            [id],
           );
           await pool.query(
             "DELETE FROM seller_documents WHERE seller_id = $1",
-            [id]
+            [id],
           );
           await pool.query(
             "DELETE FROM business_details WHERE seller_id = $1",
-            [id]
+            [id],
           );
           await pool.query(
             "DELETE FROM banking_information WHERE seller_id = $1",
-            [id]
+            [id],
           );
 
           // 10. Finally, delete the user
@@ -7689,7 +7689,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch (error) {
           console.error(
             "Error in special deletion process for user 10:",
-            error
+            error,
           );
           return res
             .status(500)
@@ -7797,7 +7797,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create the co-admin with a random password since we're using OTP
       const randomPassword = Array.from(Array(20), () =>
-        Math.floor(Math.random() * 36).toString(36)
+        Math.floor(Math.random() * 36).toString(36),
       ).join("");
 
       // Create the co-admin
@@ -7860,7 +7860,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create a random password since we're using OTP authentication
       const randomPassword = Array.from(Array(20), () =>
-        Math.floor(Math.random() * 36).toString(36)
+        Math.floor(Math.random() * 36).toString(36),
       ).join("");
 
       // Create the user
@@ -7901,7 +7901,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const updatedCoAdmin = await storage.updateCoAdminPermissions(
         id,
-        permissions
+        permissions,
       );
 
       if (!updatedCoAdmin) {
@@ -7950,8 +7950,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cb(null, false);
         return cb(
           new Error(
-            `Unsupported file type: ${file.mimetype}. Only images and PDFs are allowed.`
-          )
+            `Unsupported file type: ${file.mimetype}. Only images and PDFs are allowed.`,
+          ),
         );
       }
     },
@@ -7996,7 +7996,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         console.log(
-          `Processing upload: ${req.file.originalname}, size: ${req.file.size}, mimetype: ${req.file.mimetype}`
+          `Processing upload: ${req.file.originalname}, size: ${req.file.size}, mimetype: ${req.file.mimetype}`,
         );
 
         const fileBuffer = req.file.buffer;
@@ -8017,7 +8017,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               : "Failed to upload file to storage",
         });
       }
-    }
+    },
   );
 
   // Public upload endpoint for become-a-seller form (no authentication required)
@@ -8079,7 +8079,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         console.log(
-          `Processing public upload: ${req.file.originalname}, size: ${req.file.size}, mimetype: ${req.file.mimetype}`
+          `Processing public upload: ${req.file.originalname}, size: ${req.file.size}, mimetype: ${req.file.mimetype}`,
         );
 
         const fileBuffer = req.file.buffer;
@@ -8100,7 +8100,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               : "Failed to upload file to storage",
         });
       }
-    }
+    },
   );
 
   // Multiple files upload endpoint
@@ -8147,13 +8147,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         console.log(
-          `Processing multiple file upload: ${req.files.length} files`
+          `Processing multiple file upload: ${req.files.length} files`,
         );
 
         // Upload all files in parallel
         const uploadPromises = req.files.map(async (file) => {
           console.log(
-            `Processing file: ${file.originalname}, size: ${file.size}, mimetype: ${file.mimetype}`
+            `Processing file: ${file.originalname}, size: ${file.size}, mimetype: ${file.mimetype}`,
           );
           return uploadFile(file.buffer, file.originalname, file.mimetype);
         });
@@ -8173,7 +8173,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               : "Failed to upload files to storage",
         });
       }
-    }
+    },
   );
 
   // Get seller products with filtering and pagination
@@ -8195,7 +8195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const includeDrafts = req.query.includeDrafts !== "false"; // Include drafts by default unless explicitly disabled
 
       console.log(
-        `Fetching products for seller ${sellerId} (${req.user.username}), includeDrafts=${includeDrafts}`
+        `Fetching products for seller ${sellerId} (${req.user.username}), includeDrafts=${includeDrafts}`,
       );
 
       // Pagination parameters
@@ -8208,7 +8208,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         category,
         sellerId,
         undefined,
-        search
+        search,
       );
       console.log(`Found ${totalCount} total products for seller ${sellerId}`);
       const totalPages = Math.ceil(totalCount / limit);
@@ -8250,14 +8250,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           `%${search}%`,
           `%${search}%`,
           `%${search}%`,
-          `%${search}%`
+          `%${search}%`,
         );
       }
       queryParams.push(limit, offset);
 
       console.log(
         "Executing custom seller products query with params:",
-        queryParams
+        queryParams,
       );
       const { rows } = await pool.query(query, queryParams);
 
@@ -8397,7 +8397,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set the content type and attachment header for CSV
       res.setHeader(
         "Content-Disposition",
-        "attachment; filename=product-import-template.csv"
+        "attachment; filename=product-import-template.csv",
       );
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
 
@@ -8509,7 +8509,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 row["Inventory"] ||
                 row["INVENTORY"] ||
                 0
-              ).toString()
+              ).toString(),
             );
 
             console.log(`Row ${rowNum} - Processing Stock value:`, {
@@ -8553,7 +8553,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               results.errors.push({
                 row: rowNum,
                 message: `Invalid category. Must be one of: ${categoryNames.join(
-                  ", "
+                  ", ",
                 )}`,
               });
               results.failed++;
@@ -8691,11 +8691,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     primaryImageUrl = imageUrl;
                   }
                 }
-              }
+              },
             );
 
             console.log(
-              `Row ${rowNum} after processing: images array length=${images.length}, primaryImageUrl=${primaryImageUrl}`
+              `Row ${rowNum} after processing: images array length=${images.length}, primaryImageUrl=${primaryImageUrl}`,
             );
 
             // Image URL is required in the database schema (NOT NULL constraint)
@@ -8748,7 +8748,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Log the full product data before saving
             console.log(
               `Row ${rowNum}: Full product data being sent to database:`,
-              JSON.stringify(productData, null, 2)
+              JSON.stringify(productData, null, 2),
             );
 
             // Save product to database
@@ -8781,7 +8781,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             if (missingFields.length > 0) {
               errorMessage = `Missing required fields: ${missingFields.join(
-                ", "
+                ", ",
               )}`;
               console.log(`Row ${rowNum} error:`, errorMessage);
               results.errors.push({
@@ -8825,7 +8825,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   errorMessage = "The provided subcategory doesn't exist";
                 } else {
                   const match = error.message.match(
-                    /foreign key constraint "([^"]+)"/
+                    /foreign key constraint "([^"]+)"/,
                   );
                   const constraintName = match
                     ? match[1]
@@ -8854,7 +8854,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Error processing bulk import:", error);
         res.status(500).json({ message: "Failed to process bulk import" });
       }
-    }
+    },
   );
 
   // Bulk upload functionality has been removed
@@ -9103,7 +9103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "There was an error uploading your banner image",
         });
       }
-    }
+    },
   );
 
   // Get a single banner by ID
@@ -9258,15 +9258,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
               and(
                 inArray(products.id, productIds as number[]),
                 eq(products.approved, true),
-                eq(products.deleted, false)
-              )
+                eq(products.deleted, false),
+              ),
             );
 
           approvedProductIds = productsInfo.map((p) => p.id);
           console.log(
             `Checking product approval for hero banners - Approved IDs: ${approvedProductIds.join(
-              ", "
-            )}`
+              ", ",
+            )}`,
           );
         }
 
@@ -9307,7 +9307,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const products = await storage.getProducts(
           category.name,
           undefined,
-          true
+          true,
         );
 
         // Filter out products that are drafts or pending approval
@@ -9315,7 +9315,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           (product) =>
             product.approved === true &&
             product.isDraft !== true &&
-            product.deleted !== true
+            product.deleted !== true,
         );
 
         if (readyProducts.length > 0) {
@@ -9384,7 +9384,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const products = await storage.getProducts(
         "Electronics",
         undefined,
-        true
+        true,
       );
       const readyProducts = products.filter((p) => !p.isDraft && !p.deleted);
 
@@ -9395,10 +9395,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const mobileProducts = await storage.getProducts(
           "Mobiles",
           undefined,
-          true
+          true,
         );
         const readyMobileProducts = mobileProducts.filter(
-          (p) => !p.isDraft && !p.deleted
+          (p) => !p.isDraft && !p.deleted,
         );
         if (readyMobileProducts.length > 0) {
           dealProducts = readyMobileProducts;
@@ -9409,10 +9409,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const fashionProducts = await storage.getProducts(
             "Fashion",
             undefined,
-            true
+            true,
           );
           const readyFashionProducts = fashionProducts.filter(
-            (p) => !p.isDraft && !p.deleted
+            (p) => !p.isDraft && !p.deleted,
           );
           if (readyFashionProducts.length > 0) {
             dealProducts = readyFashionProducts;
@@ -9430,7 +9430,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const dayOfYear = Math.floor(
         (Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) -
           Date.UTC(now.getUTCFullYear(), 0, 0)) /
-          86400000
+          86400000,
       );
       const dealIndex = dayOfYear % dealProducts.length;
       const dealProduct = dealProducts[dealIndex];
@@ -9484,8 +9484,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           nowUTC.getUTCDate() + 1,
           0,
           0,
-          0
-        )
+          0,
+        ),
       );
       const diffMs = nextMidnightUTC.getTime() - nowUTC.getTime();
       const totalSeconds = Math.floor(diffMs / 1000);
@@ -9545,12 +9545,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "userRole:",
         userRole,
         "showOnlyApproved:",
-        showOnlyApproved
+        showOnlyApproved,
       );
 
       if (!query || query.trim().length < 1) {
         console.log(
-          "SEARCH API: Empty query received, returning empty results"
+          "SEARCH API: Empty query received, returning empty results",
         );
         return res.json([]);
       }
@@ -9560,7 +9560,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // For discount range queries, ensure we use the same filtering as the home page
       const cleanedQuery = query.trim().toLowerCase();
       const discountRangeMatch = cleanedQuery.match(
-        /(\d+)\s*-\s*(\d+)(?:\s*%|\s+percent)\s+off/
+        /(\d+)\s*-\s*(\d+)(?:\s*%|\s+percent)\s+off/,
       );
 
       if (discountRangeMatch) {
@@ -9569,7 +9569,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const maxDiscountPercent = parseInt(discountRangeMatch[2]);
 
         console.log(
-          `SEARCH API: Detected discount range query: ${minDiscountPercent}-${maxDiscountPercent}% off`
+          `SEARCH API: Detected discount range query: ${minDiscountPercent}-${maxDiscountPercent}% off`,
         );
 
         // Use the same filtering as home page (approved=true, not draft, not rejected)
@@ -9599,7 +9599,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ]);
 
         console.log(
-          `SEARCH API: Found ${rows.length} products with discount between ${minDiscountPercent}-${maxDiscountPercent}%`
+          `SEARCH API: Found ${rows.length} products with discount between ${minDiscountPercent}-${maxDiscountPercent}%`,
         );
 
         // Set the content type explicitly to application/json
@@ -9641,7 +9641,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If user is a buyer and product is not approved, return 404
       if (userRole === "buyer" && !product.approved) {
         console.log(
-          `Unauthorized access attempt by buyer to reviews of unapproved product ${productId}`
+          `Unauthorized access attempt by buyer to reviews of unapproved product ${productId}`,
         );
         return res.status(404).json({ error: "Product not found" });
       }
@@ -9670,7 +9670,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If user is a buyer and product is not approved, return 404
       if (userRole === "buyer" && !product.approved) {
         console.log(
-          `Unauthorized access attempt by buyer to rating of unapproved product ${productId}`
+          `Unauthorized access attempt by buyer to rating of unapproved product ${productId}`,
         );
         return res.status(404).json({ error: "Product not found" });
       }
@@ -9718,7 +9718,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const updatedUser = await storage.updateUserProfile(
         req.user.id,
-        updateData
+        updateData,
       );
       res.json(updatedUser);
     } catch (error) {
@@ -9740,14 +9740,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         console.log(
-          `Processing profile image upload: ${req.file.originalname}, size: ${req.file.size}, mimetype: ${req.file.mimetype}`
+          `Processing profile image upload: ${req.file.originalname}, size: ${req.file.size}, mimetype: ${req.file.mimetype}`,
         );
 
         try {
           // Upload the image to S3
           const uploadResult = await uploadFileToS3(req.file);
           console.log(
-            `Profile image uploaded successfully to S3: ${uploadResult.Location}`
+            `Profile image uploaded successfully to S3: ${uploadResult.Location}`,
           );
 
           if (!uploadResult || !uploadResult.Location) {
@@ -9781,7 +9781,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           details: error instanceof Error ? error.message : "Unknown error",
         });
       }
-    }
+    },
   );
 
   // Get user notification preferences
@@ -9790,7 +9790,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const preferences = await storage.getUserNotificationPreferences(
-        req.user.id
+        req.user.id,
       );
 
       if (!preferences) {
@@ -9853,7 +9853,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Save preferences
       const updatedUser = await storage.updateUserNotificationPreferences(
         req.user.id,
-        req.body
+        req.body,
       );
       res.json({ success: true, preferences: req.body });
     } catch (error) {
@@ -9921,7 +9921,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if user has purchased the product (for verified purchase status)
       const hasUserPurchased = await storage.hasUserPurchasedProduct(
         req.user.id,
-        productId
+        productId,
       );
 
       // Create the review
@@ -9975,12 +9975,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
         console.log(
-          `Awarded ${pointsToAward} reward points to user ${req.user.id} for review #${review.id}`
+          `Awarded ${pointsToAward} reward points to user ${req.user.id} for review #${review.id}`,
         );
       } catch (rewardPointsError) {
         console.error(
           `Error awarding reward points for review by user ${req.user.id}:`,
-          rewardPointsError
+          rewardPointsError,
         );
         // Don't fail the review creation if reward points fail
       }
@@ -10063,7 +10063,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const helpfulVote = await storage.markReviewHelpful(
         reviewId,
-        req.user.id
+        req.user.id,
       );
       res.json(helpfulVote);
     } catch (error) {
@@ -10087,7 +10087,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if user has marked this review as helpful
       const isHelpful = await storage.isReviewHelpfulByUser(
         reviewId,
-        req.user.id
+        req.user.id,
       );
 
       if (!isHelpful) {
@@ -10120,7 +10120,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const isHelpful = await storage.isReviewHelpfulByUser(
         reviewId,
-        req.user.id
+        req.user.id,
       );
       res.json({ isHelpful });
     } catch (error) {
@@ -10206,7 +10206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             user: r.user
               ? { id: r.user.id, username: r.user.username }
               : "No user data",
-          }))
+          })),
         );
       }
 
@@ -10328,7 +10328,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Fallback: return the basic reply data with user info
         console.log(
           "Could not find complete reply, returning basic data:",
-          newReply
+          newReply,
         );
 
         // Get the current user info to include in the response
@@ -10422,12 +10422,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(
         `Getting personalized recommendations for ${
           userId ? `user ${userId}` : "anonymous user"
-        } (role: ${userRole}, showOnlyApproved: ${showOnlyApproved})`
+        } (role: ${userRole}, showOnlyApproved: ${showOnlyApproved})`,
       );
       const recommendations =
         await RecommendationEngine.getPersonalizedRecommendations(
           userId,
-          limit
+          limit,
         );
 
       // For regular buyers, ensure we only return approved products that aren't drafts
@@ -10437,20 +10437,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           (product) =>
             product.approved === true &&
             product.isDraft !== true &&
-            product.deleted !== true
+            product.deleted !== true,
         );
 
         if (filteredRecommendations.length < recommendations.length) {
           console.log(
             `Filtered out ${
               recommendations.length - filteredRecommendations.length
-            } unapproved/draft products from recommendations`
+            } unapproved/draft products from recommendations`,
           );
         }
       }
 
       console.log(
-        `Found ${filteredRecommendations.length} personalized recommendations`
+        `Found ${filteredRecommendations.length} personalized recommendations`,
       );
       res.json(filteredRecommendations);
     } catch (error) {
@@ -10482,20 +10482,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           (product) =>
             product.approved === true &&
             product.isDraft !== true &&
-            product.deleted !== true
+            product.deleted !== true,
         );
 
         if (filteredProducts.length < similarProducts.length) {
           console.log(
             `Filtered out ${
               similarProducts.length - filteredProducts.length
-            } unapproved/draft products from similar products`
+            } unapproved/draft products from similar products`,
           );
         }
       }
 
       console.log(
-        `Found ${filteredProducts.length} similar products for product ID ${productId}`
+        `Found ${filteredProducts.length} similar products for product ID ${productId}`,
       );
       res.json(filteredProducts);
     } catch (error) {
@@ -10530,12 +10530,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const showOnlyApproved = userRole !== "admin" && userRole !== "seller";
 
       console.log(
-        `Getting featured recommendations (role: ${userRole}, showOnlyApproved: ${showOnlyApproved})`
+        `Getting featured recommendations (role: ${userRole}, showOnlyApproved: ${showOnlyApproved})`,
       );
       const featuredRecommendations =
         await RecommendationEngine.getPersonalizedRecommendations(
           userId,
-          limit
+          limit,
         );
 
       // For regular buyers, ensure we only return approved products that aren't drafts
@@ -10545,20 +10545,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           (product) =>
             product.approved === true &&
             product.isDraft !== true &&
-            product.deleted !== true
+            product.deleted !== true,
         );
 
         if (filteredRecommendations.length < featuredRecommendations.length) {
           console.log(
             `Filtered out ${
               featuredRecommendations.length - filteredRecommendations.length
-            } unapproved/draft products from featured recommendations`
+            } unapproved/draft products from featured recommendations`,
           );
         }
       }
 
       console.log(
-        `Found ${filteredRecommendations.length} featured recommendations`
+        `Found ${filteredRecommendations.length} featured recommendations`,
       );
       res.json(filteredRecommendations);
     } catch (error) {
@@ -10705,7 +10705,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const forecast = await generateDemandForecast(
         productId,
         sellerId,
-        period || "monthly"
+        period || "monthly",
       );
       res.status(201).json(forecast);
     } catch (error) {
@@ -10736,7 +10736,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const optimizations = await storage.getPriceOptimizations(
         productId,
-        sellerId
+        sellerId,
       );
       res.json(optimizations);
     } catch (error) {
@@ -10789,7 +10789,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const optimization = await storage.updatePriceOptimizationStatus(
         id,
         status,
-        req.user.id
+        req.user.id,
       );
       res.json(optimization);
     } catch (error) {
@@ -10811,7 +10811,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Apply the price optimization to the product
       const updatedProduct = await storage.applyPriceOptimization(
         id,
-        req.user.id
+        req.user.id,
       );
       res.json(updatedProduct);
     } catch (error) {
@@ -10844,7 +10844,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const optimizations = await storage.getInventoryOptimizations(
           productId,
-          sellerId
+          sellerId,
         );
         res.json(optimizations);
       } catch (error) {
@@ -10853,7 +10853,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .status(500)
           .json({ error: "Failed to fetch inventory optimizations" });
       }
-    }
+    },
   );
 
   app.post(
@@ -10880,7 +10880,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Generate inventory optimization using Gemini AI
         const optimization = await generateInventoryOptimization(
           productId,
-          sellerId
+          sellerId,
         );
         res.status(201).json(optimization);
       } catch (error) {
@@ -10889,7 +10889,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .status(500)
           .json({ error: "Failed to generate inventory optimization" });
       }
-    }
+    },
   );
 
   app.put(
@@ -10910,7 +10910,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const optimization = await storage.updateInventoryOptimizationStatus(
           id,
           status,
-          req.user.id
+          req.user.id,
         );
         res.json(optimization);
       } catch (error) {
@@ -10919,7 +10919,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .status(500)
           .json({ error: "Failed to update inventory optimization status" });
       }
-    }
+    },
   );
 
   app.post(
@@ -10935,7 +10935,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Apply the inventory optimization to the product
         const updatedProduct = await storage.applyInventoryOptimization(
           id,
-          req.user.id
+          req.user.id,
         );
         res.json(updatedProduct);
       } catch (error) {
@@ -10944,7 +10944,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .status(500)
           .json({ error: "Failed to apply inventory optimization" });
       }
-    }
+    },
   );
 
   // AI Generated Content endpoints
@@ -10971,7 +10971,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const contents = await storage.getAIGeneratedContents(
         productId,
         sellerId,
-        contentType
+        contentType,
       );
       res.json(contents);
     } catch (error) {
@@ -11012,7 +11012,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         productId,
         sellerId,
         contentType,
-        originalData || ""
+        originalData || "",
       );
       res.status(201).json(content);
     } catch (error) {
@@ -11037,7 +11037,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const content = await storage.updateAIGeneratedContentStatus(
         id,
         status,
-        req.user.id
+        req.user.id,
       );
       res.json(content);
     } catch (error) {
@@ -11057,7 +11057,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Apply the AI generated content to the product
       const updatedProduct = await storage.applyAIGeneratedContent(
         id,
-        req.user.id
+        req.user.id,
       );
       res.json(updatedProduct);
     } catch (error) {
@@ -11102,7 +11102,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if item already exists in wishlist
       const existing = await storage.getWishlistItem(
         req.user.id,
-        wishlistData.productId
+        wishlistData.productId,
       );
       if (existing) {
         return res
@@ -11150,7 +11150,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const productId = parseInt(req.params.productId);
       const wishlistItem = await storage.getWishlistItem(
         req.user.id,
-        productId
+        productId,
       );
       res.json({ inWishlist: !!wishlistItem });
     } catch (error) {
@@ -11183,7 +11183,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         // If not in local database, use external API
         console.log(
-          `PIN code ${pincode} not found in local database, using external API`
+          `PIN code ${pincode} not found in local database, using external API`,
         );
 
         // Use India Post API for PIN code lookup
@@ -11215,7 +11215,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           console.log(
             `Found location data for PIN code ${pincode} via API:`,
-            locationData
+            locationData,
           );
         }
       }
@@ -11271,7 +11271,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // If not in local database, use external API
       console.log(
-        `PIN code ${pincode} not found in local database, using external API`
+        `PIN code ${pincode} not found in local database, using external API`,
       );
 
       // Use India Post API for PIN code lookup
@@ -11304,7 +11304,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         console.log(
           `Found location data for PIN code ${pincode} via API:`,
-          locationData
+          locationData,
         );
         return res.json(locationData);
       }
@@ -11428,7 +11428,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update the address
       const updatedAddress = await storage.updateUserAddress(
         addressId,
-        req.body
+        req.body,
       );
       res.json(updatedAddress);
     } catch (error) {
@@ -11672,7 +11672,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             // Get seller settings for bank details
             const sellerSettings = await storage.getSellerSettings(
-              withdrawal.sellerId
+              withdrawal.sellerId,
             );
 
             const result = {
@@ -11698,7 +11698,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } catch (error) {
             console.error(
               `Error fetching details for withdrawal ${withdrawal.id}:`,
-              error
+              error,
             );
             return {
               ...withdrawal,
@@ -11706,7 +11706,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               sellerSettings: null,
             };
           }
-        })
+        }),
       );
 
       res.json(withdrawalsWithDetails);
@@ -11746,7 +11746,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           notes: notes || withdrawal.notes,
           paymentDate: status === "completed" ? new Date() : null,
           updatedAt: new Date(),
-        }
+        },
       );
 
       res.json({
@@ -11790,7 +11790,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status,
           transactionId,
           notes,
-        }
+        },
       );
 
       if (!updatedWithdrawal) {
@@ -11879,10 +11879,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         () =>
           storage.getFooterContents(
             section as string | undefined,
-            isActiveBoolean
+            isActiveBoolean,
           ),
         3,
-        1000
+        1000,
       );
       res.json(contents);
     } catch (error) {
@@ -11992,7 +11992,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error(
         `Error toggling footer content status ${req.params.id}:`,
-        error
+        error,
       );
       res.status(500).json({ error: "Failed to toggle footer content status" });
     }
@@ -12018,7 +12018,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error(
         `Error updating footer content order ${req.params.id}:`,
-        error
+        error,
       );
       res.status(500).json({ error: "Failed to update footer content order" });
     }
@@ -12088,7 +12088,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error(
         `Error updating product display settings ${req.params.id}:`,
-        error
+        error,
       );
       res
         .status(500)
@@ -12122,68 +12122,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/shiprocket/settings", shiprocketHandlers.getShiprocketSettings);
   app.post(
     "/api/shiprocket/settings",
-    shiprocketHandlers.saveShiprocketSettings
+    shiprocketHandlers.saveShiprocketSettings,
   );
   app.post("/api/shiprocket/token", shiprocketHandlers.generateShiprocketToken);
   app.post(
     "/api/shiprocket/connect",
-    shiprocketHandlers.generateShiprocketToken
+    shiprocketHandlers.generateShiprocketToken,
   );
   app.post("/api/shiprocket/test", shiprocketHandlers.testShiprocketConnection);
   app.get("/api/shiprocket/couriers", shiprocketHandlers.getShiprocketCouriers);
   app.get(
     "/api/shiprocket/orders/pending",
-    shiprocketHandlers.getPendingShiprocketOrders
+    shiprocketHandlers.getPendingShiprocketOrders,
   );
   app.get("/api/shiprocket/orders", shiprocketHandlers.getShiprocketOrders);
   app.post(
     "/api/shiprocket/ship-order",
-    shiprocketHandlers.shipOrderWithShiprocket
+    shiprocketHandlers.shipOrderWithShiprocket,
   );
   // Returns - Shiprocket
   app.get(
     "/api/shiprocket/returns/pending",
-    shiprocketHandlers.getPendingShiprocketReturns
+    shiprocketHandlers.getPendingShiprocketReturns,
   );
   app.post(
     "/api/shiprocket/returns/ship",
-    shiprocketHandlers.shipReturnWithShiprocket
+    shiprocketHandlers.shipReturnWithShiprocket,
   );
   app.post(
     "/api/shiprocket/auto-ship",
-    shiprocketHandlers.autoShipWithShiprocket
+    shiprocketHandlers.autoShipWithShiprocket,
   );
 
   // Seller Shipping Settings
   app.get("/api/seller/shipping-settings", getSellerShippingSettings);
   app.post(
     "/api/seller/shipping-settings",
-    createOrUpdateSellerShippingSettings
+    createOrUpdateSellerShippingSettings,
   );
 
   // Product Shipping Overrides
   app.get(
     "/api/seller/product-shipping-overrides",
-    getProductShippingOverrides
+    getProductShippingOverrides,
   );
   app.get(
     "/api/seller/product-shipping-override/:productId",
-    getProductShippingOverride
+    getProductShippingOverride,
   );
   app.post(
     "/api/seller/product-shipping-override",
-    createOrUpdateProductShippingOverride
+    createOrUpdateProductShippingOverride,
   );
   app.delete(
     "/api/seller/product-shipping-override/:productId",
-    deleteProductShippingOverride
+    deleteProductShippingOverride,
   );
 
   // Order Shipping Tracking
   app.get("/api/orders/:orderId/shipping-tracking", getOrderShippingTracking);
   app.post(
     "/api/orders/:orderId/shipping-tracking",
-    createOrUpdateOrderShippingTracking
+    createOrUpdateOrderShippingTracking,
   );
 
   // Shiprocket integration routes
@@ -13205,7 +13205,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log(
-        `Product statistics: Total=${totalProducts}, Approved=${approvedProducts}, Rejected=${rejectedProducts}, Pending=${pendingProducts}`
+        `Product statistics: Total=${totalProducts}, Approved=${approvedProducts}, Rejected=${rejectedProducts}, Pending=${pendingProducts}`,
       );
 
       return res.status(200).json({
@@ -13264,13 +13264,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           and(
             eq(products.approved, false),
             eq(products.rejected, false),
-            eq(products.deleted, false)
-          )
+            eq(products.deleted, false),
+          ),
         )
         .then((result) => parseInt(result[0].count.toString()));
 
       console.log(
-        `Product counts - Approved: ${approvedCount}, Rejected: ${rejectedCount}, Pending: ${pendingCount}`
+        `Product counts - Approved: ${approvedCount}, Rejected: ${rejectedCount}, Pending: ${pendingCount}`,
       );
 
       res.json({
@@ -13296,7 +13296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { notifications, total } = await storage.getUserNotifications(
         req.user.id,
         page,
-        limit
+        limit,
       );
       res.json({ notifications, total, page, limit });
     } catch (error) {
@@ -13408,7 +13408,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await storage.getUserNotifications(
         req.user.id,
         page,
-        limit
+        limit,
       );
 
       res.json({
@@ -13489,7 +13489,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "Request files:",
         req.files
           ? `Found ${Array.isArray(req.files) ? req.files.length : "unknown"} files`
-          : "No files found"
+          : "No files found",
       );
 
       if (!req.isAuthenticated()) {
@@ -13498,7 +13498,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const user = req.user;
       console.log(
-        `User: ${user.username}, Role: ${user.role}, Co-Admin: ${user.isCoAdmin ? "Yes" : "No"}`
+        `User: ${user.username}, Role: ${user.role}, Co-Admin: ${user.isCoAdmin ? "Yes" : "No"}`,
       );
 
       // Only admin, co-admin, or sellers can upload to the media library
@@ -13526,7 +13526,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Process each file
       for (const file of uploadedFiles) {
         console.log(
-          `Processing file: ${file.originalname}, size: ${file.size}, type: ${file.mimetype}`
+          `Processing file: ${file.originalname}, size: ${file.size}, type: ${file.mimetype}`,
         );
 
         try {
@@ -13551,7 +13551,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch (fileError) {
           console.error(
             `Error processing file ${file.originalname}:`,
-            fileError
+            fileError,
           );
           // Return the S3 or storage error to the frontend for debugging
           return res.status(500).json({
@@ -13568,7 +13568,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If single file upload, maintain backward compatibility
       if (uploadedItems.length === 1) {
         console.log(
-          `Returning single uploaded item with ID: ${uploadedItems[0].id}`
+          `Returning single uploaded item with ID: ${uploadedItems[0].id}`,
         );
         res.status(201).json(uploadedItems[0]);
       } else {
@@ -13771,7 +13771,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             gstRate > 0 ? (totalPrice * 100) / (100 + gstRate) : totalPrice;
           const gstAmount = totalPrice - basePrice;
           return gstAmount.toFixed(2);
-        }
+        },
       );
 
       handlebars.registerHelper(
@@ -13780,7 +13780,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const totalPrice = price * quantity;
           const taxableValue = totalPrice / (1 + gstRate / 100);
           return taxableValue.toFixed(2);
-        }
+        },
       );
 
       handlebars.registerHelper(
@@ -13790,7 +13790,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           quantity: number,
           gstRate: number,
           buyerState: any,
-          sellerState: string
+          sellerState: string,
         ) {
           console.log("Buyer state received:", buyerState); // Debug log
           console.log("Seller state received:", sellerState); // Debug log
@@ -13865,13 +13865,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ) {
             const halfAmount = taxAmount / 2;
             return `SGST @ ${gstRate / 2}% i.e. ${halfAmount.toFixed(
-              2
+              2,
             )}<br>CGST @ ${gstRate / 2}% i.e. ${halfAmount.toFixed(2)}`;
           } else {
             // If different states or state info not available, show as IGST
             return `IGST @ ${gstRate}% i.e. ${taxAmount.toFixed(2)}`;
           }
-        }
+        },
       );
 
       // Function to convert image URL to base64
@@ -13928,7 +13928,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Register QR code helper
       handlebars.registerHelper("qrCode", function () {
         return new handlebars.SafeString(
-          `<img src="${qrCodeDataUrl}" alt="Invoice QR Code" style="width: 75px; height: 75px;">`
+          `<img src="${qrCodeDataUrl}" alt="Invoice QR Code" style="width: 75px; height: 75px;">`,
         );
       });
 
@@ -14802,6 +14802,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           <div>{{order.shippingDetails.address}}</div>
           {{#if order.shippingDetails.address2}}<div>{{order.shippingDetails.address2}}</div>{{/if}}
           <div>{{order.shippingDetails.city}}, {{order.shippingDetails.state}} {{order.shippingDetails.zipCode}}</div>
+          {{#if buyer.gstNumber}}<div>GSTIN: {{buyer.gstNumber}}</div>{{/if}}
         {{else}}
           <div>{{user.name}}</div>
           <div>{{user.email}}</div>
@@ -14816,6 +14817,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           <div>{{order.shippingDetails.address}}</div>
           {{#if order.shippingDetails.address2}}<div>{{order.shippingDetails.address2}}</div>{{/if}}
           <div>{{order.shippingDetails.city}}, {{order.shippingDetails.state}} {{order.shippingDetails.zipCode}}</div>
+          {{#if buyer.gstNumber}}<div>GSTIN: {{buyer.gstNumber}}</div>{{/if}}
         {{else}}
           <div>{{user.name}}</div>
           <div>{{user.email}}</div>
@@ -15024,7 +15026,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       handlebars.registerHelper("calculateTotal", function (items) {
         return items.reduce(
           (sum: number, item: any) => sum + item.price * item.quantity,
-          0
+          0,
         );
       });
 
@@ -15054,7 +15056,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             month: "short",
             day: "2-digit",
           });
-        }
+        },
       );
 
       // Register 'gt' helper for greater-than comparisons
@@ -15446,7 +15448,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         `UPDATE seller_applications
          SET status = 'approved', admin_notes = $1, reviewed_by = $2, reviewed_at = CURRENT_TIMESTAMP
          WHERE id = $3 RETURNING *`,
-        [adminNotes || null, req.user.id, id]
+        [adminNotes || null, req.user.id, id],
       );
 
       if (!application) {
@@ -15459,7 +15461,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if user already exists with this email
       const { rows: existingUsers } = await pool.query(
         `SELECT * FROM users WHERE email = $1`,
-        [application.email]
+        [application.email],
       );
 
       let user;
@@ -15479,7 +15481,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             application.phone,
             application.business_address,
             existingUser.id,
-          ]
+          ],
         );
         user = updatedUser;
       } else {
@@ -15500,7 +15502,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             application.business_name,
             application.phone,
             application.business_address,
-          ]
+          ],
         );
         user = newUser;
       }
@@ -15536,7 +15538,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         `UPDATE seller_applications
          SET status = 'rejected', admin_notes = $1, reviewed_by = $2, reviewed_at = CURRENT_TIMESTAMP
          WHERE id = $3 RETURNING *`,
-        [adminNotes || null, req.user.id, id]
+        [adminNotes || null, req.user.id, id],
       );
 
       if (!application) {
@@ -15620,7 +15622,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const existingReminder = await storage.checkExistingStockReminder(
         userId,
         productId,
-        variantId
+        variantId,
       );
 
       if (existingReminder) {
@@ -15671,7 +15673,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             product,
             variant,
           };
-        })
+        }),
       );
 
       res.status(200).json(remindersWithProducts);
@@ -15870,7 +15872,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await storage.getDistributorLedgerWithPagination(
         id,
         page,
-        limit
+        limit,
       );
 
       res.json(result);
@@ -15990,12 +15992,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (status && status !== "all") {
         query = query.where(
-          eq(distributorApplications.status, status as string)
+          eq(distributorApplications.status, status as string),
         );
       }
 
       const applications = await query.orderBy(
-        desc(distributorApplications.createdAt)
+        desc(distributorApplications.createdAt),
       );
 
       res.json(applications);
@@ -16066,7 +16068,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // User already exists, just update their information
           newUser = existingUser;
           console.log(
-            `User already exists for email ${normalizedEmail}, using existing user ID: ${newUser.id}`
+            `User already exists for email ${normalizedEmail}, using existing user ID: ${newUser.id}`,
           );
 
           // Update user with complete profile information if missing
@@ -16099,7 +16101,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
 
           const randomPassword = Array.from(Array(20), () =>
-            Math.floor(Math.random() * 36).toString(36)
+            Math.floor(Math.random() * 36).toString(36),
           ).join("");
 
           newUser = await storage.createUser({
@@ -16152,7 +16154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Error approving distributor application:", error);
         res.status(500).json({ error: "Failed to approve application" });
       }
-    }
+    },
   );
 
   // Reject distributor application (admin only)
@@ -16182,7 +16184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Error rejecting distributor application:", error);
         res.status(500).json({ error: "Failed to reject application" });
       }
-    }
+    },
   );
 
   // Upload Aadhar card to S3
@@ -16273,17 +16275,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             gstAmount: gstAmount,
             total: totalPrice,
           };
-        })
+        }),
       );
 
       // Calculate totals
       const totalTaxableValue = itemsWithDetails.reduce(
         (sum, item) => sum + item.taxableValue,
-        0
+        0,
       );
       const totalGst = itemsWithDetails.reduce(
         (sum, item) => sum + item.gstAmount,
-        0
+        0,
       );
 
       // Get delivery charges from request body (inclusive of GST)
@@ -16325,7 +16327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Determine GST type
       const gstType = getGstType(
         STATIC_SELLER_ADDRESS.pincode,
-        distributor.pincode
+        distributor.pincode,
       );
       const isSameState = gstType === "CGST+SGST";
 
@@ -16346,7 +16348,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           id: previewInvoiceNumber,
           date: new Date(previewInvoiceDate),
           formattedDate: new Date(previewInvoiceDate).toLocaleDateString(
-            "en-IN"
+            "en-IN",
           ),
           paymentMethod: "Custom",
           orderNumber: previewInvoiceNumber,
@@ -16501,7 +16503,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(
         "Generating custom invoice (bulk order) for distributor:",
-        distributor.id
+        distributor.id,
       );
 
       // Determine payment type based on cash handling fees
@@ -16574,22 +16576,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             gstAmount: gstAmount,
             total: totalPrice,
           };
-        })
+        }),
       );
 
       const totalTaxableValue = itemsWithDetails.reduce(
         (sum, item) => sum + item.taxableValue,
-        0
+        0,
       );
       const totalGst = itemsWithDetails.reduce(
         (sum, item) => sum + item.gstAmount,
-        0
+        0,
       );
 
       // Calculate products total
       const productsTotal = itemsWithDetails.reduce(
         (sum, item) => sum + item.total,
-        0
+        0,
       );
 
       // Parse and calculate delivery charges with GST
@@ -16708,7 +16710,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(
         `Ledger updated for distributor ${distributor.id} with balance: ₹${
           newBalance / 100
-        }`
+        }`,
       );
 
       // Static seller address
@@ -16725,7 +16727,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Determine GST type
       const gstType = getGstType(
         STATIC_SELLER_ADDRESS.pincode,
-        distributor.pincode
+        distributor.pincode,
       );
       const isSameState = gstType === "CGST+SGST";
 
@@ -16875,7 +16877,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename="invoice-${invoiceNumber}.pdf"`
+        `attachment; filename="invoice-${invoiceNumber}.pdf"`,
       );
 
       // Send PDF buffer
@@ -17000,34 +17002,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
             gstAmount: gstAmount,
             total: totalPrice,
           };
-        })
+        }),
       );
 
       // Calculate totals
       const totalTaxableValue = itemsWithDetails.reduce(
         (sum, item) => sum + item.taxableValue,
-        0
+        0,
       );
       const totalGst = itemsWithDetails.reduce(
         (sum, item) => sum + item.gstAmount,
-        0
+        0,
       );
       const productsTotal = itemsWithDetails.reduce(
         (sum, item) => sum + item.total,
-        0
+        0,
       );
 
       // Get delivery charges
       const deliveryCharges = parseFloat(
-        bulkOrder.deliveryCharges?.toString() || "0"
+        bulkOrder.deliveryCharges?.toString() || "0",
       );
       const deliveryChargesGstRate = parseFloat(
-        bulkOrder.deliveryChargesGstRate?.toString() || "18"
+        bulkOrder.deliveryChargesGstRate?.toString() || "18",
       );
 
       // Get cash handling fees if available
       const cashHandlingFees = parseFloat(
-        bulkOrder.cashHandlingFees?.toString() || "0"
+        bulkOrder.cashHandlingFees?.toString() || "0",
       );
 
       // Get discount if available
@@ -17063,7 +17065,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Determine GST type
       const gstType = getGstType(
         STATIC_SELLER_ADDRESS.pincode,
-        distributorInfo.pincode
+        distributorInfo.pincode,
       );
       const isSameState = gstType === "CGST+SGST";
 
@@ -17215,7 +17217,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename="invoice-${invoiceNumber}.pdf"`
+        `attachment; filename="invoice-${invoiceNumber}.pdf"`,
       );
 
       // Send PDF buffer
