@@ -9,7 +9,6 @@ import {
   LogOut,
   ChevronDown,
   Mic,
-  Home as HomeIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -97,37 +96,24 @@ export function SimpleHeader() {
   return (
     <header className="bg-[#F8F5E4] text-black border-b border-[#EADDCB] fixed top-0 left-0 right-0 z-40 font-serif">
       {/* Desktop Header - with improved padding and spacing */}
-      <div className="container mx-auto px-4 h-14 hidden md:flex md:items-center">
-        <div className="flex items-center justify-between w-full py-2">
-          <div className="flex items-center space-x-8">
+      <div className="container mx-auto px-4 h-14 hidden lg:flex lg:items-center">
+        <div className="flex items-center justify-between w-full py-2 gap-4">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <Link href="/">
               <Logo />
             </Link>
-            <div className="flex-grow max-w-xl flex items-center">
-              {/* All Categories Dropdown (left of search bar) */}
-              <div className="mr-2 hidden md:block">
-                <AllCategoriesDropdown />
-              </div>
-              <SimpleSearch
-                className="w-full flex-grow"
-                inputClassName="w-full pl-4 pr-4 py-2 text-base rounded-l-lg border-r-0 shadow-none"
-              />
-            </div>
           </div>
-          <div className="flex items-center space-x-4">
-            {/* Hide Home button on home page */}
-            {location !== "/" && (
-              <Link href="/">
-                <Button
-                  variant="ghost"
-                  className="flex items-center py-2 px-3 text-black font-medium rounded-md hover:bg-black/10 transition-colors duration-200 border border-transparent hover:border-black/20"
-                  style={{ boxShadow: "none", background: "transparent" }}
-                >
-                  <HomeIcon className="mr-2 h-5 w-5 text-black" />
-                  <span>Home</span>
-                </Button>
-              </Link>
-            )}
+          <div className="flex items-center flex-1 min-w-0 max-w-2xl">
+            {/* All Categories Dropdown (left of search bar) */}
+            <div className="mr-2 flex-shrink-0">
+              <AllCategoriesDropdown />
+            </div>
+            <SimpleSearch
+              className="w-full flex-grow min-w-0"
+              inputClassName="w-full pl-4 pr-4 py-2 text-base rounded-l-lg border-r-0 shadow-none"
+            />
+          </div>
+          <div className="flex items-center space-x-2 flex-shrink-0">
 
             {!user ? (
               // Show login button for non-authenticated users
@@ -152,18 +138,36 @@ export function SimpleHeader() {
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="ghost"
-                      className="text-black flex items-center hover:bg-black/10 h-10 px-4 rounded-md transition-colors duration-200 border border-transparent hover:border-black/20"
+                      className="text-black flex items-center hover:bg-black/10 h-10 w-10 p-0 rounded-full transition-colors duration-200 border border-transparent hover:border-black/20"
+                      title={user.name || user.username}
                     >
-                      <User className="mr-2 h-5 w-5 text-black" />
-                      <span>{user.name || user.username}</span>
-                      <ChevronDown className="ml-1 h-4 w-4 text-black" />
+                      {user.profileImage ? (
+                        <img
+                          src={user.profileImage}
+                          alt={user.name || user.username}
+                          className="h-8 w-8 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-8 w-8 rounded-full bg-[#b6c3a5] flex items-center justify-center text-white font-semibold">
+                          {(user.name || user.username).charAt(0).toUpperCase()}
+                        </div>
+                      )}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
                     align="end"
-                    className="bg-[#F8F5E4] text-black border border-[#EADDCB]"
+                    className="bg-[#F8F5E4] text-black border border-[#EADDCB] min-w-[200px]"
                   >
-                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                    <DropdownMenuLabel>
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">
+                          {user.name || user.username}
+                        </p>
+                        <p className="text-xs leading-none text-muted-foreground">
+                          {user.email}
+                        </p>
+                      </div>
+                    </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
                       <Link
@@ -210,7 +214,7 @@ export function SimpleHeader() {
       </div>
 
       {/* Mobile Header with improved spacing */}
-      <div className="md:hidden px-4">
+      <div className="lg:hidden px-4">
         <div className="h-14 flex items-center justify-between">
           <div className="flex items-center">
             <button
@@ -224,18 +228,6 @@ export function SimpleHeader() {
             <Link href="/">
               <Logo />
             </Link>
-            {location !== "/" && (
-              <Link href="/">
-                <Button
-                  variant="ghost"
-                  className="flex items-center py-1 px-2 text-black font-medium rounded-sm hover:bg-black/10 transition-colors duration-200"
-                  style={{ boxShadow: "none", background: "transparent" }}
-                >
-                  <HomeIcon className="mr-2 h-4 w-4 text-black" />
-                  <span>Home</span>
-                </Button>
-              </Link>
-            )}
           </div>
 
           <div className="flex items-center space-x-2">
@@ -267,7 +259,7 @@ export function SimpleHeader() {
       </div>
 
       {/* Mobile Search - in a separate fixed position below the header */}
-      <div className="md:hidden fixed top-14 left-0 right-0 bg-orange-400 px-4 pb-3 pt-1 z-40 shadow-md">
+      <div className="lg:hidden fixed top-14 left-0 right-0 bg-orange-400 px-4 pb-3 pt-1 z-40 shadow-md">
         <SimpleSearch />
       </div>
 
@@ -287,15 +279,6 @@ export function SimpleHeader() {
             </div>
 
             <nav className="space-y-4">
-              {location !== "/" && (
-                <button
-                  onClick={() => navigateTo("/")}
-                  className="block w-full text-left py-3 border-b border-primary-foreground/20"
-                >
-                  Home
-                </button>
-              )}
-
               {!user ? (
                 <button
                   onClick={() => navigateTo("/auth")}
@@ -387,7 +370,7 @@ function AllCategoriesDropdown() {
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
-        className="bg-[#F8F5E4] text-black border border-[#EADDCB] rounded-xl shadow-2xl p-2 mt-2 z-50"
+        className="bg-[#F8F5E4] text-black border border-[#EADDCB] rounded-xl shadow-2xl p-2 mt-2 z-50 max-h-[60vh] overflow-y-auto"
       >
         {sortedCategories.map((category) => {
           const subcats = getSubcategories(category.id);

@@ -52,6 +52,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   SidebarProvider,
   Sidebar,
@@ -68,6 +69,8 @@ import { SimpleSearch } from "@/components/ui/simple-search";
 import { useToast } from "@/hooks/use-toast";
 import { useNotifications } from "@/contexts/notification-context";
 import { Logo } from "@/components/layout/logo";
+import { useQuery } from "@tanstack/react-query";
+import type { User } from "@shared/schema";
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -77,8 +80,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const [location] = useLocation();
   const [heroMenuOpen, setHeroMenuOpen] = useState(
     location.includes("/admin/banner-management") ||
-    location.includes("/admin/category-management") ||
-    location.includes("/admin/design-hero")
+      location.includes("/admin/category-management") ||
+      location.includes("/admin/design-hero")
   );
 
   const [footerMenuOpen, setFooterMenuOpen] = useState(
@@ -86,34 +89,50 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   );
 
   const [usersMenuOpen, setUsersMenuOpen] = useState(
-    location.includes("/admin/users") || location.includes("/admin/create-user") || location.includes("/admin/place-order-for-buyer")
+    location.includes("/admin/users") ||
+      location.includes("/admin/create-user") ||
+      location.includes("/admin/place-order-for-buyer")
   );
 
   const [distributorMenuOpen, setDistributorMenuOpen] = useState(
     location.includes("/admin/distributors") ||
-    location.includes("/admin/distributor-applications")
+      location.includes("/admin/distributor-applications")
   );
 
   const [bulkOrdersMenuOpen, setBulkOrdersMenuOpen] = useState(
     location.includes("/admin/bulk-items") ||
-    location.includes("/admin/bulk-orders") ||
-    location.includes("/admin/custom-invoice")
+      location.includes("/admin/bulk-orders") ||
+      location.includes("/admin/custom-invoice")
   );
 
   const [shippingMenuOpen, setShippingMenuOpen] = useState(
     location.includes("/admin/shipping-management") ||
-    location.includes("/admin/shipping-settings") ||
-    location.includes("/admin/shipping-dashboard") ||
-    location.includes("/admin/pending-shipments") ||
-    location.includes("/admin/shipping-rates") ||
-    location.includes("/admin/tracking-management") ||
-    location.includes("/admin/shiprocket-dashboard") ||
-    location.includes("/admin/shiprocket-pending-shipments")
+      location.includes("/admin/shipping-settings") ||
+      location.includes("/admin/shipping-dashboard") ||
+      location.includes("/admin/pending-shipments") ||
+      location.includes("/admin/shipping-rates") ||
+      location.includes("/admin/tracking-management") ||
+      location.includes("/admin/shiprocket-dashboard") ||
+      location.includes("/admin/shiprocket-pending-shipments")
   );
 
   const [productDisplayMenuOpen, setProductDisplayMenuOpen] = useState(
     location.includes("/admin/product-display-settings")
   );
+
+  // Fetch user data
+  const { data: user } = useQuery<User>({
+    queryKey: ["/api/user"],
+    queryFn: async () => {
+      const response = await fetch("/api/user", {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch user");
+      }
+      return response.json();
+    },
+  });
 
   const { unreadCount, notifications } = useNotifications();
   const [, setLocation] = useLocation();
@@ -361,12 +380,17 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     return location.startsWith(path);
   };
 
+  const getInitials = (name: string) => {
+    if (!name) return "S";
+    return name.charAt(0).toUpperCase();
+  };
+
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="flex min-h-screen flex-col bg-gray-50">
         {/* Top Navigation - Header (Fixed) */}
-        <header className="fixed top-0 left-0 right-0 z-50 bg-[#F8F5E4] h-16 border-b shadow-md">
-          <div className="container mx-auto flex h-full items-center justify-between px-4">
+        <header className="fixed top-0 left-0 right-0 z-50 bg-[#F8F5E4] h-14 border-b border-[#EADDCB] shadow-md">
+          <div className="mx-auto flex h-full items-center justify-between px-4">
             <div className="flex items-center space-x-4">
               <SidebarTrigger className="text-black hover:bg-[#EADDCB] hover:text-black" />
               {/* Logo - using Link instead of window.location for client-side routing to maintain session */}
@@ -411,18 +435,43 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="text-black hover:bg-[#EADDCB]"
+                    className="relative h-8 w-8 rounded-full hover:bg-[#EADDCB]"
                   >
-                    <span className="font-medium mr-1">Kaushlendra Admin</span>
-                    <ChevronDown className="h-4 w-4" />
+                    <Avatar className="h-8 w-8 border-2 border-[#EADDCB]">
+                      {user?.profileImage ? (
+                        <AvatarImage
+                          src={user.profileImage}
+                          alt={user.username}
+                          onError={(e) => {
+                            // If image fails to load, fallback to initials
+                            console.error(
+                              "Profile image failed to load:",
+                              user.profileImage
+                            );
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
+                      ) : null}
+                      <AvatarFallback className="bg-[#b6c3a5] text-white">
+                        {getInitials(user.name || user.username)}
+                      </AvatarFallback>
+                    </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                  <div className="px-3 pb-2">
-                    <span className="text-xs font-semibold text-orange-500">
-                      Admin Account
-                    </span>
+                <DropdownMenuContent
+                  align="end"
+                  className="w-56 bg-[#F8F5E4] border-[#EADDCB]"
+                >
+                  <div className="flex items-center justify-start gap-2 p-2">
+                    <div className="flex flex-col space-y-1 leading-none">
+                      <p className="font-medium">{user?.username || "Admin"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {user?.email || "admin@lelekart.com"}
+                      </p>
+                      <p className="text-xs font-semibold text-orange-500">
+                        Admin Account
+                      </p>
+                    </div>
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem>
@@ -448,7 +497,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         </header>
 
         {/* Add a spacer to push content below the fixed header */}
-        <div className="h-16"></div>
+        <div className="h-14"></div>
 
         <div className="flex flex-1">
           <Sidebar className="border-r shadow-sm bg-white">

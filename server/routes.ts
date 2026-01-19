@@ -1076,13 +1076,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           let billingAddress = null;
           let taxInformation = null;
           console.log("sellerSettings: ", sellerSettings);
-          const sellerDetails = await storage.getBusinessDetails(parseInt(sellerId))
+          const sellerDetails = await storage.getBusinessDetails(
+            parseInt(sellerId)
+          );
           console.log("sellerDetails: ", sellerDetails);
           if (sellerSettings) {
             try {
               if (sellerSettings.pickupAddress) {
                 pickupAddress = JSON.parse(sellerSettings.pickupAddress);
-                if(sellerDetails){
+                if (sellerDetails) {
                   pickupAddress.businessName = sellerDetails.businessName;
                 }
               }
@@ -6653,12 +6655,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sellerId = req.user.role === "seller" ? req.user.id : undefined;
       const userId = req.user.role === "buyer" ? req.user.id : undefined;
 
-      const orders = await storage.getOrders(userId, sellerId);
+      // Pagination parameters
+      const page = req.query.page ? parseInt(req.query.page as string) : 1;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const search = req.query.search as string | undefined;
+      const status = req.query.status as string | undefined;
+
+      // Get all orders first (for filtering)
+      let allOrders = await storage.getOrders(userId, sellerId);
+
+      // Apply status filter if provided
+      if (status && status !== "all") {
+        allOrders = allOrders.filter((order) => order.status === status);
+      }
+
+      // Apply search filter if provided
+      if (search && search.trim()) {
+        const searchLower = search.toLowerCase().trim();
+        allOrders = allOrders.filter((order) => {
+          // Search by order ID
+          if (order.id.toString().includes(searchLower)) return true;
+
+          // Search by customer name/email if shipping details exist
+          try {
+            const shippingDetails =
+              typeof order.shippingDetails === "string"
+                ? JSON.parse(order.shippingDetails)
+                : order.shippingDetails;
+
+            if (shippingDetails) {
+              const name = shippingDetails.name?.toLowerCase() || "";
+              const email = shippingDetails.email?.toLowerCase() || "";
+              const phone = shippingDetails.phone?.toLowerCase() || "";
+
+              if (
+                name.includes(searchLower) ||
+                email.includes(searchLower) ||
+                phone.includes(searchLower)
+              ) {
+                return true;
+              }
+            }
+          } catch (e) {
+            // Ignore parse errors
+          }
+
+          return false;
+        });
+      }
+
+      // Calculate pagination
+      const totalCount = allOrders.length;
+      const totalPages = Math.ceil(totalCount / limit);
+      const offset = (page - 1) * limit;
+
+      // Apply pagination
+      const paginatedOrders = allOrders.slice(offset, offset + limit);
 
       // If seller is requesting orders, include user information
       if (req.user.role === "seller") {
         const ordersWithUserDetails = await Promise.all(
-          orders.map(async (order) => {
+          paginatedOrders.map(async (order) => {
             try {
               const user = await storage.getUser(order.userId);
               return {
@@ -6681,12 +6738,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           })
         );
-        res.json(ordersWithUserDetails);
+        res.json({
+          orders: ordersWithUserDetails,
+          pagination: {
+            total: totalCount,
+            totalPages,
+            currentPage: page,
+            limit,
+          },
+        });
       } else {
-        res.json(orders);
+        res.json({
+          orders: paginatedOrders,
+          pagination: {
+            total: totalCount,
+            totalPages,
+            currentPage: page,
+            limit,
+          },
+        });
       }
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch orders" });
+    }
+  });
+
+  app.get("/api/orders/stats", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin")
+      return res.status(403).json({ error: "Not authorized" });
+
+    try {
+      const stats = await storage.getOrderStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching order stats:", error);
+      res.status(500).json({ error: "Failed to fetch order stats" });
     }
   });
 
@@ -7367,6 +7454,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(403).json({ error: "Not authorized" });
 
     try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const search = (req.query.search as string) || "";
+      const role = req.query.role as string | undefined;
       const deletedParam =
         (req.query.deleted as string | undefined) || "exclude";
       const deletedFilter: "exclude" | "include" | "only" =
@@ -7376,10 +7467,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ? "include"
             : "exclude";
 
-      const users = await storage.getUsers(deletedFilter);
-      res.json(users);
+      const { users, total } = await storage.getUsersPaginated(
+        page,
+        limit,
+        search,
+        role,
+        deletedFilter
+      );
+
+      res.json({
+        users,
+        pagination: {
+          total,
+          totalPages: Math.ceil(total / limit),
+          currentPage: page,
+          limit,
+        },
+      });
     } catch (error) {
+      console.error("Error fetching users:", error);
       res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  app.get("/api/users/stats", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.role !== "admin")
+      return res.status(403).json({ error: "Not authorized" });
+
+    try {
+      const deletedParam =
+        (req.query.deleted as string | undefined) || "exclude";
+      const deletedFilter: "exclude" | "include" | "only" =
+        deletedParam === "only"
+          ? "only"
+          : deletedParam === "include"
+            ? "include"
+            : "exclude";
+
+      const stats = await storage.getUserStats(deletedFilter);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching user stats:", error);
+      res.status(500).json({ error: "Failed to fetch user stats" });
     }
   });
 
@@ -13762,9 +13892,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const logoUrl =
         "https://drive.google.com/uc?export=view&id=1LTlPnVbtn6oiDsYoVX7-umnZH5JnWZBN";
 
-      const signatureUrl =
-        data.seller?.pickupAddress?.authorizationSignature ||
+      // Determine signature URL based on seller role and signature availability
+      const defaultSignatureUrl =
         "https://drive.google.com/uc?export=view&id=1NC3MTl6qklBjamL3bhjRMdem6rQ0mB9F";
+      let signatureUrl = defaultSignatureUrl;
+      const isAdmin = data.seller?.role === "admin";
+      const hasSignature = data.seller?.pickupAddress?.authorizationSignature;
+
+      if (isAdmin) {
+        // Admin always uses default signature
+        signatureUrl = defaultSignatureUrl;
+      } else if (hasSignature) {
+        // Non-admin with signature uses their signature
+        signatureUrl = data.seller.pickupAddress.authorizationSignature;
+      }
+      // Non-admin without signature will show seller name text instead (handled in template)
 
       const [logoBase64, signatureBase64] = await Promise.all([
         getBase64FromUrl(logoUrl),
@@ -13793,6 +13935,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Register 'gt' helper for greater-than comparisons
       handlebars.registerHelper("gt", function (a, b) {
         return a > b;
+      });
+
+      // Register 'ifeq' helper for equality comparisons
+      handlebars.registerHelper("ifeq", function (a, b, options) {
+        if (a === b) {
+          return options.fn(this);
+        }
+        return options.inverse(this);
       });
 
       // Regular Order Invoice Template - includes delivery charges column in items table
@@ -14239,15 +14389,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
           </div>
         </div>
         <div class="signature-box">
-        <img
-            src="${signatureBase64}"
-            alt="Authorized Signature"
-          />
-          <div class="bold">(Authorized Signatory)</div>
-          {{#if seller.pickupAddress.businessName}}
-            <div class="bold">{{seller.pickupAddress.businessName}}</div>
+          {{#if seller.role}}
+            {{#ifeq seller.role "admin"}}
+              <img
+                src="${signatureBase64}"
+                alt="Authorized Signature"
+              />
+              <div class="bold">(Authorized Signatory)</div>
+              {{#if seller.pickupAddress.businessName}}
+                <div class="bold">{{seller.pickupAddress.businessName}}</div>
+              {{else}}
+                <div class="bold">Lele Kart Retail Private Limited</div>
+              {{/if}}
+            {{else}}
+              {{#if seller.pickupAddress.authorizationSignature}}
+                <img
+                  src="${signatureBase64}"
+                  alt="Authorized Signature"
+                />
+                <div class="bold">(Authorized Signatory)</div>
+                {{#if seller.pickupAddress.businessName}}
+                  <div class="bold">{{seller.pickupAddress.businessName}}</div>
+                {{else}}
+                  <div class="bold">Lele Kart Retail Private Limited</div>
+                {{/if}}
+              {{else}}
+                <div class="bold" style="margin-top: 20px; margin-bottom: 5px;">{{seller.name}}</div>
+                <div class="bold">(Authorized Signatory)</div>
+                {{#if seller.pickupAddress.businessName}}
+                  <div class="bold">{{seller.pickupAddress.businessName}}</div>
+                {{else}}
+                  <div class="bold">Lele Kart Retail Private Limited</div>
+                {{/if}}
+              {{/if}}
+            {{/ifeq}}
           {{else}}
-            <div class="bold">Lele Kart Retail Private Limited</div>
+            <img
+              src="${signatureBase64}"
+              alt="Authorized Signature"
+            />
+            <div class="bold">(Authorized Signatory)</div>
+            {{#if seller.pickupAddress.businessName}}
+              <div class="bold">{{seller.pickupAddress.businessName}}</div>
+            {{else}}
+              <div class="bold">Lele Kart Retail Private Limited</div>
+            {{/if}}
           {{/if}}
         </div>
       </div>
@@ -14725,6 +14911,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           <td>-</td>
           <td>-</td>
           <td style="font-weight: bold;">{{formatMoney cashHandlingFees}}</td>
+        </tr>
+        {{/if}}
+        {{/if}}
+        {{#if discount}}
+        {{#if (gt discount 0)}}
+        <tr>
+          <td colspan="5" style="text-align: right; font-weight: bold;">Discount</td>
+          <td>-</td>
+          <td>-</td>
+          <td style="font-weight: bold; color: #16a34a;">- {{formatMoney discount}}</td>
         </tr>
         {{/if}}
         {{/if}}
@@ -16094,6 +16290,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const deliveryCharges = req.body.deliveryCharges || 0;
       const deliveryChargesGstRate = req.body.deliveryChargesGstRate || 0;
       const cashHandlingFees = req.body.cashHandlingFees || 0;
+      const discount = req.body.discount || 0;
 
       // Calculate delivery charges breakdown (GST inclusive)
       const deliveryChargesTaxable =
@@ -16105,7 +16302,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const grandTotal =
         itemsWithDetails.reduce((sum, item) => sum + item.total, 0) +
         deliveryCharges +
-        cashHandlingFees;
+        cashHandlingFees -
+        discount;
 
       // Get seller details
       const seller = await storage.getUser(req.user.id);
@@ -16249,6 +16447,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         deliveryChargesGst: deliveryChargesGst,
         deliveryChargesGstRate: deliveryChargesGstRate,
         cashHandlingFees: cashHandlingFees,
+        discount: discount,
         total: grandTotal,
         grandTotal,
         gstType,
@@ -16297,6 +16496,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         deliveryCharges = 0,
         deliveryChargesGstRate = 18,
         cashHandlingFees,
+        discount,
       } = req.body;
 
       console.log(
@@ -16409,9 +16609,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ? parseFloat(cashHandlingFees.toString())
           : 0;
 
-      // Grand total = products total + delivery charges + cash handling fees
+      // Parse discount if provided
+      const inputDiscount =
+        discount && parseFloat(discount.toString()) > 0
+          ? parseFloat(discount.toString())
+          : 0;
+
+      // Grand total = products total + delivery charges + cash handling fees - discount
       const grandTotal =
-        productsTotal + inputDeliveryCharges + inputCashHandlingFees;
+        productsTotal +
+        inputDeliveryCharges +
+        inputCashHandlingFees -
+        inputDiscount;
 
       // Get seller details
       const seller = await storage.getUser(req.user.id);
@@ -16445,6 +16654,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             inputCashHandlingFees > 0
               ? inputCashHandlingFees.toFixed(2)
               : undefined,
+          discount: inputDiscount > 0 ? inputDiscount.toFixed(2) : undefined,
           paymentType: paymentType,
           status: "pending",
           notes: `Custom invoice - ${itemsWithDetails.length} item(s)`,
@@ -16632,6 +16842,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         deliveryChargesGst,
         deliveryChargesGstRate: gstRate,
         cashHandlingFees: inputCashHandlingFees,
+        discount: inputDiscount,
         total: grandTotal,
         grandTotal,
         gstType,
@@ -16819,6 +17030,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         bulkOrder.cashHandlingFees?.toString() || "0"
       );
 
+      // Get discount if available
+      const discount = parseFloat(bulkOrder.discount?.toString() || "0");
+
       // Calculate delivery charges breakdown
       const deliveryChargesTaxable =
         deliveryChargesGstRate > 0
@@ -16826,7 +17040,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           : deliveryCharges;
       const deliveryChargesGst = deliveryCharges - deliveryChargesTaxable;
 
-      const grandTotal = productsTotal + deliveryCharges + cashHandlingFees;
+      const grandTotal =
+        productsTotal + deliveryCharges + cashHandlingFees - discount;
 
       // Get seller details (use admin/creator if available)
       const seller = await storage.getUser(req.user.id);
@@ -16967,6 +17182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         deliveryChargesGst,
         deliveryChargesGstRate,
         cashHandlingFees: cashHandlingFees,
+        discount: discount,
         total: grandTotal,
         grandTotal,
         gstType,

@@ -47,9 +47,19 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Logo } from "@/components/layout/logo";
 import { useState, useEffect } from "react";
+import { apiRequest } from "@/lib/queryClient";
 
 interface DashboardLayoutProps {
   children: ReactNode;
+}
+
+interface Distributor {
+  id: number;
+  companyName: string;
+  currentBalance: number;
+  totalOrdered: number;
+  totalPaid: number;
+  creditLimit: number;
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
@@ -75,6 +85,20 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     },
     staleTime: 60000, // 1 minute
   });
+
+  // Fetch distributor data
+  const { data: distributor, isLoading: loadingDistributor } =
+    useQuery<Distributor>({
+      queryKey: ["/api/distributors/user", apiUser?.id],
+      queryFn: async () => {
+        const res = await apiRequest(
+          "GET",
+          `/api/distributors/user/${apiUser?.id}`
+        );
+        return res.json();
+      },
+      enabled: !!apiUser?.id,
+    });
 
   // Use context user if available, otherwise use API user
   const user = authContext?.user || apiUser;
@@ -192,7 +216,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     <SidebarProvider defaultOpen={true}>
       <div className="flex min-h-screen flex-col bg-[#F8F5E4]">
         {/* Top Navigation Bar - fixed height of 56px (h-14) */}
-        <header className="fixed top-0 left-0 right-0 z-50 h-14 border-b bg-[#F8F5E4] px-4 shadow-md">
+        <header className="fixed top-0 left-0 right-0 z-50 h-14 border-b border-[#EADDCB] bg-[#F8F5E4] px-4 shadow-md">
           <div className="flex h-full items-center justify-between">
             <div className="flex items-center gap-4">
               <SidebarTrigger className="text-black hover:bg-[#EADDCB] hover:text-black" />
@@ -201,17 +225,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </Link>
             </div>
             <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-black hover:bg-[#EADDCB]"
-                asChild
-              >
-                <Link href="/">
-                  <Home className="h-5 w-5" />
-                  <span className="sr-only">Home</span>
-                </Link>
-              </Button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -240,22 +253,25 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="relative h-8 w-8 rounded-full"
+                    className="relative h-8 w-8 rounded-full hover:bg-[#EADDCB]"
                   >
-                    <Avatar className="h-8 w-8 border-2 border-white">
+                    <Avatar className="h-8 w-8 border-2 border-[#EADDCB]">
                       {user.profileImage ? (
                         <AvatarImage
                           src={user.profileImage}
                           alt={user.username}
                         />
                       ) : null}
-                      <AvatarFallback>
+                      <AvatarFallback className="bg-[#b6c3a5] text-white">
                         {getInitials(user.username)}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent
+                  align="end"
+                  className="bg-[#F8F5E4] border-[#EADDCB]"
+                >
                   <div className="flex items-center justify-start gap-2 p-2">
                     <div className="flex flex-col space-y-1 leading-none">
                       <p className="font-medium">{user.username}</p>
@@ -592,34 +608,38 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     </Link>
                   </Button>
                 </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <Button
-                    variant="ghost"
-                    asChild
-                    className="w-full justify-start"
-                  >
-                    <Link href="/distributor/dashboard">
-                      <Book className="mr-2 h-4 w-4" />
-                      <span>Ledger</span>
-                    </Link>
-                  </Button>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <Button
-                    variant="ghost"
-                    asChild
-                    className={`w-full justify-start ${
-                      isActive("/distributor/bulk-orders")
-                        ? "bg-primary/10 text-primary"
-                        : ""
-                    }`}
-                  >
-                    <Link href="/distributor/bulk-orders">
-                      <Package className="mr-2 h-4 w-4" />
-                      <span>Bulk Orders</span>
-                    </Link>
-                  </Button>
-                </SidebarMenuItem>
+                {distributor && (
+                  <>
+                    <SidebarMenuItem>
+                      <Button
+                        variant="ghost"
+                        asChild
+                        className="w-full justify-start"
+                      >
+                        <Link href="/distributor/dashboard">
+                          <Book className="mr-2 h-4 w-4" />
+                          <span>Ledger</span>
+                        </Link>
+                      </Button>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <Button
+                        variant="ghost"
+                        asChild
+                        className={`w-full justify-start ${
+                          isActive("/distributor/bulk-orders")
+                            ? "bg-primary/10 text-primary"
+                            : ""
+                        }`}
+                      >
+                        <Link href="/distributor/bulk-orders">
+                          <Package className="mr-2 h-4 w-4" />
+                          <span>Bulk Orders</span>
+                        </Link>
+                      </Button>
+                    </SidebarMenuItem>
+                  </>
+                )}
                 <SidebarMenuItem>
                   <Button
                     variant="ghost"

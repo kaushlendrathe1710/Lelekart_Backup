@@ -137,6 +137,9 @@ function AdminProductsContent({
     // Update the search state
     setSearch(searchInput);
 
+    // Reset to page 1 when searching
+    setCurrentPage(1);
+
     // Update URL with search parameters
     const searchParams = new URLSearchParams(window.location.search);
     searchParams.set("search", searchInput);
@@ -972,6 +975,26 @@ function AdminProductsContent({
     setCurrentPage(1); // Reset to first page when changing page size
   };
 
+  // Handler for category filter change
+  const handleCategoryFilterChange = (category: string | null) => {
+    setCategoryFilter(category);
+    setCurrentPage(1); // Reset to first page when changing category
+  };
+
+  // Handler for approval filter change
+  const handleApprovalFilterChange = (approval: string | null) => {
+    setApprovalFilter(approval);
+    setCurrentPage(1); // Reset to first page when changing approval status
+  };
+
+  // Handler for deleted filter change
+  const handleDeletedFilterChange = (
+    deleted: "exclude" | "include" | "only"
+  ) => {
+    setDeletedFilter(deleted);
+    setCurrentPage(1); // Reset to first page when changing deleted filter
+  };
+
   // Loading states
   const ProductStatsLoading = () => (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -1033,7 +1056,7 @@ function AdminProductsContent({
   useEffect(() => {
     setSearch("");
     setSearchInput("");
-    setCategoryFilter(null);
+    handleCategoryFilterChange(null);
   }, [approvalFilter]);
 
   // When deletedFilter changes, persist to URL and refetch
@@ -1631,11 +1654,12 @@ function AdminProductsContent({
                       // Clear all filters
                       setSearch("");
                       setSearchInput("");
-                      setCategoryFilter(null);
-                      setApprovalFilter(null);
+                      handleCategoryFilterChange(null);
+                      handleApprovalFilterChange(null);
                       setPriceRangeFilter([null, null]);
                       setStockFilter(null);
                       setSortBy("newest");
+                      setCurrentPage(1);
 
                       // Update URL - remove all filter parameters
                       const newUrl = window.location.pathname;
@@ -1685,7 +1709,7 @@ function AdminProductsContent({
                           approvalFilter === null ? "secondary" : "outline"
                         }
                         size="sm"
-                        onClick={() => setApprovalFilter(null)}
+                        onClick={() => handleApprovalFilterChange(null)}
                         className="justify-start"
                       >
                         All
@@ -1697,7 +1721,7 @@ function AdminProductsContent({
                             : "outline"
                         }
                         size="sm"
-                        onClick={() => setApprovalFilter("approved")}
+                        onClick={() => handleApprovalFilterChange("approved")}
                         className="justify-start"
                       >
                         <Check className="mr-2 h-4 w-4" /> Approved
@@ -1707,7 +1731,7 @@ function AdminProductsContent({
                           approvalFilter === "pending" ? "secondary" : "outline"
                         }
                         size="sm"
-                        onClick={() => setApprovalFilter("pending")}
+                        onClick={() => handleApprovalFilterChange("pending")}
                         className="justify-start"
                       >
                         <Clock className="mr-2 h-4 w-4" /> Pending
@@ -1719,7 +1743,7 @@ function AdminProductsContent({
                             : "outline"
                         }
                         size="sm"
-                        onClick={() => setApprovalFilter("rejected")}
+                        onClick={() => handleApprovalFilterChange("rejected")}
                         className="justify-start"
                       >
                         <X className="mr-2 h-4 w-4" /> Rejected
@@ -1738,7 +1762,7 @@ function AdminProductsContent({
                           deletedFilter === "exclude" ? "secondary" : "outline"
                         }
                         size="sm"
-                        onClick={() => setDeletedFilter("exclude")}
+                        onClick={() => handleDeletedFilterChange("exclude")}
                         className="justify-start"
                       >
                         Exclude Deleted
@@ -1748,7 +1772,7 @@ function AdminProductsContent({
                           deletedFilter === "include" ? "secondary" : "outline"
                         }
                         size="sm"
-                        onClick={() => setDeletedFilter("include")}
+                        onClick={() => handleDeletedFilterChange("include")}
                         className="justify-start"
                       >
                         Include Deleted
@@ -1758,7 +1782,7 @@ function AdminProductsContent({
                           deletedFilter === "only" ? "secondary" : "outline"
                         }
                         size="sm"
-                        onClick={() => setDeletedFilter("only")}
+                        onClick={() => handleDeletedFilterChange("only")}
                         className="justify-start"
                       >
                         Only Deleted
@@ -1774,7 +1798,7 @@ function AdminProductsContent({
                           categoryFilter === null ? "secondary" : "outline"
                         }
                         size="sm"
-                        onClick={() => setCategoryFilter(null)}
+                        onClick={() => handleCategoryFilterChange(null)}
                         className="justify-start"
                       >
                         All Categories
@@ -1788,7 +1812,7 @@ function AdminProductsContent({
                               : "outline"
                           }
                           size="sm"
-                          onClick={() => setCategoryFilter(category)}
+                          onClick={() => handleCategoryFilterChange(category)}
                           className="justify-start"
                         >
                           {category}
@@ -2117,8 +2141,8 @@ function AdminProductsContent({
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <span>
                   Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
-                  {Math.min(currentPage * itemsPerPage, products.length)} of{" "}
-                  {products.length} products
+                  {Math.min(currentPage * itemsPerPage, pagination.total)} of{" "}
+                  {pagination.total} products
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -2149,16 +2173,13 @@ function AdminProductsContent({
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
                   <span className="text-sm">
-                    Page {currentPage} of{" "}
-                    {Math.ceil(products.length / itemsPerPage)}
+                    Page {currentPage} of {pagination.totalPages}
                   </span>
                   <Button
                     variant="outline"
                     size="icon"
                     onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={
-                      currentPage >= Math.ceil(products.length / itemsPerPage)
-                    }
+                    disabled={currentPage >= pagination.totalPages}
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>

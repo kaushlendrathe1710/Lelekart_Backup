@@ -305,12 +305,12 @@ export default function HomePage() {
   const { data: under599Data, isLoading: isLoadingUnder599 } =
     useProductsUnderPrice(599, 8);
 
-  const { data: upTo20Data, isLoading: isLoadingUpTo20 } =
-    useProductsUpToDiscount(20, 8);
-  const { data: upTo40Data, isLoading: isLoadingUpTo40 } =
-    useProductsUpToDiscount(40, 8);
-  const { data: upTo60Data, isLoading: isLoadingUpTo60 } =
-    useProductsUpToDiscount(60, 8);
+  // const { data: upTo20Data, isLoading: isLoadingUpTo20 } =
+  //   useProductsUpToDiscount(20, 8);
+  // const { data: upTo40Data, isLoading: isLoadingUpTo40 } =
+  //   useProductsUpToDiscount(40, 8);
+  // const { data: upTo60Data, isLoading: isLoadingUpTo60 } =
+  //   useProductsUpToDiscount(60, 8);
 
   const { data: discount20to40Data, isLoading: isLoading20to40 } =
     useProductsWithDiscountRange(20, 40, 8);
@@ -695,15 +695,15 @@ export default function HomePage() {
       >
         <Suspense fallback={<LazyLoadingFallback variant="cards" count={6} />}>
           <DiscountSection
-            upTo20Data={upTo20Data}
-            upTo40Data={upTo40Data}
-            upTo60Data={upTo60Data}
+            // upTo20Data={upTo20Data}
+            // upTo40Data={upTo40Data}
+            // upTo60Data={upTo60Data}
             discount20to40Data={discount20to40Data}
             discount40to60Data={discount40to60Data}
             discount60to80Data={discount60to80Data}
-            isLoadingUpTo20={isLoadingUpTo20}
-            isLoadingUpTo40={isLoadingUpTo40}
-            isLoadingUpTo60={isLoadingUpTo60}
+            // isLoadingUpTo20={isLoadingUpTo20}
+            // isLoadingUpTo40={isLoadingUpTo40}
+            // isLoadingUpTo60={isLoadingUpTo60}
             isLoading20to40={isLoading20to40}
             isLoading40to60={isLoading40to60}
             isLoading60to80={isLoading60to80}
@@ -711,18 +711,20 @@ export default function HomePage() {
         </Suspense>
       </LazySection>
       {/* --- Recently Viewed Products --- */}
-      <LazySection
-        fallback={<LazyLoadingFallback variant="grid" count={5} />}
-        threshold={0.2}
-        rootMargin="100px"
-      >
-        <Suspense fallback={<LazyLoadingFallback variant="grid" count={5} />}>
-          <RecentlyViewedSection
-            recentlyViewed={recentlyViewed}
-            loadingRecentlyViewed={loadingRecentlyViewed}
-          />
-        </Suspense>
-      </LazySection>
+      {recentlyViewed.length > 0 && (
+        <LazySection
+          fallback={<LazyLoadingFallback variant="grid" count={5} />}
+          threshold={0.2}
+          rootMargin="100px"
+        >
+          <Suspense fallback={<LazyLoadingFallback variant="grid" count={5} />}>
+            <RecentlyViewedSection
+              recentlyViewed={recentlyViewed}
+              loadingRecentlyViewed={loadingRecentlyViewed}
+            />
+          </Suspense>
+        </LazySection>
+      )}
       {/* --- Top Category Sections (with visible box) --- */}
       <LazySection
         fallback={<LazyLoadingFallback variant="cards" count={3} />}

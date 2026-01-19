@@ -147,10 +147,10 @@ export function SellerDashboardLayout({
           <ImpersonationBanner />
 
           {/* Top Navigation Bar - fixed height of 56px (h-14) */}
-          <header className="fixed top-0 left-0 right-0 z-50 h-14 border-b bg-[#F8F5E4] px-4 shadow-md">
+          <header className="fixed top-0 left-0 right-0 z-50 h-14 border-b border-[#EADDCB] bg-[#F8F5E4] px-4 shadow-md">
             <div className="flex h-full items-center justify-between">
               <div className="flex items-center gap-4">
-                <SidebarTrigger className="text-white hover:bg-primary-foreground/10 hover:text-white" />
+                <SidebarTrigger className="text-black hover:bg-[#EADDCB] hover:text-black" />
                 <Link href="/" className="flex items-center">
                   <Logo />
                 </Link>
@@ -159,7 +159,7 @@ export function SellerDashboardLayout({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-white hover:bg-primary-foreground/10"
+                  className="text-black hover:bg-[#EADDCB]"
                   asChild
                 >
                   <Link href="/">
@@ -168,17 +168,17 @@ export function SellerDashboardLayout({
                   </Link>
                 </Button>
                 <NotificationBell
-                  className="text-white hover:bg-primary-foreground/10"
-                  iconClassName="text-white"
+                  className="text-black hover:bg-[#EADDCB]"
+                  iconClassName="text-black"
                   badgeClassName="bg-red-600 text-white"
                 />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="ghost"
-                      className="relative h-8 w-8 rounded-full"
+                      className="relative h-8 w-8 rounded-full hover:bg-[#EADDCB]"
                     >
-                      <Avatar className="h-8 w-8 border-2 border-white">
+                      <Avatar className="h-8 w-8 border-2 border-[#EADDCB]">
                         {user?.profileImage ? (
                           <AvatarImage
                             src={user.profileImage}
@@ -193,13 +193,13 @@ export function SellerDashboardLayout({
                             }}
                           />
                         ) : null}
-                        <AvatarFallback>
+                        <AvatarFallback className="bg-[#b6c3a5] text-white">
                           {getInitials(user.username)}
                         </AvatarFallback>
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" className="bg-[#F8F5E4] border-[#EADDCB]">
                     <div className="flex items-center justify-start gap-2 p-2">
                       <div className="flex flex-col space-y-1 leading-none">
                         <p className="font-medium">{user.username}</p>
