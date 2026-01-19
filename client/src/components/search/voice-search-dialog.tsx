@@ -232,7 +232,7 @@ export function VoiceSearchDialog({
           className={className}
           aria-label="Search with voice"
         >
-          {showIcon && <Mic className="h-4 w-4 text-black" />}
+          {showIcon && <Mic className="h-5 w-5 text-black" />}
           {buttonText && <span className="ml-2">{buttonText}</span>}
         </Button>
       </DialogTrigger>

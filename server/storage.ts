@@ -436,6 +436,19 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getUsers(deletedFilter?: "exclude" | "include" | "only"): Promise<User[]>;
+  getUsersPaginated(
+    page: number,
+    limit: number,
+    search?: string,
+    role?: string,
+    deletedFilter?: "exclude" | "include" | "only"
+  ): Promise<{ users: User[]; total: number }>;
+  getUserStats(deletedFilter?: "exclude" | "include" | "only"): Promise<{
+    totalUsers: number;
+    adminCount: number;
+    sellerCount: number;
+    buyerCount: number;
+  }>;
   updateUserRole(id: number, role: string): Promise<User>;
   updateUserProfile(id: number, data: Partial<User>): Promise<User>;
   getUserNotificationPreferences(id: number): Promise<any | null>;
@@ -595,6 +608,15 @@ export interface IStorage {
   getOrders(userId?: number, sellerId?: number): Promise<Order[]>;
   getOrder(id: number): Promise<Order | undefined>;
   getLatestOrder(): Promise<Order | undefined>;
+  getOrderStats(): Promise<{
+    totalOrders: number;
+    pendingCount: number;
+    processingCount: number;
+    shippedCount: number;
+    deliveredCount: number;
+    cancelledCount: number;
+    todayOrdersCount: number;
+  }>;
   createOrder(
     order: InsertOrder
   ): Promise<Order & { appliedVoucherCode?: string; voucherDiscount?: number }>;
@@ -1723,6 +1745,129 @@ export class DatabaseStorage implements IStorage {
     return query;
   }
 
+  async getUsersPaginated(
+    page: number = 1,
+    limit: number = 10,
+    search?: string,
+    role?: string,
+    deletedFilter: "exclude" | "include" | "only" = "exclude"
+  ): Promise<{ users: User[]; total: number }> {
+    const offset = (page - 1) * limit;
+
+    // Build where conditions
+    const conditions = [];
+
+    // Deleted filter
+    if (deletedFilter === "exclude") {
+      conditions.push(eq(users.deleted, false));
+    } else if (deletedFilter === "only") {
+      conditions.push(eq(users.deleted, true));
+    }
+    // if "include", don't add any deleted condition
+
+    // Role filter
+    if (role && ["admin", "seller", "buyer"].includes(role)) {
+      conditions.push(eq(users.role, role));
+    }
+
+    // Search filter
+    if (search && search.trim()) {
+      conditions.push(
+        or(
+          ilike(users.username, `%${search}%`),
+          ilike(users.email, `%${search}%`)
+        )
+      );
+    }
+
+    // Combine conditions
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // Get total count
+    const countResult = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(users)
+      .where(whereClause);
+    const total = countResult[0]?.count || 0;
+
+    // Get paginated users
+    const usersList = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        role: users.role,
+        name: users.name,
+        phone: users.phone,
+        address: users.address,
+        profileImage: users.profileImage,
+        approved: users.approved,
+        rejected: users.rejected,
+        deleted: users.deleted,
+        isCoAdmin: users.isCoAdmin,
+        permissions: users.permissions,
+        notificationPreferences: users.notificationPreferences,
+      })
+      .from(users)
+      .where(whereClause)
+      .orderBy(desc(users.id))
+      .limit(limit)
+      .offset(offset);
+
+    return { users: usersList, total };
+  }
+
+  async getUserStats(
+    deletedFilter: "exclude" | "include" | "only" = "exclude"
+  ): Promise<{
+    totalUsers: number;
+    adminCount: number;
+    sellerCount: number;
+    buyerCount: number;
+  }> {
+    // Build where condition for deleted filter
+    let whereClause;
+    if (deletedFilter === "exclude") {
+      whereClause = eq(users.deleted, false);
+    } else if (deletedFilter === "only") {
+      whereClause = eq(users.deleted, true);
+    }
+    // if "include", don't add any deleted condition
+
+    // Get counts by role in a single query
+    const stats = await db
+      .select({
+        role: users.role,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(users)
+      .where(whereClause)
+      .groupBy(users.role);
+
+    // Aggregate the results
+    const result = {
+      totalUsers: 0,
+      adminCount: 0,
+      sellerCount: 0,
+      buyerCount: 0,
+    };
+
+    stats.forEach((stat) => {
+      const count = stat.count;
+      result.totalUsers += count;
+
+      if (stat.role === "admin") {
+        result.adminCount = count;
+      } else if (stat.role === "seller") {
+        result.sellerCount = count;
+      } else if (stat.role === "buyer") {
+        result.buyerCount = count;
+      }
+    });
+
+    return result;
+  }
+
   async updateUserRole(id: number, role: string): Promise<User> {
     const [updatedUser] = await db
       .update(users)
@@ -1943,8 +2088,8 @@ export class DatabaseStorage implements IStorage {
         // First, directly check if products table exists and if user has products
         const productQuery = `
           SELECT EXISTS (
-            SELECT FROM information_schema.tables 
-            WHERE table_schema = 'public' 
+            SELECT FROM information_schema.tables
+            WHERE table_schema = 'public'
             AND table_name = 'products'
           ) as exists
         `;
@@ -1980,8 +2125,8 @@ export class DatabaseStorage implements IStorage {
         // Check if orders table exists
         const { rows: orderExists } = await pool.query(`
           SELECT EXISTS (
-            SELECT FROM information_schema.tables 
-            WHERE table_schema = 'public' 
+            SELECT FROM information_schema.tables
+            WHERE table_schema = 'public'
             AND table_name = 'orders'
           ) as exists
         `);
@@ -1996,8 +2141,8 @@ export class DatabaseStorage implements IStorage {
           // Delete order items first if they exist
           const { rows: orderItemsExist } = await pool.query(`
             SELECT EXISTS (
-              SELECT FROM information_schema.tables 
-              WHERE table_schema = 'public' 
+              SELECT FROM information_schema.tables
+              WHERE table_schema = 'public'
               AND table_name = 'order_items'
             ) as exists
           `);
@@ -2022,8 +2167,8 @@ export class DatabaseStorage implements IStorage {
         // Check if reviews table exists
         const { rows: reviewsExist } = await pool.query(`
           SELECT EXISTS (
-            SELECT FROM information_schema.tables 
-            WHERE table_schema = 'public' 
+            SELECT FROM information_schema.tables
+            WHERE table_schema = 'public'
             AND table_name = 'reviews'
           ) as exists
         `);
@@ -2040,8 +2185,8 @@ export class DatabaseStorage implements IStorage {
             try {
               const { rows: imagesExist } = await pool.query(`
                 SELECT EXISTS (
-                  SELECT FROM information_schema.tables 
-                  WHERE table_schema = 'public' 
+                  SELECT FROM information_schema.tables
+                  WHERE table_schema = 'public'
                   AND table_name = 'review_images'
                 ) as exists
               `);
@@ -2062,8 +2207,8 @@ export class DatabaseStorage implements IStorage {
             try {
               const { rows: helpfulExist } = await pool.query(`
                 SELECT EXISTS (
-                  SELECT FROM information_schema.tables 
-                  WHERE table_schema = 'public' 
+                  SELECT FROM information_schema.tables
+                  WHERE table_schema = 'public'
                   AND table_name = 'review_helpful'
                 ) as exists
               `);
@@ -2113,8 +2258,8 @@ export class DatabaseStorage implements IStorage {
             const { rows: tableExists } = await pool.query(
               `
               SELECT EXISTS (
-                SELECT FROM information_schema.tables 
-                WHERE table_schema = 'public' 
+                SELECT FROM information_schema.tables
+                WHERE table_schema = 'public'
                 AND table_name = $1
               ) as exists
             `,
@@ -2836,7 +2981,7 @@ export class DatabaseStorage implements IStorage {
 
       // Use SQL query for more flexibility with filtering
       let query = `
-        SELECT * FROM products 
+        SELECT * FROM products
         WHERE 1=1 AND deleted = false
       `;
       const params: any[] = [];
@@ -2887,7 +3032,7 @@ export class DatabaseStorage implements IStorage {
     try {
       // Use SQL query for counting with filters
       let query = `
-        SELECT COUNT(*) as count FROM products 
+        SELECT COUNT(*) as count FROM products
         WHERE 1=1
       `;
       const params: any[] = [];
@@ -2955,7 +3100,7 @@ export class DatabaseStorage implements IStorage {
       // Add search filter
       if (search && search.trim() !== "") {
         query += ` AND (
-          LOWER(name) LIKE LOWER($${params.length + 1}) OR 
+          LOWER(name) LIKE LOWER($${params.length + 1}) OR
           LOWER(description) LIKE LOWER($${params.length + 1}) OR
           LOWER(category) LIKE LOWER($${params.length + 1}) OR
           LOWER(sku) LIKE LOWER($${params.length + 1})
@@ -3012,11 +3157,11 @@ export class DatabaseStorage implements IStorage {
       // Use SQL query for pagination with filters and join with users table to get seller names
       // Explicitly map snake_case column names to camelCase for consistency
       let query = `
-        SELECT 
-          p.id, p.name, p.description, p.specifications, p.sku, p.mrp, p.purchase_price as "purchasePrice", 
-          p.price, p.category, p.category_id as "categoryId", p.subcategory_id as "subcategoryId", 
-          p.subcategory1, p.subcategory2, p.color, p.size, p.image_url as "imageUrl", p.images, p.seller_id as "sellerId", 
-          p.stock, p.gst_rate as "gstRate", p.approved, p.rejected, p.deleted, p.is_draft as "isDraft", 
+        SELECT
+          p.id, p.name, p.description, p.specifications, p.sku, p.mrp, p.purchase_price as "purchasePrice",
+          p.price, p.category, p.category_id as "categoryId", p.subcategory_id as "subcategoryId",
+          p.subcategory1, p.subcategory2, p.color, p.size, p.image_url as "imageUrl", p.images, p.seller_id as "sellerId",
+          p.stock, p.gst_rate as "gstRate", p.approved, p.rejected, p.deleted, p.is_draft as "isDraft",
           p.created_at as "createdAt", p.length, p.width, p.height, p.weight,
           u.username as seller_username, u.name as seller_name
         FROM products p
@@ -3114,7 +3259,7 @@ export class DatabaseStorage implements IStorage {
       // Add search filter
       if (search && search.trim() !== "") {
         query += ` AND (
-          LOWER(p.name) LIKE LOWER($${params.length + 1}) OR 
+          LOWER(p.name) LIKE LOWER($${params.length + 1}) OR
           LOWER(p.description) LIKE LOWER($${params.length + 1}) OR
           LOWER(p.category) LIKE LOWER($${params.length + 1}) OR
           LOWER(p.sku) LIKE LOWER($${params.length + 1})
@@ -3185,7 +3330,7 @@ export class DatabaseStorage implements IStorage {
 
       // Build query with WHERE clauses for filtering
       let query = `
-        SELECT * FROM products 
+        SELECT * FROM products
         WHERE 1=1 AND deleted = false
       `;
 
@@ -3656,8 +3801,8 @@ export class DatabaseStorage implements IStorage {
         ${category ? `AND LOWER(p.category) LIKE LOWER('%${category}%')` : ""}
         ${
           search
-            ? `AND (LOWER(p.name) LIKE LOWER('%${search}%') OR 
-                         LOWER(p.description) LIKE LOWER('%${search}%') OR 
+            ? `AND (LOWER(p.name) LIKE LOWER('%${search}%') OR
+                         LOWER(p.description) LIKE LOWER('%${search}%') OR
                          LOWER(p.sku) LIKE LOWER('%${search}%'))`
             : ""
         }
@@ -3673,11 +3818,11 @@ export class DatabaseStorage implements IStorage {
       // Join with users table to get seller information - select only columns that exist
       // Using SQL query to avoid issues with columns that may not exist
       const query = `
-        SELECT p.id, p.name, p.description, p.specifications, p.sku, p.mrp, 
+        SELECT p.id, p.name, p.description, p.specifications, p.sku, p.mrp,
                p.purchase_price, p.price, p.category, p.category_id, p.subcategory_id,
-               p.color, p.size, p.image_url, p.images, p.seller_id, p.stock, 
+               p.color, p.size, p.image_url, p.images, p.seller_id, p.stock,
                p.gst_rate, p.approved, p.rejected, p.deleted, p.is_draft, p.created_at,
-               u.id as seller_id, u.username as seller_username, u.email as seller_email, 
+               u.id as seller_id, u.username as seller_username, u.email as seller_email,
                u.role as seller_role
         FROM products p
         LEFT JOIN users u ON p.seller_id = u.id
@@ -3685,8 +3830,8 @@ export class DatabaseStorage implements IStorage {
         ${category ? `AND LOWER(p.category) LIKE LOWER('%${category}%')` : ""}
         ${
           search
-            ? `AND (LOWER(p.name) LIKE LOWER('%${search}%') OR 
-                         LOWER(p.description) LIKE LOWER('%${search}%') OR 
+            ? `AND (LOWER(p.name) LIKE LOWER('%${search}%') OR
+                         LOWER(p.description) LIKE LOWER('%${search}%') OR
                          LOWER(p.sku) LIKE LOWER('%${search}%'))`
             : ""
         }
@@ -3887,16 +4032,16 @@ export class DatabaseStorage implements IStorage {
         // Query for products with discount up to the specified percentage
         const discountQuery = `
           SELECT p.*,
-            CASE 
-              WHEN p.mrp IS NOT NULL AND p.mrp > p.price THEN 
+            CASE
+              WHEN p.mrp IS NOT NULL AND p.mrp > p.price THEN
                 ROUND(((p.mrp - p.price) / p.mrp) * 100)
               ELSE 0
             END AS discount_percentage
           FROM products p
-          WHERE p.deleted = false 
-            AND p.approved = true 
+          WHERE p.deleted = false
+            AND p.approved = true
             AND (p.is_draft IS NULL OR p.is_draft = false)
-            AND p.mrp IS NOT NULL 
+            AND p.mrp IS NOT NULL
             AND p.mrp > p.price
             AND ROUND(((p.mrp - p.price) / p.mrp) * 100) <= $1
           ORDER BY discount_percentage DESC, p.id DESC
@@ -3926,16 +4071,16 @@ export class DatabaseStorage implements IStorage {
         // Query for products with discount up to the specified percentage
         const discountQuery = `
           SELECT p.*,
-            CASE 
-              WHEN p.mrp IS NOT NULL AND p.mrp > p.price THEN 
+            CASE
+              WHEN p.mrp IS NOT NULL AND p.mrp > p.price THEN
                 ROUND(((p.mrp - p.price) / p.mrp) * 100)
               ELSE 0
             END AS discount_percentage
           FROM products p
-          WHERE p.deleted = false 
-            AND p.approved = true 
+          WHERE p.deleted = false
+            AND p.approved = true
             AND (p.is_draft IS NULL OR p.is_draft = false)
-            AND p.mrp IS NOT NULL 
+            AND p.mrp IS NOT NULL
             AND p.mrp > p.price
             AND ROUND(((p.mrp - p.price) / p.mrp) * 100) <= $1
           ORDER BY discount_percentage DESC, p.id DESC
@@ -3966,16 +4111,16 @@ export class DatabaseStorage implements IStorage {
         // Query for products with discount in the specified range
         const discountRangeQuery = `
           SELECT p.*,
-            CASE 
-              WHEN p.mrp IS NOT NULL AND p.mrp > p.price THEN 
+            CASE
+              WHEN p.mrp IS NOT NULL AND p.mrp > p.price THEN
                 ROUND(((p.mrp - p.price) / p.mrp) * 100)
               ELSE 0
             END AS discount_percentage
           FROM products p
-          WHERE p.deleted = false 
-            AND p.approved = true 
+          WHERE p.deleted = false
+            AND p.approved = true
             AND (p.is_draft IS NULL OR p.is_draft = false)
-            AND p.mrp IS NOT NULL 
+            AND p.mrp IS NOT NULL
             AND p.mrp > p.price
             AND ROUND(((p.mrp - p.price) / p.mrp) * 100) >= $1
             AND ROUND(((p.mrp - p.price) / p.mrp) * 100) <= $2
@@ -4009,16 +4154,16 @@ export class DatabaseStorage implements IStorage {
         // Query for products with discount at least the specified percentage
         const minDiscountQuery = `
           SELECT p.*,
-            CASE 
-              WHEN p.mrp IS NOT NULL AND p.mrp > p.price THEN 
+            CASE
+              WHEN p.mrp IS NOT NULL AND p.mrp > p.price THEN
                 ROUND(((p.mrp - p.price) / p.mrp) * 100)
               ELSE 0
             END AS discount_percentage
           FROM products p
-          WHERE p.deleted = false 
-            AND p.approved = true 
+          WHERE p.deleted = false
+            AND p.approved = true
             AND (p.is_draft IS NULL OR p.is_draft = false)
-            AND p.mrp IS NOT NULL 
+            AND p.mrp IS NOT NULL
             AND p.mrp > p.price
             AND ROUND(((p.mrp - p.price) / p.mrp) * 100) >= $1
           ORDER BY discount_percentage DESC, p.id DESC
@@ -4047,12 +4192,12 @@ export class DatabaseStorage implements IStorage {
       // Enhanced search query that includes seller/brand information
       const finalQuery = `
         WITH ranked_products AS (
-          SELECT 
+          SELECT
             p.*,
             u.name as seller_name,
             u.username as seller_username,
             bd.business_name as business_name,
-            CASE 
+            CASE
               -- Exact word match with word boundaries (highest priority)
               WHEN p.name ~* ('^' || $2 || '$') THEN 10.0 -- Exact word match in name
               WHEN p.name ~* ('\\y' || $2 || '\\y') THEN 8.0 -- Word boundary match in name
@@ -4071,7 +4216,7 @@ export class DatabaseStorage implements IStorage {
           FROM products p
           LEFT JOIN users u ON p.seller_id = u.id
           LEFT JOIN business_details bd ON p.seller_id = bd.seller_id
-          WHERE 
+          WHERE
             p.deleted = false AND (
               -- Search in product fields
               p.name ~* ('\\y' || $2 || '\\y') OR
@@ -5311,6 +5456,71 @@ export class DatabaseStorage implements IStorage {
       console.error("Error fetching latest order:", error);
       return undefined;
     }
+  }
+
+  async getOrderStats(): Promise<{
+    totalOrders: number;
+    pendingCount: number;
+    processingCount: number;
+    shippedCount: number;
+    deliveredCount: number;
+    cancelledCount: number;
+    todayOrdersCount: number;
+  }> {
+    // Get counts by status
+    const statusStats = await db
+      .select({
+        status: orders.status,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(orders)
+      .groupBy(orders.status);
+
+    // Get today's orders count
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const todayResult = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(orders)
+      .where(
+        and(
+          sql`${orders.date} >= ${today.toISOString()}`,
+          sql`${orders.date} < ${tomorrow.toISOString()}`
+        )
+      );
+
+    // Aggregate the results
+    const result = {
+      totalOrders: 0,
+      pendingCount: 0,
+      processingCount: 0,
+      shippedCount: 0,
+      deliveredCount: 0,
+      cancelledCount: 0,
+      todayOrdersCount: todayResult[0]?.count || 0,
+    };
+
+    statusStats.forEach((stat) => {
+      const count = stat.count;
+      result.totalOrders += count;
+
+      if (stat.status === "pending") {
+        result.pendingCount = count;
+      } else if (stat.status === "processing") {
+        result.processingCount = count;
+      } else if (stat.status === "shipped") {
+        result.shippedCount = count;
+      } else if (stat.status === "delivered") {
+        result.deliveredCount = count;
+      } else if (stat.status === "cancelled") {
+        result.cancelledCount = count;
+      }
+    });
+
+    return result;
   }
 
   async createOrder(

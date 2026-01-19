@@ -3,30 +3,30 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 
 interface DiscountSectionProps {
-  upTo20Data: any;
-  upTo40Data: any;
-  upTo60Data: any;
+  // upTo20Data: any;
+  // upTo40Data: any;
+  // upTo60Data: any;
   discount20to40Data: any;
   discount40to60Data: any;
   discount60to80Data: any;
-  isLoadingUpTo20: boolean;
-  isLoadingUpTo40: boolean;
-  isLoadingUpTo60: boolean;
+  // isLoadingUpTo20: boolean;
+  // isLoadingUpTo40: boolean;
+  // isLoadingUpTo60: boolean;
   isLoading20to40: boolean;
   isLoading40to60: boolean;
   isLoading60to80: boolean;
 }
 
 export default function DiscountSection({
-  upTo20Data,
-  upTo40Data,
-  upTo60Data,
+  // upTo20Data,
+  // upTo40Data,
+  // upTo60Data,
   discount20to40Data,
   discount40to60Data,
   discount60to80Data,
-  isLoadingUpTo20,
-  isLoadingUpTo40,
-  isLoadingUpTo60,
+  // isLoadingUpTo20,
+  // isLoadingUpTo40,
+  // isLoadingUpTo60,
   isLoading20to40,
   isLoading40to60,
   isLoading60to80,
@@ -34,7 +34,7 @@ export default function DiscountSection({
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {[
+        {/* {[
           { percent: 20, data: upTo20Data, isLoading: isLoadingUpTo20 },
           { percent: 40, data: upTo40Data, isLoading: isLoadingUpTo40 },
           { percent: 60, data: upTo60Data, isLoading: isLoadingUpTo60 },
@@ -76,7 +76,7 @@ export default function DiscountSection({
                     ))}
             </div>
           </div>
-        ))}
+        ))} */}
 
         {/* Additional discount range sections */}
         {[

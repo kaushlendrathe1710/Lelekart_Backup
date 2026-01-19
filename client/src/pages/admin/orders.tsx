@@ -52,6 +52,8 @@ import {
   XCircle,
   RefreshCcw,
   ImageIcon,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   Select,
@@ -169,14 +171,63 @@ export default function AdminOrders() {
   const invoiceRef = useRef<HTMLDivElement>(null);
   const shippingLabelRef = useRef<HTMLDivElement>(null);
 
-  // Fetch orders data
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
+
+  // Fetch orders data with pagination
   const {
-    data: orders,
+    data: ordersData,
     isLoading,
     isError,
     refetch,
-  } = useQuery<Order[]>({
-    queryKey: ["/api/orders"],
+  } = useQuery<{
+    orders: Order[];
+    pagination: {
+      total: number;
+      totalPages: number;
+      currentPage: number;
+      limit: number;
+    };
+  }>({
+    queryKey: ["/api/orders", currentPage, itemsPerPage, search, statusFilter],
+    queryFn: async () => {
+      let url = `/api/orders?page=${currentPage}&limit=${itemsPerPage}`;
+      if (search) url += `&search=${encodeURIComponent(search)}`;
+      if (statusFilter) url += `&status=${statusFilter}`;
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch orders");
+      return res.json();
+    },
+  });
+
+  const orders = ordersData?.orders || [];
+  const pagination = ordersData?.pagination || {
+    total: 0,
+    totalPages: 1,
+    currentPage: 1,
+    limit: itemsPerPage,
+  };
+
+  // Fetch order stats separately
+  const {
+    data: orderStats,
+    isLoading: isStatsLoading,
+  } = useQuery<{
+    totalOrders: number;
+    pendingCount: number;
+    processingCount: number;
+    shippedCount: number;
+    deliveredCount: number;
+    cancelledCount: number;
+    todayOrdersCount: number;
+  }>({
+    queryKey: ["/api/orders/stats"],
+    queryFn: async () => {
+      const res = await fetch("/api/orders/stats", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch order stats");
+      return res.json();
+    },
   });
 
   // Update order status mutation
@@ -258,77 +309,19 @@ export default function AdminOrders() {
     }
   };
 
-  // Filter orders
-  const filteredOrders = orders
-    ?.filter((order) => {
-      // Status filter
-      const matchesStatus = !statusFilter
-        ? true
-        : order.status === statusFilter;
+  // Filtered orders are now coming from the backend
+  const filteredOrders = orders;
 
-      // Date filter
-      let matchesDate = true;
-      if (dateFilter.start) {
-        const startDate = new Date(dateFilter.start);
-        const orderDate = new Date(order.date);
-        matchesDate = orderDate >= startDate;
-      }
-      if (dateFilter.end && matchesDate) {
-        const endDate = new Date(dateFilter.end);
-        endDate.setHours(23, 59, 59, 999); // End of the day
-        const orderDate = new Date(order.date);
-        matchesDate = orderDate <= endDate;
-      }
+  // Reset to page 1 when search or status filter changes
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setCurrentPage(1);
+  };
 
-      // Search filter (search by order ID, customer name, or email)
-      const searchLower = search.trim().toLowerCase();
-      let matchesSearch = true;
-      if (searchLower) {
-        // Remove leading '#' for order ID search
-        const searchId = searchLower.startsWith("#")
-          ? searchLower.slice(1)
-          : searchLower;
-        const idMatch = order.id.toString().includes(searchId);
-        let nameMatch = false;
-        let emailMatch = false;
-        if (isAdminShippingDetails(order.shippingDetails)) {
-          nameMatch = order.shippingDetails.name
-            ?.toLowerCase()
-            .includes(searchLower);
-          emailMatch = order.shippingDetails.email
-            ?.toLowerCase()
-            .includes(searchLower);
-        }
-        matchesSearch = idMatch || nameMatch || emailMatch;
-      }
-
-      return matchesStatus && matchesDate && matchesSearch;
-    })
-    .sort((a, b) => {
-      // Sort by newest first
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
-    });
-
-  // Order counts by status
-  const orderCounts = orders?.reduce(
-    (acc, order) => {
-      acc.total += 1;
-      const status = order.status || "unknown";
-      acc[status] = (acc[status] || 0) + 1;
-      return acc;
-    },
-    { total: 0 } as Record<string, number>
-  ) || { total: 0 };
-
-  // Calculate today's orders
-  const todayOrders =
-    orders?.filter((order) => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const orderDate = new Date(order.date);
-      orderDate.setHours(0, 0, 0, 0);
-      return orderDate.getTime() === today.getTime();
-    }).length || 0;
+  const handleStatusFilterChange = (value: string | null) => {
+    setStatusFilter(value);
+    setCurrentPage(1);
+  };
 
   // Get status badge based on order status
   const getStatusBadge = (status: string) => {
@@ -716,7 +709,7 @@ export default function AdminOrders() {
 
         {/* Order Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
-          {isLoading ? (
+          {isStatsLoading ? (
             <>
               {[...Array(4)].map((_, i) => (
                 <Card key={i} className="bg-white">
@@ -741,7 +734,7 @@ export default function AdminOrders() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-lg sm:text-2xl font-bold">
-                    {orderCounts.total}
+                    {orderStats?.totalOrders || 0}
                   </div>
                 </CardContent>
               </Card>
@@ -753,7 +746,7 @@ export default function AdminOrders() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-lg sm:text-2xl font-bold">
-                    {orderCounts.pending || 0}
+                    {orderStats?.pendingCount || 0}
                   </div>
                 </CardContent>
               </Card>
@@ -765,7 +758,7 @@ export default function AdminOrders() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-lg sm:text-2xl font-bold">
-                    {orderCounts.delivered || 0}
+                    {orderStats?.deliveredCount || 0}
                   </div>
                 </CardContent>
               </Card>
@@ -777,7 +770,7 @@ export default function AdminOrders() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-lg sm:text-2xl font-bold">
-                    {todayOrders}
+                    {orderStats?.todayOrdersCount || 0}
                   </div>
                 </CardContent>
               </Card>
@@ -792,7 +785,7 @@ export default function AdminOrders() {
             <Input
               placeholder="Search orders by ID, customer name, or email..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="pl-7 sm:pl-10 h-9 sm:h-10 text-xs sm:text-sm"
             />
           </div>
@@ -800,7 +793,7 @@ export default function AdminOrders() {
             <Select
               value={statusFilter || "all"}
               onValueChange={(value) =>
-                setStatusFilter(value === "all" ? null : value)
+                handleStatusFilterChange(value === "all" ? null : value)
               }
             >
               <SelectTrigger className="w-full sm:w-[160px] lg:w-[180px] h-9 sm:h-10 text-xs sm:text-sm">
@@ -1038,6 +1031,62 @@ export default function AdminOrders() {
                 )}
               </TableBody>
             </Table>
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {!isLoading && filteredOrders && filteredOrders.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4\">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>
+                Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
+                {Math.min(currentPage * itemsPerPage, pagination.total)} of{" "}
+                {pagination.total} orders
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2\">
+                <span className="text-sm text-muted-foreground">Show:</span>
+                <Select
+                  value={itemsPerPage.toString()}
+                  onValueChange={(value) => {
+                    setItemsPerPage(parseInt(value));
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm px-2">
+                  Page {currentPage} of {pagination.totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={currentPage >= pagination.totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </div>
         )}
 

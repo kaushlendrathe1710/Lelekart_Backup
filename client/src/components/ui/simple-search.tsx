@@ -288,7 +288,7 @@ export function SimpleSearch({
             ref={searchInputRef}
             type="text"
             className={cn(
-              "w-full min-w-[320px] md:min-w-[400px] lg:min-w-[500px] py-2 px-4 rounded-md bg-gradient-to-r from-[#f3f4f6] to-[#e5e7eb] text-black border border-[#b6c3a5] shadow focus:outline-none focus:ring-2 focus:ring-[#b6c3a5] placeholder-black/70",
+              "w-full min-w-[320px] md:min-w-[400px] lg:min-w-[500px] py-2 px-4 pr-12 rounded-md bg-gradient-to-r from-[#f3f4f6] to-[#e5e7eb] text-black border border-[#b6c3a5] shadow focus:outline-none focus:ring-2 focus:ring-[#b6c3a5] placeholder-black/70",
               inputClassName
             )}
             placeholder="Search for products, brands and more"
@@ -297,6 +297,30 @@ export function SimpleSearch({
             onFocus={() => setShowSuggestions(true)}
             disabled={isAiSearching}
           />
+
+          {query && (
+            <button
+              type="button"
+              className={cn(clearButtonClasses, buttonClassName, "absolute right-16 top-1/2 -translate-y-1/2 hover:bg-[#b6c3a5] rounded-full p-1")}
+              onClick={clearSearch}
+              disabled={isAiSearching}
+              title="Clear search"
+            >
+              <X className={cn("h-5 w-5 text-gray-500 hover:text-black", iconClassName)} />
+            </button>
+          )}
+
+          {/* Voice search button - overlapped on search bar */}
+          <div className="absolute right-2 top-1/2 -translate-y-1/2">
+            <VoiceSearchDialog
+              className="bg-[#b6c3a5] hover:bg-[#a7bfa7] rounded-full p-1 shadow-md transition-colors w-8 h-8"
+              buttonVariant="ghost"
+              buttonSize="icon"
+              buttonText=""
+              showIcon={true}
+              onSearch={handleVoiceSearch}
+            />
+          </div>
 
           {/* Search suggestions dropdown - inside the form to prevent useOnClickOutside from triggering */}
           {showSuggestions && query && (
@@ -310,42 +334,16 @@ export function SimpleSearch({
           )}
         </div>
 
-        {query && (
-          <button
-            type="button"
-            className={cn(clearButtonClasses, buttonClassName)}
-            onClick={clearSearch}
-            disabled={isAiSearching}
-            title="Clear search"
-          >
-            <X className={cn("h-5 w-5 text-[#b6c3a5]", iconClassName)} />
-          </button>
-        )}
-
-        {/* Voice search button */}
-        <VoiceSearchDialog
-          className={cn(
-            "ml-2 bg-[#b6c3a5] hover:bg-[#a7bfa7] rounded-full p-2 shadow-md transition-colors",
-            voiceButtonClasses
-          )}
-          buttonVariant="ghost"
-          buttonSize="icon"
-          buttonText=""
-          showIcon={true}
-          onSearch={handleVoiceSearch}
-        />
-
         <Button
           type="submit"
           className={cn(searchButtonClasses, buttonClassName)}
-          size="sm"
+          size="icon"
           disabled={isAiSearching}
+          title="Search"
         >
-          Search
+          <Search className="h-5 w-5" />
         </Button>
       </form>
-
-      {/* Removed keyboard hint text */}
     </div>
   );
 }

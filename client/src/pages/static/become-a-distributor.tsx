@@ -57,13 +57,13 @@ const becomeDistributorSchema = z.object({
     .refine((val) => !val || panRegex.test(val.replace(/\s/g, "")), {
       message: "Please enter a valid PAN number",
     }),
-  address: z.string().min(10, "Please enter a complete address"),
+  address: z.string().min(10, "Please enter a complete address").max(500, "Address must not exceed 500 characters"),
   city: z.string().min(2, "City is required"),
   state: z.string().min(2, "State is required"),
   pincode: z.string().regex(/^[1-9][0-9]{5}$/, "Please enter a valid pincode"),
 
   // Additional
-  notes: z.string().optional(),
+  notes: z.string().max(500, "Notes must not exceed 500 characters").optional(),
   aadharCardUrl: z.string().optional(),
 
   // Terms
@@ -535,7 +535,11 @@ export default function BecomeADistributorPage() {
                       {...register("address")}
                       placeholder="Street, Building, Landmark"
                       rows={2}
+                      maxLength={500}
                     />
+                    <div className="text-xs text-gray-500 text-right">
+                      {watch("address")?.length || 0}/500 characters
+                    </div>
                     {errors.address && (
                       <p className="text-sm text-red-500">
                         {errors.address.message}
@@ -597,7 +601,11 @@ export default function BecomeADistributorPage() {
                     {...register("notes")}
                     placeholder="Tell us about your distribution experience, areas of interest, etc."
                     rows={3}
+                    maxLength={500}
                   />
+                  <div className="text-xs text-gray-500 text-right">
+                    {watch("notes")?.length || 0}/500 characters
+                  </div>
                 </div>
 
                 {/* Terms */}

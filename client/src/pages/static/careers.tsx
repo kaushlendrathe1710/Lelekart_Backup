@@ -30,7 +30,7 @@ const careerFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   fatherName: z.string().min(2, "Father's name must be at least 2 characters"),
   maritalStatus: z.enum(["Single", "Married", "Divorced", "Widowed"]),
-  address: z.string().min(10, "Please enter a complete address"),
+  address: z.string().min(10, "Please enter a complete address").max(500, "Address must not exceed 500 characters"),
   highestQualification: z
     .string()
     .min(2, "Please enter your highest qualification"),
@@ -46,7 +46,7 @@ const careerFormSchema = z.object({
   whatsappNumber: z
     .string()
     .min(10, "WhatsApp number must be at least 10 digits"),
-  message: z.string().min(10, "Please explain why you should be hired"),
+  message: z.string().min(10, "Please explain why you should be hired").max(500, "Message must not exceed 500 characters"),
   resume: z.any().optional(),
 });
 
@@ -281,9 +281,13 @@ export default function CareersPage() {
                                 placeholder="Enter your full address"
                                 {...field}
                                 rows={3}
+                                maxLength={500}
                                 className="text-sm md:text-base"
                               />
                             </FormControl>
+                            <div className="text-xs text-gray-500 text-right">
+                              {field.value?.length || 0}/500 characters
+                            </div>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -628,9 +632,13 @@ export default function CareersPage() {
                             <Textarea
                               placeholder="Write your message here"
                               className="min-h-[120px] md:min-h-[150px] text-sm md:text-base"
+                              maxLength={500}
                               {...field}
                             />
                           </FormControl>
+                          <div className="text-xs text-gray-500 text-right">
+                            {field.value?.length || 0}/500 characters
+                          </div>
                           <FormMessage />
                         </FormItem>
                       )}

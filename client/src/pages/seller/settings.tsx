@@ -125,7 +125,6 @@ export default function SellerSettingsPage() {
   });
 
   const [isEditingPickupAddress, setIsEditingPickupAddress] = useState(false);
-  const [pickupLocked, setPickupLocked] = useState(false);
   const [originalPickupAddress, setOriginalPickupAddress] = useState({
     businessName: "",
     gstin: "",
@@ -488,7 +487,6 @@ export default function SellerSettingsPage() {
               parsedPickup.pinCode ||
               "",
           });
-          setPickupLocked(true);
         } catch (e) {
           console.error("Error parsing pickup address:", e);
         }
@@ -876,15 +874,6 @@ export default function SellerSettingsPage() {
   };
 
   const savePickupAddress = async () => {
-    if (pickupLocked) {
-      toast({
-        title: "Pickup Address Locked",
-        description:
-          "Pickup address can only be added once. Please contact support to edit this information.",
-        variant: "destructive",
-      });
-      return;
-    }
     const errors = {
       businessName: "",
       contactName: "",
@@ -966,15 +955,6 @@ export default function SellerSettingsPage() {
   };
 
   const deletePickupAddress = async () => {
-    if (pickupLocked) {
-      toast({
-        title: "Pickup Address Locked",
-        description:
-          "Pickup address can only be added once. Please contact support to edit or remove it.",
-        variant: "destructive",
-      });
-      return;
-    }
     const clearedPickupAddress = {
       businessName: "",
       gstin: "",
@@ -1330,11 +1310,6 @@ export default function SellerSettingsPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {pickupLocked && (
-                      <div className="rounded-md bg-amber-50 text-amber-900 border border-amber-200 p-3 text-sm">
-                        Pickup address is locked. Contact support to edit.
-                      </div>
-                    )}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="name" className="text-sm">
@@ -2370,8 +2345,8 @@ export default function SellerSettingsPage() {
                               alt="Store Logo"
                               className="h-20 w-auto object-contain"
                               onError={(e) =>
-                                ((e.target as HTMLImageElement).src =
-                                  "https://via.placeholder.com/150?text=Logo+Preview")
+                              ((e.target as HTMLImageElement).src =
+                                "https://via.placeholder.com/150?text=Logo+Preview")
                               }
                             />
                           </div>
@@ -2426,8 +2401,8 @@ export default function SellerSettingsPage() {
                               alt="Store Banner"
                               className="h-20 w-full object-cover rounded-md"
                               onError={(e) =>
-                                ((e.target as HTMLImageElement).src =
-                                  "https://via.placeholder.com/800x200?text=Banner+Preview")
+                              ((e.target as HTMLImageElement).src =
+                                "https://via.placeholder.com/800x200?text=Banner+Preview")
                               }
                             />
                           </div>
@@ -3319,18 +3294,11 @@ export default function SellerSettingsPage() {
                           id="businessName"
                           value={pickupAddress.businessName}
                           onChange={(e) => {
-                            if (pickupLocked) return;
                             setPickupAddress({
                               ...pickupAddress,
                               businessName: e.target.value,
                             });
                           }}
-                          disabled={pickupLocked}
-                          className={
-                            pickupLocked
-                              ? "bg-gray-50 cursor-not-allowed"
-                              : undefined
-                          }
                         />
                       </div>
                       <div className="space-y-2">
@@ -3339,18 +3307,11 @@ export default function SellerSettingsPage() {
                           id="gstin"
                           value={pickupAddress.gstin}
                           onChange={(e) => {
-                            if (pickupLocked) return;
                             setPickupAddress({
                               ...pickupAddress,
                               gstin: e.target.value,
                             });
                           }}
-                          disabled={pickupLocked}
-                          className={
-                            pickupLocked
-                              ? "bg-gray-50 cursor-not-allowed"
-                              : undefined
-                          }
                         />
                       </div>
                       <div className="space-y-2">
@@ -3361,18 +3322,11 @@ export default function SellerSettingsPage() {
                           id="contactName"
                           value={pickupAddress.contactName}
                           onChange={(e) => {
-                            if (pickupLocked) return;
                             setPickupAddress({
                               ...pickupAddress,
                               contactName: e.target.value,
                             });
                           }}
-                          disabled={pickupLocked}
-                          className={
-                            pickupLocked
-                              ? "bg-gray-50 cursor-not-allowed"
-                              : undefined
-                          }
                         />
                       </div>
                       <div className="space-y-2">
@@ -3384,17 +3338,12 @@ export default function SellerSettingsPage() {
                           value={pickupAddress.phone}
                           maxLength={10}
                           onKeyPress={(e) => {
-                            if (pickupLocked) {
-                              e.preventDefault();
-                              return;
-                            }
                             // Allow only digits
                             if (!/[0-9]/.test(e.key)) {
                               e.preventDefault();
                             }
                           }}
                           onChange={(e) => {
-                            if (pickupLocked) return;
                             // Only allow digits in the field
                             const value = e.target.value.replace(/[^0-9]/g, "");
                             setPickupAddress({
@@ -3402,12 +3351,6 @@ export default function SellerSettingsPage() {
                               phone: value,
                             });
                           }}
-                          disabled={pickupLocked}
-                          className={
-                            pickupLocked
-                              ? "bg-gray-50 cursor-not-allowed"
-                              : undefined
-                          }
                         />
                         <p className="text-xs text-muted-foreground">
                           Enter a 10-digit mobile number starting with 6, 7, 8,
@@ -3426,47 +3369,30 @@ export default function SellerSettingsPage() {
                             id="authorizationSignature"
                             value={pickupAddress.authorizationSignature}
                             onChange={(e) => {
-                              if (pickupLocked) return;
                               setPickupAddress({
                                 ...pickupAddress,
                                 authorizationSignature: e.target.value,
                               });
                             }}
                             placeholder="https://example.com/signature.png"
-                            className={
-                              "flex-1 " +
-                              (pickupLocked
-                                ? "bg-gray-50 cursor-not-allowed"
-                                : "")
-                            }
-                            disabled={pickupLocked}
+                            className="flex-1"
                           />
                           <span className="text-sm text-muted-foreground">
                             or
                           </span>
-                          {!pickupLocked ? (
-                            <FileUpload
-                              onChange={(url: string) =>
-                                setPickupAddress({
-                                  ...pickupAddress,
-                                  authorizationSignature: url,
-                                })
-                              }
-                              value={pickupAddress.authorizationSignature}
-                              label="Upload Signature"
-                              accept="image/*"
-                              maxSizeMB={1}
-                              id="signature-upload"
-                            />
-                          ) : (
-                            <Button
-                              variant="outline"
-                              disabled
-                              className="opacity-70 cursor-not-allowed"
-                            >
-                              Upload Signature
-                            </Button>
-                          )}
+                          <FileUpload
+                            onChange={(url: string) =>
+                              setPickupAddress({
+                                ...pickupAddress,
+                                authorizationSignature: url,
+                              })
+                            }
+                            value={pickupAddress.authorizationSignature}
+                            label="Upload Signature"
+                            accept="image/*"
+                            maxSizeMB={1}
+                            id="signature-upload"
+                          />
                         </div>
                         <div className="text-xs text-muted-foreground">
                           Upload your signature image. Max file size: 1MB.
@@ -3479,8 +3405,8 @@ export default function SellerSettingsPage() {
                               alt="Authorization Signature"
                               className="h-20 w-auto object-contain"
                               onError={(e) =>
-                                ((e.target as HTMLImageElement).src =
-                                  "https://via.placeholder.com/150?text=Signature+Preview")
+                              ((e.target as HTMLImageElement).src =
+                                "https://via.placeholder.com/150?text=Signature+Preview")
                               }
                             />
                           </div>
@@ -3496,18 +3422,11 @@ export default function SellerSettingsPage() {
                         id="pickupLine1"
                         value={pickupAddress.line1}
                         onChange={(e) => {
-                          if (pickupLocked) return;
                           setPickupAddress({
                             ...pickupAddress,
                             line1: e.target.value,
                           });
                         }}
-                        disabled={pickupLocked}
-                        className={
-                          pickupLocked
-                            ? "bg-gray-50 cursor-not-allowed"
-                            : undefined
-                        }
                       />
                     </div>
                     <div className="space-y-2">
@@ -3518,18 +3437,11 @@ export default function SellerSettingsPage() {
                         id="pickupLine2"
                         value={pickupAddress.line2}
                         onChange={(e) => {
-                          if (pickupLocked) return;
                           setPickupAddress({
                             ...pickupAddress,
                             line2: e.target.value,
                           });
                         }}
-                        disabled={pickupLocked}
-                        className={
-                          pickupLocked
-                            ? "bg-gray-50 cursor-not-allowed"
-                            : undefined
-                        }
                       />
                     </div>
 
@@ -3544,17 +3456,12 @@ export default function SellerSettingsPage() {
                           maxLength={6}
                           required
                           onKeyPress={(e) => {
-                            if (pickupLocked) {
-                              e.preventDefault();
-                              return;
-                            }
                             // Allow only digits
                             if (!/[0-9]/.test(e.key)) {
                               e.preventDefault();
                             }
                           }}
                           onChange={async (e) => {
-                            if (pickupLocked) return;
                             // Only allow digits in the field
                             const value = e.target.value.replace(/[^0-9]/g, "");
 
@@ -3598,12 +3505,6 @@ export default function SellerSettingsPage() {
                               }
                             }
                           }}
-                          disabled={pickupLocked}
-                          className={
-                            pickupLocked
-                              ? "bg-gray-50 cursor-not-allowed"
-                              : undefined
-                          }
                         />
                         <p className="text-xs text-muted-foreground">
                           Enter a 6-digit pincode
@@ -3640,7 +3541,7 @@ export default function SellerSettingsPage() {
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-end space-x-2">
-                    {pickupLocked ? null : isEditingPickupAddress ? (
+                    {isEditingPickupAddress ? (
                       <>
                         <Button
                           variant="ghost"
@@ -3693,7 +3594,6 @@ export default function SellerSettingsPage() {
                             <Button
                               variant="destructive"
                               className="text-xs md:text-sm"
-                              disabled={pickupLocked}
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
                               Delete
@@ -3724,7 +3624,6 @@ export default function SellerSettingsPage() {
                             )
                           }
                           className="text-xs md:text-sm"
-                          disabled={pickupLocked}
                         >
                           <Pencil className="mr-2 h-4 w-4" />
                           Edit

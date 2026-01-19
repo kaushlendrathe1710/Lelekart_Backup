@@ -40,12 +40,13 @@ import {
   Trash2,
   UserCog,
   RotateCcw,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 export default function AdminUsers() {
   const { toast } = useToast();
@@ -58,6 +59,8 @@ export default function AdminUsers() {
   const [deletedFilter, setDeletedFilter] = useState<
     "exclude" | "include" | "only"
   >("exclude");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [confirmRoleChange, setConfirmRoleChange] = useState<{
     open: boolean;
     userId: number | null;
@@ -106,13 +109,59 @@ export default function AdminUsers() {
   });
 
   // Fetch users data
-  const {
-    data: users,
-    isLoading,
-    isError,
-    refetch,
-  } = useQuery<User[]>({
-    queryKey: ["/api/users", { deleted: deletedFilter }],
+  const { data, isLoading, isError, refetch } = useQuery<{
+    users: User[];
+    pagination: {
+      total: number;
+      totalPages: number;
+      currentPage: number;
+      limit: number;
+    };
+  }>({
+    queryKey: [
+      "/api/users",
+      {
+        page: currentPage,
+        limit: itemsPerPage,
+        search,
+        role: roleFilter !== "all" ? roleFilter : undefined,
+        deleted: deletedFilter,
+      },
+    ],
+    queryFn: async ({ queryKey }) => {
+      const [base, params] = queryKey as [
+        string,
+        {
+          page: number;
+          limit: number;
+          search: string;
+          role?: string;
+          deleted: "exclude" | "include" | "only";
+        },
+      ];
+      const queryParams = new URLSearchParams({
+        page: params.page.toString(),
+        limit: params.limit.toString(),
+        deleted: params.deleted,
+      });
+      if (params.search) queryParams.append("search", params.search);
+      if (params.role) queryParams.append("role", params.role);
+      const res = await apiRequest("GET", `${base}?${queryParams.toString()}`);
+      return res.json();
+    },
+  });
+
+  const users = data?.users;
+  const pagination = data?.pagination;
+
+  // Fetch user stats separately
+  const { data: userStats, isLoading: isStatsLoading } = useQuery<{
+    totalUsers: number;
+    adminCount: number;
+    sellerCount: number;
+    buyerCount: number;
+  }>({
+    queryKey: ["/api/users/stats", { deleted: deletedFilter }],
     queryFn: async ({ queryKey }) => {
       const [base, params] = queryKey as [
         string,
@@ -385,29 +434,25 @@ export default function AdminUsers() {
     }
   };
 
-  // Filter users by role and search term
-  const filteredUsers = users
-    ?.filter((user) => {
-      if (roleFilter !== "all" && user.role !== roleFilter) return false;
-      if (!search) return true;
-      const searchLower = search.toLowerCase();
-      return (
-        user.username.toLowerCase().includes(searchLower) ||
-        (user.email && user.email.toLowerCase().includes(searchLower))
-      );
-    })
-    .sort((a, b) => a.id - b.id);
+  // Handler functions that reset to page 1 when filters change
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setCurrentPage(1);
+  };
 
-  // Count users by role
-  const roleCounts =
-    users?.reduce(
-      (acc, user) => {
-        const role = user.role || "unknown";
-        acc[role] = (acc[role] || 0) + 1;
-        return acc;
-      },
-      {} as Record<string, number>
-    ) || {};
+  const handleRoleFilterChange = (
+    role: "all" | "admin" | "seller" | "buyer"
+  ) => {
+    setRoleFilter(role);
+    setCurrentPage(1);
+  };
+
+  const handleDeletedFilterChange = (
+    filter: "exclude" | "include" | "only"
+  ) => {
+    setDeletedFilter(filter);
+    setCurrentPage(1);
+  };
 
   // Loading state for role stats
   const RoleStatsLoading = () => (
@@ -488,17 +533,18 @@ export default function AdminUsers() {
         </div>
 
         {/* Role Stats */}
-        {isLoading ? (
+        {isStatsLoading ? (
           <RoleStatsLoading />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 lg:gap-4">
             <Card
-              className={`bg-white cursor-pointer border ${roleFilter === "admin"
-                ? "border-blue-500 ring-2 ring-blue-200"
-                : ""
-                }`}
+              className={`bg-white cursor-pointer border ${
+                roleFilter === "admin"
+                  ? "border-blue-500 ring-2 ring-blue-200"
+                  : ""
+              }`}
               onClick={() =>
-                setRoleFilter((prev) => (prev === "admin" ? "all" : "admin"))
+                handleRoleFilterChange(roleFilter === "admin" ? "all" : "admin")
               }
             >
               <CardHeader className="pb-2">
@@ -508,17 +554,20 @@ export default function AdminUsers() {
               </CardHeader>
               <CardContent>
                 <div className="text-base sm:text-lg lg:text-2xl font-bold">
-                  {roleCounts["admin"] || 0}
+                  {userStats?.adminCount || 0}
                 </div>
               </CardContent>
             </Card>
             <Card
-              className={`bg-white cursor-pointer border ${roleFilter === "seller"
-                ? "border-blue-500 ring-2 ring-blue-200"
-                : ""
-                }`}
+              className={`bg-white cursor-pointer border ${
+                roleFilter === "seller"
+                  ? "border-blue-500 ring-2 ring-blue-200"
+                  : ""
+              }`}
               onClick={() =>
-                setRoleFilter((prev) => (prev === "seller" ? "all" : "seller"))
+                handleRoleFilterChange(
+                  roleFilter === "seller" ? "all" : "seller"
+                )
               }
             >
               <CardHeader className="pb-2">
@@ -528,17 +577,18 @@ export default function AdminUsers() {
               </CardHeader>
               <CardContent>
                 <div className="text-base sm:text-lg lg:text-2xl font-bold">
-                  {roleCounts["seller"] || 0}
+                  {userStats?.sellerCount || 0}
                 </div>
               </CardContent>
             </Card>
             <Card
-              className={`bg-white cursor-pointer border ${roleFilter === "buyer"
-                ? "border-blue-500 ring-2 ring-blue-200"
-                : ""
-                }`}
+              className={`bg-white cursor-pointer border ${
+                roleFilter === "buyer"
+                  ? "border-blue-500 ring-2 ring-blue-200"
+                  : ""
+              }`}
               onClick={() =>
-                setRoleFilter((prev) => (prev === "buyer" ? "all" : "buyer"))
+                handleRoleFilterChange(roleFilter === "buyer" ? "all" : "buyer")
               }
             >
               <CardHeader className="pb-2">
@@ -548,7 +598,7 @@ export default function AdminUsers() {
               </CardHeader>
               <CardContent>
                 <div className="text-base sm:text-lg lg:text-2xl font-bold">
-                  {roleCounts["buyer"] || 0}
+                  {userStats?.buyerCount || 0}
                 </div>
               </CardContent>
             </Card>
@@ -568,7 +618,7 @@ export default function AdminUsers() {
                   placeholder="Search users..."
                   className="pl-6 sm:pl-8 w-full h-9 sm:h-10 text-xs sm:text-sm"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                 />
               </div>
 
@@ -590,7 +640,7 @@ export default function AdminUsers() {
                 {/* Deleted filter dropdown */}
                 <Select
                   value={deletedFilter}
-                  onValueChange={(v) => setDeletedFilter(v as any)}
+                  onValueChange={(v) => handleDeletedFilterChange(v as any)}
                 >
                   <SelectTrigger className="w-40 h-9 sm:h-10 text-xs sm:text-sm">
                     <SelectValue placeholder="Deleted filter" />
@@ -634,8 +684,8 @@ export default function AdminUsers() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredUsers?.length ? (
-                    filteredUsers.map((user) => (
+                  {users?.length ? (
+                    users.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell className="font-medium text-xs sm:text-sm">
                           {user.id}
@@ -663,12 +713,13 @@ export default function AdminUsers() {
                             </Badge>
                           ) : (
                             <Badge
-                              className={`text-xs ${user.role === "admin"
-                                ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
-                                : user.role === "seller"
-                                  ? "bg-purple-100 text-purple-800 hover:bg-purple-100"
-                                  : "bg-green-100 text-green-800 hover:bg-green-100"
-                                }`}
+                              className={`text-xs ${
+                                user.role === "admin"
+                                  ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
+                                  : user.role === "seller"
+                                    ? "bg-purple-100 text-purple-800 hover:bg-purple-100"
+                                    : "bg-green-100 text-green-800 hover:bg-green-100"
+                              }`}
                             >
                               {user.role}
                             </Badge>
@@ -769,11 +820,67 @@ export default function AdminUsers() {
               </Table>
             </div>
 
-            {filteredUsers?.length ? (
-              <div className="text-xs text-muted-foreground text-right">
-                Showing {filteredUsers.length} of {users?.length} users
+            {/* Pagination Controls */}
+            {pagination && pagination.total > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                <div className="text-sm text-muted-foreground">
+                  Showing {users?.length || 0} of {pagination.total} users
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">
+                      Items per page:
+                    </span>
+                    <Select
+                      value={itemsPerPage.toString()}
+                      onValueChange={(value) => {
+                        setItemsPerPage(parseInt(value));
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <SelectTrigger className="w-20">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="25">25</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setCurrentPage(Math.max(1, currentPage - 1))
+                      }
+                      disabled={currentPage === 1 || isLoading}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm px-3">
+                      Page {pagination.currentPage} of {pagination.totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setCurrentPage(
+                          Math.min(pagination.totalPages, currentPage + 1)
+                        )
+                      }
+                      disabled={
+                        currentPage >= pagination.totalPages || isLoading
+                      }
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
               </div>
-            ) : null}
+            )}
           </div>
         )}
       </div>

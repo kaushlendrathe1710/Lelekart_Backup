@@ -23,15 +23,8 @@ export async function updatePickupAddressHandler(req: Request, res: Response) {
     // Update the seller settings
     const settings = await storage.getSellerSettings(sellerId);
 
-    // Disallow editing if a pickup already exists; require support
-    if (settings?.pickupAddress) {
-      return res.status(403).json({
-        error: "Pickup address locked",
-        message:
-          "Pickup address can only be added once. Please contact support to edit this information.",
-        code: "PICKUP_EDIT_LOCKED",
-      });
-    }
+    // Allow editing of pickup address for sellers
+    // No longer locking after first save
 
     if (!settings) {
       // Create new settings with pickup address

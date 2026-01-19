@@ -26,7 +26,9 @@ export default function SimpleImageSlider({
 }: ProductImageSliderProps) {
   // Simple state management - only track active image index and view mode
   const [activeIndex, setActiveIndex] = useState(0);
-  const [viewMode, setViewMode] = useState<"normal" | "zoom" | "360">("normal");
+  const [viewMode, setViewMode] = useState<"normal" | "zoom"
+    // | "360"
+  >("normal");
   const [isDragging, setIsDragging] = useState(false);
   const [showAllThumbs, setShowAllThumbs] = useState(false);
 
@@ -81,41 +83,41 @@ export default function SimpleImageSlider({
   };
 
   // Generate 360 frames from available images
-  const get360Frames = () => {
-    if (allImagesUrls.length === 0) return [];
-    if (allImagesUrls.length === 1) return Array(36).fill(allImagesUrls[0]);
+  // const get360Frames = () => {
+  //   if (allImagesUrls.length === 0) return [];
+  //   if (allImagesUrls.length === 1) return Array(36).fill(allImagesUrls[0]);
 
-    const frames: string[] = [];
-    const totalFrames = 36; // 36 frames for 360 degrees (10 degrees per frame)
+  //   const frames: string[] = [];
+  //   const totalFrames = 36; // 36 frames for 360 degrees (10 degrees per frame)
 
-    for (let i = 0; i < totalFrames; i++) {
-      // Calculate which image to use for this frame
-      const imageIndex = Math.floor((i / totalFrames) * allImagesUrls.length);
-      frames.push(allImagesUrls[imageIndex]);
-    }
+  //   for (let i = 0; i < totalFrames; i++) {
+  //     // Calculate which image to use for this frame
+  //     const imageIndex = Math.floor((i / totalFrames) * allImagesUrls.length);
+  //     frames.push(allImagesUrls[imageIndex]);
+  //   }
 
-    return frames;
-  };
+  //   return frames;
+  // };
 
   // Handle 360 view mouse movement
-  const handle360MouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (viewMode !== "360" || !containerRef.current) return;
+  // const handle360MouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  //   if (viewMode !== "360" || !containerRef.current) return;
 
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const relativeX = x / rect.width;
+  //   const rect = containerRef.current.getBoundingClientRect();
+  //   const x = e.clientX - rect.left;
+  //   const relativeX = x / rect.width;
 
-    const frames = get360Frames();
-    if (frames.length === 0) return;
+  //   const frames = get360Frames();
+  //   if (frames.length === 0) return;
 
-    // Map mouse position to frame index
-    const frameIndex = Math.min(
-      frames.length - 1,
-      Math.max(0, Math.floor(relativeX * frames.length))
-    );
+  //   // Map mouse position to frame index
+  //   const frameIndex = Math.min(
+  //     frames.length - 1,
+  //     Math.max(0, Math.floor(relativeX * frames.length))
+  //   );
 
-    setActiveIndex(frameIndex % allImagesUrls.length);
-  };
+  //   setActiveIndex(frameIndex % allImagesUrls.length);
+  // };
 
   // Get all available image URLs with safety checks
   const extractedProductImages = Array.isArray(images)
@@ -215,7 +217,7 @@ export default function SimpleImageSlider({
           <span>Zoom</span>
         </Button>
 
-        <Button
+        {/* <Button
           variant={viewMode === "360" ? "default" : "outline"}
           size="sm"
           onClick={() => setViewMode("360")}
@@ -223,7 +225,7 @@ export default function SimpleImageSlider({
         >
           <RotateCw size={16} />
           <span>360° View</span>
-        </Button>
+        </Button> */}
       </div>
 
       <div className="flex">
@@ -364,7 +366,7 @@ export default function SimpleImageSlider({
             </div>
           )}
 
-          {viewMode === "360" && (
+          {/* {viewMode === "360" && (
             <div
               className="w-full h-64 sm:h-80 md:h-96 border border-gray-100 bg-white flex items-center justify-center cursor-grab active:cursor-grabbing"
               onMouseMove={handle360MouseMove}
@@ -415,7 +417,7 @@ export default function SimpleImageSlider({
                 </div>
               </div>
             </div>
-          )}
+          )} */}
         </div>
       </div>
 
@@ -437,12 +439,12 @@ export default function SimpleImageSlider({
       )}
 
       {/* Help text for 360 view */}
-      {viewMode === "360" && (
+      {/* {viewMode === "360" && (
         <div className="text-xs text-gray-500 text-center">
           <p>360° View: Move your mouse left and right to rotate the product</p>
           <p className="mt-1">Available frames: {get360Frames().length}</p>
         </div>
-      )}
+      )} */}
     </div>
   );
 }

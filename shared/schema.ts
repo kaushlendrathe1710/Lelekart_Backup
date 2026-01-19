@@ -2647,6 +2647,10 @@ export const bulkOrders = pgTable("bulk_orders", {
     precision: 10,
     scale: 2,
   }), // Optional cash handling fees
+  discount: decimal("discount", {
+    precision: 10,
+    scale: 2,
+  }), // Optional discount amount
   paymentType: text("payment_type").default("prepaid"), // 'prepaid' or 'cod'
   status: text("status").notNull().default("pending"), // 'pending', 'approved', 'rejected'
   notes: text("notes"), // Admin notes for approval/rejection

@@ -78,6 +78,7 @@ interface CustomInvoiceFormData {
   deliveryCharges: number;
   deliveryChargesGstRate: number;
   cashHandlingFees?: number;
+  discount?: number;
 }
 
 export function CustomInvoiceForm() {
@@ -134,6 +135,7 @@ export function CustomInvoiceForm() {
       deliveryCharges: 0,
       deliveryChargesGstRate: 18,
       cashHandlingFees: undefined,
+      discount: undefined,
     },
   });
 
@@ -263,6 +265,7 @@ export function CustomInvoiceForm() {
         deliveryCharges: data.deliveryCharges || 0,
         deliveryChargesGstRate: data.deliveryChargesGstRate || 18,
         cashHandlingFees: data.cashHandlingFees || undefined,
+        discount: data.discount || undefined,
       };
 
       // Call preview endpoint
@@ -560,35 +563,49 @@ export function CustomInvoiceForm() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor={`items.${index}.orderType`}>Order Type *</Label>
+                  <Label htmlFor={`items.${index}.orderType`}>
+                    Order Type *
+                  </Label>
                   <select
                     id={`items.${index}.orderType`}
                     {...register(`items.${index}.orderType`)}
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    disabled={!items[index]?.productId || getAvailableOrderTypes(items[index]?.productId || 0).length === 0}
+                    disabled={
+                      !items[index]?.productId ||
+                      getAvailableOrderTypes(items[index]?.productId || 0)
+                        .length === 0
+                    }
                   >
                     {!items[index]?.productId && (
                       <option value="">Select product first</option>
                     )}
-                    {items[index]?.productId && (() => {
-                      const availableTypes = getAvailableOrderTypes(items[index].productId);
-                      const bulkItem = getBulkItemInfo(items[index].productId);
-                      return (
-                        <>
-                          {availableTypes.includes("pieces") && (
-                            <option value="pieces">Pieces</option>
-                          )}
-                          {availableTypes.includes("sets") && (
-                            <option value="sets">
-                              Sets{bulkItem?.piecesPerSet ? ` (${bulkItem.piecesPerSet} pcs/set)` : ''}
-                            </option>
-                          )}
-                          {availableTypes.length === 0 && (
-                            <option value="">No order types available</option>
-                          )}
-                        </>
-                      );
-                    })()}
+                    {items[index]?.productId &&
+                      (() => {
+                        const availableTypes = getAvailableOrderTypes(
+                          items[index].productId
+                        );
+                        const bulkItem = getBulkItemInfo(
+                          items[index].productId
+                        );
+                        return (
+                          <>
+                            {availableTypes.includes("pieces") && (
+                              <option value="pieces">Pieces</option>
+                            )}
+                            {availableTypes.includes("sets") && (
+                              <option value="sets">
+                                Sets
+                                {bulkItem?.piecesPerSet
+                                  ? ` (${bulkItem.piecesPerSet} pcs/set)`
+                                  : ""}
+                              </option>
+                            )}
+                            {availableTypes.length === 0 && (
+                              <option value="">No order types available</option>
+                            )}
+                          </>
+                        );
+                      })()}
                   </select>
                 </div>
 
@@ -646,7 +663,9 @@ export function CustomInvoiceForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="deliveryChargesGstRate">Delivery GST Rate (%)</Label>
+              <Label htmlFor="deliveryChargesGstRate">
+                Delivery GST Rate (%)
+              </Label>
               <Input
                 id="deliveryChargesGstRate"
                 type="number"
@@ -678,7 +697,25 @@ export function CustomInvoiceForm() {
                 placeholder="0.00"
               />
               <p className="text-xs text-muted-foreground">
-                If provided, payment type will be set to COD. Leave empty for Prepaid orders.
+                If provided, payment type will be set to COD. Leave empty for
+                Prepaid orders.
+              </p>
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="discount">Discount (Optional)</Label>
+              <Input
+                id="discount"
+                type="number"
+                min="0"
+                step="0.01"
+                {...register("discount", {
+                  valueAsNumber: true,
+                })}
+                placeholder="0.00"
+              />
+              <p className="text-xs text-muted-foreground">
+                Discount amount to be deducted from the total.
               </p>
             </div>
           </div>

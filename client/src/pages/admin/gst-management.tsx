@@ -305,8 +305,14 @@ export default function GSTManagementPage() {
                             max="100"
                             step="0.01"
                           />
-                        ) : (
+                        ) : // gstRate may come as a string or number from the API;
+                        // coerce safely to number before calling toFixed.
+                        typeof category?.gstRate === "number" ? (
                           category.gstRate.toFixed(2)
+                        ) : category?.gstRate ? (
+                          Number(category.gstRate).toFixed(2)
+                        ) : (
+                          "—"
                         )}
                       </TableCell>
                       <TableCell className="text-xs sm:text-sm">
