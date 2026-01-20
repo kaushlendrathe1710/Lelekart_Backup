@@ -27,7 +27,7 @@ export const shiprocketSettings = pgTable("shiprocket_settings", {
 });
 
 export const insertShiprocketSettingsSchema = createInsertSchema(
-  shiprocketSettings
+  shiprocketSettings,
 ).pick({
   email: true,
   password: true,
@@ -147,7 +147,7 @@ export const distributorLedger = pgTable("distributor_ledger", {
 });
 
 export const insertDistributorLedgerSchema = createInsertSchema(
-  distributorLedger
+  distributorLedger,
 ).pick({
   distributorId: true,
   entryType: true,
@@ -185,7 +185,7 @@ export const distributorApplications = pgTable("distributor_applications", {
 });
 
 export const insertDistributorApplicationSchema = createInsertSchema(
-  distributorApplications
+  distributorApplications,
 ).pick({
   name: true,
   email: true,
@@ -209,6 +209,7 @@ export const products = pgTable("products", {
   description: text("description").notNull(),
   specifications: text("specifications"), // Technical specifications
   sku: text("sku"), // Stock Keeping Unit (unique product identifier)
+  hsn: text("hsn"), // HSN (Harmonized System of Nomenclature) code for product classification
   mrp: integer("mrp"), // Maximum Retail Price (original price before discount)
   purchasePrice: integer("purchase_price"), // Purchase Price (cost price)
   price: integer("price").notNull(),
@@ -243,6 +244,7 @@ export const insertProductSchema = createInsertSchema(products).pick({
   description: true,
   specifications: true,
   sku: true,
+  hsn: true,
   mrp: true,
   purchasePrice: true,
   price: true,
@@ -288,7 +290,7 @@ export const productVariants = pgTable("product_variants", {
 });
 
 export const insertProductVariantSchema = createInsertSchema(
-  productVariants
+  productVariants,
 ).pick({
   productId: true,
   sku: true,
@@ -489,7 +491,7 @@ export const productVariantsRelations = relations(
       fields: [productVariants.productId],
       references: [products.id],
     }),
-  })
+  }),
 );
 
 export const cartsRelations = relations(carts, ({ one }) => ({
@@ -533,7 +535,7 @@ export const sellerOrdersRelations = relations(
       references: [users.id],
     }),
     items: many(orderItems),
-  })
+  }),
 );
 
 export const orderItemsRelations = relations(orderItems, ({ one }) => ({
@@ -624,7 +626,7 @@ export const subcategoriesRelations = relations(
       references: [categories.id],
     }),
     products: many(products),
-  })
+  }),
 );
 
 export const insertSubcategorySchema = createInsertSchema(subcategories).pick({
@@ -701,7 +703,7 @@ export const insertReviewHelpfulSchema = createInsertSchema(reviewHelpful).pick(
   {
     reviewId: true,
     userId: true,
-  }
+  },
 );
 
 // Review Replies table (for seller/admin responses to reviews)
@@ -820,7 +822,7 @@ export const sellerAgreements = pgTable("seller_agreements", {
 });
 
 export const insertSellerAgreementSchema = createInsertSchema(
-  sellerAgreements
+  sellerAgreements,
 ).omit({
   id: true,
   createdAt: true,
@@ -841,7 +843,7 @@ export const acceptedAgreements = pgTable("accepted_agreements", {
 });
 
 export const insertAcceptedAgreementSchema = createInsertSchema(
-  acceptedAgreements
+  acceptedAgreements,
 ).omit({
   id: true,
   acceptedAt: true,
@@ -852,7 +854,7 @@ export const sellerAgreementsRelations = relations(
   sellerAgreements,
   ({ many }) => ({
     acceptedBy: many(acceptedAgreements),
-  })
+  }),
 );
 
 export const acceptedAgreementsRelations = relations(
@@ -866,7 +868,7 @@ export const acceptedAgreementsRelations = relations(
       fields: [acceptedAgreements.agreementId],
       references: [sellerAgreements.id],
     }),
-  })
+  }),
 );
 
 export type UserOtp = typeof userOtps.$inferSelect;
@@ -912,7 +914,7 @@ export const insertUserActivitySchema = createInsertSchema(userActivities).pick(
     categoryId: true,
     searchQuery: true,
     additionalData: true,
-  }
+  },
 );
 
 // Product Relationships for Complementary Products
@@ -931,7 +933,7 @@ export const productRelationships = pgTable("product_relationships", {
 });
 
 export const insertProductRelationshipSchema = createInsertSchema(
-  productRelationships
+  productRelationships,
 ).pick({
   sourceProductId: true,
   relatedProductId: true,
@@ -952,7 +954,7 @@ export const aiAssistantConversations = pgTable("ai_assistant_conversations", {
 });
 
 export const insertAiAssistantConversationSchema = createInsertSchema(
-  aiAssistantConversations
+  aiAssistantConversations,
 ).pick({
   userId: true,
   sessionId: true,
@@ -975,7 +977,7 @@ export const userSizePreferences = pgTable("user_size_preferences", {
 });
 
 export const insertUserSizePreferenceSchema = createInsertSchema(
-  userSizePreferences
+  userSizePreferences,
 ).pick({
   userId: true,
   category: true,
@@ -1010,7 +1012,7 @@ export const productRelationshipsRelations = relations(
       fields: [productRelationships.relatedProductId],
       references: [products.id],
     }),
-  })
+  }),
 );
 
 export const aiAssistantConversationsRelations = relations(
@@ -1028,7 +1030,7 @@ export const aiAssistantConversationsRelations = relations(
       fields: [aiAssistantConversations.categoryId],
       references: [categories.id],
     }),
-  })
+  }),
 );
 
 export const userSizePreferencesRelations = relations(
@@ -1038,7 +1040,7 @@ export const userSizePreferencesRelations = relations(
       fields: [userSizePreferences.userId],
       references: [users.id],
     }),
-  })
+  }),
 );
 
 // Add relationships to existing tables
@@ -1199,7 +1201,7 @@ export const demandForecasts = pgTable("demand_forecasts", {
 });
 
 export const insertDemandForecastSchema = createInsertSchema(
-  demandForecasts
+  demandForecasts,
 ).pick({
   productId: true,
   sellerId: true,
@@ -1233,7 +1235,7 @@ export const priceOptimizations = pgTable("price_optimizations", {
 });
 
 export const insertPriceOptimizationSchema = createInsertSchema(
-  priceOptimizations
+  priceOptimizations,
 ).pick({
   productId: true,
   sellerId: true,
@@ -1271,7 +1273,7 @@ export const inventoryOptimizations = pgTable("inventory_optimizations", {
 });
 
 export const insertInventoryOptimizationSchema = createInsertSchema(
-  inventoryOptimizations
+  inventoryOptimizations,
 ).pick({
   productId: true,
   sellerId: true,
@@ -1308,7 +1310,7 @@ export const aiGeneratedContent = pgTable("ai_generated_content", {
 });
 
 export const insertAiGeneratedContentSchema = createInsertSchema(
-  aiGeneratedContent
+  aiGeneratedContent,
 ).pick({
   productId: true,
   sellerId: true,
@@ -1344,7 +1346,7 @@ export const demandForecastsRelations = relations(
       fields: [demandForecasts.sellerId],
       references: [users.id],
     }),
-  })
+  }),
 );
 
 export const priceOptimizationsRelations = relations(
@@ -1358,7 +1360,7 @@ export const priceOptimizationsRelations = relations(
       fields: [priceOptimizations.sellerId],
       references: [users.id],
     }),
-  })
+  }),
 );
 
 export const inventoryOptimizationsRelations = relations(
@@ -1372,7 +1374,7 @@ export const inventoryOptimizationsRelations = relations(
       fields: [inventoryOptimizations.sellerId],
       references: [users.id],
     }),
-  })
+  }),
 );
 
 export const aiGeneratedContentRelations = relations(
@@ -1386,7 +1388,7 @@ export const aiGeneratedContentRelations = relations(
       fields: [aiGeneratedContent.sellerId],
       references: [users.id],
     }),
-  })
+  }),
 );
 
 // Footer Content schema
@@ -1405,7 +1407,7 @@ export const insertFooterContentSchema = createInsertSchema(footerContent).omit(
   {
     id: true,
     lastUpdated: true,
-  }
+  },
 );
 
 // Product Display Settings schema
@@ -1419,7 +1421,7 @@ export const productDisplaySettings = pgTable("product_display_settings", {
 });
 
 export const insertProductDisplaySettingsSchema = createInsertSchema(
-  productDisplaySettings
+  productDisplaySettings,
 ).omit({
   id: true,
   createdAt: true,
@@ -1466,7 +1468,7 @@ export const sellerDocuments = pgTable("seller_documents", {
 });
 
 export const insertSellerDocumentSchema = createInsertSchema(
-  sellerDocuments
+  sellerDocuments,
 ).omit({
   id: true,
   verified: true,
@@ -1492,7 +1494,7 @@ export const businessDetails = pgTable("business_details", {
 });
 
 export const insertBusinessDetailsSchema = createInsertSchema(
-  businessDetails
+  businessDetails,
 ).omit({
   id: true,
   updatedAt: true,
@@ -1516,7 +1518,7 @@ export const bankingInformation = pgTable("banking_information", {
 });
 
 export const insertBankingInformationSchema = createInsertSchema(
-  bankingInformation
+  bankingInformation,
 ).omit({
   id: true,
   updatedAt: true,
@@ -1567,7 +1569,7 @@ export const shippingMethods = pgTable("shipping_methods", {
 });
 
 export const insertShippingMethodSchema = createInsertSchema(
-  shippingMethods
+  shippingMethods,
 ).pick({
   name: true,
   description: true,
@@ -1637,7 +1639,7 @@ export const sellerShippingSettings = pgTable("seller_shipping_settings", {
     .notNull()
     .default(false),
   defaultShippingMethodId: integer("default_shipping_method_id").references(
-    () => shippingMethods.id
+    () => shippingMethods.id,
   ),
   freeShippingThreshold: integer("free_shipping_threshold"), // Minimum order amount for free shipping
   processingTime: text("processing_time"), // e.g., "1-2 business days"
@@ -1651,7 +1653,7 @@ export const sellerShippingSettings = pgTable("seller_shipping_settings", {
 });
 
 export const insertSellerShippingSettingsSchema = createInsertSchema(
-  sellerShippingSettings
+  sellerShippingSettings,
 ).pick({
   sellerId: true,
   enableCustomShipping: true,
@@ -1681,7 +1683,7 @@ export const productShippingOverrides = pgTable("product_shipping_overrides", {
 });
 
 export const insertProductShippingOverrideSchema = createInsertSchema(
-  productShippingOverrides
+  productShippingOverrides,
 ).pick({
   sellerId: true,
   productId: true,
@@ -1710,7 +1712,7 @@ export const shippingTracking = pgTable("shipping_tracking", {
 });
 
 export const insertShippingTrackingSchema = createInsertSchema(
-  shippingTracking
+  shippingTracking,
 ).pick({
   orderId: true,
   carrier: true,
@@ -1729,7 +1731,7 @@ export const shippingMethodsRelations = relations(
   ({ many }) => ({
     rules: many(shippingRules),
     sellerSettings: many(sellerShippingSettings),
-  })
+  }),
 );
 
 export const shippingZonesRelations = relations(shippingZones, ({ many }) => ({
@@ -1758,7 +1760,7 @@ export const sellerShippingSettingsRelations = relations(
       fields: [sellerShippingSettings.defaultShippingMethodId],
       references: [shippingMethods.id],
     }),
-  })
+  }),
 );
 
 export const productShippingOverridesRelations = relations(
@@ -1772,7 +1774,7 @@ export const productShippingOverridesRelations = relations(
       fields: [productShippingOverrides.sellerId],
       references: [users.id],
     }),
-  })
+  }),
 );
 
 export const shippingTrackingRelations = relations(
@@ -1782,7 +1784,7 @@ export const shippingTrackingRelations = relations(
       fields: [shippingTracking.orderId],
       references: [orders.id],
     }),
-  })
+  }),
 );
 
 // Extend orders relations to include tracking
@@ -1889,7 +1891,7 @@ export const sellerAnalytics = pgTable("seller_analytics", {
 });
 
 export const insertSellerAnalyticsSchema = createInsertSchema(
-  sellerAnalytics
+  sellerAnalytics,
 ).omit({
   id: true,
   createdAt: true,
@@ -1903,7 +1905,7 @@ export const sellerAnalyticsRelations = relations(
       fields: [sellerAnalytics.sellerId],
       references: [users.id],
     }),
-  })
+  }),
 );
 
 // ====================== PAYMENTS SCHEMA ======================
@@ -1923,7 +1925,7 @@ export const sellerPayments = pgTable("seller_payments", {
 });
 
 export const insertSellerPaymentSchema = createInsertSchema(
-  sellerPayments
+  sellerPayments,
 ).omit({
   id: true,
   createdAt: true,
@@ -1959,7 +1961,7 @@ export const sellerSettings = pgTable("seller_settings", {
 });
 
 export const insertSellerSettingsSchema = createInsertSchema(
-  sellerSettings
+  sellerSettings,
 ).omit({
   id: true,
   createdAt: true,
@@ -1992,7 +1994,7 @@ export const supportTickets = pgTable("support_tickets", {
 });
 
 export const insertSupportTicketSchema = createInsertSchema(
-  supportTickets
+  supportTickets,
 ).omit({
   id: true,
   createdAt: true,
@@ -2014,7 +2016,7 @@ export const supportMessages = pgTable("support_messages", {
 });
 
 export const insertSupportMessageSchema = createInsertSchema(
-  supportMessages
+  supportMessages,
 ).omit({
   id: true,
   createdAt: true,
@@ -2032,7 +2034,7 @@ export const supportTicketsRelations = relations(
       references: [users.id],
     }),
     messages: many(supportMessages),
-  })
+  }),
 );
 
 export const supportMessagesRelations = relations(
@@ -2046,7 +2048,7 @@ export const supportMessagesRelations = relations(
       fields: [supportMessages.userId],
       references: [users.id],
     }),
-  })
+  }),
 );
 
 // ====================== LIVE CHAT SCHEMA ======================
@@ -2243,7 +2245,7 @@ export const rewardTransactionsRelations = relations(
       fields: [rewardTransactions.productId],
       references: [products.id],
     }),
-  })
+  }),
 );
 
 export const giftCardsRelations = relations(giftCards, ({ one, many }) => ({
@@ -2273,7 +2275,7 @@ export const giftCardTransactionsRelations = relations(
       fields: [giftCardTransactions.orderId],
       references: [orders.id],
     }),
-  })
+  }),
 );
 
 // Create insert schemas
@@ -2378,7 +2380,7 @@ export const walletTransactionsRelations = relations(
       fields: [walletTransactions.walletId],
       references: [wallets.id],
     }),
-  })
+  }),
 );
 
 // Insert Schemas
@@ -2450,7 +2452,7 @@ export const systemSettings = pgTable("system_settings", {
 });
 
 export const insertSystemSettingsSchema = createInsertSchema(
-  systemSettings
+  systemSettings,
 ).omit({
   id: true,
   createdAt: true,
@@ -2480,7 +2482,7 @@ export const documentTemplates = pgTable("document_templates", {
 });
 
 export const insertDocumentTemplateSchema = createInsertSchema(
-  documentTemplates
+  documentTemplates,
 ).omit({
   id: true,
   createdAt: true,
@@ -2532,7 +2534,7 @@ export const affiliateMarketing = pgTable("affiliate_marketing", {
 });
 
 export const insertAffiliateMarketingSchema = createInsertSchema(
-  affiliateMarketing
+  affiliateMarketing,
 ).pick({
   name: true,
   platform: true,
@@ -2571,7 +2573,7 @@ export const stockReminders = pgTable("stock_reminders", {
 });
 
 export const insertStockReminderSchema = createInsertSchema(
-  stockReminders
+  stockReminders,
 ).pick({
   userId: true,
   productId: true,
@@ -2685,7 +2687,7 @@ export const bulkOrderItems = pgTable("bulk_order_items", {
 });
 
 export const insertBulkOrderItemSchema = createInsertSchema(
-  bulkOrderItems
+  bulkOrderItems,
 ).pick({
   bulkOrderId: true,
   productId: true,
