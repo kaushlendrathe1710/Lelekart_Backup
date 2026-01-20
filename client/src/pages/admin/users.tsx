@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/layout/admin-layout";
 import { useToast } from "@/hooks/use-toast";
@@ -52,6 +52,7 @@ export default function AdminUsers() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [roleFilter, setRoleFilter] = useState<
     "all" | "admin" | "seller" | "buyer"
   >("all");
@@ -261,7 +262,7 @@ export default function AdminUsers() {
         // When impersonating a seller, also invalidate seller-specific data to ensure
         // product lists and other data are fetched fresh with the new seller ID
         console.log(
-          "Impersonating seller - invalidating seller-specific queries"
+          "Impersonating seller - invalidating seller-specific queries",
         );
         // Include the seller ID in the query key to ensure proper cache invalidation
         const sellerId = data.user?.id;
@@ -308,7 +309,7 @@ export default function AdminUsers() {
   const handleRoleChange = (
     userId: number,
     currentRole: string,
-    newRole: string
+    newRole: string,
   ) => {
     if (currentRole === newRole) return;
 
@@ -378,7 +379,7 @@ export default function AdminUsers() {
   const handleImpersonateUser = (
     userId: number,
     username: string,
-    role: string
+    role: string,
   ) => {
     setConfirmImpersonate({
       open: true,
@@ -436,19 +437,29 @@ export default function AdminUsers() {
 
   // Handler functions that reset to page 1 when filters change
   const handleSearchChange = (value: string) => {
-    setSearch(value);
+    // Update local input immediately (keeps input responsive)
+    setSearchInput(value);
+    // reset to first page on new search input
     setCurrentPage(1);
   };
 
+  // Debounce user input before updating the actual `search` used in the queryKey
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearch(searchInput);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
   const handleRoleFilterChange = (
-    role: "all" | "admin" | "seller" | "buyer"
+    role: "all" | "admin" | "seller" | "buyer",
   ) => {
     setRoleFilter(role);
     setCurrentPage(1);
   };
 
   const handleDeletedFilterChange = (
-    filter: "exclude" | "include" | "only"
+    filter: "exclude" | "include" | "only",
   ) => {
     setDeletedFilter(filter);
     setCurrentPage(1);
@@ -475,10 +486,6 @@ export default function AdminUsers() {
   // Loading state for users table
   const UsersTableLoading = () => (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-10 w-20" />
-      </div>
       <div className="border rounded-md">
         <Table>
           <TableHeader>
@@ -566,7 +573,7 @@ export default function AdminUsers() {
               }`}
               onClick={() =>
                 handleRoleFilterChange(
-                  roleFilter === "seller" ? "all" : "seller"
+                  roleFilter === "seller" ? "all" : "seller",
                 )
               }
             >
@@ -604,63 +611,61 @@ export default function AdminUsers() {
             </Card>
           </div>
         )}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-2 sm:left-2.5 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search users..."
+              className="pl-6 sm:pl-8 w-full h-9 sm:h-10 text-xs sm:text-sm"
+              value={searchInput}
+              onChange={(e) => handleSearchChange(e.target.value)}
+            />
+          </div>
 
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isLoading}
+              className="text-xs sm:text-sm h-9 sm:h-10"
+            >
+              {isLoading ? (
+                <Loader2 className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+              )}
+              <span className="hidden sm:inline">Refresh</span>
+            </Button>
+            {/* Deleted filter dropdown */}
+            <Select
+              value={deletedFilter}
+              onValueChange={(v) => handleDeletedFilterChange(v as any)}
+            >
+              <SelectTrigger className="w-40 h-9 sm:h-10 text-xs sm:text-sm">
+                <SelectValue placeholder="Deleted filter" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="exclude">Exclude Deleted</SelectItem>
+                <SelectItem value="include">Include Deleted</SelectItem>
+                <SelectItem value="only">Only Deleted</SelectItem>
+              </SelectContent>
+            </Select>
+            <Link href="/admin/create-user">
+              <Button size="sm" className="text-xs sm:text-sm h-9 sm:h-10">
+                <UserPlus className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Add User</span>
+                <span className="sm:hidden">Add</span>
+              </Button>
+            </Link>
+          </div>
+        </div>
         {/* Users Table */}
         {isLoading ? (
           <UsersTableLoading />
         ) : (
           <div className="space-y-3 sm:space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-2 sm:left-2.5 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search users..."
-                  className="pl-6 sm:pl-8 w-full h-9 sm:h-10 text-xs sm:text-sm"
-                  value={search}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => refetch()}
-                  disabled={isLoading}
-                  className="text-xs sm:text-sm h-9 sm:h-10"
-                >
-                  {isLoading ? (
-                    <Loader2 className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                  )}
-                  <span className="hidden sm:inline">Refresh</span>
-                </Button>
-                {/* Deleted filter dropdown */}
-                <Select
-                  value={deletedFilter}
-                  onValueChange={(v) => handleDeletedFilterChange(v as any)}
-                >
-                  <SelectTrigger className="w-40 h-9 sm:h-10 text-xs sm:text-sm">
-                    <SelectValue placeholder="Deleted filter" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="exclude">Exclude Deleted</SelectItem>
-                    <SelectItem value="include">Include Deleted</SelectItem>
-                    <SelectItem value="only">Only Deleted</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Link href="/admin/create-user">
-                  <Button size="sm" className="text-xs sm:text-sm h-9 sm:h-10">
-                    <UserPlus className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                    <span className="hidden sm:inline">Add User</span>
-                    <span className="sm:hidden">Add</span>
-                  </Button>
-                </Link>
-              </div>
-            </div>
-
             <div className="rounded-md border bg-white overflow-x-auto">
               <Table className="min-w-[800px]">
                 <TableHeader>
@@ -756,7 +761,7 @@ export default function AdminUsers() {
                                   handleImpersonateUser(
                                     user.id,
                                     user.username,
-                                    user.role
+                                    user.role,
                                   )
                                 }
                                 disabled={impersonateUserMutation.isPending}
@@ -868,7 +873,7 @@ export default function AdminUsers() {
                       size="sm"
                       onClick={() =>
                         setCurrentPage(
-                          Math.min(pagination.totalPages, currentPage + 1)
+                          Math.min(pagination.totalPages, currentPage + 1),
                         )
                       }
                       disabled={

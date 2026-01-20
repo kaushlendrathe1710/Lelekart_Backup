@@ -14326,7 +14326,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           {{#if seller.billingAddress.line2}}<div>{{seller.billingAddress.line2}}</div>{{/if}}
           <div>{{seller.billingAddress.city}}, {{seller.billingAddress.state}} {{seller.billingAddress.pincode}}</div>
           <div>GSTIN: {{seller.taxInformation.gstin}}</div>
-          <div>PAN: {{seller.taxInformation.panNumber}}</div>
         {{else}}
           <div class="bold">{{seller.taxInformation.businessName}}</div>
           <div>{{seller.address}}</div>
@@ -14343,7 +14342,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           {{#if seller.pickupAddress.line2}}<div>{{seller.pickupAddress.line2}}</div>{{/if}}
           <div>{{seller.pickupAddress.city}}, {{seller.pickupAddress.state}} {{seller.pickupAddress.pincode}}</div>
           <div>GSTIN: {{seller.taxInformation.gstin}}</div>
-          <div>PAN: {{seller.taxInformation.panNumber}}</div>
         {{else}}
           <div class="bold">{{seller.taxInformation.businessName}}</div>
           <div>Warehouse Address: {{seller.address}}</div>
@@ -14847,7 +14845,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           {{#if seller.billingAddress.line2}}<div>{{seller.billingAddress.line2}}</div>{{/if}}
           <div>{{seller.billingAddress.city}}, {{seller.billingAddress.state}} {{seller.billingAddress.pincode}}</div>
           <div>GSTIN: {{seller.taxInformation.gstin}}</div>
-          <div>PAN: {{seller.taxInformation.panNumber}}</div>
         {{else}}
           <div class="bold">{{seller.taxInformation.businessName}}</div>
           <div>{{seller.address}}</div>
@@ -14864,7 +14861,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           {{#if seller.pickupAddress.line2}}<div>{{seller.pickupAddress.line2}}</div>{{/if}}
           <div>{{seller.pickupAddress.city}}, {{seller.pickupAddress.state}} {{seller.pickupAddress.pincode}}</div>
           <div>GSTIN: {{seller.taxInformation.gstin}}</div>
-          <div>PAN: {{seller.taxInformation.panNumber}}</div>
         {{else}}
           <div class="bold">{{seller.taxInformation.businessName}}</div>
           <div>Warehouse Address: {{seller.address}}</div>
