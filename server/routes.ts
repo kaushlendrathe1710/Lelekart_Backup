@@ -16278,6 +16278,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return {
             productId: product.id,
             productName: product.name,
+            productHsn: product.hsn,
             quantity: item.quantity,
             actualQuantity: actualQuantity,
             orderType: item.orderType,
@@ -16384,6 +16385,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               id: index + 1,
               product: {
                 name: item.productName,
+                hsn: item.productHsn,
                 mrp: item.mrp || item.price,
                 gstRate: item.gstRate,
               },
@@ -16579,6 +16581,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return {
             productId: product.id,
             productName: product.name,
+            productHsn: product.hsn,
             quantity: item.quantity,
             orderType: item.orderType || "pieces",
             actualQuantity: actualQuantity,
@@ -16775,6 +16778,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             id: index + 1,
             product: {
               name: item.productName,
+              hsn: item.productHsn,
               mrp: item.mrp || item.price,
               gstRate: item.gstRate,
               deliveryCharges: 0, // Bulk orders don't have per-product delivery charges
@@ -17005,6 +17009,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return {
             productId: product.id,
             productName: product.name,
+            productHsn: product.hsn,
             quantity: item.quantity,
             orderType: item.orderType,
             actualQuantity: actualQuantity,
@@ -17117,6 +17122,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             id: index + 1,
             product: {
               name: item.productName,
+              hsn: item.productHsn,
               mrp: item.mrp || item.price,
               gstRate: item.gstRate,
             },
