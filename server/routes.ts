@@ -3922,6 +3922,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             productData.product_type ||
             productData.type,
           return_policy: productData.returnPolicy || productData.return_policy,
+          // Handle HSN code
+          hsn: productData.hsn || null,
           // Handle dimension fields
           weight: productData.weight ? Number(productData.weight) : null,
           length: productData.length ? Number(productData.length) : null,
@@ -4124,6 +4126,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           productData.product_type ||
           productData.type,
         return_policy: productData.returnPolicy || productData.return_policy,
+        // Handle HSN code
+        hsn: productData.hsn || null,
         // Handle price field - ensure it's a number and has a default value
         price:
           typeof productData.price === "number"
@@ -4400,6 +4404,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ) {
           processedProductData.subcategory2 =
             processedProductData.subcategory2 || null;
+        }
+
+        // Handle HSN code field
+        if (processedProductData && processedProductData.hsn !== undefined) {
+          processedProductData.hsn = processedProductData.hsn || null;
         }
 
         // Get the existing product data, including variants, before updating
@@ -14349,6 +14358,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         <tr>
           <th>Sr No</th>
           <th>Description</th>
+          <th>HSN</th>
           <th>Qty</th>
           <th>MRP</th>
           <th>Discount</th>
@@ -14363,6 +14373,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         <tr>
           <td>{{add @index 1}}</td>
           <td class="description-cell">{{this.product.name}}</td>
+          <td>{{#if this.product.hsn}}{{this.product.hsn}}{{/if}}</td>
           <td>{{this.quantity}}</td>
           <td>{{formatMoney (multiply this.product.mrp this.quantity)}}</td>
           <td>{{formatMoney (multiply (subtract this.product.mrp this.price) this.quantity)}}</td>
@@ -14868,6 +14879,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         <tr>
           <th>Sr No</th>
           <th>Description</th>
+          <th>HSN</th>
           <th>Qty</th>
           <th>MRP</th>
           <th>Discount</th>
@@ -14881,6 +14893,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         <tr>
           <td>{{add @index 1}}</td>
           <td class="description-cell">{{this.product.name}}</td>
+          <td>{{#if this.product.hsn}}{{this.product.hsn}}{{/if}}</td>
           <td>{{this.displayQuantity}}</td>
           <td>{{formatMoney (multiply this.product.mrp this.quantity)}}</td>
           <td>{{formatMoney (multiply (subtract this.product.mrp this.price) this.quantity)}}</td>
@@ -14892,7 +14905,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {{#if additionalDeliveryCharges}}
         {{#if (gt additionalDeliveryCharges 0)}}
         <tr style="border-top: 2px solid #000;">
-          <td colspan="5" style="text-align: right; font-weight: bold;">Delivery Charges (Taxable Value)</td>
+          <td colspan="6" style="text-align: right; font-weight: bold;">Delivery Charges (Taxable Value)</td>
           <td style="font-weight: bold;">{{formatMoney deliveryChargesTaxable}}</td>
           <td class="taxes-cell" style="font-weight: bold;">
             {{#if isSameState}}
@@ -14909,7 +14922,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {{#if cashHandlingFees}}
         {{#if (gt cashHandlingFees 0)}}
         <tr>
-          <td colspan="5" style="text-align: right; font-weight: bold;">Cash Handling Charges</td>
+          <td colspan="6" style="text-align: right; font-weight: bold;">Cash Handling Charges</td>
           <td>-</td>
           <td>-</td>
           <td style="font-weight: bold;">{{formatMoney cashHandlingFees}}</td>
@@ -14919,7 +14932,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {{#if discount}}
         {{#if (gt discount 0)}}
         <tr>
-          <td colspan="5" style="text-align: right; font-weight: bold;">Discount</td>
+          <td colspan="6" style="text-align: right; font-weight: bold;">Discount</td>
           <td>-</td>
           <td>-</td>
           <td style="font-weight: bold; color: #16a34a;">- {{formatMoney discount}}</td>
@@ -14927,7 +14940,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {{/if}}
         {{/if}}
         <tr>
-          <td colspan="5" style="text-align: right; font-weight: bold;">Grand Total</td>
+          <td colspan="6" style="text-align: right; font-weight: bold;">Grand Total</td>
           <td>-</td>
           <td>-</td>
           <td style="font-weight: bold;">{{formatMoney grandTotal}}</td>

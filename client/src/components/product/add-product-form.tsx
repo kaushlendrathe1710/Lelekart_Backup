@@ -140,6 +140,7 @@ const productSchema = z
       .min(20, "Description must be at least 20 characters"),
     specifications: z.string().optional().nullable(),
     sku: z.string().optional().nullable(),
+    hsn: z.string().optional().nullable(),
     stock: z.coerce
       .number()
       .min(0, "Stock cannot be negative")
@@ -167,7 +168,7 @@ const productSchema = z
       message:
         "Please enter a valid number of days for your custom return policy",
       path: ["customReturnPolicy"],
-    }
+    },
   );
 
 interface AddProductFormProps {
@@ -184,14 +185,14 @@ export default function AddProductForm({
   // Ensure images are properly initialized, handling different possible formats
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [variants, setVariants] = useState<ProductVariant[]>(
-    initialValues?.variants?.filter((v: any) => v.id > 0) || []
+    initialValues?.variants?.filter((v: any) => v.id > 0) || [],
   );
   const [draftVariants, setDraftVariants] = useState<ProductVariant[]>(
-    initialValues?.variants?.filter((v: any) => v.id < 0) || []
+    initialValues?.variants?.filter((v: any) => v.id < 0) || [],
   );
   const [isAddingVariant, setIsAddingVariant] = useState(false);
   const [currentVariant, setCurrentVariant] = useState<ProductVariant | null>(
-    null
+    null,
   );
   const [variantImages, setVariantImages] = useState<string[]>([]);
   const [newVariantRow, setNewVariantRow] = useState(false);
@@ -251,7 +252,7 @@ export default function AddProductForm({
       acc[category.name] = parseFloat(category.gstRate) || 0;
       return acc;
     },
-    {}
+    {},
   );
 
   // Debug: Log initial form values and subcategory info
@@ -369,10 +370,10 @@ export default function AddProductForm({
   // Calculate form completion status
   const getCompletionStatus = () => {
     const basicComplete = Boolean(
-      watchedName && watchedCategory && watchedPrice
+      watchedName && watchedCategory && watchedPrice,
     );
     const descriptionComplete = Boolean(
-      watchedDescription && watchedDescription.length >= 20
+      watchedDescription && watchedDescription.length >= 20,
     );
     const inventoryComplete = Boolean(watchedStock);
     const imagesComplete = uploadedImages.length > 0;
@@ -446,7 +447,7 @@ export default function AddProductForm({
           }
 
           throw new Error(
-            "Failed to create product. Please check all required fields."
+            "Failed to create product. Please check all required fields.",
           );
         }
 
@@ -505,7 +506,7 @@ export default function AddProductForm({
             throw new Error(
               typeof errorData.error === "string"
                 ? errorData.error
-                : "Failed to save draft"
+                : "Failed to save draft",
             );
           }
           throw new Error("Failed to save product draft");
@@ -622,12 +623,12 @@ export default function AddProductForm({
       setDraftVariants((prevDraftVariants) => {
         // Check if this variant already exists to avoid duplication
         const variantExists = prevDraftVariants.some(
-          (v) => v.id === variantWithImages.id
+          (v) => v.id === variantWithImages.id,
         );
         if (variantExists) {
           // Update the existing variant
           return prevDraftVariants.map((v) =>
-            v.id === variantWithImages.id ? variantWithImages : v
+            v.id === variantWithImages.id ? variantWithImages : v,
           );
         } else {
           // Add as a new variant
@@ -661,12 +662,12 @@ export default function AddProductForm({
     if (variant.id < 0) {
       // For client-side only variants with negative IDs
       setDraftVariants((prevDraftVariants) =>
-        prevDraftVariants.filter((v) => v.id !== variant.id)
+        prevDraftVariants.filter((v) => v.id !== variant.id),
       );
     } else {
       // For variants from the database with positive IDs
       setVariants((prevVariants) =>
-        prevVariants.filter((v) => v.id !== variant.id)
+        prevVariants.filter((v) => v.id !== variant.id),
       );
     }
 
@@ -680,7 +681,7 @@ export default function AddProductForm({
   // Update the temporary variant that's being edited
   const handleUpdateCurrentVariant = (
     field: keyof ProductVariant,
-    value: any
+    value: any,
   ) => {
     if (currentVariant) {
       setCurrentVariant({
@@ -737,7 +738,7 @@ export default function AddProductForm({
         const response = await apiRequest(
           "PUT",
           `/api/products/${initialValues.id}`,
-          data
+          data,
         );
 
         if (!response.ok) {
@@ -759,7 +760,7 @@ export default function AddProductForm({
           }
 
           throw new Error(
-            "Failed to update product. Please check all required fields."
+            "Failed to update product. Please check all required fields.",
           );
         }
 
@@ -1347,27 +1348,27 @@ export default function AddProductForm({
                   render={({ field }) => {
                     const selectedCategory = form.watch("category");
                     const categoryObject = safeCategoriesData.find(
-                      (c: any) => c.name === selectedCategory
+                      (c: any) => c.name === selectedCategory,
                     );
                     // Level 1 subcategories
                     const filteredSubcategories = safeSubcategoriesData.filter(
                       (sc: any) =>
                         categoryObject &&
                         sc.categoryId === categoryObject.id &&
-                        !sc.parentId
+                        !sc.parentId,
                     );
                     // Find the selected subcategory object (level 1)
                     const selectedSubcategory = safeSubcategoriesData.find(
                       (sc: any) =>
                         sc.name === form.watch("subcategory") &&
                         sc.categoryId === categoryObject?.id &&
-                        !sc.parentId
+                        !sc.parentId,
                     );
                     // Level 2 subcategories for the selected subcategory
                     const filteredSubcategory2 = safeSubcategoriesData.filter(
                       (sc: any) =>
                         selectedSubcategory &&
-                        sc.parentId === selectedSubcategory.id
+                        sc.parentId === selectedSubcategory.id,
                     );
                     // If a level 1 subcategory is selected and it has children, show level 2 options
                     const showLevel2 =
@@ -1382,7 +1383,7 @@ export default function AddProductForm({
                               const subcat2 = safeSubcategoriesData.find(
                                 (sc: any) =>
                                   sc.name === value &&
-                                  sc.parentId === selectedSubcategory?.id
+                                  sc.parentId === selectedSubcategory?.id,
                               );
                               if (subcat2) {
                                 field.onChange(subcat2.name);
@@ -1393,19 +1394,19 @@ export default function AddProductForm({
                                   (sc: any) =>
                                     sc.name === value &&
                                     sc.categoryId === categoryObject?.id &&
-                                    !sc.parentId
+                                    !sc.parentId,
                                 );
                                 field.onChange(subcat1?.name || "");
                                 // If this subcategory has children, wait for user to pick level 2
                                 const hasChildren = safeSubcategoriesData.some(
-                                  (sc: any) => sc.parentId === subcat1?.id
+                                  (sc: any) => sc.parentId === subcat1?.id,
                                 );
                                 if (hasChildren) {
                                   form.setValue("subcategoryId", null);
                                 } else {
                                   form.setValue(
                                     "subcategoryId",
-                                    subcat1?.id || null
+                                    subcat1?.id || null,
                                   );
                                 }
                               }
@@ -1425,7 +1426,7 @@ export default function AddProductForm({
                                       const hasChildren =
                                         safeSubcategoriesData.some(
                                           (sc: any) =>
-                                            sc.parentId === subcategory.id
+                                            sc.parentId === subcategory.id,
                                         );
                                       if (hasChildren) {
                                         // Render as optgroup-like: show level 2 subcategories as indented options
@@ -1440,7 +1441,7 @@ export default function AddProductForm({
                                           ...safeSubcategoriesData
                                             .filter(
                                               (sc: any) =>
-                                                sc.parentId === subcategory.id
+                                                sc.parentId === subcategory.id,
                                             )
                                             .map((sub2: any) => (
                                               <SelectItem
@@ -1461,7 +1462,7 @@ export default function AddProductForm({
                                           </SelectItem>
                                         );
                                       }
-                                    }
+                                    },
                                   )
                                 ) : (
                                   <SelectItem value="none" disabled>
@@ -1495,6 +1496,27 @@ export default function AddProductForm({
                           value={safeString(field.value)}
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="hsn"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>HSN Code</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Harmonized System of Nomenclature Code"
+                          {...field}
+                          value={safeString(field.value)}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        HSN code for product classification and taxation
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -2097,7 +2119,7 @@ export default function AddProductForm({
                                     onChange={(e) =>
                                       handleUpdateCurrentVariant(
                                         "sku",
-                                        e.target.value
+                                        e.target.value,
                                       )
                                     }
                                     className="h-8 w-full"
@@ -2111,7 +2133,7 @@ export default function AddProductForm({
                                     onChange={(e) =>
                                       handleUpdateCurrentVariant(
                                         "color",
-                                        e.target.value
+                                        e.target.value,
                                       )
                                     }
                                     className="h-8 w-full"
@@ -2125,7 +2147,7 @@ export default function AddProductForm({
                                     onChange={(e) =>
                                       handleUpdateCurrentVariant(
                                         "size",
-                                        e.target.value
+                                        e.target.value,
                                       )
                                     }
                                     className="h-8 w-full"
@@ -2141,7 +2163,7 @@ export default function AddProductForm({
                                     onChange={(e) =>
                                       handleUpdateCurrentVariant(
                                         "price",
-                                        parseFloat(e.target.value) || 0
+                                        parseFloat(e.target.value) || 0,
                                       )
                                     }
                                     className="h-8 w-full"
@@ -2157,7 +2179,7 @@ export default function AddProductForm({
                                     onChange={(e) =>
                                       handleUpdateCurrentVariant(
                                         "stock",
-                                        parseInt(e.target.value) || 0
+                                        parseInt(e.target.value) || 0,
                                       )
                                     }
                                     className="h-8 w-full"
@@ -2325,7 +2347,7 @@ export default function AddProductForm({
                     type="button"
                     onClick={() => {
                       const input = document.getElementById(
-                        "image-url-input"
+                        "image-url-input",
                       ) as HTMLInputElement;
                       if (input && input.value) {
                         // Use the same handleAddImage function that already has validation
