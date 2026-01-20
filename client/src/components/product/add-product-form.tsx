@@ -289,6 +289,7 @@ export default function AddProductForm({
           description: initialValues.description || "",
           specifications: initialValues.specifications || "",
           sku: initialValues.sku || "",
+          hsn: initialValues.hsn || "",
           stock: initialValues.stock,
           weight: initialValues.weight,
           length: initialValues.length,
@@ -314,6 +315,7 @@ export default function AddProductForm({
           description: "",
           specifications: "",
           sku: "",
+          hsn: "",
           stock: undefined,
           weight: undefined,
           length: undefined,
@@ -846,6 +848,7 @@ export default function AddProductForm({
         ...formValues,
         price: Number(formValues.price),
         mrp: formValues.mrp ? Number(formValues.mrp) : formValues.mrp,
+        hsn: formValues.hsn ? String(formValues.hsn) : null,
         stock: Number(formValues.stock),
         purchasePrice: formValues.purchasePrice
           ? Number(formValues.purchasePrice)
@@ -871,16 +874,6 @@ export default function AddProductForm({
         subcategory: processedFormValues.subcategory,
         subcategoryId: processedFormValues.subcategoryId,
       });
-
-      // Require subcategoryId for submission
-      if (!processedFormValues.subcategoryId) {
-        toast({
-          title: "Subcategory Required",
-          description: "Please select a subcategory before submitting.",
-          variant: "destructive",
-        });
-        return;
-      }
 
       // Combine form data with images
       const productData = {
@@ -934,6 +927,7 @@ export default function AddProductForm({
       const processedFormValues = {
         ...formValues,
         price: formValues.price ? Number(formValues.price) : 0,
+        hsn: formValues.hsn ? String(formValues.hsn) : null,
         mrp: formValues.mrp ? Number(formValues.mrp) : formValues.mrp,
         stock: formValues.stock ? Number(formValues.stock) : 0,
         purchasePrice: formValues.purchasePrice
