@@ -79,6 +79,7 @@ interface CustomInvoiceFormData {
   deliveryChargesGstRate: number;
   cashHandlingFees?: number;
   discount?: number;
+  date?: string;
 }
 
 export function CustomInvoiceForm() {
@@ -95,7 +96,7 @@ export function CustomInvoiceForm() {
   const [loadingDistributors, setLoadingDistributors] = useState(true);
   const [distributorOpen, setDistributorOpen] = useState(false);
   const [productOpen, setProductOpen] = useState<{ [key: number]: boolean }>(
-    {}
+    {},
   );
 
   // Helper function to get available order types for a product
@@ -136,6 +137,7 @@ export function CustomInvoiceForm() {
       deliveryChargesGstRate: 18,
       cashHandlingFees: undefined,
       discount: undefined,
+      date: new Date().toISOString().split("T")[0],
     },
   });
 
@@ -235,7 +237,7 @@ export function CustomInvoiceForm() {
     try {
       // Find selected distributor
       const distributor = distributors.find(
-        (d) => d.id.toString() === data.distributorId
+        (d) => d.id.toString() === data.distributorId,
       );
 
       if (!distributor) {
@@ -266,6 +268,7 @@ export function CustomInvoiceForm() {
         deliveryChargesGstRate: data.deliveryChargesGstRate || 18,
         cashHandlingFees: data.cashHandlingFees || undefined,
         discount: data.discount || undefined,
+        date: data.date || new Date().toISOString().split("T")[0],
       };
 
       // Call preview endpoint
@@ -716,6 +719,14 @@ export function CustomInvoiceForm() {
               />
               <p className="text-xs text-muted-foreground">
                 Discount amount to be deducted from the total.
+              </p>
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="date">Date (Optional)</Label>
+              <Input id="date" type="date" {...register("date")} />
+              <p className="text-xs text-muted-foreground">
+                Select date. If not provided, current date will be used.
               </p>
             </div>
           </div>

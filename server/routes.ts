@@ -16231,11 +16231,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const { invoiceNumber, invoiceDate, distributor, items } = req.body;
+      const { invoiceNumber, date, distributor, items } = req.body;
 
-      // Use placeholder values if not provided (for preview mode)
+      // Use provided date or fall back to current date
       const previewInvoiceNumber = invoiceNumber || "WILL BE AUTO-GENERATED";
-      const previewInvoiceDate = invoiceDate || new Date().toISOString();
+      const previewInvoiceDate = date
+        ? new Date(date).toISOString()
+        : new Date().toISOString();
 
       console.log("Generating custom invoice preview:", previewInvoiceNumber);
 
@@ -16514,12 +16516,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         deliveryChargesGstRate = 18,
         cashHandlingFees,
         discount,
+        date,
       } = req.body;
 
       console.log(
         "Generating custom invoice (bulk order) for distributor:",
         distributor.id,
       );
+
+      // Use provided date or fall back to current date
+      const orderDate = date ? new Date(date) : new Date();
 
       // Determine payment type based on cash handling fees
       const paymentType =
@@ -16676,6 +16682,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           paymentType: paymentType,
           status: "pending",
           notes: `Custom invoice - ${itemsWithDetails.length} item(s)`,
+          createdAt: orderDate,
+          updatedAt: orderDate,
         })
         .returning();
 
