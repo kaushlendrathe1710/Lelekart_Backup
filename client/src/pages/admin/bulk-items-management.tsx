@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, memo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/layout/admin-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,11 +45,103 @@ import {
   Loader2,
   Search,
   X,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import * as bulkOrdersService from "@/services/bulk-orders";
 import { useDebounce } from "@/hooks/use-debounce";
+
+// Memoized table component to prevent unnecessary re-renders
+const BulkItemsTable = memo(
+  ({
+    items,
+    onEdit,
+    onDelete,
+  }: {
+    items: any[];
+    onEdit: (item: any) => void;
+    onDelete: (id: number) => void;
+  }) => {
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Product</TableHead>
+            <TableHead>SKU</TableHead>
+            <TableHead>Regular Price</TableHead>
+            <TableHead>Bulk Selling Price</TableHead>
+            <TableHead>Order by Pieces</TableHead>
+            <TableHead>Order by Sets</TableHead>
+            <TableHead>Pieces per Set</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {items.map((item: any) => (
+            <TableRow key={item.id}>
+              <TableCell className="font-medium">
+                <div className="flex items-center gap-3">
+                  {item.productImage && (
+                    <img
+                      src={item.productImage}
+                      alt={item.productName}
+                      className="w-10 h-10 object-cover rounded"
+                    />
+                  )}
+                  <span>{item.productName}</span>
+                </div>
+              </TableCell>
+              <TableCell>{item.productSku || "—"}</TableCell>
+              <TableCell>₹{item.productPrice}</TableCell>
+              <TableCell>
+                <span className="font-semibold text-green-700">
+                  ₹{item.sellingPrice || "—"}
+                </span>
+              </TableCell>
+              <TableCell>
+                {item.allowPieces ? (
+                  <span className="text-green-600 font-medium">✓ Yes</span>
+                ) : (
+                  <span className="text-gray-400">✗ No</span>
+                )}
+              </TableCell>
+              <TableCell>
+                {item.allowSets ? (
+                  <span className="text-green-600 font-medium">✓ Yes</span>
+                ) : (
+                  <span className="text-gray-400">✗ No</span>
+                )}
+              </TableCell>
+              <TableCell>{item.piecesPerSet || "—"}</TableCell>
+              <TableCell className="text-right">
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onEdit(item)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onDelete(item.id)}
+                  >
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    );
+  },
+);
+
+BulkItemsTable.displayName = "BulkItemsTable";
 
 export default function BulkItemsManagementPage() {
   const { toast } = useToast();
@@ -68,8 +160,10 @@ export default function BulkItemsManagementPage() {
   const [page, setPage] = useState(1);
   const debouncedSearch = useDebounce(searchQuery, 300);
 
-  // State for table search
+  // State for table search and pagination
   const [tableSearchInput, setTableSearchInput] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
   const debouncedTableSearch = useDebounce(tableSearchInput, 300);
 
   // Fetch products with search and pagination
@@ -95,39 +189,48 @@ export default function BulkItemsManagementPage() {
   const products = productsData?.products || [];
   const pagination = productsData?.pagination;
 
-  // Fetch bulk items
-  const { data: bulkItems, isLoading } = useQuery({
-    queryKey: ["bulk-items-admin"],
-    queryFn: () => bulkOrdersService.getAllBulkItems(),
+  // Fetch bulk items with server-side search and pagination
+  const { data: bulkItemsData, isLoading } = useQuery({
+    queryKey: [
+      "bulk-items-admin",
+      currentPage,
+      itemsPerPage,
+      debouncedTableSearch,
+    ],
+    queryFn: async () => {
+      let url = `/api/admin/bulk-items?page=${currentPage}&limit=${itemsPerPage}`;
+      if (debouncedTableSearch) {
+        url += `&search=${encodeURIComponent(debouncedTableSearch)}`;
+      }
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Failed to fetch bulk items");
+      return response.json();
+    },
   });
 
-  // Filter bulk items based on search
-  const filteredBulkItems = useMemo(() => {
-    if (!bulkItems || !debouncedTableSearch) {
-      return bulkItems || [];
-    }
+  const bulkItems = bulkItemsData?.items || [];
+  const bulkItemsPagination = bulkItemsData?.pagination || {
+    total: 0,
+    totalPages: 1,
+    currentPage: 1,
+    limit: itemsPerPage,
+  };
 
-    const searchLower = debouncedTableSearch.toLowerCase();
-    return bulkItems.filter((item: any) => {
-      const productName = item.productName?.toLowerCase() || "";
-      const productSku = item.productSku?.toLowerCase() || "";
-      const price = item.productPrice?.toString() || "";
-      const sellingPrice = item.sellingPrice?.toString() || "";
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedTableSearch]);
 
-      return (
-        productName.includes(searchLower) ||
-        productSku.includes(searchLower) ||
-        price.includes(searchLower) ||
-        sellingPrice.includes(searchLower)
-      );
-    });
-  }, [bulkItems, debouncedTableSearch]);
+  // Invalidate all pages when data changes
+  const invalidateBulkItems = () => {
+    queryClient.invalidateQueries({ queryKey: ["bulk-items-admin"] });
+  };
 
   // Create/Update mutation
   const saveMutation = useMutation({
     mutationFn: (data: any) => bulkOrdersService.createBulkItem(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bulk-items-admin"] });
+      invalidateBulkItems();
       toast({
         title: "Success",
         description: "Bulk item configuration saved successfully",
@@ -147,7 +250,7 @@ export default function BulkItemsManagementPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => bulkOrdersService.deleteBulkItem(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bulk-items-admin"] });
+      invalidateBulkItems();
       toast({
         title: "Success",
         description: "Bulk item deleted successfully",
@@ -301,7 +404,7 @@ export default function BulkItemsManagementPage() {
               </div>
               {debouncedTableSearch && (
                 <p className="text-sm text-muted-foreground mt-2">
-                  Found {filteredBulkItems.length} item(s) matching "
+                  Found {bulkItemsPagination.total} item(s) matching "
                   {debouncedTableSearch}"
                 </p>
               )}
@@ -309,83 +412,12 @@ export default function BulkItemsManagementPage() {
 
             {isLoading ? (
               <div className="text-center py-8">Loading...</div>
-            ) : filteredBulkItems && filteredBulkItems.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Product</TableHead>
-                    <TableHead>SKU</TableHead>
-                    <TableHead>Regular Price</TableHead>
-                    <TableHead>Bulk Selling Price</TableHead>
-                    <TableHead>Order by Pieces</TableHead>
-                    <TableHead>Order by Sets</TableHead>
-                    <TableHead>Pieces per Set</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredBulkItems.map((item: any) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-3">
-                          {item.productImage && (
-                            <img
-                              src={item.productImage}
-                              alt={item.productName}
-                              className="w-10 h-10 object-cover rounded"
-                            />
-                          )}
-                          <span>{item.productName}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{item.productSku || "—"}</TableCell>
-                      <TableCell>₹{item.productPrice}</TableCell>
-                      <TableCell>
-                        <span className="font-semibold text-green-700">
-                          ₹{item.sellingPrice || "—"}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {item.allowPieces ? (
-                          <span className="text-green-600 font-medium">
-                            ✓ Yes
-                          </span>
-                        ) : (
-                          <span className="text-gray-400">✗ No</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {item.allowSets ? (
-                          <span className="text-green-600 font-medium">
-                            ✓ Yes
-                          </span>
-                        ) : (
-                          <span className="text-gray-400">✗ No</span>
-                        )}
-                      </TableCell>
-                      <TableCell>{item.piecesPerSet || "—"}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenDialog(item)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(item.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            ) : bulkItems && bulkItems.length > 0 ? (
+              <BulkItemsTable
+                items={bulkItems}
+                onEdit={handleOpenDialog}
+                onDelete={handleDelete}
+              />
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 {debouncedTableSearch ? (
@@ -402,6 +434,49 @@ export default function BulkItemsManagementPage() {
                 ) : (
                   'No products configured for bulk ordering yet. Click "Add Product" to get started.'
                 )}
+              </div>
+            )}
+
+            {/* Pagination Controls */}
+            {bulkItems && bulkItems.length > 0 && (
+              <div className="flex items-center justify-between mt-6">
+                <div className="text-sm text-muted-foreground">
+                  Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
+                  {Math.min(
+                    currentPage * itemsPerPage,
+                    bulkItemsPagination.total,
+                  )}{" "}
+                  of {bulkItemsPagination.total} items
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1 || isLoading}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  <div className="text-sm">
+                    Page {currentPage} of {bulkItemsPagination.totalPages}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setCurrentPage((p) =>
+                        Math.min(bulkItemsPagination.totalPages, p + 1),
+                      )
+                    }
+                    disabled={
+                      currentPage >= bulkItemsPagination.totalPages || isLoading
+                    }
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>

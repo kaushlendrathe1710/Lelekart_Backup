@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, memo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/layout/admin-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -29,8 +30,20 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Eye, Package, CheckCircle, XCircle, Clock, Download } from "lucide-react";
+import {
+  Eye,
+  Package,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Download,
+  Search,
+  X,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useDebounce } from "@/hooks/use-debounce";
 import { format } from "date-fns";
 import * as bulkOrdersService from "@/services/bulk-orders";
 
@@ -51,25 +64,141 @@ const StatusBadge = ({ status }: { status: string }) => {
   );
 };
 
+// Memoized table component to prevent unnecessary re-renders
+const BulkOrdersTable = memo(
+  ({
+    orders,
+    onViewDetails,
+    onDownloadInvoice,
+    onStatusChange,
+  }: {
+    orders: any[];
+    onViewDetails: (id: number) => void;
+    onDownloadInvoice: (id: number) => void;
+    onStatusChange: (order: any) => void;
+  }) => {
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Order ID</TableHead>
+            <TableHead>Distributor</TableHead>
+            <TableHead>Total Amount</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Date</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {orders.map((order: any) => (
+            <TableRow key={order.id}>
+              <TableCell className="font-mono">#{order.id}</TableCell>
+              <TableCell>
+                <div>
+                  <div className="font-medium">{order.distributorName}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {order.distributorEmail}
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell className="font-semibold">
+                ₹{parseFloat(order.totalAmount).toFixed(2)}
+              </TableCell>
+              <TableCell>
+                <StatusBadge status={order.status} />
+              </TableCell>
+              <TableCell>
+                {format(new Date(order.createdAt), "dd MMM yyyy, hh:mm a")}
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onViewDetails(order.id)}
+                  >
+                    <Eye className="h-4 w-4 mr-1" />
+                    View
+                  </Button>
+                  {order.status === "approved" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onDownloadInvoice(order.id)}
+                    >
+                      <Download className="h-4 w-4 mr-1" />
+                      Invoice
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onStatusChange(order)}
+                  >
+                    Change Status
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    );
+  },
+);
+
+BulkOrdersTable.displayName = "BulkOrdersTable";
+
 export default function AdminBulkOrdersPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchInput, setSearchInput] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
+  const debouncedSearch = useDebounce(searchInput, 300);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [newStatus, setNewStatus] = useState("");
   const [statusNotes, setStatusNotes] = useState("");
 
-  // Fetch bulk orders
-  const { data: orders, isLoading } = useQuery({
-    queryKey: ["admin-bulk-orders", statusFilter],
-    queryFn: () =>
-      bulkOrdersService.getAllBulkOrders(
-        statusFilter === "all" ? undefined : (statusFilter as any)
-      ),
+  // Reset to page 1 when filters or search change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, debouncedSearch]);
+
+  // Fetch bulk orders with pagination, search, and filters
+  const { data: ordersData, isLoading } = useQuery({
+    queryKey: [
+      "admin-bulk-orders",
+      currentPage,
+      itemsPerPage,
+      statusFilter,
+      debouncedSearch,
+    ],
+    queryFn: async () => {
+      let url = `/api/admin/bulk-orders?page=${currentPage}&limit=${itemsPerPage}`;
+      if (statusFilter && statusFilter !== "all") {
+        url += `&status=${statusFilter}`;
+      }
+      if (debouncedSearch) {
+        url += `&search=${encodeURIComponent(debouncedSearch)}`;
+      }
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Failed to fetch bulk orders");
+      return response.json();
+    },
   });
+
+  const orders = ordersData?.orders || [];
+  const pagination = ordersData?.pagination || {
+    total: 0,
+    totalPages: 1,
+    currentPage: 1,
+    limit: itemsPerPage,
+  };
 
   // Fetch order stats
   const { data: stats } = useQuery({
@@ -115,7 +244,8 @@ export default function AdminBulkOrdersPage() {
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.response?.data?.error || "Failed to download invoice",
+        description:
+          error.response?.data?.error || "Failed to download invoice",
         variant: "destructive",
       });
     }
@@ -123,7 +253,8 @@ export default function AdminBulkOrdersPage() {
 
   const handleViewDetails = async (orderId: number) => {
     try {
-      const orderDetails = await bulkOrdersService.getAdminBulkOrderById(orderId);
+      const orderDetails =
+        await bulkOrdersService.getAdminBulkOrderById(orderId);
       setSelectedOrder(orderDetails);
       setIsDetailsOpen(true);
     } catch (error) {
@@ -206,90 +337,114 @@ export default function AdminBulkOrdersPage() {
                 View and manage bulk orders from distributors
               </p>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Orders</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Orders</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </CardHeader>
           <CardContent>
+            {/* Search Input */}
+            <div className="mb-6">
+              <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by order ID, distributor name or email..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className="pl-10 pr-10"
+                />
+                {searchInput && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSearchInput("")}
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              {debouncedSearch && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Found {pagination.total} order(s) matching "{debouncedSearch}"
+                </p>
+              )}
+            </div>
+
             {isLoading ? (
               <div className="text-center py-8">Loading...</div>
             ) : orders && orders.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Distributor</TableHead>
-                    <TableHead>Total Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {orders.map((order: any) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-mono">#{order.id}</TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{order.distributorName}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {order.distributorEmail}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-semibold">
-                        ₹{parseFloat(order.totalAmount).toFixed(2)}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={order.status} />
-                      </TableCell>
-                      <TableCell>
-                        {format(new Date(order.createdAt), "dd MMM yyyy, hh:mm a")}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleViewDetails(order.id)}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            View
-                          </Button>
-                          {order.status === "approved" && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDownloadInvoice(order.id)}
-                            >
-                              <Download className="h-4 w-4 mr-1" />
-                              Invoice
-                            </Button>
-                          )}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleStatusChange(order)}
-                          >
-                            Change Status
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <>
+                <BulkOrdersTable
+                  orders={orders}
+                  onViewDetails={handleViewDetails}
+                  onDownloadInvoice={handleDownloadInvoice}
+                  onStatusChange={handleStatusChange}
+                />
+
+                {/* Pagination Controls */}
+                <div className="flex items-center justify-between mt-6">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
+                    {Math.min(currentPage * itemsPerPage, pagination.total)} of{" "}
+                    {pagination.total} orders
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1 || isLoading}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </Button>
+                    <div className="text-sm">
+                      Page {currentPage} of {pagination.totalPages}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setCurrentPage((p) =>
+                          Math.min(pagination.totalPages, p + 1),
+                        )
+                      }
+                      disabled={
+                        currentPage >= pagination.totalPages || isLoading
+                      }
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
-                No bulk orders found
+                {debouncedSearch ? (
+                  <div className="space-y-2">
+                    <p>No orders found matching "{debouncedSearch}"</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSearchInput("")}
+                    >
+                      Clear search
+                    </Button>
+                  </div>
+                ) : (
+                  "No bulk orders found"
+                )}
               </div>
             )}
           </CardContent>
@@ -315,7 +470,9 @@ export default function AdminBulkOrdersPage() {
                     </div>
                   </div>
                   <div>
-                    <Label className="text-muted-foreground">Total Amount</Label>
+                    <Label className="text-muted-foreground">
+                      Total Amount
+                    </Label>
                     <div className="mt-1 text-lg font-semibold">
                       ₹{parseFloat(selectedOrder.totalAmount).toFixed(2)}
                     </div>
@@ -323,7 +480,10 @@ export default function AdminBulkOrdersPage() {
                   <div>
                     <Label className="text-muted-foreground">Order Date</Label>
                     <div className="mt-1">
-                      {format(new Date(selectedOrder.createdAt), "dd MMM yyyy, hh:mm a")}
+                      {format(
+                        new Date(selectedOrder.createdAt),
+                        "dd MMM yyyy, hh:mm a",
+                      )}
                     </div>
                   </div>
                   <div>
@@ -343,7 +503,9 @@ export default function AdminBulkOrdersPage() {
                 )}
 
                 <div>
-                  <Label className="font-semibold mb-2 block">Order Items</Label>
+                  <Label className="font-semibold mb-2 block">
+                    Order Items
+                  </Label>
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -367,7 +529,9 @@ export default function AdminBulkOrdersPage() {
                                 />
                               )}
                               <div>
-                                <div className="font-medium">{item.productName}</div>
+                                <div className="font-medium">
+                                  {item.productName}
+                                </div>
                                 {item.productSku && (
                                   <div className="text-xs text-muted-foreground">
                                     SKU: {item.productSku}
@@ -376,9 +540,13 @@ export default function AdminBulkOrdersPage() {
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell className="capitalize">{item.orderType}</TableCell>
+                          <TableCell className="capitalize">
+                            {item.orderType}
+                          </TableCell>
                           <TableCell>{item.quantity}</TableCell>
-                          <TableCell>₹{parseFloat(item.unitPrice).toFixed(2)}</TableCell>
+                          <TableCell>
+                            ₹{parseFloat(item.unitPrice).toFixed(2)}
+                          </TableCell>
                           <TableCell className="text-right font-semibold">
                             ₹{parseFloat(item.totalPrice).toFixed(2)}
                           </TableCell>
@@ -446,7 +614,9 @@ export default function AdminBulkOrdersPage() {
                 onClick={handleUpdateStatus}
                 disabled={updateStatusMutation.isPending}
               >
-                {updateStatusMutation.isPending ? "Updating..." : "Update Status"}
+                {updateStatusMutation.isPending
+                  ? "Updating..."
+                  : "Update Status"}
               </Button>
             </DialogFooter>
           </DialogContent>
