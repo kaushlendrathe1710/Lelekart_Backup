@@ -1292,50 +1292,143 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       // Filter out any null results (failed invoice generations)
-      const validInvoices = sellerInvoices.filter(
+      let validInvoices = sellerInvoices.filter(
         (invoice): invoice is NonNullable<typeof invoice> => invoice !== null,
+      );
+
+      // If the user is a seller, filter to only show their invoice
+      if (isSeller && !isAdmin) {
+        validInvoices = validInvoices.filter(
+          (invoice) => invoice.sellerId === req.user.id,
+        );
+        console.log(
+          `Seller ${req.user.id} requesting their invoice for order ${orderId}`,
+        );
+      }
+
+      if (validInvoices.length === 0) {
+        console.error(`No valid invoices generated for order ${orderId}`);
+        return res
+          .status(500)
+          .json({ error: "Failed to generate any invoices" });
+      }
+
+      console.log(
+        `Generated ${validInvoices.length} seller invoice(s) for order ${orderId}`,
       );
 
       if (format === "html") {
         console.log(`Sending invoices as HTML`);
         // Set content type to HTML and send the rendered invoices
         res.setHeader("Content-Type", "text/html");
-        // Combine all invoice HTMLs with a page break between them
-        const combinedHtml = validInvoices
-          .map(
-            (invoice) => `
-            <div class="seller-invoice">
 
-              ${invoice.invoiceHtml}
-            </div>
-            <div style="page-break-after: always;"></div>
-          `,
-          )
-          .join("");
+        // Combine all invoice HTMLs with page breaks between them (but not after the last one)
+        const combinedHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Invoice - Order ${orderId}</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    .seller-invoice {
+      page-break-after: always;
+    }
+    .seller-invoice:last-child {
+      page-break-after: auto;
+    }
+  </style>
+</head>
+<body>
+${validInvoices
+  .map(
+    (
+      invoice,
+      index,
+    ) => `  <div class="seller-invoice" data-seller-id="${invoice.sellerId}" data-seller-name="${invoice.sellerName}">
+    ${invoice.invoiceHtml}
+  </div>${index < validInvoices.length - 1 ? '\n  <div style="page-break-after: always;"></div>' : ""}`,
+  )
+  .join("\n")}
+</body>
+</html>`;
         res.send(combinedHtml);
       } else {
-        console.log(`Generating combined invoice as PDF`);
-        // Generate PDF using our utility from the imported pdfGenerator
-        const combinedHtml = validInvoices
-          .map(
-            (invoice) => `
-            <div class="seller-invoice">
+        console.log(
+          `Generating combined PDF with ${validInvoices.length} seller invoice(s)`,
+        );
 
-              ${invoice.invoiceHtml}
-            </div>
-            <div style="page-break-after: always;"></div>
-          `,
-          )
-          .join("");
+        // Combine all invoice HTMLs with page breaks between them (but not after the last one)
+        const combinedHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Invoice - Order ${orderId}</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 3mm;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    .seller-invoice {
+      page-break-after: always;
+    }
+    .seller-invoice:last-child {
+      page-break-after: auto;
+    }
+  </style>
+</head>
+<body>
+${validInvoices
+  .map(
+    (
+      invoice,
+      index,
+    ) => `  <div class="seller-invoice" data-seller-id="${invoice.sellerId}" data-seller-name="${invoice.sellerName}">
+    ${invoice.invoiceHtml}
+  </div>${index < validInvoices.length - 1 ? '\n  <div style="page-break-after: always;"></div>' : ""}`,
+  )
+  .join("\n")}
+</body>
+</html>`;
+
         // Use half A4 PDF generation for combined invoices
         const file = { content: combinedHtml };
         const pdfBuffer = await htmlPdf.generatePdf(file, HALF_A4_PDF_OPTIONS);
+
+        // Generate filename based on user role and number of sellers
+        let filename: string;
+        if (
+          isSeller &&
+          !isAdmin &&
+          validInvoices.length === 1 &&
+          validInvoices[0]
+        ) {
+          // Seller downloading their own invoice
+          const sellerName =
+            validInvoices[0].sellerName?.replace(/[^a-zA-Z0-9]/g, "_") ||
+            "Seller";
+          filename = `Invoice-Order-${orderId}-${sellerName}.pdf`;
+        } else if (validInvoices.length === 1) {
+          // Single seller invoice
+          filename = `Invoice-Order-${orderId}.pdf`;
+        } else {
+          // Multiple sellers (admin or buyer view)
+          filename = `Invoice-Order-${orderId}-Combined-${validInvoices.length}-Sellers.pdf`;
+        }
 
         // Set response headers for PDF download
         res.setHeader("Content-Type", "application/pdf");
         res.setHeader(
           "Content-Disposition",
-          `attachment; filename="Combined-Invoice-${orderId}.pdf"`,
+          `attachment; filename="${filename}"`,
         );
 
         // Send PDF buffer directly

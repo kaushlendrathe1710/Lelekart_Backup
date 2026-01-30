@@ -12,7 +12,7 @@ import {
   insertBulkOrderSchema,
   insertBulkOrderItemSchema,
 } from "../../shared/schema";
-import { eq, and, desc, inArray, sql, or, ilike } from "drizzle-orm";
+import { eq, and, desc, inArray, sql, or, ilike, count } from "drizzle-orm";
 import { z } from "zod";
 import { storage } from "../storage";
 
@@ -38,8 +38,8 @@ export async function searchProductsForBulkItems(req: Request, res: Response) {
       conditions.push(
         or(
           ilike(products.name, `%${search}%`),
-          ilike(products.sku, `%${search}%`)
-        ) as any
+          ilike(products.sku, `%${search}%`),
+        ) as any,
       );
     }
 
@@ -87,7 +87,39 @@ export async function searchProductsForBulkItems(req: Request, res: Response) {
  */
 export async function getAllBulkItemsHandler(req: Request, res: Response) {
   try {
-    const items = await db
+    // Pagination parameters
+    const page = req.query.page ? parseInt(req.query.page as string) : 1;
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+    const offset = (page - 1) * limit;
+
+    // Search parameter
+    const search = req.query.search as string | undefined;
+
+    // Build where conditions
+    const conditions = [];
+
+    // Search filter
+    if (search) {
+      const searchLower = `%${search.toLowerCase()}%`;
+      conditions.push(
+        or(ilike(products.name, searchLower), ilike(products.sku, searchLower)),
+      );
+    }
+
+    // Get total count
+    const countQuery = db
+      .select({ count: count() })
+      .from(bulkItems)
+      .leftJoin(products, eq(bulkItems.productId, products.id));
+
+    if (conditions.length > 0) {
+      countQuery.where(and(...conditions));
+    }
+
+    const [{ count: totalCount }] = await countQuery;
+
+    // Get paginated items
+    const query = db
       .select({
         id: bulkItems.id,
         productId: bulkItems.productId,
@@ -104,9 +136,28 @@ export async function getAllBulkItemsHandler(req: Request, res: Response) {
       })
       .from(bulkItems)
       .leftJoin(products, eq(bulkItems.productId, products.id))
-      .orderBy(desc(bulkItems.createdAt));
+      .orderBy(desc(bulkItems.createdAt))
+      .limit(limit)
+      .offset(offset);
 
-    res.json(items);
+    if (conditions.length > 0) {
+      query.where(and(...conditions));
+    }
+
+    const items = await query;
+
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(totalCount / limit);
+
+    res.json({
+      items,
+      pagination: {
+        total: totalCount,
+        totalPages,
+        currentPage: page,
+        limit,
+      },
+    });
   } catch (error) {
     console.error("Error fetching bulk items:", error);
     res.status(500).json({ error: "Failed to fetch bulk items" });
@@ -324,7 +375,7 @@ export async function deleteBulkItemHandler(req: Request, res: Response) {
  */
 export async function getAvailableBulkItemsHandler(
   req: Request,
-  res: Response
+  res: Response,
 ) {
   try {
     const items = await db
@@ -377,7 +428,7 @@ export async function createBulkOrderHandler(req: Request, res: Response) {
             productId: z.number().int().positive(),
             orderType: z.enum(["pieces", "sets"]),
             quantity: z.number().int().positive(),
-          })
+          }),
         )
         .min(1, "At least one item is required"),
       notes: z.string().optional(),
@@ -409,19 +460,19 @@ export async function createBulkOrderHandler(req: Request, res: Response) {
 
         if (!bulkItem) {
           throw new Error(
-            `Product ${item.productId} is not available for bulk ordering`
+            `Product ${item.productId} is not available for bulk ordering`,
           );
         }
 
         // Validate order type
         if (item.orderType === "pieces" && !bulkItem.allowPieces) {
           throw new Error(
-            `Product ${item.productId} does not allow ordering by pieces`
+            `Product ${item.productId} does not allow ordering by pieces`,
           );
         }
         if (item.orderType === "sets" && !bulkItem.allowSets) {
           throw new Error(
-            `Product ${item.productId} does not allow ordering by sets`
+            `Product ${item.productId} does not allow ordering by sets`,
           );
         }
 
@@ -448,7 +499,7 @@ export async function createBulkOrderHandler(req: Request, res: Response) {
 
         // Use sellingPrice if available, otherwise fall back to product price
         const unitPrice = parseFloat(
-          bulkItem.sellingPrice?.toString() || product.price
+          bulkItem.sellingPrice?.toString() || product.price,
         );
         const totalPrice = actualQuantity * unitPrice;
 
@@ -529,7 +580,7 @@ export async function createBulkOrderHandler(req: Request, res: Response) {
         });
 
         console.log(
-          `Ledger entry created for bulk order ${result.order.id}, distributor ${distributor.id}`
+          `Ledger entry created for bulk order ${result.order.id}, distributor ${distributor.id}`,
         );
       }
     } catch (ledgerError) {
@@ -552,8 +603,49 @@ export async function createBulkOrderHandler(req: Request, res: Response) {
  */
 export async function getAllBulkOrdersHandler(req: Request, res: Response) {
   try {
-    const status = req.query.status as string | undefined;
+    // Pagination parameters
+    const page = req.query.page ? parseInt(req.query.page as string) : 1;
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+    const offset = (page - 1) * limit;
 
+    // Filter parameters
+    const status = req.query.status as string | undefined;
+    const search = req.query.search as string | undefined;
+
+    // Build where conditions
+    const conditions = [];
+
+    // Status filter
+    if (status && status !== "all") {
+      conditions.push(eq(bulkOrders.status, status));
+    }
+
+    // Search filter (distributor name, email, or order ID)
+    if (search) {
+      const searchLower = `%${search.toLowerCase()}%`;
+      conditions.push(
+        or(
+          ilike(users.name, searchLower),
+          ilike(users.email, searchLower),
+          ilike(users.username, searchLower),
+          sql`CAST(${bulkOrders.id} AS TEXT) ILIKE ${searchLower}`,
+        ),
+      );
+    }
+
+    // Get total count
+    const countQuery = db
+      .select({ count: count() })
+      .from(bulkOrders)
+      .leftJoin(users, eq(bulkOrders.distributorId, users.id));
+
+    if (conditions.length > 0) {
+      countQuery.where(and(...conditions));
+    }
+
+    const [{ count: totalCount }] = await countQuery;
+
+    // Get paginated orders
     let query = db
       .select({
         id: bulkOrders.id,
@@ -570,15 +662,28 @@ export async function getAllBulkOrdersHandler(req: Request, res: Response) {
       .from(bulkOrders)
       .leftJoin(users, eq(bulkOrders.distributorId, users.id))
       .orderBy(desc(bulkOrders.createdAt))
+      .limit(limit)
+      .offset(offset)
       .$dynamic();
 
-    if (status) {
-      query = query.where(eq(bulkOrders.status, status));
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
     }
 
     const orders = await query;
 
-    res.json(orders);
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(totalCount / limit);
+
+    res.json({
+      orders,
+      pagination: {
+        total: totalCount,
+        totalPages,
+        currentPage: page,
+        limit,
+      },
+    });
   } catch (error) {
     console.error("Error fetching bulk orders:", error);
     res.status(500).json({ error: "Failed to fetch bulk orders" });
@@ -662,7 +767,7 @@ export async function getBulkOrderByIdHandler(req: Request, res: Response) {
  */
 export async function getDistributorBulkOrdersHandler(
   req: Request,
-  res: Response
+  res: Response,
 ) {
   try {
     const userId = (req as any).user?.id;
@@ -697,7 +802,7 @@ export async function getDistributorBulkOrdersHandler(
  */
 export async function updateBulkOrderStatusHandler(
   req: Request,
-  res: Response
+  res: Response,
 ) {
   try {
     const id = parseInt(req.params.id);
