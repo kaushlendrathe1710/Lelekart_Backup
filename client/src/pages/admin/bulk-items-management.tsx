@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/layout/admin-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,7 +35,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Pencil, Trash2, Plus, Package, Check, ChevronsUpDown, Loader2 } from "lucide-react";
+import {
+  Pencil,
+  Trash2,
+  Plus,
+  Package,
+  Check,
+  ChevronsUpDown,
+  Loader2,
+  Search,
+  X,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import * as bulkOrdersService from "@/services/bulk-orders";
@@ -58,6 +68,10 @@ export default function BulkItemsManagementPage() {
   const [page, setPage] = useState(1);
   const debouncedSearch = useDebounce(searchQuery, 300);
 
+  // State for table search
+  const [tableSearchInput, setTableSearchInput] = useState("");
+  const debouncedTableSearch = useDebounce(tableSearchInput, 300);
+
   // Fetch products with search and pagination
   const { data: productsData, isLoading: productsLoading } = useQuery({
     queryKey: ["products-search", debouncedSearch, page],
@@ -69,7 +83,9 @@ export default function BulkItemsManagementPage() {
       if (debouncedSearch) {
         params.append("search", debouncedSearch);
       }
-      const res = await fetch(`/api/admin/bulk-items/search-products?${params}`);
+      const res = await fetch(
+        `/api/admin/bulk-items/search-products?${params}`,
+      );
       if (!res.ok) throw new Error("Failed to fetch products");
       return res.json();
     },
@@ -84,6 +100,28 @@ export default function BulkItemsManagementPage() {
     queryKey: ["bulk-items-admin"],
     queryFn: () => bulkOrdersService.getAllBulkItems(),
   });
+
+  // Filter bulk items based on search
+  const filteredBulkItems = useMemo(() => {
+    if (!bulkItems || !debouncedTableSearch) {
+      return bulkItems || [];
+    }
+
+    const searchLower = debouncedTableSearch.toLowerCase();
+    return bulkItems.filter((item: any) => {
+      const productName = item.productName?.toLowerCase() || "";
+      const productSku = item.productSku?.toLowerCase() || "";
+      const price = item.productPrice?.toString() || "";
+      const sellingPrice = item.sellingPrice?.toString() || "";
+
+      return (
+        productName.includes(searchLower) ||
+        productSku.includes(searchLower) ||
+        price.includes(searchLower) ||
+        sellingPrice.includes(searchLower)
+      );
+    });
+  }, [bulkItems, debouncedTableSearch]);
 
   // Create/Update mutation
   const saveMutation = useMutation({
@@ -118,7 +156,8 @@ export default function BulkItemsManagementPage() {
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.response?.data?.error || "Failed to delete bulk item",
+        description:
+          error.response?.data?.error || "Failed to delete bulk item",
         variant: "destructive",
       });
     },
@@ -202,7 +241,8 @@ export default function BulkItemsManagementPage() {
       productId: parseInt(selectedProductId),
       allowPieces,
       allowSets,
-      piecesPerSet: allowSets && piecesPerSet ? parseInt(piecesPerSet) : undefined,
+      piecesPerSet:
+        allowSets && piecesPerSet ? parseInt(piecesPerSet) : undefined,
       sellingPrice: sellingPrice, // Send as string for Drizzle decimal type
     };
 
@@ -210,7 +250,9 @@ export default function BulkItemsManagementPage() {
   };
 
   const handleDelete = (id: number) => {
-    if (confirm("Are you sure you want to delete this bulk item configuration?")) {
+    if (
+      confirm("Are you sure you want to delete this bulk item configuration?")
+    ) {
       deleteMutation.mutate(id);
     }
   };
@@ -226,7 +268,8 @@ export default function BulkItemsManagementPage() {
                 Bulk Order Items Configuration
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-2">
-                Configure which products are available for bulk ordering and set ordering rules
+                Configure which products are available for bulk ordering and set
+                ordering rules
               </p>
             </div>
             <Button onClick={() => handleOpenDialog()}>
@@ -235,9 +278,38 @@ export default function BulkItemsManagementPage() {
             </Button>
           </CardHeader>
           <CardContent>
+            {/* Search Input */}
+            <div className="mb-6">
+              <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by product name, SKU, or price..."
+                  value={tableSearchInput}
+                  onChange={(e) => setTableSearchInput(e.target.value)}
+                  className="pl-10 pr-10"
+                />
+                {tableSearchInput && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setTableSearchInput("")}
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              {debouncedTableSearch && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Found {filteredBulkItems.length} item(s) matching "
+                  {debouncedTableSearch}"
+                </p>
+              )}
+            </div>
+
             {isLoading ? (
               <div className="text-center py-8">Loading...</div>
-            ) : bulkItems && bulkItems.length > 0 ? (
+            ) : filteredBulkItems && filteredBulkItems.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -252,7 +324,7 @@ export default function BulkItemsManagementPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {bulkItems.map((item: any) => (
+                  {filteredBulkItems.map((item: any) => (
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-3">
@@ -275,21 +347,23 @@ export default function BulkItemsManagementPage() {
                       </TableCell>
                       <TableCell>
                         {item.allowPieces ? (
-                          <span className="text-green-600 font-medium">✓ Yes</span>
+                          <span className="text-green-600 font-medium">
+                            ✓ Yes
+                          </span>
                         ) : (
                           <span className="text-gray-400">✗ No</span>
                         )}
                       </TableCell>
                       <TableCell>
                         {item.allowSets ? (
-                          <span className="text-green-600 font-medium">✓ Yes</span>
+                          <span className="text-green-600 font-medium">
+                            ✓ Yes
+                          </span>
                         ) : (
                           <span className="text-gray-400">✗ No</span>
                         )}
                       </TableCell>
-                      <TableCell>
-                        {item.piecesPerSet || "—"}
-                      </TableCell>
+                      <TableCell>{item.piecesPerSet || "—"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button
@@ -314,7 +388,20 @@ export default function BulkItemsManagementPage() {
               </Table>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
-                No products configured for bulk ordering yet. Click "Add Product" to get started.
+                {debouncedTableSearch ? (
+                  <div className="space-y-2">
+                    <p>No products found matching "{debouncedTableSearch}"</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTableSearchInput("")}
+                    >
+                      Clear search
+                    </Button>
+                  </div>
+                ) : (
+                  'No products configured for bulk ordering yet. Click "Add Product" to get started.'
+                )}
               </div>
             )}
           </CardContent>
@@ -327,7 +414,8 @@ export default function BulkItemsManagementPage() {
                 {editingItem ? "Edit" : "Add"} Bulk Order Item
               </DialogTitle>
               <DialogDescription>
-                Configure which product is available for bulk ordering and set ordering rules
+                Configure which product is available for bulk ordering and set
+                ordering rules
               </DialogDescription>
             </DialogHeader>
 
@@ -355,8 +443,9 @@ export default function BulkItemsManagementPage() {
                         className="w-full justify-between"
                       >
                         {selectedProductId
-                          ? products.find((p: any) => p.id.toString() === selectedProductId)?.name ||
-                            "Select product..."
+                          ? products.find(
+                              (p: any) => p.id.toString() === selectedProductId,
+                            )?.name || "Select product..."
                           : "Select product..."}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
@@ -393,30 +482,34 @@ export default function BulkItemsManagementPage() {
                                   <Check
                                     className={cn(
                                       "mr-2 h-4 w-4",
-                                      selectedProductId === product.id.toString()
+                                      selectedProductId ===
+                                        product.id.toString()
                                         ? "opacity-100"
-                                        : "opacity-0"
+                                        : "opacity-0",
                                     )}
                                   />
-                                  {product.name} {product.sku ? `(${product.sku})` : ""}
+                                  {product.name}{" "}
+                                  {product.sku ? `(${product.sku})` : ""}
                                 </CommandItem>
                               ))}
-                              {pagination && pagination.page < pagination.totalPages && (
-                                <div className="p-2 border-t">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="w-full"
-                                    onClick={() => setPage((p) => p + 1)}
-                                    disabled={productsLoading}
-                                  >
-                                    {productsLoading ? (
-                                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                    ) : null}
-                                    Load more ({pagination.page} of {pagination.totalPages})
-                                  </Button>
-                                </div>
-                              )}
+                              {pagination &&
+                                pagination.page < pagination.totalPages && (
+                                  <div className="p-2 border-t">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="w-full"
+                                      onClick={() => setPage((p) => p + 1)}
+                                      disabled={productsLoading}
+                                    >
+                                      {productsLoading ? (
+                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                      ) : null}
+                                      Load more ({pagination.page} of{" "}
+                                      {pagination.totalPages})
+                                    </Button>
+                                  </div>
+                                )}
                             </CommandGroup>
                           )}
                         </CommandList>
@@ -433,9 +526,14 @@ export default function BulkItemsManagementPage() {
                   <Checkbox
                     id="allowPieces"
                     checked={allowPieces}
-                    onCheckedChange={(checked) => setAllowPieces(checked as boolean)}
+                    onCheckedChange={(checked) =>
+                      setAllowPieces(checked as boolean)
+                    }
                   />
-                  <Label htmlFor="allowPieces" className="font-normal cursor-pointer">
+                  <Label
+                    htmlFor="allowPieces"
+                    className="font-normal cursor-pointer"
+                  >
                     Allow ordering by pieces
                   </Label>
                 </div>
@@ -444,9 +542,14 @@ export default function BulkItemsManagementPage() {
                   <Checkbox
                     id="allowSets"
                     checked={allowSets}
-                    onCheckedChange={(checked) => setAllowSets(checked as boolean)}
+                    onCheckedChange={(checked) =>
+                      setAllowSets(checked as boolean)
+                    }
                   />
-                  <Label htmlFor="allowSets" className="font-normal cursor-pointer">
+                  <Label
+                    htmlFor="allowSets"
+                    className="font-normal cursor-pointer"
+                  >
                     Allow ordering by sets
                   </Label>
                 </div>
@@ -483,7 +586,8 @@ export default function BulkItemsManagementPage() {
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  Special price for bulk orders (can be different from regular product price)
+                  Special price for bulk orders (can be different from regular
+                  product price)
                 </p>
               </div>
             </div>
