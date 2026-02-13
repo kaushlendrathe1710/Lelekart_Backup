@@ -238,6 +238,15 @@ export function setupAuth(app: Express) {
             .json({ error: "Database error. Please try again later." });
         }
 
+        if (process.env.NODE_ENV === "development") {
+          console.log(`Development mode: OTP for ${email} is ${otp}`);
+          res.status(200).json({
+            message: "OTP sent successfully",
+            email,
+            expiresIn: 10 * 60, // 10 minutes in seconds
+          });
+        }
+
         // Send OTP to user's email
         try {
           await sendOTPEmail(email, otp);

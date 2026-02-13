@@ -28,6 +28,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -41,6 +51,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Trash2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -71,11 +82,13 @@ const BulkOrdersTable = memo(
     onViewDetails,
     onDownloadInvoice,
     onStatusChange,
+    onDelete,
   }: {
     orders: any[];
     onViewDetails: (id: number) => void;
     onDownloadInvoice: (id: number) => void;
     onStatusChange: (order: any) => void;
+    onDelete: (order: any) => void;
   }) => {
     return (
       <Table>
@@ -130,13 +143,26 @@ const BulkOrdersTable = memo(
                       Invoice
                     </Button>
                   )}
-                  <Button
+                  {order.status === "pending" && (
+                    <Button
                     variant="outline"
                     size="sm"
                     onClick={() => onStatusChange(order)}
-                  >
+                    >
                     Change Status
                   </Button>
+                  )}
+                  {order.status === "pending" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onDelete(order)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete
+                    </Button>
+                  )}
                 </div>
               </TableCell>
             </TableRow>
@@ -163,6 +189,8 @@ export default function AdminBulkOrdersPage() {
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [newStatus, setNewStatus] = useState("");
   const [statusNotes, setStatusNotes] = useState("");
+  const [orderToDelete, setOrderToDelete] = useState<any>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   // Reset to page 1 when filters or search change
   useEffect(() => {
@@ -229,6 +257,29 @@ export default function AdminBulkOrdersPage() {
     },
   });
 
+  // Delete bulk order mutation
+  const deleteBulkOrderMutation = useMutation({
+    mutationFn: (id: number) => bulkOrdersService.deleteBulkOrder(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-bulk-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["bulk-order-stats"] });
+      toast({
+        title: "Success",
+        description: "Bulk order deleted successfully",
+      });
+      setIsDeleteDialogOpen(false);
+      setOrderToDelete(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description:
+          error.response?.data?.error || "Failed to delete bulk order",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Handle invoice download
   const handleDownloadInvoice = async (orderId: number) => {
     try {
@@ -290,6 +341,17 @@ export default function AdminBulkOrdersPage() {
         notes: statusNotes || undefined,
       },
     });
+  };
+
+  const handleDeleteOrder = (order: any) => {
+    setOrderToDelete(order);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteOrder = () => {
+    if (orderToDelete) {
+      deleteBulkOrderMutation.mutate(orderToDelete.id);
+    }
   };
 
   return (
@@ -389,6 +451,7 @@ export default function AdminBulkOrdersPage() {
                   onViewDetails={handleViewDetails}
                   onDownloadInvoice={handleDownloadInvoice}
                   onStatusChange={handleStatusChange}
+                  onDelete={handleDeleteOrder}
                 />
 
                 {/* Pagination Controls */}
@@ -565,6 +628,44 @@ export default function AdminBulkOrdersPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Bulk Order</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete bulk order #
+                {orderToDelete?.id}?
+                <br />
+                <br />
+                This action cannot be undone. This will permanently delete the
+                order and all associated order items from the distributor{" "}
+                <strong>{orderToDelete?.distributorName}</strong>.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                onClick={() => {
+                  setIsDeleteDialogOpen(false);
+                  setOrderToDelete(null);
+                }}
+              >
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDeleteOrder}
+                className="bg-red-600 hover:bg-red-700"
+                disabled={deleteBulkOrderMutation.isPending}
+              >
+                {deleteBulkOrderMutation.isPending ? "Deleting..." : "Delete"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Update Status Dialog */}
         <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>

@@ -70,6 +70,7 @@ interface InvoiceItem {
   productName: string;
   quantity: number;
   orderType: "pieces" | "sets";
+  customUnitPrice?: number; // Optional custom price override
 }
 
 interface CustomInvoiceFormData {
@@ -131,6 +132,7 @@ export function CustomInvoiceForm() {
           productName: "",
           quantity: 1,
           orderType: "pieces",
+          customUnitPrice: undefined,
         },
       ],
       deliveryCharges: 0,
@@ -263,6 +265,7 @@ export function CustomInvoiceForm() {
           productName: item.productName,
           quantity: item.quantity,
           orderType: item.orderType,
+          customUnitPrice: item.customUnitPrice || undefined,
         })),
         deliveryCharges: data.deliveryCharges || 0,
         deliveryChargesGstRate: data.deliveryChargesGstRate || 18,
@@ -475,7 +478,7 @@ export function CustomInvoiceForm() {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
                 <div className="space-y-1 md:col-span-2">
                   <Label htmlFor={`items.${index}.productId`}>Product *</Label>
                   {loadingProducts ? (
@@ -614,6 +617,28 @@ export function CustomInvoiceForm() {
                     </p>
                   )}
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`items.${index}.customUnitPrice`}>
+                    Custom Price
+                    <span className="text-xs text-muted-foreground ml-1">
+                      (Optional)
+                    </span>
+                  </Label>
+                  <Input
+                    id={`items.${index}.customUnitPrice`}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    {...register(`items.${index}.customUnitPrice`, {
+                      valueAsNumber: true,
+                    })}
+                    placeholder="Auto"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Leave empty to use default pricing
+                  </p>
+                </div>
               </div>
             </div>
           ))}
@@ -627,6 +652,7 @@ export function CustomInvoiceForm() {
                 productName: "",
                 quantity: 1,
                 orderType: "pieces",
+                customUnitPrice: undefined,
               })
             }
             disabled={loadingProducts}

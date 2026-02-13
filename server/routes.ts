@@ -16356,8 +16356,22 @@ ${validInvoices
             actualQuantity = item.quantity * bulkItem.piecesPerSet;
           }
 
-          // Use bulk selling price if available, otherwise use product price
-          const inclusivePrice = bulkItem?.sellingPrice || product.price;
+          // PRICING PRIORITY LOGIC:
+          // 1. Use customUnitPrice if provided
+          // 2. Otherwise use bulk selling price if available
+          // 3. Finally fallback to product price
+          let inclusivePrice: number;
+          if (item.customUnitPrice && item.customUnitPrice > 0) {
+            // Priority 1: Custom unit price from admin
+            inclusivePrice = parseFloat(item.customUnitPrice.toString());
+          } else if (bulkItem?.sellingPrice) {
+            // Priority 2: Bulk item selling price
+            inclusivePrice = parseFloat(bulkItem.sellingPrice.toString());
+          } else {
+            // Priority 3: Regular product price
+            inclusivePrice = product.price;
+          }
+
           const gstRate = parseFloat(product.gstRate as any) || 0;
           const totalPrice = actualQuantity * inclusivePrice;
 
@@ -16661,10 +16675,21 @@ ${validInvoices
             actualQuantity = item.quantity * bulkItem.piecesPerSet;
           }
 
-          // Use bulk selling price if available, otherwise use product price
-          const inclusivePrice = bulkItem?.sellingPrice
-            ? parseFloat(bulkItem.sellingPrice.toString())
-            : product.price;
+          // PRICING PRIORITY LOGIC:
+          // 1. Use customUnitPrice if provided
+          // 2. Otherwise use bulk selling price if available
+          // 3. Finally fallback to product price
+          let inclusivePrice: number;
+          if (item.customUnitPrice && item.customUnitPrice > 0) {
+            // Priority 1: Custom unit price from admin
+            inclusivePrice = parseFloat(item.customUnitPrice.toString());
+          } else if (bulkItem?.sellingPrice) {
+            // Priority 2: Bulk item selling price
+            inclusivePrice = parseFloat(bulkItem.sellingPrice.toString());
+          } else {
+            // Priority 3: Regular product price
+            inclusivePrice = product.price;
+          }
 
           const gstRate = parseFloat(product.gstRate as any) || 0;
           const totalPrice = actualQuantity * inclusivePrice;
