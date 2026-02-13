@@ -857,17 +857,123 @@ export async function deleteBulkOrderHandler(req: Request, res: Response) {
       return res.status(400).json({ error: "Invalid bulk order ID" });
     }
 
-    // Delete in transaction (order items will be deleted by CASCADE)
-    const [deleted] = await db
-      .delete(bulkOrders)
+    // Get bulk order details first
+    const [bulkOrder] = await db
+      .select()
+      .from(bulkOrders)
       .where(eq(bulkOrders.id, id))
-      .returning();
+      .limit(1);
 
-    if (!deleted) {
+    if (!bulkOrder) {
       return res.status(404).json({ error: "Bulk order not found" });
     }
 
-    res.json({ message: "Bulk order deleted successfully", order: deleted });
+    // Get distributor record
+    const [distributor] = await db
+      .select()
+      .from(distributors)
+      .where(eq(distributors.userId, bulkOrder.distributorId))
+      .limit(1);
+
+    // Delete in transaction to ensure data consistency
+    await db.transaction(async (tx) => {
+      // Step 1: Delete the ledger entry for this bulk order
+      if (distributor) {
+        const deletedLedgerEntries = await tx
+          .delete(distributorLedger)
+          .where(
+            and(
+              eq(distributorLedger.orderId, id),
+              eq(distributorLedger.orderType, "bulk")
+            )
+          )
+          .returning();
+
+        if (deletedLedgerEntries.length > 0) {
+          const deletedEntry = deletedLedgerEntries[0];
+
+          // Step 2: Get all ledger entries after the deleted one for balance recalculation
+          const subsequentEntries = await tx
+            .select()
+            .from(distributorLedger)
+            .where(
+              and(
+                eq(distributorLedger.distributorId, distributor.id),
+                sql`${distributorLedger.id} > ${deletedEntry.id}`
+              )
+            )
+            .orderBy(distributorLedger.id);
+
+          // Step 3: Recalculate balances for subsequent entries
+          if (subsequentEntries.length > 0) {
+            // Get the previous balance (before the deleted entry)
+            const [previousEntry] = await tx
+              .select()
+              .from(distributorLedger)
+              .where(
+                and(
+                  eq(distributorLedger.distributorId, distributor.id),
+                  sql`${distributorLedger.id} < ${deletedEntry.id}`
+                )
+              )
+              .orderBy(desc(distributorLedger.id))
+              .limit(1);
+
+            let runningBalance = previousEntry ? previousEntry.balanceAfter : 0;
+
+            // Update each subsequent entry with recalculated balance
+            for (const entry of subsequentEntries) {
+              runningBalance += entry.amount;
+              await tx
+                .update(distributorLedger)
+                .set({ balanceAfter: runningBalance })
+                .where(eq(distributorLedger.id, entry.id));
+            }
+
+            // Update distributor's current balance
+            await tx
+              .update(distributors)
+              .set({ currentBalance: runningBalance })
+              .where(eq(distributors.id, distributor.id));
+          } else {
+            // No subsequent entries, so calculate balance from last remaining entry
+            const [lastEntry] = await tx
+              .select()
+              .from(distributorLedger)
+              .where(eq(distributorLedger.distributorId, distributor.id))
+              .orderBy(desc(distributorLedger.id))
+              .limit(1);
+
+            const newBalance = lastEntry ? lastEntry.balanceAfter : 0;
+            await tx
+              .update(distributors)
+              .set({ currentBalance: newBalance })
+              .where(eq(distributors.id, distributor.id));
+          }
+
+          // Step 4: Update distributor's totalOrdered
+          const orderAmount = Math.round(parseFloat(bulkOrder.totalAmount));
+          await tx
+            .update(distributors)
+            .set({
+              totalOrdered: sql`${distributors.totalOrdered} - ${orderAmount}`,
+            })
+            .where(eq(distributors.id, distributor.id));
+
+          console.log(
+            `Deleted ledger entry for bulk order ${id}, recalculated balances for distributor ${distributor.id}`
+          );
+        }
+      }
+
+      // Step 5: Delete the bulk order (cascade will delete bulk order items)
+      await tx.delete(bulkOrders).where(eq(bulkOrders.id, id));
+    });
+
+    res.json({
+      message: "Bulk order and associated ledger entries deleted successfully",
+      orderId: id,
+    });
   } catch (error) {
     console.error("Error deleting bulk order:", error);
     res.status(500).json({ error: "Failed to delete bulk order" });
