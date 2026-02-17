@@ -515,7 +515,7 @@ export default function AdminBulkOrdersPage() {
 
         {/* Order Details Dialog */}
         <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-          <DialogContent className="sm:max-w-[700px]">
+          <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Bulk Order Details #{selectedOrder?.id}</DialogTitle>
               <DialogDescription>
