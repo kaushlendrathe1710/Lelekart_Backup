@@ -1924,7 +1924,7 @@ export default function ProductDetailsPage() {
                   Array.isArray(product.variants) &&
                   product.variants.length > 0 ? (
                     <div className="overflow-x-auto rounded-md border">
-                      <table className="min-w-full divide-y divide-gray-200 min-w-[500px]">
+                      <table className="divide-y divide-gray-200 min-w-[500px]">
                         <thead className="bg-gray-50">
                           <tr>
                             <th

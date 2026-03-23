@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useEffect} from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Award,
@@ -54,6 +54,11 @@ const AboutPageSection = ({
 };
 
 export default function AboutUsPage() {
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  },[])
+
   return (
     <div className="min-h-screen bg-[#F8F5E4] text-gray-800 py-4">
       <div className="container mx-auto px-4">

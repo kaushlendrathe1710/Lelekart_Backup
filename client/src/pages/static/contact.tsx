@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { StaticPageSection } from "@/components/static-page-template";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, Mail, PhoneCall, Clock } from "lucide-react";
@@ -15,6 +15,10 @@ export default function ContactUsPage() {
     reset,
     formState: { errors, isSubmitting },
   } = useForm();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  },[])
 
   const onSubmit = async (data: any) => {
     try {

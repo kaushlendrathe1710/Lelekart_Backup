@@ -83,7 +83,10 @@ const checkoutSchema = z.object({
     .string()
     .min(10, { message: "Phone number must be exactly 10 digits" })
     .max(10, { message: "Phone number must be exactly 10 digits" })
-    .regex(/^[0-9]{10}$/, { message: "Phone number must contain only digits" }),
+    .regex(/^[6-9][0-9]{9}$/, {
+      message:
+        "Phone number must be 10 digits and start with 6, 7, 8, or 9",
+    }),
   address: z
     .string()
     .min(20, {
@@ -886,7 +889,7 @@ export default function CheckoutPage() {
     subtotal +
     deliveryCharges -
     (useWalletCoins && walletDiscount > 0 ? walletDiscount : 0) -
-    (appliedCoupon ? couponDiscountAmount : 0) 
+    (appliedCoupon ? couponDiscountAmount : 0)
     // + codHandlingFee;
 
   // Update wallet discount state only when checkbox is checked and wallet is eligible
@@ -1532,7 +1535,7 @@ export default function CheckoutPage() {
                             <FormLabel>Phone</FormLabel>
                             <FormControl>
                               <Input
-                                placeholder="1234567890"
+                                placeholder="XXXXXXXXXX"
                                 {...field}
                                 maxLength={10}
                                 onKeyPress={(e) => {

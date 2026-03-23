@@ -45,6 +45,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Logo } from "@/components/layout/logo";
 import { useState, useEffect } from "react";
 import { apiRequest } from "@/lib/queryClient";
@@ -151,6 +159,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   // Affiliate sidebar state
   const [affiliateLoading, setAffiliateLoading] = useState(true);
   const [isAffiliate, setIsAffiliate] = useState(false);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
   useEffect(() => {
     if (!user?.email) return;
@@ -293,7 +302,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <DropdownMenuItem asChild>
                     <Link href="/orders">My Orders</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleLogout}>
+                  <DropdownMenuItem onClick={() => setShowLogoutDialog(true)}>
                     Log out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -660,7 +669,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <Button
                     variant="ghost"
                     className="w-full justify-start text-destructive hover:text-destructive"
-                    onClick={handleLogout}
+                    onClick={() => setShowLogoutDialog(true)}
                   >
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Logout</span>
@@ -686,6 +695,32 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <SidebarInset className="w-full p-4 md:p-6 bg-[#F8F5E4]">
             {children}
           </SidebarInset>
+          {/* Logout Confirmation Dialog */}
+          <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Confirm Logout</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to log out? You will need to sign in
+                  again to access your account.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    setShowLogoutDialog(false);
+                    handleLogout();
+                  }}
+                >
+                  Logout
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </SidebarProvider>
