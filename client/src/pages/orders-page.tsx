@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Package2,
   Truck,
@@ -17,9 +16,6 @@ import {
   ArrowDownAZ,
   ArrowUpAZ,
   X,
-  ImageIcon,
-  UploadIcon,
-  XIcon,
   Camera,
   CheckCircle,
 } from "lucide-react";
@@ -47,7 +43,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import ReviewForm from "@/components/product/review-form";
 import React from "react";
-import { queryClient as qc } from "@/lib/queryClient";
 import { getOrderItemImageUrlEnhanced } from "@/lib/product-image-utils";
 
 function StarRating({ value }: { value: number }) {
@@ -97,7 +92,7 @@ function UserReviewIndicator({
         : null;
       return mine || null;
     },
-    enabled: !!user && !!productId,
+    enabled: !!user?.id && !!productId,
     staleTime: 60_000,
   });
 
@@ -108,7 +103,7 @@ function UserReviewIndicator({
   return (
     <Button
       variant="outline"
-      size="xs"
+      size="sm"
       className="!h-6 text-[11px] px-2 bg-[#F8F5E4]"
       onClick={(e) => {
         e.stopPropagation();
@@ -234,45 +229,58 @@ export default function OrdersPage() {
   } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
     queryFn: async () => {
-      const response = await fetch("/api/orders", {
-        credentials: "include",
-        headers: {
-          "Cache-Control": "no-cache",
-          Pragma: "no-cache",
-        },
-      });
+      try {
+        const response = await fetch("/api/orders", {
+          credentials: "include",
+          headers: {
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+          },
+        });
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch orders");
-      }
+        if (!response.ok) {
+          // Return empty array instead of throwing to avoid setting ordersError
+          console.error("Orders API returned non-OK status", response.status);
+          return [];
+        }
 
-      const ordersData = await response.json();
-      console.log("Orders data:", ordersData); // Debug log
+        const ordersData = await response.json();
 
-      // Fetch items for each order
-      const ordersWithItems = await Promise.all(
-        ordersData.map(async (order: any) => {
-          try {
-            const itemsResponse = await fetch(`/api/orders/${order.id}/items`, {
-              credentials: "include",
-            });
-            if (itemsResponse.ok) {
-              const itemsData = await itemsResponse.json();
-              console.log(`Items for order ${order.id}:`, itemsData);
-              return { ...order, items: itemsData };
-            } else {
-              console.log(`Failed to fetch items for order ${order.id}`);
+        // Normalize API response: accept array or { orders: [] } or { data: [] }
+        let ordersArray: any[] = [];
+        if (Array.isArray(ordersData)) {
+          ordersArray = ordersData;
+        } else if (ordersData && Array.isArray(ordersData.orders)) {
+          ordersArray = ordersData.orders;
+        } else if (ordersData && Array.isArray(ordersData.data)) {
+          ordersArray = ordersData.data;
+        } else {
+          ordersArray = [];
+        }
+
+        // Fetch items for each order (if any)
+        const ordersWithItems = await Promise.all(
+          ordersArray.map(async (order: any) => {
+            try {
+              const itemsResponse = await fetch(`/api/orders/${order.id}/items`, {
+                credentials: "include",
+              });
+              if (itemsResponse.ok) {
+                const itemsData = await itemsResponse.json();
+                return { ...order, items: itemsData };
+              }
+              return { ...order, items: [] };
+            } catch (error) {
               return { ...order, items: [] };
             }
-          } catch (error) {
-            console.error(`Error fetching items for order ${order.id}:`, error);
-            return { ...order, items: [] };
-          }
-        })
-      );
+          })
+        );
 
-      console.log("Orders with items:", ordersWithItems);
-      return ordersWithItems;
+        return ordersWithItems;
+      } catch (err) {
+        console.error("Error fetching orders:", err);
+        return [];
+      }
     },
     enabled: !!user,
   });
@@ -354,62 +362,6 @@ export default function OrdersPage() {
       });
     },
   });
-
-  // Function to fetch orders
-  const fetchOrders = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch("/api/orders?includeItems=true", {
-        credentials: "include",
-        headers: {
-          "Cache-Control": "no-cache",
-          Pragma: "no-cache",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch orders");
-      }
-
-      const ordersData = await response.json();
-      console.log("Orders data:", ordersData); // Debug log
-
-      // Fetch items for each order
-      const ordersWithItems = await Promise.all(
-        ordersData.map(async (order: any) => {
-          try {
-            const itemsResponse = await fetch(`/api/orders/${order.id}/items`, {
-              credentials: "include",
-            });
-            if (itemsResponse.ok) {
-              const itemsData = await itemsResponse.json();
-              console.log(`Items for order ${order.id}:`, itemsData);
-              return { ...order, items: itemsData };
-            } else {
-              console.log(`Failed to fetch items for order ${order.id}`);
-              return { ...order, items: [] };
-            }
-          } catch (error) {
-            console.error(`Error fetching items for order ${order.id}:`, error);
-            return { ...order, items: [] };
-          }
-        })
-      );
-
-      console.log("Orders with items:", ordersWithItems);
-      setOrders(ordersWithItems);
-      setFilteredOrders(ordersWithItems);
-      setLoading(false);
-    } catch (error) {
-      console.error("Error fetching orders:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch orders. Please try again.",
-        variant: "destructive",
-      });
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
     // Check if user is logged in
@@ -1072,10 +1024,6 @@ export default function OrdersPage() {
       ? returnReasons.filter((r) => r && r.id && r.text)
       : fallbackReasons;
 
-  // Debug logs
-  console.log("filteredReturnReasons:", filteredReturnReasons);
-  console.log("returnImages:", returnImages);
-
   return (
     <DashboardLayout>
       {renderContent()}
@@ -1376,7 +1324,7 @@ export default function OrdersPage() {
               onSuccess={() => {
                 setReviewDialogOpen(false);
                 if (reviewProductId) {
-                  qc.invalidateQueries({
+                  queryClient.invalidateQueries({
                     queryKey: [
                       "userReviewForProduct",
                       reviewProductId,

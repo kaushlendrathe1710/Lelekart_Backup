@@ -683,13 +683,13 @@ export default function BuyerSettingsPage() {
                       </h4>
                       <div className="flex items-center gap-3">
                         <p className="text-sm font-semibold">{user?.email}</p>
-                        <Button
+                        {/* <Button
                           variant="outline"
                           size="sm"
                           onClick={() => setActiveTab("profile")}
                         >
                           Change Email
-                        </Button>
+                        </Button> */}
                       </div>
                     </div>
                   </div>

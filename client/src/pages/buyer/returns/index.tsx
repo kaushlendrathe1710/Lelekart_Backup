@@ -84,7 +84,7 @@ export default function ReturnsList() {
       const res = await fetch("/api/orders", { credentials: "include" });
       if (!res.ok) return [];
       const data = await res.json();
-      return data || [];
+      return data.orders || [];
     },
     enabled: !!user,
   });

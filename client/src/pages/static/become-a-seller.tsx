@@ -192,6 +192,7 @@ export default function BecomeASellerPage() {
       agreeToTerms: false,
       agreeToPrivacyPolicy: false,
     },
+    mode: "onChange",
   });
 
   const watchedPanNumber = watch("panNumber");
@@ -258,15 +259,15 @@ export default function BecomeASellerPage() {
         body: JSON.stringify({ ifscCode }),
       });
 
-      if (response.ok) {
+        if (response.ok) {
         const result = await response.json();
         if (result.success && result.data) {
           setIfscValidationStatus("valid");
           setIfscBankData(result.data);
           // Auto-fill bank details
-          setValue("bankName", result.data.bankName);
-          setValue("bankState", result.data.state);
-          setValue("bankCity", result.data.city);
+          setValue("bankName", result.data.bankName, { shouldValidate: true });
+          setValue("bankState", result.data.state, { shouldValidate: true });
+          setValue("bankCity", result.data.city, { shouldValidate: true });
           // Note: Razorpay API doesn't provide pincode, so we'll keep it empty
           setSelectedBankState(result.data.state);
         } else {
@@ -328,7 +329,7 @@ export default function BecomeASellerPage() {
         console.log(`Pincode API response:`, result);
 
         // Auto-fill state and city
-        setValue(`${type}State`, result.state);
+        setValue(`${type}State`, result.state, { shouldValidate: true });
 
         if (type === "business") {
           setBusinessPincodeValidationStatus("valid");
@@ -363,14 +364,14 @@ export default function BecomeASellerPage() {
           };
 
           // Check if district exists directly in available cities
-          if (availableCities.includes(result.district)) {
-            setValue(`${type}City`, result.district);
+            if (availableCities.includes(result.district)) {
+            setValue(`${type}City`, result.district, { shouldValidate: true });
             console.log(`Auto-set ${type} city to: ${result.district}`);
           } else {
             // Check if there's a mapped name
             const mappedName = cityNameMapping[result.district];
             if (mappedName && availableCities.includes(mappedName)) {
-              setValue(`${type}City`, mappedName);
+              setValue(`${type}City`, mappedName, { shouldValidate: true });
               console.log(
                 `Auto-set ${type} city to mapped name: ${mappedName} (from ${result.district})`
               );
@@ -383,13 +384,13 @@ export default function BecomeASellerPage() {
               );
 
               if (closeMatch) {
-                setValue(`${type}City`, closeMatch);
+                setValue(`${type}City`, closeMatch, { shouldValidate: true });
                 console.log(
                   `Auto-set ${type} city to close match: ${closeMatch}`
                 );
               } else {
                 // Set as-is if no match found
-                setValue(`${type}City`, result.district);
+                setValue(`${type}City`, result.district, { shouldValidate: true });
                 console.log(
                   `No close match found for '${result.district}', setting as-is`
                 );
@@ -660,10 +661,10 @@ export default function BecomeASellerPage() {
       });
 
       if (response.ok) {
-        const result = await response.json();
-        console.log("Upload successful:", result);
-        setUploadedFileUrl(result.url);
-        setValue("governmentIdPhoto", result.url);
+      const result = await response.json();
+      console.log("Upload successful:", result);
+      setUploadedFileUrl(result.url);
+      setValue("governmentIdPhoto", result.url, { shouldValidate: true });
         toast({
           title: "File uploaded successfully",
           description: "Your government ID document has been uploaded.",
@@ -872,12 +873,12 @@ export default function BecomeASellerPage() {
                             type="tel"
                             placeholder="9876543210"
                             maxLength={10}
-                            {...register("phone")}
-                            onChange={(e) => {
-                              // Only allow digits
-                              const value = e.target.value.replace(/\D/g, "");
-                              e.target.value = value;
-                            }}
+                            {...register("phone", {
+                              onChange: (e: any) => {
+                                const value = e.target.value.replace(/\D/g, "");
+                                e.target.value = value;
+                              },
+                            })}
                             className={errors.phone ? "border-red-500" : ""}
                           />
                           {errors.phone && (
@@ -926,7 +927,9 @@ export default function BecomeASellerPage() {
                           <Label htmlFor="businessType">Business Type *</Label>
                           <Select
                             onValueChange={(value) =>
-                              setValue("businessType", value as any)
+                              setValue("businessType", value as any, {
+                                shouldValidate: true,
+                              })
                             }
                           >
                             <SelectTrigger
@@ -985,8 +988,12 @@ export default function BecomeASellerPage() {
                           <Select
                             value={watchedBusinessState}
                             onValueChange={(value) => {
-                              setValue("businessState", value);
-                              setValue("businessCity", "");
+                              setValue("businessState", value, {
+                                shouldValidate: true,
+                              });
+                              setValue("businessCity", "", {
+                                shouldValidate: true,
+                              });
                               setSelectedBusinessState(value);
                               setBusinessCitySearch("");
                             }}
@@ -1020,7 +1027,9 @@ export default function BecomeASellerPage() {
                               console.log(
                                 `Business city dropdown changed to: ${value}`
                               );
-                              setValue("businessCity", value);
+                              setValue("businessCity", value, {
+                                shouldValidate: true,
+                              });
                             }}
                             disabled={!selectedBusinessState}
                           >
@@ -1466,7 +1475,9 @@ export default function BecomeASellerPage() {
                           </Label>
                           <Select
                             onValueChange={(value) =>
-                              setValue("governmentIdType", value as any)
+                              setValue("governmentIdType", value as any, {
+                                shouldValidate: true,
+                              })
                             }
                           >
                             <SelectTrigger
@@ -1670,7 +1681,9 @@ export default function BecomeASellerPage() {
                           id="agreeToTerms"
                           checked={watch("agreeToTerms")}
                           onCheckedChange={(checked) =>
-                            setValue("agreeToTerms", checked as boolean)
+                            setValue("agreeToTerms", checked as boolean, {
+                              shouldValidate: true,
+                            })
                           }
                         />
                         <div className="grid gap-1.5 leading-none">
@@ -1705,7 +1718,9 @@ export default function BecomeASellerPage() {
                           id="agreeToPrivacyPolicy"
                           checked={watch("agreeToPrivacyPolicy")}
                           onCheckedChange={(checked) =>
-                            setValue("agreeToPrivacyPolicy", checked as boolean)
+                            setValue("agreeToPrivacyPolicy", checked as boolean, {
+                              shouldValidate: true,
+                            })
                           }
                         />
                         <div className="grid gap-1.5 leading-none">

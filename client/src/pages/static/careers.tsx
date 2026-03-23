@@ -34,18 +34,39 @@ const careerFormSchema = z.object({
   highestQualification: z
     .string()
     .min(2, "Please enter your highest qualification"),
-  specialization: z.string().min(2, "Please enter your specialization"),
-  workExperience: z.string().min(1, "Please enter your work experience"),
+  specialization: z.enum([
+    "Computer Science",
+    "Information Technology",
+    "Management",
+    "Electrical Engineering",
+    "Mechanical Engineering",
+    "Civil Engineering",
+    "Commerce",
+    "Economics",
+    "Other",
+  ]),
+  workExperience: z.string().min(1, "Please enter your work experience").max(2, "work experience can't be greater than 2 digits"),
   idNumber: z.string().min(1, "Please enter your valid ID number"),
   email: z.string().email("Please enter a valid email address"),
   country: z.string().min(1, "Please select your country"),
   position: z.string().min(1, "Please select a position"),
   phoneCode: z.string().min(1, "Please select a country code"),
-  phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
+  phoneNumber: z
+    .string()
+    .min(10, "Phone number must be exactly 10 digits")
+    .max(10, "Phone number must be exactly 10 digits")
+    .regex(/^[6-9][0-9]{9}$/, {
+      message: "Phone number must be 10 digits and start with 6, 7, 8, or 9",
+    }),
   whatsappCode: z.string().min(1, "Please select a country code"),
   whatsappNumber: z
     .string()
-    .min(10, "WhatsApp number must be at least 10 digits"),
+    .min(10, "WhatsApp number must be exactly 10 digits")
+    .max(10, "WhatsApp number must be exactly 10 digits")
+    .regex(/^[6-9][0-9]{9}$/, {
+      message:
+        "WhatsApp number must be 10 digits and start with 6, 7, 8, or 9",
+    }),
   message: z.string().min(10, "Please explain why you should be hired").max(500, "Message must not exceed 500 characters"),
   resume: z.any().optional(),
 });
@@ -65,7 +86,7 @@ export default function CareersPage() {
       maritalStatus: "Single",
       address: "",
       highestQualification: "",
-      specialization: "",
+      specialization: "Computer Science",
       workExperience: "",
       idNumber: "",
       email: "",
@@ -77,6 +98,7 @@ export default function CareersPage() {
       whatsappNumber: "",
       message: "",
     },
+    mode: "onChange",
   });
 
   // Destructure necessary methods and state from the form object for direct use
@@ -96,7 +118,7 @@ export default function CareersPage() {
       maritalStatus: "Single",
       address: "",
       highestQualification: "",
-      specialization: "",
+      specialization: form.getValues("specialization"),
       workExperience: "",
       idNumber: "",
       email: "",
@@ -374,13 +396,27 @@ export default function CareersPage() {
                             <FormLabel className="text-sm md:text-base">
                               Specialization
                             </FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="e.g., Computer Science"
-                                {...field}
-                                className="text-sm md:text-base"
-                              />
-                            </FormControl>
+                            <Select
+                              onValueChange={(value) => field.onChange(value)}
+                              value={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="text-sm md:text-base">
+                                  <SelectValue placeholder="Select specialization" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="Computer Science">Computer Science</SelectItem>
+                                <SelectItem value="Information Technology">Information Technology</SelectItem>
+                                <SelectItem value="Management">Management</SelectItem>
+                                <SelectItem value="Electrical Engineering">Electrical Engineering</SelectItem>
+                                <SelectItem value="Mechanical Engineering">Mechanical Engineering</SelectItem>
+                                <SelectItem value="Civil Engineering">Civil Engineering</SelectItem>
+                                <SelectItem value="Commerce">Commerce</SelectItem>
+                                <SelectItem value="Economics">Economics</SelectItem>
+                                <SelectItem value="Other">Other</SelectItem>
+                              </SelectContent>
+                            </Select>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -526,7 +562,7 @@ export default function CareersPage() {
                                 <Input
                                   type="tel"
                                   className="block w-full rounded-md border-gray-300 pl-16 focus:border-primary-500 focus:ring-primary-500 text-sm md:text-base"
-                                  placeholder="Enter phone number"
+                                  placeholder="XXXXXXXXXX"
                                   {...field} // Bind field props
                                 />
                               </div>
@@ -555,7 +591,7 @@ export default function CareersPage() {
                                 <Input
                                   type="tel"
                                   className="block w-full rounded-md border-gray-300 pl-16 focus:border-primary-500 focus:ring-primary-500 text-sm md:text-base"
-                                  placeholder="Enter WhatsApp number"
+                                  placeholder="XXXXXXXXXX"
                                   {...field} // Bind field props
                                 />
                               </div>
