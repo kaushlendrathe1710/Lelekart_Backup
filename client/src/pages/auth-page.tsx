@@ -87,6 +87,8 @@ export default function AuthPage() {
     "email"
   );
   const [email, setEmail] = useState<string>("");
+  // Resend OTP cooldown in seconds
+  const [resendCooldown, setResendCooldown] = useState<number>(0);
 
   // Fetch current user
   const { data: user } = useQuery<User>({
@@ -227,6 +229,9 @@ export default function AuthPage() {
             setAuthState("otp");
             otpForm.setValue("email", values.email);
 
+            // Start 60s cooldown for resending OTP
+            setResendCooldown(60);
+
             toast({
               title: "OTP Sent",
               description: "Check your email for the OTP code",
@@ -351,6 +356,45 @@ export default function AuthPage() {
       });
     }
   }
+
+  // Resend OTP handler
+  async function resendOtp() {
+    if (!email) return;
+
+    try {
+      requestOtpMutation.mutate(
+        { email },
+        {
+          onSuccess: (data) => {
+            // restart cooldown
+            setResendCooldown(60);
+
+            otpForm.setValue("email", email);
+
+            toast({
+              title: "OTP Sent",
+              description: "A new OTP has been sent to your email",
+              variant: "default",
+            });
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Unexpected error in resend OTP:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }
+
+  // Countdown effect for resend cooldown
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown((c) => Math.max(0, c - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
 
   // Complete registration
   async function onRegisterSubmit(values: RegisterFormValues) {
@@ -517,14 +561,42 @@ export default function AuthPage() {
                     </Form>
                   </CardContent>
                   <CardFooter className="flex flex-col items-center">
-                    <Button
-                      variant="link"
-                      className="mt-2"
-                      onClick={() => setAuthState("email")}
-                      disabled={verifyOtpMutation.isPending}
-                    >
-                      Back to email
-                    </Button>
+                    <div className="flex items-center space-x-4">
+                      <Button
+                        variant="ghost"
+                        className="mt-2"
+                        onClick={resendOtp}
+                        disabled={
+                          verifyOtpMutation.isPending ||
+                          requestOtpMutation.isPending ||
+                          resendCooldown > 0
+                        }
+                      >
+                        {requestOtpMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Sending...
+                          </>
+                        ) : (
+                          "Resend OTP"
+                        )}
+                      </Button>
+
+                      <Button
+                        variant="link"
+                        className="mt-2"
+                        onClick={() => setAuthState("email")}
+                        disabled={verifyOtpMutation.isPending}
+                      >
+                        Back to email
+                      </Button>
+                    </div>
+
+                    {resendCooldown > 0 && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Resend available in {Math.floor(resendCooldown / 60)}:{String(resendCooldown % 60).padStart(2, "0")}
+                      </p>
+                    )}
                   </CardFooter>
                 </>
               )}

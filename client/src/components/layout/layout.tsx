@@ -37,7 +37,7 @@ export function Layout({ children }: LayoutProps) {
       {/* Add a spacer when SimpleHeader is shown to prevent content overlap */}
       {!skipHeaderFooter && <div className="h-14 md:h-14"></div>}
       {/* Add extra height for mobile search bar */}
-      {!skipHeaderFooter && <div className="h-10 md:hidden"></div>}
+      {!skipHeaderFooter && <div className="h-14 lg:hidden"></div>}
       {/* Show CategoryMegaMenu only on selected pages */}
       {showCategoryMegaMenu && <CategoryMegaMenu />}
       <main className="flex-grow">{children}</main>

@@ -183,6 +183,18 @@ function App() {
   useEffect(() => {
     injectMetaPixel();
   }, []);
+  // Scroll to top on every route change to ensure pages start at top
+  function ScrollToTopOnRouteChange() {
+    const [location] = useLocation();
+    useEffect(() => {
+      try {
+        window.scrollTo({ top: 0, left: 0 });
+      } catch (e) {
+        // ignore for SSR or non-browser environments
+      }
+    }, [location]);
+    return null;
+  }
   useMetaPixelPageView();
   return (
     <QueryClientProvider client={queryClient}>
@@ -193,6 +205,7 @@ function App() {
               <NotificationProvider>
                 <TooltipProvider>
                   <div className="app">
+                      <ScrollToTopOnRouteChange />
                     <ImpersonationBanner />
                     <Switch>
                       {/* Public seller profile route */}
