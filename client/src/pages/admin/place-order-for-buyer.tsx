@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useDebounce } from "@/hooks/use-debounce";
 import { AdminLayout } from "@/components/layout/admin-layout";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -109,15 +110,19 @@ export default function PlaceOrderForBuyer() {
     });
 
     // Fetch buyers
+    // Debounce search inputs to prevent calling API on every keystroke
+    const debouncedBuyerSearch = useDebounce(buyerSearch, 500);
+    const debouncedProductSearch = useDebounce(productSearch, 500);
     const {
         data: buyersData,
         isLoading: loadingBuyers,
         refetch: refetchBuyers,
     } = useQuery({
-        queryKey: ["/api/admin/buyers", buyerSearch],
+        // Use debounced search input to avoid API calls on every keystroke
+        queryKey: ["/api/admin/buyers", debouncedBuyerSearch],
         queryFn: async () => {
             const params = new URLSearchParams();
-            if (buyerSearch) params.append("search", buyerSearch);
+            if (debouncedBuyerSearch) params.append("search", debouncedBuyerSearch);
             const response = await apiRequest("GET", `/api/admin/buyers?${params.toString()}`);
             return response.json();
         },
@@ -143,10 +148,10 @@ export default function PlaceOrderForBuyer() {
         data: productsData,
         isLoading: loadingProducts,
     } = useQuery({
-        queryKey: ["/api/admin/products-for-order", productSearch],
+        queryKey: ["/api/admin/products-for-order", debouncedProductSearch],
         queryFn: async () => {
             const params = new URLSearchParams();
-            if (productSearch) params.append("search", productSearch);
+            if (debouncedProductSearch) params.append("search", debouncedProductSearch);
             const response = await apiRequest("GET", `/api/admin/products-for-order?${params.toString()}`);
             return response.json();
         },

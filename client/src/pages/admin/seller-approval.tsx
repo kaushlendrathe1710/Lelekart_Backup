@@ -1132,6 +1132,8 @@ function SellerCard({
   const authSeller = item as AuthSeller;
   const registrationApp = item as SellerApplication;
 
+  console.log("Rendering SellerCard for item:", item.created_at);
+
   const getDisplayName = () => {
     if (isAuthSeller) {
       return authSeller.name || authSeller.username;
@@ -1279,7 +1281,7 @@ function SellerCard({
 
             <div className="mt-4 pt-4 border-t">
               <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>Created: {formatDate(getCreatedDate())}</span>
+                <span>Created: {!getCreatedDate() ? "unavailable" : formatDate(getCreatedDate())} </span>
                 {!isAuthSeller && registrationApp.reviewed_at && (
                   <span>
                     Reviewed: {formatDate(registrationApp.reviewed_at)}

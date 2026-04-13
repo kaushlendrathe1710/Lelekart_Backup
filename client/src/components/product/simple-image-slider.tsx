@@ -1,12 +1,5 @@
 import { useState, useRef } from "react";
-import {
-  RotateCw,
-  ZoomIn,
-  Check,
-  Image,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { RotateCw, Check, Image, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
@@ -24,11 +17,8 @@ export default function SimpleImageSlider({
   selectedVariantImages = [],
   selectedVariant = null,
 }: ProductImageSliderProps) {
-  // Simple state management - only track active image index and view mode
+  // Simple state management - only track active image index
   const [activeIndex, setActiveIndex] = useState(0);
-  const [viewMode, setViewMode] = useState<"normal" | "zoom"
-    // | "360"
-  >("normal");
   const [isDragging, setIsDragging] = useState(false);
   const [showAllThumbs, setShowAllThumbs] = useState(false);
 
@@ -161,7 +151,6 @@ export default function SimpleImageSlider({
   // Handle thumbnail click
   const handleThumbnailClick = (index: number) => {
     setActiveIndex(index);
-    setViewMode("normal");
   };
 
   // Arrow navigation
@@ -195,38 +184,7 @@ export default function SimpleImageSlider({
         </div>
       )}
 
-      {/* View mode toggle buttons */}
-      <div className="flex gap-2 justify-end">
-        <Button
-          variant={viewMode === "normal" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setViewMode("normal")}
-          className="flex items-center gap-1"
-        >
-          <Image size={16} />
-          <span>Normal</span>
-        </Button>
-
-        <Button
-          variant={viewMode === "zoom" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setViewMode("zoom")}
-          className="flex items-center gap-1"
-        >
-          <ZoomIn size={16} />
-          <span>Zoom</span>
-        </Button>
-
-        {/* <Button
-          variant={viewMode === "360" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setViewMode("360")}
-          className="flex items-center gap-1"
-        >
-          <RotateCw size={16} />
-          <span>360° View</span>
-        </Button> */}
-      </div>
+      {/* View mode: single zoom-enabled view (click image once to zoom). */}
 
       <div className="flex">
         {/* Thumbnails on the left */}
@@ -290,134 +248,44 @@ export default function SimpleImageSlider({
 
         {/* Main image area */}
         <div ref={containerRef} className="flex-1">
-          {viewMode === "normal" && (
-            <div className="w-full h-64 sm:h-80 md:h-96 border border-gray-100 flex items-center justify-center bg-white relative overflow-hidden">
+          <div className="h-64 md:h-72 border border-gray-100 flex items-center justify-center bg-white relative overflow-hidden">
+            <Zoom>
+              <div className="h-64 md:h-72">
+
               <img
                 src={allImagesUrls[activeIndex] || defaultImage}
                 alt={name}
                 className="w-full h-full object-contain cursor-zoom-in transition-transform hover:scale-105"
                 onError={handleImageError}
-                onClick={() => setViewMode("zoom")}
                 style={{ maxWidth: "100%", maxHeight: "100%" }}
-              />
-              {canNavigate && (
-                <>
-                  <button
-                    type="button"
-                    aria-label="Previous image"
-                    onClick={goPrev}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/60 text-white p-2 rounded-full"
-                  >
-                    <ChevronLeft size={18} />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Next image"
-                    onClick={goNext}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/60 text-white p-2 rounded-full"
-                  >
-                    <ChevronRight size={18} />
-                  </button>
-                </>
-              )}
-              <div className="absolute bottom-2 right-2 bg-black bg-opacity-60 text-white p-1 rounded text-xs">
-                Click to zoom
-              </div>
-            </div>
-          )}
-
-          {viewMode === "zoom" && (
-            <div className="w-full h-64 sm:h-80 md:h-96 border border-gray-100 bg-white overflow-hidden">
-              <div className="h-full relative flex items-center justify-center">
-                <Zoom>
-                  <img
-                    src={allImagesUrls[activeIndex] || defaultImage}
-                    alt={name}
-                    className="w-full h-full object-contain"
-                    onError={handleImageError}
-                    style={{ maxWidth: "100%", maxHeight: "100%" }}
-                  />
-                </Zoom>
-                {canNavigate && (
-                  <>
-                    <button
-                      type="button"
-                      aria-label="Previous image"
-                      onClick={goPrev}
-                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/60 text-white p-2 rounded-full"
-                    >
-                      <ChevronLeft size={18} />
-                    </button>
-                    <button
-                      type="button"
-                      aria-label="Next image"
-                      onClick={goNext}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/60 text-white p-2 rounded-full"
-                    >
-                      <ChevronRight size={18} />
-                    </button>
-                  </>
-                )}
-              </div>
-              <div className="mt-2 text-center text-xs text-gray-500">
-                Click on the image to zoom in, move mouse to pan, click again to
-                zoom out
-              </div>
-            </div>
-          )}
-
-          {/* {viewMode === "360" && (
-            <div
-              className="w-full h-64 sm:h-80 md:h-96 border border-gray-100 bg-white flex items-center justify-center cursor-grab active:cursor-grabbing"
-              onMouseMove={handle360MouseMove}
-              onMouseEnter={() => setIsDragging(true)}
-              onMouseLeave={() => setIsDragging(false)}
-            >
-              <div className="relative w-full h-full flex items-center justify-center">
-                {allImagesUrls.length > 0 ? (
-                  <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-                    <img
-                      src={allImagesUrls[activeIndex] || defaultImage}
-                      alt={`${name} 360 view`}
-                      className="w-full h-full object-contain transition-all duration-200"
-                      onError={handleImageError}
-                      style={{ maxWidth: "100%", maxHeight: "100%" }}
-                    />
-                    {canNavigate && (
-                      <>
-                        <button
-                          type="button"
-                          aria-label="Previous image"
-                          onClick={goPrev}
-                          className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/60 text-white p-2 rounded-full"
-                        >
-                          <ChevronLeft size={18} />
-                        </button>
-                        <button
-                          type="button"
-                          aria-label="Next image"
-                          onClick={goNext}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/60 text-white p-2 rounded-full"
-                        >
-                          <ChevronRight size={18} />
-                        </button>
-                      </>
-                    )}
-                    <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-gray-50 to-transparent opacity-20 pointer-events-none" />
-                  </div>
-                ) : (
-                  <span className="text-gray-400">No images available</span>
-                )}
-                <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-60 text-white p-2 rounded text-xs flex items-center gap-2">
-                  <RotateCw
-                    size={14}
-                    className={`${isDragging ? "animate-spin" : "animate-pulse"}`}
-                  />
-                  <span>Move mouse left/right to rotate view</span>
+                />
                 </div>
-              </div>
+            </Zoom>
+            {canNavigate && (
+              <>
+                <button
+                  type="button"
+                  aria-label="Previous image"
+                  onClick={goPrev}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/60 text-white p-2 rounded-full"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Next image"
+                  onClick={goNext}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/60 text-white p-2 rounded-full"
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </>
+            )}
+            <div className="absolute bottom-2 right-2 bg-black bg-opacity-60 text-white p-1 rounded text-xs">
+              Click to zoom
             </div>
-          )} */}
+          </div>
+
         </div>
       </div>
 
@@ -438,13 +306,6 @@ export default function SimpleImageSlider({
         </div>
       )}
 
-      {/* Help text for 360 view */}
-      {/* {viewMode === "360" && (
-        <div className="text-xs text-gray-500 text-center">
-          <p>360° View: Move your mouse left and right to rotate the product</p>
-          <p className="mt-1">Available frames: {get360Frames().length}</p>
-        </div>
-      )} */}
     </div>
   );
 }
